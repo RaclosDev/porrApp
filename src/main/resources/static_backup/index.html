@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <script>
+        window.addEventListener('error', function (e) {
+            document.body.innerHTML += '<div style="color:white; background:red; position:fixed; top:0; left:0; width:100%; z-index:99999; padding:20px; font-size:16px; font-family:sans-serif;"><b>ERROR FATAL JS:</b> ' + e.message + '<br>' + e.filename + ':' + e.lineno + '</div>';
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+            document.body.innerHTML += '<div style="color:white; background:red; position:fixed; top:0; left:0; width:100%; z-index:99999; padding:20px; font-size:16px; font-family:sans-serif;"><b>ERROR PROMESA:</b> ' + (e.reason && e.reason.message ? e.reason.message : e.reason) + '</div>';
+        });
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mundial 2026 - Porra</title>
+    
+    <!-- Open Graph Meta Tags para WhatsApp, Twitter, etc. -->
+    <meta property="og:title" content="⚽ Porra Mundial 2026">
+    <meta property="og:description" content="¡Participa en la porra del Mundial 2026! Predice los resultados, acumula puntos y compite con tus amigos. ¿Quién se llevará el bote? 🏆">
+    <meta property="og:url" content="https://porra.raclos.es">
+    <meta property="og:type" content="website">
+    
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="⚽ Porra Mundial 2026">
+    <meta name="twitter:description" content="¡Participa en la porra del Mundial 2026! Predice los resultados, acumula puntos y compite con tus amigos. ¿Quién se llevará el bote? 🏆">
+
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=1.3.93">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+
+<body>
+    <header class="top-bar">
+        <div class="header-left">
+            <div class="header-title-row" style="display: flex; align-items: center; gap: 15px; flex-wrap: nowrap;">
+                <h1 id="site-title" style="cursor: pointer; margin: 0; white-space: nowrap;">
+                    MUNDIAL 2026 - PORRA</h1>
+                <div id="online-counter" class="tooltip-container" onclick="this.classList.toggle('show-tooltip')"
+                    style="display: none; font-size: 0.9rem; font-weight: normal; background: rgba(0, 210, 211, 0.1); color: #00d2d3; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(0, 210, 211, 0.3); text-shadow: none; white-space: nowrap; cursor: pointer; position: relative;">
+                    <span id="online-counter-text">👁️ 1 online</span>
+                    <div id="online-tooltip" class="custom-tooltip">
+                        <div class="tooltip-header">Conectados ahora:</div>
+                        <ul id="online-users-list"></ul>
+                    </div>
+                </div>
+                <button id="btn-view-my-bet-header"
+                    onclick="document.getElementById('btn-view-my-bet') && document.getElementById('btn-view-my-bet').click()"
+                    style="display: none; background: linear-gradient(135deg, #f368e0, #ff9ff3); border: none; color: black; padding: 5px 14px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; cursor: pointer; white-space: nowrap;">👀
+                    Ver Mi Porra</button>
+            </div>
+            <div class="user-info" id="user-info-bar" style="display: none;">
+                <input type="text" id="user-name" placeholder="Tu Nombre">
+            </div>
+        </div>
+        <div class="header-center">
+            <nav class="nav-links">
+                <button id="nav-home" class="glass-btn active">Inicio</button>
+                <button id="nav-leaderboard" class="glass-btn">Clasificación</button>
+                <button id="nav-radar" class="glass-btn">Partidos</button>
+                <button id="nav-search" class="glass-btn">🔍 Buscador</button>
+                <button id="nav-stats" class="glass-btn">Más Elegidos</button>
+                <button id="nav-rules" class="glass-btn">Reglas y Premios</button>
+                <button id="nav-group" class="glass-btn" style="display:none;">Grupos</button>
+                <button id="nav-thirds" class="glass-btn" style="display:none;">Mejores Terceros</button>
+                <button id="nav-bracket" class="glass-btn" style="display:none;">Eliminatorias</button>
+            </nav>
+        </div>
+        <div class="header-right">
+            <button id="nav-group" style="display:none;"></button>
+        </div>
+    </header>
+
+    <!-- NEWS TICKER -->
+    <div id="news-ticker"
+        style="background: rgba(20, 20, 30, 0.9); border-bottom: 1px solid rgba(255, 255, 255, 0.1); width: 100%; padding: 8px 20px; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; height: 35px; box-sizing: border-box;">
+        <div id="news-ticker-marquee" style="display: inline-block; white-space: nowrap;">
+            <div id="news-ticker-text"
+                style="color: var(--accent-color); font-weight: 600; letter-spacing: 0.5px; transition: opacity 0.5s, transform 0.5s; opacity: 0; display: inline-block;">
+                Cargando datos...
+            </div>
+        </div>
+    </div>
+
+    <main class="app-container">
+
+
+
+        <!-- LEADERBOARD VIEW -->
+        <section id="view-leaderboard" class="view-section">
+            <div class="section-header" style="margin-top: 20px;">
+                <h2 style="margin: 0; text-align: center;">Clasificación Global</h2>
+                <div style="display: flex; justify-content: center; margin-top: 15px;">
+                    <button id="btn-share-wa" class="glass-btn primary-btn"
+                        style="padding: 8px 20px; font-size: 1.1em; display: flex; align-items: center; gap: 8px; background: #25D366; color: white; border-color: #25D366; border-radius: 20px;">
+                        <span>Compartir en WhatsApp</span> 📲
+                    </button>
+                </div>
+                <div id="provisional-banner"
+                    style="display: none; background: rgba(255, 159, 67, 0.2); border: 1px solid #ff9f43; padding: 10px; border-radius: 8px; margin-top: 15px; color: #ff9f43; font-size: 0.9rem;">
+                    ⚠️ Las puntuaciones incluyen posiciones virtuales (provisionales) de los grupos en juego.
+                </div>
+            </div>
+            <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; justify-content: center; width: 100%;">
+                <div class="table-container" style="flex: 1; min-width: 300px; max-width: 1400px; margin: 0 auto;">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Participante</th>
+                                <th>TOTAL</th>
+                                <th>F.Grupos</th>
+                                <th>1/16</th>
+                                <th>Octavos</th>
+                                <th>Cuartos</th>
+                                <th>Semis</th>
+                                <th>Finales</th>
+                                <th>Goleador</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body-tab">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOME VIEW (STANDINGS) -->
+        <section id="view-home" class="view-section active">
+
+            <!-- Top Content Container -->
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; margin-bottom: 20px; width: 100%; gap: 20px;">
+                
+                <!-- Spacer Izquierdo (para centrar perfectamente el medio) -->
+                <div style="flex: 1; min-width: min(100%, 320px);" class="hide-on-mobile"></div>
+
+                <!-- Center Area -->
+                <div style="flex: 1; min-width: min(100%, 350px); max-width: 600px; display: flex; flex-direction: column; align-items: center;">
+                    <!-- Clasificación Fase de Grupos - TÍTULO ARRIBA -->
+                    <div class="section-header" style="margin-bottom: 15px; text-align: center;">
+                        <h2 style="font-size: 1.8rem; border-bottom: 2px solid var(--accent-color); display: inline-block; padding-bottom: 5px;">
+                            Clasificación Fase de Grupos
+                        </h2>
+                    </div>
+
+                    <!-- Partidos en Curso -->
+                    <div id="live-matches-wrapper-home" style="display: none; width: 100%; max-width: 480px; margin: 0 auto 20px auto; text-align: center;">
+                        <h3 style="color: #ff4757; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span style="display: inline-block; width: 10px; height: 10px; background: #ff4757; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                            Partidos en Curso
+                        </h3>
+                        <div id="live-matches-container-home" style="width: 100%;"></div>
+                    </div>
+
+                    <div id="action-buttons-container" style="text-align: center; margin-bottom: 10px;">
+                        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                            <button id="btn-view-my-bet" style="display: none;"></button>
+                            <button id="btn-change-my-bet" class="glass-btn" style="display: none; padding: 10px 15px; font-weight: bold; font-size: 0.9em;" title="Cambiar usuario guardado">👤 Cambiar Usuario</button>
+                            <button id="btn-save-points" class="glass-btn primary-btn" style="display: none;">💾 Guardar Puntuaciones</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Area (Pichichi) -->
+                <div style="flex: 1; min-width: min(100%, 320px); display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 20px;" class="pichichi-mobile-center">
+                    <div style="width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="text-align: center; color: #ffd32a; font-size: 1rem; font-weight: bold; padding: 6px; background: rgba(255, 211, 42, 0.1); border: 1px solid rgba(255, 211, 42, 0.3); border-radius: 12px;">
+                            🏆 PICHICHI
+                        </div>
+                        <div class="sofascore-widget-container" style="overflow: hidden; position: relative; height: 190px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <iframe id="sofa-standings-embed-16-58210" src="https://widgets.sofascore.com/es-ES/embed/unique-tournament/16/season/58210/topPlayers?numberOfTopPlayers=3&showCompetitionLogo=true&widgetTitle=Pichichi&widgetTheme=dark&sortBy=goals&seasonPeriodType=overall" frameborder="0" scrolling="no" style="width:calc(100% + 2px)!important;height:420px!important;max-width:none!important; position: absolute; top: -81px; left: -1px;"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>         </div>
+            </div>
+
+            <div id="home-standings-grid" class="groups-grid">
+                <!-- Javascript will populate 12 groups with points here -->
+            </div>
+
+            <!-- Panel flotante fijo a la derecha de los grupos -->
+            <div id="group-matches-panel"
+                style="display: none; position: fixed; top: 10px; right: 20px; width: max-content; min-width: 380px; max-width: 90vw; max-height: calc(100vh - 20px); overflow-y: auto; background: rgba(15, 23, 42, 0.97); backdrop-filter: blur(12px); border-radius: 12px; padding: 20px; border: 1px solid rgba(59,130,246,0.4); box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 500; animation: fadeIn 0.3s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 id="group-matches-title" style="color: var(--accent-color); margin: 0;"></h3>
+                    <button id="btn-close-group-panel"
+                        style="background:none;border:none;color:#aaa;font-size:1.4rem;cursor:pointer;">✖</button>
+                </div>
+                <div id="group-matches-list" class="last-matches-grid"></div>
+            </div>
+
+            <div class="section-header" style="margin-top: 40px; margin-bottom: 20px;">
+                <h2
+                    style="font-size: 1.8rem; border-bottom: 2px solid var(--accent-color); display: inline-block; padding-bottom: 5px;">
+                    Partidos</h2>
+            </div>
+
+            <div class="radar-container">
+                <div class="radar-column">
+                    <h3 style="text-align: center; color: var(--text-muted); margin-bottom: 15px;">Últimos Resultados
+                    </h3>
+                    <div id="last-matches-container-home" class="last-matches-grid">
+                        <!-- Javascript will populate last matches here -->
+                    </div>
+                </div>
+
+                <div class="radar-column">
+                    <h3 style="text-align: center; color: var(--text-muted); margin-bottom: 15px;">Próximos Partidos
+                    </h3>
+                    <div id="next-matches-container-home" class="last-matches-grid">
+                        <!-- Javascript will populate next matches here -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RADAR VIEW -->
+        <section id="view-radar" class="view-section">
+            <div class="section-header" style="margin-bottom: 20px;">
+                <h2
+                    style="font-size: 1.8rem; border-bottom: 2px solid var(--accent-color); display: inline-block; padding-bottom: 5px;">
+                    Partidos</h2>
+            </div>
+
+            <div class="radar-container">
+                <div class="radar-column">
+                    <h3 style="text-align: center; color: var(--text-muted); margin-bottom: 15px;">Últimos Resultados
+                    </h3>
+                    <div id="last-matches-container-radar" class="last-matches-grid">
+                        <!-- Javascript will populate last matches here -->
+                    </div>
+                </div>
+
+                <div class="radar-column">
+                    <h3 style="text-align: center; color: var(--text-muted); margin-bottom: 15px;">Próximos Partidos
+                    </h3>
+                    <div id="next-matches-container-radar" class="last-matches-grid">
+                        <!-- Javascript will populate next matches here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADMIN GROUP STAGE VIEW (AND LOAD BET VIEW) -->
+        <section id="view-group-stage" class="view-section">
+            <div id="read-only-banner"
+                style="display: none; background: rgba(59, 130, 246, 0.85); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000; border: 1px solid var(--accent-color); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: bold; color: var(--accent-color); box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                <div>Estás viendo la porra de: <span id="read-only-name" style="color: white;"></span></div>
+                <div style="margin-top: 5px; color: #ffd32a;">Máximo Goleador: <span id="read-only-scorer-name"
+                        style="color: white;"></span></div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="document.getElementById('nav-thirds').click()" class="glass-btn primary-btn"
+                        style="padding: 5px 15px; font-size: 0.9rem;">Ver Mejores Terceros</button>
+                    <button onclick="document.getElementById('nav-bracket').click()" class="glass-btn primary-btn"
+                        style="padding: 5px 15px; font-size: 0.9rem;">Ver Eliminatorias</button>
+                    <button onclick="exitReadOnlyMode()" class="glass-btn"
+                        style="background: rgba(255,0,0,0.2); border-color: red; padding: 5px 15px; font-size: 0.9rem;">Cerrar
+                        Porra</button>
+                </div>
+            </div>
+
+            <div id="live-matches-wrapper-groups"
+                style="display: none; max-width: 500px; margin: 0 auto 20px auto; text-align: center;">
+                <h3
+                    style="color: #ff4757; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span
+                        style="display: inline-block; width: 10px; height: 10px; background: #ff4757; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                    Partidos en Curso
+                </h3>
+                <div id="live-matches-container-groups" class="last-matches-grid"></div>
+            </div>
+
+            <div class="section-header">
+                <h2 style="color: #ff9f43;" id="group-stage-title">Fase de Grupos</h2>
+                <p id="group-stage-desc">Selecciona quién pasa oficialmente de cada grupo eligiendo al primer, segundo y
+                    tercer clasificado.</p>
+            </div>
+
+            <div id="groups-grid" class="groups-grid">
+                <!-- Javascript will populate 12 groups here -->
+            </div>
+
+            <div class="bottom-actions" style="display: none;">
+                <button id="btn-go-thirds" onclick="document.getElementById('nav-thirds').click()"
+                    class="glass-btn primary-btn">Guardar y Continuar a Terceros ➡️</button>
+            </div>
+        </section>
+
+        <!-- THIRDS SELECTION VIEW -->
+        <section id="view-thirds" class="view-section">
+            <div id="thirds-read-only-banner"
+                style="display: none; background: rgba(59, 130, 246, 0.85); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000; border: 1px solid var(--accent-color); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: bold; color: var(--accent-color); box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                <div>Estás viendo la porra de: <span id="thirds-read-only-name" style="color: white;"></span></div>
+                <div style="margin-top: 5px; color: #ffd32a;">Máximo Goleador: <span id="thirds-read-only-scorer-name"
+                        style="color: white;"></span></div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="document.getElementById('nav-group').click()" class="glass-btn primary-btn"
+                        style="padding: 5px 15px; font-size: 0.9rem;">Ver Grupos</button>
+                    <button onclick="document.getElementById('nav-bracket').click()" class="glass-btn primary-btn"
+                        style="padding: 5px 15px; font-size: 0.9rem;">Ver Eliminatorias</button>
+                    <button onclick="exitReadOnlyMode()" class="glass-btn"
+                        style="background: rgba(255,0,0,0.2); border-color: red; padding: 5px 15px; font-size: 0.9rem;">Cerrar
+                        Porra</button>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2 style="color: #ff9f43;">Mejores 8 Terceros</h2>
+                <p id="thirds-stage-desc">De los 12 terceros, selecciona los 8 que pasan a dieciseisavos.</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px; text-align: left; margin-top: 30px;">
+                    <div
+                        style="flex: 1; min-width: 300px; background: rgba(0, 210, 211, 0.1); border: 1px solid #00d2d3; padding: 20px; border-radius: 12px;">
+                        <h3 style="color: #00d2d3; margin-top: 0; text-align: center;">✅ Se Clasifican (8)</h3>
+                        <div id="thirds-classified" class="thirds-selection" style="min-height: 100px;"></div>
+                    </div>
+                    <div
+                        style="flex: 1; min-width: 300px; background: rgba(255, 71, 87, 0.1); border: 1px solid #ff4757; padding: 20px; border-radius: 12px;">
+                        <h3 style="color: #ff4757; margin-top: 0; text-align: center;">❌ Eliminados (4)</h3>
+                        <div id="thirds-eliminated" class="thirds-selection" style="min-height: 100px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-actions" style="display: none;">
+                <button id="btn-generate-bracket" class="glass-btn primary-btn">Guardar y Continuar a Eliminatorias
+                    ➡️</button>
+            </div>
+        </section>
+        <!-- BRACKET VIEW -->
+        <section id="view-bracket" class="view-section">
+            <div id="bracket-read-only-banner"
+                style="display: none; background: rgba(59, 130, 246, 0.2); border: 1px solid var(--accent-color); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: bold; color: var(--accent-color);">
+                <div>Estás viendo la porra de: <span id="bracket-read-only-name" style="color: white;"></span></div>
+                <div style="margin-top: 5px; color: #ffd32a;">Máximo Goleador: <span id="bracket-read-only-scorer-name"
+                        style="color: white;"></span></div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="document.getElementById('nav-group').click()" class="glass-btn primary-btn"
+                        style="padding: 5px 15px; font-size: 0.9rem;">Ver Grupos</button>
+                    <button onclick="document.getElementById('nav-thirds').click()" class="glass-btn primary-btn"
+                        style="padding: 5px 15px; font-size: 0.9rem;">Ver Mejores Terceros</button>
+                    <button onclick="exitReadOnlyMode()" class="glass-btn"
+                        style="background: rgba(255,0,0,0.2); border-color: red; padding: 5px 15px; font-size: 0.9rem;">Cerrar
+                        Porra</button>
+                </div>
+            </div>
+            <div class="bracket-toolbar">
+                <div class="top-scorer-box" style="display: none;">
+                    <label>Máximo Goleador (100 pts):</label>
+                    <input list="top-scorer-list" id="top-scorer-select" class="glass-select"
+                        placeholder="Escribe o busca un jugador..." autocomplete="off">
+                    <datalist id="top-scorer-list">
+                        <option value="Kylian Mbappe">
+                        <option value="Harry Kane">
+                        <option value="Mikel Oyarzabal">
+                        <option value="Erling Haaland">
+                        <option value="Cristiano Ronaldo">
+                        <option value="Kai Havertz">
+                        <option value="Lionel Messi">
+                        <option value="Julian Alvarez">
+                        <option value="Lamine Yamal">
+                        <option value="Michael Olise">
+                        <option value="Raphinha">
+                        <option value="Igor Thiago">
+                        <option value="Lautaro Martinez">
+                        <option value="Cody Gakpo">
+                        <option value="Romelu Lukaku">
+                        <option value="Bruno Fernandes">
+                        <option value="Ferran Torres">
+                        <option value="Vinicius Jr">
+                        <option value="Jamal Musiala">
+                        <option value="Phil Foden">
+                        <option value="Bukayo Saka">
+                        <option value="Jude Bellingham">
+                        <option value="Alvaro Morata">
+                        <option value="Nico Williams">
+                        <option value="Antoine Griezmann">
+                        <option value="Ousmane Dembele">
+                        <option value="Leroy Sane">
+                        <option value="Niclas Fullkrug">
+                        <option value="Rafael Leao">
+                        <option value="Rodrygo">
+                        <option value="Endrick">
+                        <option value="Goncalo Ramos">
+                        <option value="Joao Felix">
+                        <option value="Bernardo Silva">
+                        <option value="Xavi Simons">
+                        <option value="Memphis Depay">
+                        <option value="Donyell Malen">
+                        <option value="Christian Pulisic">
+                        <option value="Folarin Balogun">
+                        <option value="Santiago Gimenez">
+                        <option value="Hirving Lozano">
+                        <option value="Darwin Nunez">
+                        <option value="Federico Valverde">
+                        <option value="Lois Openda">
+                        <option value="Kevin De Bruyne">
+                        <option value="Leandro Trossard">
+                        <option value="Alexander Isak">
+                        <option value="Viktor Gyokeres">
+                        <option value="Dusan Vlahovic">
+                        <option value="Marcus Rashford">
+                    </datalist>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center; width: 100%;">
+                    <button id="btn-save-hash" class="glass-btn primary-btn" style="margin: 0 auto;">☁️ Enviar Apuesta a
+                        la Nube</button>
+                </div>
+            </div>
+
+            <div class="bracket-wrapper" id="bracket-container">
+                <!-- Left Side -->
+                <section class="bracket-side left-side" id="left-bracket">
+                    <div class="round r32" id="r32-left">
+                        <h2>Dieciseisavos</h2>
+                    </div>
+                    <div class="round r16" id="r16-left">
+                        <h2>Octavos</h2>
+                    </div>
+                    <div class="round qf" id="qf-left">
+                        <h2>Cuartos</h2>
+                    </div>
+                    <div class="round sf" id="sf-left">
+                        <h2>Semifinales</h2>
+                    </div>
+                </section>
+
+                <!-- Center -->
+                <section class="center-side">
+                    <div class="finals-container">
+                        <div class="match final-match" id="final-match">
+                            <h3>FINAL</h3>
+                        </div>
+                        <div class="match champion-display" id="champion-display">
+                            <h3>CAMPEÓN</h3>
+                        </div>
+                        <div class="match third-place" id="third-place">
+                            <h3>TERCER PUESTO</h3>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Side -->
+                <section class="bracket-side right-side" id="right-bracket">
+                    <div class="round sf" id="sf-right">
+                        <h2>Semifinales</h2>
+                    </div>
+                    <div class="round qf" id="qf-right">
+                        <h2>Cuartos</h2>
+                    </div>
+                    <div class="round r16" id="r16-right">
+                        <h2>Octavos</h2>
+                    </div>
+                    <div class="round r32" id="r32-right">
+                        <h2>Dieciseisavos</h2>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <!-- LEADERBOARD REMOVED (now in home) -->
+
+        <!-- STATS VIEW -->
+        <section id="view-stats" class="view-section">
+            <div class="section-header">
+                <h2 style="color: #00d2d3;">Más Elegidos</h2>
+                <p>Resumen de los pronósticos de todos los participantes.</p>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px;">
+                <div class="group-card" style="flex: 1; min-width: 300px;">
+                    <h3 style="color: #ffd32a;">⚽ Máximo Goleador</h3>
+                    <div id="stats-scorers" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    </div>
+                </div>
+
+                <div class="group-card" style="flex: 1; min-width: 300px;">
+                    <h3 style="color: #ff9f43;">🏆 Ganadores (Campeón)</h3>
+                    <div id="stats-champions"
+                        style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+
+                <div class="group-card" style="flex: 1; min-width: 300px;">
+                    <h3 style="color: #ff4757;">⚔️ Finales Más Repetidas</h3>
+                    <div id="stats-finals" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEARCH VIEW -->
+        <section id="view-search" class="view-section">
+            <div class="section-header">
+                <h2 style="color: #f368e0;">Buscador Avanzado</h2>
+                <p>Descubre qué ha apostado tu grupo filtrando por equipo y fase.</p>
+            </div>
+
+            <div id="search-step-1"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 25px; border-radius: 12px; margin-bottom: 30px;">
+                <h3 style="color: var(--accent-color); margin-top: 0; text-align: center; margin-bottom: 20px;">1. ¿Qué
+                    quieres buscar?</h3>
+                <div id="search-conditions-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    <!-- Los botones se generan por JS -->
+                </div>
+            </div>
+
+            <div id="search-step-2"
+                style="display: none; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 25px; border-radius: 12px; margin-bottom: 30px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: var(--accent-color); margin: 0;">2. Elige el Equipo / Jugador</h3>
+                    <button onclick="resetSearchWizard()" class="glass-btn"
+                        style="padding: 5px 15px; font-size: 0.9em; border-color: rgba(255,255,255,0.3);">⬅️
+                        Volver</button>
+                </div>
+
+                <div id="search-teams-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+                    <!-- Los botones se generan por JS -->
+                </div>
+
+            </div>
+
+            <div id="search-results-container"
+                style="display: none; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px; min-height: 150px;">
+                <h3 id="search-results-title"
+                    style="color: #00d2d3; margin-top: 0; text-align: center; margin-bottom: 25px; font-size: 1.5em;">
+                    Resultados</h3>
+                <ul id="search-results-list"
+                    style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                </ul>
+            </div>
+        </section>
+
+        <!-- RULES VIEW -->
+        <section id="view-rules" class="view-section">
+            <div class="rules-container glass-panel"
+                style="margin-top: 40px; text-align: left; padding: 25px; max-width: 1300px; margin-left: auto; margin-right: auto;">
+                <h2 style="text-align: center; color: var(--primary-color);">📜 Reglas y Puntuaciones</h2>
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <p style="color: var(--text-color); margin-bottom: 10px;">Las apuestas permanecerán como "Pendiente"
+                        hasta que se haya abonado la inscripción. Debes pagar al responsable que te haya pasado la
+                        porra, que pagará al administrador. Una vez confirmado el pago, tu apuesta será aceptada y
+                        válida.</p>
+                    <a href="https://revolut.me/raclos" target="_blank" class="glass-btn"
+                        style="display: inline-block; padding: 8px 20px; font-size: 0.95rem; text-decoration: none; color: white; background: rgba(0, 117, 235, 0.2); border: 1px solid #0075eb;">💳
+                        Pagar Directamente con Revolut</a>
+                    <p style="color: #ff4757; font-weight: bold; margin-top: 10px; font-size: 0.9rem;">⚠️ ¡IMPORTANTE!
+                        Pon tu Nombre o Nombre de la Apuesta en el Concepto</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+                    <div
+                        style="background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h3
+                            style="color: var(--accent-color); margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                            Fase de Grupos</h3>
+                        <ul style="list-style: none; padding: 0; margin: 0; line-height: 1.8;">
+                            <li>✔️ Acertar un clasificado: <b>10 pts</b></li>
+                            <li>🎯 Acertar posición exacta: <b>+10 pts</b></li>
+                        </ul>
+                    </div>
+                    <div
+                        style="background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h3
+                            style="color: var(--accent-color); margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                            Eliminatorias</h3>
+                        <ul style="list-style: none; padding: 0; margin: 0; line-height: 1.8;">
+                            <li>⚽ Pasan a Octavos: <b>25 pts</b></li>
+                            <li>⚽ Pasan a Cuartos: <b>30 pts</b></li>
+                            <li>⚽ Pasan a Semis: <b>40 pts</b></li>
+                            <li>⚽ Pasan a la Final: <b>60 pts</b></li>
+                        </ul>
+                    </div>
+                    <div
+                        style="background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h3
+                            style="color: var(--accent-color); margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                            Podio y Extras</h3>
+                        <ul style="list-style: none; padding: 0; margin: 0; line-height: 1.8;">
+                            <li>🏆 Campeón: <b>200 pts</b> / 🥈 Sub: <b>150 pts</b></li>
+                            <li>🥉 Tercero: <b>100 pts</b> / 🏅 Cuarto: <b>75 pts</b></li>
+                            <li>👟 Máximo Goleador: <b>100 pts</b></li>
+                        </ul>
+                    </div>
+                    <div
+                        style="background: rgba(255, 215, 0, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,215,0,0.3);">
+                        <h3
+                            style="color: #ffd700; margin-bottom: 10px; border-bottom: 1px solid rgba(255,215,0,0.3); padding-bottom: 5px;">
+                            💰 Bote: <span id="prize-pot-rules">Calculando...</span></h3>
+                        <ul style="list-style: none; padding: 0; margin: 0; line-height: 1.8;">
+                            <li>🥇 <b>1º Clasificado:</b><br>¡Todo el bote menos 5€!</li>
+                            <li style="margin-top: 8px;">🐢 <b>Último Clasificado:</b><br>Reembolso de 5€.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- HASH MODAL -->
+    <div id="hash-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>¡Tu apuesta está lista!</h3>
+            <p>Copia el siguiente código y envíaselo al administrador para entrar en la porra.</p>
+            <textarea id="hash-output" readonly></textarea>
+            <div class="action-buttons" style="margin-top: 15px;">
+                <button id="btn-copy-hash" class="glass-btn">Copiar Código</button>
+                <button id="btn-close-modal" class="glass-btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS DETAIL MODAL -->
+    <div id="stats-detail-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 id="stats-detail-title" style="color: var(--accent-color); margin-bottom: 15px;">Han votado por...</h3>
+            <ul id="stats-detail-list"
+                style="list-style: none; padding: 0; margin: 0 0 20px 0; max-height: 250px; overflow-y: auto; text-align: left;">
+                <!-- Lista de usuarios generada por JS -->
+            </ul>
+            <div class="action-buttons">
+                <button onclick="document.getElementById('stats-detail-modal').style.display='none'" class="glass-btn"
+                    style="width: 100%;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MY BET MODAL -->
+    <div id="my-bet-modal" class="modal" style="display: none; z-index: 999999;">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="color: var(--accent-color); margin-bottom: 15px;">¿Quién eres?</h3>
+            <p style="margin-bottom: 20px;">Elige tu nombre en la lista para que guardemos tu apuesta en este
+                dispositivo.</p>
+            <select id="my-bet-input" class="glass-select"
+                style="width: 100%; margin-bottom: 20px; font-size: 1.1em; padding: 10px; cursor: pointer;">
+                <option value="" disabled selected hidden>-- Selecciona tu nombre --</option>
+            </select>
+            <div class="action-buttons">
+                <button id="btn-save-my-bet" class="glass-btn primary-btn" style="width: 100%;">Guardar y Ver Mi
+                    Apuesta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONNECTION HISTORY MODAL -->
+    <div id="connection-history-modal" class="modal" style="display: none; z-index: 999999;">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3 style="color: var(--accent-color); margin-bottom: 15px;">📜 Historial de Conexiones</h3>
+            <div id="connection-history-list"
+                style="max-height: 60vh; overflow-y: auto; text-align: left; margin-bottom: 20px;"></div>
+            <div class="action-buttons">
+                <button onclick="document.getElementById('connection-history-modal').style.display='none'"
+                    class="glass-btn primary-btn" style="width: 100%;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POINTS BREAKDOWN MODAL -->
+    <div id="points-breakdown-modal" class="modal" style="display: none; z-index: 999999;">
+        <div class="modal-content"
+            style="width: 95vw; max-width: 1600px; text-align: left; max-height: 95vh; overflow-y: auto; padding-top: 25px;">
+            <div id="points-breakdown-body"></div>
+        </div>
+    </div>
+
+    <!-- WHAT'S NEW MODAL -->
+    <div id="whats-new-modal" class="modal" style="display: none; z-index: 999999;">
+        <div class="modal-content"
+            style="max-width: 550px; max-height: 90vh; overflow-y: auto; text-align: left; background: rgba(20, 20, 30, 0.95); border: 2px solid var(--accent-color); padding: 20px;">
+            <div style="text-align: center; font-size: 3.5rem; margin-bottom: 10px; animation: bounce 2s infinite;">🚀
+            </div>
+            <h2
+                style="text-align: center; color: var(--accent-color); margin-bottom: 25px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">
+                Nuevas Funcionalidades</h2>
+
+            <div
+                style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; gap: 15px; align-items: flex-start; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 2rem; line-height: 1;">🔍</div>
+                <div>
+                    <h3 style="color: #00d2d3; margin: 0 0 5px 0;">Partidos por Grupo</h3>
+                    <p style="font-size: 0.95rem; margin: 0; color: #ccc;">Haz clic en cualquier Grupo para ver todos
+                        sus partidos al instante.</p>
+                </div>
+            </div>
+
+            <div
+                style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 25px; display: flex; gap: 15px; align-items: flex-start; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 2rem; line-height: 1;">✨</div>
+                <div>
+                    <h3 style="color: #a29bfe; margin: 0 0 5px 0;">Diseño más limpio</h3>
+                    <p style="font-size: 0.95rem; margin: 0; color: #ccc;">Botón "Ver Mi Porra" fijo arriba a la derecha
+                        y animaciones simplificadas para mayor rapidez.</p>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="btn-close-whats-new" class="glass-btn primary-btn"
+                    style="width: 100%; font-size: 1.1rem; padding: 12px; font-weight: bold;">¡Entendido! ⚽</button>
+            </div>
+        </div>
+    </div>
+    <!-- SHARE IMAGE TEMPLATE (Hidden) -->
+    <div id="share-image-template"
+        style="position: absolute; top: -9999px; left: -9999px; width: 800px; padding: 30px; background: #0f0f1a; color: white; font-family: 'Outfit', sans-serif; box-sizing: border-box; border-radius: 15px;">
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #00d2d3; padding-bottom: 10px;">
+            <h1 style="color: #00d2d3; margin: 0; font-size: 28px; text-transform: uppercase;">🏆 Porra Mundial 2026
+            </h1>
+            <p style="color: #ff9f43; margin: 5px 0 0 0; font-size: 18px; font-weight: bold;">Clasificación Oficial</p>
+        </div>
+        <div id="share-image-columns" style="display: flex; gap: 20px; justify-content: space-between;">
+            <!-- Left Column -->
+            <div id="share-col-left" style="flex: 1; display: flex; flex-direction: column; gap: 8px;"></div>
+            <!-- Right Column -->
+            <div id="share-col-right" style="flex: 1; display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+    </div>
+
+    <!-- RTVE / ACESTREAM PLAYER MODAL -->
+    <div id="rtve-modal" class="modal" style="display: none; z-index: 9999999;">
+        <div class="modal-content"
+            style="max-width: 1100px; width: 95%; padding: 15px; background: black; border: 2px solid #ff4757; text-align: center;">
+            <div
+                style="display: flex; justify-content: center; align-items: center; margin-bottom: 15px; position: relative;">
+                <button
+                    onclick="document.getElementById('rtve-modal').style.display='none'; document.getElementById('rtve-iframe').src=''; document.getElementById('stream-iframe').src='';"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; position: absolute; right: 0; top: -5px;">✖</button>
+            </div>
+
+            <div id="player-container-rtve"
+                style="position: relative; padding-bottom: 56.25%; height: 0; border-radius: 8px;">
+                <iframe id="rtve-iframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src=""
+                    frameborder="0" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
+            </div>
+
+            <div id="player-container-stream"
+                style="display: none; position: relative; padding-bottom: 56.25%; height: 0; border-radius: 8px;">
+                <iframe id="stream-iframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                    src="" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                    allowfullscreen webkitallowfullscreen mozallowfullscreen></iframe>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- Stats Modal (Sofascore) -->
+    <div id="stats-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
+        <div class="modal-content"
+            style="max-width: 1400px; width: 98%; height: 90vh; padding: 15px; background: black; border: 2px solid #00d2d3; text-align: center; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #00d2d3; margin: 0;">📊 Estadísticas del Partido</h3>
+                <button
+                    onclick="document.getElementById('stats-modal').style.display='none'; document.getElementById('stats-iframe').src='';"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✖</button>
+            </div>
+
+            <div style="flex-grow: 1; position: relative; border-radius: 8px; background: #1a1a24; overflow: hidden;">
+                <iframe id="stats-iframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src=""
+                    frameborder="0" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+    <!-- Scripts de la Aplicación -->
+    <!-- Librería externa para tomar 'fotos' (capturas) de las porras -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <!-- Archivo principal donde vive toda la magia del frontend (JavaScript) -->
+    <script src="fctv-links.js?v=2"></script>
+    <script type="module" src="main.js?v=1.3.98"></script>
+</body>
+
+</html>
