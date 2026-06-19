@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { getCountryCode } from '../utils/constants';
 import { compareTeams } from '../utils/points';
-import { openStats, openMatchPlayer } from '../utils/fctv';
+import { openStats } from '../utils/navigation';
 import { fetchTopScorers } from '../services/api';
 
 function Home() {
-  const { groupOdds, officialPoints, manualTiebreakers, allGames, nameToIdMap, loading, isAdminAuthenticated, bumpTeam, matchRadar } = useAppContext();
+  const { groupOdds, officialPoints, manualTiebreakers, allGames, nameToIdMap, loading, isRaclos, bumpTeam, matchRadar } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [topScorers, setTopScorers] = useState([]);
 
@@ -50,8 +50,8 @@ function Home() {
         </div>
         
         <div style={{ textAlign: 'center' }}>
-            <button onClick={() => openMatchPlayer(m.home, m.away)} style={{ background: '#ff0000', color: 'white', border: 'none', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(255,0,0,0.3)' }}>
-              <span>📺</span> Ver Partido
+            <button onClick={() => openStats(m.home, m.away)} style={{ background: '#1e272e', color: '#00d2d3', border: '1px solid rgba(0,210,211,0.3)', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+              <span>📊</span> Ver Estadísticas
             </button>
         </div>
       </div>
@@ -62,7 +62,7 @@ function Home() {
     // Map with stats
     const teamsWithStats = teams.map(t => {
       const safeKey = t.name.replace(/[.#$\[\]]/g, "");
-      const stats = (officialPoints[groupName] && officialPoints[groupName][safeKey]) || { pts: 0, diff: 0, gls: 0, mp: 0 };
+      const stats = (officialPoints?.[groupName]?.[safeKey]) || { pts: 0, diff: 0, gls: 0, mp: 0 };
       return { ...t, stats };
     });
 
@@ -88,7 +88,7 @@ function Home() {
           {teamsWithStats.map((team, idx) => (
             <div key={team.name} className="group-slot">
               <span style={{ fontWeight: 'bold', width: '20px', flexShrink: 0 }}>{idx + 1}.</span>
-            {isAdminAuthenticated && (
+            {isRaclos && (
               <button 
                 onClick={(e) => { e.stopPropagation(); bumpTeam(groupName, team.name); }}  
                 className="glass-btn" 
@@ -120,19 +120,44 @@ function Home() {
                     
                     const thirds = [];
                     Object.keys(officialPoints).forEach(groupName => {
-                        const groupTeams = Object.keys(officialPoints[groupName]);
-                        if (groupTeams.length >= 3) {
-                            const teamName = groupTeams[2];
-                            const stats = officialPoints[groupName][teamName];
-                            thirds.push({ group: groupName, name: teamName, ...stats });
+                        const teamsWithStats = Object.keys(officialPoints[groupName]).map(teamName => ({
+                            name: teamName,
+                            ...officialPoints[groupName][teamName]
+                        }));
+                        
+                        teamsWithStats.sort((a, b) => {
+                            if (b.pts !== a.pts) return b.pts - a.pts;
+                            if (b.diff !== a.diff) return b.diff - a.diff;
+                            if (b.gls !== a.gls) return b.gls - a.gls;
+
+                            const safeNameA = a.name.replace(/[.#$\[\]]/g, "");
+                            const safeNameB = b.name.replace(/[.#$\[\]]/g, "");
+                            const manualA = (manualTiebreakers?.[groupName]?.[safeNameA]) || 0;
+                            const manualB = (manualTiebreakers?.[groupName]?.[safeNameB]) || 0;
+
+                            if (manualB !== manualA) return manualB - manualA;
+
+                            return a.name.localeCompare(b.name);
+                        });
+
+                        if (teamsWithStats.length >= 3) {
+                            thirds.push({ group: groupName, ...teamsWithStats[2] });
                         }
                     });
 
-                    // Ordenar: Puntos (DESC), Diferencia (DESC), Goles a favor (DESC)
+                    // Ordenar: Puntos (DESC), Diferencia (DESC), Goles a favor (DESC), Desempate Manual (DESC)
                     thirds.sort((a, b) => {
                         if (b.pts !== a.pts) return b.pts - a.pts;
                         if (b.diff !== a.diff) return b.diff - a.diff;
                         if (b.gls !== a.gls) return b.gls - a.gls;
+
+                        const safeNameA = a.name.replace(/[.#$\[\]]/g, "");
+                        const safeNameB = b.name.replace(/[.#$\[\]]/g, "");
+                        const manualA = (manualTiebreakers?.["THIRDS"]?.[safeNameA]) || 0;
+                        const manualB = (manualTiebreakers?.["THIRDS"]?.[safeNameB]) || 0;
+                        
+                        if (manualB !== manualA) return manualB - manualA;
+
                         return a.name.localeCompare(b.name);
                     });
 
@@ -156,8 +181,17 @@ function Home() {
                                                 const rank = globalIdx + 1;
                                                 
                                                 return (
-                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem' }}>
+                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: isRaclos ? '20px 25px 1fr 25px 30px' : '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem' }}>
                                                         <span style={{ color: isTop8 ? '#00b894' : 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>{rank}</span>
+                                                        {isRaclos && (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); bumpTeam(t.group, t.name, true); }}  
+                                                                className="glass-btn" 
+                                                                style={{ padding: '2px 4px', fontSize: '0.7em', background: 'rgba(0, 255, 0, 0.2)', border: 'none', borderRadius: '4px', cursor: 'pointer' }} 
+                                                                title="Subir posición (Desempate Manual)">
+                                                                ⬆️
+                                                            </button>
+                                                        )}
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                                                             <img src={`https://flagcdn.com/20x15/${getCountryCode(t.name)}.png`} alt="" style={{ borderRadius: '2px', flexShrink: 0 }} />
                                                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
@@ -183,8 +217,17 @@ function Home() {
                                                 const rank = hasPlayed ? globalIdx + 1 : '-';
                                                 
                                                 return (
-                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem', borderBottom: globalIdx === 7 ? '2px dashed rgba(255, 71, 87, 0.5)' : 'none', opacity: isTop8 ? 1 : (hasPlayed ? 0.5 : 0.3) }}>
+                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: isRaclos ? '20px 25px 1fr 25px 30px' : '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem', borderBottom: globalIdx === 7 ? '2px dashed rgba(255, 71, 87, 0.5)' : 'none', opacity: isTop8 ? 1 : (hasPlayed ? 0.5 : 0.3) }}>
                                                         <span style={{ color: isTop8 ? '#00b894' : 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>{rank}</span>
+                                                        {isRaclos && (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); bumpTeam(t.group, t.name, true); }}  
+                                                                className="glass-btn" 
+                                                                style={{ padding: '2px 4px', fontSize: '0.7em', background: 'rgba(0, 255, 0, 0.2)', border: 'none', borderRadius: '4px', cursor: 'pointer' }} 
+                                                                title="Subir posición (Desempate Manual)">
+                                                                ⬆️
+                                                            </button>
+                                                        )}
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                                                             <img src={`https://flagcdn.com/20x15/${getCountryCode(t.name)}.png`} alt="" style={{ borderRadius: '2px', flexShrink: 0 }} />
                                                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>

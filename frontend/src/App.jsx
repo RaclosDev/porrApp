@@ -1,5 +1,5 @@
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AppProvider, useAppContext } from './context/AppContext';
 import Layout from './components/Layout';
 import Rules from './pages/Rules';
 import Leaderboard from './pages/Leaderboard';
@@ -9,21 +9,39 @@ import Bracket from './pages/Bracket';
 import Stats from './pages/Stats';
 import Search from './pages/Search';
 import Admin from './pages/Admin';
+import GroupsDashboard from './pages/GroupsDashboard';
+import JoinRedirect from './components/JoinRedirect';
+import UpdateModal from './components/UpdateModal';
+
+const ProtectedRoute = ({ children }) => {
+  const { isAdminAuthenticated } = useAppContext();
+  const location = useLocation();
+
+  if (!isAdminAuthenticated) {
+    return <Navigate to="/" state={{ requireLogin: true, from: location.pathname }} replace />;
+  }
+  return children;
+};
 
 function App() {
   return (
     <AppProvider>
       <Router>
+        <UpdateModal />
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/clasificacion" element={<Leaderboard />} />
-            <Route path="/bracket" element={<Bracket />} />
-            <Route path="/radar" element={<Radar />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/search" element={<Search />} />
             <Route path="/reglas" element={<Rules />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/join/:code" element={<JoinRedirect />} />
+            
+            <Route path="/radar" element={<ProtectedRoute><Radar /></ProtectedRoute>} />
+            <Route path="/clasificacion" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+            <Route path="/bracket" element={<ProtectedRoute><Bracket /></ProtectedRoute>} />
+            <Route path="/mis-ligas" element={<ProtectedRoute><GroupsDashboard /></ProtectedRoute>} />
+            <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
+            <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>

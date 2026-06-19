@@ -35,7 +35,7 @@ public class PresenceController {
             if (trimmedName.equalsIgnoreCase("Anónimo") || 
                 trimmedName.equalsIgnoreCase("anonomio") || 
                 trimmedName.equals("LaManoDeDios") ||
-                trimmedName.equalsIgnoreCase("Raclos")) {
+                trimmedName.equalsIgnoreCase("RaclosAdmin")) {
                 activeUsers.put(trimmedName, now);
                 return;
             }
@@ -58,8 +58,13 @@ public class PresenceController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<?> getHistory(@RequestHeader(value = "X-Admin-Token", required = false) String token) {
-        if (!AdminAuthController.isValidToken(token)) return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+    public ResponseEntity<?> getHistory() {
         return ResponseEntity.ok(connectionLogRepository.findAllByOrderByConnectedAtDesc());
+    }
+
+    @DeleteMapping("/history/{id}")
+    public ResponseEntity<?> deleteHistory(@PathVariable Long id) {
+        connectionLogRepository.deleteById(id);
+        return ResponseEntity.ok().build();
     }
 }

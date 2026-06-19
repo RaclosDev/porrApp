@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class TopScorerService {
 
     private final ObjectMapper objectMapper;
+    private final SseService sseService;
+    private final org.springframework.cache.CacheManager cacheManager;
 
     @Value("${app.sportsapi.key}")
     private String apiKey;
@@ -37,10 +39,6 @@ public class TopScorerService {
     // Cached list of top scorers (thread-safe)
     private final AtomicReference<List<Map<String, Object>>> cachedScorers = new AtomicReference<>(Collections.emptyList());
 
-    @PostConstruct
-    public void init() {
-        refresh();
-    }
 
     /** Called every 30 minutes */
     @Scheduled(fixedDelay = 1_800_000)
@@ -117,6 +115,10 @@ public class TopScorerService {
                     scorers.size(),
                     scorers.isEmpty() ? "none" : scorers.get(0).get("name"),
                     scorers.isEmpty() ? 0 : scorers.get(0).get("goals"));
+
+            org.springframework.cache.Cache cache = cacheManager.getCache("leaderboard");
+            if (cache != null) cache.clear();
+            sseService.broadcastUpdate("DATA_UPDATED");
 
         } catch (Exception e) {
             log.error("TopScorerService: Failed to fetch scorers: {}", e.getMessage());

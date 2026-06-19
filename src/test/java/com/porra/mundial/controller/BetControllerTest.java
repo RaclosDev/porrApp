@@ -15,6 +15,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -50,6 +54,12 @@ class BetControllerTest {
 
     @Test
     void createBet_SavesAndReturnsBet() throws Exception {
+        Authentication authentication = Mockito.mock(Authentication.class);
+        Mockito.when(authentication.getName()).thenReturn("Ana");
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
         Map<String, String> body = new HashMap<>();
         body.put("participantName", "Ana");
         body.put("hash", "xyz");
@@ -58,7 +68,7 @@ class BetControllerTest {
         savedBet.setId(2L);
         savedBet.setParticipantName("Ana");
 
-        Mockito.when(betService.createBet("Ana", "Ana", "xyz")).thenReturn(savedBet);
+        Mockito.when(betService.createBet(eq("Ana"), eq("Ana"), eq("xyz"), any())).thenReturn(savedBet);
 
         mockMvc.perform(post("/api/bets")
                         .contentType(MediaType.APPLICATION_JSON)

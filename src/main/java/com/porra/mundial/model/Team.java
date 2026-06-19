@@ -44,4 +44,9 @@ public class Team {
     @Column(columnDefinition = "integer default 0")
     @Builder.Default
     private Integer manualTieBreaker = 0;
+
+    // Puntos extra para desempate de Mejores Terceros
+    @Column(columnDefinition = "integer default 0")
+    @Builder.Default
+    private Integer manualTieBreakerThirds = 0;
 }

@@ -51,7 +51,7 @@ function Rules() {
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, lineHeight: 1.8 }}>
                         <li>🏆 Campeón: <b>200 pts</b> / 🥈 Sub: <b>150 pts</b></li>
                         <li>🥉 Tercero: <b>100 pts</b> / 🏅 Cuarto: <b>75 pts</b></li>
-                        <li>👟 Máximo Goleador: <b>100 pts</b></li>
+                        <li>👟 Pichichi: <b>100 pts</b></li>
                     </ul>
                 </div>
                 <div
