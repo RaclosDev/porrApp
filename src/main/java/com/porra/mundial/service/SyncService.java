@@ -33,6 +33,8 @@ public class SyncService {
     private final StandingsService standingsService;
     private final TopScorerService topScorerService;
     private final ObjectMapper objectMapper;
+    private final SseService sseService;
+    private final org.springframework.cache.CacheManager cacheManager;
 
     @Value("${app.worldcup-api.teams-url}")
     private String teamsApiUrl;
@@ -147,8 +149,10 @@ public class SyncService {
             JsonNode teamsRoot = objectMapper.readTree(teamsJson);
             JsonNode teamsArray = teamsRoot.get("teams");
 
+            int teamsUpdated = 0;
+            int matchesUpdated = 0;
+
             if (teamsArray != null && teamsArray.isArray()) {
-                int teamsUpdated = 0;
                 for (JsonNode t : teamsArray) {
                     String extId = t.get("id").asText();
                     String nameEn = t.get("name_en").asText();
@@ -215,7 +219,6 @@ public class SyncService {
             Map<Long, int[]> teamStats = new HashMap<>(); // teamId -> [pts, diff, gls, mp]
 
             if (gamesArray != null && gamesArray.isArray()) {
-                int matchesUpdated = 0;
                 for (JsonNode g : gamesArray) {
                     String gameExtId = g.has("id") ? g.get("id").asText() : null;
                     if (gameExtId == null) continue;
@@ -268,19 +271,25 @@ public class SyncService {
                     }
 
                     // Upsert match
-                    Match match = matchRepository.findByExternalId(gameExtId)
-                            .orElse(Match.builder().externalId(gameExtId).build());
+                    boolean updated = false;
+                    Match match = matchRepository.findByExternalId(gameExtId).orElse(null);
+                    if (match == null) {
+                        match = Match.builder().externalId(gameExtId).build();
+                        updated = true;
+                    }
 
                     // Detect match just finished → trigger scorer refresh
                     boolean wasFinished = Boolean.TRUE.equals(match.getFinished());
 
-                    match.setHomeTeam(homeTeam);
-                    match.setAwayTeam(awayTeam);
-                    match.setHomeScore(homeScore);
-                    match.setAwayScore(awayScore);
-                    match.setMatchDate(matchDate);
-                    match.setFinished(finished);
-                    match.setStadiumId(g.has("stadium_id") ? g.get("stadium_id").asText() : null);
+                    if (!Objects.equals(match.getHomeTeam(), homeTeam)) { match.setHomeTeam(homeTeam); updated = true; }
+                    if (!Objects.equals(match.getAwayTeam(), awayTeam)) { match.setAwayTeam(awayTeam); updated = true; }
+                    if (!Objects.equals(match.getHomeScore(), homeScore)) { match.setHomeScore(homeScore); updated = true; }
+                    if (!Objects.equals(match.getAwayScore(), awayScore)) { match.setAwayScore(awayScore); updated = true; }
+                    if (!Objects.equals(match.getMatchDate(), matchDate)) { match.setMatchDate(matchDate); updated = true; }
+                    if (!Objects.equals(match.getFinished(), finished)) { match.setFinished(finished); updated = true; }
+                    
+                    String newStadiumId = g.has("stadium_id") ? g.get("stadium_id").asText() : null;
+                    if (!Objects.equals(match.getStadiumId(), newStadiumId)) { match.setStadiumId(newStadiumId); updated = true; }
 
                     if (!wasFinished && finished) {
                         log.info("Match just finished, triggering scorer refresh");
@@ -289,12 +298,20 @@ public class SyncService {
 
                     // Determine group from teams
                     if (homeTeam != null && homeTeam.getGroupName() != null) {
-                        match.setGroupName(homeTeam.getGroupName());
-                        match.setRound("group");
+                        if (!Objects.equals(match.getGroupName(), homeTeam.getGroupName())) {
+                            match.setGroupName(homeTeam.getGroupName());
+                            updated = true;
+                        }
+                        if (!"group".equals(match.getRound())) {
+                            match.setRound("group");
+                            updated = true;
+                        }
                     }
 
-                    matchRepository.save(match);
-                    matchesUpdated++;
+                    if (updated) {
+                        matchRepository.save(match);
+                        matchesUpdated++;
+                    }
 
                     // Calculate group standings points
                     if (hasScores && homeTeam != null && awayTeam != null && (finished || (isLive && !isStartingSoon(matchDate)))) {
@@ -344,6 +361,16 @@ public class SyncService {
             result.put("standingsUpdated", teamStats.size());
             result.put("status", "success");
             log.info("Sync completed: {} teams, {} matches updated", result.get("teamsUpdated"), result.get("matchesUpdated"));
+
+            if (matchesUpdated > 0 || teamsUpdated > 0) {
+                // Limpiar cache de la clasificación
+                org.springframework.cache.Cache cache = cacheManager.getCache("leaderboard");
+                if (cache != null) {
+                    cache.clear();
+                }
+                // Avisar a todos los clientes frontend
+                sseService.broadcastUpdate("DATA_UPDATED");
+            }
 
         } catch (IllegalStateException e) {
             log.warn("Sync paused: {}", e.getMessage());

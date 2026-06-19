@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { decodeHash } from '../utils/hash';
+import { getAdminToken, setAdminToken, fetchClaimedNames } from '../services/api';
+import { GoogleLogin } from '@react-oauth/google';
 import BetViewer from './BetViewer';
 
 function Layout({ children }) {
-  const { participantsHashes, userName, setUserName, setViewerHash, onlineUsers, isRaclos } = useAppContext();
+  const { participantsHashes, userName, setUserName, setViewerHash, onlineUsers, isRaclos, setIsAdminAuthenticated, loading } = useAppContext();
   const navigate = useNavigate();
   const [showMyBetModal, setShowMyBetModal] = useState(false);
   const [showOnline, setShowOnline] = useState(false);
-  const [selectedUserHash, setSelectedUserHash] = useState(localStorage.getItem('my_bet_hash') || '');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
+  const [requiresName, setRequiresName] = useState(false);
+  const [claimedNames, setClaimedNames] = useState([]);
+  const [newNameInput, setNewNameInput] = useState('');
+  const [pendingCredential, setPendingCredential] = useState(null);
+  const isAuthenticated = !!getAdminToken();
 
   const isIos = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -23,11 +33,15 @@ function Layout({ children }) {
     return ('standalone' in window.navigator && window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
   };
 
+  const location = useLocation();
+
   useEffect(() => {
-    if (!localStorage.getItem('my_bet_hash')) {
+    if (location.state?.requireLogin) {
         setShowMyBetModal(true);
     }
+  }, [location.state]);
 
+  useEffect(() => {
     if (isIos() && !isStandalone() && localStorage.getItem('pwa_banner_dismissed') !== 'true') {
       setShowInstallBanner(true);
     }
@@ -62,20 +76,57 @@ function Layout({ children }) {
     setShowInstallBanner(false);
   };
 
-  const handleSaveMyBet = () => {
-    if (selectedUserHash) {
-        localStorage.setItem('my_bet_hash', selectedUserHash);
-        const selectedPart = participantsHashes.find(h => h.hash === selectedUserHash);
-        if (selectedPart) {
-            const decoded = decodeHash(selectedPart.hash);
-            if (decoded) {
-                localStorage.setItem('my_bet_name', decoded.user);
-                setUserName(decoded.user);
-            }
-        }
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const res = await fetch('/api/auth/google/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: credentialResponse.credential })
+      });
+      const data = await res.json();
+      if (data.status === 'requires_name') {
+        setGoogleEmail(data.googleEmail);
+        setGoogleName(data.googleName);
+        setPendingCredential(credentialResponse.credential);
+        setRequiresName(true);
+        fetchClaimedNames().then(names => setClaimedNames(names));
+      } else if (data.token) {
+        setAdminToken(data.token);
+        setIsAdminAuthenticated(true);
+        setUserName(data.participantName);
+        localStorage.setItem('my_bet_name', data.participantName);
         setShowMyBetModal(false);
+      }
+    } catch (e) {
+      alert("Error conectando con Google: " + e.message);
     }
   };
+
+  const handleNameSubmit = async () => {
+    if (!newNameInput.trim()) return alert("El nombre no puede estar vacío");
+    try {
+      const res = await fetch('/api/auth/google/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: pendingCredential, participantName: newNameInput.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        setAdminToken(data.token);
+        setIsAdminAuthenticated(true);
+        setUserName(data.participantName);
+        localStorage.setItem('my_bet_name', data.participantName);
+        setRequiresName(false);
+        setShowMyBetModal(false);
+      } else {
+        alert(data.error || "Error al vincular cuenta");
+      }
+    } catch (e) {
+        alert("Error de red");
+    }
+  };
+
+
 
   const decodedParticipants = participantsHashes.map(h => ({
     hash: h.hash,
@@ -100,9 +151,13 @@ function Layout({ children }) {
                         </div>
                     )}
                 </div>
-                {userName && participantsHashes.find(h => decodeHash(h.hash)?.user === userName) && (
+                {loading ? null : userName && participantsHashes.find(h => decodeHash(h.hash)?.user === userName) ? (
                     <button id="btn-view-my-bet-header" style={{ background: 'linear-gradient(135deg, #f368e0, #ff9ff3)', border: 'none', color: 'black', padding: '5px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setViewerHash(participantsHashes.find(h => decodeHash(h.hash)?.user === userName)?.hash)}>
                         👀 Ver Mi Porra
+                    </button>
+                ) : (
+                    <button id="btn-complete-my-bet-header" style={{ background: 'linear-gradient(135deg, #f368e0, #ff9ff3)', border: 'none', color: 'black', padding: '5px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => navigate('/bracket')}>
+                        ✍️ Completar Mi Porra
                     </button>
                 )}
             </div>
@@ -117,11 +172,11 @@ function Layout({ children }) {
                 <NavLink to="/reglas" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Reglas</NavLink>
             </nav>
         </div>
-        <div className="header-right" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <div className="header-right" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', position: 'relative' }}>
             <button 
                 onClick={() => {
-                    if (isRaclos) {
-                        navigate('/admin');
+                    if (userName || isAuthenticated) {
+                        setShowProfileMenu(!showProfileMenu);
                     } else {
                         setShowMyBetModal(true);
                     }
@@ -138,20 +193,49 @@ function Layout({ children }) {
                     justifyContent: 'center',
                     gap: '8px'
                 }}
-                title="Identifícate"
+                title="Menú de Usuario"
             >
                 <span style={{ fontSize: '1.1rem' }}>👤</span>
                 {(userName || localStorage.getItem('my_bet_name')) && (
                     <span style={{ fontWeight: 'bold' }}>{userName || localStorage.getItem('my_bet_name')}</span>
                 )}
             </button>
+
+            {showProfileMenu && (userName || isAuthenticated) && (
+                <div style={{ position: 'absolute', top: '100%', right: '0', background: '#151525', boxShadow: '0 10px 30px rgba(0,0,0,0.8)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '10px', marginTop: '10px', zIndex: 100, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <button 
+                        onClick={() => { setShowProfileMenu(false); navigate('/mis-ligas'); }} 
+                        className="glass-btn"
+                        style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', border: 'none', background: 'transparent' }}
+                    >
+                        🏆 Mis Ligas
+                    </button>
+                    {isRaclos && (
+                        <button 
+                            onClick={() => { setShowProfileMenu(false); navigate('/admin'); }} 
+                            className="glass-btn"
+                            style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', border: 'none', background: 'transparent' }}
+                        >
+                            ⚙️ Panel Admin
+                        </button>
+                    )}
+                    {isAuthenticated && (
+                        <button 
+                            onClick={() => { setAdminToken(null); setUserName(''); localStorage.removeItem('my_bet_name'); window.location.reload(); }} 
+                            style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.5)', color: '#ff4757', padding: '8px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', width: '100%', textAlign: 'left', marginTop: '5px' }}
+                        >
+                            🚪 Salir
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
       </header>
 
       <div id="news-ticker" style={{ background: 'rgba(20, 20, 30, 0.9)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', width: '100%', padding: '8px 20px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', whiteSpace: 'nowrap', height: '35px', boxSizing: 'border-box' }}>
           <div id="news-ticker-marquee" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
               <div id="news-ticker-text" style={{ color: 'var(--accent-color)', fontWeight: 600, letterSpacing: '0.5px', transition: 'opacity 0.5s, transform 0.5s', display: 'inline-block' }}>
-                  🌍 Dato: 9 personas han elegido a Kylian Mbappe como Máximo Goleador.
+                  🌍 Dato: 9 personas han elegido a Kylian Mbappe como Pichichi.
               </div>
           </div>
       </div>
@@ -173,49 +257,71 @@ function Layout({ children }) {
       )}
 
       <div id="my-bet-modal" className="modal" style={{ display: showMyBetModal ? 'flex' : 'none', zIndex: 999999 }}>
-          <div className="modal-content" style={{ maxWidth: '400px' }}>
-              <h3 style={{ color: 'var(--accent-color)', marginBottom: '15px' }}>¿Quién eres?</h3>
-              <p style={{ marginBottom: '20px' }}>Elige tu nombre en la lista para que guardemos tu apuesta en este dispositivo.</p>
-              <select 
-                  id="my-bet-input" 
-                  className="glass-select" 
-                  style={{ width: '100%', marginBottom: '20px', fontSize: '1.1em', padding: '10px', cursor: localStorage.getItem('my_bet_hash') ? 'not-allowed' : 'pointer' }}
-                  value={selectedUserHash}
-                  onChange={(e) => setSelectedUserHash(e.target.value)}
-                  disabled={!!localStorage.getItem('my_bet_hash')}
-              >
-                  <option value="" disabled hidden>Selecciona tu nombre</option>
-                  {decodedParticipants.map(p => (
-                      <option key={p.hash} value={p.hash}>{p.name}</option>
-                  ))}
-              </select>
-              <div className="action-buttons">
-                  <button id="btn-save-my-bet" className="glass-btn primary-btn" style={{ width: '100%' }} onClick={handleSaveMyBet}>
-                      Guardar y Continuar
-                  </button>
-              </div>
+          <div className="modal-content glass-panel" style={{ maxWidth: '420px', textAlign: 'center', padding: '35px 25px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+              <h3 style={{ color: 'var(--accent-color)', marginBottom: '20px', fontFamily: "'Outfit', sans-serif", fontSize: '1.8rem', letterSpacing: '1px' }}>¿Quién eres?</h3>
+              {requiresName ? (
+                  <div style={{ animation: 'fadeIn 0.5s ease forwards' }}>
+                      <p style={{ marginBottom: '25px', fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                          ¡Hola! Vemos que es tu primera vez con Google. Si ya habías hecho una porra, <strong>búscate en la lista</strong>. Si no, <strong>escribe un nombre nuevo</strong>.
+                      </p>
+                      
+                      <select 
+                          className="glass-select" 
+                          style={{ width: '100%', marginBottom: '15px', fontSize: '1rem', padding: '12px', borderRadius: '8px', cursor: 'pointer' }}
+                          value={decodedParticipants.some(p => p.name === newNameInput) ? newNameInput : ""}
+                          onChange={(e) => setNewNameInput(e.target.value)}
+                      >
+                          <option value="" disabled hidden>Elige tu nombre en la lista...</option>
+                          {decodedParticipants
+                              .filter(p => !claimedNames.includes(p.name))
+                              .map(p => (
+                              <option key={p.hash} value={p.name}>{p.name}</option>
+                          ))}
+                      </select>
+
+                      <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+                          <div style={{ margin: '0 15px', color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>O crea uno</div>
+                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+                      </div>
+
+                      <input 
+                        type="text" 
+                        placeholder="Nombre nuevo (ej: MiPrimo)" 
+                        value={newNameInput}
+                        onChange={(e) => setNewNameInput(e.target.value)}
+                        className="glass-input" 
+                        style={{ width: '100%', marginBottom: '25px', padding: '12px', fontSize: '1rem', borderRadius: '8px', textAlign: 'center' }}
+                      />
+                      <button className="glass-btn primary-btn" style={{ width: '100%', padding: '12px', fontSize: '1.1rem', letterSpacing: '1px' }} onClick={handleNameSubmit}>
+                          Vincular y Entrar
+                      </button>
+                      <button className="glass-btn" style={{ marginTop: '15px', fontSize: '0.85rem', padding: '8px 15px', opacity: 0.8, width: '100%' }} onClick={() => { setShowMyBetModal(false); navigate('/', { replace: true, state: {} }); }}>
+                          Volver al inicio
+                      </button>
+                  </div>
+              ) : (
+                  <div style={{ animation: 'fadeIn 0.5s ease forwards' }}>
+                      <p style={{ marginBottom: '30px', fontSize: '1rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                          Para saber en qué liga estás o rellenar tu porra, ¡debes loguearte con Google!
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                          <GoogleLogin 
+                            onSuccess={handleGoogleSuccess} 
+                            onError={() => alert('Login Fallido')} 
+                            theme="filled_black"
+                            shape="pill"
+                            text="continue_with"
+                          />
+                      </div>
+                      <button className="glass-btn" style={{ marginTop: '10px', fontSize: '0.85rem', padding: '8px 15px', opacity: 0.8 }} onClick={() => { setShowMyBetModal(false); navigate('/', { replace: true, state: {} }); }}>
+                          Volver al inicio
+                      </button>
+                  </div>
+              )}
           </div>
       </div>
-      
-      <div id="rtve-modal" className="modal" style={{ display: 'none', zIndex: 9999999 }}>
-          <div className="modal-content" style={{ maxWidth: '1100px', width: '95%', padding: '15px', background: 'black', border: '2px solid #ff4757', textAlign: 'center' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '15px', position: 'relative' }}>
-                  <button onClick={() => {
-                      document.getElementById('rtve-modal').style.display = 'none';
-                      const r = document.getElementById('rtve-iframe'); if(r) r.src = '';
-                      const s = document.getElementById('stream-iframe'); if(s) s.src = '';
-                  }} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer', position: 'absolute', right: 0, top: '-5px' }}>❌</button>
-              </div>
 
-              <div id="player-container-rtve" style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '8px' }}>
-                  <iframe id="rtve-iframe" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} src="" frameBorder="0" allow="autoplay; fullscreen; encrypted-media" allowFullScreen></iframe>
-              </div>
-
-              <div id="player-container-stream" style={{ display: 'none', position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '8px' }}>
-                  <iframe id="stream-iframe" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} src="" frameBorder="0" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen></iframe>
-              </div>
-          </div>
-      </div>
       
       <BetViewer />
     </>

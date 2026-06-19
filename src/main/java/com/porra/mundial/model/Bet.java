@@ -26,6 +26,9 @@ public class Bet {
     // Un apodo o nombre para la porra (por si alguien hace más de una)
     private String betName;
 
+    // A qué grupo pertenece esta porra (null = Grupo Oficial / Plantilla)
+    private Long groupId;
+
     // Aquí guardamos tooooda la predicción comprimida en un formato llamado Base64.
     // Así no tenemos que crear 64 columnas en la base de datos para cada partido.
     @Column(columnDefinition = "TEXT")

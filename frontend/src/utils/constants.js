@@ -1,6 +1,6 @@
 export const countryCodeMap = {
   "México": "mx", "Sudáfrica": "za", "Corea del Sur": "kr", "Chequia": "cz",
-  "Canadá": "ca", "Bosnia y Her.": "ba", "Catar": "qa", "Suiza": "ch",
+  "Canadá": "ca", "Bosnia y Her.": "ba", "Bosnia": "ba", "Bosnia y Herzegovina": "ba", "Catar": "qa", "Suiza": "ch",
   "Brasil": "br", "Marruecos": "ma", "Haití": "ht", "Escocia": "gb-sct",
   "EEUU": "us", "Paraguay": "py", "Australia": "au", "Turquía": "tr",
   "Alemania": "de", "Curaçao": "cw", "Costa de Marfil": "ci", "Ecuador": "ec",
@@ -14,5 +14,24 @@ export const countryCodeMap = {
 };
 
 export function getCountryCode(name) {
-  return countryCodeMap[name] || "xx";
+  if (!name) return "xx";
+  let cleanName = name.trim();
+  if (countryCodeMap[cleanName]) return countryCodeMap[cleanName];
+  
+  // Try case insensitive fallback just in case
+  const match = Object.keys(countryCodeMap).find(k => k.toLowerCase() === cleanName.toLowerCase());
+  return match ? countryCodeMap[match] : "xx";
+}
+
+export function getCountryEmoji(name) {
+  const code = countryCodeMap[name];
+  if (!code || code === "xx") return "🏴";
+  if (code === "gb-eng") return "🏴󠁧󠁢󠁥󠁮󠁧󠁿";
+  if (code === "gb-sct") return "🏴󠁧󠁢󠁳󠁣󠁴󠁿";
+  
+  return code
+    .toUpperCase()
+    .split('')
+    .map(char => String.fromCodePoint(char.charCodeAt(0) + 127397))
+    .join('');
 }

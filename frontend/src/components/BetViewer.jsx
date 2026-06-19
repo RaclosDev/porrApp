@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { decodeHash } from '../utils/hash';
 import { getCountryCode } from '../utils/constants';
-import { calculatePoints, compareTeams } from '../utils/points';
+import { compareTeams } from '../utils/points';
 
 function BetViewer() {
   const state = useAppContext();
@@ -29,12 +29,7 @@ function BetViewer() {
   const part = decodeHash(viewerHash);
   if (!part) return null;
 
-  let official = null;
-  if (officialResultsHash) {
-    official = decodeHash(officialResultsHash);
-  }
-
-  const points = calculatePoints(part, official, state);
+  let points = state.leaderboardData.find(lb => lb.hash === viewerHash) || { total: 0, r1: 0, r32: 0, r16: 0, qf: 0, sf: 0, finals: 0, scorer: 0, log: [], exactMatches: {}, passedTeams: {} };
 
   const getHtmlTeam = (name, isWinner = false) => {
     if (!name) return <div className="team-slot empty" style={{ pointerEvents: 'none', fontSize: '0.8rem', height: '32px', padding: '5px', justifyContent: 'center' }}>Por definir</div>;
