@@ -155,7 +155,12 @@ function Leaderboard() {
                             }
 
                             const isPending = !r.paid;
-                            const rowStyle = { backgroundColor: isPending ? 'rgba(255, 165, 0, 0.05)' : 'transparent', cursor: 'pointer' };
+                            const isMe = r.name === userName;
+                            const rowStyle = { 
+                                backgroundColor: isMe ? 'rgba(0, 210, 211, 0.15)' : (isPending ? 'rgba(255, 165, 0, 0.05)' : 'transparent'), 
+                                boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
+                                cursor: 'pointer' 
+                            };
 
                             return (
                                 <tr key={r.key} style={rowStyle}>
@@ -164,7 +169,7 @@ function Leaderboard() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-                                                    <span title={`Ver Apuesta de ${r.name}`} style={{ fontSize: '1.1em' }}><strong>{r.name}</strong></span>
+                                                    <span title={`Ver Apuesta de ${r.name}`} style={{ fontSize: '1.1em' }}><strong>{r.name} {isMe && <span style={{ color: 'var(--accent-color)', marginLeft: '5px', fontSize: '0.8em' }}>(Tú)</span>}</strong></span>
                                                     {isPending && <span style={{ fontSize: '10px', background: 'orange', color: 'white', padding: '2px 4px', borderRadius: '4px', marginLeft: '8px' }}>⏳ Pendiente</span>}
                                                 </div>
                                                 <div style={{ fontSize: '0.85em', color: 'var(--text-muted)' }}>{r.betName}</div>
@@ -237,8 +242,9 @@ function Leaderboard() {
                       else if (r.rank === 3) rankDisplay = "🥉";
                       else if (r.rank === lowestPaidRank && lowestPaidRank > 3) rankDisplay = "🐢";
                       
+                      const isMe = r.name === userName;
                       return (
-                          <div key={r.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div key={r.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isMe ? 'rgba(0, 210, 211, 0.15)' : 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px', border: isMe ? '1px solid #00d2d3' : '1px solid rgba(255,255,255,0.05)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   <span style={{ fontSize: '1.2rem', fontWeight: 'bold', width: '30px', textAlign: 'center', color: 'var(--accent-color)' }}>{rankDisplay}</span>
                                   <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>{r.name}</span>
@@ -256,8 +262,9 @@ function Leaderboard() {
                       else if (r.rank === 3) rankDisplay = "🥉";
                       else if (r.rank === lowestPaidRank && lowestPaidRank > 3) rankDisplay = "🐢";
                       
+                      const isMe = r.name === userName;
                       return (
-                          <div key={r.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div key={r.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isMe ? 'rgba(0, 210, 211, 0.15)' : 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px', border: isMe ? '1px solid #00d2d3' : '1px solid rgba(255,255,255,0.05)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   <span style={{ fontSize: '1.2rem', fontWeight: 'bold', width: '30px', textAlign: 'center', color: 'var(--accent-color)' }}>{rankDisplay}</span>
                                   <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>{r.name}</span>

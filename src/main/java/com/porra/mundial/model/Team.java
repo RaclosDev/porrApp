@@ -40,13 +40,4 @@ public class Team {
     // Probabilidad absoluta de ganar el Mundial (quedar primeros)
     private Double outrightOdds;
 
-    // Puntos extra ocultos que el administrador puede sumar a mano para forzar un desempate
-    @Column(columnDefinition = "integer default 0")
-    @Builder.Default
-    private Integer manualTieBreaker = 0;
-
-    // Puntos extra para desempate de Mejores Terceros
-    @Column(columnDefinition = "integer default 0")
-    @Builder.Default
-    private Integer manualTieBreakerThirds = 0;
 }

@@ -41,7 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/teams/odds").permitAll()
                 .requestMatchers("/api/leaderboard").permitAll()
                 .requestMatchers("/api/presence/**").permitAll()
-                .requestMatchers("/api/stream").permitAll()
+                .requestMatchers("/api/ws").permitAll()
                 
                 // Rutas protegidas (Crear porra, editar porra, admin)
                 .requestMatchers(HttpMethod.POST, "/api/bets").authenticated()

@@ -8,20 +8,24 @@ import com.porra.mundial.model.Bet;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.repository.BetRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LeaderboardService {
 
     private final BetRepository betRepository;
     private final StandingsService standingsService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final TopScorerService topScorerService;
+    private final ObjectMapper objectMapper;
 
     public BetDataDTO decodeHash(String base64Hash) {
         if (base64Hash == null || base64Hash.isEmpty()) return null;
@@ -31,7 +35,7 @@ public class LeaderboardService {
             // Some URL encoding might be present if escape() was used
             return objectMapper.readValue(decoded, BetDataDTO.class);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error decoding hash", e);
             return null;
         }
     }
@@ -75,13 +79,14 @@ public class LeaderboardService {
         });
         
         List<String> bestVirtualThirds = allThirds.stream().limit(8).map(gs -> gs.getTeam().getName()).collect(Collectors.toList());
+        List<Map<String, Object>> allScorers = topScorerService.getTopScorers();
 
         for (Bet bet : groupBets) {
             if (bet.getParticipantName().equalsIgnoreCase("Admin")) continue;
             BetDataDTO participant = decodeHash(bet.getHash());
             if (participant == null) continue;
 
-            ParticipantScoreDTO score = calculatePoints(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds);
+            ParticipantScoreDTO score = calculatePoints(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers);
             score.setId(bet.getId());
             score.setName(bet.getParticipantName());
             score.setHash(bet.getHash());
@@ -93,7 +98,7 @@ public class LeaderboardService {
         return leaderboard;
     }
 
-    private ParticipantScoreDTO calculatePoints(BetDataDTO part, BetDataDTO off, Map<String, Map<String, Map<String, Integer>>> officialPoints, Map<String, List<String>> orderedTeamsPerGroup, List<String> bestVirtualThirds) {
+    private ParticipantScoreDTO calculatePoints(BetDataDTO part, BetDataDTO off, Map<String, Map<String, Map<String, Integer>>> officialPoints, Map<String, List<String>> orderedTeamsPerGroup, List<String> bestVirtualThirds, List<Map<String, Object>> allScorers) {
         ParticipantScoreDTO score = ParticipantScoreDTO.builder()
                 .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).total(0)
                 .log(new ArrayList<>())
@@ -172,8 +177,57 @@ public class LeaderboardService {
             String part4th = getSecond(part.getThirdPlaceMatch(), part.getThirdPlaceWinner());
             if (part4th != null && part4th.equals(off4th)) award(score, 75, "finals", "Tercer y Cuarto: " + part4th + " Cuarto puesto");
 
-            if (part.getScorer() != null && off.getScorer() != null && part.getScorer().equals(off.getScorer())) {
-                award(score, 100, "scorer", "Goleador: " + part.getScorer() + " acertado");
+            if (part.getScorer() != null && !part.getScorer().trim().isEmpty()) {
+                boolean scorerAwarded = false;
+                
+                // First try to use the automated API data
+                if (allScorers != null && !allScorers.isEmpty()) {
+                    int maxGoals = (int) allScorers.get(0).get("goals");
+                    if (maxGoals > 0) {
+                        List<Map<String, Object>> topScorers = allScorers.stream()
+                                .filter(s -> (int) s.get("goals") == maxGoals)
+                                .collect(Collectors.toList());
+                        
+                        long validScorersCount = topScorers.size();
+                        if (validScorersCount > 0) {
+                            int points = (int) (100 / validScorersCount);
+                            boolean isMatch = topScorers.stream()
+                                    .anyMatch(s -> isScorerMatch(part.getScorer(), (String) s.get("name"), (String) s.get("shortName")));
+                            
+                            if (isMatch) {
+                                String msg = validScorersCount > 1 
+                                        ? "Pichichi: " + part.getScorer() + " acertado (" + points + " pts repartidos)"
+                                        : "Pichichi: " + part.getScorer() + " acertado";
+                                award(score, points, "scorer", msg);
+                            }
+                            scorerAwarded = true; // We processed it using API
+                        }
+                    }
+                }
+                
+                // Fallback to manual entry if API didn't process it or wasn't available
+                if (!scorerAwarded && off.getScorer() != null && !off.getScorer().trim().isEmpty()) {
+                    String[] officialScorers = off.getScorer().split(",");
+                    long validScorersCount = Arrays.stream(officialScorers)
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .count();
+                    
+                    if (validScorersCount > 0) {
+                        int points = (int) (100 / validScorersCount);
+                        boolean isMatch = Arrays.stream(officialScorers)
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .anyMatch(s -> isScorerMatch(part.getScorer(), s, s));
+                        
+                        if (isMatch) {
+                            String msg = validScorersCount > 1 
+                                    ? "Pichichi: " + part.getScorer() + " acertado (" + points + " pts repartidos)"
+                                    : "Pichichi: " + part.getScorer() + " acertado";
+                            award(score, points, "scorer", msg);
+                        }
+                    }
+                }
             }
         }
 
@@ -240,6 +294,27 @@ public class LeaderboardService {
         String safeName = team.replaceAll("[.#$\\[\\]]", "");
         if (officialPoints.containsKey(group) && officialPoints.get(group).containsKey(safeName)) {
             return officialPoints.get(group).get(safeName).getOrDefault("mp", 0) > 0;
+        }
+        return false;
+    }
+
+    private String normalizeStr(String input) {
+        if (input == null) return "";
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "").toLowerCase().trim();
+    }
+
+    private boolean isScorerMatch(String userScorer, String apiName, String apiShortName) {
+        if (userScorer == null || userScorer.trim().isEmpty()) return false;
+        String user = normalizeStr(userScorer);
+        String name = normalizeStr(apiName);
+        String shortName = normalizeStr(apiShortName);
+        
+        if (name.equals(user) || shortName.equals(user)) return true;
+        if (name.contains(user) || user.contains(name)) return true;
+        if (shortName.contains(" ")) {
+            String lastName = shortName.substring(shortName.lastIndexOf(" ") + 1);
+            if (user.contains(lastName) || lastName.contains(user)) return true;
         }
         return false;
     }

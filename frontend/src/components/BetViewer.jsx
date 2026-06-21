@@ -6,7 +6,7 @@ import { compareTeams } from '../utils/points';
 
 function BetViewer() {
   const state = useAppContext();
-  const { viewerHash, setViewerHash, officialResultsHash, officialPoints, groupOdds, manualTiebreakers, allGames, nameToIdMap } = state;
+  const { viewerHash, setViewerHash, officialResultsHash, officialPoints, groupOdds, allGames, nameToIdMap } = state;
   const [openSection, setOpenSection] = useState('groups'); // 'groups' or 'knockout'
   const [pointsOpen, setPointsOpen] = useState(true);
   const [visibleRounds, setVisibleRounds] = useState({ r32: true, r16: true, qf: true, sf: false, center: false });
@@ -77,7 +77,7 @@ function BetViewer() {
   const getOfficialPositionAndMp = (groupName, teamName) => {
     if (!officialPoints || !officialPoints[groupName] || !groupOdds) return { pos: -1, mp: 0 };
     const teams = groupOdds[groupName].map(t => ({ name: t.name }));
-    teams.sort((a, b) => compareTeams(a, b, groupName, officialPoints, manualTiebreakers, allGames, nameToIdMap));
+    teams.sort((a, b) => compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap));
     const pos = teams.findIndex(t => t.name === teamName) + 1;
     
     const safeKey = teamName.replace(/[.#$\[\]]/g, "");

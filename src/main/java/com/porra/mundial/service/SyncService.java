@@ -6,22 +6,25 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.config.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import java.net.http.HttpClient;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * 📡 Servicio de Sincronización (El "Buscador de Resultados")
- * Esto reemplaza al antiguo `syncWithApi()` que tenías en JavaScript.
- * Cada 15 minutos, este servicio se conecta a hurtadillas a la API oficial (worldcup26.ir),
- * descarga los goles reales que se acaban de marcar, y actualiza nuestra Base de Datos.
+ * 📡 Servicio de Sincronización — Powered by ESPN API (gratis, sin API key)
+ * Cada 30 segundos se conecta al endpoint público de ESPN para obtener
+ * resultados en tiempo real del Mundial 2026.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,78 +36,15 @@ public class SyncService {
     private final StandingsService standingsService;
     private final TopScorerService topScorerService;
     private final ObjectMapper objectMapper;
-    private final SseService sseService;
+    private final WebSocketService webSocketService;
     private final org.springframework.cache.CacheManager cacheManager;
+    private final HttpClient httpClient;
 
-    @Value("${app.worldcup-api.teams-url}")
-    private String teamsApiUrl;
+    @Value("${app.espn.scoreboard-url}")
+    private String espnScoreboardUrl;
 
-    @Value("${app.worldcup-api.games-url}")
-    private String gamesApiUrl;
-
-    // Stadium timezone offsets to Spain (CEST / UTC+2)
-    private static final Map<String, Integer> STADIUM_OFFSETS = Map.ofEntries(
-            Map.entry("14", 9), Map.entry("8", 6), Map.entry("13", 9),
-            Map.entry("15", 9), Map.entry("3", 8), Map.entry("1", 8),
-            Map.entry("2", 8), Map.entry("5", 7), Map.entry("16", 9),
-            Map.entry("7", 6), Map.entry("9", 6), Map.entry("6", 7),
-            Map.entry("10", 6), Map.entry("4", 7), Map.entry("11", 6),
-            Map.entry("12", 6)
-    );
-
-    // API team name -> Local Spanish name mapping
-    private static final Map<String, String> API_TO_LOCAL = new LinkedHashMap<>();
-    static {
-        API_TO_LOCAL.put("Mexico", "México");
-        API_TO_LOCAL.put("South Africa", "Sudáfrica");
-        API_TO_LOCAL.put("South Korea", "Corea del Sur");
-        API_TO_LOCAL.put("Czech Republic", "Chequia");
-        API_TO_LOCAL.put("Canada", "Canadá");
-        API_TO_LOCAL.put("Bosnia and Herzegovina", "Bosnia y Her.");
-        API_TO_LOCAL.put("Qatar", "Catar");
-        API_TO_LOCAL.put("Switzerland", "Suiza");
-        API_TO_LOCAL.put("Brazil", "Brasil");
-        API_TO_LOCAL.put("Morocco", "Marruecos");
-        API_TO_LOCAL.put("Haiti", "Haití");
-        API_TO_LOCAL.put("Scotland", "Escocia");
-        API_TO_LOCAL.put("United States", "EEUU");
-        API_TO_LOCAL.put("Paraguay", "Paraguay");
-        API_TO_LOCAL.put("Australia", "Australia");
-        API_TO_LOCAL.put("Turkey", "Turquía");
-        API_TO_LOCAL.put("Germany", "Alemania");
-        API_TO_LOCAL.put("Curacao", "Curaçao");
-        API_TO_LOCAL.put("Ivory Coast", "Costa de Marfil");
-        API_TO_LOCAL.put("Ecuador", "Ecuador");
-        API_TO_LOCAL.put("Netherlands", "Países Bajos");
-        API_TO_LOCAL.put("Japan", "Japón");
-        API_TO_LOCAL.put("Sweden", "Suecia");
-        API_TO_LOCAL.put("Tunisia", "Túnez");
-        API_TO_LOCAL.put("Belgium", "Bélgica");
-        API_TO_LOCAL.put("Egypt", "Egipto");
-        API_TO_LOCAL.put("Iran", "Irán");
-        API_TO_LOCAL.put("New Zealand", "Nueva Zelanda");
-        API_TO_LOCAL.put("Spain", "España");
-        API_TO_LOCAL.put("Cape Verde", "Cabo Verde");
-        API_TO_LOCAL.put("Saudi Arabia", "Arabia Saudí");
-        API_TO_LOCAL.put("Uruguay", "Uruguay");
-        API_TO_LOCAL.put("France", "Francia");
-        API_TO_LOCAL.put("Senegal", "Senegal");
-        API_TO_LOCAL.put("Iraq", "Irak");
-        API_TO_LOCAL.put("Norway", "Noruega");
-        API_TO_LOCAL.put("Argentina", "Argentina");
-        API_TO_LOCAL.put("Algeria", "Argelia");
-        API_TO_LOCAL.put("Austria", "Austria");
-        API_TO_LOCAL.put("Jordan", "Jordania");
-        API_TO_LOCAL.put("Portugal", "Portugal");
-        API_TO_LOCAL.put("DR Congo", "RD Congo");
-        API_TO_LOCAL.put("Democratic Republic of the Congo", "RD Congo");
-        API_TO_LOCAL.put("Uzbekistan", "Uzbekistán");
-        API_TO_LOCAL.put("Colombia", "Colombia");
-        API_TO_LOCAL.put("England", "Inglaterra");
-        API_TO_LOCAL.put("Croatia", "Croacia");
-        API_TO_LOCAL.put("Ghana", "Ghana");
-        API_TO_LOCAL.put("Panama", "Panamá");
-    }
+    // Date range covering the entire World Cup (group stage through final)
+    private static final String WC_DATE_RANGE = "20260611-20260722";
 
     /**
      * Scheduled sync every 30 seconds (configurable in application.properties).
@@ -119,257 +59,311 @@ public class SyncService {
     }
 
     /**
-     * Full sync: teams + games + standings.
+     * Full sync: fetches all World Cup data from ESPN and updates our database.
      */
+    @CircuitBreaker(name = "sportsApi", fallbackMethod = "syncFallback")
     public Map<String, Object> syncAll() {
         Map<String, Object> result = new LinkedHashMap<>();
-        
+
         try {
-            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                    .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
-                    .connectTimeout(java.time.Duration.ofSeconds(10))
-                    .build();
-
-            // 1. Sync teams
-            java.net.http.HttpRequest teamsRequest = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(teamsApiUrl + "?_cb=" + System.currentTimeMillis()))
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            // Single API call to ESPN — gets ALL matches with scores, teams, dates, status
+            String url = espnScoreboardUrl + "?dates=" + WC_DATE_RANGE + "&limit=200";
+            
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .timeout(java.time.Duration.ofSeconds(15))
                     .header("Accept", "application/json")
                     .GET()
                     .build();
-            
-            java.net.http.HttpResponse<String> teamsResponse = client.send(teamsRequest, java.net.http.HttpResponse.BodyHandlers.ofString());
-            String teamsJson = teamsResponse.body();
-            
-            if (teamsJson == null || (!teamsJson.trim().startsWith("{") && !teamsJson.trim().startsWith("["))) {
-                throw new IllegalStateException("API teams returned non-JSON response (posible bloqueo de Cloudflare): " + 
-                    (teamsJson != null && teamsJson.length() > 50 ? teamsJson.substring(0, 50).replace('\n', ' ') : teamsJson));
+
+            java.net.http.HttpResponse<String> response = httpClient.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            String json = response.body();
+
+            if (json == null || !json.trim().startsWith("{")) {
+                throw new IllegalStateException("ESPN API returned non-JSON response");
             }
 
-            JsonNode teamsRoot = objectMapper.readTree(teamsJson);
-            JsonNode teamsArray = teamsRoot.get("teams");
+            JsonNode root = objectMapper.readTree(json);
+            JsonNode events = root.path("events");
 
-            int teamsUpdated = 0;
-            int matchesUpdated = 0;
-
-            if (teamsArray != null && teamsArray.isArray()) {
-                for (JsonNode t : teamsArray) {
-                    String extId = t.get("id").asText();
-                    String nameEn = t.get("name_en").asText();
-
-                    Team team = teamRepository.findByExternalId(extId).orElse(null);
-                    
-                    if (team == null) {
-                        // First time syncing this team, find by local name
-                        String localName = API_TO_LOCAL.getOrDefault(nameEn, nameEn);
-                        team = teamRepository.findByName(localName).orElse(null);
-                    }
-                    
-                    if (team != null) {
-                        boolean updated = false;
-                        if (team.getExternalId() == null || !team.getExternalId().equals(extId)) {
-                            team.setExternalId(extId);
-                            updated = true;
-                        }
-                        if (team.getNameEn() == null || !team.getNameEn().equals(nameEn)) {
-                            team.setNameEn(nameEn);
-                            updated = true;
-                        }
-                        if (updated) {
-                            teamRepository.save(team);
-                            teamsUpdated++;
-                        }
-                    }
-                }
-                result.put("teamsUpdated", teamsUpdated);
+            if (!events.isArray()) {
+                throw new IllegalStateException("ESPN API: no events array found");
             }
 
-            // 2. Sync games
-            java.net.http.HttpRequest gamesRequest = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(gamesApiUrl + "?_cb=" + System.currentTimeMillis()))
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-            
-            java.net.http.HttpResponse<String> gamesResponse = client.send(gamesRequest, java.net.http.HttpResponse.BodyHandlers.ofString());
-            String gamesJson = gamesResponse.body();
-            
-            if (gamesJson == null || (!gamesJson.trim().startsWith("{") && !gamesJson.trim().startsWith("["))) {
-                throw new IllegalStateException("API games returned non-JSON response (posible bloqueo de Cloudflare): " + 
-                    (gamesJson != null && gamesJson.length() > 50 ? gamesJson.substring(0, 50).replace('\n', ' ') : gamesJson));
-            }
-
-            JsonNode gamesRoot = objectMapper.readTree(gamesJson);
-            JsonNode gamesArray = gamesRoot.get("games");
-
-            // Build a map of externalId -> Team for fast lookup
-            Map<String, Team> extIdToTeam = new HashMap<>();
+            // Build a map of team name (Spanish) -> Team for fast lookup
+            Map<String, Team> nameToTeam = new HashMap<>();
             teamRepository.findAll().forEach(team -> {
-                if (team.getExternalId() != null) {
-                    extIdToTeam.put(team.getExternalId(), team);
+                if (team.getName() != null) {
+                    nameToTeam.put(team.getName(), team);
                 }
-                // Also map by English name for flexibility
                 if (team.getNameEn() != null) {
-                    extIdToTeam.put(team.getNameEn(), team);
+                    nameToTeam.put(team.getNameEn(), team);
+                }
+                if (team.getExternalId() != null) {
+                    nameToTeam.put(team.getExternalId(), team);
                 }
             });
 
-            // Points calculation accumulators
-            Map<Long, int[]> teamStats = new HashMap<>(); // teamId -> [pts, diff, gls, mp]
+            int teamsUpdated = 0;
+            int matchesUpdated = 0;
+            Map<Long, int[]> teamStats = new HashMap<>(); // teamId -> [pts, diff, gls, mp, fp]
 
-            if (gamesArray != null && gamesArray.isArray()) {
-                for (JsonNode g : gamesArray) {
-                    String gameExtId = g.has("id") ? g.get("id").asText() : null;
-                    if (gameExtId == null) continue;
+            for (JsonNode event : events) {
+                String espnEventId = event.path("id").asText(null);
+                if (espnEventId == null) continue;
 
-                    String homeTeamId = g.has("home_team_id") ? g.get("home_team_id").asText() : null;
-                    String awayTeamId = g.has("away_team_id") ? g.get("away_team_id").asText() : null;
+                JsonNode competition = event.path("competitions").get(0);
+                if (competition == null) continue;
 
-                    Team homeTeam = homeTeamId != null ? extIdToTeam.get(homeTeamId) : null;
-                    Team awayTeam = awayTeamId != null ? extIdToTeam.get(awayTeamId) : null;
-
-                    // Parse date with stadium timezone conversion
-                    LocalDateTime matchDate = null;
-                    if (g.has("local_date") && !g.get("local_date").isNull()) {
-                        try {
-                            String dateStr = g.get("local_date").asText();
-                            matchDate = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"));
-                            String stadiumId = g.has("stadium_id") ? g.get("stadium_id").asText() : "";
-                            int offset = STADIUM_OFFSETS.getOrDefault(stadiumId, 0);
-                            matchDate = matchDate.plusHours(offset);
-                        } catch (Exception e) {
-                            // Try ISO format
-                            try {
-                                matchDate = LocalDateTime.parse(g.get("local_date").asText());
-                            } catch (Exception ignored) {}
-                        }
+                // --- Parse date (ESPN gives UTC ISO dates) ---
+                LocalDateTime matchDate = null;
+                String dateStr = event.path("date").asText(null);
+                if (dateStr != null) {
+                    try {
+                        ZonedDateTime utc = ZonedDateTime.parse(dateStr);
+                        // Convert UTC to Spain timezone (CET/CEST)
+                        ZonedDateTime spainTime = utc.withZoneSameInstant(ZoneId.of("Europe/Madrid"));
+                        matchDate = spainTime.toLocalDateTime();
+                    } catch (Exception e) {
+                        log.debug("Could not parse date '{}': {}", dateStr, e.getMessage());
                     }
+                }
 
-                    // Parse scores
-                    Integer homeScore = null;
-                    Integer awayScore = null;
-                    boolean hasScores = false;
+                // --- Parse status ---
+                JsonNode statusNode = competition.path("status").path("type");
+                boolean completed = statusNode.path("completed").asBoolean(false);
+                String state = statusNode.path("state").asText(""); // "pre", "in", "post"
+                boolean isLive = "in".equals(state);
+                boolean finished = completed;
 
-                    if (g.has("home_score") && !g.get("home_score").isNull() && !g.get("home_score").asText().isEmpty() && !g.get("home_score").asText().equals("null")) {
-                        try {
-                            homeScore = Integer.parseInt(g.get("home_score").asText());
-                            awayScore = Integer.parseInt(g.get("away_score").asText());
-                            hasScores = true;
-                        } catch (NumberFormatException ignored) {}
+                // --- Parse competitors (home & away teams) ---
+                JsonNode competitors = competition.path("competitors");
+                if (!competitors.isArray() || competitors.size() < 2) continue;
+
+                JsonNode homeComp = null;
+                JsonNode awayComp = null;
+                for (JsonNode comp : competitors) {
+                    if ("home".equals(comp.path("homeAway").asText())) homeComp = comp;
+                    else awayComp = comp;
+                }
+                if (homeComp == null || awayComp == null) continue;
+
+                String homeNameEn = homeComp.path("team").path("displayName").asText(null);
+                String awayNameEn = awayComp.path("team").path("displayName").asText(null);
+                String homeEspnId = homeComp.path("team").path("id").asText(null);
+                String awayEspnId = awayComp.path("team").path("id").asText(null);
+
+                if (homeNameEn == null || awayNameEn == null) continue;
+
+                // Translate ESPN English names to our local Spanish names
+                String homeLocalName = Constants.getLocalName(homeNameEn);
+                String awayLocalName = Constants.getLocalName(awayNameEn);
+
+                // Find or link teams in our DB
+                Team homeTeam = resolveTeam(nameToTeam, homeLocalName, homeNameEn, homeEspnId);
+                Team awayTeam = resolveTeam(nameToTeam, awayLocalName, awayNameEn, awayEspnId);
+
+                // Update team English names and external IDs if needed
+                if (homeTeam != null) {
+                    boolean teamChanged = false;
+                    if (homeTeam.getNameEn() == null || !homeTeam.getNameEn().equals(homeNameEn)) {
+                        homeTeam.setNameEn(homeNameEn);
+                        teamChanged = true;
                     }
-
-                    boolean finished = g.has("finished") && "TRUE".equals(g.get("finished").asText());
-
-                    // Determine if live
-                    boolean isLive = false;
-                    if (!finished && matchDate != null) {
-                        long diffMs = java.time.Duration.between(LocalDateTime.now(), matchDate).toMillis();
-                        if (diffMs <= 30 * 60 * 1000) {
-                            isLive = true;
-                        }
+                    if (homeTeam.getExternalId() == null || !homeTeam.getExternalId().equals(homeEspnId)) {
+                        homeTeam.setExternalId(homeEspnId);
+                        teamChanged = true;
                     }
+                    if (teamChanged) {
+                        teamRepository.save(homeTeam);
+                        nameToTeam.put(homeNameEn, homeTeam);
+                        nameToTeam.put(homeEspnId, homeTeam);
+                        teamsUpdated++;
+                    }
+                }
+                if (awayTeam != null) {
+                    boolean teamChanged = false;
+                    if (awayTeam.getNameEn() == null || !awayTeam.getNameEn().equals(awayNameEn)) {
+                        awayTeam.setNameEn(awayNameEn);
+                        teamChanged = true;
+                    }
+                    if (awayTeam.getExternalId() == null || !awayTeam.getExternalId().equals(awayEspnId)) {
+                        awayTeam.setExternalId(awayEspnId);
+                        teamChanged = true;
+                    }
+                    if (teamChanged) {
+                        teamRepository.save(awayTeam);
+                        nameToTeam.put(awayNameEn, awayTeam);
+                        nameToTeam.put(awayEspnId, awayTeam);
+                        teamsUpdated++;
+                    }
+                }
 
-                    // Upsert match
-                    boolean updated = false;
-                    Match match = matchRepository.findByExternalId(gameExtId).orElse(null);
-                    if (match == null) {
-                        match = Match.builder().externalId(gameExtId).build();
+                // --- Parse scores ---
+                Integer homeScore = null;
+                Integer awayScore = null;
+                boolean hasScores = false;
+
+                if (isLive || finished) {
+                    try {
+                        homeScore = Integer.parseInt(homeComp.path("score").asText(""));
+                        awayScore = Integer.parseInt(awayComp.path("score").asText(""));
+                        hasScores = true;
+                    } catch (NumberFormatException ignored) {}
+                }
+
+                // --- Extract group from altGameNote (e.g. "FIFA World Cup, Group F") ---
+                String groupName = null;
+                String round = "group";
+                String altNote = competition.path("altGameNote").asText("");
+                if (altNote.contains("Group ")) {
+                    groupName = altNote.substring(altNote.indexOf("Group ") + 6).trim();
+                    if (groupName.length() > 2) groupName = groupName.substring(0, 1);
+                } else if (altNote.contains("Round of 32") || altNote.contains("Round of 16")) {
+                    round = "r16";
+                } else if (altNote.contains("Quarterfinal")) {
+                    round = "qf";
+                } else if (altNote.contains("Semifinal")) {
+                    round = "sf";
+                } else if (altNote.contains("Third")) {
+                    round = "third";
+                } else if (altNote.contains("Final")) {
+                    round = "final";
+                }
+
+                // --- Upsert match ---
+                boolean updated = false;
+                Match match = matchRepository.findByExternalId(espnEventId).orElse(null);
+                if (match == null) {
+                    match = Match.builder().externalId(espnEventId).build();
+                    updated = true;
+                }
+
+                // Detect match just finished → trigger scorer refresh
+                boolean wasFinished = Boolean.TRUE.equals(match.getFinished());
+
+                if (!Objects.equals(match.getHomeTeam(), homeTeam)) { match.setHomeTeam(homeTeam); updated = true; }
+                if (!Objects.equals(match.getAwayTeam(), awayTeam)) { match.setAwayTeam(awayTeam); updated = true; }
+                if (!Objects.equals(match.getHomeScore(), homeScore)) { match.setHomeScore(homeScore); updated = true; }
+                if (!Objects.equals(match.getAwayScore(), awayScore)) { match.setAwayScore(awayScore); updated = true; }
+                if (!Objects.equals(match.getMatchDate(), matchDate)) { match.setMatchDate(matchDate); updated = true; }
+                if (!Objects.equals(match.getFinished(), finished)) { match.setFinished(finished); updated = true; }
+
+                if (groupName != null) {
+                    if (!Objects.equals(match.getGroupName(), groupName)) {
+                        match.setGroupName(groupName);
                         updated = true;
                     }
+                }
+                if (!Objects.equals(match.getRound(), round)) {
+                    match.setRound(round);
+                    updated = true;
+                }
 
-                    // Detect match just finished → trigger scorer refresh
-                    boolean wasFinished = Boolean.TRUE.equals(match.getFinished());
+                if (!wasFinished && finished) {
+                    log.info("Match just finished: {} {} - {} {}, triggering scorer refresh",
+                            homeLocalName, homeScore, awayScore, awayLocalName);
+                    try { topScorerService.refresh(); } catch (Exception ex) { log.warn("Scorer refresh failed: {}", ex.getMessage()); }
+                }
 
-                    if (!Objects.equals(match.getHomeTeam(), homeTeam)) { match.setHomeTeam(homeTeam); updated = true; }
-                    if (!Objects.equals(match.getAwayTeam(), awayTeam)) { match.setAwayTeam(awayTeam); updated = true; }
-                    if (!Objects.equals(match.getHomeScore(), homeScore)) { match.setHomeScore(homeScore); updated = true; }
-                    if (!Objects.equals(match.getAwayScore(), awayScore)) { match.setAwayScore(awayScore); updated = true; }
-                    if (!Objects.equals(match.getMatchDate(), matchDate)) { match.setMatchDate(matchDate); updated = true; }
-                    if (!Objects.equals(match.getFinished(), finished)) { match.setFinished(finished); updated = true; }
-                    
-                    String newStadiumId = g.has("stadium_id") ? g.get("stadium_id").asText() : null;
-                    if (!Objects.equals(match.getStadiumId(), newStadiumId)) { match.setStadiumId(newStadiumId); updated = true; }
+                if (updated) {
+                    matchRepository.save(match);
+                    matchesUpdated++;
+                }
 
-                    if (!wasFinished && finished) {
-                        log.info("Match just finished, triggering scorer refresh");
-                        try { topScorerService.refresh(); } catch (Exception ex) { log.warn("Scorer refresh failed: {}", ex.getMessage()); }
+                // --- Calculate group standings points and fair play ---
+                if (hasScores && homeTeam != null && awayTeam != null && "group".equals(round)
+                        && (finished || (isLive && !isStartingSoon(matchDate)))) {
+                    teamStats.computeIfAbsent(homeTeam.getId(), k -> new int[5]);
+                    teamStats.computeIfAbsent(awayTeam.getId(), k -> new int[5]);
+
+                    int[] homeStats = teamStats.get(homeTeam.getId());
+                    int[] awayStats = teamStats.get(awayTeam.getId());
+
+                    homeStats[3]++; // mp
+                    awayStats[3]++;
+                    homeStats[2] += homeScore; // gls
+                    awayStats[2] += awayScore;
+                    homeStats[1] += (homeScore - awayScore); // diff
+                    awayStats[1] += (awayScore - homeScore);
+
+                    if (homeScore > awayScore) {
+                        homeStats[0] += 3; // pts
+                    } else if (awayScore > homeScore) {
+                        awayStats[0] += 3;
+                    } else {
+                        homeStats[0] += 1;
+                        awayStats[0] += 1;
                     }
 
-                    // Determine group from teams
-                    if (homeTeam != null && homeTeam.getGroupName() != null) {
-                        if (!Objects.equals(match.getGroupName(), homeTeam.getGroupName())) {
-                            match.setGroupName(homeTeam.getGroupName());
-                            updated = true;
-                        }
-                        if (!"group".equals(match.getRound())) {
-                            match.setRound("group");
-                            updated = true;
-                        }
-                    }
-
-                    if (updated) {
-                        matchRepository.save(match);
-                        matchesUpdated++;
-                    }
-
-                    // Calculate group standings points
-                    if (hasScores && homeTeam != null && awayTeam != null && (finished || (isLive && !isStartingSoon(matchDate)))) {
-                        teamStats.computeIfAbsent(homeTeam.getId(), k -> new int[4]);
-                        teamStats.computeIfAbsent(awayTeam.getId(), k -> new int[4]);
-
-                        int[] homeStats = teamStats.get(homeTeam.getId());
-                        int[] awayStats = teamStats.get(awayTeam.getId());
-
-                        homeStats[3]++; // mp
-                        awayStats[3]++;
-                        homeStats[2] += homeScore; // gls
-                        awayStats[2] += awayScore;
-                        homeStats[1] += (homeScore - awayScore); // diff
-                        awayStats[1] += (awayScore - homeScore);
-
-                        if (homeScore > awayScore) {
-                            homeStats[0] += 3; // pts
-                        } else if (awayScore > homeScore) {
-                            awayStats[0] += 3;
-                        } else {
-                            homeStats[0] += 1;
-                            awayStats[0] += 1;
+                    // Parse Fair Play points (Cards)
+                    JsonNode details = competition.path("details");
+                    if (details != null && details.isArray()) {
+                        Set<String> yellowPlayers = new HashSet<>();
+                        for (JsonNode detail : details) {
+                            boolean isYellow = detail.path("yellowCard").asBoolean(false);
+                            boolean isRed = detail.path("redCard").asBoolean(false);
+                            
+                            if (isYellow || isRed) {
+                                String espnTeamId = detail.path("team").path("id").asText(null);
+                                String playerId = null;
+                                JsonNode athletes = detail.path("athletesInvolved");
+                                if (athletes != null && athletes.isArray() && athletes.size() > 0) {
+                                    playerId = athletes.get(0).path("id").asText(null);
+                                }
+                                
+                                int penalty = 0;
+                                if (isYellow && !isRed) {
+                                    if (playerId != null && yellowPlayers.contains(playerId)) {
+                                        // Segunda amarilla (roja indirecta). Ya restamos -1, así que restamos -2 más para que sea -3 en total
+                                        penalty = -2;
+                                    } else {
+                                        // Primera amarilla
+                                        penalty = -1;
+                                        if (playerId != null) yellowPlayers.add(playerId);
+                                    }
+                                } else if (isRed) {
+                                    // Roja directa (-4 puntos)
+                                    penalty = -4;
+                                }
+                                
+                                if (homeTeam.getExternalId() != null && homeTeam.getExternalId().equals(espnTeamId)) {
+                                    homeStats[4] += penalty;
+                                } else if (awayTeam.getExternalId() != null && awayTeam.getExternalId().equals(espnTeamId)) {
+                                    awayStats[4] += penalty;
+                                }
+                            }
                         }
                     }
                 }
-                result.put("matchesUpdated", matchesUpdated);
             }
 
-            // 3. Update group standings
+            result.put("teamsUpdated", teamsUpdated);
+            result.put("matchesUpdated", matchesUpdated);
+
+            // Update group standings
             standingsService.clearAll();
             for (Map.Entry<Long, int[]> entry : teamStats.entrySet()) {
                 Team team = teamRepository.findById(entry.getKey()).orElse(null);
-                if (team != null && team.getGroupName() != null) {
-                    int[] s = entry.getValue();
-                    standingsService.updateStanding(team, team.getGroupName(), s[0], s[1], s[2], s[3]);
+                if (team != null) {
+                    standingsService.updateStanding(team, team.getGroupName(),
+                            entry.getValue()[0], entry.getValue()[1], entry.getValue()[2], entry.getValue()[3], entry.getValue()[4]);
                 }
             }
 
-            // Also ensure teams with 0 points appear in standings
+            // Ensure teams with 0 points appear in standings
             teamRepository.findAll().forEach(team -> {
                 if (team.getGroupName() != null && !teamStats.containsKey(team.getId())) {
-                    standingsService.updateStanding(team, team.getGroupName(), 0, 0, 0, 0);
+                    standingsService.updateStanding(team, team.getGroupName(), 0, 0, 0, 0, 0);
                 }
             });
 
             result.put("standingsUpdated", teamStats.size());
             result.put("status", "success");
-            log.info("Sync completed: {} teams, {} matches updated", result.get("teamsUpdated"), result.get("matchesUpdated"));
+            log.info("ESPN sync completed: {} teams, {} matches updated", teamsUpdated, matchesUpdated);
 
             if (matchesUpdated > 0 || teamsUpdated > 0) {
-                // Limpiar cache de la clasificación
-                org.springframework.cache.Cache cache = cacheManager.getCache("leaderboard");
-                if (cache != null) {
-                    cache.clear();
-                }
-                // Avisar a todos los clientes frontend
-                sseService.broadcastUpdate("DATA_UPDATED");
+                webSocketService.invalidateAndNotify();
             }
 
         } catch (IllegalStateException e) {
@@ -385,6 +379,29 @@ public class SyncService {
         return result;
     }
 
+    /**
+     * Resolve a team from our DB by trying: local name, English name, ESPN id
+     */
+    private Team resolveTeam(Map<String, Team> nameToTeam, String localName, String englishName, String espnId) {
+        Team team = nameToTeam.get(localName);
+        if (team == null && englishName != null) team = nameToTeam.get(englishName);
+        if (team == null && espnId != null) team = nameToTeam.get(espnId);
+        // Last resort: try finding in DB by name
+        if (team == null && localName != null) {
+            team = teamRepository.findByName(localName).orElse(null);
+            if (team != null) nameToTeam.put(localName, team);
+        }
+        return team;
+    }
+
+    public Map<String, Object> syncFallback(Exception e) {
+        log.warn("Circuit Breaker OPEN or API call failed. Fallback activated. Error: {}", e.getMessage());
+        return Map.of(
+            "status", "error",
+            "message", "Circuit Breaker activado por fallos reiterados en la API. Reintentando más tarde."
+        );
+    }
+
     private boolean isStartingSoon(LocalDateTime matchDate) {
         if (matchDate == null) return false;
         long diffMs = java.time.Duration.between(LocalDateTime.now(), matchDate).toMillis();
@@ -392,10 +409,10 @@ public class SyncService {
     }
 
     public static String getLocalName(String apiName) {
-        return API_TO_LOCAL.getOrDefault(apiName, apiName);
+        return Constants.getLocalName(apiName);
     }
 
     public static Map<String, String> getApiToLocalMap() {
-        return Collections.unmodifiableMap(API_TO_LOCAL);
+        return Constants.getApiToLocalMap();
     }
 }

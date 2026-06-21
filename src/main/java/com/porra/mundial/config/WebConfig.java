@@ -22,6 +22,10 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/index.html")
+                .addResourceLocations("classpath:/static/index.html")
+                .setCacheControl(org.springframework.http.CacheControl.noCache());
+
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
                 .resourceChain(true)
@@ -34,6 +38,9 @@ public class WebConfig implements WebMvcConfigurer {
                         }
                         if (resourcePath.startsWith("api/")) {
                             return null;
+                        }
+                        if (resourcePath.startsWith("assets/") && resourcePath.endsWith(".js")) {
+                            return new ClassPathResource("/static/recovery.js");
                         }
                         return new ClassPathResource("/static/index.html");
                     }

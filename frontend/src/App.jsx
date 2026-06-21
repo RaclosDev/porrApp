@@ -11,7 +11,6 @@ import Search from './pages/Search';
 import Admin from './pages/Admin';
 import GroupsDashboard from './pages/GroupsDashboard';
 import JoinRedirect from './components/JoinRedirect';
-import UpdateModal from './components/UpdateModal';
 
 const ProtectedRoute = ({ children }) => {
   const { isAdminAuthenticated } = useAppContext();
@@ -27,7 +26,6 @@ function App() {
   return (
     <AppProvider>
       <Router>
-        <UpdateModal />
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />

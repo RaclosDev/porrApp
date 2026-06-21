@@ -65,6 +65,19 @@ function Rules() {
                     </ul>
                 </div>
             </div>
+
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginTop: '20px' }}>
+                <h3 style={{ color: 'var(--accent-color)', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '5px' }}>
+                    ⚖️ Criterios de Desempate (Fase de Grupos)</h3>
+                <ol style={{ paddingLeft: '20px', margin: 0, lineHeight: 1.8, color: 'var(--text-color)' }}>
+                    <li><b>Enfrentamientos directos (Puntos)</b> entre los empatados.</li>
+                    <li><b>Enfrentamientos directos (Diferencia de goles)</b> entre los empatados.</li>
+                    <li><b>Enfrentamientos directos (Goles a favor)</b> entre los empatados.</li>
+                    <li><b>Diferencia de goles general</b> en todos los partidos del grupo.</li>
+                    <li><b>Goles a favor general</b> anotados en todos los partidos del grupo.</li>
+                    <li><b>Conducta deportiva / Sorteo</b> (Aplicado manualmente por el administrador en caso de empate total, según tarjetas o ranking FIFA).</li>
+                </ol>
+            </div>
         </div>
     </section>
   );

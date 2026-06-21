@@ -5,7 +5,7 @@
 const API_BASE = '/api';
 
 export function getAdminToken() {
-  return localStorage.getItem('adminToken') || window.adminToken || null;
+  return localStorage.getItem('adminToken') || window.adminToken || localStorage.getItem('token') || null;
 }
 
 export function setAdminToken(token) {
@@ -18,20 +18,17 @@ export function setAdminToken(token) {
 }
 
 async function fetchJson(url, options = {}) {
-  try {
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        ...options.headers,
-        ...(getAdminToken() ? { 'Authorization': `Bearer ${getAdminToken()}` } : {})
-      }
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) {
-    console.error(`Error fetching ${url}:`, e);
-    return null;
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      ...(getAdminToken() ? { 'Authorization': `Bearer ${getAdminToken()}` } : {})
+    }
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
   }
+  return await res.json();
 }
 
 export async function fetchStandings() {
@@ -87,25 +84,7 @@ export async function fetchTeamOdds() {
   return fetchJson(`${API_BASE}/teams/odds`);
 }
 
-export async function fetchTiebreakers() {
-  return fetchJson(`${API_BASE}/admin/tiebreakers`) || {};
-}
-
-export async function bumpTeam(teamName) {
-  const res = await fetch(`${API_BASE}/admin/bump-up?teamName=${encodeURIComponent(teamName)}`, { 
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${getAdminToken() || ''}` }
-  });
-  return res.text();
-}
-
-export async function sendPresenceHeartbeat(name) {
-  return fetch(`${API_BASE}/presence`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  }).catch(() => {});
-}
+// Removed sendPresenceHeartbeat since it's handled by WebSockets now
 
 export async function fetchPresence() {
   return fetchJson(`${API_BASE}/presence`);

@@ -4,9 +4,11 @@ import { getCountryCode } from '../utils/constants';
 import { compareTeams } from '../utils/points';
 import { openStats } from '../utils/navigation';
 import { fetchTopScorers } from '../services/api';
+import Flag from '../components/Flag';
+import GroupMatchesModal from '../components/GroupMatchesModal';
 
 function Home() {
-  const { groupOdds, officialPoints, manualTiebreakers, allGames, nameToIdMap, loading, isRaclos, bumpTeam, matchRadar } = useAppContext();
+  const { groupOdds, officialPoints, allGames, nameToIdMap, loading, isRaclos, matchRadar } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [topScorers, setTopScorers] = useState([]);
 
@@ -23,15 +25,13 @@ function Home() {
     const dateFormatted = `${d.getDate()}/${d.getMonth()+1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
     const hasStarted = new Date() >= d;
     const hasFinished = m.finished === true;
-    const homeFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(m.home)}.png`} alt="" />;
-    const awayFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(m.away)}.png`} alt="" />;
 
     return (
       <div key={m.id} className="last-match-card">
-        <div className="last-match-date">🔴 {dateFormatted}</div>
+        <div className="last-match-date">{hasStarted ? '🔴' : '⏳'} {dateFormatted}</div>
         <div className="last-match-teams" style={{ margin: 'auto 0' }}>
           <div className="last-match-team">
-            {homeFlag}
+            <Flag team={m.home} />
             <span>{m.home}</span>
           </div>
           
@@ -44,7 +44,7 @@ function Home() {
           </div>
 
           <div className="last-match-team away">
-            {awayFlag}
+            <Flag team={m.away} />
             <span>{m.away}</span>
           </div>
         </div>
@@ -67,15 +67,24 @@ function Home() {
     });
 
     // Sort
-    teamsWithStats.sort((a, b) => compareTeams(a, b, groupName, officialPoints, manualTiebreakers, allGames, nameToIdMap));
+    teamsWithStats.sort((a, b) => compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap));
 
     return (
       <div 
         key={groupName} 
         className="group-card" 
         id={`group-card-${groupName}`} 
-        style={{ cursor: 'pointer', border: selectedGroup?.name === groupName ? '1px solid var(--accent-color)' : '', boxShadow: selectedGroup?.name === groupName ? '0 0 12px var(--accent-glow)' : '' }}
-        onClick={() => setSelectedGroup({ name: groupName, teams })}
+        style={{ 
+          position: 'relative', 
+          zIndex: selectedGroup?.name === groupName ? 100 : 1,
+          cursor: 'pointer', 
+          border: selectedGroup?.name === groupName ? '1px solid var(--accent-color)' : '', 
+          boxShadow: selectedGroup?.name === groupName ? '0 0 12px var(--accent-glow)' : '' 
+        }}
+        onClick={() => {
+           if (selectedGroup?.name === groupName) setSelectedGroup(null);
+           else setSelectedGroup({ name: groupName, teams });
+        }}
       >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <h3 style={{ margin: 0 }}>Grupo {groupName}</h3>
@@ -88,16 +97,7 @@ function Home() {
           {teamsWithStats.map((team, idx) => (
             <div key={team.name} className="group-slot">
               <span style={{ fontWeight: 'bold', width: '20px', flexShrink: 0 }}>{idx + 1}.</span>
-            {isRaclos && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); bumpTeam(groupName, team.name); }}  
-                className="glass-btn" 
-                style={{ padding: '2px 5px', marginRight: '5px', fontSize: '0.7em', background: 'rgba(0, 255, 0, 0.2)' }} 
-                title="Subir posición (Desempate Manual)">
-                ⬆️
-              </button>
-            )}
-            <img src={`https://flagcdn.com/16x12/${getCountryCode(team.name)}.png`} alt="" style={{ marginRight: '8px' }} />
+            <Flag team={team.name} size="16x12" style={{ marginRight: '8px' }} />
               <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{team.name}</span>
               <div style={{ display: 'flex', gap: '8px', fontSize: '0.85em', alignItems: 'center' }}>
                 <span style={{ width: '20px', textAlign: 'center', color: team.stats.diff > 0 ? '#00b894' : team.stats.diff < 0 ? '#ff4757' : 'var(--text-muted)' }}>{team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}</span>
@@ -106,6 +106,7 @@ function Home() {
               </div>
             </div>
         ))}
+
       </div>
     );
   };
@@ -125,38 +126,22 @@ function Home() {
                             ...officialPoints[groupName][teamName]
                         }));
                         
-                        teamsWithStats.sort((a, b) => {
-                            if (b.pts !== a.pts) return b.pts - a.pts;
-                            if (b.diff !== a.diff) return b.diff - a.diff;
-                            if (b.gls !== a.gls) return b.gls - a.gls;
-
-                            const safeNameA = a.name.replace(/[.#$\[\]]/g, "");
-                            const safeNameB = b.name.replace(/[.#$\[\]]/g, "");
-                            const manualA = (manualTiebreakers?.[groupName]?.[safeNameA]) || 0;
-                            const manualB = (manualTiebreakers?.[groupName]?.[safeNameB]) || 0;
-
-                            if (manualB !== manualA) return manualB - manualA;
-
-                            return a.name.localeCompare(b.name);
-                        });
+                        teamsWithStats.sort((a, b) => compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap));
 
                         if (teamsWithStats.length >= 3) {
                             thirds.push({ group: groupName, ...teamsWithStats[2] });
                         }
                     });
 
-                    // Ordenar: Puntos (DESC), Diferencia (DESC), Goles a favor (DESC), Desempate Manual (DESC)
+                    // Ordenar: Puntos (DESC), Diferencia (DESC), Goles a favor (DESC), Fair Play (DESC)
                     thirds.sort((a, b) => {
                         if (b.pts !== a.pts) return b.pts - a.pts;
                         if (b.diff !== a.diff) return b.diff - a.diff;
                         if (b.gls !== a.gls) return b.gls - a.gls;
 
-                        const safeNameA = a.name.replace(/[.#$\[\]]/g, "");
-                        const safeNameB = b.name.replace(/[.#$\[\]]/g, "");
-                        const manualA = (manualTiebreakers?.["THIRDS"]?.[safeNameA]) || 0;
-                        const manualB = (manualTiebreakers?.["THIRDS"]?.[safeNameB]) || 0;
-                        
-                        if (manualB !== manualA) return manualB - manualA;
+                        const fpA = a.fp || 0;
+                        const fpB = b.fp || 0;
+                        if (fpB !== fpA) return fpB - fpA;
 
                         return a.name.localeCompare(b.name);
                     });
@@ -181,19 +166,10 @@ function Home() {
                                                 const rank = globalIdx + 1;
                                                 
                                                 return (
-                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: isRaclos ? '20px 25px 1fr 25px 30px' : '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem' }}>
+                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem' }}>
                                                         <span style={{ color: isTop8 ? '#00b894' : 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>{rank}</span>
-                                                        {isRaclos && (
-                                                            <button 
-                                                                onClick={(e) => { e.stopPropagation(); bumpTeam(t.group, t.name, true); }}  
-                                                                className="glass-btn" 
-                                                                style={{ padding: '2px 4px', fontSize: '0.7em', background: 'rgba(0, 255, 0, 0.2)', border: 'none', borderRadius: '4px', cursor: 'pointer' }} 
-                                                                title="Subir posición (Desempate Manual)">
-                                                                ⬆️
-                                                            </button>
-                                                        )}
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                                                            <img src={`https://flagcdn.com/20x15/${getCountryCode(t.name)}.png`} alt="" style={{ borderRadius: '2px', flexShrink: 0 }} />
+                                                            <Flag team={t.name} style={{ borderRadius: '2px', flexShrink: 0 }} />
                                                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                                                         </div>
                                                         <span style={{ fontWeight: 'bold', textAlign: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: '4px' }}>{t.pts}</span>
@@ -217,19 +193,10 @@ function Home() {
                                                 const rank = hasPlayed ? globalIdx + 1 : '-';
                                                 
                                                 return (
-                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: isRaclos ? '20px 25px 1fr 25px 30px' : '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem', borderBottom: globalIdx === 7 ? '2px dashed rgba(255, 71, 87, 0.5)' : 'none', opacity: isTop8 ? 1 : (hasPlayed ? 0.5 : 0.3) }}>
+                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem', borderBottom: globalIdx === 7 ? '2px dashed rgba(255, 71, 87, 0.5)' : 'none', opacity: isTop8 ? 1 : (hasPlayed ? 0.5 : 0.3) }}>
                                                         <span style={{ color: isTop8 ? '#00b894' : 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>{rank}</span>
-                                                        {isRaclos && (
-                                                            <button 
-                                                                onClick={(e) => { e.stopPropagation(); bumpTeam(t.group, t.name, true); }}  
-                                                                className="glass-btn" 
-                                                                style={{ padding: '2px 4px', fontSize: '0.7em', background: 'rgba(0, 255, 0, 0.2)', border: 'none', borderRadius: '4px', cursor: 'pointer' }} 
-                                                                title="Subir posición (Desempate Manual)">
-                                                                ⬆️
-                                                            </button>
-                                                        )}
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                                                            <img src={`https://flagcdn.com/20x15/${getCountryCode(t.name)}.png`} alt="" style={{ borderRadius: '2px', flexShrink: 0 }} />
+                                                            <Flag team={t.name} style={{ borderRadius: '2px', flexShrink: 0 }} />
                                                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                                                         </div>
                                                         <span style={{ fontWeight: 'bold', textAlign: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: '4px' }}>{t.pts}</span>
@@ -252,22 +219,32 @@ function Home() {
                     <h2 style={{ margin: 0 }}>Clasificación Fase de Grupos</h2>
                 </div>
                 
-                {liveMatches.length > 0 ? (
-                    <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ textAlign: 'center', color: '#ff4757', fontSize: '1rem', fontWeight: 'bold', padding: '6px', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: '12px' }}>
-                            🔴 EN DIRECTO
+                {liveMatches.length > 0 ? (() => {
+                    const isActuallyLive = liveMatches.some(m => new Date(m.date) <= new Date());
+                    return (
+                        <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ 
+                                textAlign: 'center', 
+                                color: isActuallyLive ? '#ff4757' : '#ffa502', 
+                                fontSize: '1rem', 
+                                fontWeight: 'bold', 
+                                padding: '6px', 
+                                background: isActuallyLive ? 'rgba(255, 71, 87, 0.1)' : 'rgba(255, 165, 2, 0.1)', 
+                                border: isActuallyLive ? '1px solid rgba(255, 71, 87, 0.3)' : '1px solid rgba(255, 165, 2, 0.3)', 
+                                borderRadius: '12px' 
+                            }}>
+                                {isActuallyLive ? '🔴 EN DIRECTO' : '⏳ A PUNTO DE COMENZAR'}
+                            </div>
+                            <div className="last-matches-grid" style={{ gridTemplateColumns: '1fr' }}>
+                                {liveMatches.map(m => renderLiveMatch(m))}
+                            </div>
                         </div>
-                        <div className="last-matches-grid" style={{ gridTemplateColumns: '1fr' }}>
-                            {liveMatches.map(m => renderLiveMatch(m))}
-                        </div>
-                    </div>
-                ) : (() => {
+                    );
+                })() : (() => {
                     const next = (matchRadar?.next || [])[0];
                     if (!next) return null;
                     const d = new Date(next.date);
                     const dateFormatted = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-                    const homeFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(next.home)}.png`} alt="" />;
-                    const awayFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(next.away)}.png`} alt="" />;
                     return (
                         <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <div style={{ textAlign: 'center', color: '#a29bfe', fontSize: '1rem', fontWeight: 'bold', padding: '6px', background: 'rgba(162, 155, 254, 0.1)', border: '1px solid rgba(162, 155, 254, 0.3)', borderRadius: '12px' }}>
@@ -276,9 +253,9 @@ function Home() {
                             <div className="last-match-card">
                                 <div className="last-match-date">🕒 {dateFormatted}</div>
                                 <div className="last-match-teams" style={{ margin: 'auto 0' }}>
-                                    <div className="last-match-team">{homeFlag} <span>{next.home}</span></div>
+                                    <div className="last-match-team"><Flag team={next.home} /> <span>{next.home}</span></div>
                                     <div className="last-match-center"><span style={{ fontSize: '0.9em', color: 'var(--text-muted)', fontWeight: 'bold' }}>VS</span></div>
-                                    <div className="last-match-team away">{awayFlag} <span>{next.away}</span></div>
+                                    <div className="last-match-team away"><Flag team={next.away} /> <span>{next.away}</span></div>
                                 </div>
                             </div>
                         </div>
@@ -332,81 +309,11 @@ function Home() {
           {Object.keys(groupOdds).map(groupName => renderGroup(groupName, groupOdds[groupName]))}
         </div>
 
-        {selectedGroup && (
-          <>
-            <div 
-              style={{ 
-                position: 'fixed', 
-                top: '10px', 
-                right: '20px', 
-                width: 'max-content', 
-                minWidth: 'auto', 
-                maxWidth: '90vw', 
-                maxHeight: 'calc(100vh - 20px)', 
-                overflowY: 'auto', 
-                overflowX: 'auto',
-                background: 'rgba(15, 23, 42, 0.97)', 
-                backdropFilter: 'blur(12px)', 
-                WebkitBackdropFilter: 'blur(12px)',
-                borderRadius: '12px', 
-                padding: '20px', 
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                display: 'flex',
-                flexDirection: 'column',
-                zIndex: 99999
-              }}
-              className="glass-panel"
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--accent-color)' }}>Partidos Grupo {selectedGroup.name}</h2>
-                <button onClick={() => setSelectedGroup(null)} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '1.4rem', cursor: 'pointer' }}>×</button>
-              </div>
-            
-            <div className="last-matches-grid" style={{ gridTemplateColumns: '1fr' }}>
-              {(() => {
-                const groupNames = selectedGroup.teams.map(t => t.name);
-                let groupMatches = allGames.filter(g => groupNames.includes(g.home) && groupNames.includes(g.away));
-                
-                groupMatches.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-                if (groupMatches.length === 0) return <p>No hay partidos registrados para este grupo.</p>;
-
-                return groupMatches.map(m => {
-                  const d = new Date(m.date);
-                  const dateFormatted = `${d.getDate()}/${d.getMonth()+1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-                  const hasStarted = new Date() >= d;
-                  const hasFinished = m.finished === true;
-                  const homeFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(m.home)}.png`} alt="" />;
-                  const awayFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(m.away)}.png`} alt="" />;
-
-                  return (
-                    <div 
-                      key={m.id} 
-                      onClick={() => openStats(m.home, m.away)}
-                      style={{ cursor: 'pointer', display: 'grid', gridTemplateColumns: '85px 1fr 50px 1fr', gap: '10px', alignItems: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.05)', padding: '8px 10px', borderRadius: '6px', marginBottom: '6px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-                    >
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                        {hasFinished ? '✔️' : '🕒'} {dateFormatted}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', textAlign: 'right' }}>
-                        <span>{m.home}</span> {homeFlag}
-                      </div>
-                      <div style={{ padding: '2px 0', fontWeight: 'bold', textAlign: 'center', color: hasStarted ? 'white' : 'var(--text-muted)', background: hasStarted ? 'rgba(0,0,0,0.3)' : 'transparent', borderRadius: '4px' }}>
-                        {hasStarted ? `${m.homeScore} - ${m.awayScore}` : 'VS'}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '6px' }}>
-                        {awayFlag} <span>{m.away}</span>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-          </>
-        )}
+        <GroupMatchesModal 
+          selectedGroup={selectedGroup} 
+          allGames={allGames} 
+          onClose={() => setSelectedGroup(null)} 
+        />
 
     </section>
   );

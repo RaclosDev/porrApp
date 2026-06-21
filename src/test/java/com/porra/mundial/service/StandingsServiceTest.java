@@ -109,13 +109,10 @@ class StandingsServiceTest {
     }
 
     @Test
-    void testManualTieBreaker() {
+    void testFairPlayTieBreaker() {
         // Empate absoluto en TODO (0-0 en su partido, mismos puntos, misma diff)
-        teamA.setManualTieBreaker(0);
-        teamB.setManualTieBreaker(1); // B ha sido empujado por el admin
-
-        GroupStanding gsA = GroupStanding.builder().team(teamA).points(3).goalDiff(0).goalsFor(0).build();
-        GroupStanding gsB = GroupStanding.builder().team(teamB).points(3).goalDiff(0).goalsFor(0).build();
+        GroupStanding gsA = GroupStanding.builder().team(teamA).points(3).goalDiff(0).goalsFor(0).fairPlayPoints(-5).build();
+        GroupStanding gsB = GroupStanding.builder().team(teamB).points(3).goalDiff(0).goalsFor(0).fairPlayPoints(-2).build();
 
         Match h2hMatch = Match.builder()
                 .homeTeam(teamA).awayTeam(teamB)
@@ -128,6 +125,6 @@ class StandingsServiceTest {
 
         List<GroupStanding> sorted = standingsService.getStandingsByGroup("A");
 
-        assertEquals("TeamB", sorted.get(0).getTeam().getName(), "TeamB gana por desempate manual del administrador");
+        assertEquals("TeamB", sorted.get(0).getTeam().getName(), "TeamB gana por desempate de Fair Play (menos puntos negativos)");
     }
 }

@@ -5,7 +5,11 @@ import { useAppContext } from '../context/AppContext';
 const API_BASE = '/api';
 
 async function callRefresh(endpoint) {
-  const res = await fetch(`${API_BASE}/${endpoint}/refresh`, { method: 'POST' });
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/${endpoint}/refresh`, { 
+    method: 'POST',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+  });
   return res.ok ? res.json() : null;
 }
 
@@ -224,6 +228,8 @@ function Admin() {
           <span style={{ display: 'inline-block', animation: refreshStatus['snapshot'] === 'loading' ? 'spin 1s linear infinite' : 'none' }}>🛡️</span>
           {refreshStatus['snapshot'] === 'loading' ? 'Guardando...' : refreshStatus['snapshot'] === 'ok' ? '✅ Guardado' : refreshStatus['snapshot'] === 'error' ? '❌ Error' : 'Guardar Backup de Apuestas'}
         </button>
+
+
       </div>
 
       {/* Directorio Unificado de Usuarios */}
