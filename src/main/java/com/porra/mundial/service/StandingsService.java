@@ -65,7 +65,9 @@ public class StandingsService {
         // ¿Por qué? Porque si hay un triple empate, las reglas de la FIFA cambian y se miran los enfrentamientos
         // solo entre esos tres equipos.
         List<GroupStanding> tiedTeams = allGroupStandings.stream()
-            .filter(gs -> gs.getPoints() == a.getPoints())
+            .filter(gs -> gs.getPoints() == a.getPoints() 
+                       && gs.getGoalDiff() == a.getGoalDiff() 
+                       && gs.getGoalsFor() == a.getGoalsFor())
             .collect(Collectors.toList());
 
         List<Long> tiedTeamIds = tiedTeams.stream().map(gs -> gs.getTeam().getId()).collect(Collectors.toList());
@@ -79,28 +81,25 @@ public class StandingsService {
         int[] statsA = calculateStats(a.getTeam().getId(), h2hMatches);
         int[] statsB = calculateStats(b.getTeam().getId(), h2hMatches);
 
-        // [Fase 2]: Desempate Head-to-Head (Enfrentamiento directo)
-        // 2.a: Puntos en enfrentamientos directos
-        if (statsA[0] != statsB[0]) return Integer.compare(statsB[0], statsA[0]);
-        // 2.b: Diferencia de goles en enfrentamientos directos
-        if (statsA[1] != statsB[1]) return Integer.compare(statsB[1], statsA[1]);
-        // 2.c: Goles a favor en enfrentamientos directos
-        if (statsA[2] != statsB[2]) return Integer.compare(statsB[2], statsA[2]);
-
-        // [Fase 3]: Si siguen empatados en el duelo directo, miramos sus estadísticas de todo el grupo
-        // 3.a: Diferencia de goles general
+        // [Fase 2]: Estadísticas generales de todo el grupo (Diferencia de goles y Goles a favor)
+        // La FIFA (Mundial) usa la diferencia de goles GENERAL antes que el enfrentamiento directo (a diferencia de la UEFA)
         if (a.getGoalDiff() != b.getGoalDiff()) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
-        // 3.b: Goles a favor general
         if (a.getGoalsFor() != b.getGoalsFor()) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
 
-        // [Fase 4]: Desempate Fair Play / Manual (Botones del Admin)
-        // Si todo lo anterior falla, la FIFA usaría tarjetas amarillas. 
-        // Nosotros dejamos que el admin decida a mano dándoles "Puntos Mágicos" desde la web.
-        int manualA = a.getTeam().getManualTieBreaker() != null ? a.getTeam().getManualTieBreaker() : 0;
-        int manualB = b.getTeam().getManualTieBreaker() != null ? b.getTeam().getManualTieBreaker() : 0;
-        if (manualA != manualB) return Integer.compare(manualB, manualA); // Quien tenga más puntos gana
+        // [Fase 3]: Desempate Head-to-Head (Enfrentamiento directo) entre los empatados
+        // 3.a: Puntos en enfrentamientos directos
+        if (statsA[0] != statsB[0]) return Integer.compare(statsB[0], statsA[0]);
+        // 3.b: Diferencia de goles en enfrentamientos directos
+        if (statsA[1] != statsB[1]) return Integer.compare(statsB[1], statsA[1]);
+        // 3.c: Goles a favor en enfrentamientos directos
+        if (statsA[2] != statsB[2]) return Integer.compare(statsB[2], statsA[2]);
 
-        // [Fase Final]: Sorteo (En nuestro caso, lo ordenamos por orden alfabético para que no dé errores raros)
+        // [Fase 4]: Puntos de Fair Play (Tarjetas: Amarilla = -1, Roja = -4)
+        if (a.getFairPlayPoints() != b.getFairPlayPoints()) {
+            return Integer.compare(b.getFairPlayPoints(), a.getFairPlayPoints()); // Quien tenga más puntos (menos negativos) gana
+        }
+
+        // [Fase 5]: Sorteo (En nuestro caso, lo ordenamos por orden alfabético para que no dé errores raros)
         return a.getTeam().getName().compareTo(b.getTeam().getName());
     }
 
@@ -137,6 +136,7 @@ public class StandingsService {
             stats.put("diff", gs.getGoalDiff());
             stats.put("gls", gs.getGoalsFor());
             stats.put("mp", gs.getMatchesPlayed());
+            stats.put("fp", gs.getFairPlayPoints());
 
             result.get(group).put(teamName, stats);
         }
@@ -144,7 +144,7 @@ public class StandingsService {
         return result;
     }
 
-    public void updateStanding(Team team, String groupName, int points, int goalDiff, int goalsFor, int matchesPlayed) {
+    public void updateStanding(Team team, String groupName, int points, int goalDiff, int goalsFor, int matchesPlayed, int fairPlayPoints) {
         GroupStanding standing = standingRepository
                 .findByTeamIdAndGroupName(team.getId(), groupName)
                 .orElse(GroupStanding.builder()
@@ -156,6 +156,7 @@ public class StandingsService {
         standing.setGoalDiff(goalDiff);
         standing.setGoalsFor(goalsFor);
         standing.setMatchesPlayed(matchesPlayed);
+        standing.setFairPlayPoints(fairPlayPoints);
 
         standingRepository.save(standing);
     }

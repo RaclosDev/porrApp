@@ -22,8 +22,7 @@ import java.util.NoSuchElementException;
 public class BetController {
 
     private final BetService betService;
-    private final org.springframework.cache.CacheManager cacheManager;
-    private final com.porra.mundial.service.SseService sseService;
+    private final com.porra.mundial.service.WebSocketService webSocketService;
 
     /**
      * 📥 GET /api/bets
@@ -75,9 +74,7 @@ public class BetController {
         // Si todo está bien, guardamos la porra
         Bet bet = betService.createBet(participantName, betName != null ? betName : participantName, hash, groupId);
 
-        org.springframework.cache.Cache cache = cacheManager.getCache("leaderboard");
-        if (cache != null) cache.clear();
-        sseService.broadcastUpdate("DATA_UPDATED");
+        webSocketService.invalidateAndNotify();
 
         return ResponseEntity.ok(Map.of(
                 "id", bet.getId(),

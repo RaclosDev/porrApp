@@ -6,6 +6,8 @@ import com.porra.mundial.repository.BetGroupRepository;
 import com.porra.mundial.repository.BetRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,10 +17,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GroupService {
 
     private final BetGroupRepository betGroupRepository;
     private final BetRepository betRepository;
+
+    @Value("${app.admins:Admin}")
+    private List<String> appAdmins;
 
     @PostConstruct
     public void initDefaultGroup() {
@@ -48,7 +54,7 @@ public class GroupService {
         }
         
         if (migrated) {
-            System.out.println("Migradas las porras existentes al Grupo Global.");
+            log.info("Migradas las porras existentes al Grupo Global.");
         }
     }
 
@@ -120,9 +126,7 @@ public class GroupService {
         BetGroup group = betGroupRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
                 
-        boolean isSuperAdmin = participantName.equalsIgnoreCase("Admin") || 
-                               participantName.equalsIgnoreCase("RaclosAdmin") || 
-                               participantName.equalsIgnoreCase("Raclos");
+        boolean isSuperAdmin = appAdmins.stream().anyMatch(admin -> admin.equalsIgnoreCase(participantName));
                                
         if (!isSuperAdmin && !group.getAdminParticipantName().equalsIgnoreCase(participantName)) {
             throw new SecurityException("No tienes permiso para administrar esta liga.");
@@ -131,10 +135,7 @@ public class GroupService {
 
     public List<Bet> getGroupBetsForAdmin(Long groupId, String participantName) {
         verifyGroupAdmin(groupId, participantName);
-        List<Bet> allBets = betRepository.findAll();
-        return allBets.stream()
-                .filter(b -> groupId.equals(b.getGroupId()))
-                .collect(Collectors.toList());
+        return betRepository.findByGroupId(groupId);
     }
 
     public Bet toggleBetPaymentStatus(Long groupId, Long betId, String participantName, boolean paid) {

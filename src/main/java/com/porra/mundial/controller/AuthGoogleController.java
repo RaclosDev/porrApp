@@ -8,6 +8,7 @@ import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auth/google")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthGoogleController {
 
     private final UserAccountRepository userAccountRepository;
@@ -27,6 +29,12 @@ public class AuthGoogleController {
 
     @Value("${google.client.id:498045926443-u02u6penjkggongduv26qlm7934449ee.apps.googleusercontent.com}")
     private String googleClientId;
+
+    @Value("${app.admins:Admin}")
+    private java.util.List<String> appAdmins;
+
+    @Value("${app.admin-emails:raclosnegocios@gmail.com}")
+    private java.util.List<String> adminEmails;
 
     /**
      * Endpoint para iniciar sesión con Google.
@@ -78,8 +86,10 @@ public class AuthGoogleController {
                 String cleanName = requestedParticipantName.trim();
                 
                 // Comprobar nombres reservados para el administrador
-                if (cleanName.equalsIgnoreCase("admin") || cleanName.equalsIgnoreCase("RaclosAdmin") || cleanName.equalsIgnoreCase("Raclos")) {
-                    if (!email.equalsIgnoreCase("raclosdev@gmail.com") && !email.equalsIgnoreCase("raclosnegocios@gmail.com")) {
+                boolean isReservedName = appAdmins.stream().anyMatch(a -> a.equalsIgnoreCase(cleanName));
+                if (isReservedName) {
+                    boolean isAllowedEmail = adminEmails.stream().anyMatch(ae -> ae.equalsIgnoreCase(email));
+                    if (!isAllowedEmail) {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                                 "error", "Ese nombre está reservado por el sistema para el administrador."
                         ));
@@ -111,7 +121,7 @@ public class AuthGoogleController {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al procesar login con Google", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error al procesar login con Google"));
         }
     }

@@ -1,0 +1,1 @@
+ALTER TABLE group_standings ADD COLUMN IF NOT EXISTS fair_play_points INTEGER DEFAULT 0;

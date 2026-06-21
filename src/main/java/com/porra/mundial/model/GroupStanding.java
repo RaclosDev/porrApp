@@ -6,7 +6,7 @@ import lombok.*;
 /**
  * 📊 Entidad 'GroupStanding' (Clasificación del Grupo)
  * Sirve como un "espejo" de los puntos reales que tiene cada equipo en el Mundial.
- * OJO: Esta tabla se auto-actualiza descargando datos de la API de worldcup26.ir, 
+ * OJO: Esta tabla se auto-actualiza descargando datos de la API de ESPN, 
  * ¡no calcula los puntos mágicamente sumando los goles de nuestros partidos locales!
  */
 @Entity
@@ -43,4 +43,7 @@ public class GroupStanding {
     // Número de partidos jugados hasta el momento (máximo 3)
     @Builder.Default
     private Integer matchesPlayed = 0;
+
+    @Column(name = "fair_play_points")
+    private Integer fairPlayPoints = 0;
 }

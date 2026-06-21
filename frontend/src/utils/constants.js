@@ -1,6 +1,6 @@
 export const countryCodeMap = {
   "México": "mx", "Sudáfrica": "za", "Corea del Sur": "kr", "Chequia": "cz",
-  "Canadá": "ca", "Bosnia y Her.": "ba", "Bosnia": "ba", "Bosnia y Herzegovina": "ba", "Catar": "qa", "Suiza": "ch",
+  "Canadá": "ca", "Bosnia y Her.": "ba", "Bosnia y Her": "ba", "Bosnia": "ba", "Bosnia y Herzegovina": "ba", "Catar": "qa", "Suiza": "ch",
   "Brasil": "br", "Marruecos": "ma", "Haití": "ht", "Escocia": "gb-sct",
   "EEUU": "us", "Paraguay": "py", "Australia": "au", "Turquía": "tr",
   "Alemania": "de", "Curaçao": "cw", "Costa de Marfil": "ci", "Ecuador": "ec",

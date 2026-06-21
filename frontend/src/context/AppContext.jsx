@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { fetchStandings, fetchMatches, fetchMatchRadar, fetchBets, fetchTeamOdds, fetchTiebreakers, fetchPresence, sendPresenceHeartbeat, getAdminToken, fetchLeaderboard, fetchGroup } from '../services/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchStandings, fetchMatches, fetchMatchRadar, fetchBets, fetchTeamOdds, fetchPresence, getAdminToken, fetchLeaderboard, fetchGroup } from '../services/api';
 import { decodeHash } from '../utils/hash';
 
 const AppContext = createContext();
@@ -37,92 +38,53 @@ const defaultBracketState = {
 };
 
 export function AppProvider({ children }) {
-
-  const [data, setData] = useState({
-    officialPoints: {},
-    groupOdds: {},
-    participantsHashes: [],
-    allGames: [],
-    manualTiebreakers: {},
-    matchRadar: { live: [], last: [], next: [] },
-    officialResultsHash: "", // Currently not loaded from API in old code, usually injected or part of standings if implemented
-    nameToIdMap: {},
-    leaderboardData: [],
-    loading: true,
-  });
+  const queryClient = useQueryClient();
 
   const [userName, setUserName] = useState(localStorage.getItem('my_bet_name') || '');
+  const [activeGroupId, setActiveGroupId] = useState(() => localStorage.getItem('activeGroupId') || "1");
   const [bracketState, setBracketState] = useState(() => {
-    const activeGroup = localStorage.getItem('activeGroupId') || "1";
-    const saved = localStorage.getItem('draft_bracket_' + activeGroup);
+    const saved = localStorage.getItem('draft_bracket_' + activeGroupId);
     return saved ? JSON.parse(saved) : defaultBracketState;
   });
   const [topScorer, setTopScorer] = useState('');
   const [viewerHash, setViewerHash] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(!!getAdminToken());
-  const [activeGroupId, setActiveGroupId] = useState(() => {
-    return localStorage.getItem('activeGroupId') || "1";
-  });
-  const [activeGroupName, setActiveGroupName] = useState("Porra Global");
-  const [activeGroupAdmin, setActiveGroupAdmin] = useState(null);
+
+  // REACT QUERY: Fetch data efficiently with caching
+  const { data: standings } = useQuery({ queryKey: ['standings'], queryFn: fetchStandings });
+  const { data: radar } = useQuery({ queryKey: ['radar'], queryFn: fetchMatchRadar });
+  const { data: matches } = useQuery({ queryKey: ['matches'], queryFn: fetchMatches });
+  const { data: bets } = useQuery({ queryKey: ['bets', activeGroupId], queryFn: () => fetchBets(activeGroupId) });
+  const tiebreakers = {};
+  const { data: odds } = useQuery({ queryKey: ['odds'], queryFn: fetchTeamOdds });
+  const { data: leaderboard } = useQuery({ queryKey: ['leaderboard', activeGroupId], queryFn: () => fetchLeaderboard(activeGroupId) });
+  const { data: groupInfo } = useQuery({ queryKey: ['group', activeGroupId], queryFn: () => fetchGroup(activeGroupId).catch(() => ({ name: "Porra Global" })) });
+  const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
+
+  const activeGroupName = groupInfo?.name || "Porra Global";
+  const activeGroupAdmin = groupInfo?.adminParticipantName || null;
+
+  // Calculate nameToIdMap for head to head
+  const nameToIdMap = {};
+  if (matches) {
+    matches.forEach(m => {
+      nameToIdMap[m.home] = m.home_team_id;
+      nameToIdMap[m.away] = m.away_team_id;
+    });
+  }
+
+  const loading = !standings || !matches || !bets;
 
   useEffect(() => {
     localStorage.setItem('draft_bracket_' + activeGroupId, JSON.stringify(bracketState));
   }, [bracketState, activeGroupId]);
 
-  // Clear legacy/cached names if they are not authenticated via Google
   useEffect(() => {
     if (!isAdminAuthenticated) {
       setUserName('');
       localStorage.removeItem('my_bet_name');
     }
   }, [isAdminAuthenticated]);
-
-  const fetchData = async () => {
-    try {
-      const [standings, radar, bets, matches, tiebreakers, odds, leaderboard, activeGroupInfo] = await Promise.all([
-        fetchStandings(),
-        fetchMatchRadar(),
-        fetchBets(activeGroupId),
-        fetchMatches(),
-        fetchTiebreakers(),
-        fetchTeamOdds(),
-        fetchLeaderboard(activeGroupId),
-        fetchGroup(activeGroupId).catch(e => ({ name: "Porra Global" }))
-      ]);
-
-      if (activeGroupInfo && activeGroupInfo.name) {
-        setActiveGroupName(activeGroupInfo.name);
-        setActiveGroupAdmin(activeGroupInfo.adminParticipantName);
-      }
-
-      // Calculate nameToIdMap for head to head
-      const idMap = {};
-      matches.forEach(m => {
-        idMap[m.home] = m.home_team_id;
-        idMap[m.away] = m.away_team_id;
-      });
-
-      // Extract official results hash if it exists (assuming it comes from bets with a specific key or is injected, for now keeping it empty as per old structure)
-      
-      setData(prev => ({
-        ...prev,
-        officialPoints: standings || {},
-        matchRadar: radar || { live: [], last: [], next: [] },
-        participantsHashes: bets || [],
-        allGames: matches || [],
-        manualTiebreakers: tiebreakers || {},
-        groupOdds: odds || {},
-        nameToIdMap: idMap,
-        leaderboardData: leaderboard || [],
-        loading: false
-      }));
-    } catch (e) {
-      console.error("Error fetching data:", e);
-      setData(prev => ({ ...prev, loading: false }));
-    }
-  };
 
   const checkAdmin = (str) => {
     if (!str) return false;
@@ -136,6 +98,9 @@ export function AppProvider({ children }) {
 
   const isRaclos = checkAdmin(userName?.trim());
 
+  // Admin actions
+  const refreshAll = () => queryClient.invalidateQueries();
+
   const deleteBet = async (key) => {
     if (window.confirm("¿Estás seguro de que quieres borrar esta apuesta?")) {
       try {
@@ -145,7 +110,7 @@ export function AppProvider({ children }) {
         });
         if (response.ok) {
           alert("Apuesta eliminada con éxito.");
-          fetchData();
+          refreshAll();
         } else {
           alert("Error al borrar la apuesta.");
         }
@@ -174,7 +139,7 @@ export function AppProvider({ children }) {
       });
       if (response.ok) {
         alert("Tercer puesto fijado correctamente.");
-        fetchData();
+        refreshAll();
       } else {
         alert("Error al fijar el tercer puesto.");
       }
@@ -191,7 +156,7 @@ export function AppProvider({ children }) {
       });
       if (response.ok) {
         alert("¡Apuesta confirmada! Ahora contará en la clasificación.");
-        fetchData();
+        refreshAll();
       } else {
         alert("Error al confirmar la apuesta.");
       }
@@ -222,7 +187,7 @@ export function AppProvider({ children }) {
       });
       if (response.ok) {
         alert("Nombre y apuesta actualizados.");
-        fetchData();
+        refreshAll();
       } else {
         alert("Error al guardar en el servidor.");
       }
@@ -231,64 +196,59 @@ export function AppProvider({ children }) {
     }
   };
 
-  const bumpTeam = async (groupName, teamName, isThirds = false) => {
-    try {
-      const response = await fetch(`/api/admin/bump-up?teamName=${encodeURIComponent(teamName)}&isThirds=${isThirds}`, {
-        method: 'POST',
-        headers: { 'X-Admin-Token': getAdminToken() || '' }
-      });
-      if (response.ok) {
-        alert("Posición subida con éxito.");
-        fetchData();
-      } else {
-        const errText = await response.text();
-        alert(`Error al subir posición: ${errText} (Status: ${response.status})`);
-      }
-    } catch (e) {
-      alert("Error de red: " + e.message);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
-    const fetchPres = async () => {
-      try {
-        const name = userName || localStorage.getItem('my_bet_name') || "Anónimo";
-        await sendPresenceHeartbeat(name);
-        const pres = await fetchPresence();
-        if (pres) setOnlineUsers(pres);
-      } catch (e) {}
+    // Setup WebSocket for real-time data and presence
+    const loc = window.location;
+    const wsUrl = (loc.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + loc.host + '/api/ws';
+    let ws = null;
+    let wsPingInterval = null;
+
+    const connectWebSocket = () => {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            const name = userName || localStorage.getItem('my_bet_name') || "Anónimo";
+            ws.send(JSON.stringify({ type: 'HEARTBEAT', name }));
+            
+            wsPingInterval = setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'PING' }));
+                    queryClient.invalidateQueries({ queryKey: ['presence'] });
+                }
+            }, 10000);
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'DATA_UPDATED') {
+                    console.log('Real-time update received. Invalidate queries...');
+                    queryClient.invalidateQueries(); // React Query re-fetches everything automatically
+                } else if (msg.type === 'PRESENCE_UPDATED') {
+                    console.log('Presence update received.');
+                    queryClient.invalidateQueries({ queryKey: ['presence'] });
+                }
+            } catch (e) {}
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket disconnected, reconnecting in 5s...');
+            clearInterval(wsPingInterval);
+            setTimeout(connectWebSocket, 5000);
+        };
     };
-    
-    // Initial fetch for presence
-    fetchPres();
-    
-    // Lightweight polling only for presence (heartbeats)
-    const interval = setInterval(() => {
-      fetchPres();
-    }, 10000);
 
-    // Setup SSE for real-time data updates (no more heavy polling!)
-    const sse = new EventSource('/api/stream');
-    
-    sse.addEventListener('DATA_UPDATED', (e) => {
-      console.log('Real-time update received from server. Fetching fresh data...');
-      fetchData();
-    });
-
-    sse.addEventListener('CONNECT', (e) => {
-      console.log('SSE connected:', e.data);
-    });
-
-    sse.onerror = () => {
-      console.log('SSE connection lost, will auto-reconnect...');
-    };
+    connectWebSocket();
 
     return () => {
-      clearInterval(interval);
-      sse.close();
+        if (ws) {
+            ws.onclose = null;
+            ws.close();
+        }
+        clearInterval(wsPingInterval);
     };
-  }, [userName, activeGroupId]);
+  }, [userName, activeGroupId, queryClient]);
 
   const changeGroup = (groupId) => {
     localStorage.setItem('activeGroupId', groupId);
@@ -297,18 +257,26 @@ export function AppProvider({ children }) {
     setBracketState(saved ? JSON.parse(saved) : defaultBracketState);
   };
 
+  // Provide exactly the same API for legacy components
   const value = {
-    ...data,
+    officialPoints: standings || {},
+    matchRadar: radar || { live: [], last: [], next: [] },
+    participantsHashes: bets || [],
+    allGames: matches || [],
+    groupOdds: odds || {},
+    nameToIdMap: nameToIdMap,
+    leaderboardData: leaderboard || [],
+    loading,
     userName,
     setUserName,
     bracketState,
     setBracketState,
     topScorer,
     setTopScorer,
-    fetchData,
+    fetchData: refreshAll,
     viewerHash,
     setViewerHash,
-    onlineUsers,
+    onlineUsers: onlineUsers || [],
     isRaclos,
     isAdminAuthenticated,
     setIsAdminAuthenticated,
@@ -316,7 +284,6 @@ export function AppProvider({ children }) {
     fixThird,
     acceptBet,
     editBetName,
-    bumpTeam,
     activeGroupId,
     activeGroupName,
     activeGroupAdmin,

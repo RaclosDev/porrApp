@@ -1,4 +1,4 @@
-export function compareTeams(a, b, groupName, officialPoints, manualTiebreakers, allGames, nameToIdMap) {
+export function compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap) {
   const safeNameA = a.name.replace(/[.#$\[\]]/g, "");
   const safeNameB = b.name.replace(/[.#$\[\]]/g, "");
 
@@ -14,16 +14,23 @@ export function compareTeams(a, b, groupName, officialPoints, manualTiebreakers,
   const glsA = (typeof statsA === 'object' && statsA !== null) ? (statsA.gls || 0) : 0;
   const glsB = (typeof statsB === 'object' && statsB !== null) ? (statsB.gls || 0) : 0;
 
+  const fpA = (typeof statsA === 'object' && statsA !== null) ? (statsA.fp || 0) : 0;
+  const fpB = (typeof statsB === 'object' && statsB !== null) ? (statsB.fp || 0) : 0;
+
+  // 1. Puntos totales
   if (ptsB !== ptsA) return ptsB - ptsA;
+
+  // 2. Diferencia de goles (General)
   if (diffB !== diffA) return diffB - diffA;
+
+  // 3. Goles marcados (General)
   if (glsB !== glsA) return glsB - glsA;
 
-  // Custom manual tiebreakers from the admin (OVERRIDE ONLY FOR EXACT TIES)
-  const manualA = (manualTiebreakers && manualTiebreakers[groupName] && manualTiebreakers[groupName][safeNameA]) || 0;
-  const manualB = (manualTiebreakers && manualTiebreakers[groupName] && manualTiebreakers[groupName][safeNameB]) || 0;
-  if (manualB !== manualA) return manualB - manualA;
+  // Head-to-Head calculations
+  let h2hPtsA = 0, h2hPtsB = 0;
+  let h2hDiffA = 0, h2hDiffB = 0;
+  let h2hGlsA = 0, h2hGlsB = 0;
 
-  // Head-to-Head fallback
   if (allGames && nameToIdMap) {
     const idA = nameToIdMap[a.name];
     const idB = nameToIdMap[b.name];
@@ -35,14 +42,33 @@ export function compareTeams(a, b, groupName, officialPoints, manualTiebreakers,
       if (h2hGame && h2hGame.home_score !== null && h2hGame.away_score !== null && h2hGame.home_score !== "" && h2hGame.away_score !== "") {
         const scoreA = h2hGame.home_team_id === idA ? parseInt(h2hGame.home_score) : parseInt(h2hGame.away_score);
         const scoreB = h2hGame.home_team_id === idB ? parseInt(h2hGame.home_score) : parseInt(h2hGame.away_score);
-        if (!isNaN(scoreA) && !isNaN(scoreB) && scoreB !== scoreA) {
-          return scoreB - scoreA;
+        if (!isNaN(scoreA) && !isNaN(scoreB)) {
+          if (scoreA > scoreB) h2hPtsA += 3;
+          else if (scoreB > scoreA) h2hPtsB += 3;
+          else { h2hPtsA += 1; h2hPtsB += 1; }
+
+          h2hDiffA += (scoreA - scoreB);
+          h2hDiffB += (scoreB - scoreA);
+
+          h2hGlsA += scoreA;
+          h2hGlsB += scoreB;
         }
       }
     }
   }
 
+  // 4. Puntos en enfrentamientos directos
+  if (h2hPtsB !== h2hPtsA) return h2hPtsB - h2hPtsA;
+  
+  // 5. Diferencia de goles en enfrentamientos directos
+  if (h2hDiffB !== h2hDiffA) return h2hDiffB - h2hDiffA;
+  
+  // 6. Goles marcados en enfrentamientos directos
+  if (h2hGlsB !== h2hGlsA) return h2hGlsB - h2hGlsA;
+
+  // 7. Puntos de Fair Play (menos negativos es mejor)
+  if (fpB !== fpA) return fpB - fpA;
+
+  // 8. Sorteo / Orden alfabético
   return a.name.localeCompare(b.name);
 }
-
-

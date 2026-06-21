@@ -87,8 +87,12 @@ public class MatchService {
         dto.put("id", m.getId());
         dto.put("home", m.getHomeTeam() != null ? m.getHomeTeam().getName() : "Por definir");
         dto.put("away", m.getAwayTeam() != null ? m.getAwayTeam().getName() : "Por definir");
+        dto.put("home_team_id", m.getHomeTeam() != null ? m.getHomeTeam().getId() : null);
+        dto.put("away_team_id", m.getAwayTeam() != null ? m.getAwayTeam().getId() : null);
         dto.put("homeScore", m.getHomeScore());
         dto.put("awayScore", m.getAwayScore());
+        dto.put("home_score", m.getHomeScore());
+        dto.put("away_score", m.getAwayScore());
         dto.put("date", m.getMatchDate() != null ? m.getMatchDate().toString() : null);
         dto.put("finished", m.getFinished());
         dto.put("round", m.getRound());

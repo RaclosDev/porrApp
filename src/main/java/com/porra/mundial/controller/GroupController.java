@@ -16,8 +16,7 @@ import java.util.Optional;
 public class GroupController {
 
     private final GroupService groupService;
-    private final org.springframework.cache.CacheManager cacheManager;
-    private final com.porra.mundial.service.SseService sseService;
+    private final com.porra.mundial.service.WebSocketService webSocketService;
 
     @GetMapping("/mine")
     public ResponseEntity<?> getMyGroups(Principal principal) {
@@ -87,9 +86,7 @@ public class GroupController {
         try {
             Object result = groupService.toggleBetPaymentStatus(id, betId, principal.getName(), true);
             
-            org.springframework.cache.Cache cache = cacheManager.getCache("leaderboard");
-            if (cache != null) cache.clear();
-            sseService.broadcastUpdate("DATA_UPDATED");
+            webSocketService.invalidateAndNotify();
 
             return ResponseEntity.ok(result);
         } catch (SecurityException e) {
@@ -117,9 +114,7 @@ public class GroupController {
         try {
             groupService.deleteBet(id, betId, principal.getName());
             
-            org.springframework.cache.Cache cache = cacheManager.getCache("leaderboard");
-            if (cache != null) cache.clear();
-            sseService.broadcastUpdate("DATA_UPDATED");
+            webSocketService.invalidateAndNotify();
 
             return ResponseEntity.ok(Map.of("status", "success"));
         } catch (SecurityException e) {
