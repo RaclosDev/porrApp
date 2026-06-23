@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { getCountryCode } from '../utils/constants';
-import { decodeHash } from '../utils/hash';
 
 function Stats() {
   const { participantsHashes, loading } = useAppContext();
@@ -24,7 +23,7 @@ function Stats() {
     let totalVotes = 0;
 
     participantsHashes.forEach(p => {
-      const part = decodeHash(p.hash);
+      const part = p.data;
       if (!part) return;
       const userName = part.user || p.key || "Anónimo";
       totalVotes++;
@@ -106,7 +105,7 @@ function Stats() {
     });
 
     const validParticipants = participantsHashes.map(p => {
-        const part = decodeHash(p.hash);
+        const part = p.data;
         if (!part) return null;
         return { part, userName: part.user || p.key || "Anónimo" };
     }).filter(p => p !== null);

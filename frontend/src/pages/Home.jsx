@@ -6,11 +6,14 @@ import { openStats } from '../utils/navigation';
 import { fetchTopScorers } from '../services/api';
 import Flag from '../components/Flag';
 import GroupMatchesModal from '../components/GroupMatchesModal';
+import OfficialBracket from './OfficialBracket';
 
 function Home() {
   const { groupOdds, officialPoints, allGames, nameToIdMap, loading, isRaclos, matchRadar } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [topScorers, setTopScorers] = useState([]);
+  const [viewMode, setViewMode] = useState('groups');
+  const [imgErrors, setImgErrors] = useState({});
 
   useEffect(() => {
     fetchTopScorers().then(data => { if (data) setTopScorers(data); });
@@ -28,7 +31,9 @@ function Home() {
 
     return (
       <div key={m.id} className="last-match-card">
-        <div className="last-match-date">{hasStarted ? '🔴' : '⏳'} {dateFormatted}</div>
+        <div className="last-match-date">
+            {hasStarted ? '🔴' : '⏳'} {hasStarted ? (m.displayClock || 'EN JUEGO') : dateFormatted}
+        </div>
         <div className="last-match-teams" style={{ margin: 'auto 0' }}>
           <div className="last-match-team">
             <Flag team={m.home} />
@@ -94,18 +99,24 @@ function Home() {
               <span style={{ width: '24px', textAlign: 'center' }} title="Puntos">PT</span>
             </div>
           </div>
-          {teamsWithStats.map((team, idx) => (
+          {teamsWithStats.map((team, idx) => {
+            let statusDot = null;
+            if (team.stats.status >= 1 && team.stats.status <= 4) {
+              statusDot = <span title="Posición Matemática Fija" style={{marginLeft: '5px', fontSize: '0.85em', flexShrink: 0}}>📌</span>;
+            }
+
+            return (
             <div key={team.name} className="group-slot">
               <span style={{ fontWeight: 'bold', width: '20px', flexShrink: 0 }}>{idx + 1}.</span>
             <Flag team={team.name} size="16x12" style={{ marginRight: '8px' }} />
-              <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{team.name}</span>
+              <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{team.name}{statusDot}</span>
               <div style={{ display: 'flex', gap: '8px', fontSize: '0.85em', alignItems: 'center' }}>
-                <span style={{ width: '20px', textAlign: 'center', color: team.stats.diff > 0 ? '#00b894' : team.stats.diff < 0 ? '#ff4757' : 'var(--text-muted)' }}>{team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}</span>
+                <span style={{ width: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>{team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}</span>
                 <span style={{ width: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>{team.stats.gls}</span>
                 <span style={{ fontWeight: 'bold', background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: '4px', color: 'white', width: '24px', textAlign: 'center' }}>{team.stats.pts}</span>
               </div>
             </div>
-        ))}
+          )})}
 
       </div>
     );
@@ -114,6 +125,47 @@ function Home() {
   return (
     <section id="view-home" className="view-section" style={{ display: 'block' }}>
 
+        {viewMode === 'bracket' && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 0 }}>
+                <div className="section-header" style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center', marginBottom: 0 }}>
+                    <button
+                        onClick={() => setViewMode('groups')}
+                        className="glass-btn"
+                        style={{
+                            padding: '8px 20px',
+                            fontWeight: 'bold',
+                            fontSize: '0.95rem',
+                            background: viewMode === 'groups' ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
+                            border: viewMode === 'groups' ? '1px solid #00d2d3' : '1px solid var(--border-color)',
+                            color: viewMode === 'groups' ? '#00d2d3' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            borderRadius: '8px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Grupos
+                    </button>
+                    <button
+                        onClick={() => setViewMode('bracket')}
+                        className="glass-btn"
+                        style={{
+                            padding: '8px 20px',
+                            fontWeight: 'bold',
+                            fontSize: '0.95rem',
+                            background: viewMode === 'bracket' ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
+                            border: viewMode === 'bracket' ? '1px solid #00d2d3' : '1px solid var(--border-color)',
+                            color: viewMode === 'bracket' ? '#00d2d3' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            borderRadius: '8px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Bracket
+                    </button>
+                </div>
+            </div>
+        )}
+        {viewMode === 'groups' && (
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', marginBottom: '20px', width: '100%', gap: '20px' }}>
             <div style={{ flex: 1, minWidth: 'min(100%, 320px)' }} className="hide-on-mobile">
                 {(() => {
@@ -133,7 +185,6 @@ function Home() {
                         }
                     });
 
-                    // Ordenar: Puntos (DESC), Diferencia (DESC), Goles a favor (DESC), Fair Play (DESC)
                     thirds.sort((a, b) => {
                         if (b.pts !== a.pts) return b.pts - a.pts;
                         if (b.diff !== a.diff) return b.diff - a.diff;
@@ -154,10 +205,9 @@ function Home() {
                             <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', padding: '10px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                                     
-                                    {/* Columna 1 (1-6) */}
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>
-                                            <span>#</span><span style={{ textAlign: 'left' }}>Equipo</span><span>PT</span><span>DF</span>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px 28px', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>
+                                            <span>#</span><span style={{ textAlign: 'left' }}>Equipo</span><span>PT</span><span>DF</span><span title="Fair Play">FP</span>
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                                             {thirds.slice(0, 6).map((t, idx) => {
@@ -166,24 +216,24 @@ function Home() {
                                                 const rank = globalIdx + 1;
                                                 
                                                 return (
-                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem' }}>
+                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px 28px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem' }}>
                                                         <span style={{ color: isTop8 ? '#00b894' : 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>{rank}</span>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                                                             <Flag team={t.name} style={{ borderRadius: '2px', flexShrink: 0 }} />
                                                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                                                         </div>
                                                         <span style={{ fontWeight: 'bold', textAlign: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: '4px' }}>{t.pts}</span>
-                                                        <span style={{ textAlign: 'center', color: t.diff > 0 ? '#00b894' : t.diff < 0 ? '#ff4757' : 'var(--text-muted)' }}>{t.diff > 0 ? `+${t.diff}` : t.diff}</span>
+                                                        <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{t.diff > 0 ? `+${t.diff}` : t.diff}</span>
+                                                        <span style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{t.fp || 0}</span>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
 
-                                    {/* Columna 2 (7-12) */}
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>
-                                            <span>#</span><span style={{ textAlign: 'left' }}>Equipo</span><span>PT</span><span>DF</span>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px 28px', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>
+                                            <span>#</span><span style={{ textAlign: 'left' }}>Equipo</span><span>PT</span><span>DF</span><span title="Fair Play">FP</span>
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                                             {thirds.slice(6, 12).map((t, idx) => {
@@ -193,14 +243,15 @@ function Home() {
                                                 const rank = hasPlayed ? globalIdx + 1 : '-';
                                                 
                                                 return (
-                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem', borderBottom: globalIdx === 7 ? '2px dashed rgba(255, 71, 87, 0.5)' : 'none', opacity: isTop8 ? 1 : (hasPlayed ? 0.5 : 0.3) }}>
+                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px 28px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem', borderBottom: globalIdx === 7 ? '2px dashed rgba(255, 71, 87, 0.5)' : 'none', opacity: isTop8 ? 1 : (hasPlayed ? 0.5 : 0.3) }}>
                                                         <span style={{ color: isTop8 ? '#00b894' : 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>{rank}</span>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                                                             <Flag team={t.name} style={{ borderRadius: '2px', flexShrink: 0 }} />
                                                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                                                         </div>
                                                         <span style={{ fontWeight: 'bold', textAlign: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: '4px' }}>{t.pts}</span>
-                                                        <span style={{ textAlign: 'center', color: t.diff > 0 ? '#00b894' : t.diff < 0 ? '#ff4757' : 'var(--text-muted)' }}>{t.diff > 0 ? `+${t.diff}` : t.diff}</span>
+                                                        <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{t.diff > 0 ? `+${t.diff}` : t.diff}</span>
+                                                        <span style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{t.fp || 0}</span>
                                                     </div>
                                                 );
                                             })}
@@ -215,8 +266,41 @@ function Home() {
             </div>
 
             <div style={{ flex: 1, minWidth: 'min(100%, 350px)', maxWidth: '600px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div className="section-header" style={{ marginBottom: '15px', textAlign: 'center' }}>
-                    <h2 style={{ margin: 0 }}>Clasificación Fase de Grupos</h2>
+                <div className="section-header" style={{ marginBottom: '15px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+                    <button
+                        onClick={() => setViewMode('groups')}
+                        className="glass-btn"
+                        style={{
+                            padding: '8px 20px',
+                            fontWeight: 'bold',
+                            fontSize: '0.95rem',
+                            background: viewMode === 'groups' ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
+                            border: viewMode === 'groups' ? '1px solid #00d2d3' : '1px solid var(--border-color)',
+                            color: viewMode === 'groups' ? '#00d2d3' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            borderRadius: '8px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Grupos
+                    </button>
+                    <button
+                        onClick={() => setViewMode('bracket')}
+                        className="glass-btn"
+                        style={{
+                            padding: '8px 20px',
+                            fontWeight: 'bold',
+                            fontSize: '0.95rem',
+                            background: viewMode === 'bracket' ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
+                            border: viewMode === 'bracket' ? '1px solid #00d2d3' : '1px solid var(--border-color)',
+                            color: viewMode === 'bracket' ? '#00d2d3' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            borderRadius: '8px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Bracket
+                    </button>
                 </div>
                 
                 {liveMatches.length > 0 ? (() => {
@@ -272,48 +356,61 @@ function Home() {
                         if (!topScorers || topScorers.length === 0) {
                             return <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px', fontSize: '0.9rem' }}>Cargando...</div>;
                         }
-                        
-                        // Encontrar la cantidad máxima de goles actual
-                        const maxGoals = topScorers[0].goals;
-                        // Contar cuántos jugadores tienen esa cantidad de goles (máximo 5 para no romper el diseño)
-                        let pichichisCount = topScorers.filter(s => s.goals === maxGoals).length;
-                        if (pichichisCount < 3) pichichisCount = 3; // Mostrar al menos 3 por estética
-                        if (pichichisCount > 8) pichichisCount = 8; // Limitar a 8
 
-                        // Alturas dinámicas basadas en las pruebas del widget de Sofascore
-                        // Cada fila extra añade aproximadamente 48px
-                        // baseHeight ajustado para evitar cortar al último jugador por abajo
-                        const baseHeight = 168; 
-                        const calculatedHeight = baseHeight + ((pichichisCount - 3) * 48);
+                        const maxGoals = topScorers[0].goals;
+                        const pichichisCount = Math.min(topScorers.filter(s => s.goals === maxGoals).length + 2, 8);
 
                         return (
-                            <div className="sofascore-widget-container" style={{ overflow: 'hidden', position: 'relative', height: `${calculatedHeight}px`, borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)', transition: 'height 0.3s ease' }}>
-                                <iframe 
-                                    id={`sofa-standings-embed-16-58210-${pichichisCount}`} 
-                                    src={`https://widgets.sofascore.com/es-ES/embed/unique-tournament/16/season/58210/topPlayers?numberOfTopPlayers=${pichichisCount}&showCompetitionLogo=true&widgetTitle=Pichichi&widgetTheme=dark&sortBy=goals&seasonPeriodType=overall`} 
-                                    frameBorder="0" 
-                                    scrolling="no" 
-                                    // top: -116px oculta el título principal y la cabecera interior (#, Jugador, Goles)
-                                    // left: -48px oculta la columna numérica y aprieta la foto hacia la izquierda
-                                    // width: calc(100% + 60px) expande a la derecha para recortar el padding interno sobrante
-                                    style={{ width: 'calc(100% + 60px)', height: `${calculatedHeight + 265}px`, maxWidth: 'none', position: 'absolute', top: '-116px', left: '-48px' }}>
-                                </iframe>
+                            <div className="glass-panel" style={{ padding: '12px', borderRadius: '16px' }}>
+                                {topScorers.slice(0, pichichisCount).map((s, idx) => {
+                                    const isLeader = s.goals === maxGoals;
+                                    return (
+                                        <div key={s.playerId || idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 6px', borderBottom: idx < pichichisCount - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                                            <span style={{ width: '20px', textAlign: 'center', fontWeight: 'bold', color: isLeader ? '#ffd32a' : 'var(--text-muted)', fontSize: '0.85rem' }}>{idx + 1}</span>
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {s.imageUrl && !imgErrors[s.playerId] ? (
+                                                    <div style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+                                                        <img 
+                                                          src={s.imageUrl} 
+                                                          alt="" 
+                                                          style={{ width: 'auto', height: '200%', maxWidth: 'none' }}
+                                                          onError={() => setImgErrors(prev => ({...prev, [s.playerId]: true}))}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#ffd32a' }}>{(s.shortName || s.name || '?')[0].toUpperCase()}</span>
+                                                )}
+                                            </div>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.shortName || s.name}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.team || '—'}</div>
+                                            </div>
+                                            <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: isLeader ? '#ffd32a' : 'var(--text-main)', minWidth: '30px', textAlign: 'right' }}>{s.goals}</div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         );
                     })()}
                 </div>
             </div>
         </div>
+        )}
 
-        <div id="home-standings-grid" className="groups-grid">
-          {Object.keys(groupOdds).map(groupName => renderGroup(groupName, groupOdds[groupName]))}
-        </div>
-
-        <GroupMatchesModal 
-          selectedGroup={selectedGroup} 
-          allGames={allGames} 
-          onClose={() => setSelectedGroup(null)} 
-        />
+        {viewMode === 'groups' ? (
+          <>
+            <div id="home-standings-grid" className="groups-grid">
+              {Object.keys(groupOdds).map(groupName => renderGroup(groupName, groupOdds[groupName]))}
+            </div>
+            <GroupMatchesModal 
+              selectedGroup={selectedGroup} 
+              allGames={allGames} 
+              onClose={() => setSelectedGroup(null)} 
+            />
+          </>
+        ) : (
+          <OfficialBracket hideTitle />
+        )}
 
     </section>
   );

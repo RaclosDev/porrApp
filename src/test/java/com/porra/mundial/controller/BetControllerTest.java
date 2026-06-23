@@ -6,9 +6,11 @@ import com.porra.mundial.service.BetService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import com.porra.mundial.dto.BetDataDTO;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.HashMap;
@@ -27,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(BetController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class BetControllerTest {
 
     @Autowired
@@ -37,6 +40,12 @@ class BetControllerTest {
 
     @MockBean
     private BetService betService;
+
+    @MockBean
+    private com.porra.mundial.config.JwtUtil jwtUtil;
+
+    @MockBean
+    private com.porra.mundial.service.WebSocketService webSocketService;
 
     @Test
     void getAllBets_ReturnsList() throws Exception {
@@ -60,15 +69,18 @@ class BetControllerTest {
         Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
 
-        Map<String, String> body = new HashMap<>();
-        body.put("participantName", "Ana");
-        body.put("hash", "xyz");
+        BetDataDTO body = new BetDataDTO();
+        body.setUser("Ana");
+        body.setBet("My Bet");
+        body.setGroups(new HashMap<>());
+        body.setR16(new java.util.ArrayList<>());
 
-        Bet savedBet = new Bet();
-        savedBet.setId(2L);
-        savedBet.setParticipantName("Ana");
+        Bet savedBet = Bet.builder()
+                .id(2L)
+                .user(com.porra.mundial.model.UserAccount.builder().participantName("Ana").build())
+                .build();
 
-        Mockito.when(betService.createBet(eq("Ana"), eq("Ana"), eq("xyz"), any())).thenReturn(savedBet);
+        Mockito.when(betService.createBet(anyString(), anyString(), any(BetDataDTO.class), any())).thenReturn(savedBet);
 
         mockMvc.perform(post("/api/bets")
                         .contentType(MediaType.APPLICATION_JSON)

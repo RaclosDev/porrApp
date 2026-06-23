@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchStandings, fetchMatches, fetchMatchRadar, fetchBets, fetchTeamOdds, fetchPresence, getAdminToken, fetchLeaderboard, fetchGroup } from '../services/api';
-import { decodeHash } from '../utils/hash';
+import { fetchStandings, fetchMatches, fetchMatchRadar, fetchBets, fetchTeamOdds, fetchPresence, getAdminToken, fetchLeaderboard, fetchGroup, updateBet, fetchMyGroups, fetchMe, updateUserPreferences } from '../services/api';
 
 const AppContext = createContext();
 
@@ -41,13 +40,14 @@ export function AppProvider({ children }) {
   const queryClient = useQueryClient();
 
   const [userName, setUserName] = useState(localStorage.getItem('my_bet_name') || '');
-  const [activeGroupId, setActiveGroupId] = useState(() => localStorage.getItem('activeGroupId') || "1");
+  const [userId, setUserId] = useState(localStorage.getItem('my_user_id') || '');
+  const [activeGroupId, setActiveGroupId] = useState(() => localStorage.getItem('activeGroupId') || '1');
   const [bracketState, setBracketState] = useState(() => {
     const saved = localStorage.getItem('draft_bracket_' + activeGroupId);
     return saved ? JSON.parse(saved) : defaultBracketState;
   });
   const [topScorer, setTopScorer] = useState('');
-  const [viewerHash, setViewerHash] = useState(null);
+  const [viewerBetId, setViewerBetId] = useState(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(!!getAdminToken());
 
   // REACT QUERY: Fetch data efficiently with caching
@@ -58,11 +58,17 @@ export function AppProvider({ children }) {
   const tiebreakers = {};
   const { data: odds } = useQuery({ queryKey: ['odds'], queryFn: fetchTeamOdds });
   const { data: leaderboard } = useQuery({ queryKey: ['leaderboard', activeGroupId], queryFn: () => fetchLeaderboard(activeGroupId) });
-  const { data: groupInfo } = useQuery({ queryKey: ['group', activeGroupId], queryFn: () => fetchGroup(activeGroupId).catch(() => ({ name: "Porra Global" })) });
+  const { data: groupInfo } = useQuery({ 
+      queryKey: ['group', activeGroupId], 
+      queryFn: () => activeGroupId ? fetchGroup(activeGroupId).catch(() => ({ name: "Porra Global" })) : Promise.resolve({ name: "Ninguna Liga Seleccionada" }) 
+  });
   const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
 
-  const activeGroupName = groupInfo?.name || "Porra Global";
+  const activeGroupName = groupInfo?.name || "Ninguna Liga Seleccionada";
   const activeGroupAdmin = groupInfo?.adminParticipantName || null;
+  const activeGroupAdminId = groupInfo?.adminUserId || null;
+  const activeGroupBetMode = groupInfo?.betMode || 'FULL_BRACKET';
+  const activeGroupPichichi = groupInfo?.pichichi !== undefined ? groupInfo.pichichi : true;
 
   // Calculate nameToIdMap for head to head
   const nameToIdMap = {};
@@ -82,9 +88,41 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (!isAdminAuthenticated) {
       setUserName('');
+      setUserId('');
       localStorage.removeItem('my_bet_name');
+      localStorage.removeItem('my_user_id');
     }
   }, [isAdminAuthenticated]);
+
+  // Auto-seleccionar liga al cargar: si solo tiene 1, esa; si no, la que haya guardado en base de datos.
+  useEffect(() => {
+    const autoSelectGroup = async () => {
+      if (!userName) return;
+      try {
+        let dbGroupId = null;
+        if (isAdminAuthenticated) {
+           try {
+               const me = await fetchMe();
+               dbGroupId = me.lastSelectedGroupId?.toString();
+           } catch (e) {}
+        }
+        
+        const myGroups = await fetchMyGroups();
+        if (myGroups.length === 1) {
+          const onlyGroupId = myGroups[0].id.toString();
+          const currentActiveId = localStorage.getItem('activeGroupId');
+          if (currentActiveId !== onlyGroupId) {
+            changeGroup(onlyGroupId);
+          }
+        } else if (dbGroupId && activeGroupId !== dbGroupId) {
+          changeGroup(dbGroupId);
+        }
+      } catch (e) {
+        // No autenticado o error de red - ignorar
+      }
+    };
+    autoSelectGroup();
+  }, [userName, isAdminAuthenticated]);
 
   const checkAdmin = (str) => {
     if (!str) return false;
@@ -120,23 +158,16 @@ export function AppProvider({ children }) {
     }
   };
 
-  const fixThird = async (key, hash, winner) => {
+  const fixThird = async (key, id, winner) => {
     if (!window.confirm("¿Asignar a " + winner + " como ganador del 3º Puesto para esta apuesta?")) return;
-    const part = decodeHash(hash);
-    if (!part) return;
-    part.thirdPlaceWinner = winner;
-    const jsonString = JSON.stringify(part);
-    const newHash = btoa(unescape(encodeURIComponent(jsonString)));
-
     try {
-      const response = await fetch(`/api/bets/${key}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Admin-Token': getAdminToken() || ''
-        },
-        body: JSON.stringify({ participantName: part.user, hash: newHash })
-      });
+      const res = await fetch(`/api/bets/${key}`);
+      if (!res.ok) throw new Error("Error fetching bet");
+      const part = await res.json();
+      
+      part.thirdPlaceWinner = winner;
+      
+      const response = await updateBet(key, part);
       if (response.ok) {
         alert("Tercer puesto fijado correctamente.");
         refreshAll();
@@ -165,26 +196,18 @@ export function AppProvider({ children }) {
     }
   };
 
-  const editBetName = async (key, currentHash) => {
-    const decoded = decodeHash(currentHash);
-    if (!decoded) return alert("No se pudo decodificar la apuesta.");
-
-    const newUserName = window.prompt("Edita el nombre del jugador:", decoded.user || "");
-    if (!newUserName || newUserName.trim() === "") return;
-
-    decoded.user = newUserName.trim();
-    const jsonString = JSON.stringify(decoded);
-    const newHash = btoa(unescape(encodeURIComponent(jsonString)));
-
+  const editBetName = async (key, currentId) => {
     try {
-      const response = await fetch(`/api/bets/${key}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Admin-Token': getAdminToken() || ''
-        },
-        body: JSON.stringify({ participantName: newUserName.trim(), hash: newHash })
-      });
+      const res = await fetch(`/api/bets/${key}`);
+      if (!res.ok) throw new Error("Error fetching bet");
+      const decoded = await res.json();
+      
+      const newUserName = window.prompt("Edita el nombre del jugador:", decoded.user || "");
+      if (!newUserName || newUserName.trim() === "") return;
+
+      decoded.user = newUserName.trim();
+      
+      const response = await updateBet(key, decoded);
       if (response.ok) {
         alert("Nombre y apuesta actualizados.");
         refreshAll();
@@ -255,6 +278,9 @@ export function AppProvider({ children }) {
     setActiveGroupId(groupId);
     const saved = localStorage.getItem('draft_bracket_' + groupId);
     setBracketState(saved ? JSON.parse(saved) : defaultBracketState);
+    if (isAdminAuthenticated) {
+        updateUserPreferences({ lastSelectedGroupId: parseInt(groupId) }).catch(console.error);
+    }
   };
 
   // Provide exactly the same API for legacy components
@@ -269,13 +295,15 @@ export function AppProvider({ children }) {
     loading,
     userName,
     setUserName,
+    userId,
+    setUserId,
     bracketState,
     setBracketState,
     topScorer,
     setTopScorer,
     fetchData: refreshAll,
-    viewerHash,
-    setViewerHash,
+    viewerBetId,
+    setViewerBetId,
     onlineUsers: onlineUsers || [],
     isRaclos,
     isAdminAuthenticated,
@@ -287,6 +315,9 @@ export function AppProvider({ children }) {
     activeGroupId,
     activeGroupName,
     activeGroupAdmin,
+    activeGroupAdminId,
+    activeGroupBetMode,
+    activeGroupPichichi,
     changeGroup
   };
 

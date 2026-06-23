@@ -18,7 +18,6 @@ import java.net.http.HttpClient;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -135,6 +134,7 @@ public class SyncService {
                 String state = statusNode.path("state").asText(""); // "pre", "in", "post"
                 boolean isLive = "in".equals(state);
                 boolean finished = completed;
+                String displayClock = competition.path("status").path("displayClock").asText(null);
 
                 // --- Parse competitors (home & away teams) ---
                 JsonNode competitors = competition.path("competitors");
@@ -248,6 +248,7 @@ public class SyncService {
                 if (!Objects.equals(match.getAwayScore(), awayScore)) { match.setAwayScore(awayScore); updated = true; }
                 if (!Objects.equals(match.getMatchDate(), matchDate)) { match.setMatchDate(matchDate); updated = true; }
                 if (!Objects.equals(match.getFinished(), finished)) { match.setFinished(finished); updated = true; }
+                if (!Objects.equals(match.getDisplayClock(), displayClock)) { match.setDisplayClock(displayClock); updated = true; }
 
                 if (groupName != null) {
                     if (!Objects.equals(match.getGroupName(), groupName)) {

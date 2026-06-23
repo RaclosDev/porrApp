@@ -123,6 +123,23 @@ body {
   background: rgba(15, 23, 42, 0.8);
 }
 
+select.glass-input, select.glass-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+option {
+  background: var(--bg-color);
+  color: var(--text-main);
+}
+
 /* Layout */
 .top-bar {
   display: flex;
@@ -368,30 +385,35 @@ body {
 
 .bracket-wrapper {
   display: flex;
-  justify-content: space-between;
-  gap: 40px;
+  justify-content: center;
+  gap: 10px;
+}
+
+.bracket-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bracket-children {
+  display: flex;
+  gap: 30px;
+}
+
+.bracket-leaf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .bracket-side {
   display: flex;
-  gap: 20px;
-  flex: 1;
-}
-
-.left-side {
-  flex-direction: row;
-}
-
-.right-side {
-  flex-direction: row;
+  flex-direction: column;
 }
 
 .round {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  flex: 1;
-  gap: 15px;
 }
 
 .round h2 {

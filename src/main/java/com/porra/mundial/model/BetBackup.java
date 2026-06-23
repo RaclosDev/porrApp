@@ -23,9 +23,6 @@ public class BetBackup {
     private String participantName;
     private String betName;
 
-    @Column(columnDefinition = "TEXT")
-    private String hash;
-
     private Boolean paid;
 
     // Acción que provocó el backup: CREATED, UPDATED, DELETED, PAID

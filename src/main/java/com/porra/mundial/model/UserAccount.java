@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * Esto evita suplantaciones de identidad.
  */
 @Entity
-@Table(name = "user_accounts")
+@Table(name = "app_users")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserAccount {
 
@@ -27,9 +27,15 @@ public class UserAccount {
     private String googleName;
 
     // El apodo o nombre con el que se identifica en la porra (Ej: "Raclos")
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String participantName;
 
     @Builder.Default
+    private boolean isSuperadmin = false;
+
+    @Builder.Default
     private LocalDateTime linkedAt = LocalDateTime.now();
+
+    @Column(name = "last_selected_group_id")
+    private Long lastSelectedGroupId;
 }

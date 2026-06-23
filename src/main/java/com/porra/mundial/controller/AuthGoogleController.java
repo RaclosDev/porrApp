@@ -64,13 +64,15 @@ public class AuthGoogleController {
             Optional<UserAccount> existingAccount = userAccountRepository.findByGoogleEmail(email);
 
             if (existingAccount.isPresent()) {
-                // Usuario existente: Emitir nuestro JWT con su nombre asociado y el email de Google
-                String participantName = existingAccount.get().getParticipantName();
-                String appToken = jwtUtil.generateToken(participantName, existingAccount.get().getGoogleEmail());
+                // Usuario existente: Emitir nuestro JWT con su email de Google como principal
+                UserAccount acc = existingAccount.get();
+                String appToken = jwtUtil.generateToken(acc.getGoogleEmail(), acc.getGoogleEmail());
                 return ResponseEntity.ok(Map.of(
                         "token", appToken,
-                        "participantName", participantName,
-                        "status", "login_success"
+                        "userId", acc.getId(),
+                        "participantName", acc.getParticipantName(),
+                        "status", "login_success",
+                        "lastSelectedGroupId", acc.getLastSelectedGroupId() != null ? acc.getLastSelectedGroupId() : -1
                 ));
             } else {
                 // Usuario NUEVO: Necesitamos que nos diga qué nombre de participante quiere usar
@@ -96,28 +98,33 @@ public class AuthGoogleController {
                     }
                 }
 
-                // Comprobar si el nombre que quiere ya está pillado por OTRO usuario
-                if (userAccountRepository.existsByParticipantNameIgnoreCase(cleanName)) {
-                    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                            "error", "Ese nombre ya está registrado y vinculado a otra cuenta."
-                    ));
+                // Comprobar si existe una cuenta legacy pendiente de reclamar para este nombre
+                java.util.Optional<UserAccount> legacyAccount = userAccountRepository.findByGoogleEmail(cleanName + "@auto.generated");
+                UserAccount finalAccount;
+                if (legacyAccount.isPresent()) {
+                    // Si es auto-generated, actualizamos su cuenta
+                    finalAccount = legacyAccount.get();
+                    finalAccount.setGoogleEmail(email);
+                    finalAccount.setGoogleName(name);
+                    userAccountRepository.save(finalAccount);
+                } else {
+                    // Crear nueva cuenta vinculada
+                    finalAccount = UserAccount.builder()
+                            .googleEmail(email)
+                            .googleName(name)
+                            .participantName(cleanName)
+                            .build();
+                    userAccountRepository.save(finalAccount);
                 }
 
-                // Crear nueva cuenta vinculada
-                UserAccount newAccount = UserAccount.builder()
-                        .googleEmail(email)
-                        .googleName(name)
-                        .participantName(cleanName)
-                        .build();
-                userAccountRepository.save(newAccount);
-
-                // 4. Emitir el token con el email de Google
-                String appToken = jwtUtil.generateToken(cleanName, email);
-                return ResponseEntity.ok(Map.of(
-                        "token", appToken,
-                        "participantName", cleanName,
-                        "status", "registered_success"
-                ));
+                // 4. Emitir el token con el email de Google como identificador principal
+                String appToken = jwtUtil.generateToken(email, email);
+                Map<String, Object> responseMap = new java.util.HashMap<>();
+                responseMap.put("token", appToken);
+                responseMap.put("userId", finalAccount.getId());
+                responseMap.put("participantName", cleanName);
+                responseMap.put("status", "registered_success");
+                return ResponseEntity.ok(responseMap);
             }
 
         } catch (Exception e) {

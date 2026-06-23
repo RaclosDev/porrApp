@@ -20,12 +20,6 @@ export function compareTeams(a, b, groupName, officialPoints, allGames, nameToId
   // 1. Puntos totales
   if (ptsB !== ptsA) return ptsB - ptsA;
 
-  // 2. Diferencia de goles (General)
-  if (diffB !== diffA) return diffB - diffA;
-
-  // 3. Goles marcados (General)
-  if (glsB !== glsA) return glsB - glsA;
-
   // Head-to-Head calculations
   let h2hPtsA = 0, h2hPtsB = 0;
   let h2hDiffA = 0, h2hDiffB = 0;
@@ -57,14 +51,20 @@ export function compareTeams(a, b, groupName, officialPoints, allGames, nameToId
     }
   }
 
-  // 4. Puntos en enfrentamientos directos
+  // 2. Puntos en enfrentamientos directos (Head-to-Head)
   if (h2hPtsB !== h2hPtsA) return h2hPtsB - h2hPtsA;
   
-  // 5. Diferencia de goles en enfrentamientos directos
+  // 3. Diferencia de goles en enfrentamientos directos
   if (h2hDiffB !== h2hDiffA) return h2hDiffB - h2hDiffA;
   
-  // 6. Goles marcados en enfrentamientos directos
+  // 4. Goles marcados en enfrentamientos directos
   if (h2hGlsB !== h2hGlsA) return h2hGlsB - h2hGlsA;
+
+  // 5. Diferencia de goles (General)
+  if (diffB !== diffA) return diffB - diffA;
+
+  // 6. Goles marcados (General)
+  if (glsB !== glsA) return glsB - glsA;
 
   // 7. Puntos de Fair Play (menos negativos es mejor)
   if (fpB !== fpA) return fpB - fpA;

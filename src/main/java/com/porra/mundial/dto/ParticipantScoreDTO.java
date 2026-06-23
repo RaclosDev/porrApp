@@ -10,8 +10,11 @@ import java.util.Map;
 @Builder
 public class ParticipantScoreDTO {
     private Long id;
+    private Long userId;
     private String name;
-    private String hash; // The participant's original hash (for UI identification)
+    private String betName;
+    private List<String> thirdPlaceMatch;
+    private String thirdPlaceWinner;
     private int r1;
     private int r32;
     private int r16;

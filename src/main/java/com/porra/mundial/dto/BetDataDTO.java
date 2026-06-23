@@ -13,6 +13,7 @@ public class BetDataDTO {
     private String bet;
     private Map<String, List<String>> groups;
     private List<String> thirds;
+    private List<List<String>> r32;
     private List<List<String>> r16;
     private List<List<String>> qf;
     private List<List<String>> sf;
@@ -23,6 +24,9 @@ public class BetDataDTO {
     private List<String> thirdPlaceMatch;
     private String scorer;
 
+    public List<String> getFlatR32() {
+        return flatten(r32);
+    }
     public List<String> getFlatR16() {
         return flatten(r16);
     }

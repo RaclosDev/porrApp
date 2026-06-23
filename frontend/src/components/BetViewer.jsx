@@ -1,15 +1,42 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { decodeHash } from '../utils/hash';
 import { getCountryCode } from '../utils/constants';
 import { compareTeams } from '../utils/points';
+import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCanvas';
 
 function BetViewer() {
   const state = useAppContext();
-  const { viewerHash, setViewerHash, officialResultsHash, officialPoints, groupOdds, allGames, nameToIdMap } = state;
+  const { viewerBetId, setViewerBetId, officialResultsHash, officialPoints, groupOdds, allGames, nameToIdMap } = state;
   const [openSection, setOpenSection] = useState('groups'); // 'groups' or 'knockout'
   const [pointsOpen, setPointsOpen] = useState(true);
   const [visibleRounds, setVisibleRounds] = useState({ r32: true, r16: true, qf: true, sf: false, center: false });
+  const [part, setPart] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!viewerBetId) {
+      setPart(null);
+      setError(null);
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    fetch(`/api/bets/${viewerBetId}`)
+      .then(res => {
+        if (!res.ok) return res.json().then(e => { throw new Error(e.error || "Error al cargar la apuesta"); });
+        return res.json();
+      })
+      .then(data => {
+        setPart(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [viewerBetId]);
 
   const handleSectionChange = (section) => {
     if (openSection === section) {
@@ -24,12 +51,32 @@ function BetViewer() {
     }
   };
 
-  if (!viewerHash) return null;
+  if (!viewerBetId) return null;
 
-  const part = decodeHash(viewerHash);
+  if (loading) {
+    return (
+      <div id="points-breakdown-modal" className="modal" style={{ display: 'flex', zIndex: 999999 }} onClick={() => setViewerBetId(null)}>
+        <div className="modal-content" style={{ width: '300px', textAlign: 'center', padding: '20px' }} onClick={e => e.stopPropagation()}>
+          Cargando apuesta...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div id="points-breakdown-modal" className="modal" style={{ display: 'flex', zIndex: 999999 }} onClick={() => setViewerBetId(null)}>
+        <div className="modal-content" style={{ width: '400px', textAlign: 'center', padding: '30px' }} onClick={e => e.stopPropagation()}>
+          <h3 style={{ color: '#ff4757', marginBottom: '15px' }}>Error al cargar la apuesta</h3>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '20px', fontSize: '0.9rem' }}>{error}</p>
+          <button className="glass-btn primary-btn" onClick={() => setViewerBetId(null)} style={{ padding: '8px 20px' }}>Cerrar</button>
+        </div>
+      </div>
+    );
+  }
   if (!part) return null;
 
-  let points = state.leaderboardData.find(lb => lb.hash === viewerHash) || { total: 0, r1: 0, r32: 0, r16: 0, qf: 0, sf: 0, finals: 0, scorer: 0, log: [], exactMatches: {}, passedTeams: {} };
+  let points = state.leaderboardData.find(lb => lb.id === viewerBetId) || { total: 0, r1: 0, r32: 0, r16: 0, qf: 0, sf: 0, finals: 0, scorer: 0, log: [], exactMatches: {}, passedTeams: {} };
 
   const getHtmlTeam = (name, isWinner = false) => {
     if (!name) return <div className="team-slot empty" style={{ pointerEvents: 'none', fontSize: '0.8rem', height: '32px', padding: '5px', justifyContent: 'center' }}>Por definir</div>;
@@ -44,20 +91,7 @@ function BetViewer() {
     );
   };
 
-  const renderRoundCol = (title, matchesArray, winnersList, isHidden) => {
-    if (isHidden) return null;
-    return (
-      <div className="round" style={{ minWidth: '140px', margin: '0 10px' }}>
-        <h2 style={{ fontSize: '0.75rem', textAlign: 'center', color: 'var(--text-muted)', marginBottom: '10px' }}>{title}</h2>
-        {matchesArray && matchesArray.map((m, i) => (
-          <div key={i} className="match" style={{ marginBottom: '12px' }}>
-            {getHtmlTeam(m[0], winnersList.includes(m[0]))}
-            {getHtmlTeam(m[1], winnersList.includes(m[1]))}
-          </div>
-        ))}
-      </div>
-    );
-  };
+
 
   const getFlat = (arr) => arr ? arr.flat().filter(Boolean) : [];
   const winR16 = getFlat(part.r16);
@@ -65,14 +99,79 @@ function BetViewer() {
   const winSF = getFlat(part.sf);
   const winFinal = part.final ? part.final : [];
 
-  const r32Left = part.r32 ? part.r32.slice(0, 8) : [];
-  const r32Right = part.r32 ? part.r32.slice(8, 16) : [];
-  const r16Left = part.r16 ? part.r16.slice(0, 4) : [];
-  const r16Right = part.r16 ? part.r16.slice(4, 8) : [];
-  const qfLeft = part.qf ? part.qf.slice(0, 2) : [];
-  const qfRight = part.qf ? part.qf.slice(2, 4) : [];
-  const sfLeft = part.sf ? part.sf.slice(0, 1) : [];
-  const sfRight = part.sf ? part.sf.slice(1, 2) : [];
+  const toMatches = (arr) => (arr || []).map(m => ({ home: m?.[0] || null, away: m?.[1] || null }));
+
+  const leftRounds = [
+    toMatches(part.r32?.slice(0, 8)),
+    toMatches(part.r16?.slice(0, 4)),
+    toMatches(part.qf?.slice(0, 2)),
+    toMatches(part.sf?.slice(0, 1)),
+  ];
+  const rightRounds = [
+    toMatches(part.r32?.slice(8, 16)),
+    toMatches(part.r16?.slice(4, 8)),
+    toMatches(part.qf?.slice(2, 4)),
+    toMatches(part.sf?.slice(1, 2)),
+  ];
+
+  const renderSlot = (name, { roundIndex }) => {
+    let isWinner = false;
+    if (name && name !== '???') {
+      if (roundIndex === 0) isWinner = winR16.includes(name);
+      else if (roundIndex === 1) isWinner = winQF.includes(name);
+      else if (roundIndex === 2) isWinner = winSF.includes(name);
+      else if (roundIndex === 3) isWinner = winFinal.includes(name);
+      else if (roundIndex === 4) isWinner = part.champion === name;
+      else if (roundIndex === 5) isWinner = part.thirdPlaceWinner === name;
+    }
+    
+    return (
+      <TeamSlot 
+        name={name} 
+        slotStyle={isWinner ? { borderLeft: '3px solid #2ecc71', background: 'rgba(46, 204, 113, 0.1)' } : {}}
+        rightContent={isWinner ? <span style={{ marginLeft: '4px' }}>✅</span> : null}
+      />
+    );
+  };
+
+  const hiddenRounds = {
+    0: !visibleRounds.r32,
+    1: !visibleRounds.r16,
+    2: !visibleRounds.qf,
+    3: !visibleRounds.sf,
+  };
+
+  const finalTopY = matchTop(3, 0);
+
+  const renderCenter = (colW) => (
+    <div style={{ display: visibleRounds.center ? 'block' : 'none' }}>
+      {/* FINAL */}
+      <div style={{ position: 'absolute', top: finalTopY - 22, left: COL_GAP, width: colW, textAlign: 'center', fontSize: '0.65rem', fontWeight: 700, color: 'rgba(251,191,36,0.9)', letterSpacing: 2, textTransform: 'uppercase' }}>
+        🏆 Final 🏆
+      </div>
+      <div className="match final-match" style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}>
+        {renderSlot(part.final?.[0], { roundIndex: 3 })}
+        {renderSlot(part.final?.[1], { roundIndex: 3 })}
+      </div>
+
+      {/* CAMPEÓN */}
+      <div style={{ position: 'absolute', top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW, textAlign: 'center' }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--champion-gold)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>🏆 Campeón</div>
+        <div className="champion-display">
+          {renderSlot(part.champion, { roundIndex: 4 })}
+        </div>
+      </div>
+
+      {/* TERCER PUESTO */}
+      <div style={{ position: 'absolute', top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>🥉 Tercer Puesto</div>
+        <div className="match third-place">
+          {renderSlot(part.thirdPlaceMatch?.[0], { roundIndex: 5 })}
+          {renderSlot(part.thirdPlaceMatch?.[1], { roundIndex: 5 })}
+        </div>
+      </div>
+    </div>
+  );
 
   const getOfficialPositionAndMp = (groupName, teamName) => {
     if (!officialPoints || !officialPoints[groupName] || !groupOdds) return { pos: -1, mp: 0 };
@@ -83,12 +182,13 @@ function BetViewer() {
     const safeKey = teamName.replace(/[.#$\[\]]/g, "");
     const officialData = officialPoints[groupName][safeKey];
     const mp = (typeof officialData === 'object' && officialData !== null) ? (officialData.mp || 0) : 0;
-    return { pos, mp };
+    const status = (typeof officialData === 'object' && officialData !== null) ? (officialData.status || 0) : 0;
+    return { pos, mp, status };
   };
 
   const renderGroupTeam = (groupName, teamName, expectedPos, defaultColor, medal) => {
     let color = defaultColor;
-    const { pos, mp } = getOfficialPositionAndMp(groupName, teamName);
+    const { pos, mp, status } = getOfficialPositionAndMp(groupName, teamName);
     if (mp > 0) {
       const isExact = points.exactMatches && points.exactMatches[groupName] && points.exactMatches[groupName][expectedPos];
       const isPassed = points.passedTeams && points.passedTeams[teamName];
@@ -101,10 +201,13 @@ function BetViewer() {
         color = "#e74c3c"; // Red
       }
     }
+    
+    let statusIcon = null;
+    if (status >= 1 && status <= 4) statusIcon = <span title="Posición Matemática Fija" style={{marginLeft: '5px', fontSize: '0.85em', flexShrink: 0}}>📌</span>;
 
     return (
       <div style={{ fontSize: '1em', color, marginBottom: '4px' }}>
-        {medal} {!teamName.includes("º") && getCountryCode(teamName) !== "xx" && <img src={`https://flagcdn.com/16x12/${getCountryCode(teamName)}.png`} alt="" style={{ marginRight: '4px', verticalAlign: 'middle' }} />} {teamName}
+        {medal} {!teamName.includes("º") && getCountryCode(teamName) !== "xx" && <img src={`https://flagcdn.com/16x12/${getCountryCode(teamName)}.png`} alt="" style={{ marginRight: '4px', verticalAlign: 'middle' }} />} {teamName}{statusIcon}
       </div>
     );
   };
@@ -157,7 +260,7 @@ function BetViewer() {
   };
 
   return (
-    <div id="points-breakdown-modal" className="modal" style={{ display: 'flex', zIndex: 999999 }} onClick={() => setViewerHash(null)}>
+    <div id="points-breakdown-modal" className="modal" style={{ display: 'flex', zIndex: 999999 }} onClick={() => setViewerBetId(null)}>
       <div className="modal-content" style={{ width: '95vw', maxWidth: '1600px', textAlign: 'left', maxHeight: '95vh', overflowY: 'auto', paddingTop: '25px' }} onClick={e => e.stopPropagation()}>
         <div id="points-breakdown-body">
           
@@ -167,7 +270,7 @@ function BetViewer() {
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
               {part.scorer && <div style={{ background: 'rgba(255,159,67,0.15)', border: '1px solid rgba(255,159,67,0.3)', padding: '4px 10px', borderRadius: '8px', color: '#ff9f43', fontWeight: 'bold', fontSize: '0.9em' }}>⚽ Pichichi: {part.scorer}</div>}
               <div style={{ background: 'rgba(0,210,211,0.15)', border: '1px solid rgba(0,210,211,0.3)', padding: '4px 10px', borderRadius: '8px', color: 'var(--accent-color)', fontWeight: 'bold', fontSize: '1.1em' }}>🏆 Total: {points.total} pts</div>
-              <button onClick={() => setViewerHash(null)} className="glass-btn primary-btn" style={{ padding: '4px 15px', fontSize: '1rem', borderRadius: '8px' }}>Cerrar</button>
+              <button onClick={() => setViewerBetId(null)} className="glass-btn primary-btn" style={{ padding: '4px 15px', fontSize: '1rem', borderRadius: '8px' }}>Cerrar</button>
             </div>
           </div>
 
@@ -204,49 +307,13 @@ function BetViewer() {
                 </div>
 
                 <div style={{ overflowX: 'auto', paddingBottom: '20px', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', background: 'rgba(0,0,0,0.15)' }}>
-                  <div className="bracket-wrapper" style={{ display: 'flex', justifyContent: 'center', minWidth: 'max-content', padding: '15px' }}>
-                    <section className="bracket-side left-side" style={{ display: 'flex', gap: '10px' }}>
-                      {renderRoundCol("Dieciseisavos", r32Left, winR16, !visibleRounds.r32)}
-                      {renderRoundCol("Octavos", r16Left, winQF, !visibleRounds.r16)}
-                      {renderRoundCol("Cuartos", qfLeft, winSF, !visibleRounds.qf)}
-                      {renderRoundCol("Semifinales", sfLeft, winFinal, !visibleRounds.sf)}
-                    </section>
-
-                    <section className="center-side" style={{ display: visibleRounds.center ? 'flex' : 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: '160px', gap: '20px', padding: '0 10px' }}>
-                      <div className="finals-container" style={{ width: '100%' }}>
-                        <div className="match final-match" style={{ marginBottom: '15px' }}>
-                          <h3 style={{ textAlign: 'center', fontSize: '0.8rem', color: '#fbbf24', marginBottom: '5px' }}>🏆 FINAL 🏆</h3>
-                          {getHtmlTeam(part.final ? part.final[0] : null, part.champion === (part.final ? part.final[0] : false))}
-                          {getHtmlTeam(part.final ? part.final[1] : null, part.champion === (part.final ? part.final[1] : false))}
-                        </div>
-                        <div className="match champion-display" style={{ textAlign: 'center' }}>
-                          <h3 style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '5px' }}>CAMPEÓN</h3>
-                          <div className="team-slot winner" style={{ height: '50px', fontSize: '1.1rem', fontWeight: 'bold', justifyContent: 'center', pointerEvents: 'none', borderColor: '#fbbf24', background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24' }}>
-                            {part.champion ? (
-                                <>
-                                  {!part.champion.includes("º") && getCountryCode(part.champion) !== "xx" && <img src={`https://flagcdn.com/16x12/${getCountryCode(part.champion)}.png`} alt="" style={{ marginRight: '4px', verticalAlign: 'middle' }} />}
-                                  {part.champion}
-                                </>
-                            ) : '???'}
-                          </div>
-                        </div>
-                        {part.thirdPlaceMatch && part.thirdPlaceMatch.length > 0 && (
-                          <div className="match third-place" style={{ marginTop: '15px' }}>
-                            <h3 style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '5px' }}>3º PUESTO</h3>
-                            {getHtmlTeam(part.thirdPlaceMatch[0], part.thirdPlaceWinner === part.thirdPlaceMatch[0])}
-                            {getHtmlTeam(part.thirdPlaceMatch[1], part.thirdPlaceWinner === part.thirdPlaceMatch[1])}
-                          </div>
-                        )}
-                      </div>
-                    </section>
-
-                    <section className="bracket-side right-side" style={{ display: 'flex', gap: '10px' }}>
-                      {renderRoundCol("Semifinales", sfRight, winFinal, !visibleRounds.sf)}
-                      {renderRoundCol("Cuartos", qfRight, winSF, !visibleRounds.qf)}
-                      {renderRoundCol("Octavos", r16Right, winQF, !visibleRounds.r16)}
-                      {renderRoundCol("Dieciseisavos", r32Right, winR16, !visibleRounds.r32)}
-                    </section>
-                  </div>
+                  <BracketCanvas
+                    leftRounds={leftRounds}
+                    rightRounds={rightRounds}
+                    renderSlot={renderSlot}
+                    renderCenter={renderCenter}
+                    hiddenRounds={hiddenRounds}
+                  />
                 </div>
               </details>
             </div>

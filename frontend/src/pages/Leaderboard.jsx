@@ -1,5 +1,4 @@
 import { useAppContext } from '../context/AppContext';
-import { decodeHash } from '../utils/hash';
 import html2canvas from 'html2canvas';
 import { useState } from 'react';
 
@@ -7,28 +6,28 @@ import { acceptGroupBet, deleteGroupBet } from '../services/api';
 
 function Leaderboard() {
   const state = useAppContext();
-  const { leaderboardData, loading, isRaclos, activeGroupName, activeGroupId, activeGroupAdmin, userName } = state;
+  const { leaderboardData, loading, isRaclos, activeGroupName, activeGroupId, activeGroupAdmin, activeGroupAdminId, userId, userName } = state;
   const [sharing, setSharing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const isLeagueAdmin = activeGroupAdmin === userName;
+  const isLeagueAdmin = activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName; // Fallback for backwards compatibility if needed
 
   if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando clasificación...</div>;
 
-  // Combine backend leaderboard data with frontend hashes for UI state (e.g., editing names)
+  // Backend leaderboard data contains all we need now (name, betName, thirdPlaceMatch)
   const results = leaderboardData.map(backendScore => {
-      const hashObj = state.participantsHashes.find(h => h.hash === backendScore.hash) || {};
-      const part = decodeHash(backendScore.hash);
       return {
           key: backendScore.id,
-          hash: backendScore.hash,
-          name: backendScore.name || part?.user || 'Anónimo',
-          betName: part?.bet || '',
+          id: backendScore.id, // we use betId instead of hash now
+          userId: backendScore.userId,
+          name: backendScore.name || 'Anónimo',
+          betName: backendScore.betName || '',
           points: backendScore,
           paid: !backendScore.pending,
-          part: part
+          thirdPlaceMatch: backendScore.thirdPlaceMatch,
+          thirdPlaceWinner: backendScore.thirdPlaceWinner
       };
-  }).filter(r => r.part);
+  });
 
   results.sort((a, b) => {
     if (a.paid !== b.paid) return a.paid ? -1 : 1;
@@ -155,7 +154,7 @@ function Leaderboard() {
                             }
 
                             const isPending = !r.paid;
-                            const isMe = r.name === userName;
+                            const isMe = r.userId?.toString() === userId?.toString() || r.name === userName;
                             const rowStyle = { 
                                 backgroundColor: isMe ? 'rgba(0, 210, 211, 0.15)' : (isPending ? 'rgba(255, 165, 0, 0.05)' : 'transparent'), 
                                 boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
@@ -175,8 +174,7 @@ function Leaderboard() {
                                                 <div style={{ fontSize: '0.85em', color: 'var(--text-muted)' }}>{r.betName}</div>
                                             </div>
                                             
-                                            {/* View Button (Available for everyone) */}
-                                            <button className="glass-btn" onClick={(e) => { e.stopPropagation(); state.setViewerHash(r.hash); }} style={{ background: 'rgba(56, 173, 246, 0.2)', color: '#38adf6', border: '1px solid #38adf6', padding: '4px 8px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} title="Ver Apuesta">
+                                            <button className="glass-btn" onClick={(e) => { e.stopPropagation(); state.setViewerBetId(r.id); }} style={{ background: 'rgba(56, 173, 246, 0.2)', color: '#38adf6', border: '1px solid #38adf6', padding: '4px 8px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} title="Ver Apuesta">
                                                 👁️ Ver Porra
                                             </button>
                                         </div>
@@ -195,15 +193,15 @@ function Leaderboard() {
                                                 </button>
 
                                                 {isRaclos && (
-                                                    <button className="glass-btn" onClick={(e) => { e.stopPropagation(); state.editBetName(r.key, r.hash); }} style={{ background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', border: '1px solid #fbbf24', padding: '4px 8px', fontSize: '0.8rem' }} title="Editar Nombre">
+                                                    <button className="glass-btn" onClick={(e) => { e.stopPropagation(); state.editBetName(r.key, r.id); }} style={{ background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', border: '1px solid #fbbf24', padding: '4px 8px', fontSize: '0.8rem' }} title="Editar Nombre">
                                                         ✏️ Editar
                                                     </button>
                                                 )}
                                                 
-                                                {isRaclos && r.paid && r.part && r.part.thirdPlaceMatch && r.part.thirdPlaceMatch.length === 2 && !r.part.thirdPlaceWinner && (
+                                                {isRaclos && r.paid && r.thirdPlaceMatch && r.thirdPlaceMatch.length === 2 && !r.thirdPlaceWinner && (
                                                     <>
-                                                        <button className="glass-btn" onClick={(e) => { e.stopPropagation(); state.fixThird(r.key, r.hash, r.part.thirdPlaceMatch[0]); }} style={{ background: 'rgba(0, 210, 211, 0.2)', color: '#00d2d3', border: '1px solid #00d2d3', padding: '4px 8px', fontSize: '0.8rem' }}>3º: {r.part.thirdPlaceMatch[0]}</button>
-                                                        <button className="glass-btn" onClick={(e) => { e.stopPropagation(); state.fixThird(r.key, r.hash, r.part.thirdPlaceMatch[1]); }} style={{ background: 'rgba(0, 210, 211, 0.2)', color: '#00d2d3', border: '1px solid #00d2d3', padding: '4px 8px', fontSize: '0.8rem' }}>3º: {r.part.thirdPlaceMatch[1]}</button>
+                                                        <button className="glass-btn" onClick={(e) => { e.stopPropagation(); state.fixThird(r.key, r.id, r.thirdPlaceMatch[0]); }} style={{ background: 'rgba(0, 210, 211, 0.2)', color: '#00d2d3', border: '1px solid #00d2d3', padding: '4px 8px', fontSize: '0.8rem' }}>3º: {r.thirdPlaceMatch[0]}</button>
+                                                        <button className="glass-btn" onClick={(e) => { e.stopPropagation(); state.fixThird(r.key, r.id, r.thirdPlaceMatch[1]); }} style={{ background: 'rgba(0, 210, 211, 0.2)', color: '#00d2d3', border: '1px solid #00d2d3', padding: '4px 8px', fontSize: '0.8rem' }}>3º: {r.thirdPlaceMatch[1]}</button>
                                                     </>
                                                 )}
                                             </div>

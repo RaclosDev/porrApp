@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { getCountryCode, countryCodeMap } from '../utils/constants';
-import { decodeHash } from '../utils/hash';
 
 const searchConditions = [
   { val: "passes_groups", label: "Pasa a 1/16", icon: "✅" },
@@ -121,8 +120,8 @@ function Search() {
 
   const allUsers = useMemo(() => {
       const users = participantsHashes.map(p => {
-          const part = decodeHash(p.hash);
-          return part ? (part.user || p.key || "Anónimo") : "Anónimo";
+          const part = p.data;
+          return part ? (part.user || p.participantName || "Anónimo") : "Anónimo";
       });
       return [...new Set(users)].sort((a, b) => a.localeCompare(b));
   }, [participantsHashes]);
@@ -135,9 +134,9 @@ function Search() {
       const matches = [];
 
       participantsHashes.forEach(p => {
-          const part = decodeHash(p.hash);
+          const part = p.data;
           if (!part) return;
-          const uName = part.user || p.key || "Anónimo";
+          const uName = part.user || p.participantName || "Anónimo";
           let match = false;
 
           const cond = selectedCondition;
@@ -184,7 +183,7 @@ function Search() {
       };
 
       participantsHashes.forEach(p => {
-          const part = decodeHash(p.hash);
+          const part = p.data;
           if (!part) return;
 
           if (part.groups) {
@@ -221,12 +220,12 @@ function Search() {
   const userStats = useMemo(() => {
       if (!selectedUser) return null;
       const targetHashObj = participantsHashes.find(p => {
-          const part = decodeHash(p.hash);
-          return part && (part.user || p.key || "Anónimo") === selectedUser;
+          const part = p.data;
+          return part && (part.user || p.participantName || "Anónimo") === selectedUser;
       });
       if (!targetHashObj) return null;
       
-      const targetPart = decodeHash(targetHashObj.hash);
+      const targetPart = targetHashObj.data;
       
       // Calculate Madness (Locuras) -> Non-top teams in QF/SF
       const madness = [];
@@ -291,11 +290,11 @@ function Search() {
       let similarity = 0;
       if (userName && userName !== selectedUser) {
           const myHashObj = participantsHashes.find(p => {
-              const part = decodeHash(p.hash);
-              return part && (part.user || p.key) === userName;
+              const part = p.data;
+              return part && (part.user || p.participantName) === userName;
           });
           if (myHashObj) {
-              const myPart = decodeHash(myHashObj.hash);
+              const myPart = myHashObj.data;
               let totalMatches = 0;
               let possibleMatches = 0;
               

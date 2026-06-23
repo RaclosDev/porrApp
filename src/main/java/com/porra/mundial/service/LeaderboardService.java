@@ -1,7 +1,5 @@
 package com.porra.mundial.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.BetDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.model.Bet;
@@ -12,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,26 +22,15 @@ public class LeaderboardService {
     private final BetRepository betRepository;
     private final StandingsService standingsService;
     private final TopScorerService topScorerService;
-    private final ObjectMapper objectMapper;
+    private final HashTransitionService hashTransitionService;
 
-    public BetDataDTO decodeHash(String base64Hash) {
-        if (base64Hash == null || base64Hash.isEmpty()) return null;
-        try {
-            String decoded = new String(Base64.getDecoder().decode(base64Hash), StandardCharsets.UTF_8);
-            // In JS we used unescape(encodeURIComponent(jsonString)), which effectively just ensures UTF-8 bytes.
-            // Some URL encoding might be present if escape() was used
-            return objectMapper.readValue(decoded, BetDataDTO.class);
-        } catch (Exception e) {
-            log.error("Error decoding hash", e);
-            return null;
-        }
-    }
 
     @Cacheable(value = "leaderboard", key = "#groupId")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
         List<Bet> allBets = betRepository.findAll();
         Bet adminBet = allBets.stream().filter(b -> b.getParticipantName().equalsIgnoreCase("Admin") || (b.getBetName() != null && b.getBetName().equals("official"))).findFirst().orElse(null);
-        BetDataDTO officialData = adminBet != null ? decodeHash(adminBet.getHash()) : null;
+        BetDataDTO officialData = adminBet != null ? hashTransitionService.rebuildBetDataDtoFromTables(adminBet.getId()) : null;
 
         List<Bet> groupBets = allBets.stream().filter(b -> groupId.equals(b.getGroupId())).collect(Collectors.toList());
 
@@ -83,13 +69,17 @@ public class LeaderboardService {
 
         for (Bet bet : groupBets) {
             if (bet.getParticipantName().equalsIgnoreCase("Admin")) continue;
-            BetDataDTO participant = decodeHash(bet.getHash());
+            BetDataDTO participant = hashTransitionService.rebuildBetDataDtoFromTables(bet.getId());
             if (participant == null) continue;
 
             ParticipantScoreDTO score = calculatePoints(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers);
+
             score.setId(bet.getId());
+            score.setUserId(bet.getUser() != null ? bet.getUser().getId() : null);
             score.setName(bet.getParticipantName());
-            score.setHash(bet.getHash());
+            score.setBetName(bet.getBetName());
+            score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
+            score.setThirdPlaceWinner(participant.getThirdPlaceWinner());
             score.setPending(!Boolean.TRUE.equals(bet.getPaid()));
             leaderboard.add(score);
         }

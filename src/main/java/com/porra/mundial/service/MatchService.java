@@ -97,6 +97,7 @@ public class MatchService {
         dto.put("finished", m.getFinished());
         dto.put("round", m.getRound());
         dto.put("groupName", m.getGroupName());
+        dto.put("displayClock", m.getDisplayClock());
 
         // Calculamos aquí si el partido empieza en breve (menos de 30 mins) para que la web parpadee en rojo
         if (m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())) {

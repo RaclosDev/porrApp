@@ -5,7 +5,6 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -81,18 +80,18 @@ public class StandingsService {
         int[] statsA = calculateStats(a.getTeam().getId(), h2hMatches);
         int[] statsB = calculateStats(b.getTeam().getId(), h2hMatches);
 
-        // [Fase 2]: Estadísticas generales de todo el grupo (Diferencia de goles y Goles a favor)
-        // La FIFA (Mundial) usa la diferencia de goles GENERAL antes que el enfrentamiento directo (a diferencia de la UEFA)
+        // [Fase 2]: Desempate Head-to-Head (Enfrentamiento directo) entre los empatados
+        // UEFA / Eurocopa usa enfrentamiento directo ANTES que diferencia de goles general
+        // 2.a: Puntos en enfrentamientos directos
+        if (statsA[0] != statsB[0]) return Integer.compare(statsB[0], statsA[0]);
+        // 2.b: Diferencia de goles en enfrentamientos directos
+        if (statsA[1] != statsB[1]) return Integer.compare(statsB[1], statsA[1]);
+        // 2.c: Goles a favor en enfrentamientos directos
+        if (statsA[2] != statsB[2]) return Integer.compare(statsB[2], statsA[2]);
+
+        // [Fase 3]: Estadísticas generales de todo el grupo (Diferencia de goles y Goles a favor)
         if (a.getGoalDiff() != b.getGoalDiff()) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
         if (a.getGoalsFor() != b.getGoalsFor()) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
-
-        // [Fase 3]: Desempate Head-to-Head (Enfrentamiento directo) entre los empatados
-        // 3.a: Puntos en enfrentamientos directos
-        if (statsA[0] != statsB[0]) return Integer.compare(statsB[0], statsA[0]);
-        // 3.b: Diferencia de goles en enfrentamientos directos
-        if (statsA[1] != statsB[1]) return Integer.compare(statsB[1], statsA[1]);
-        // 3.c: Goles a favor en enfrentamientos directos
-        if (statsA[2] != statsB[2]) return Integer.compare(statsB[2], statsA[2]);
 
         // [Fase 4]: Puntos de Fair Play (Tarjetas: Amarilla = -1, Roja = -4)
         if (a.getFairPlayPoints() != b.getFairPlayPoints()) {
@@ -125,20 +124,28 @@ public class StandingsService {
         Map<String, Map<String, Map<String, Integer>>> result = new TreeMap<>();
 
         List<GroupStanding> allStandings = getAllStandings(); // Ya vienen ordenados por el nuevo algoritmo
-        for (GroupStanding gs : allStandings) {
-            String group = gs.getGroupName();
-            String teamName = gs.getTeam().getName().replaceAll("[.#$\\[\\]]", "");
+        Map<String, List<GroupStanding>> groupedStandings = allStandings.stream().collect(Collectors.groupingBy(GroupStanding::getGroupName));
+        
+        for (String group : groupedStandings.keySet()) {
+            List<GroupStanding> groupList = groupedStandings.get(group);
+            List<Match> groupMatches = matchRepository.findByGroupNameOrderByMatchDateAsc(group);
+            Map<Long, Integer> statusMap = MathematicalStatusCalculator.calculateStatus(groupList, groupMatches);
 
             result.computeIfAbsent(group, k -> new LinkedHashMap<>());
 
-            Map<String, Integer> stats = new LinkedHashMap<>();
-            stats.put("pts", gs.getPoints());
-            stats.put("diff", gs.getGoalDiff());
-            stats.put("gls", gs.getGoalsFor());
-            stats.put("mp", gs.getMatchesPlayed());
-            stats.put("fp", gs.getFairPlayPoints());
+            for (GroupStanding gs : groupList) {
+                String teamName = gs.getTeam().getName().replaceAll("[.#$\\[\\]]", "");
+                
+                Map<String, Integer> stats = new LinkedHashMap<>();
+                stats.put("pts", gs.getPoints());
+                stats.put("diff", gs.getGoalDiff());
+                stats.put("gls", gs.getGoalsFor());
+                stats.put("mp", gs.getMatchesPlayed());
+                stats.put("fp", gs.getFairPlayPoints());
+                stats.put("status", statusMap.getOrDefault(gs.getTeam().getId(), 0));
 
-            result.get(group).put(teamName, stats);
+                result.get(group).put(teamName, stats);
+            }
         }
 
         return result;
