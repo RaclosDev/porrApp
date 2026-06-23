@@ -35,13 +35,13 @@ public class TopScorerController {
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             // Simular un navegador real para saltarse la protección anti-scraping (403 Forbidden)
             headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-            headers.set("Origin", "https://www.sofascore.com");
-            headers.set("Referer", "https://www.sofascore.com/");
+            headers.set("Origin", "https://www.espn.com");
+            headers.set("Referer", "https://www.espn.com/");
             
             org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
             
             org.springframework.http.ResponseEntity<byte[]> response = restTemplate.exchange(
-                    "https://api.sofascore.app/api/v1/player/" + playerId + "/image",
+                    "https://a.espncdn.com/combiner/i?img=/i/headshots/soccer/players/full/" + playerId + ".png&w=80&h=80",
                     org.springframework.http.HttpMethod.GET,
                     entity,
                     byte[].class

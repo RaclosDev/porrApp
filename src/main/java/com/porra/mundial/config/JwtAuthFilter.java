@@ -58,9 +58,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 List<GrantedAuthority> authorities = new ArrayList<>();
                 
-                String email = jwtUtil.extractEmail(token);
-                boolean isSuperAdmin = appAdmins.stream().anyMatch(a -> a.equalsIgnoreCase(username))
-                        || (email != null && adminEmails.stream().anyMatch(ae -> email.equalsIgnoreCase(ae)));
+                String extractedEmail = jwtUtil.extractEmail(token);
+                final String email = extractedEmail == null ? username : extractedEmail; // username is the email now
+
+                boolean isSuperAdmin = adminEmails.stream().anyMatch(ae -> email.equalsIgnoreCase(ae));
                 
                 if (isSuperAdmin) {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
@@ -69,7 +70,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
 
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(username, null, authorities);
+                        new UsernamePasswordAuthenticationToken(email, null, authorities);
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 // Guardamos la autenticación en el contexto de seguridad

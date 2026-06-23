@@ -11,6 +11,7 @@ import Search from './pages/Search';
 import Admin from './pages/Admin';
 import GroupsDashboard from './pages/GroupsDashboard';
 import JoinRedirect from './components/JoinRedirect';
+import OfficialBracket from './pages/OfficialBracket';
 
 const ProtectedRoute = ({ children }) => {
   const { isAdminAuthenticated } = useAppContext();
@@ -35,6 +36,7 @@ function App() {
             <Route path="/radar" element={<ProtectedRoute><Radar /></ProtectedRoute>} />
             <Route path="/clasificacion" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
             <Route path="/bracket" element={<ProtectedRoute><Bracket /></ProtectedRoute>} />
+            <Route path="/cuadro" element={<OfficialBracket />} />
             <Route path="/mis-ligas" element={<ProtectedRoute><GroupsDashboard /></ProtectedRoute>} />
             <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
             <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />

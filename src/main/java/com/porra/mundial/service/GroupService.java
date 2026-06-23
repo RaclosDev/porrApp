@@ -4,11 +4,20 @@ import com.porra.mundial.model.Bet;
 import com.porra.mundial.model.BetGroup;
 import com.porra.mundial.repository.BetGroupRepository;
 import com.porra.mundial.repository.BetRepository;
+import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Edition;
+import com.porra.mundial.model.Membership;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,32 +31,100 @@ public class GroupService {
 
     private final BetGroupRepository betGroupRepository;
     private final BetRepository betRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final CompetitionRepository competitionRepository;
+    private final EditionRepository editionRepository;
+    private final MembershipRepository membershipRepository;
 
     @Value("${app.admins:Admin}")
     private List<String> appAdmins;
 
     @PostConstruct
+    @Transactional
     public void initDefaultGroup() {
-        // Create Default Group if not exists
-        BetGroup globalGroup = betGroupRepository.findById(1L).orElseGet(() -> {
-            BetGroup group = BetGroup.builder()
-                    .name("Porra Global")
-                    .joinCode("GLOBAL")
-                    .adminParticipantName("Admin")
-                    .build();
-            return betGroupRepository.save(group);
-        });
+        UserAccount adminUser = userAccountRepository.findByParticipantName("Admin")
+                .orElseGet(() -> userAccountRepository.save(UserAccount.builder()
+                        .googleEmail("admin@local")
+                        .googleName("Admin")
+                        .participantName("Admin")
+                        .isSuperadmin(true)
+                        .build()));
+
+        BetGroup globalGroup = betGroupRepository.findById(1L).orElse(null);
+
+        if (globalGroup == null) {
+            // Find if any group has code GLOBAL
+            globalGroup = betGroupRepository.findByJoinCode("GLOBAL").orElse(null);
+            if (globalGroup == null) {
+                globalGroup = BetGroup.builder()
+                        .name("Porra Global")
+                        .joinCode("GLOBAL")
+                        .adminUser(adminUser)
+                        .build();
+                globalGroup = betGroupRepository.save(globalGroup);
+            }
+        } else {
+            // Ensure group 1 is named "Porra Global", has joinCode "GLOBAL", and admin is "Admin"
+            if (!"GLOBAL".equals(globalGroup.getJoinCode()) || !"Porra Global".equals(globalGroup.getName()) || !adminUser.getId().equals(globalGroup.getAdminUser().getId())) {
+                try {
+                    // If there's another group with join code GLOBAL, we rename it first to avoid unique constraint violation
+                    betGroupRepository.findByJoinCode("GLOBAL").ifPresent(other -> {
+                        if (!other.getId().equals(1L)) {
+                            log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
+                            other.setJoinCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+                            betGroupRepository.saveAndFlush(other);
+                        }
+                    });
+                    
+                    log.info("Updating existing group 1 to be the Global group (joinCode=GLOBAL, name=Porra Global, adminUser=Admin)");
+                    globalGroup.setJoinCode("GLOBAL");
+                    globalGroup.setName("Porra Global");
+                    globalGroup.setAdminUser(adminUser);
+                    globalGroup = betGroupRepository.saveAndFlush(globalGroup);
+                } catch (Exception e) {
+                    log.error("Failed to update global group, likely due to DB constraints. Error: {}", e.getMessage(), e);
+                }
+            }
+        }
+
+        final BetGroup finalGlobalGroup = globalGroup;
+
+        // Ensure Competition exists
+        Competition comp = competitionRepository.findByName("Mundial 2026")
+            .orElseGet(() -> competitionRepository.save(Competition.builder()
+                    .name("Mundial 2026")
+                    .build()));
+
+        // Ensure Edition exists
+        Edition edition = editionRepository.findByLeagueIdAndStatus(finalGlobalGroup.getId(), "ACTIVE")
+            .orElseGet(() -> editionRepository.save(Edition.builder()
+                    .league(finalGlobalGroup)
+                    .competition(comp)
+                    .betMode(com.porra.mundial.model.BetMode.FULL_BRACKET)
+                    .status("ACTIVE")
+                    .build()));
+
+        // Ensure Membership for Admin
+        Membership.MembershipId memId = new Membership.MembershipId(finalGlobalGroup.getAdminUser().getId(), finalGlobalGroup.getId());
+        if (!membershipRepository.existsById(memId)) {
+            membershipRepository.save(Membership.builder()
+                .id(memId)
+                .user(finalGlobalGroup.getAdminUser())
+                .league(finalGlobalGroup)
+                .role("ADMIN")
+                .build());
+        }
 
         // Migrate all existing bets to this global group (except the Admin template)
         List<Bet> allBets = betRepository.findAll();
         boolean migrated = false;
         for (Bet bet : allBets) {
-            if (bet.getGroupId() == null) {
+            if (bet.getEdition() == null) {
                 if (bet.getParticipantName().equalsIgnoreCase("Admin")) {
                     // Admin bet stays global (null)
                     continue;
                 }
-                bet.setGroupId(globalGroup.getId());
+                bet.setEdition(edition);
                 betRepository.save(bet);
                 migrated = true;
             }
@@ -58,43 +135,99 @@ public class GroupService {
         }
     }
 
-    public BetGroup createGroup(String name, String adminParticipantName) {
+    @Transactional
+    public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode) {
+        return createGroup(name, email, competitionId, betMode, true);
+    }
+
+    @Transactional
+    public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode, boolean pichichi) {
         String joinCode;
         do {
             joinCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         } while (betGroupRepository.findByJoinCode(joinCode).isPresent());
 
+        UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado por email: " + email));
+
+        Competition comp = competitionRepository.findById(competitionId)
+                .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada"));
+
         BetGroup group = BetGroup.builder()
                 .name(name)
                 .joinCode(joinCode)
-                .adminParticipantName(adminParticipantName)
+                .adminUser(adminUser)
                 .build();
+        group = betGroupRepository.save(group);
+
+        Membership.MembershipId memId = new Membership.MembershipId(adminUser.getId(), group.getId());
+        membershipRepository.save(Membership.builder()
+                .id(memId)
+                .user(adminUser)
+                .league(group)
+                .role("ADMIN")
+                .build());
+
+        editionRepository.save(Edition.builder()
+                .league(group)
+                .competition(comp)
+                .betMode(betMode)
+                .pichichi(pichichi)
+                .status("ACTIVE")
+                .build());
+
+        return group;
+    }
+
+    @Transactional
+    public BetGroup updateGroupName(Long groupId, String newName, String email) {
+        verifyGroupAdmin(groupId, email);
+        if (newName == null || newName.trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre no puede estar vacío");
+        }
+        BetGroup group = betGroupRepository.findById(groupId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+        group.setName(newName.trim());
         return betGroupRepository.save(group);
+    }
+
+    @Transactional
+    public void deleteGroup(Long groupId, String email) {
+        verifyGroupAdmin(groupId, email);
+        
+        // Delete all bets
+        List<Bet> bets = betRepository.findByEditionLeagueId(groupId);
+        betRepository.deleteAll(bets);
+        
+        // Delete all editions
+        List<Edition> editions = editionRepository.findAll().stream().filter(e -> e.getLeague().getId().equals(groupId)).collect(Collectors.toList());
+        editionRepository.deleteAll(editions);
+        
+        // Delete all memberships
+        List<Membership> memberships = membershipRepository.findAll().stream().filter(m -> m.getLeague().getId().equals(groupId)).collect(Collectors.toList());
+        membershipRepository.deleteAll(memberships);
+        
+        // Finally, delete the group
+        betGroupRepository.deleteById(groupId);
     }
 
     public Optional<BetGroup> getGroupByJoinCode(String joinCode) {
         return betGroupRepository.findByJoinCode(joinCode);
     }
 
-    public List<BetGroup> getUserGroups(String participantName) {
-        List<Bet> bets = betRepository.findByParticipantName(participantName);
-        List<Long> groupIds = bets.stream()
-                .map(Bet::getGroupId)
-                .filter(id -> id != null)
+    @Transactional(readOnly = true)
+    public List<BetGroup> getUserGroups(String email) {
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user == null) return List.of();
+        
+        List<Membership> memberships = membershipRepository.findAll().stream()
+                .filter(m -> m.getUser().getId().equals(user.getId()))
+                .collect(Collectors.toList());
+
+        List<Long> groupIds = memberships.stream()
+                .map(m -> m.getLeague().getId())
                 .distinct()
                 .collect(Collectors.toList());
-        
-        List<BetGroup> adminGroups = betGroupRepository.findByAdminParticipantName(participantName);
-        adminGroups.forEach(g -> {
-            if (!groupIds.contains(g.getId())) {
-                groupIds.add(g.getId());
-            }
-        });
-
-        // El Grupo 1 (Porra Global) siempre lo devolvemos para que puedan unirse si no están
-        if (!groupIds.contains(1L)) {
-            groupIds.add(1L);
-        }
 
         return betGroupRepository.findAllById(groupIds);
     }
@@ -103,43 +236,49 @@ public class GroupService {
         return betGroupRepository.findById(id);
     }
 
-    public void leaveGroup(Long groupId, String participantName) {
-        if (groupId == 1L) {
-            throw new IllegalArgumentException("No puedes abandonar la Porra Global.");
-        }
+    @Transactional
+    public void leaveGroup(Long groupId, String email) {
         BetGroup group = betGroupRepository.findById(groupId)
             .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
 
-        if (group.getAdminParticipantName().equalsIgnoreCase(participantName)) {
+        if (group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
             throw new IllegalArgumentException("El creador de la liga no puede abandonarla.");
         }
 
-        List<Bet> bets = betRepository.findByParticipantName(participantName);
-        for (Bet bet : bets) {
-            if (bet.getGroupId() != null && bet.getGroupId().equals(groupId)) {
-                betRepository.delete(bet);
+        // We delete their bets
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user != null) {
+            List<Bet> bets = betRepository.findByEditionLeagueId(groupId).stream()
+                    .filter(b -> b.getUser().getId().equals(user.getId())) 
+                    .collect(Collectors.toList());
+            betRepository.deleteAll(bets);
+            
+            // Delete membership
+            Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
+            if (membershipRepository.existsById(memId)) {
+                membershipRepository.deleteById(memId);
             }
         }
     }
 
-    private void verifyGroupAdmin(Long groupId, String participantName) {
+    private void verifyGroupAdmin(Long groupId, String email) {
         BetGroup group = betGroupRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
-                
-        boolean isSuperAdmin = appAdmins.stream().anyMatch(admin -> admin.equalsIgnoreCase(participantName));
                                
-        if (!isSuperAdmin && !group.getAdminParticipantName().equalsIgnoreCase(participantName)) {
+        if (!group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
             throw new SecurityException("No tienes permiso para administrar esta liga.");
         }
     }
 
-    public List<Bet> getGroupBetsForAdmin(Long groupId, String participantName) {
-        verifyGroupAdmin(groupId, participantName);
-        return betRepository.findByGroupId(groupId);
+    @Transactional(readOnly = true)
+    public List<Bet> getGroupBetsForAdmin(Long groupId, String email) {
+        verifyGroupAdmin(groupId, email);
+        return betRepository.findByEditionLeagueId(groupId);
     }
 
-    public Bet toggleBetPaymentStatus(Long groupId, Long betId, String participantName, boolean paid) {
-        verifyGroupAdmin(groupId, participantName);
+    @Transactional
+    public Bet toggleBetPaymentStatus(Long groupId, Long betId, String email, boolean paid) {
+        verifyGroupAdmin(groupId, email);
         Bet bet = betRepository.findById(betId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Apuesta no encontrada"));
         if (!groupId.equals(bet.getGroupId())) {
@@ -149,8 +288,9 @@ public class GroupService {
         return betRepository.save(bet);
     }
 
-    public void deleteBet(Long groupId, Long betId, String participantName) {
-        verifyGroupAdmin(groupId, participantName);
+    @Transactional
+    public void deleteBet(Long groupId, Long betId, String email) {
+        verifyGroupAdmin(groupId, email);
         Bet bet = betRepository.findById(betId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Apuesta no encontrada"));
         if (!groupId.equals(bet.getGroupId())) {
@@ -158,4 +298,5 @@ public class GroupService {
         }
         betRepository.delete(bet);
     }
+
 }

@@ -10,35 +10,66 @@ import java.time.LocalDateTime;
  * Se guarda en la tabla "bets" de la base de datos.
  */
 @Entity
-@Table(name = "bets")
+@Table(name = "bets_v2")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Bet {
 
-    // El identificador único de cada porra en la base de datos (Ej: 1, 2, 3...)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // El nombre de la persona que participa (Ej: "Raclo")
-    @Column(nullable = false)
-    private String participantName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private UserAccount user;
 
-    // Un apodo o nombre para la porra (por si alguien hace más de una)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "edition_id", nullable = false)
+    private Edition edition;
+
     private String betName;
 
-    // A qué grupo pertenece esta porra (null = Grupo Oficial / Plantilla)
-    private Long groupId;
+    private java.math.BigDecimal paymentAmount;
 
-    // Aquí guardamos tooooda la predicción comprimida en un formato llamado Base64.
-    // Así no tenemos que crear 64 columnas en la base de datos para cada partido.
-    @Column(columnDefinition = "TEXT")
-    private String hash; 
-
-    // ¿Ha pagado ya la entrada de la porra? (Por defecto es falso)
+    @Column(nullable = false, length = 20)
     @Builder.Default
-    private Boolean paid = false;
+    private String paymentStatus = "PENDING";
 
-    // La fecha y hora exacta en la que se guardó la porra en el servidor
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_marked_by")
+    private UserAccount paymentMarkedBy;
+
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    // -- HELPER METHODS FOR BACKWARDS COMPATIBILITY --
+    
+    @Transient
+    public String getParticipantName() {
+        return user != null ? user.getParticipantName() : null;
+    }
+
+    @Transient
+    public void setParticipantName(String name) {
+        // Will be ignored by DB, needed for builders
+    }
+
+    @Transient
+    public Long getGroupId() {
+        return (edition != null && edition.getLeague() != null) ? edition.getLeague().getId() : null;
+    }
+
+    @Transient
+    public void setGroupId(Long id) {
+        // Will be ignored
+    }
+
+    @Transient
+    public Boolean getPaid() {
+        return "PAID".equals(paymentStatus);
+    }
+
+    @Transient
+    public void setPaid(Boolean paid) {
+        this.paymentStatus = (paid != null && paid) ? "PAID" : "PENDING";
+    }
 }

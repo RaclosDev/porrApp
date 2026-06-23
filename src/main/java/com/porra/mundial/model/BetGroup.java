@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "bet_groups")
+@Table(name = "leagues")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class BetGroup {
 
@@ -19,9 +19,27 @@ public class BetGroup {
     @Column(nullable = false, unique = true, length = 10)
     private String joinCode;
 
-    @Column(nullable = false)
-    private String adminParticipantName;
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "admin_user_id", nullable = false)
+    private UserAccount adminUser;
 
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Transient
+    public String getAdminParticipantName() {
+        return adminUser != null ? adminUser.getParticipantName() : null;
+    }
+
+    @Transient
+    public void setAdminParticipantName(String name) {
+        // Ignored by JPA, needed for builders temporarily
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("adminUserId")
+    @Transient
+    public Long getAdminUserId() {
+        return adminUser != null ? adminUser.getId() : null;
+    }
 }

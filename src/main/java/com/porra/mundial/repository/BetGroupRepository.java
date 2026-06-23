@@ -8,5 +8,5 @@ import java.util.Optional;
 
 public interface BetGroupRepository extends JpaRepository<BetGroup, Long> {
     Optional<BetGroup> findByJoinCode(String joinCode);
-    List<BetGroup> findByAdminParticipantName(String adminParticipantName);
+    List<BetGroup> findByAdminUserParticipantName(String adminParticipantName);
 }

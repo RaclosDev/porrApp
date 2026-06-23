@@ -30,7 +30,9 @@ function Radar() {
 
     return (
       <div key={m.id} className="last-match-card">
-        <div className="last-match-date">{icon} {dateFormatted}</div>
+        <div className="last-match-date">
+            {icon} {isActuallyLive ? (m.displayClock || 'EN JUEGO') : dateFormatted}
+        </div>
         <div className="last-match-teams" style={{ margin: 'auto 0' }}>
           <div className="last-match-team">
             {homeFlag}

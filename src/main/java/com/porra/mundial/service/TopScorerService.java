@@ -40,6 +40,16 @@ public class TopScorerService {
     // Cached list of top scorers (thread-safe)
     private final AtomicReference<List<Map<String, Object>>> cachedScorers = new AtomicReference<>(Collections.emptyList());
 
+    // Persistent cache of player name -> image URL (avoids re-fetching every 30 min)
+    private final Map<String, String> imageCache = new HashMap<>();
+
+    // Hardcoded cartoon URLs for known pichichi contenders (from thesportsdb)
+    private static final Map<String, String> CARTOON_MAP = Map.of(
+        "Kylian Mbappé", "https://r2.thesportsdb.com/images/media/player/cartoon/mya0j81771265711.png",
+        "Lionel Messi", "https://r2.thesportsdb.com/images/media/player/cartoon/kzz67d1768229024.png",
+        "Erling Haaland", "https://r2.thesportsdb.com/images/media/player/cartoon/z3i9s51769182480.png"
+    );
+
     /** Called every 30 minutes */
     @Scheduled(fixedDelay = 1_800_000)
     public void scheduledRefresh() {
@@ -48,6 +58,7 @@ public class TopScorerService {
 
     /** Call this when a match just finished */
     public void refresh() {
+        imageCache.clear(); // Clear the image cache on manual/forced refresh to retry failed images
         try {
             String url = espnScoreboardUrl + "?dates=" + WC_DATE_RANGE + "&limit=200";
 
@@ -78,12 +89,25 @@ public class TopScorerService {
             Map<String, String> playerShortNames = new HashMap<>(); // name -> shortName
             Map<String, String> playerPositions = new HashMap<>();  // name -> position
             Map<String, String> playerIds = new HashMap<>();        // name -> ESPN player id
+            Map<String, String> playerTeams = new HashMap<>();      // name -> team name
+            Map<String, String> playerImages = new HashMap<>();     // name -> image URL
 
             for (JsonNode event : events) {
-                JsonNode competition = event.path("competitions").get(0);
-                if (competition == null) continue;
+                JsonNode competitionNode = event.path("competitions").get(0);
+                if (competitionNode == null) continue;
 
-                JsonNode details = competition.path("details");
+                // Build team lookup for this competition: teamId -> teamName
+                Map<String, String> teamNames = new HashMap<>();
+                JsonNode competitors = competitionNode.path("competitors");
+                if (competitors.isArray()) {
+                    for (JsonNode comp : competitors) {
+                        String tid = comp.path("id").asText("");
+                        String tname = comp.path("team").path("displayName").asText("");
+                        if (!tid.isEmpty() && !tname.isEmpty()) teamNames.put(tid, tname);
+                    }
+                }
+
+                JsonNode details = competitionNode.path("details");
                 if (!details.isArray()) continue;
 
                 for (JsonNode detail : details) {
@@ -101,6 +125,38 @@ public class TopScorerService {
                     String shortName = scorer.path("shortName").asText(fullName).trim();
                     String position = scorer.path("position").asText("");
                     String playerId = scorer.path("id").asText("");
+                    // Extract team name from athlete's team field, fallback to competition context
+                    String teamName = scorer.path("team").path("displayName").asText("");
+                    if (teamName.isEmpty()) {
+                        String teamId = scorer.path("teamId").asText("");
+                        if (!teamId.isEmpty()) teamName = teamNames.getOrDefault(teamId, "");
+                    }
+                    // Extract player image URL — hardcoded cartoon map first, then Wikipedia
+                    String imageUrl = CARTOON_MAP.get(fullName);
+                    if (imageUrl == null) imageUrl = imageCache.get(fullName);
+                    if (imageUrl == null) {
+                        imageUrl = "";
+                        try {
+                            String encodedName = java.net.URLEncoder.encode(fullName, "UTF-8").replace("+", "%20");
+                            // Wikipedia REST API for player photo
+                            String wikiUrl = "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodedName;
+                            HttpRequest wikiReq = HttpRequest.newBuilder()
+                                    .uri(URI.create(wikiUrl))
+                                    .timeout(Duration.ofSeconds(5))
+                                    .header("User-Agent", "PorraMundial/1.0")
+                                    .GET()
+                                    .build();
+                            HttpResponse<String> wikiRes = httpClient.send(wikiReq, HttpResponse.BodyHandlers.ofString());
+                            if (wikiRes.statusCode() == 200) {
+                                JsonNode wikiRoot = objectMapper.readTree(wikiRes.body());
+                                imageUrl = wikiRoot.path("thumbnail").path("source").asText("");
+                            }
+                        } catch (Exception e) {
+                            log.warn("TopScorerService: image lookup failed for {}: {}", fullName, e.getMessage());
+                        }
+                        imageCache.put(fullName, imageUrl != null ? imageUrl : "");
+                    }
+                    if (imageUrl != null && imageUrl.isEmpty()) imageUrl = "";
 
                     if (fullName.isEmpty()) continue;
 
@@ -109,6 +165,8 @@ public class TopScorerService {
                     playerShortNames.put(fullName, shortName);
                     playerPositions.put(fullName, position);
                     playerIds.put(fullName, playerId);
+                    playerTeams.put(fullName, teamName);
+                    playerImages.put(fullName, imageUrl);
                 }
             }
 
@@ -121,6 +179,8 @@ public class TopScorerService {
                 scorer.put("goals", entry.getValue()[0]);
                 scorer.put("position", playerPositions.getOrDefault(entry.getKey(), ""));
                 scorer.put("playerId", playerIds.getOrDefault(entry.getKey(), ""));
+                scorer.put("team", playerTeams.getOrDefault(entry.getKey(), ""));
+                scorer.put("imageUrl", playerImages.getOrDefault(entry.getKey(), ""));
                 scorers.add(scorer);
             }
 

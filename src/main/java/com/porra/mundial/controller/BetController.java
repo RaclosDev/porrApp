@@ -7,6 +7,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.porra.mundial.dto.BetDataDTO;
+
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -42,8 +44,8 @@ public class BetController {
 
     @GetMapping("/mine")
     public List<Map<String, Object>> getMyBets() {
-        String participantName = SecurityContextHolder.getContext().getAuthentication().getName();
-        return betService.toBetDtoList(betService.getBetsByParticipantName(participantName));
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return betService.toBetDtoList(betService.getBetsByGoogleEmail(email));
     }
 
     /**
@@ -52,27 +54,19 @@ public class BetController {
      * Recibimos el Nombre del participante y su predicción comprimida en "hash".
      */
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createBet(@RequestBody Map<String, String> body) {
-        // Extraemos el nombre directamente del token JWT verificado (¡Imposible suplantar!)
-        String participantName = SecurityContextHolder.getContext().getAuthentication().getName();
-        String betName = body.get("betName");
-        String hash = body.get("hash");
-
-        if (hash == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "El hash es obligatorio"));
+    public ResponseEntity<Map<String, Object>> createBet(@RequestBody BetDataDTO body, @RequestParam(required = false) Long groupId) {
+        // Extraemos el email directamente del token JWT verificado
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String betName = body.getBet();
+        
+        if (body.getGroups() == null || body.getR16() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Predicciones incompletas"));
         }
 
-        Long groupId = null;
-        if (body.get("groupId") != null) {
-            try {
-                groupId = Long.parseLong(body.get("groupId"));
-            } catch (NumberFormatException e) {
-                // Ignore invalid groupId
-            }
-        }
+        // We already receive groupId via @RequestParam, no need to parse from body
 
         // Si todo está bien, guardamos la porra
-        Bet bet = betService.createBet(participantName, betName != null ? betName : participantName, hash, groupId);
+        Bet bet = betService.createBet(email, betName != null ? betName : body.getUser(), body, groupId);
 
         webSocketService.invalidateAndNotify();
 
@@ -89,12 +83,28 @@ public class BetController {
      * El admin quiere editar a mano el nombre o la apuesta de una porra en concreto.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateBet(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> updateBet(@PathVariable Long id, @RequestBody BetDataDTO body) {
         try {
-            Bet bet = betService.updateBet(id, body.get("participantName"), body.get("betName"), body.get("hash"));
+            Bet bet = betService.updateBet(id, body.getUser(), body.getBet(), body);
             return ResponseEntity.ok(Map.of("id", bet.getId(), "status", "actualizada_con_exito"));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build(); // Si la porra no existe, devolvemos un 404
+        }
+    }
+
+    /**
+     * GET /api/bets/{id}
+     * Recupera una apuesta específica con todas sus predicciones relacionales.
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getBet(@PathVariable Long id) {
+        try {
+            BetDataDTO dto = betService.getBetData(id);
+            return ResponseEntity.ok(dto);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al cargar la apuesta: " + e.getMessage()));
         }
     }
 

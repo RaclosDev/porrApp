@@ -52,6 +52,6 @@ public class Match {
     // El ID que usa la API externa oficial del Mundial (para no confundirnos al sincronizar)
     private String externalId;
 
-    // En qué estadio juegan (nos sirve para saber su zona horaria local en América)
-    private String stadiumId; 
+    // El minuto actual del partido si está en directo (ej. "45'", "HT")
+    private String displayClock;
 }

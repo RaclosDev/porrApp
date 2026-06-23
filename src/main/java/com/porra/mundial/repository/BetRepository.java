@@ -14,14 +14,16 @@ import java.util.Optional;
 public interface BetRepository extends JpaRepository<Bet, Long> {
     
     // "Dame solo las porras de la gente que ya ha pagado"
-    List<Bet> findByPaidTrue();
+    List<Bet> findByPaymentStatus(String paymentStatus);
     
     // "Dame todas las porras ordenadas desde la más reciente a la más antigua"
     List<Bet> findAllByOrderByCreatedAtDesc();
 
-    List<Bet> findByGroupId(Long groupId);
+    List<Bet> findByEditionLeagueId(Long groupId);
 
-    List<Bet> findByParticipantName(String participantName);
+    List<Bet> findByUserGoogleEmail(String email);
 
-    Optional<Bet> findByParticipantNameAndGroupId(String participantName, Long groupId);
+    Optional<Bet> findByUserGoogleEmailAndEditionLeagueId(String email, Long groupId);
+
+    Optional<Bet> findByBetName(String betName);
 }

@@ -34,7 +34,7 @@ public class SecurityConfig {
                 // Rutas públicas (Login y lecturas de la app)
                 .requestMatchers("/api/admin/login").permitAll()
                 .requestMatchers("/api/auth/google/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/bets").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/bets/**").permitAll()
                 .requestMatchers("/api/matches/**").permitAll()
                 .requestMatchers("/api/standings/**").permitAll()
                 .requestMatchers("/api/scorers/**").permitAll()

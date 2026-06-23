@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { decodeHash } from '../utils/hash';
 import { getAdminToken, setAdminToken, fetchClaimedNames } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
 import BetViewer from './BetViewer';
 
 function Layout({ children }) {
-  const { participantsHashes, userName, setUserName, setViewerHash, onlineUsers, isRaclos, setIsAdminAuthenticated, loading } = useAppContext();
+  const { participantsHashes, userName, setUserName, setViewerBetId, onlineUsers, isRaclos, setIsAdminAuthenticated, loading } = useAppContext();
   const navigate = useNavigate();
   const [showMyBetModal, setShowMyBetModal] = useState(false);
   const [showOnline, setShowOnline] = useState(false);
@@ -95,6 +94,10 @@ function Layout({ children }) {
         setIsAdminAuthenticated(true);
         setUserName(data.participantName);
         localStorage.setItem('my_bet_name', data.participantName);
+        if (data.userId) localStorage.setItem('my_user_id', data.userId);
+        if (data.lastSelectedGroupId) {
+            localStorage.setItem('activeGroupId', data.lastSelectedGroupId.toString());
+        }
         setShowMyBetModal(false);
       }
     } catch (e) {
@@ -116,8 +119,15 @@ function Layout({ children }) {
         setIsAdminAuthenticated(true);
         setUserName(data.participantName);
         localStorage.setItem('my_bet_name', data.participantName);
+        if (data.userId) localStorage.setItem('my_user_id', data.userId);
+        if (data.lastSelectedGroupId) {
+            localStorage.setItem('activeGroupId', data.lastSelectedGroupId.toString());
+        }
         setRequiresName(false);
         setShowMyBetModal(false);
+        if (!localStorage.getItem('activeGroupId')) {
+            navigate('/mis-ligas');
+        }
       } else {
         alert(data.error || "Error al vincular cuenta");
       }
@@ -130,7 +140,7 @@ function Layout({ children }) {
 
   const decodedParticipants = participantsHashes.map(h => ({
     hash: h.hash,
-    name: decodeHash(h.hash)?.user || 'Anónimo'
+    name: h.participantName || 'Anónimo'
   })).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
@@ -151,9 +161,9 @@ function Layout({ children }) {
                         </div>
                     )}
                 </div>
-                {loading ? null : userName && participantsHashes.find(h => decodeHash(h.hash)?.user === userName) ? (
-                    <button id="btn-view-my-bet-header" style={{ background: 'linear-gradient(135deg, #f368e0, #ff9ff3)', border: 'none', color: 'black', padding: '5px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setViewerHash(participantsHashes.find(h => decodeHash(h.hash)?.user === userName)?.hash)}>
-                        👀 Ver Mi Porra
+                {loading ? null : userName && participantsHashes.find(h => h.participantName === userName) ? (
+                    <button id="btn-view-my-bet-header" style={{ background: 'linear-gradient(135deg, #f368e0, #ff9ff3)', border: 'none', color: 'black', padding: '5px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setViewerBetId(Number(participantsHashes.find(h => h.participantName === userName)?.key))}>
+                        👁️ Ver Mi Porra
                     </button>
                 ) : (
                     <button id="btn-complete-my-bet-header" style={{ background: 'linear-gradient(135deg, #f368e0, #ff9ff3)', border: 'none', color: 'black', padding: '5px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => navigate('/bracket')}>
@@ -166,6 +176,7 @@ function Layout({ children }) {
             <nav className="nav-links">
                 <NavLink to="/" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Inicio</NavLink>
                 <NavLink to="/clasificacion" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Clasificación</NavLink>
+                <NavLink to="/cuadro" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Cuadro</NavLink>
                 <NavLink to="/radar" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Partidos</NavLink>
                 <NavLink to="/search" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>🔍 Buscador</NavLink>
                 <NavLink to="/stats" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Más Elegidos</NavLink>
@@ -221,7 +232,7 @@ function Layout({ children }) {
                     )}
                     {isAuthenticated && (
                         <button 
-                            onClick={() => { setAdminToken(null); setUserName(''); localStorage.removeItem('my_bet_name'); window.location.reload(); }} 
+                            onClick={() => { setAdminToken(null); setUserName(''); localStorage.removeItem('my_bet_name'); localStorage.removeItem('my_user_id'); window.location.reload(); }} 
                             style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.5)', color: '#ff4757', padding: '8px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', width: '100%', textAlign: 'left', marginTop: '5px' }}
                         >
                             🚪 Salir
@@ -232,13 +243,7 @@ function Layout({ children }) {
         </div>
       </header>
 
-      <div id="news-ticker" style={{ background: 'rgba(20, 20, 30, 0.9)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', width: '100%', padding: '8px 20px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', whiteSpace: 'nowrap', height: '35px', boxSizing: 'border-box' }}>
-          <div id="news-ticker-marquee" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
-              <div id="news-ticker-text" style={{ color: 'var(--accent-color)', fontWeight: 600, letterSpacing: '0.5px', transition: 'opacity 0.5s, transform 0.5s', display: 'inline-block' }}>
-                  🌍 Dato: 9 personas han elegido a Kylian Mbappe como Pichichi.
-              </div>
-          </div>
-      </div>
+
 
       <main className="app-container">
         {children}

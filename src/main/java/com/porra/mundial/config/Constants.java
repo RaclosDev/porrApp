@@ -6,16 +6,6 @@ import java.util.Map;
 
 public class Constants {
 
-    // Stadium timezone offsets to Spain (CEST / UTC+2)
-    public static final Map<String, Integer> STADIUM_OFFSETS = Map.ofEntries(
-            Map.entry("14", 9), Map.entry("8", 6), Map.entry("13", 9),
-            Map.entry("15", 9), Map.entry("3", 8), Map.entry("1", 8),
-            Map.entry("2", 8), Map.entry("5", 7), Map.entry("16", 9),
-            Map.entry("7", 6), Map.entry("9", 6), Map.entry("6", 7),
-            Map.entry("10", 6), Map.entry("4", 7), Map.entry("11", 6),
-            Map.entry("12", 6)
-    );
-
     // API team name -> Local Spanish name mapping
     private static final Map<String, String> API_TO_LOCAL = new LinkedHashMap<>();
     static {

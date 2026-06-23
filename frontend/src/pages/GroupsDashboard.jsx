@@ -1,41 +1,63 @@
 import { useState, useEffect } from 'react';
-import { fetchMyGroups, createGroup, joinGroup, fetchGroup, leaveGroup } from '../services/api';
+import { fetchMyGroups, createGroup, joinGroup, fetchGroup, leaveGroup, fetchCompetitions, updateGroup, deleteGroup } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
+const BET_MODES = [
+  { id: 'FULL_BRACKET', label: 'Completa (Fase de grupos y cruces)' },
+  { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
+  { id: 'MATCH_DAY', label: 'Por Jornadas' }
+];
+
 export default function GroupsDashboard() {
   const [groups, setGroups] = useState([]);
+  const [competitions, setCompetitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newGroupName, setNewGroupName] = useState('');
+  const [selectedCompetition, setSelectedCompetition] = useState('');
+  const [selectedBetMode, setSelectedBetMode] = useState('');
+  const [includePichichi, setIncludePichichi] = useState(true);
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [visibleCodes, setVisibleCodes] = useState(new Set());
-  const { changeGroup, userName, activeGroupId } = useAppContext();
+  const { changeGroup, userName, userId, activeGroupId } = useAppContext();
   const navigate = useNavigate();
 
-  const loadGroups = async () => {
+  const loadGroupsAndCompetitions = async () => {
     setLoading(true);
     try {
-      const myGroups = await fetchMyGroups();
+      const [myGroups, comps] = await Promise.all([
+        fetchMyGroups(),
+        fetchCompetitions().catch(() => [])
+      ]);
       
+      setCompetitions(comps);
+      if (comps.length > 0) setSelectedCompetition(comps[0].id.toString());
+      setSelectedBetMode(BET_MODES[0].id);
+
       // Merge with localStorage known groups that might not have bets yet
       const knownIds = JSON.parse(localStorage.getItem('knownGroups') || '[]');
       const missingIds = knownIds.filter(id => !myGroups.find(g => g.id.toString() === id.toString()));
       
       if (missingIds.length > 0) {
         try {
-            // We would need to fetch them individually, but we can just let them disappear if they are not in backend.
-            // Wait, we don't have a fetchMultipleGroups. Let's just iterate.
             const extraGroups = await Promise.all(missingIds.map(id => fetchGroup(id).catch(() => null)));
             const validExtras = extraGroups.filter(g => g !== null && g !== undefined);
             myGroups.push(...validExtras);
         } catch(err) {}
       }
-      
+      // Auto-seleccionar la única liga disponible
+      if (myGroups.length === 1) {
+        const onlyGroupId = myGroups[0].id.toString();
+
+        if (activeGroupId !== onlyGroupId) {
+          changeGroup(onlyGroupId);
+        }
+      }
       setGroups(myGroups);
     } catch (e) {
       console.error(e);
-      setError('Error al cargar grupos');
+      setError('Error al cargar datos');
     }
     setLoading(false);
   };
@@ -59,7 +81,7 @@ export default function GroupsDashboard() {
           setError(e.message);
         }
       } else {
-        loadGroups();
+        loadGroupsAndCompetitions();
       }
     };
 
@@ -72,13 +94,47 @@ export default function GroupsDashboard() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!newGroupName.trim()) return;
+    if (!newGroupName.trim() || !selectedCompetition || !selectedBetMode) return;
     try {
-      await createGroup(newGroupName);
+      const group = await createGroup(newGroupName, selectedCompetition, selectedBetMode, includePichichi);
       setNewGroupName('');
-      loadGroups();
+      changeGroup(group.id.toString());
+      loadGroupsAndCompetitions();
     } catch (e) {
-      setError('Error al crear el grupo');
+      setError(e.message || 'Error al crear el grupo');
+    }
+  };
+
+  const handleEditGroup = async (groupId, currentName) => {
+    const newName = prompt('Introduce el nuevo nombre para la liga:', currentName);
+    if (!newName || newName.trim() === '' || newName === currentName) return;
+    
+    try {
+      await updateGroup(groupId, newName);
+      loadGroupsAndCompetitions();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId, groupName) => {
+    if (!window.confirm(`⚠️ ADVERTENCIA ⚠️\n¿Estás seguro de que quieres BORRAR POR COMPLETO la liga "${groupName}"?\n\nEsta acción eliminará todas las apuestas de todos los participantes y no se puede deshacer.`)) return;
+    
+    try {
+      await deleteGroup(groupId);
+      // Remove from localStorage if present
+      const knownGroups = JSON.parse(localStorage.getItem('knownGroups') || '[]');
+      const updatedKnownGroups = knownGroups.filter(id => id.toString() !== groupId.toString());
+      localStorage.setItem('knownGroups', JSON.stringify(updatedKnownGroups));
+      
+      if (activeGroupId === groupId.toString()) {
+         changeGroup(null);
+      }
+      
+      loadGroupsAndCompetitions();
+      alert(`La liga "${groupName}" ha sido eliminada permanentemente.`);
+    } catch (e) {
+      setError(e.message);
     }
   };
 
@@ -117,7 +173,7 @@ export default function GroupsDashboard() {
       const updatedKnownGroups = knownGroups.filter(id => id.toString() !== groupId.toString());
       localStorage.setItem('knownGroups', JSON.stringify(updatedKnownGroups));
       
-      loadGroups();
+      loadGroupsAndCompetitions();
       alert(`Has abandonado la liga "${groupName}".`);
     } catch (e) {
       setError(e.message);
@@ -174,17 +230,60 @@ export default function GroupsDashboard() {
           <h3 style={{ margin: 0, color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span>✨</span> Crear Nueva Liga
           </h3>
-          <form onSubmit={handleCreate} style={{ display: 'flex', gap: '10px' }}>
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <input
               type="text"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               placeholder="Ej: Amigos del Barrio"
               className="glass-input"
-              style={{ flex: 1 }}
             />
+            {competitions.length > 0 && (
+              <select 
+                value={selectedCompetition} 
+                onChange={e => setSelectedCompetition(e.target.value)}
+                className="glass-input"
+              >
+                {competitions.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
+            <select 
+              value={selectedBetMode} 
+              onChange={e => setSelectedBetMode(e.target.value)}
+              className="glass-input"
+            >
+              {BET_MODES.map(m => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer', padding: '8px 12px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid var(--border-color)', borderRadius: '8px', transition: 'all 0.3s' }}>
+              <span style={{ fontSize: includePichichi ? '1rem' : '0.9rem', opacity: includePichichi ? 1 : 0.5 }}>{includePichichi ? '🗒️' : '📝'}</span>
+              <span>Pichichi</span>
+              <span style={{ marginLeft: 'auto', fontWeight: 'bold', color: includePichichi ? 'var(--accent-color)' : 'var(--text-muted)' }}>{includePichichi ? 'SÍ' : 'NO'}</span>
+            </label>
+            <input type="hidden" name="pichichi" value={includePichichi} />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button 
+                type="button" 
+                onClick={() => setIncludePichichi(true)} 
+                className="glass-btn" 
+                style={{ flex: 1, padding: '6px 12px', fontSize: '0.85rem', background: includePichichi ? 'rgba(0, 210, 211, 0.2)' : 'transparent', border: includePichichi ? '1px solid #00d2d3' : '1px solid var(--border-color)', color: includePichichi ? '#00d2d3' : 'var(--text-muted)' }}
+              >
+                Con Pichichi
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setIncludePichichi(false)} 
+                className="glass-btn" 
+                style={{ flex: 1, padding: '6px 12px', fontSize: '0.85rem', background: !includePichichi ? 'rgba(255, 71, 87, 0.2)' : 'transparent', border: !includePichichi ? '1px solid #ff4757' : '1px solid var(--border-color)', color: !includePichichi ? '#ff4757' : 'var(--text-muted)' }}
+              >
+                Sin Pichichi
+              </button>
+            </div>
             <button type="submit" className="glass-btn primary-btn">
-              Crear
+              Crear Liga
             </button>
           </form>
         </div>
@@ -250,6 +349,12 @@ export default function GroupsDashboard() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
                   Admin: <strong>{group.adminParticipantName}</strong>
                 </p>
+                {group.competitionName && (
+                  <p style={{ color: '#a29bfe', fontSize: '0.85rem', margin: '2px 0' }}>
+                    {group.competitionName} · {group.betMode === 'FULL_BRACKET' ? 'Completa' : group.betMode === 'KNOCKOUTS_ONLY' ? 'Bracket' : 'Por Jornadas'}
+                    <span style={{ color: group.pichichi !== false ? '#00b894' : 'var(--text-muted)' }}> · {group.pichichi !== false ? '🗒️ Pichichi' : 'Sin Pichichi'}</span>
+                  </p>
+                )}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
                   <button 
                     onClick={() => handleEnterGroup(group.id)}
@@ -259,7 +364,27 @@ export default function GroupsDashboard() {
                   >
                     {isSelected ? 'Liga Actual' : 'Acceder'}
                   </button>
-                  {group.id !== 1 && group.adminParticipantName.toLowerCase() !== userName.toLowerCase() && (
+                  {group.adminUserId?.toString() === userId?.toString() && (
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button 
+                        onClick={() => handleEditGroup(group.id, group.name)}
+                        className="glass-btn"
+                        style={{ padding: '8px', fontSize: '0.9rem' }}
+                        title="Editar Nombre"
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteGroup(group.id, group.name)}
+                        className="glass-btn"
+                        style={{ padding: '8px', fontSize: '0.9rem', background: 'rgba(231, 76, 60, 0.2)', border: '1px solid #e74c3c' }}
+                        title="Borrar Liga"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
+                  {group.adminUserId?.toString() !== userId?.toString() && (
                     <button 
                       onClick={() => handleLeaveGroup(group.id, group.name)}
                       className="glass-btn"

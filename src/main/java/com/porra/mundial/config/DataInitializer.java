@@ -2,24 +2,36 @@ package com.porra.mundial.config;
 
 import com.porra.mundial.model.Bet;
 import com.porra.mundial.model.Team;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.porra.mundial.dto.BetDataDTO;
 import com.porra.mundial.repository.BetRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.service.HashTransitionService;
+import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.model.Edition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Seeds the database with all 48 World Cup teams and their odds on first startup.
  * Also imports existing bets from the old participants.js hashes.
  */
 @Component
+@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
 
     private final TeamRepository teamRepository;
     private final BetRepository betRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final EditionRepository editionRepository;
+    private final HashTransitionService hashTransitionService;
 
     @Override
     public void run(String... args) {
@@ -135,14 +147,33 @@ public class DataInitializer implements CommandLineRunner {
             {"dfsdf", "fdsfsdfs"}
         };
 
+        Edition globalEdition = editionRepository.findByLeagueIdAndStatus(1L, "ACTIVE").orElse(null);
+
         for (int i = 0; i < hashes.length; i++) {
+            final String pName = betInfo[i][0];
+            UserAccount user = userAccountRepository.findByParticipantName(pName)
+                .orElseGet(() -> userAccountRepository.save(UserAccount.builder()
+                        .googleEmail(pName + "@local")
+                        .googleName(pName)
+                        .participantName(pName)
+                        .build()));
+
             Bet bet = Bet.builder()
-                    .participantName(betInfo[i][0])
+                    .user(user)
+                    .edition(globalEdition)
                     .betName(betInfo[i][1])
-                    .hash(hashes[i])
-                    .paid(true)
+                    .paymentStatus("PAID")
                     .build();
-            betRepository.save(bet);
+            bet = betRepository.save(bet);
+            
+            try {
+                String decoded = new String(java.util.Base64.getDecoder().decode(hashes[i]), java.nio.charset.StandardCharsets.UTF_8);
+                ObjectMapper mapper = new ObjectMapper();
+                BetDataDTO dto = mapper.readValue(decoded, BetDataDTO.class);
+                hashTransitionService.saveRelationalPredictions(bet, dto);
+            } catch (Exception e) {
+                log.error("Failed to parse initial bet data", e);
+            }
         }
 
         log.info("Seeded {} existing bets.", hashes.length);

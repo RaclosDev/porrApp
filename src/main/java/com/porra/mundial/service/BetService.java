@@ -4,8 +4,14 @@ import com.porra.mundial.model.Bet;
 import com.porra.mundial.model.BetBackup;
 import com.porra.mundial.repository.BetBackupRepository;
 import com.porra.mundial.repository.BetRepository;
+import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.model.Edition;
+import com.porra.mundial.dto.BetDataDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -16,11 +22,15 @@ import java.util.*;
  * Aquí validamos cosas antes de guardarlas en la base de datos o prepararlas para la web.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class BetService {
 
     private final BetRepository betRepository;
     private final BetBackupRepository betBackupRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final EditionRepository editionRepository;
+    private final HashTransitionService hashTransitionService;
 
     private void saveBackup(Bet bet, String action) {
         if (bet == null) return;
@@ -28,7 +38,6 @@ public class BetService {
                 .originalBetId(bet.getId())
                 .participantName(bet.getParticipantName())
                 .betName(bet.getBetName())
-                .hash(bet.getHash())
                 .paid(bet.getPaid())
                 .action(action)
                 .backupTimestamp(LocalDateTime.now())
@@ -53,16 +62,16 @@ public class BetService {
     }
 
     public List<Bet> getBetsByGroupId(Long groupId) {
-        return betRepository.findByGroupId(groupId);
+        return betRepository.findByEditionLeagueId(groupId);
     }
 
-    public List<Bet> getBetsByParticipantName(String participantName) {
-        return betRepository.findByParticipantName(participantName);
+    public List<Bet> getBetsByGoogleEmail(String email) {
+        return betRepository.findByUserGoogleEmail(email);
     }
 
     // Recupera solo las porras que ya han pagado
     public List<Bet> getPaidBets() {
-        return betRepository.findByPaidTrue();
+        return betRepository.findByPaymentStatus("PAID");
     }
 
     // Busca una porra concreta por su ID
@@ -71,32 +80,45 @@ public class BetService {
     }
 
     // Crea una porra nueva desde cero cuando alguien le da a "Enviar" en la web
-    public Bet createBet(String participantName, String betName, String hash, Long groupId) {
+    public Bet createBet(String email, String betName, BetDataDTO betData, Long groupId) {
         // Remove existing bet for this user in this group if it exists
         if (groupId != null) {
-            betRepository.findByParticipantNameAndGroupId(participantName, groupId).ifPresent(existingBet -> {
+            betRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId).ifPresent(existingBet -> {
                 betRepository.delete(existingBet);
             });
         }
+        
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        Edition edition = null;
+        if (groupId != null) {
+            edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
+        }
+
         Bet bet = Bet.builder()
-                .participantName(participantName)
+                .user(user)
+                .edition(edition)
                 .betName(betName)
-                .hash(hash)
-                .groupId(groupId)
-                .paid(false) // Por defecto, nadie paga hasta que el admin lo diga
+                .paymentStatus("PENDING") // Por defecto, nadie paga hasta que el admin lo diga
                 .createdAt(LocalDateTime.now())
                 .build();
-        return betRepository.save(bet);
+        bet = betRepository.save(bet);
+        
+        // Populate the relational tables
+        hashTransitionService.saveRelationalPredictions(bet, betData);
+        return bet;
     }
 
-    // Permite al admin corregir un nombre o actualizar el hash de una porra si hubo un error
-    public Bet updateBet(Long id, String participantName, String betName, String hash) {
+    // Permite al admin corregir un nombre o actualizar la porra si hubo un error
+    public Bet updateBet(Long id, String participantName, String betName, BetDataDTO betData) {
         Bet bet = betRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Porra no encontrada: " + id));
         if (participantName != null) bet.setParticipantName(participantName);
         if (betName != null) bet.setBetName(betName);
-        if (hash != null) bet.setHash(hash);
-        return betRepository.save(bet);
+        bet = betRepository.save(bet);
+        if (betData != null) {
+            hashTransitionService.saveRelationalPredictions(bet, betData);
+        }
+        return bet;
     }
 
     // ¡Bling! Marca que un usuario ya ha hecho su bizum de 10 euritos
@@ -121,11 +143,11 @@ public class BetService {
         bet.setId(backup.getOriginalBetId()); // Mantener el mismo ID
         bet.setParticipantName(backup.getParticipantName());
         bet.setBetName(backup.getBetName());
-        bet.setHash(backup.getHash());
         bet.setPaid(backup.getPaid());
         
         bet = betRepository.save(bet);
         saveBackup(bet, "RESTORED_FROM_" + backupId);
+        // Note: Restoring from backup no longer restores predictions automatically unless we keep predictions in BetBackup
         return bet;
     }
 
@@ -139,13 +161,28 @@ public class BetService {
         for (Bet bet : bets) {
             Map<String, Object> dto = new LinkedHashMap<>();
             dto.put("key", bet.getId().toString());
-            dto.put("hash", bet.getHash());
+            // Add legacy hash field but put the ID inside so old frontend logic that passes 'hash' around still works
+            dto.put("hash", bet.getId().toString());
             dto.put("paid", bet.getPaid());
             dto.put("participantName", bet.getParticipantName());
+            dto.put("userId", bet.getUser() != null ? bet.getUser().getId() : null);
             dto.put("betName", bet.getBetName());
             dto.put("groupId", bet.getGroupId());
+            try {
+                dto.put("data", getBetData(bet.getId()));
+            } catch (Exception e) {
+                // If it fails to build, just don't include it rather than crashing
+            }
             result.add(dto);
         }
         return result;
+    }
+
+    public BetDataDTO getBetData(Long id) {
+        Bet bet = betRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Bet not found"));
+        BetDataDTO dto = hashTransitionService.rebuildBetDataDtoFromTables(id);
+        dto.setUser(bet.getParticipantName());
+        dto.setBet(bet.getBetName());
+        return dto;
     }
 }

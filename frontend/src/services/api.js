@@ -43,6 +43,10 @@ export async function fetchMatchRadar() {
   return fetchJson(`${API_BASE}/matches/radar`);
 }
 
+export async function fetchOfficialBracket() {
+  return fetchJson(`${API_BASE}/standings/official-bracket`);
+}
+
 export async function fetchBets(groupId = null) {
   const url = groupId ? `${API_BASE}/bets?groupId=${groupId}` : `${API_BASE}/bets`;
   return fetchJson(url);
@@ -52,14 +56,15 @@ export async function fetchMyBets() {
   return fetchJson(`${API_BASE}/bets/mine`);
 }
 
-export async function createBet(participantName, hash, groupId = null) {
-  const res = await fetch(`${API_BASE}/bets`, {
+export async function createBet(betData, groupId = null) {
+  const url = groupId ? `${API_BASE}/bets?groupId=${groupId}` : `${API_BASE}/bets`;
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${getAdminToken() || ''}`
     },
-    body: JSON.stringify({ participantName, hash, groupId: groupId ? groupId.toString() : null }),
+    body: JSON.stringify(betData),
   });
   return res.json();
 }
@@ -71,7 +76,10 @@ export async function deleteBet(key) {
 export async function updateBet(key, data) {
   return fetch(`${API_BASE}/bets/${key}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAdminToken() || ''}`
+    },
     body: JSON.stringify(data),
   });
 }
@@ -167,15 +175,49 @@ export async function deleteGroupBet(groupId, betId) {
   return res.json();
 }
 
-export async function createGroup(name) {
+export async function fetchCompetitions() {
+  return fetchJson(`${API_BASE}/competitions`);
+}
+
+export async function createGroup(name, competitionId, betMode, pichichi = true) {
   const res = await fetch(`${API_BASE}/groups`, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${getAdminToken() || ''}`
     },
+    body: JSON.stringify({ name, competitionId, betMode, pichichi }),
+  });
+  return res.json();
+}
+
+export async function updateGroup(id, name) {
+  const res = await fetch(`${API_BASE}/groups/${id}`, {
+    method: 'PUT',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAdminToken() || ''}`
+    },
     body: JSON.stringify({ name }),
   });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al actualizar la liga');
+  }
+  return res.json();
+}
+
+export async function deleteGroup(id) {
+  const res = await fetch(`${API_BASE}/groups/${id}`, {
+    method: 'DELETE',
+    headers: { 
+      'Authorization': `Bearer ${getAdminToken() || ''}`
+    }
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al borrar la liga');
+  }
   return res.json();
 }
 
@@ -200,4 +242,25 @@ export async function fetchClaimedNames() {
 
 export async function fetchRegisteredUsers() {
   return fetchJson(`${API_BASE}/admin/users`);
+}
+
+export async function fetchMe() {
+  return fetchJson(`${API_BASE}/users/me`);
+}
+
+export async function updateUserPreferences(preferences) {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/users/me/preferences`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    },
+    body: JSON.stringify(preferences)
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al actualizar preferencias');
+  }
+  return res.json();
 }
