@@ -44,11 +44,13 @@ public class TopScorerService {
     private final Map<String, String> imageCache = new HashMap<>();
 
     // Hardcoded cartoon URLs for known pichichi contenders (from thesportsdb)
-    private static final Map<String, String> CARTOON_MAP = Map.of(
+    private static final Map<String, String> CARTOON_MAP = new HashMap<>(Map.of(
         "Kylian Mbappé", "https://r2.thesportsdb.com/images/media/player/cartoon/mya0j81771265711.png",
         "Lionel Messi", "https://r2.thesportsdb.com/images/media/player/cartoon/kzz67d1768229024.png",
-        "Erling Haaland", "https://r2.thesportsdb.com/images/media/player/cartoon/z3i9s51769182480.png"
-    );
+        "Erling Haaland", "https://r2.thesportsdb.com/images/media/player/cartoon/z3i9s51769182480.png",
+        "Vinícius Júnior", "https://r2.thesportsdb.com/images/media/player/cartoon/vq5z4u1771264896.png",
+        "Vinicius Junior", "https://r2.thesportsdb.com/images/media/player/cartoon/vq5z4u1771264896.png"
+    ));
 
     /** Called every 30 minutes */
     @Scheduled(fixedDelay = 1_800_000)
@@ -123,13 +125,24 @@ public class TopScorerService {
                     JsonNode scorer = athletes.get(0);
                     String fullName = scorer.path("displayName").asText("").trim();
                     String shortName = scorer.path("shortName").asText(fullName).trim();
+                    if (shortName.equals(fullName) || (!shortName.contains(".") && shortName.split(" ").length > 1)) {
+                        String[] parts = fullName.split(" ");
+                        if (parts.length > 1) {
+                            shortName = parts[0].substring(0, 1).toUpperCase() + ". " + parts[parts.length - 1];
+                        }
+                    }
                     String position = scorer.path("position").asText("");
                     String playerId = scorer.path("id").asText("");
                     // Extract team name from athlete's team field, fallback to competition context
                     String teamName = scorer.path("team").path("displayName").asText("");
                     if (teamName.isEmpty()) {
                         String teamId = scorer.path("teamId").asText("");
-                        if (!teamId.isEmpty()) teamName = teamNames.getOrDefault(teamId, "");
+                        if (teamId.isEmpty()) {
+                            teamId = detail.path("team").path("id").asText("");
+                        }
+                        if (!teamId.isEmpty()) {
+                            teamName = teamNames.getOrDefault(teamId, "");
+                        }
                     }
                     // Extract player image URL — hardcoded cartoon map first, then Wikipedia
                     String imageUrl = CARTOON_MAP.get(fullName);
@@ -138,18 +151,41 @@ public class TopScorerService {
                         imageUrl = "";
                         try {
                             String encodedName = java.net.URLEncoder.encode(fullName, "UTF-8").replace("+", "%20");
-                            // Wikipedia REST API for player photo
-                            String wikiUrl = "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodedName;
-                            HttpRequest wikiReq = HttpRequest.newBuilder()
-                                    .uri(URI.create(wikiUrl))
+                            
+                            // First try TheSportsDB
+                            String sportsDbUrl = "https://www.thesportsdb.com/api/v1/json/3/searchplayers.php?p=" + encodedName;
+                            HttpRequest sportsReq = HttpRequest.newBuilder()
+                                    .uri(URI.create(sportsDbUrl))
                                     .timeout(Duration.ofSeconds(5))
                                     .header("User-Agent", "PorraMundial/1.0")
                                     .GET()
                                     .build();
-                            HttpResponse<String> wikiRes = httpClient.send(wikiReq, HttpResponse.BodyHandlers.ofString());
-                            if (wikiRes.statusCode() == 200) {
-                                JsonNode wikiRoot = objectMapper.readTree(wikiRes.body());
-                                imageUrl = wikiRoot.path("thumbnail").path("source").asText("");
+                            HttpResponse<String> sportsRes = httpClient.send(sportsReq, HttpResponse.BodyHandlers.ofString());
+                            if (sportsRes.statusCode() == 200) {
+                                JsonNode sportsRoot = objectMapper.readTree(sportsRes.body());
+                                JsonNode players = sportsRoot.path("player");
+                                if (players.isArray() && !players.isEmpty()) {
+                                    JsonNode p = players.get(0);
+                                    imageUrl = p.path("strRender").asText("");
+                                    if (imageUrl.isEmpty()) imageUrl = p.path("strCutout").asText("");
+                                    if (imageUrl.isEmpty()) imageUrl = p.path("strThumb").asText("");
+                                }
+                            }
+
+                            // Fallback to Wikipedia if TheSportsDB had no image
+                            if (imageUrl == null || imageUrl.isEmpty()) {
+                                String wikiUrl = "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodedName;
+                                HttpRequest wikiReq = HttpRequest.newBuilder()
+                                        .uri(URI.create(wikiUrl))
+                                        .timeout(Duration.ofSeconds(5))
+                                        .header("User-Agent", "PorraMundial/1.0")
+                                        .GET()
+                                        .build();
+                                HttpResponse<String> wikiRes = httpClient.send(wikiReq, HttpResponse.BodyHandlers.ofString());
+                                if (wikiRes.statusCode() == 200) {
+                                    JsonNode wikiRoot = objectMapper.readTree(wikiRes.body());
+                                    imageUrl = wikiRoot.path("thumbnail").path("source").asText("");
+                                }
                             }
                         } catch (Exception e) {
                             log.warn("TopScorerService: image lookup failed for {}: {}", fullName, e.getMessage());

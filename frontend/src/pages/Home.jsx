@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { getCountryCode } from '../utils/constants';
 import { compareTeams } from '../utils/points';
 import { openStats } from '../utils/navigation';
 import { fetchTopScorers } from '../services/api';
@@ -9,7 +8,7 @@ import GroupMatchesModal from '../components/GroupMatchesModal';
 import OfficialBracket from './OfficialBracket';
 
 function Home() {
-  const { groupOdds, officialPoints, allGames, nameToIdMap, loading, isRaclos, matchRadar } = useAppContext();
+  const { groupOdds, officialPoints, allGames, nameToIdMap, loading, matchRadar } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [topScorers, setTopScorers] = useState([]);
   const [viewMode, setViewMode] = useState('groups');
@@ -27,7 +26,6 @@ function Home() {
     const d = new Date(m.date);
     const dateFormatted = `${d.getDate()}/${d.getMonth()+1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
     const hasStarted = new Date() >= d;
-    const hasFinished = m.finished === true;
 
     return (
       <div key={m.id} className="last-match-card">
@@ -66,7 +64,7 @@ function Home() {
   const renderGroup = (groupName, teams) => {
     // Map with stats
     const teamsWithStats = teams.map(t => {
-      const safeKey = t.name.replace(/[.#$\[\]]/g, "");
+      const safeKey = t.name.replace(/[.#$[\]]/g, "");
       const stats = (officialPoints?.[groupName]?.[safeKey]) || { pts: 0, diff: 0, gls: 0, mp: 0 };
       return { ...t, stats };
     });
@@ -101,15 +99,19 @@ function Home() {
           </div>
           {teamsWithStats.map((team, idx) => {
             let statusDot = null;
+            let blueDot = null;
             if (team.stats.status >= 1 && team.stats.status <= 4) {
               statusDot = <span title="Posición Matemática Fija" style={{marginLeft: '5px', fontSize: '0.85em', flexShrink: 0}}>📌</span>;
+            }
+            if (team.stats.status === 5) {
+              blueDot = <div title="Clasificado Matemáticamente" style={{ width: '6px', height: '6px', background: '#3498db', borderRadius: '50%', marginLeft: '6px', flexShrink: 0, boxShadow: '0 0 5px rgba(52,152,219,0.8)', display: 'inline-block' }}></div>;
             }
 
             return (
             <div key={team.name} className="group-slot">
               <span style={{ fontWeight: 'bold', width: '20px', flexShrink: 0 }}>{idx + 1}.</span>
             <Flag team={team.name} size="16x12" style={{ marginRight: '8px' }} />
-              <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{team.name}{statusDot}</span>
+              <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{team.name}{blueDot}{statusDot}</span>
               <div style={{ display: 'flex', gap: '8px', fontSize: '0.85em', alignItems: 'center' }}>
                 <span style={{ width: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>{team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}</span>
                 <span style={{ width: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>{team.stats.gls}</span>
@@ -167,7 +169,7 @@ function Home() {
         )}
         {viewMode === 'groups' && (
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', marginBottom: '20px', width: '100%', gap: '20px' }}>
-            <div style={{ flex: 1, minWidth: 'min(100%, 320px)' }} className="hide-on-mobile">
+            <div style={{ flex: 1, minWidth: 'min(100%, 380px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }} className="hide-on-mobile">
                 {(() => {
                     if (!officialPoints || Object.keys(officialPoints).length === 0) return null;
                     
@@ -198,7 +200,7 @@ function Home() {
                     });
 
                     return (
-                        <div style={{ width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: '8px', margin: '0 auto' }}>
+                        <div style={{ width: '100%', maxWidth: '580px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <div style={{ textAlign: 'center', color: '#00cec9', fontSize: '1rem', fontWeight: 'bold', padding: '6px', background: 'rgba(0, 206, 201, 0.1)', border: '1px solid rgba(0, 206, 201, 0.3)', borderRadius: '12px' }}>
                                 🥉 MEJORES TERCEROS
                             </div>
@@ -347,8 +349,8 @@ function Home() {
                 })()}
             </div>
 
-            <div style={{ flex: 1, minWidth: 'min(100%, 320px)', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginBottom: '20px' }} className="pichichi-mobile-center">
-                <div style={{ width: '100%', maxWidth: '320px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ flex: 1, minWidth: 'min(100%, 380px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', marginBottom: '20px' }} className="pichichi-mobile-center">
+                <div style={{ width: '100%', maxWidth: '580px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ textAlign: 'center', color: '#ffd32a', fontSize: '1rem', fontWeight: 'bold', padding: '6px', background: 'rgba(255, 211, 42, 0.1)', border: '1px solid rgba(255, 211, 42, 0.3)', borderRadius: '12px' }}>
                         🏆 PICHICHI
                     </div>
@@ -358,37 +360,56 @@ function Home() {
                         }
 
                         const maxGoals = topScorers[0].goals;
-                        const pichichisCount = Math.min(topScorers.filter(s => s.goals === maxGoals).length + 2, 8);
+
+                        const left = topScorers.slice(0, 3);
+                        const right = topScorers.slice(3, 6);
+
+                        const uniqueGoals = [...new Set(topScorers.slice(0, 6).map(s => s.goals))];
+                        const getMedal = (goals, idx) => {
+                            const rank = uniqueGoals.indexOf(goals);
+                            if (rank === 0) return '👑';
+                            if (rank === 1) return '🥈';
+                            if (rank === 2) return '🥉';
+                            return idx + 1;
+                        };
+
+                        const renderScorer = (s, idx) => {
+                            const isLeader = s.goals === maxGoals;
+                            const isVinicius = (s.name || s.shortName || '').toLowerCase().includes('vinicius') || (s.shortName || s.name || '').toLowerCase().includes('viní') || (s.shortName || s.name || '').includes('V. Júnior') || (s.shortName || s.name || '').includes('V. Junior');
+                            const imageUrl = isVinicius ? 'https://r2.thesportsdb.com/images/media/player/cartoon/vq5z4u1771264896.png' : s.imageUrl;
+                            const medal = getMedal(s.goals, idx);
+                            
+                            return (
+                                <div key={s.playerId || idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderBottom: 'none' }}>
+                                    <span style={{ width: '22px', textAlign: 'center', fontWeight: 'bold', color: isLeader ? '#ffd32a' : 'var(--text-muted)', fontSize: '1rem', flexShrink: 0 }}>{medal}</span>
+                                    <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {imageUrl && !imgErrors[s.playerId] ? (
+                                            <div style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+                                                <img src={imageUrl} alt="" style={{ width: 'auto', height: '200%', maxWidth: 'none' }} onError={() => setImgErrors(prev => ({...prev, [s.playerId]: true}))} />
+                                            </div>
+                                        ) : (
+                                            <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#ffd32a' }}>{(s.shortName || s.name || '?')[0].toUpperCase()}</span>
+                                        )}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Flag team={s.team} style={{ borderRadius: '2px', flexShrink: 0, width: '18px' }} />
+                                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.shortName || s.name}</div>
+                                    </div>
+                                    <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: isLeader ? '#ffd32a' : 'var(--text-main)', minWidth: '24px', textAlign: 'right' }}>{s.goals}</div>
+                                </div>
+                            );
+                        };
 
                         return (
-                            <div className="glass-panel" style={{ padding: '12px', borderRadius: '16px' }}>
-                                {topScorers.slice(0, pichichisCount).map((s, idx) => {
-                                    const isLeader = s.goals === maxGoals;
-                                    return (
-                                        <div key={s.playerId || idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 6px', borderBottom: idx < pichichisCount - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-                                            <span style={{ width: '20px', textAlign: 'center', fontWeight: 'bold', color: isLeader ? '#ffd32a' : 'var(--text-muted)', fontSize: '0.85rem' }}>{idx + 1}</span>
-                                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {s.imageUrl && !imgErrors[s.playerId] ? (
-                                                    <div style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-                                                        <img 
-                                                          src={s.imageUrl} 
-                                                          alt="" 
-                                                          style={{ width: 'auto', height: '200%', maxWidth: 'none' }}
-                                                          onError={() => setImgErrors(prev => ({...prev, [s.playerId]: true}))}
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#ffd32a' }}>{(s.shortName || s.name || '?')[0].toUpperCase()}</span>
-                                                )}
-                                            </div>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.shortName || s.name}</div>
-                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.team || '—'}</div>
-                                            </div>
-                                            <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: isLeader ? '#ffd32a' : 'var(--text-main)', minWidth: '30px', textAlign: 'right' }}>{s.goals}</div>
-                                        </div>
-                                    );
-                                })}
+                            <div className="glass-panel" style={{ padding: '10px', borderRadius: '16px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        {left.map((s, idx) => renderScorer(s, idx))}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        {right.map((s, idx) => renderScorer(s, idx + 3))}
+                                    </div>
+                                </div>
                             </div>
                         );
                     })()}

@@ -44,7 +44,9 @@ export default function GroupsDashboard() {
             const extraGroups = await Promise.all(missingIds.map(id => fetchGroup(id).catch(() => null)));
             const validExtras = extraGroups.filter(g => g !== null && g !== undefined);
             myGroups.push(...validExtras);
-        } catch(err) {}
+        } catch(err) {
+            console.warn("No se pudieron cargar grupos extra", err);
+        }
       }
       // Auto-seleccionar la única liga disponible
       if (myGroups.length === 1) {
@@ -88,13 +90,18 @@ export default function GroupsDashboard() {
     if (userName) {
       checkPendingJoin();
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userName]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!newGroupName.trim() || !selectedCompetition || !selectedBetMode) return;
+    if (!newGroupName.trim() || !selectedCompetition || !selectedBetMode) {
+      setError('El nombre del grupo y la competición son obligatorios');
+      return;
+    }
     try {
       const group = await createGroup(newGroupName, selectedCompetition, selectedBetMode, includePichichi);
       setNewGroupName('');

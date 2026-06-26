@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { getCountryCode } from '../utils/constants';
 
 const Flag = ({ team, size = '20x15', style = {}, className = '' }) => {

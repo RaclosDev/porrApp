@@ -49,7 +49,7 @@ function Bracket() {
       }
     });
     if (changed) setBracketState(ns);
-  }, [officialPoints, groupOdds]);
+  }, [officialPoints, groupOdds, bracketState, setBracketState]);
 
   // ── Redirect if no group ─────────────────────────────────────────────────
   useEffect(() => {
@@ -80,7 +80,7 @@ function Bracket() {
       await createBet(betData, activeGroupId);
       alert('¡Porra copiada con éxito a esta liga!');
       fetchData();
-    } catch { alert('Error copiando porra'); }
+    } catch (e) { alert(e.message || 'Error copiando porra'); }
   };
 
   const setR32Team = (teamName, side, matchIndex, isHome) => {
@@ -178,7 +178,7 @@ function Bracket() {
         alert('¡Apuesta enviada correctamente al servidor!');
         fetchData();
       }
-    } catch { alert('Hubo un error al enviar la apuesta.'); }
+    } catch (e) { alert(e.message || 'Hubo un error al enviar la apuesta.'); }
   };
 
   // ── Render helpers ───────────────────────────────────────────────────────
@@ -186,6 +186,22 @@ function Bracket() {
   const isAuthenticated = !!getAdminToken();
   const hasPlaceholders = bracketState.r32.left[0]?.home?.name?.includes('º');
   const isInitialState  = !isKnockoutsOnly && hasPlaceholders && groupOdds && Object.keys(groupOdds).length > 0;
+
+  /** Returns the status (1-4: pin, 5: blue dot) of a team across all groups */
+  const getTeamStatus = (teamName) => {
+    if (!teamName || !officialPoints || !groupOdds) return 0;
+    for (const groupName of Object.keys(officialPoints)) {
+      if (!groupOdds[groupName]) continue;
+      const isInGroup = groupOdds[groupName].some(t => t.name === teamName);
+      if (!isInGroup) continue;
+      const safeKey = teamName.replace(/[.#$[\]]/g, '');
+      const officialData = officialPoints[groupName][safeKey];
+      if (typeof officialData === 'object' && officialData !== null) {
+        return officialData.status || 0;
+      }
+    }
+    return 0;
+  };
 
   /** Slot renderer for BracketCanvas */
   const renderSlot = (team, { side, roundIndex, matchIndex, isHome }) => {
@@ -203,8 +219,24 @@ function Bracket() {
         </select>
       );
     }
-    // R32: read-only display (no advance click)
-    if (roundIndex === 0) return <TeamSlot name={team?.name} />;
+    // R32: read-only display with status indicator
+    if (roundIndex === 0) {
+      let statusIndicator = null;
+      const name = team?.name;
+      if (name && !name.includes('º')) {
+        const teamStatus = getTeamStatus(name);
+        if (teamStatus >= 1 && teamStatus <= 4) {
+          statusIndicator = (
+            <span title="Posición Matemática Fija" style={{ marginLeft: '3px', fontSize: '0.75em', flexShrink: 0, lineHeight: 1 }}>📌</span>
+          );
+        } else if (teamStatus === 5) {
+          statusIndicator = (
+            <div title="Clasificado Matemáticamente" style={{ width: '6px', height: '6px', background: '#3498db', borderRadius: '50%', marginLeft: '4px', flexShrink: 0, boxShadow: '0 0 5px rgba(52,152,219,0.8)', display: 'inline-block' }} />
+          );
+        }
+      }
+      return <TeamSlot name={name} rightContent={statusIndicator} />;
+    }
     // Other rounds: click to advance
     return <TeamSlot name={team?.name} onClick={() => advanceTeam(team, side, roundIndex, matchIndex)} />;
   };

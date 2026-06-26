@@ -13,6 +13,23 @@ async function callRefresh(endpoint) {
   return res.ok ? res.json() : null;
 }
 
+const RefreshBtn = ({ id, endpoint, label, status, onRefresh }) => {
+  return (
+    <button
+      onClick={() => onRefresh(id, endpoint)}
+      disabled={status === 'loading'}
+      style={{
+        padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: status === 'loading' ? 'wait' : 'pointer', fontWeight: 'bold', fontSize: '0.9rem',
+        background: status === 'ok' ? '#00b894' : status === 'error' ? '#ff4757' : 'rgba(255,255,255,0.1)',
+        color: 'white', transition: 'background 0.3s', display: 'flex', alignItems: 'center', gap: '6px'
+      }}
+    >
+      <span style={{ display: 'inline-block', animation: status === 'loading' ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+      {status === 'loading' ? 'Actualizando...' : status === 'ok' ? '✅ Actualizado' : status === 'error' ? '❌ Error' : label}
+    </button>
+  );
+};
+
 function Admin() {
   const { isRaclos, isAdminAuthenticated, setIsAdminAuthenticated } = useAppContext();
   const [history, setHistory] = useState([]);
@@ -25,6 +42,7 @@ function Admin() {
 
   useEffect(() => {
     if (!isAdminAuthenticated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetchConnectionHistory().then(data => {
       if (data) setHistory(data);
@@ -51,7 +69,7 @@ function Admin() {
         } else {
             setLoginError('Contraseña incorrecta');
         }
-    } catch (err) {
+    } catch {
         setLoginError('Error de red');
     }
   };
@@ -142,23 +160,6 @@ function Admin() {
     return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth()+1).toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  const RefreshBtn = ({ id, endpoint, label }) => {
-    const status = refreshStatus[id];
-    return (
-      <button
-        onClick={() => handleRefresh(id, endpoint)}
-        disabled={status === 'loading'}
-        style={{
-          padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: status === 'loading' ? 'wait' : 'pointer', fontWeight: 'bold', fontSize: '0.9rem',
-          background: status === 'ok' ? '#00b894' : status === 'error' ? '#ff4757' : 'rgba(255,255,255,0.1)',
-          color: 'white', transition: 'background 0.3s', display: 'flex', alignItems: 'center', gap: '6px'
-        }}
-      >
-        <span style={{ display: 'inline-block', animation: status === 'loading' ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
-        {status === 'loading' ? 'Actualizando...' : status === 'ok' ? '✅ Actualizado' : status === 'error' ? '❌ Error' : label}
-      </button>
-    );
-  };
 
   if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando panel de administración...</div>;
 
@@ -212,8 +213,8 @@ function Admin() {
       {/* Botones de Refresco y Backups */}
       <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', padding: '18px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ width: '100%', fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '4px' }}>🛠️ Herramientas de Administrador</div>
-        <RefreshBtn id="scorers" endpoint="scorers" label="⚽ Refrescar Pichichi" />
-        <RefreshBtn id="sync" endpoint="admin/sync" label="🔄 Sincronizar Resultados" />
+        <RefreshBtn id="scorers" endpoint="scorers" label="⚽ Refrescar Pichichi" status={refreshStatus['scorers']} onRefresh={handleRefresh} />
+        <RefreshBtn id="sync" endpoint="admin/sync" label="🔄 Sincronizar Resultados" status={refreshStatus['sync']} onRefresh={handleRefresh} />
         
         {/* Botón de Snapshot */}
         <button

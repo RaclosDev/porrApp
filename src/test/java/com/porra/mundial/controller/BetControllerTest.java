@@ -15,7 +15,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -49,9 +48,10 @@ class BetControllerTest {
 
     @Test
     void getAllBets_ReturnsList() throws Exception {
-        Map<String, Object> betDto = new HashMap<>();
-        betDto.put("id", 1);
-        betDto.put("participantName", "Juan");
+        com.porra.mundial.dto.BetResponseDTO betDto = com.porra.mundial.dto.BetResponseDTO.builder()
+                .key("1")
+                .participantName("Juan")
+                .build();
 
         Mockito.when(betService.getAllBets()).thenReturn(List.of());
         Mockito.when(betService.toBetDtoList(any())).thenReturn(List.of(betDto));

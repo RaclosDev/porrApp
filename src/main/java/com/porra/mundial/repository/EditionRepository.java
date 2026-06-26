@@ -11,4 +11,5 @@ import java.util.List;
 public interface EditionRepository extends JpaRepository<Edition, Long> {
     Optional<Edition> findByLeagueIdAndStatus(Long leagueId, String status);
     List<Edition> findByLeagueId(Long leagueId);
+    List<Edition> findByLeagueIdInAndStatus(List<Long> leagueIds, String status);
 }

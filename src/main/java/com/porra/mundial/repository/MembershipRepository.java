@@ -10,4 +10,5 @@ import java.util.List;
 public interface MembershipRepository extends JpaRepository<Membership, Membership.MembershipId> {
     List<Membership> findByUserParticipantName(String participantName);
     List<Membership> findByLeagueId(Long leagueId);
+    List<Membership> findByUserId(Long userId);
 }

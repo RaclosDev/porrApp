@@ -2,33 +2,93 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { getCountryCode } from '../utils/constants';
 import { compareTeams } from '../utils/points';
+import { fetchOfficialBracket } from '../services/api';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCanvas';
 
 function BetViewer() {
   const state = useAppContext();
-  const { viewerBetId, setViewerBetId, officialResultsHash, officialPoints, groupOdds, allGames, nameToIdMap } = state;
+  const { viewerBetId, setViewerBetId, officialPoints, groupOdds, allGames, nameToIdMap } = state;
   const [openSection, setOpenSection] = useState('groups'); // 'groups' or 'knockout'
   const [pointsOpen, setPointsOpen] = useState(true);
   const [visibleRounds, setVisibleRounds] = useState({ r32: true, r16: true, qf: true, sf: false, center: false });
   const [part, setPart] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [officialBracket, setOfficialBracket] = useState(null);
+
+  const injectQualifiedTeams = (partData, ptsData) => {
+    if (!partData?.r32 || !ptsData) return partData;
+    const guaranteed = {};
+    Object.keys(ptsData).forEach(group => {
+      guaranteed[group] = {};
+      const status5Teams = [];
+      Object.keys(ptsData[group]).forEach(team => {
+        const st = ptsData[group][team].status;
+        if (st === 1) guaranteed[group]['1'] = team;
+        else if (st === 2) guaranteed[group]['2'] = team;
+        else if (st === 5) status5Teams.push(team);
+      });
+      
+      if (status5Teams.length > 0) {
+        const combinedName = status5Teams.join(' / ');
+        if (!guaranteed[group]['1']) guaranteed[group]['1'] = combinedName;
+        if (!guaranteed[group]['2']) guaranteed[group]['2'] = combinedName;
+      }
+    });
+    const newPart = JSON.parse(JSON.stringify(partData));
+    newPart.r32 = newPart.r32.map(match =>
+      match.map(teamName => {
+        if (typeof teamName === 'string' && teamName.includes('º Grupo ')) {
+          const parts = teamName.split(' ');
+          const grp = parts[2];
+          if (guaranteed[grp]?.[parts[0].replace('º', '')]) return guaranteed[grp][parts[0].replace('º', '')];
+        }
+        return teamName;
+      })
+    );
+    return newPart;
+  };
 
   useEffect(() => {
     if (!viewerBetId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPart(null);
       setError(null);
       return;
     }
     setError(null);
     setLoading(true);
-    fetch(`/api/bets/${viewerBetId}`)
-      .then(res => {
+    Promise.all([
+      fetch(`/api/bets/${viewerBetId}`).then(res => {
         if (!res.ok) return res.json().then(e => { throw new Error(e.error || "Error al cargar la apuesta"); });
         return res.json();
-      })
-      .then(data => {
-        setPart(data);
+      }),
+      fetchOfficialBracket()
+        .then(data => injectQualifiedTeams(data, officialPoints))
+        .catch(() => {
+          const fallback = {
+            r32: [
+              ['1º Grupo E','3º A/B/C/D/F'],['1º Grupo I','3º C/D/F/G/H'],
+              ['2º Grupo A','2º Grupo B'],['1º Grupo F','2º Grupo C'],
+              ['2º Grupo K','2º Grupo L'],['1º Grupo H','2º Grupo J'],
+              ['1º Grupo D','3º B/E/F/I/J'],['1º Grupo G','3º A/E/H/I/J'],
+              ['1º Grupo C','2º Grupo F'],['2º Grupo E','2º Grupo I'],
+              ['1º Grupo A','3º C/E/F/H/I'],['1º Grupo L','3º E/H/I/J/K'],
+              ['1º Grupo J','2º Grupo H'],['2º Grupo D','2º Grupo G'],
+              ['1º Grupo B','3º E/F/G/I/J'],['1º Grupo K','3º D/E/I/J/L'],
+            ],
+            r16: Array(8).fill([null, null]),
+            qf: Array(4).fill([null, null]),
+            sf: Array(2).fill([null, null]),
+            final: [null, null],
+            thirdPlaceMatch: [null, null],
+          };
+          return injectQualifiedTeams(fallback, officialPoints);
+        })
+    ])
+      .then(([partData, officialData]) => {
+        setPart(partData);
+        setOfficialBracket(officialData);
         setLoading(false);
       })
       .catch(err => {
@@ -36,7 +96,7 @@ function BetViewer() {
         setError(err.message);
         setLoading(false);
       });
-  }, [viewerBetId]);
+  }, [viewerBetId, officialPoints]);
 
   const handleSectionChange = (section) => {
     if (openSection === section) {
@@ -78,21 +138,6 @@ function BetViewer() {
 
   let points = state.leaderboardData.find(lb => lb.id === viewerBetId) || { total: 0, r1: 0, r32: 0, r16: 0, qf: 0, sf: 0, finals: 0, scorer: 0, log: [], exactMatches: {}, passedTeams: {} };
 
-  const getHtmlTeam = (name, isWinner = false) => {
-    if (!name) return <div className="team-slot empty" style={{ pointerEvents: 'none', fontSize: '0.8rem', height: '32px', padding: '5px', justifyContent: 'center' }}>Por definir</div>;
-    return (
-      <div className={`team-slot ${isWinner ? 'winner' : ''}`} style={{ pointerEvents: 'none', fontSize: '0.8rem', height: '32px', padding: '5px 8px', display: 'flex', justifyContent: 'space-between' }}>
-        <span>
-          {!name.includes("º") && getCountryCode(name) !== "xx" && <img src={`https://flagcdn.com/16x12/${getCountryCode(name)}.png`} alt="" style={{ marginRight: '4px', verticalAlign: 'middle' }} />}
-          {name}
-        </span>
-        <span>{isWinner ? '✅' : ''}</span>
-      </div>
-    );
-  };
-
-
-
   const getFlat = (arr) => arr ? arr.flat().filter(Boolean) : [];
   const winR16 = getFlat(part.r16);
   const winQF = getFlat(part.qf);
@@ -114,22 +159,42 @@ function BetViewer() {
     toMatches(part.sf?.slice(1, 2)),
   ];
 
-  const renderSlot = (name, { roundIndex }) => {
+  const renderSlot = (name, { side, roundIndex, matchIndex, isHome }) => {
     let isWinner = false;
     if (name && name !== '???') {
       if (roundIndex === 0) isWinner = winR16.includes(name);
       else if (roundIndex === 1) isWinner = winQF.includes(name);
       else if (roundIndex === 2) isWinner = winSF.includes(name);
-      else if (roundIndex === 3) isWinner = winFinal.includes(name);
-      else if (roundIndex === 4) isWinner = part.champion === name;
-      else if (roundIndex === 5) isWinner = part.thirdPlaceWinner === name;
+      else if (roundIndex === 3 || roundIndex === 'final') isWinner = winFinal.includes(name);
+      else if (roundIndex === 4 || roundIndex === 'champion') isWinner = part.champion === name;
+      else if (roundIndex === 5 || roundIndex === 'thirdPlaceMatch') isWinner = part.thirdPlaceWinner === name;
+    }
+    
+    let isExactPos = false;
+    if (officialBracket && name && name !== '???') {
+       let officialName = null;
+       if (side === 'left' || side === 'right') {
+          if (roundIndex === 0) officialName = officialBracket.r32?.[side === 'left' ? matchIndex : matchIndex + 8]?.[isHome ? 0 : 1];
+          if (roundIndex === 1) officialName = officialBracket.r16?.[side === 'left' ? matchIndex : matchIndex + 4]?.[isHome ? 0 : 1];
+          if (roundIndex === 2) officialName = officialBracket.qf?.[side === 'left' ? matchIndex : matchIndex + 2]?.[isHome ? 0 : 1];
+          if (roundIndex === 3) officialName = officialBracket.sf?.[side === 'left' ? matchIndex : matchIndex + 1]?.[isHome ? 0 : 1];
+       } else {
+          if (roundIndex === 'final') officialName = officialBracket.final?.[isHome ? 0 : 1];
+          if (roundIndex === 'champion') officialName = officialBracket.champion;
+          if (roundIndex === 'thirdPlaceMatch') officialName = officialBracket.thirdPlaceMatch?.[isHome ? 0 : 1];
+       }
+       // Solo asignamos la chincheta si el nombre coincide exactamente (es decir, la posición ya es matemática y definitiva).
+       // No usamos .includes() para evitar falsos positivos con los combinados como "Noruega / Francia".
+       if (officialName === name) {
+         isExactPos = true;
+       }
     }
     
     return (
       <TeamSlot 
         name={name} 
         slotStyle={isWinner ? { borderLeft: '3px solid #2ecc71', background: 'rgba(46, 204, 113, 0.1)' } : {}}
-        rightContent={isWinner ? <span style={{ marginLeft: '4px' }}>✅</span> : null}
+        rightContent={isExactPos ? <span title="Acertado en esta posición" style={{ marginLeft: '4px', fontSize: '1em' }}>📌</span> : null}
       />
     );
   };
@@ -150,15 +215,15 @@ function BetViewer() {
         🏆 Final 🏆
       </div>
       <div className="match final-match" style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}>
-        {renderSlot(part.final?.[0], { roundIndex: 3 })}
-        {renderSlot(part.final?.[1], { roundIndex: 3 })}
+        {renderSlot(part.final?.[0], { roundIndex: 'final', isHome: true })}
+        {renderSlot(part.final?.[1], { roundIndex: 'final', isHome: false })}
       </div>
 
       {/* CAMPEÓN */}
       <div style={{ position: 'absolute', top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW, textAlign: 'center' }}>
         <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--champion-gold)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>🏆 Campeón</div>
         <div className="champion-display">
-          {renderSlot(part.champion, { roundIndex: 4 })}
+          {renderSlot(part.champion, { roundIndex: 'champion' })}
         </div>
       </div>
 
@@ -166,8 +231,8 @@ function BetViewer() {
       <div style={{ position: 'absolute', top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}>
         <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>🥉 Tercer Puesto</div>
         <div className="match third-place">
-          {renderSlot(part.thirdPlaceMatch?.[0], { roundIndex: 5 })}
-          {renderSlot(part.thirdPlaceMatch?.[1], { roundIndex: 5 })}
+          {renderSlot(part.thirdPlaceMatch?.[0], { roundIndex: 'thirdPlaceMatch', isHome: true })}
+          {renderSlot(part.thirdPlaceMatch?.[1], { roundIndex: 'thirdPlaceMatch', isHome: false })}
         </div>
       </div>
     </div>
@@ -177,18 +242,17 @@ function BetViewer() {
     if (!officialPoints || !officialPoints[groupName] || !groupOdds) return { pos: -1, mp: 0 };
     const teams = groupOdds[groupName].map(t => ({ name: t.name }));
     teams.sort((a, b) => compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap));
-    const pos = teams.findIndex(t => t.name === teamName) + 1;
     
-    const safeKey = teamName.replace(/[.#$\[\]]/g, "");
+    const safeKey = teamName.replace(/[.#$[\]]/g, '');
     const officialData = officialPoints[groupName][safeKey];
     const mp = (typeof officialData === 'object' && officialData !== null) ? (officialData.mp || 0) : 0;
     const status = (typeof officialData === 'object' && officialData !== null) ? (officialData.status || 0) : 0;
-    return { pos, mp, status };
+    return { mp, status };
   };
 
   const renderGroupTeam = (groupName, teamName, expectedPos, defaultColor, medal) => {
     let color = defaultColor;
-    const { pos, mp, status } = getOfficialPositionAndMp(groupName, teamName);
+    const { mp, status } = getOfficialPositionAndMp(groupName, teamName);
     if (mp > 0) {
       const isExact = points.exactMatches && points.exactMatches[groupName] && points.exactMatches[groupName][expectedPos];
       const isPassed = points.passedTeams && points.passedTeams[teamName];
@@ -203,11 +267,15 @@ function BetViewer() {
     }
     
     let statusIcon = null;
+    let blueDot = null;
     if (status >= 1 && status <= 4) statusIcon = <span title="Posición Matemática Fija" style={{marginLeft: '5px', fontSize: '0.85em', flexShrink: 0}}>📌</span>;
+    if (status === 5) {
+      blueDot = <div title="Clasificado Matemáticamente" style={{ width: '6px', height: '6px', background: '#3498db', borderRadius: '50%', marginLeft: '6px', flexShrink: 0, boxShadow: '0 0 5px rgba(52,152,219,0.8)', display: 'inline-block' }}></div>;
+    }
 
     return (
-      <div style={{ fontSize: '1em', color, marginBottom: '4px' }}>
-        {medal} {!teamName.includes("º") && getCountryCode(teamName) !== "xx" && <img src={`https://flagcdn.com/16x12/${getCountryCode(teamName)}.png`} alt="" style={{ marginRight: '4px', verticalAlign: 'middle' }} />} {teamName}{statusIcon}
+      <div style={{ fontSize: '1em', color, marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
+        <span style={{ marginRight: '4px' }}>{medal}</span> {!teamName.includes("º") && getCountryCode(teamName) !== "xx" && <img src={`https://flagcdn.com/16x12/${getCountryCode(teamName)}.png`} alt="" style={{ marginRight: '4px', flexShrink: 0 }} />} <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{teamName}{blueDot}{statusIcon}</span>
       </div>
     );
   };

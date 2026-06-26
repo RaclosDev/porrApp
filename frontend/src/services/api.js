@@ -188,6 +188,10 @@ export async function createGroup(name, competitionId, betMode, pichichi = true)
     },
     body: JSON.stringify({ name, competitionId, betMode, pichichi }),
   });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al crear la liga');
+  }
   return res.json();
 }
 
@@ -231,7 +235,8 @@ export async function joinGroup(joinCode) {
     body: JSON.stringify({ joinCode }),
   });
   if (res.ok) return res.json();
-  throw new Error('Grupo no encontrado o código inválido');
+  const error = await res.json().catch(() => ({}));
+  throw new Error(error.error || 'Grupo no encontrado o código inválido');
 }
 
 export async function fetchClaimedNames() {

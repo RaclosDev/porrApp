@@ -1,6 +1,6 @@
 export function compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap) {
-  const safeNameA = a.name.replace(/[.#$\[\]]/g, "");
-  const safeNameB = b.name.replace(/[.#$\[\]]/g, "");
+  const safeNameA = a.name.replace(/[.#$[\]]/g, "");
+  const safeNameB = b.name.replace(/[.#$[\]]/g, "");
 
   const statsA = (officialPoints && officialPoints[groupName] && officialPoints[groupName][safeNameA]);
   const statsB = (officialPoints && officialPoints[groupName] && officialPoints[groupName][safeNameB]);

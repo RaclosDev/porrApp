@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { createPortal } from 'react-dom';
 import Flag from './Flag';
 import { openStats } from '../utils/navigation';

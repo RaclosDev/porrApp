@@ -15,8 +15,6 @@ function Layout({ children }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [googleName, setGoogleName] = useState('');
   const [requiresName, setRequiresName] = useState(false);
   const [claimedNames, setClaimedNames] = useState([]);
   const [newNameInput, setNewNameInput] = useState('');
@@ -36,12 +34,14 @@ function Layout({ children }) {
 
   useEffect(() => {
     if (location.state?.requireLogin) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setShowMyBetModal(true);
     }
   }, [location.state]);
 
   useEffect(() => {
     if (isIos() && !isStandalone() && localStorage.getItem('pwa_banner_dismissed') !== 'true') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowInstallBanner(true);
     }
 
@@ -63,7 +63,7 @@ function Layout({ children }) {
   const handleInstallClick = () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult) => {
+      deferredPrompt.userChoice.then(() => {
         setDeferredPrompt(null);
         setShowInstallBanner(false);
       });
@@ -84,8 +84,7 @@ function Layout({ children }) {
       });
       const data = await res.json();
       if (data.status === 'requires_name') {
-        setGoogleEmail(data.googleEmail);
-        setGoogleName(data.googleName);
+
         setPendingCredential(credentialResponse.credential);
         setRequiresName(true);
         fetchClaimedNames().then(names => setClaimedNames(names));
@@ -132,7 +131,7 @@ function Layout({ children }) {
         alert(data.error || "Error al vincular cuenta");
       }
     } catch (e) {
-        alert("Error de red");
+        alert("Error de red: " + e.message);
     }
   };
 
