@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStandings, fetchMatches, fetchMatchRadar, fetchBets, fetchTeamOdds, fetchPresence, getAdminToken, fetchLeaderboard, fetchGroup, updateBet, fetchMyGroups, fetchMe, updateUserPreferences } from '../services/api';
 
@@ -55,7 +55,7 @@ export function AppProvider({ children }) {
   const { data: radar } = useQuery({ queryKey: ['radar'], queryFn: fetchMatchRadar });
   const { data: matches } = useQuery({ queryKey: ['matches'], queryFn: fetchMatches });
   const { data: bets } = useQuery({ queryKey: ['bets', activeGroupId], queryFn: () => fetchBets(activeGroupId) });
-  const tiebreakers = {};
+
   const { data: odds } = useQuery({ queryKey: ['odds'], queryFn: fetchTeamOdds });
   const { data: leaderboard } = useQuery({ queryKey: ['leaderboard', activeGroupId], queryFn: () => fetchLeaderboard(activeGroupId) });
   const { data: groupInfo } = useQuery({ 
@@ -87,6 +87,7 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!isAdminAuthenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserName('');
       setUserId('');
       localStorage.removeItem('my_bet_name');
@@ -95,6 +96,16 @@ export function AppProvider({ children }) {
   }, [isAdminAuthenticated]);
 
   // Auto-seleccionar liga al cargar: si solo tiene 1, esa; si no, la que haya guardado en base de datos.
+  const changeGroup = useCallback((groupId) => {
+    localStorage.setItem('activeGroupId', groupId);
+    setActiveGroupId(groupId);
+    const saved = localStorage.getItem('draft_bracket_' + groupId);
+    setBracketState(saved ? JSON.parse(saved) : defaultBracketState);
+    if (isAdminAuthenticated) {
+        updateUserPreferences({ lastSelectedGroupId: parseInt(groupId) }).catch(console.error);
+    }
+  }, [isAdminAuthenticated]);
+
   useEffect(() => {
     const autoSelectGroup = async () => {
       if (!userName) return;
@@ -104,7 +115,9 @@ export function AppProvider({ children }) {
            try {
                const me = await fetchMe();
                dbGroupId = me.lastSelectedGroupId?.toString();
-           } catch (e) {}
+           } catch {
+               // ignore
+           }
         }
         
         const myGroups = await fetchMyGroups();
@@ -114,15 +127,23 @@ export function AppProvider({ children }) {
           if (currentActiveId !== onlyGroupId) {
             changeGroup(onlyGroupId);
           }
-        } else if (dbGroupId && activeGroupId !== dbGroupId) {
-          changeGroup(dbGroupId);
+        } else if (dbGroupId) {
+          // Always apply the DB value when authenticated — React state can lag
+          // behind localStorage on first render, causing the wrong league to appear selected
+          const currentLocal = localStorage.getItem('activeGroupId');
+          if (currentLocal !== dbGroupId) {
+            changeGroup(dbGroupId);
+          } else if (activeGroupId !== dbGroupId) {
+            // State is stale but localStorage is already correct — just sync state
+            setActiveGroupId(dbGroupId);
+          }
         }
-      } catch (e) {
+      } catch {
         // No autenticado o error de red - ignorar
       }
     };
     autoSelectGroup();
-  }, [userName, isAdminAuthenticated]);
+  }, [userName, isAdminAuthenticated, activeGroupId, changeGroup]);
 
   const checkAdmin = (str) => {
     if (!str) return false;
@@ -196,7 +217,7 @@ export function AppProvider({ children }) {
     }
   };
 
-  const editBetName = async (key, currentId) => {
+  const editBetName = async (key) => {
     try {
       const res = await fetch(`/api/bets/${key}`);
       if (!res.ok) throw new Error("Error fetching bet");
@@ -252,7 +273,9 @@ export function AppProvider({ children }) {
                     console.log('Presence update received.');
                     queryClient.invalidateQueries({ queryKey: ['presence'] });
                 }
-            } catch (e) {}
+            } catch {
+                // ignore
+            }
         };
 
         ws.onclose = () => {
@@ -273,15 +296,7 @@ export function AppProvider({ children }) {
     };
   }, [userName, activeGroupId, queryClient]);
 
-  const changeGroup = (groupId) => {
-    localStorage.setItem('activeGroupId', groupId);
-    setActiveGroupId(groupId);
-    const saved = localStorage.getItem('draft_bracket_' + groupId);
-    setBracketState(saved ? JSON.parse(saved) : defaultBracketState);
-    if (isAdminAuthenticated) {
-        updateUserPreferences({ lastSelectedGroupId: parseInt(groupId) }).catch(console.error);
-    }
-  };
+
 
   // Provide exactly the same API for legacy components
   const value = {

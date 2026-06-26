@@ -58,17 +58,29 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
   const isEmpty       = !name;
   const isPlaceholder = name?.includes('º');
   const clickable     = !!onClick && !isEmpty && !isPlaceholder;
+  
+  const isCombined = !isEmpty && !isPlaceholder && name.includes(' / ');
+  const combinedTeams = isCombined ? name.split(' / ') : [];
+
   return (
     <div
       className={`team-slot${isEmpty || isPlaceholder ? ' empty' : ''}`}
       onClick={clickable ? onClick : undefined}
       style={{ cursor: clickable ? 'pointer' : 'default', height: SLOT_H, padding: '0 8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', ...slotStyle }}
     >
-      {!isEmpty && !isPlaceholder && (
+      {!isEmpty && !isPlaceholder && !isCombined && (
         <img src={`https://flagcdn.com/16x12/${getCountryCode(name)}.png`} alt=""
           style={{ width: 18, height: 13, borderRadius: 2, objectFit: 'cover', flexShrink: 0, marginRight: 6 }} />
       )}
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+      {!isEmpty && !isPlaceholder && isCombined && (
+        <div style={{ display: 'flex', marginRight: 6, flexShrink: 0, alignItems: 'center' }}>
+          {combinedTeams.map((t, idx) => (
+             <img key={t} src={`https://flagcdn.com/16x12/${getCountryCode(t)}.png`} alt=""
+               style={{ width: 16, height: 12, borderRadius: 2, objectFit: 'cover', marginLeft: idx > 0 ? -6 : 0, border: '1px solid rgba(0,0,0,0.5)', zIndex: combinedTeams.length - idx }} />
+          ))}
+        </div>
+      )}
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontSize: isCombined ? '0.65rem' : '0.78rem' }}>
         {name ?? 'Por definir'}
       </span>
       {rightContent}

@@ -9,6 +9,7 @@ import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.BetResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ public class BetService {
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
     private final HashTransitionService hashTransitionService;
+    private final com.porra.mundial.repository.MembershipRepository membershipRepository;
 
     private void saveBackup(Bet bet, String action) {
         if (bet == null) return;
@@ -105,6 +107,20 @@ public class BetService {
         
         // Populate the relational tables
         hashTransitionService.saveRelationalPredictions(bet, betData);
+        
+        // Ensure user is added to group membership
+        if (groupId != null && user != null) {
+            com.porra.mundial.model.Membership.MembershipId memId = new com.porra.mundial.model.Membership.MembershipId(user.getId(), groupId);
+            if (!membershipRepository.existsById(memId)) {
+                membershipRepository.save(com.porra.mundial.model.Membership.builder()
+                        .id(memId)
+                        .user(user)
+                        .league(edition.getLeague())
+                        .role("MEMBER")
+                        .build());
+            }
+        }
+        
         return bet;
     }
 
@@ -156,24 +172,25 @@ public class BetService {
      * Coge el formato feo de la base de datos (Java) y lo convierte en un 
      * diccionario amigable (JSON) que JavaScript puede entender a la perfección.
      */
-    public List<Map<String, Object>> toBetDtoList(List<Bet> bets) {
-        List<Map<String, Object>> result = new ArrayList<>();
+    public List<BetResponseDTO> toBetDtoList(List<Bet> bets) {
+        List<BetResponseDTO> result = new ArrayList<>();
         for (Bet bet : bets) {
-            Map<String, Object> dto = new LinkedHashMap<>();
-            dto.put("key", bet.getId().toString());
-            // Add legacy hash field but put the ID inside so old frontend logic that passes 'hash' around still works
-            dto.put("hash", bet.getId().toString());
-            dto.put("paid", bet.getPaid());
-            dto.put("participantName", bet.getParticipantName());
-            dto.put("userId", bet.getUser() != null ? bet.getUser().getId() : null);
-            dto.put("betName", bet.getBetName());
-            dto.put("groupId", bet.getGroupId());
+            BetDataDTO dataDto = null;
             try {
-                dto.put("data", getBetData(bet.getId()));
+                dataDto = getBetData(bet.getId());
             } catch (Exception e) {
                 // If it fails to build, just don't include it rather than crashing
             }
-            result.add(dto);
+            result.add(BetResponseDTO.builder()
+                    .key(bet.getId().toString())
+                    .hash(bet.getId().toString())
+                    .paid(bet.getPaid())
+                    .participantName(bet.getParticipantName())
+                    .userId(bet.getUser() != null ? bet.getUser().getId() : null)
+                    .betName(bet.getBetName())
+                    .groupId(bet.getGroupId())
+                    .data(dataDto)
+                    .build());
         }
         return result;
     }

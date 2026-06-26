@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { getCountryCode, getCountryEmoji } from '../utils/constants';
+import { useState, useRef, useEffect } from 'react';
+import { getCountryCode } from '../utils/constants';
 
 const CustomSelect = ({ value, options, onChange, placeholder }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -108,6 +108,7 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
       Object.keys(groupOdds).forEach(g => {
         initial[g] = { first: '', second: '', third: '' };
       });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelections(initial);
     }
   }, [groupOdds, selections]);
@@ -124,6 +125,7 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
 
   useEffect(() => {
     const currentThirds = Object.values(selections).map(g => g.third).filter(t => t !== '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAdvancingThirds(prev => prev.filter(t => currentThirds.includes(t)));
   }, [selections]);
 

@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.BetResponseDTO;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,7 @@ public class BetController {
      * Nosotros se la mandamos traducida a un JSON que su Javascript entienda.
      */
     @GetMapping
-    public List<Map<String, Object>> getAllBets(@RequestParam(required = false) Long groupId) {
+    public List<BetResponseDTO> getAllBets(@RequestParam(required = false) Long groupId) {
         List<Bet> bets;
         if (groupId != null) {
             bets = betService.getBetsByGroupId(groupId);
@@ -43,7 +45,7 @@ public class BetController {
     }
 
     @GetMapping("/mine")
-    public List<Map<String, Object>> getMyBets() {
+    public List<BetResponseDTO> getMyBets() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return betService.toBetDtoList(betService.getBetsByGoogleEmail(email));
     }
@@ -54,14 +56,10 @@ public class BetController {
      * Recibimos el Nombre del participante y su predicción comprimida en "hash".
      */
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createBet(@RequestBody BetDataDTO body, @RequestParam(required = false) Long groupId) {
+    public ResponseEntity<Map<String, Object>> createBet(@Valid @RequestBody BetDataDTO body, @RequestParam(required = false) Long groupId) {
         // Extraemos el email directamente del token JWT verificado
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         String betName = body.getBet();
-        
-        if (body.getGroups() == null || body.getR16() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Predicciones incompletas"));
-        }
 
         // We already receive groupId via @RequestParam, no need to parse from body
 
@@ -83,13 +81,9 @@ public class BetController {
      * El admin quiere editar a mano el nombre o la apuesta de una porra en concreto.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateBet(@PathVariable Long id, @RequestBody BetDataDTO body) {
-        try {
-            Bet bet = betService.updateBet(id, body.getUser(), body.getBet(), body);
-            return ResponseEntity.ok(Map.of("id", bet.getId(), "status", "actualizada_con_exito"));
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build(); // Si la porra no existe, devolvemos un 404
-        }
+    public ResponseEntity<?> updateBet(@PathVariable Long id, @Valid @RequestBody BetDataDTO body) {
+        Bet bet = betService.updateBet(id, body.getUser(), body.getBet(), body);
+        return ResponseEntity.ok(Map.of("id", bet.getId(), "status", "actualizada_con_exito"));
     }
 
     /**
@@ -98,14 +92,8 @@ public class BetController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getBet(@PathVariable Long id) {
-        try {
-            BetDataDTO dto = betService.getBetData(id);
-            return ResponseEntity.ok(dto);
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", "Error al cargar la apuesta: " + e.getMessage()));
-        }
+        BetDataDTO dto = betService.getBetData(id);
+        return ResponseEntity.ok(dto);
     }
 
     /**
@@ -113,12 +101,8 @@ public class BetController {
      */
     @PutMapping("/{id}/pay")
     public ResponseEntity<?> markAsPaid(@PathVariable Long id) {
-        try {
-            betService.markAsPaid(id);
-            return ResponseEntity.ok(Map.of("status", "paid"));
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        }
+        betService.markAsPaid(id);
+        return ResponseEntity.ok(Map.of("status", "paid"));
     }
 
     /**

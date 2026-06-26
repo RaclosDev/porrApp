@@ -3,8 +3,23 @@ import { useAppContext } from '../context/AppContext';
 import { fetchOfficialBracket } from '../services/api';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
 
+const ToggleBtn = ({ label, isVisible, onToggle }) => (
+  <button
+    className="glass-btn"
+    style={{
+      padding: '4px 10px', fontSize: '0.8rem', transition: 'all 0.2s ease',
+      opacity: isVisible ? 1 : 0.5,
+      filter: isVisible ? 'none' : 'grayscale(100%)',
+      transform: isVisible ? 'none' : 'scale(0.95)',
+    }}
+    onClick={onToggle}
+  >
+    👁️ {label}
+  </button>
+);
+
 function OfficialBracket({ hideTitle }) {
-  const { officialPoints } = useAppContext();
+  const { officialPoints, groupOdds } = useAppContext();
   const [part, setPart]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
@@ -15,11 +30,19 @@ function OfficialBracket({ hideTitle }) {
     const guaranteed = {};
     Object.keys(ptsData).forEach(group => {
       guaranteed[group] = {};
+      const status5Teams = [];
       Object.keys(ptsData[group]).forEach(team => {
         const st = ptsData[group][team].status;
         if (st === 1) guaranteed[group]['1'] = team;
         else if (st === 2) guaranteed[group]['2'] = team;
+        else if (st === 5) status5Teams.push(team);
       });
+      
+      if (status5Teams.length > 0) {
+        const combinedName = status5Teams.join(' / ');
+        if (!guaranteed[group]['1']) guaranteed[group]['1'] = combinedName;
+        if (!guaranteed[group]['2']) guaranteed[group]['2'] = combinedName;
+      }
     });
     const newPart = JSON.parse(JSON.stringify(partData));
     newPart.r32 = newPart.r32.map(match =>
@@ -104,8 +127,39 @@ function OfficialBracket({ hideTitle }) {
     toMatches(part.sf?.slice(1, 2)),
   ];
 
-  // ── Render slot (read-only, just a TeamSlot) ────────────────────────────
-  const renderSlot = (name) => <TeamSlot name={name} />;
+  // ── Get team status from officialPoints ────────────────────────────────
+  const getTeamStatus = (teamName) => {
+    if (!teamName || !officialPoints || !groupOdds) return 0;
+    for (const groupName of Object.keys(officialPoints)) {
+      if (!groupOdds[groupName]) continue;
+      const isInGroup = groupOdds[groupName].some(t => t.name === teamName);
+      if (!isInGroup) continue;
+      const safeKey = teamName.replace(/[.#$[\]]/g, '');
+      const officialData = officialPoints[groupName][safeKey];
+      if (typeof officialData === 'object' && officialData !== null) {
+        return officialData.status || 0;
+      }
+    }
+    return 0;
+  };
+
+  // ── Render slot (read-only, with status indicator) ──────────────────────
+  const renderSlot = (name, { roundIndex } = {}) => {
+    let statusIndicator = null;
+    if (roundIndex === 0 && name && !name.includes('º')) {
+      const teamStatus = getTeamStatus(name);
+      if (teamStatus >= 1 && teamStatus <= 4) {
+        statusIndicator = (
+          <span title="Posición Matemática Fija" style={{ marginLeft: '3px', fontSize: '0.75em', flexShrink: 0, lineHeight: 1 }}>📌</span>
+        );
+      } else if (teamStatus === 5) {
+        statusIndicator = (
+          <div title="Clasificado Matemáticamente" style={{ width: '6px', height: '6px', background: '#3498db', borderRadius: '50%', marginLeft: '4px', flexShrink: 0, boxShadow: '0 0 5px rgba(52,152,219,0.8)', display: 'inline-block' }} />
+        );
+      }
+    }
+    return <TeamSlot name={name} rightContent={statusIndicator} />;
+  };
 
   // ── Hidden rounds from visibility toggles ──────────────────────────────
   const hiddenRounds = {
@@ -151,22 +205,6 @@ function OfficialBracket({ hideTitle }) {
   );
 
   // ── Toggle buttons ──────────────────────────────────────────────────────
-
-  const ToggleBtn = ({ label, field }) => (
-    <button
-      className="glass-btn"
-      style={{
-        padding: '4px 10px', fontSize: '0.8rem', transition: 'all 0.2s ease',
-        opacity: vis[field] ? 1 : 0.5,
-        filter: vis[field] ? 'none' : 'grayscale(100%)',
-        transform: vis[field] ? 'none' : 'scale(0.95)',
-      }}
-      onClick={() => setVis(p => ({ ...p, [field]: !p[field] }))}
-    >
-      👁️ {label}
-    </button>
-  );
-
   return (
     <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 20 }}>
       {!hideTitle && (
@@ -178,11 +216,11 @@ function OfficialBracket({ hideTitle }) {
       {/* Visibility toggles */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', padding: 10, background: 'rgba(0,0,0,0.2)', borderRadius: 8, maxWidth: 800, margin: '0 auto 10px auto' }}>
         <strong style={{ color: 'var(--text-muted)', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>Mostrar:</strong>
-        <ToggleBtn label="1/16"     field="r32" />
-        <ToggleBtn label="Octavos"  field="r16" />
-        <ToggleBtn label="Cuartos"  field="qf" />
-        <ToggleBtn label="Semis"    field="sf" />
-        <ToggleBtn label="Finales"  field="center" />
+        <ToggleBtn label="1/16"     isVisible={vis.r32} onToggle={() => setVis(p => ({ ...p, r32: !p.r32 }))} />
+        <ToggleBtn label="Octavos"  isVisible={vis.r16} onToggle={() => setVis(p => ({ ...p, r16: !p.r16 }))} />
+        <ToggleBtn label="Cuartos"  isVisible={vis.qf}  onToggle={() => setVis(p => ({ ...p, qf: !p.qf }))} />
+        <ToggleBtn label="Semis"    isVisible={vis.sf}  onToggle={() => setVis(p => ({ ...p, sf: !p.sf }))} />
+        <ToggleBtn label="Finales"  isVisible={vis.center} onToggle={() => setVis(p => ({ ...p, center: !p.center }))} />
       </div>
 
       <BracketCanvas

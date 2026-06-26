@@ -12,10 +12,26 @@ import Admin from './pages/Admin';
 import GroupsDashboard from './pages/GroupsDashboard';
 import JoinRedirect from './components/JoinRedirect';
 import OfficialBracket from './pages/OfficialBracket';
+import LinkedInEntry from './pages/LinkedInEntry';
 
-const ProtectedRoute = ({ children }) => {
+// Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
+const GUEST_ALLOWED_PATHS = [
+  '/clasificacion',
+  '/search',
+  '/stats',
+  '/radar',
+  '/mis-ligas',
+];
+
+const ProtectedRoute = ({ children, guestAllowed = false }) => {
   const { isAdminAuthenticated } = useAppContext();
   const location = useLocation();
+  const isGuest = localStorage.getItem('guest_mode') === 'true';
+
+  // Invitado con permiso explícito o ruta en lista blanca
+  if (isGuest && (guestAllowed || GUEST_ALLOWED_PATHS.includes(location.pathname))) {
+    return children;
+  }
 
   if (!isAdminAuthenticated) {
     return <Navigate to="/" state={{ requireLogin: true, from: location.pathname }} replace />;
@@ -32,14 +48,18 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/reglas" element={<Rules />} />
             <Route path="/join/:code" element={<JoinRedirect />} />
-            
-            <Route path="/radar" element={<ProtectedRoute><Radar /></ProtectedRoute>} />
-            <Route path="/clasificacion" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-            <Route path="/bracket" element={<ProtectedRoute><Bracket /></ProtectedRoute>} />
+            <Route path="/linkedin" element={<LinkedInEntry />} />
+
+            {/* Rutas de lectura — accesibles en guest_mode */}
+            <Route path="/radar" element={<ProtectedRoute guestAllowed><Radar /></ProtectedRoute>} />
+            <Route path="/clasificacion" element={<ProtectedRoute guestAllowed><Leaderboard /></ProtectedRoute>} />
+            <Route path="/stats" element={<ProtectedRoute guestAllowed><Stats /></ProtectedRoute>} />
+            <Route path="/search" element={<ProtectedRoute guestAllowed><Search /></ProtectedRoute>} />
+            <Route path="/mis-ligas" element={<ProtectedRoute guestAllowed><GroupsDashboard /></ProtectedRoute>} />
             <Route path="/cuadro" element={<OfficialBracket />} />
-            <Route path="/mis-ligas" element={<ProtectedRoute><GroupsDashboard /></ProtectedRoute>} />
-            <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
-            <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+
+            {/* Rutas privadas — siempre requieren login real */}
+            <Route path="/bracket" element={<ProtectedRoute><Bracket /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             
             <Route path="*" element={<Navigate to="/" replace />} />

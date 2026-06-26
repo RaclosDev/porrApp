@@ -5,6 +5,7 @@ import { openStats } from '../utils/navigation';
 
 function Radar() {
   const { matchRadar, loading } = useAppContext();
+  const [activeTab, setActiveTab] = useState('ultimos');
 
   if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando partidos...</div>;
 
@@ -21,12 +22,7 @@ function Radar() {
     const homeFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(m.home)}.png`} alt="" />;
     const awayFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(m.away)}.png`} alt="" />;
 
-    let scoreHtml = '';
-    if (type === 'last') {
-      scoreHtml = `<span class="last-match-score">${m.homeScore !== null ? m.homeScore : ''} - ${m.awayScore !== null ? m.awayScore : ''}</span>`;
-    } else {
-      scoreHtml = `<span style="font-size: 0.9em; color: var(--text-muted); font-weight: bold;">VS</span>`;
-    }
+
 
     return (
       <div key={m.id} className="last-match-card">
@@ -68,8 +64,6 @@ function Radar() {
       </div>
     );
   };
-
-  const [activeTab, setActiveTab] = useState('ultimos');
 
   return (
     <section id="view-radar" className="view-section" style={{ display: 'block' }}>

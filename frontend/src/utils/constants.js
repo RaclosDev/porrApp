@@ -10,7 +10,15 @@ export const countryCodeMap = {
   "Francia": "fr", "Senegal": "sn", "Irak": "iq", "Noruega": "no",
   "Argentina": "ar", "Argelia": "dz", "Austria": "at", "Jordania": "jo",
   "Portugal": "pt", "RD Congo": "cd", "Uzbekistán": "uz", "Colombia": "co",
-  "Inglaterra": "gb-eng", "Croacia": "hr", "Ghana": "gh", "Panamá": "pa"
+  "Inglaterra": "gb-eng", "Croacia": "hr", "Ghana": "gh", "Panamá": "pa",
+  
+  // English ESPN Fallbacks
+  "Spain": "es", "France": "fr", "Brazil": "br", "Germany": "de", "England": "gb-eng",
+  "Netherlands": "nl", "Norway": "no", "Egypt": "eg", "Poland": "pl", "Morocco": "ma",
+  "Croatia": "hr", "Belgium": "be", "Switzerland": "ch", 
+  "USA": "us", "United States": "us", "Mexico": "mx", "Japan": "jp", 
+  "South Korea": "kr", "Canada": "ca", "Cameroon": "cm", 
+  "Serbia": "rs", "Denmark": "dk", "Ivory Coast": "ci"
 };
 
 export function getCountryCode(name) {

@@ -1,10 +1,14 @@
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { getCountryCode } from '../utils/constants';
+import { fetchOfficialBracket } from '../services/api';
 
 function Stats() {
-  const { participantsHashes, loading } = useAppContext();
+  const { participantsHashes, officialPoints, groupOdds, loading: contextLoading } = useAppContext();
+  const { data: officialBet, isLoading: officialLoading } = useQuery({ queryKey: ['officialBracket'], queryFn: fetchOfficialBracket, retry: false });
   const [modalData, setModalData] = useState(null);
+  const loading = contextLoading || officialLoading;
 
   const stats = useMemo(() => {
     const scorersMap = {};
@@ -17,10 +21,19 @@ function Stats() {
     const darkHorsesMap = {};
     const kingsMap = {};
 
-    // Equipos considerados "Cabezas de serie" o favoritos que sería una decepción que cayeran en grupos
-    const topTeams = ["Brasil", "Francia", "Argentina", "España", "Inglaterra", "Alemania", "Portugal", "Bélgica", "Países Bajos"];
-
     let totalVotes = 0;
+    
+    // First pass to find all valid participants and consensus pass rates
+    const passCountMap = {};
+    
+    participantsHashes.forEach(p => {
+        const part = p.data;
+        if (!part || !part.r32) return;
+        const qualified = part.r32.flat().filter(t => t && !t.includes("º"));
+        qualified.forEach(t => {
+            passCountMap[t] = (passCountMap[t] || 0) + 1;
+        });
+    });
 
     participantsHashes.forEach(p => {
       const part = p.data;
@@ -51,12 +64,7 @@ function Stats() {
         const qfTeams = part.qf.flat();
         qfTeams.forEach(t => {
           if (!t || t.includes("º")) return;
-          if (!topTeams.includes(t)) {
-              if (!darkHorsesMap[t]) darkHorsesMap[t] = [];
-              if (!darkHorsesMap[t].includes(userName)) {
-                  darkHorsesMap[t].push(userName);
-              }
-          }
+          // We will calculate dark horses differently now
         });
       }
 
@@ -80,11 +88,9 @@ function Stats() {
 
       if (part.r32) {
         const qualified = part.r32.flat();
-        topTeams.forEach(top => {
-            if (!qualified.includes(top)) {
-                if (!disappointmentsMap[top]) disappointmentsMap[top] = [];
-                disappointmentsMap[top].push(userName);
-            }
+        qualified.forEach(t => {
+            if (!t || t.includes("º")) return;
+            // Just collect all R32 teams to calculate consensus later
         });
       }
 
@@ -102,6 +108,121 @@ function Stats() {
               }
           });
       }
+    });
+
+    // The fallback empty bracket used when OfficialBracket is not fully saved yet
+    const fallback = {
+      r32: [
+        ['1º Grupo E','3º A/B/C/D/F'],['1º Grupo I','3º C/D/F/G/H'],
+        ['2º Grupo A','2º Grupo B'],['1º Grupo F','2º Grupo C'],
+        ['2º Grupo K','2º Grupo L'],['1º Grupo H','2º Grupo J'],
+        ['1º Grupo D','3º B/E/F/I/J'],['1º Grupo G','3º A/E/H/I/J'],
+        ['1º Grupo C','2º Grupo F'],['2º Grupo E','2º Grupo I'],
+        ['1º Grupo A','3º C/E/F/H/I'],['1º Grupo L','3º E/H/I/J/K'],
+        ['1º Grupo J','2º Grupo H'],['2º Grupo D','2º Grupo G'],
+        ['1º Grupo B','3º E/F/G/I/J'],['1º Grupo K','3º D/E/I/J/L'],
+      ]
+    };
+
+    // The algorithm that calculates mathematically qualified teams
+    const injectQualifiedTeams = (partData, ptsData) => {
+      if (!partData?.r32 || !ptsData) return partData;
+      const guaranteed = {};
+      Object.keys(ptsData).forEach(group => {
+        guaranteed[group] = {};
+        const status5Teams = [];
+        Object.keys(ptsData[group]).forEach(team => {
+          const st = ptsData[group][team].status;
+          if (st === 1) guaranteed[group]['1'] = team;
+          else if (st === 2) guaranteed[group]['2'] = team;
+          else if (st === 5) status5Teams.push(team);
+        });
+        if (status5Teams.length > 0) {
+          const combinedName = status5Teams.join(' / ');
+          if (!guaranteed[group]['1']) guaranteed[group]['1'] = combinedName;
+          if (!guaranteed[group]['2']) guaranteed[group]['2'] = combinedName;
+        }
+      });
+      const newPart = JSON.parse(JSON.stringify(partData));
+      newPart.r32 = newPart.r32.map(match =>
+        match.map(teamName => {
+          if (typeof teamName === 'string' && teamName.includes('º Grupo ')) {
+            const parts = teamName.split(' ');
+            const pos = parts[0].replace('º', '');
+            const grp = parts[2];
+            if (guaranteed[grp]?.[pos]) return guaranteed[grp][pos];
+          }
+          return teamName;
+        })
+      );
+      return newPart;
+    };
+
+    // Apply the algorithm! If officialBet is undefined (404), use fallback.
+    const baseBracket = (officialBet && !officialBet.error) ? officialBet : fallback;
+    const computedBracket = injectQualifiedTeams(baseBracket, officialPoints);
+
+    // Determine which groups are not finished yet in the computed bracket
+    const unfinishedGroups = [];
+    if (computedBracket && computedBracket.r32) {
+        computedBracket.r32.flat().forEach(slot => {
+            if (slot && slot.includes("º Grupo ")) {
+                const match = slot.match(/Grupo ([A-L])/);
+                if (match) unfinishedGroups.push(match[1]);
+            }
+        });
+    }
+
+    // Map each team to its group using groupOdds
+    const teamToGroup = {};
+    if (groupOdds) {
+        Object.keys(groupOdds).forEach(group => {
+            groupOdds[group].forEach(teamObj => {
+                teamToGroup[teamObj.name] = group;
+            });
+        });
+    } else if (officialPoints) {
+        Object.keys(officialPoints).forEach(group => {
+            Object.keys(officialPoints[group]).forEach(team => {
+                teamToGroup[team] = group;
+            });
+        });
+    }
+
+    const officialR32 = computedBracket && computedBracket.r32 ? computedBracket.r32.flat().filter(t => t && !t.includes("º")) : [];
+
+    // Dynamic REAL Disappointments & Dark Horses
+    const consensusThreshold = totalVotes > 0 ? Math.ceil(totalVotes * 0.70) : 0; // > 70% expect to pass
+    const underdogThreshold = totalVotes > 0 ? Math.floor(totalVotes * 0.30) : 0; // < 30% expect to pass
+
+    Object.keys(passCountMap).forEach(team => {
+        const passCount = passCountMap[team];
+        const isConsensusFavorite = passCount >= consensusThreshold;
+        const isUnderdog = passCount <= underdogThreshold;
+        
+        const group = teamToGroup[team];
+        const isGroupFinished = group && !unfinishedGroups.includes(group);
+
+        // We only evaluate teams whose groups have finished in the official bracket
+        if (officialBet && isGroupFinished) {
+            const officiallyPassed = officialR32.includes(team);
+
+            if (isConsensusFavorite && !officiallyPassed) {
+                // REAL DISAPPOINTMENT: Consensus expected them to pass, but they officially failed
+                // Add all users who DID vote for them to pass (because they got disappointed)
+                disappointmentsMap[team] = validParticipants
+                    .filter(p => p.part.r32 && p.part.r32.flat().includes(team))
+                    .map(p => p.userName);
+            }
+
+            if (isUnderdog && officiallyPassed) {
+                // REAL DARK HORSE: Consensus expected them to fail, but they officially passed
+                // Add all users who DID vote for them to pass (they saw the surprise coming)
+                darkHorsesMap[team] = validParticipants
+                    .filter(p => p.part.r32 && p.part.r32.flat().includes(team))
+                    .map(p => p.userName);
+            }
+        }
     });
 
     const validParticipants = participantsHashes.map(p => {
@@ -281,7 +402,7 @@ function Stats() {
           {renderCard("Subcampeón", "🥈", stats.runnerups, "#95a5a6")}
           {renderCard("Reyes del Grupo (1ºs)", "👑", stats.kings, "#1abc9c")}
           {renderCard("Supervivientes (3ºs)", "🛟", stats.thirds, "#f39c12")}
-          {renderCard("Caballos Oscuros (En Cuartos)", "🦄", stats.darkHorses, "#e84393")}
+          {renderCard("Sorpresas (Pasan de Grupo)", "🦄", stats.darkHorses, "#e84393")}
           {renderCard("Llegan a Semifinales", "💫", stats.semis, "#e67e22")}
           {renderCard("Finales Más Repetidas", "⚔️", stats.finals, "#e74c3c", true)}
           {renderCard("Pichichi", "👟", stats.scorers, "#3498db")}
@@ -299,8 +420,8 @@ function Stats() {
                     </h3>
                 </div>
                 <div style={{ padding: '20px', overflowY: 'auto', flexGrow: 1 }}>
-                    {expandedCard.dataList.map(([name, users]) => (
-                        <ProgressBarItem key={name} name={name} usersArray={users} total={stats.total} isFinals={expandedCard.isFinals} color={expandedCard.color} />
+                    {expandedCard.dataList.map(([name, users, override]) => (
+                        <ProgressBarItem key={name} name={name} usersArray={users} total={stats.total} isFinals={expandedCard.isFinals} color={expandedCard.color} overridePercentage={override} />
                     ))}
                 </div>
                 <div style={{ padding: '15px 20px', background: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>

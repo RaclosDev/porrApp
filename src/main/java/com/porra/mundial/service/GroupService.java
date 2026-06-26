@@ -178,6 +178,25 @@ public class GroupService {
 
         return group;
     }
+    
+    @Transactional
+    public void joinGroupMembership(Long groupId, String email) {
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user == null) return;
+        
+        BetGroup group = betGroupRepository.findById(groupId).orElse(null);
+        if (group == null) return;
+
+        Membership.MembershipId memId = new Membership.MembershipId(user.getId(), group.getId());
+        if (!membershipRepository.existsById(memId)) {
+            membershipRepository.save(Membership.builder()
+                    .id(memId)
+                    .user(user)
+                    .league(group)
+                    .role("MEMBER")
+                    .build());
+        }
+    }
 
     @Transactional
     public BetGroup updateGroupName(Long groupId, String newName, String email) {
@@ -200,11 +219,11 @@ public class GroupService {
         betRepository.deleteAll(bets);
         
         // Delete all editions
-        List<Edition> editions = editionRepository.findAll().stream().filter(e -> e.getLeague().getId().equals(groupId)).collect(Collectors.toList());
+        List<Edition> editions = editionRepository.findByLeagueId(groupId);
         editionRepository.deleteAll(editions);
         
         // Delete all memberships
-        List<Membership> memberships = membershipRepository.findAll().stream().filter(m -> m.getLeague().getId().equals(groupId)).collect(Collectors.toList());
+        List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
         membershipRepository.deleteAll(memberships);
         
         // Finally, delete the group
@@ -220,9 +239,7 @@ public class GroupService {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user == null) return List.of();
         
-        List<Membership> memberships = membershipRepository.findAll().stream()
-                .filter(m -> m.getUser().getId().equals(user.getId()))
-                .collect(Collectors.toList());
+        List<Membership> memberships = membershipRepository.findByUserId(user.getId());
 
         List<Long> groupIds = memberships.stream()
                 .map(m -> m.getLeague().getId())
@@ -230,6 +247,33 @@ public class GroupService {
                 .collect(Collectors.toList());
 
         return betGroupRepository.findAllById(groupIds);
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.porra.mundial.dto.GroupResponseDTO> getUserGroupDTOs(String email) {
+        List<BetGroup> groups = getUserGroups(email);
+        if (groups.isEmpty()) return List.of();
+
+        List<Long> groupIds = groups.stream().map(BetGroup::getId).collect(Collectors.toList());
+        List<Edition> activeEditions = editionRepository.findByLeagueIdInAndStatus(groupIds, "ACTIVE");
+        
+        java.util.Map<Long, Edition> editionMap = activeEditions.stream()
+                .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e));
+
+        return groups.stream().map(g -> {
+            Edition e = editionMap.get(g.getId());
+            return com.porra.mundial.dto.GroupResponseDTO.builder()
+                    .id(g.getId())
+                    .name(g.getName())
+                    .joinCode(g.getJoinCode())
+                    .adminParticipantName(g.getAdminParticipantName())
+                    .adminUserId(g.getAdminUserId())
+                    .createdAt(g.getCreatedAt())
+                    .competitionName(e != null ? e.getCompetition().getName() : null)
+                    .betMode(e != null ? e.getBetMode().name() : null)
+                    .pichichi(e != null ? e.isPichichi() : null)
+                    .build();
+        }).collect(Collectors.toList());
     }
 
     public Optional<BetGroup> getGroupById(Long id) {

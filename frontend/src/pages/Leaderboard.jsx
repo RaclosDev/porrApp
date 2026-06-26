@@ -6,7 +6,7 @@ import { acceptGroupBet, deleteGroupBet } from '../services/api';
 
 function Leaderboard() {
   const state = useAppContext();
-  const { leaderboardData, loading, isRaclos, activeGroupName, activeGroupId, activeGroupAdmin, activeGroupAdminId, userId, userName } = state;
+  const { leaderboardData, loading, isRaclos, activeGroupName, activeGroupId, activeGroupAdminId, userId, userName } = state;
   const [sharing, setSharing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -233,7 +233,7 @@ function Leaderboard() {
             </div>
             <div id="share-image-columns" style={{ display: 'flex', gap: '20px', justifyContent: 'space-between' }}>
                 <div id="share-col-left" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {validResults.slice(0, mid).map((r, idx) => {
+                    {validResults.slice(0, mid).map((r) => {
                       let rankDisplay = r.rank;
                       if (r.rank === 1) rankDisplay = "🥇";
                       else if (r.rank === 2) rankDisplay = "🥈";
@@ -253,7 +253,7 @@ function Leaderboard() {
                     })}
                 </div>
                 <div id="share-col-right" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {validResults.slice(mid).map((r, idx) => {
+                    {validResults.slice(mid).map((r) => {
                       let rankDisplay = r.rank;
                       if (r.rank === 1) rankDisplay = "🥇";
                       else if (r.rank === 2) rankDisplay = "🥈";
