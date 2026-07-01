@@ -5,6 +5,16 @@ import { getAdminToken, setAdminToken, fetchClaimedNames } from '../services/api
 import { GoogleLogin } from '@react-oauth/google';
 import BetViewer from './BetViewer';
 
+/**
+ * Componente Layout principal que envuelve a todas las rutas.
+ * Contiene la barra de navegación superior (Header), el manejo de autenticación global (Google Login),
+ * el banner de instalación PWA, y el visor global de apuestas (BetViewer).
+ *
+ * @component
+ * @param {Object} props
+ * @param {ReactNode} props.children - El contenido de la ruta actual.
+ * @returns {JSX.Element} Layout de la aplicación.
+ */
 function Layout({ children }) {
   const { participantsHashes, userName, setUserName, setViewerBetId, onlineUsers, isRaclos, setIsAdminAuthenticated, loading } = useAppContext();
   const navigate = useNavigate();
@@ -21,17 +31,27 @@ function Layout({ children }) {
   const [pendingCredential, setPendingCredential] = useState(null);
   const isAuthenticated = !!getAdminToken();
 
+  /**
+   * Determina si el usuario está desde un dispositivo iOS.
+   */
   const isIos = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();
     return /iphone|ipad|ipod/.test(userAgent);
   };
   
+  /**
+   * Determina si la app ya está instalada como PWA (standalone).
+   */
   const isStandalone = () => {
     return ('standalone' in window.navigator && window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
   };
 
   const location = useLocation();
 
+  /**
+   * Efecto para forzar la apertura del modal de login si la ruta a la que se
+   * redirigió requería estar logueado (via location.state).
+   */
   useEffect(() => {
     if (location.state?.requireLogin) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -39,6 +59,9 @@ function Layout({ children }) {
     }
   }, [location.state]);
 
+  /**
+   * Control y mostrado del banner de instalación PWA.
+   */
   useEffect(() => {
     if (isIos() && !isStandalone() && localStorage.getItem('pwa_banner_dismissed') !== 'true') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -75,6 +98,10 @@ function Layout({ children }) {
     setShowInstallBanner(false);
   };
 
+  /**
+   * Callback tras loguearse correctamente en Google.
+   * Valida el credential con el backend.
+   */
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const res = await fetch('/api/auth/google/login', {
@@ -84,11 +111,12 @@ function Layout({ children }) {
       });
       const data = await res.json();
       if (data.status === 'requires_name') {
-
+        // Si el usuario no tiene nombre en BD, le pide uno.
         setPendingCredential(credentialResponse.credential);
         setRequiresName(true);
         fetchClaimedNames().then(names => setClaimedNames(names));
       } else if (data.token) {
+        // Logueo exitoso.
         setAdminToken(data.token);
         setIsAdminAuthenticated(true);
         setUserName(data.participantName);
@@ -104,6 +132,9 @@ function Layout({ children }) {
     }
   };
 
+  /**
+   * Envía el nombre escogido por el usuario por primera vez tras vincular Google.
+   */
   const handleNameSubmit = async () => {
     if (!newNameInput.trim()) return alert("El nombre no puede estar vacío");
     try {
@@ -135,8 +166,6 @@ function Layout({ children }) {
     }
   };
 
-
-
   const decodedParticipants = participantsHashes.map(h => ({
     hash: h.hash,
     name: h.participantName || 'Anónimo'
@@ -147,9 +176,7 @@ function Layout({ children }) {
       <header className="top-bar">
         <div className="header-left">
             <div className="header-title-row" style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'nowrap' }}>
-                <h1 id="site-title" style={{ margin: 0, whiteSpace: 'nowrap', userSelect: 'none' }}>
-                    MUNDIAL 2026 - PORRA
-                </h1>
+                {/* Indicador de Usuarios Online (Hover -> Lista) */}
                 <div id="online-counter" className="tooltip-container" onClick={() => setShowOnline(!showOnline)} onMouseEnter={() => setShowOnline(true)} onMouseLeave={() => setShowOnline(false)} style={{ fontSize: '0.9rem', fontWeight: 'bold', background: 'rgba(0, 210, 211, 0.1)', color: '#00d2d3', padding: '5px 12px', borderRadius: '20px', border: '1px solid rgba(0, 210, 211, 0.3)', textShadow: 'none', whiteSpace: 'nowrap', cursor: 'pointer', position: 'relative' }}>
                     <span id="online-counter-text">👁️ {onlineUsers?.length || 0} online</span>
                     {showOnline && (
@@ -160,6 +187,7 @@ function Layout({ children }) {
                         </div>
                     )}
                 </div>
+                {/* Botón Ver Mi Porra / Completar Mi Porra */}
                 {loading ? null : userName && participantsHashes.find(h => h.participantName === userName) ? (
                     <button id="btn-view-my-bet-header" style={{ background: 'linear-gradient(135deg, #f368e0, #ff9ff3)', border: 'none', color: 'black', padding: '5px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setViewerBetId(Number(participantsHashes.find(h => h.participantName === userName)?.key))}>
                         👁️ Ver Mi Porra
@@ -172,9 +200,11 @@ function Layout({ children }) {
             </div>
         </div>
         <div className="header-center">
+            {/* Navegación */}
             <nav className="nav-links">
                 <NavLink to="/" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Inicio</NavLink>
                 <NavLink to="/clasificacion" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Clasificación</NavLink>
+                <NavLink to="/grupos" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Grupos</NavLink>
                 <NavLink to="/cuadro" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Cuadro</NavLink>
                 <NavLink to="/radar" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>Partidos</NavLink>
                 <NavLink to="/search" className={({isActive}) => isActive ? "glass-btn active" : "glass-btn"}>🔍 Buscador</NavLink>
@@ -183,6 +213,7 @@ function Layout({ children }) {
             </nav>
         </div>
         <div className="header-right" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', position: 'relative' }}>
+            {/* Menú de Perfil de Usuario */}
             <button 
                 onClick={() => {
                     if (userName || isAuthenticated) {
@@ -242,12 +273,12 @@ function Layout({ children }) {
         </div>
       </header>
 
-
-
+      {/* Contenido Principal */}
       <main className="app-container">
         {children}
       </main>
 
+      {/* Banner PWA */}
       {showInstallBanner && (
         <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(15, 23, 42, 0.95)', border: '1px solid var(--accent-color)', borderRadius: '12px', padding: '15px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', boxShadow: '0 10px 30px rgba(0,210,211,0.3)', zIndex: 999999, backdropFilter: 'blur(10px)', width: '90%', maxWidth: '350px' }}>
           <p style={{ margin: 0, fontWeight: 'bold', color: 'white', textAlign: 'center' }}>
@@ -260,6 +291,7 @@ function Layout({ children }) {
         </div>
       )}
 
+      {/* Modal de Autenticación / Registro */}
       <div id="my-bet-modal" className="modal" style={{ display: showMyBetModal ? 'flex' : 'none', zIndex: 999999 }}>
           <div className="modal-content glass-panel" style={{ maxWidth: '420px', textAlign: 'center', padding: '35px 25px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
               <h3 style={{ color: 'var(--accent-color)', marginBottom: '20px', fontFamily: "'Outfit', sans-serif", fontSize: '1.8rem', letterSpacing: '1px' }}>¿Quién eres?</h3>
@@ -326,7 +358,7 @@ function Layout({ children }) {
           </div>
       </div>
 
-      
+      {/* Visor Global de Apuestas (Portal Inyectado) */}
       <BetViewer />
     </>
   );

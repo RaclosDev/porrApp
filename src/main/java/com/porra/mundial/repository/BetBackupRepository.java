@@ -6,12 +6,21 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * 🗄️ Repositorio para la entidad BetBackup.
+ * Proporciona métodos de acceso a datos para el historial de modificaciones de apuestas.
+ */
 @Repository
 public interface BetBackupRepository extends JpaRepository<BetBackup, Long> {
     
-    // Encuentra todos los backups ordenados del más reciente al más antiguo
+    /**
+     * @return Todos los backups de todas las apuestas ordenados del más reciente al más antiguo.
+     */
     List<BetBackup> findAllByOrderByBackupTimestampDesc();
 
-    // Encuentra el historial de una apuesta concreta
+    /**
+     * @param originalBetId El ID de la apuesta original en la tabla bets_v2.
+     * @return El historial de cambios de una apuesta concreta.
+     */
     List<BetBackup> findByOriginalBetIdOrderByBackupTimestampDesc(Long originalBetId);
 }

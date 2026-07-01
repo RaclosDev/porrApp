@@ -24,6 +24,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * 👥 Servicio de Grupos/Ligas (GroupService).
+ * Maneja la creación de ligas privadas, invitar amigos con códigos (Join Code),
+ * nombrar administradores y borrar o abandonar ligas.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -39,6 +44,11 @@ public class GroupService {
     @Value("${app.admins:Admin}")
     private List<String> appAdmins;
 
+    /**
+     * Script de inicialización que corre al arrancar el backend.
+     * Crea automáticamente la "Porra Global" oficial si no existe,
+     * para asegurar que los usuarios sin grupo puedan participar en algo.
+     */
     @PostConstruct
     @Transactional
     public void initDefaultGroup() {
@@ -135,14 +145,25 @@ public class GroupService {
         }
     }
 
+    /**
+     * Crea un nuevo grupo privado.
+     * @param name Nombre elegido para el grupo.
+     * @param email Email del creador (pasará a ser Admin del grupo).
+     * @param competitionId Competición asociada (ej. Mundial 2026).
+     * @param betMode Modo de la porra (Brackets o Fase de Grupos).
+     */
     @Transactional
     public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode) {
         return createGroup(name, email, competitionId, betMode, true);
     }
 
+    /**
+     * Sobrecarga de creación de grupo para especificar si la predicción de Pichichi está activa.
+     */
     @Transactional
     public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode, boolean pichichi) {
         String joinCode;
+        // Genera un código de 6 caracteres aleatorio
         do {
             joinCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         } while (betGroupRepository.findByJoinCode(joinCode).isPresent());
@@ -179,6 +200,9 @@ public class GroupService {
         return group;
     }
     
+    /**
+     * Vincula a un usuario (Miembro) con un Grupo a través del JoinCode.
+     */
     @Transactional
     public void joinGroupMembership(Long groupId, String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
@@ -198,6 +222,9 @@ public class GroupService {
         }
     }
 
+    /**
+     * Permite a un Admin renombrar su propia liga.
+     */
     @Transactional
     public BetGroup updateGroupName(Long groupId, String newName, String email) {
         verifyGroupAdmin(groupId, email);
@@ -210,6 +237,9 @@ public class GroupService {
         return betGroupRepository.save(group);
     }
 
+    /**
+     * Permite a un Admin eliminar toda la liga, incluyendo usuarios, membresías y apuestas dentro.
+     */
     @Transactional
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
@@ -234,6 +264,10 @@ public class GroupService {
         return betGroupRepository.findByJoinCode(joinCode);
     }
 
+    /**
+     * @param email Email del usuario
+     * @return Las ligas donde está jugando.
+     */
     @Transactional(readOnly = true)
     public List<BetGroup> getUserGroups(String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
@@ -249,6 +283,9 @@ public class GroupService {
         return betGroupRepository.findAllById(groupIds);
     }
 
+    /**
+     * @return DTOs planos para pasarlos al JSON (API).
+     */
     @Transactional(readOnly = true)
     public List<com.porra.mundial.dto.GroupResponseDTO> getUserGroupDTOs(String email) {
         List<BetGroup> groups = getUserGroups(email);
@@ -280,6 +317,9 @@ public class GroupService {
         return betGroupRepository.findById(id);
     }
 
+    /**
+     * Permite a un miembro normal (No-Admin) abandonar la liga por su cuenta.
+     */
     @Transactional
     public void leaveGroup(Long groupId, String email) {
         BetGroup group = betGroupRepository.findById(groupId)
@@ -305,6 +345,9 @@ public class GroupService {
         }
     }
 
+    /**
+     * Middleware de seguridad para comprobar si eres Admin antes de ejecutar acciones críticas.
+     */
     private void verifyGroupAdmin(Long groupId, String email) {
         BetGroup group = betGroupRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
@@ -320,6 +363,9 @@ public class GroupService {
         return betRepository.findByEditionLeagueId(groupId);
     }
 
+    /**
+     * Cambiar el tick de "Pagado" de una apuesta concreta dentro del grupo.
+     */
     @Transactional
     public Bet toggleBetPaymentStatus(Long groupId, Long betId, String email, boolean paid) {
         verifyGroupAdmin(groupId, email);

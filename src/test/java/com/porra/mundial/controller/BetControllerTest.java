@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -22,7 +23,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -72,8 +72,9 @@ class BetControllerTest {
         BetDataDTO body = new BetDataDTO();
         body.setUser("Ana");
         body.setBet("My Bet");
-        body.setGroups(new HashMap<>());
-        body.setR16(new java.util.ArrayList<>());
+        body.setGroups(Map.of("A", List.of("Team1", "Team2"))); // @NotEmpty
+        body.setR32(List.of(List.of("Team1", "Team2"))); // @NotNull
+        body.setR16(List.of(List.of("Team1", "Team2"))); // @NotNull
 
         Bet savedBet = Bet.builder()
                 .id(2L)

@@ -18,6 +18,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Controlador REST para la gestión de Grupos (Ligas Privadas).
+ * Permite a los usuarios crear grupos, unirse mediante códigos de invitación,
+ * y a los administradores gestionar los miembros y validar los pagos de sus apuestas.
+ */
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor
@@ -27,6 +32,12 @@ public class GroupController {
     private final EditionRepository editionRepository;
     private final com.porra.mundial.service.WebSocketService webSocketService;
 
+    /**
+     * Obtiene la lista de grupos a los que pertenece el usuario autenticado.
+     * 
+     * @param principal Identidad del usuario inyectada por Spring Security a partir del JWT.
+     * @return Lista de GroupResponseDTO con los detalles de los grupos.
+     */
     @GetMapping("/mine")
     public ResponseEntity<?> getMyGroups(Principal principal) {
         if (principal == null) {
@@ -37,6 +48,14 @@ public class GroupController {
         return ResponseEntity.ok(mapped);
     }
 
+    /**
+     * Crea un nuevo grupo privado en el sistema.
+     * El usuario que lo crea se convierte automáticamente en su administrador.
+     * 
+     * @param payload Datos para la creación (Nombre del grupo, Competición, Modo de Apuesta, etc.).
+     * @param principal Identidad del usuario creador.
+     * @return El grupo recién creado (incluyendo su código de invitación generado).
+     */
     @PostMapping
     public ResponseEntity<?> createGroup(@Valid @RequestBody GroupCreateDTO payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
@@ -46,6 +65,15 @@ public class GroupController {
         return ResponseEntity.ok(group);
     }
 
+    /**
+     * Actualiza la información básica de un grupo (p.ej. su nombre).
+     * Solo puede ser invocado por el administrador del grupo.
+     * 
+     * @param id ID del grupo a modificar.
+     * @param payload Nuevos datos del grupo.
+     * @param principal Identidad del usuario (para verificar que es el admin).
+     * @return El grupo actualizado.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateGroup(@PathVariable Long id, @Valid @RequestBody GroupUpdateDTO payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
@@ -53,6 +81,14 @@ public class GroupController {
         return ResponseEntity.ok(group);
     }
 
+    /**
+     * Elimina por completo un grupo y todas las apuestas asociadas a él.
+     * Solo puede ser invocado por el administrador del grupo.
+     * 
+     * @param id ID del grupo a eliminar.
+     * @param principal Identidad del usuario (para verificar que es el admin).
+     * @return Estado de la operación.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteGroup(@PathVariable Long id, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
@@ -60,6 +96,13 @@ public class GroupController {
         return ResponseEntity.ok(Map.of("status", "success"));
     }
 
+    /**
+     * Permite a un usuario unirse a un grupo existente proporcionando su código de invitación (ej: "A1B2C").
+     * 
+     * @param payload Contiene el código de invitación alfanumérico.
+     * @param principal Identidad del usuario que se une.
+     * @return El grupo al que se acaba de unir o un error 404 si el código no es válido.
+     */
     @PostMapping("/join")
     public ResponseEntity<?> joinGroup(@Valid @RequestBody GroupJoinDTO payload, Principal principal) {
         Optional<BetGroup> group = groupService.getGroupByJoinCode(payload.getJoinCode().trim().toUpperCase());
@@ -72,6 +115,13 @@ public class GroupController {
         return ResponseEntity.status(404).body(Map.of("error", "Grupo no encontrado con ese código"));
     }
 
+    /**
+     * Obtiene los detalles públicos de un grupo a partir de su ID.
+     * Se usa por ejemplo cuando se accede directamente a la URL de un grupo.
+     * 
+     * @param id ID del grupo.
+     * @return GroupResponseDTO con la información detallada.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<?> getGroup(@PathVariable Long id) {
         Optional<BetGroup> group = groupService.getGroupById(id);
@@ -85,6 +135,7 @@ public class GroupController {
                     .adminUserId(g.getAdminUserId())
                     .createdAt(g.getCreatedAt());
                     
+            // Busca la edición activa vinculada a este grupo para extraer metadatos
             editionRepository.findByLeagueIdAndStatus(g.getId(), "ACTIVE").ifPresent(e -> {
                 builder.competitionName(e.getCompetition().getName())
                        .betMode(e.getBetMode().name())
@@ -96,6 +147,13 @@ public class GroupController {
         return ResponseEntity.notFound().build();
     }
 
+    /**
+     * Permite a un usuario salirse voluntariamente de un grupo.
+     * Si el usuario tenía apuestas en el grupo, estas pueden o no eliminarse dependiendo de la regla de negocio.
+     * 
+     * @param id ID del grupo a abandonar.
+     * @param principal Identidad del usuario.
+     */
     @DeleteMapping("/{id}/leave")
     public ResponseEntity<?> leaveGroup(@PathVariable Long id, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
@@ -103,12 +161,23 @@ public class GroupController {
         return ResponseEntity.ok(Map.of("status", "success"));
     }
 
+    /**
+     * Listado de apuestas de un grupo exclusivo para la vista de Administración del Grupo.
+     * 
+     * @param id ID del grupo.
+     * @param principal Identidad del usuario (debe coincidir con el administrador del grupo).
+     * @return Lista de apuestas con datos adicionales de gestión.
+     */
     @GetMapping("/{id}/bets")
     public ResponseEntity<?> getGroupBetsAdmin(@PathVariable Long id, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.getGroupBetsForAdmin(id, principal.getName()));
     }
 
+    /**
+     * El administrador del grupo marca una apuesta como "Aceptada" o "Pagada" (PAID).
+     * Esto normalmente la hace visible en el leaderboard.
+     */
     @PutMapping("/{id}/bets/{betId}/accept")
     public ResponseEntity<?> acceptBetAdmin(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
@@ -117,12 +186,18 @@ public class GroupController {
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * El administrador del grupo revoca el estado de "Pagado" de una apuesta.
+     */
     @PutMapping("/{id}/bets/{betId}/reject")
     public ResponseEntity<?> rejectBet(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.toggleBetPaymentStatus(id, betId, principal.getName(), false));
     }
 
+    /**
+     * El administrador del grupo elimina una apuesta del grupo por ser inválida, morosa, etc.
+     */
     @DeleteMapping("/{id}/bets/{betId}")
     public ResponseEntity<?> deleteBetAdmin(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();

@@ -5,14 +5,25 @@ import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuración de la librería de migraciones de Base de Datos Flyway.
+ */
 @Configuration
 public class FlywayConfig {
 
+    /**
+     * Sobrescribe el comportamiento por defecto de Flyway.
+     * En caso de encontrar checksums inválidos por manipulación manual o cambios 
+     * abruptos en las migraciones en desarrollo, ejecuta un `repair()` antes de intentar migrar.
+     * Esto evita que la aplicación casque impidiendo el inicio de Spring Boot.
+     * 
+     * @return Estrategia personalizada de migración.
+     */
     @Bean
     public FlywayMigrationStrategy flywayMigrationStrategy() {
         return flyway -> {
-            flyway.repair();
-            flyway.migrate();
+            flyway.repair(); // Limpia la tabla interna de historial si encuentra inconsistencias
+            flyway.migrate(); // Aplica los scripts V1__, V2__ de db/migration/
         };
     }
 }

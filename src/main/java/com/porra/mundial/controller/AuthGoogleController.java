@@ -18,6 +18,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Controlador de Autenticación mediante Google OAuth2.
+ * Verifica los tokens generados en el frontend (React Google Login) 
+ * con la librería oficial de Google API Client para asegurar que son legítimos y no han sido falsificados.
+ */
 @RestController
 @RequestMapping("/api/auth/google")
 @RequiredArgsConstructor
@@ -39,6 +44,9 @@ public class AuthGoogleController {
     /**
      * Endpoint para iniciar sesión con Google.
      * Recibe el token de Google y el nombre de participante deseado (solo necesario la primera vez).
+     * 
+     * @param payload Contiene el "credential" (token de Google) y "participantName" (opcional).
+     * @return Token JWT propio de la app y datos básicos del usuario, o código 202 si necesita indicar su nombre.
      */
     @PostMapping("/login")
     public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> payload) {
@@ -46,7 +54,7 @@ public class AuthGoogleController {
         String requestedParticipantName = payload.get("participantName");
 
         try {
-            // 1. Verificar el token con la clave pública de Google
+            // 1. Verificar el token con la clave pública de Google (Previene suplantación de identidad)
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
@@ -75,9 +83,9 @@ public class AuthGoogleController {
                         "lastSelectedGroupId", acc.getLastSelectedGroupId() != null ? acc.getLastSelectedGroupId() : -1
                 ));
             } else {
-                // Usuario NUEVO: Necesitamos que nos diga qué nombre de participante quiere usar
+                // Usuario NUEVO: Necesitamos que nos diga qué nombre de participante quiere usar públicamente
                 if (requestedParticipantName == null || requestedParticipantName.trim().isEmpty()) {
-                    // Si no nos ha dicho nombre, le decimos al frontend que se lo pregunte
+                    // Si no nos ha dicho nombre, le decimos al frontend que se lo pregunte (Código 202 Accepted)
                     return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
                             "status", "requires_name",
                             "googleEmail", email,
@@ -99,16 +107,17 @@ public class AuthGoogleController {
                 }
 
                 // Comprobar si existe una cuenta legacy pendiente de reclamar para este nombre
+                // (Usuarios que estaban en la antigua BD sin email asociado)
                 java.util.Optional<UserAccount> legacyAccount = userAccountRepository.findByGoogleEmail(cleanName + "@auto.generated");
                 UserAccount finalAccount;
                 if (legacyAccount.isPresent()) {
-                    // Si es auto-generated, actualizamos su cuenta
+                    // Si es auto-generated, "reclamamos" su cuenta vinculándole el email y nombre real
                     finalAccount = legacyAccount.get();
                     finalAccount.setGoogleEmail(email);
                     finalAccount.setGoogleName(name);
                     userAccountRepository.save(finalAccount);
                 } else {
-                    // Crear nueva cuenta vinculada
+                    // Crear nueva cuenta completamente limpia
                     finalAccount = UserAccount.builder()
                             .googleEmail(email)
                             .googleName(name)
@@ -135,6 +144,7 @@ public class AuthGoogleController {
 
     /**
      * Endpoint público para que el frontend sepa qué nombres ya no se pueden elegir.
+     * @return Lista de nombres tomados.
      */
     @GetMapping("/claimed-names")
     public ResponseEntity<java.util.List<String>> getClaimedNames() {

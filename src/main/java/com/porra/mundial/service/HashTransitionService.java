@@ -11,6 +11,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 🔄 Servicio de Transición / Persistencia Compleja.
+ * Es el puente entre el JSON masivo (BetDataDTO) que envía React
+ * y las múltiples tablas normalizadas SQL en el Backend.
+ * 
+ * Se encarga de:
+ * 1. Leer el JSON.
+ * 2. Desglosarlo y guardarlo en BracketPrediction, GroupPrediction, ExtraPrediction.
+ * 3. Hacer el proceso inverso: Leer BD y ensamblar de nuevo el JSON para React.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -22,6 +32,9 @@ public class HashTransitionService {
     private final BracketPredictionRepository bracketPredictionRepository;
     private final ExtraPredictionRepository extraPredictionRepository;
 
+    /**
+     * Aplana un BetDataDTO a filas SQL y las inserta.
+     */
     @Transactional
     public void saveRelationalPredictions(Bet bet, BetDataDTO dto) {
         if (dto == null) return;
@@ -165,6 +178,10 @@ public class HashTransitionService {
         );
     }
 
+    /**
+     * Hace el proceso inverso. Lee las tablas normalizadas y ensambla
+     * el súper JSON estructurado que el frontend React necesita para renderizar.
+     */
     @Transactional(readOnly = true)
     public BetDataDTO rebuildBetDataDtoFromTables(Long betId) {
         BetDataDTO dto = new BetDataDTO();

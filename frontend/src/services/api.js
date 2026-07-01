@@ -4,10 +4,18 @@
  */
 const API_BASE = '/api';
 
+/**
+ * Obtiene el token de administrador (o de autenticación) del localStorage.
+ * @returns {string|null} Token JWT o null si no existe.
+ */
 export function getAdminToken() {
   return localStorage.getItem('adminToken') || window.adminToken || localStorage.getItem('token') || null;
 }
 
+/**
+ * Guarda el token de administrador en memoria y en localStorage.
+ * @param {string|null} token - El token a guardar.
+ */
 export function setAdminToken(token) {
   window.adminToken = token;
   if (token) {

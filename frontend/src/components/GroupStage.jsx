@@ -1,97 +1,19 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getCountryCode } from '../utils/constants';
+import CustomSelect from './CustomSelect';
 
-const CustomSelect = ({ value, options, onChange, placeholder }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const selectedOption = options.find(o => o.value === value);
-
-  return (
-    <div ref={dropdownRef} style={{ position: 'relative', flex: 1, zIndex: isOpen ? 1000 : 1 }}>
-      <div 
-        className="glass-input"
-        style={{ 
-          padding: '6px 8px', 
-          fontSize: '0.85rem', 
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          minHeight: '30px'
-        }}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flex: 1 }}>
-          {selectedOption ? (
-            <>
-              {selectedOption.value !== "" && <img src={`https://flagcdn.com/16x12/${getCountryCode(selectedOption.value)}.png`} alt="" style={{ width: '16px', height: '12px' }} />}
-              <span>{selectedOption.label}</span>
-            </>
-          ) : (
-            <span style={{ color: 'var(--text-muted)' }}>{placeholder}</span>
-          )}
-        </div>
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>▼</span>
-      </div>
-
-      {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          background: '#0f172a',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '8px',
-          marginTop: '4px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-          zIndex: 100,
-          overflow: 'hidden'
-        }}>
-          {options.map((opt, idx) => (
-            <div 
-              key={idx}
-              style={{
-                padding: '8px 10px',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                background: value === opt.value ? 'rgba(255,255,255,0.1)' : 'transparent',
-                borderBottom: idx < options.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-              onMouseLeave={(e) => {
-                if (value !== opt.value) e.currentTarget.style.background = 'transparent';
-              }}
-              onClick={() => {
-                onChange(opt.value);
-                setIsOpen(false);
-              }}
-            >
-              {opt.value !== "" && <img src={`https://flagcdn.com/16x12/${getCountryCode(opt.value)}.png`} alt="" style={{ width: '16px', height: '12px' }} />}
-              <span>{opt.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+/**
+ * Componente interactivo para que el usuario prediga la Fase de Grupos.
+ * Permite elegir 1º, 2º y hasta 8 equipos como los "Mejores Terceros".
+ * Persiste los datos en localStorage en caso de recarga o cierre.
+ *
+ * @component
+ * @param {Object} props
+ * @param {Object} props.groupOdds - Datos de los grupos y sus equipos.
+ * @param {Function} props.onComplete - Callback llamado cuando el usuario valida su fase de grupos.
+ * @param {string} props.activeGroupId - ID único del grupo (ej: 'draft_groups_peña1') para persistencia.
+ * @returns {JSX.Element} La pantalla de selección de grupos.
+ */
 export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
   const [selections, setSelections] = useState(() => {
     const saved = localStorage.getItem('draft_groups_' + activeGroupId);
@@ -101,18 +23,24 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
     const saved = localStorage.getItem('draft_advancing_' + activeGroupId);
     return saved ? JSON.parse(saved) : [];
   });
+  const [mobileStep, setMobileStep] = useState('groups'); // 'groups' | 'thirds'
 
+  /**
+   * Inicializa la estructura vacía de selecciones si aún no existe.
+   */
   useEffect(() => {
     if (Object.keys(selections).length === 0 && Object.keys(groupOdds).length > 0) {
       const initial = {};
       Object.keys(groupOdds).forEach(g => {
         initial[g] = { first: '', second: '', third: '' };
       });
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelections(initial);
     }
   }, [groupOdds, selections]);
 
+  /**
+   * Guarda los avances del usuario en LocalStorage para no perder progreso.
+   */
   useEffect(() => {
     if (Object.keys(selections).length > 0) {
       localStorage.setItem('draft_groups_' + activeGroupId, JSON.stringify(selections));
@@ -123,18 +51,24 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
     localStorage.setItem('draft_advancing_' + activeGroupId, JSON.stringify(advancingThirds));
   }, [advancingThirds, activeGroupId]);
 
+  /**
+   * Si el usuario desmarca a un tercero en un grupo, elimina a ese equipo de 
+   * la lista de "Mejores Terceros" seleccionados (advancingTieds).
+   */
   useEffect(() => {
     const currentThirds = Object.values(selections).map(g => g.third).filter(t => t !== '');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAdvancingThirds(prev => prev.filter(t => currentThirds.includes(t)));
   }, [selections]);
 
+  /**
+   * Maneja la selección de un equipo en un grupo y asegura que 
+   * no se pueda poner al mismo equipo en 1º y en 2º a la vez.
+   */
   const handleSelect = (group, pos, teamName) => {
     setSelections(prev => {
       const next = { ...prev };
       const currentGroup = { ...next[group] };
 
-      // Prevent duplicate selections in the same group
       if (teamName) {
         if (pos !== 'first' && currentGroup.first === teamName) currentGroup.first = '';
         if (pos !== 'second' && currentGroup.second === teamName) currentGroup.second = '';
@@ -147,6 +81,9 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
     });
   };
 
+  /**
+   * Agrega o quita un equipo a la lista final de 8 mejores terceros.
+   */
   const toggleAdvancingThird = (team) => {
     setAdvancingThirds(prev => {
       if (prev.includes(team)) return prev.filter(x => x !== team);
@@ -157,8 +94,10 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
 
   const selectedThirds = Object.values(selections).map(g => g.third).filter(t => t !== '');
 
+  /**
+   * Valida que todos los grupos tengan 1º y 2º, y que haya exactamente 8 terceros.
+   */
   const handleSubmit = () => {
-    // Validate
     const missingFirstsOrSeconds = [];
     Object.keys(selections).forEach(g => {
       if (!selections[g].first || !selections[g].second) {
@@ -186,7 +125,13 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
         <p style={{ color: 'var(--text-muted)' }}>Selecciona 1º y 2º en cada grupo. Puedes marcar todos los 3º que quieras, y luego elegir a los 8 mejores abajo.</p>
       </div>
 
-      <div className="groups-grid" style={{ marginBottom: '30px' }}>
+      {/* Pestañas para móvil */}
+      <div className="mb-tabs hide-on-desktop">
+        <button className={`mb-tab ${mobileStep === 'groups' ? 'mb-tab-active' : ''}`} onClick={() => setMobileStep('groups')}>Grupos</button>
+        <button className={`mb-tab ${mobileStep === 'thirds' ? 'mb-tab-active' : ''}`} onClick={() => setMobileStep('thirds')}>Mejores Terceros</button>
+      </div>
+
+      <div className={`groups-grid ${mobileStep === 'groups' ? '' : 'mobile-step-hidden'}`} style={{ marginBottom: '30px' }}>
         {Object.keys(groupOdds).sort().map((groupName, idx) => {
           const teams = groupOdds[groupName] || [];
           return (
@@ -252,8 +197,14 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
         })}
       </div>
 
-      <div style={{ padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>
-        <h3 style={{ textAlign: 'center', color: '#a29bfe', marginTop: 0 }}>Selecciona los 8 Mejores Terceros</h3>
+      {/* Botón Siguiente en móvil para pasar a terceros */}
+      <div className={`hide-on-desktop ${mobileStep === 'groups' ? '' : 'mobile-step-hidden'}`} style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <button className="glass-btn primary-btn" onClick={() => { window.scrollTo({top:0}); setMobileStep('thirds'); }}>Continuar a Mejores Terceros ➡️</button>
+      </div>
+
+      <div className={mobileStep === 'thirds' ? '' : 'mobile-step-hidden'}>
+        <div style={{ padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <h3 style={{ textAlign: 'center', color: '#a29bfe', marginTop: 0 }}>Selecciona los 8 Mejores Terceros</h3>
         <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
           Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los 8 que pasarán a octavos de final (<strong style={{ color: advancingThirds.length === 8 ? '#00b894' : '#ff4757' }}>{advancingThirds.length}/8</strong>).
         </p>
@@ -299,6 +250,7 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
         {advancingThirds.length !== 8 && (
           <p style={{ color: '#ff4757', fontSize: '0.9rem', marginTop: '10px' }}>Selecciona exactamente 8 terceros para continuar.</p>
         )}
+      </div>
       </div>
 
     </div>

@@ -33,6 +33,12 @@ class StandingsControllerTest {
     @MockBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
+    @MockBean
+    private com.porra.mundial.repository.BetRepository betRepository;
+
+    @MockBean
+    private com.porra.mundial.service.BetService betService;
+
     @Test
     void getStandings_ReturnsGroupedStandingsMap() throws Exception {
         Map<String, Map<String, Map<String, Integer>>> responseMap = new HashMap<>();

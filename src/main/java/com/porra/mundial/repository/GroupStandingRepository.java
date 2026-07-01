@@ -7,21 +7,29 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 🗄️ Repositorio de la Clasificación de Grupos
- * Aquí guardamos y leemos cuántos puntos, goles a favor, etc., tiene cada equipo.
+ * 🗄️ Repositorio de la Clasificación de Grupos.
+ * Aquí guardamos y leemos cuántos puntos, goles a favor, etc., tiene cada equipo oficialmente.
  */
 @Repository
 public interface GroupStandingRepository extends JpaRepository<GroupStanding, Long> {
     
-    // "Dame todos los datos de un grupo concreto (ej. 'A')"
+    /**
+     * "Dame todos los datos de un grupo concreto (ej. 'A')"
+     */
     List<GroupStanding> findByGroupName(String groupName);
     
-    // "Dame la clasificación de todo el Mundial, ordenada por grupos de la A a la L"
+    /**
+     * "Dame la clasificación de todo el Mundial, ordenada por grupos de la A a la L"
+     */
     List<GroupStanding> findAllByOrderByGroupNameAsc();
     
-    // "Búscame los puntos exactos de un equipo (por su ID) en su grupo"
+    /**
+     * "Búscame los puntos exactos de un equipo (por su ID) en su grupo"
+     */
     Optional<GroupStanding> findByTeamIdAndGroupName(Long teamId, String groupName);
     
-    // "Borra la clasificación antigua de un grupo (se usa cuando resincronizamos con la API)"
+    /**
+     * "Borra la clasificación antigua de un grupo (se usa cuando resincronizamos con la API)"
+     */
     void deleteByGroupName(String groupName);
 }

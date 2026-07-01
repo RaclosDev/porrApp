@@ -3,6 +3,17 @@ import { createPortal } from 'react-dom';
 import Flag from './Flag';
 import { openStats } from '../utils/navigation';
 
+/**
+ * Modal flotante que muestra la lista de partidos de un grupo específico.
+ * Utiliza React Portal para renderizarse fuera del árbol DOM principal.
+ *
+ * @component
+ * @param {Object} props
+ * @param {Object} props.selectedGroup - Datos del grupo seleccionado (ej: { name: 'A', teams: [...] }).
+ * @param {Array} props.allGames - Lista de todos los partidos del mundial.
+ * @param {Function} props.onClose - Función para cerrar el modal.
+ * @returns {JSX.Element|null} El modal renderizado mediante Portal, o null si no hay grupo seleccionado.
+ */
 const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
     if (!selectedGroup) return null;
 

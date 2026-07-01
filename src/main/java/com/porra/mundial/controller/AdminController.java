@@ -14,6 +14,11 @@ import com.porra.mundial.dto.BetDataDTO;
 import org.springframework.web.bind.annotation.RequestBody;
 import java.util.Map;
 
+/**
+ * Controlador REST para utilidades genéricas de administración.
+ * Permite inspeccionar los usuarios registrados, forzar la sincronización con ESPN, 
+ * y manipular el resultado Oficial del Mundial que sirve como base para evaluar a los participantes.
+ */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -23,20 +28,34 @@ public class AdminController {
     private final UserAccountRepository userAccountRepository;
     private final BetService betService;
 
+    /**
+     * Endpoint para obtener el listado completo de cuentas de usuario del sistema.
+     * 
+     * @return Una lista JSON de UserAccount.
+     */
     @GetMapping("/users")
     public ResponseEntity<?> getAllUsers() {
         return ResponseEntity.ok(userAccountRepository.findAll());
     }
 
-
-
-    // 🔄 Botón de refresco manual de resultados
+    /**
+     * Botón de emergencia para forzar un refresco manual de los resultados conectándose
+     * a la API de ESPN y actualizando todas las clasificaciones de forma síncrona.
+     * 
+     * @return Una cadena confirmando la actualización o el error producido.
+     */
     @PostMapping("/sync/refresh")
     public ResponseEntity<?> forceSync() {
         return ResponseEntity.ok(syncService.syncAll());
     }
 
-    // Endpoint for updating official results
+    /**
+     * Actualiza y sobrescribe de forma manual el cuadro "Oficial" del campeonato.
+     * Convierte los datos enviados en un objeto Bet vinculado al usuario "Admin".
+     * 
+     * @param body El estado del bracket oficial desde la UI de administrador (BetDataDTO).
+     * @return Información de la apuesta/cuadro oficial guardada.
+     */
     @PostMapping("/official")
     public ResponseEntity<?> updateOfficialResults(@RequestBody BetDataDTO body) {
         return ResponseEntity.ok(betService.createBet("Admin", "official", body, null));

@@ -1,5 +1,12 @@
 import { useAppContext } from '../context/AppContext';
 
+/**
+ * Vista estática de las Reglas y Puntuaciones de la porra.
+ * Muestra el bote acumulado basado en el número de participantes.
+ *
+ * @component
+ * @returns {JSX.Element} Vista con las reglas del juego.
+ */
 function Rules() {
   const { participantsHashes } = useAppContext();
   

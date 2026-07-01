@@ -11,6 +11,27 @@ export default defineConfig({
       devOptions: {
         enabled: true
       },
+      workbox: {
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/flagcdn\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'flagcdn-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      },
       manifest: {
         name: 'Mundial 2026 Porra',
         short_name: 'La Porra',

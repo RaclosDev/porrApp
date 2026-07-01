@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.dto.MatchResponseDTO;
 import com.porra.mundial.service.MatchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -9,8 +10,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 🏟️ Controlador de Partidos
- * Aquí le mandamos a la web toda la información sobre qué equipos juegan, cuándo, y cómo van.
+ * Controlador REST para los Partidos Oficiales (Matches).
+ * Exposición de solo-lectura de la base de datos de partidos sincronizada desde la API de ESPN.
+ * Usado por la aplicación React para pintar los resultados reales en la interfaz.
  */
 @RestController
 @RequestMapping("/api/matches")
@@ -20,70 +22,68 @@ public class MatchController {
     private final MatchService matchService;
 
     /**
-     * 📅 GET /api/matches
-     * Devuelve tooodos los partidos del Mundial de golpe.
+     * @return Todos los partidos de la base de datos.
      */
     @GetMapping
-    public List<Map<String, Object>> getAllMatches() {
+    public List<MatchResponseDTO> getAllMatches() {
         return matchService.getAllMatches().stream()
-                .map(matchService::toMatchDto)
+                .map(MatchResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
     /**
-     * 🚨 GET /api/matches/live
-     * La web nos pregunta: "¿Hay algún partido jugándose AHORA MISMO?"
-     * Útil para poner el cartelito de "En Directo" parpadeando.
+     * @return Los partidos que se están jugando en este momento exacto.
      */
     @GetMapping("/live")
-    public List<Map<String, Object>> getLiveMatches() {
+    public List<MatchResponseDTO> getLiveMatches() {
         return matchService.getLiveMatches().stream()
-                .map(matchService::toMatchDto)
+                .map(MatchResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
     /**
-     * ⏪ GET /api/matches/last
-     * Pide los últimos X partidos que acaban de terminar (por defecto 5).
+     * @param limit Número máximo de partidos a devolver.
+     * @return Los últimos N partidos que ya han finalizado.
      */
     @GetMapping("/last")
-    public List<Map<String, Object>> getLastMatches(@RequestParam(defaultValue = "5") int limit) {
+    public List<MatchResponseDTO> getLastMatches(@RequestParam(defaultValue = "5") int limit) {
         return matchService.getLastMatches(limit).stream()
-                .map(matchService::toMatchDto)
+                .map(MatchResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
     /**
-     * ⏩ GET /api/matches/next
-     * Pide los próximos X partidos que se van a jugar (por defecto 5).
+     * @param limit Número máximo de partidos a devolver.
+     * @return Los próximos N partidos agendados en el calendario.
      */
     @GetMapping("/next")
-    public List<Map<String, Object>> getNextMatches(@RequestParam(defaultValue = "5") int limit) {
+    public List<MatchResponseDTO> getNextMatches(@RequestParam(defaultValue = "5") int limit) {
         return matchService.getNextMatches(limit).stream()
-                .map(matchService::toMatchDto)
+                .map(MatchResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
     /**
-     * 🔠 GET /api/matches/group/{group}
-     * Devuelve solo los partidos de un grupo concreto (ej. 'A').
+     * @param group La letra del grupo (Ej: "A").
+     * @return Partidos pertenecientes a un grupo de la fase de grupos.
      */
     @GetMapping("/group/{group}")
-    public List<Map<String, Object>> getGroupMatches(@PathVariable String group) {
+    public List<MatchResponseDTO> getGroupMatches(@PathVariable String group) {
         return matchService.getMatchesByGroup(group.toUpperCase()).stream()
-                .map(matchService::toMatchDto)
+                .map(MatchResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
     /**
-     * GET /api/matches/radar - Combined live/last/next for the Match Radar
+     * Agregador conveniente para la pantalla de inicio del Frontend ("El Radar").
+     * @return Mapa combinado con partidos en vivo, finalizados recientemente y los próximos.
      */
     @GetMapping("/radar")
-    public Map<String, Object> getMatchRadar() {
-        Map<String, Object> radar = new java.util.LinkedHashMap<>();
-        radar.put("live", matchService.getLiveMatches().stream().map(matchService::toMatchDto).collect(Collectors.toList()));
-        radar.put("last", matchService.getLastMatches(5).stream().map(matchService::toMatchDto).collect(Collectors.toList()));
-        radar.put("next", matchService.getNextMatches(5).stream().map(matchService::toMatchDto).collect(Collectors.toList()));
+    public Map<String, List<MatchResponseDTO>> getMatchRadar() {
+        Map<String, List<MatchResponseDTO>> radar = new java.util.LinkedHashMap<>();
+        radar.put("live", matchService.getLiveMatches().stream().map(MatchResponseDTO::fromEntity).collect(Collectors.toList()));
+        radar.put("last", matchService.getLastMatches(5).stream().map(MatchResponseDTO::fromEntity).collect(Collectors.toList()));
+        radar.put("next", matchService.getNextMatches(5).stream().map(MatchResponseDTO::fromEntity).collect(Collectors.toList()));
         return radar;
     }
 }
