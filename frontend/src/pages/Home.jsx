@@ -6,12 +6,29 @@ import { fetchTopScorers } from '../services/api';
 import Flag from '../components/Flag';
 import GroupMatchesModal from '../components/GroupMatchesModal';
 import OfficialBracket from './OfficialBracket';
+import BestThirdsPanel from '../components/Home/BestThirdsPanel';
+import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
+import TopScorersPanel from '../components/Home/TopScorersPanel';
 
-function Home() {
+/**
+ * Componente de la página principal (Home).
+ * Muestra el estado actual del torneo oficial, la clasificación por grupos en vivo,
+ * los mejores terceros, partidos en directo y la tabla de goleadores.
+ * Permite alternar entre la vista de fase de grupos y la vista de bracket eliminatorio oficial.
+ *
+ * @component
+ * @returns {JSX.Element} La página de inicio renderizada.
+ */
+function Home({ defaultMode = 'bracket', hideToggle = false }) {
   const { groupOdds, officialPoints, allGames, nameToIdMap, loading, matchRadar } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [topScorers, setTopScorers] = useState([]);
-  const [viewMode, setViewMode] = useState('groups');
+  const [viewMode, setViewMode] = useState(defaultMode);
+  const [activeMobilePanel, setActiveMobilePanel] = useState(null); // null, 'thirds', 'live', 'scorers'
+
+  useEffect(() => {
+    setViewMode(defaultMode);
+  }, [defaultMode]);
   const [imgErrors, setImgErrors] = useState({});
 
   useEffect(() => {
@@ -20,46 +37,7 @@ function Home() {
 
   if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando grupos...</div>;
 
-  const liveMatches = matchRadar?.live || [];
 
-  const renderLiveMatch = (m) => {
-    const d = new Date(m.date);
-    const dateFormatted = `${d.getDate()}/${d.getMonth()+1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-    const hasStarted = new Date() >= d;
-
-    return (
-      <div key={m.id} className="last-match-card">
-        <div className="last-match-date">
-            {hasStarted ? '🔴' : '⏳'} {hasStarted ? (m.displayClock || 'EN JUEGO') : dateFormatted}
-        </div>
-        <div className="last-match-teams" style={{ margin: 'auto 0' }}>
-          <div className="last-match-team">
-            <Flag team={m.home} />
-            <span>{m.home}</span>
-          </div>
-          
-          <div className="last-match-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {hasStarted ? (
-                <span className="last-match-score">{m.homeScore} - {m.awayScore}</span>
-            ) : (
-                <span style={{ fontSize: '0.9em', color: 'var(--text-muted)', fontWeight: 'bold' }}>VS</span>
-            )}
-          </div>
-
-          <div className="last-match-team away">
-            <Flag team={m.away} />
-            <span>{m.away}</span>
-          </div>
-        </div>
-        
-        <div style={{ textAlign: 'center' }}>
-            <button onClick={() => openStats(m.home, m.away)} style={{ background: '#1e272e', color: '#00d2d3', border: '1px solid rgba(0,210,211,0.3)', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-              <span>📊</span> Ver Estadísticas
-            </button>
-        </div>
-      </div>
-    );
-  };
 
   const renderGroup = (groupName, teams) => {
     // Map with stats
@@ -99,19 +77,15 @@ function Home() {
           </div>
           {teamsWithStats.map((team, idx) => {
             let statusDot = null;
-            let blueDot = null;
-            if (team.stats.status >= 1 && team.stats.status <= 4) {
-              statusDot = <span title="Posición Matemática Fija" style={{marginLeft: '5px', fontSize: '0.85em', flexShrink: 0}}>📌</span>;
-            }
             if (team.stats.status === 5) {
-              blueDot = <div title="Clasificado Matemáticamente" style={{ width: '6px', height: '6px', background: '#3498db', borderRadius: '50%', marginLeft: '6px', flexShrink: 0, boxShadow: '0 0 5px rgba(52,152,219,0.8)', display: 'inline-block' }}></div>;
+              statusDot = <div title="Clasificado Matemáticamente" style={{ width: '6px', height: '6px', background: '#3498db', borderRadius: '50%', marginLeft: '5px', flexShrink: 0, boxShadow: '0 0 5px rgba(52,152,219,0.8)' }}></div>;
             }
 
             return (
             <div key={team.name} className="group-slot">
               <span style={{ fontWeight: 'bold', width: '20px', flexShrink: 0 }}>{idx + 1}.</span>
             <Flag team={team.name} size="16x12" style={{ marginRight: '8px' }} />
-              <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{team.name}{blueDot}{statusDot}</span>
+              <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{team.name}{statusDot}</span>
               <div style={{ display: 'flex', gap: '8px', fontSize: '0.85em', alignItems: 'center' }}>
                 <span style={{ width: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>{team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}</span>
                 <span style={{ width: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>{team.stats.gls}</span>
@@ -127,295 +101,55 @@ function Home() {
   return (
     <section id="view-home" className="view-section" style={{ display: 'block' }}>
 
-        {viewMode === 'bracket' && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 0 }}>
-                <div className="section-header" style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center', marginBottom: 0 }}>
-                    <button
-                        onClick={() => setViewMode('groups')}
-                        className="glass-btn"
-                        style={{
-                            padding: '8px 20px',
-                            fontWeight: 'bold',
-                            fontSize: '0.95rem',
-                            background: viewMode === 'groups' ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
-                            border: viewMode === 'groups' ? '1px solid #00d2d3' : '1px solid var(--border-color)',
-                            color: viewMode === 'groups' ? '#00d2d3' : 'var(--text-muted)',
-                            cursor: 'pointer',
-                            borderRadius: '8px',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        Grupos
-                    </button>
-                    <button
-                        onClick={() => setViewMode('bracket')}
-                        className="glass-btn"
-                        style={{
-                            padding: '8px 20px',
-                            fontWeight: 'bold',
-                            fontSize: '0.95rem',
-                            background: viewMode === 'bracket' ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
-                            border: viewMode === 'bracket' ? '1px solid #00d2d3' : '1px solid var(--border-color)',
-                            color: viewMode === 'bracket' ? '#00d2d3' : 'var(--text-muted)',
-                            cursor: 'pointer',
-                            borderRadius: '8px',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        Bracket
-                    </button>
-                </div>
-            </div>
-        )}
+
+        {/* Pestañas y paneles de móvil (sólo en modo grupos) */}
         {viewMode === 'groups' && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', marginBottom: '20px', width: '100%', gap: '20px' }}>
-            <div style={{ flex: 1, minWidth: 'min(100%, 380px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }} className="hide-on-mobile">
-                {(() => {
-                    if (!officialPoints || Object.keys(officialPoints).length === 0) return null;
-                    
-                    const thirds = [];
-                    Object.keys(officialPoints).forEach(groupName => {
-                        const teamsWithStats = Object.keys(officialPoints[groupName]).map(teamName => ({
-                            name: teamName,
-                            ...officialPoints[groupName][teamName]
-                        }));
-                        
-                        teamsWithStats.sort((a, b) => compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap));
-
-                        if (teamsWithStats.length >= 3) {
-                            thirds.push({ group: groupName, ...teamsWithStats[2] });
-                        }
-                    });
-
-                    thirds.sort((a, b) => {
-                        if (b.pts !== a.pts) return b.pts - a.pts;
-                        if (b.diff !== a.diff) return b.diff - a.diff;
-                        if (b.gls !== a.gls) return b.gls - a.gls;
-
-                        const fpA = a.fp || 0;
-                        const fpB = b.fp || 0;
-                        if (fpB !== fpA) return fpB - fpA;
-
-                        return a.name.localeCompare(b.name);
-                    });
-
-                    return (
-                        <div style={{ width: '100%', maxWidth: '580px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ textAlign: 'center', color: '#00cec9', fontSize: '1rem', fontWeight: 'bold', padding: '6px', background: 'rgba(0, 206, 201, 0.1)', border: '1px solid rgba(0, 206, 201, 0.3)', borderRadius: '12px' }}>
-                                🥉 MEJORES TERCEROS
-                            </div>
-                            <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', padding: '10px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                                    
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px 28px', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>
-                                            <span>#</span><span style={{ textAlign: 'left' }}>Equipo</span><span>PT</span><span>DF</span><span title="Fair Play">FP</span>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            {thirds.slice(0, 6).map((t, idx) => {
-                                                const globalIdx = idx;
-                                                const isTop8 = globalIdx < 8;
-                                                const rank = globalIdx + 1;
-                                                
-                                                return (
-                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px 28px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem' }}>
-                                                        <span style={{ color: isTop8 ? '#00b894' : 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>{rank}</span>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                                                            <Flag team={t.name} style={{ borderRadius: '2px', flexShrink: 0 }} />
-                                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-                                                        </div>
-                                                        <span style={{ fontWeight: 'bold', textAlign: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: '4px' }}>{t.pts}</span>
-                                                        <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{t.diff > 0 ? `+${t.diff}` : t.diff}</span>
-                                                        <span style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{t.fp || 0}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px 28px', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>
-                                            <span>#</span><span style={{ textAlign: 'left' }}>Equipo</span><span>PT</span><span>DF</span><span title="Fair Play">FP</span>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            {thirds.slice(6, 12).map((t, idx) => {
-                                                const globalIdx = idx + 6;
-                                                const hasPlayed = t.mp > 0;
-                                                const isTop8 = hasPlayed && globalIdx < 8;
-                                                const rank = hasPlayed ? globalIdx + 1 : '-';
-                                                
-                                                return (
-                                                    <div key={t.name} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 25px 30px 28px', gap: '6px', padding: '5px 0', alignItems: 'center', fontSize: '0.85rem', borderBottom: globalIdx === 7 ? '2px dashed rgba(255, 71, 87, 0.5)' : 'none', opacity: isTop8 ? 1 : (hasPlayed ? 0.5 : 0.3) }}>
-                                                        <span style={{ color: isTop8 ? '#00b894' : 'var(--text-muted)', fontWeight: 'bold', textAlign: 'center' }}>{rank}</span>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                                                            <Flag team={t.name} style={{ borderRadius: '2px', flexShrink: 0 }} />
-                                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-                                                        </div>
-                                                        <span style={{ fontWeight: 'bold', textAlign: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: '4px' }}>{t.pts}</span>
-                                                        <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{t.diff > 0 ? `+${t.diff}` : t.diff}</span>
-                                                        <span style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{t.fp || 0}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })()}
+          <>
+            <div className="mb-tabs hide-on-desktop" style={{ width: '100%', maxWidth: '420px', margin: '0 auto 20px auto', justifyContent: 'center' }}>
+              <button
+                className={`mb-tab ${activeMobilePanel === 'thirds' ? 'mb-tab-active' : ''}`}
+                onClick={() => setActiveMobilePanel(p => p === 'thirds' ? null : 'thirds')}
+                style={{ flex: 1, textAlign: 'center', ...(activeMobilePanel === 'thirds' ? { background: 'rgba(0, 206, 201, 0.18)', borderColor: '#00cec9', color: '#00cec9', boxShadow: '0 0 14px rgba(0, 206, 201, 0.25)' } : {}) }}
+              >🥉 Terceros</button>
+              <button
+                className={`mb-tab ${activeMobilePanel === 'live' ? 'mb-tab-active' : ''}`}
+                onClick={() => setActiveMobilePanel(p => p === 'live' ? null : 'live')}
+                style={{ flex: 1, textAlign: 'center', ...(activeMobilePanel === 'live' ? { background: 'rgba(255, 71, 87, 0.18)', borderColor: '#ff4757', color: '#ff4757', boxShadow: '0 0 14px rgba(255, 71, 87, 0.25)' } : {}) }}
+              >🔴 Partidos</button>
+              <button
+                className={`mb-tab ${activeMobilePanel === 'scorers' ? 'mb-tab-active' : ''}`}
+                onClick={() => setActiveMobilePanel(p => p === 'scorers' ? null : 'scorers')}
+                style={{ flex: 1, textAlign: 'center', ...(activeMobilePanel === 'scorers' ? { background: 'rgba(255, 211, 42, 0.18)', borderColor: '#ffd32a', color: '#ffd32a', boxShadow: '0 0 14px rgba(255, 211, 42, 0.25)' } : {}) }}
+              >🏆 Pichichi</button>
             </div>
 
-            <div style={{ flex: 1, minWidth: 'min(100%, 350px)', maxWidth: '600px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div className="section-header" style={{ marginBottom: '15px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
-                    <button
-                        onClick={() => setViewMode('groups')}
-                        className="glass-btn"
-                        style={{
-                            padding: '8px 20px',
-                            fontWeight: 'bold',
-                            fontSize: '0.95rem',
-                            background: viewMode === 'groups' ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
-                            border: viewMode === 'groups' ? '1px solid #00d2d3' : '1px solid var(--border-color)',
-                            color: viewMode === 'groups' ? '#00d2d3' : 'var(--text-muted)',
-                            cursor: 'pointer',
-                            borderRadius: '8px',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        Grupos
-                    </button>
-                    <button
-                        onClick={() => setViewMode('bracket')}
-                        className="glass-btn"
-                        style={{
-                            padding: '8px 20px',
-                            fontWeight: 'bold',
-                            fontSize: '0.95rem',
-                            background: viewMode === 'bracket' ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
-                            border: viewMode === 'bracket' ? '1px solid #00d2d3' : '1px solid var(--border-color)',
-                            color: viewMode === 'bracket' ? '#00d2d3' : 'var(--text-muted)',
-                            cursor: 'pointer',
-                            borderRadius: '8px',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        Bracket
-                    </button>
-                </div>
-                
-                {liveMatches.length > 0 ? (() => {
-                    const isActuallyLive = liveMatches.some(m => new Date(m.date) <= new Date());
-                    return (
-                        <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ 
-                                textAlign: 'center', 
-                                color: isActuallyLive ? '#ff4757' : '#ffa502', 
-                                fontSize: '1rem', 
-                                fontWeight: 'bold', 
-                                padding: '6px', 
-                                background: isActuallyLive ? 'rgba(255, 71, 87, 0.1)' : 'rgba(255, 165, 2, 0.1)', 
-                                border: isActuallyLive ? '1px solid rgba(255, 71, 87, 0.3)' : '1px solid rgba(255, 165, 2, 0.3)', 
-                                borderRadius: '12px' 
-                            }}>
-                                {isActuallyLive ? '🔴 EN DIRECTO' : '⏳ A PUNTO DE COMENZAR'}
-                            </div>
-                            <div className="last-matches-grid" style={{ gridTemplateColumns: '1fr' }}>
-                                {liveMatches.map(m => renderLiveMatch(m))}
-                            </div>
-                        </div>
-                    );
-                })() : (() => {
-                    const next = (matchRadar?.next || [])[0];
-                    if (!next) return null;
-                    const d = new Date(next.date);
-                    const dateFormatted = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-                    return (
-                        <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ textAlign: 'center', color: '#a29bfe', fontSize: '1rem', fontWeight: 'bold', padding: '6px', background: 'rgba(162, 155, 254, 0.1)', border: '1px solid rgba(162, 155, 254, 0.3)', borderRadius: '12px' }}>
-                                ⏳ PRÓXIMO PARTIDO
-                            </div>
-                            <div className="last-match-card">
-                                <div className="last-match-date">🕒 {dateFormatted}</div>
-                                <div className="last-match-teams" style={{ margin: 'auto 0' }}>
-                                    <div className="last-match-team"><Flag team={next.home} /> <span>{next.home}</span></div>
-                                    <div className="last-match-center"><span style={{ fontSize: '0.9em', color: 'var(--text-muted)', fontWeight: 'bold' }}>VS</span></div>
-                                    <div className="last-match-team away"><Flag team={next.away} /> <span>{next.away}</span></div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })()}
+            <div className="hide-on-desktop" style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              <div className={activeMobilePanel === 'thirds' ? '' : 'mobile-step-hidden'}>
+                <BestThirdsPanel officialPoints={officialPoints} allGames={allGames} nameToIdMap={nameToIdMap} />
+              </div>
+              <div className={activeMobilePanel === 'live' ? '' : 'mobile-step-hidden'}>
+                <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} />
+              </div>
+              <div className={activeMobilePanel === 'scorers' ? '' : 'mobile-step-hidden'}>
+                <TopScorersPanel topScorers={topScorers} />
+              </div>
             </div>
+          </>
+        )}
 
-            <div style={{ flex: 1, minWidth: 'min(100%, 380px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', marginBottom: '20px' }} className="pichichi-mobile-center">
-                <div style={{ width: '100%', maxWidth: '580px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ textAlign: 'center', color: '#ffd32a', fontSize: '1rem', fontWeight: 'bold', padding: '6px', background: 'rgba(255, 211, 42, 0.1)', border: '1px solid rgba(255, 211, 42, 0.3)', borderRadius: '12px' }}>
-                        🏆 PICHICHI
-                    </div>
-                    {(() => {
-                        if (!topScorers || topScorers.length === 0) {
-                            return <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px', fontSize: '0.9rem' }}>Cargando...</div>;
-                        }
-
-                        const maxGoals = topScorers[0].goals;
-
-                        const left = topScorers.slice(0, 3);
-                        const right = topScorers.slice(3, 6);
-
-                        const uniqueGoals = [...new Set(topScorers.slice(0, 6).map(s => s.goals))];
-                        const getMedal = (goals, idx) => {
-                            const rank = uniqueGoals.indexOf(goals);
-                            if (rank === 0) return '👑';
-                            if (rank === 1) return '🥈';
-                            if (rank === 2) return '🥉';
-                            return idx + 1;
-                        };
-
-                        const renderScorer = (s, idx) => {
-                            const isLeader = s.goals === maxGoals;
-                            const isVinicius = (s.name || s.shortName || '').toLowerCase().includes('vinicius') || (s.shortName || s.name || '').toLowerCase().includes('viní') || (s.shortName || s.name || '').includes('V. Júnior') || (s.shortName || s.name || '').includes('V. Junior');
-                            const imageUrl = isVinicius ? 'https://r2.thesportsdb.com/images/media/player/cartoon/vq5z4u1771264896.png' : s.imageUrl;
-                            const medal = getMedal(s.goals, idx);
-                            
-                            return (
-                                <div key={s.playerId || idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderBottom: 'none' }}>
-                                    <span style={{ width: '22px', textAlign: 'center', fontWeight: 'bold', color: isLeader ? '#ffd32a' : 'var(--text-muted)', fontSize: '1rem', flexShrink: 0 }}>{medal}</span>
-                                    <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        {imageUrl && !imgErrors[s.playerId] ? (
-                                            <div style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-                                                <img src={imageUrl} alt="" style={{ width: 'auto', height: '200%', maxWidth: 'none' }} onError={() => setImgErrors(prev => ({...prev, [s.playerId]: true}))} />
-                                            </div>
-                                        ) : (
-                                            <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#ffd32a' }}>{(s.shortName || s.name || '?')[0].toUpperCase()}</span>
-                                        )}
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Flag team={s.team} style={{ borderRadius: '2px', flexShrink: 0, width: '18px' }} />
-                                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.shortName || s.name}</div>
-                                    </div>
-                                    <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: isLeader ? '#ffd32a' : 'var(--text-main)', minWidth: '24px', textAlign: 'right' }}>{s.goals}</div>
-                                </div>
-                            );
-                        };
-
-                        return (
-                            <div className="glass-panel" style={{ padding: '10px', borderRadius: '16px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        {left.map((s, idx) => renderScorer(s, idx))}
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        {right.map((s, idx) => renderScorer(s, idx + 3))}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })()}
-                </div>
-            </div>
-        </div>
+        {/* Paneles desktop (siempre visibles, solo en groups) */}
+        {viewMode === 'groups' && (
+          <div className="hide-on-mobile" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', marginBottom: '20px', width: '100%', gap: '20px' }}>
+              <div style={{ flex: 1, minWidth: 'min(100%, 380px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+                  <BestThirdsPanel officialPoints={officialPoints} allGames={allGames} nameToIdMap={nameToIdMap} />
+              </div>
+              <div style={{ flex: 1, minWidth: 'min(100%, 350px)', maxWidth: '600px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} />
+              </div>
+              <div style={{ flex: 1, minWidth: 'min(100%, 380px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }} className="pichichi-mobile-center">
+                  <TopScorersPanel topScorers={topScorers} />
+              </div>
+          </div>
         )}
 
         {viewMode === 'groups' ? (

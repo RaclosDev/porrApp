@@ -16,9 +16,9 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
- * 🎫 Controlador de Apuestas
- * Es la puerta de entrada para todo lo relacionado con enviar porras.
- * Recibe los datos desde la web y los manda al BetService para que los procese.
+ * 🎫 Controlador REST Principal para las Apuestas (Porras).
+ * Constituye el puente entre la interfaz de usuario de React y la lógica de negocio en el Backend.
+ * Permite listar, crear, modificar y eliminar las apuestas de los usuarios.
  */
 @RestController
 @RequestMapping("/api/bets")
@@ -30,20 +30,32 @@ public class BetController {
 
     /**
      * 📥 GET /api/bets
-     * La web nos pide la lista de todas las porras que hay guardadas.
-     * Nosotros se la mandamos traducida a un JSON que su Javascript entienda.
+     * Recupera todas las apuestas almacenadas en la base de datos.
+     * Si se le pasa el query param `groupId`, devuelve únicamente las apuestas pertenecientes a ese grupo específico.
+     * 
+     * @param groupId (Opcional) El ID del grupo para filtrar las apuestas.
+     * @return Una lista de apuestas formateadas como BetResponseDTO para la vista de la web.
      */
     @GetMapping
     public List<BetResponseDTO> getAllBets(@RequestParam(required = false) Long groupId) {
         List<Bet> bets;
         if (groupId != null) {
+            // Filtro por grupo (ej: Grupo de amigos de Carlos)
             bets = betService.getBetsByGroupId(groupId);
         } else {
+            // Sin filtro: trae todas las apuestas del sistema (Comportamiento legacy / Admin)
             bets = betService.getAllBets();
         }
         return betService.toBetDtoList(bets);
     }
 
+    /**
+     * 📥 GET /api/bets/mine
+     * Recupera exclusivamente las apuestas creadas por el usuario que hace la petición.
+     * Lee la identidad automáticamente a través del Token JWT verificado.
+     * 
+     * @return Lista de BetResponseDTO pertenecientes al usuario conectado.
+     */
     @GetMapping("/mine")
     public List<BetResponseDTO> getMyBets() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -52,20 +64,23 @@ public class BetController {
 
     /**
      * 📤 POST /api/bets
-     * ¡Alguien le ha dado al botón "Enviar Porra"!
-     * Recibimos el Nombre del participante y su predicción comprimida en "hash".
+     * Endpoint crítico activado al pulsar "Enviar Porra" en la interfaz.
+     * Guarda la predicción completa de un usuario en un grupo determinado.
+     * 
+     * @param body Payload JSON validado con el objeto DTO contenedor de toda la estructura de la porra.
+     * @param groupId ID del grupo en el que participa la apuesta.
+     * @return Objeto JSON con el estado de creación y el ID asignado a la nueva apuesta.
      */
     @PostMapping
     public ResponseEntity<Map<String, Object>> createBet(@Valid @RequestBody BetDataDTO body, @RequestParam(required = false) Long groupId) {
-        // Extraemos el email directamente del token JWT verificado
+        // Obtenemos el email directamente del contexto de Spring Security para garantizar identidad
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         String betName = body.getBet();
 
-        // We already receive groupId via @RequestParam, no need to parse from body
-
-        // Si todo está bien, guardamos la porra
+        // Creamos la apuesta y todo su árbol de predicciones (Bracket, Groups, Extras) a través del BetService
         Bet bet = betService.createBet(email, betName != null ? betName : body.getUser(), body, groupId);
 
+        // Notifica por WebSocket a todos los clientes que hay una nueva apuesta (actualiza vistas en tiempo real)
         webSocketService.invalidateAndNotify();
 
         return ResponseEntity.ok(Map.of(
@@ -78,7 +93,12 @@ public class BetController {
 
     /**
      * ✏️ PUT /api/bets/{id}
-     * El admin quiere editar a mano el nombre o la apuesta de una porra en concreto.
+     * Permite a un administrador modificar o sobreescribir la predicción de una apuesta existente
+     * en caso de algún error técnico (por ejemplo, si el usuario la mandó mal y pidió corrección).
+     * 
+     * @param id Identificador de la apuesta en base de datos.
+     * @param body Payload JSON actualizado de la apuesta.
+     * @return OK si fue actualizada con éxito.
      */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateBet(@PathVariable Long id, @Valid @RequestBody BetDataDTO body) {
@@ -87,8 +107,12 @@ public class BetController {
     }
 
     /**
-     * GET /api/bets/{id}
-     * Recupera una apuesta específica con todas sus predicciones relacionales.
+     * 🔍 GET /api/bets/{id}
+     * Recupera una apuesta específica con todo su árbol de relaciones (Predicciones, Cruces, etc.)
+     * Recompone los datos relacionales al formato JSON que React sabe dibujar.
+     * 
+     * @param id ID de la apuesta.
+     * @return BetDataDTO (Objeto complejo de datos compatible con React Bracket).
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getBet(@PathVariable Long id) {
@@ -97,7 +121,12 @@ public class BetController {
     }
 
     /**
-     * PUT /api/bets/{id}/pay - Mark a bet as paid
+     * 💰 PUT /api/bets/{id}/pay
+     * Marca manualmente una apuesta como 'PAGADA' (PAID) por el administrador del grupo.
+     * Afecta a su visibilidad o elegibilidad en la clasificación general.
+     * 
+     * @param id Identificador de la apuesta.
+     * @return Confirmación de actualización de estado.
      */
     @PutMapping("/{id}/pay")
     public ResponseEntity<?> markAsPaid(@PathVariable Long id) {
@@ -106,7 +135,11 @@ public class BetController {
     }
 
     /**
-     * DELETE /api/bets/{id} - Delete a bet
+     * 🗑️ DELETE /api/bets/{id}
+     * Elimina completamente la apuesta y sus predicciones en cascada.
+     * 
+     * @param id Identificador de la apuesta a eliminar.
+     * @return Confirmación de eliminación.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteBet(@PathVariable Long id) {

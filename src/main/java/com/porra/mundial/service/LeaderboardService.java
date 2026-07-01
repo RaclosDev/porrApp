@@ -4,7 +4,9 @@ import com.porra.mundial.dto.BetDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.model.Bet;
 import com.porra.mundial.model.GroupStanding;
+import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.BetRepository;
+import com.porra.mundial.repository.MatchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -14,6 +16,11 @@ import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 🏆 Servicio de Clasificación (Leaderboard).
+ * Es el motor matemático que enfrenta las apuestas de todos los usuarios
+ * contra los resultados reales (la apuesta "official") y asigna puntos.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -23,8 +30,14 @@ public class LeaderboardService {
     private final StandingsService standingsService;
     private final TopScorerService topScorerService;
     private final HashTransitionService hashTransitionService;
+    private final MatchRepository matchRepository;
 
-
+    /**
+     * @param groupId ID del grupo a consultar.
+     * @return El ranking ordenado de participantes con todos sus desgloses de puntos.
+     * Esta función es muy costosa, así que su resultado se cachea hasta que ocurre
+     * algo importante que lo invalide (ej: entra un gol).
+     */
     @Cacheable(value = "leaderboard", key = "#groupId")
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
@@ -67,12 +80,59 @@ public class LeaderboardService {
         List<String> bestVirtualThirds = allThirds.stream().limit(8).map(gs -> gs.getTeam().getName()).collect(Collectors.toList());
         List<Map<String, Object>> allScorers = topScorerService.getTopScorers();
 
+        // Dynamically build knockout stages from MatchRepository
+        List<Match> allMatches = matchRepository.findAll();
+        List<Match> r16Matches = allMatches.stream().filter(m -> "r16".equals(m.getRound())).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
+        List<Match> qfMatches = allMatches.stream().filter(m -> "qf".equals(m.getRound())).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
+        List<Match> sfMatches = allMatches.stream().filter(m -> "sf".equals(m.getRound())).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
+        List<Match> finalMatchDb = allMatches.stream().filter(m -> "final".equals(m.getRound())).collect(Collectors.toList());
+        
+        java.util.function.Function<Match, String> getWinner = (m) -> {
+            if (m == null || !Boolean.TRUE.equals(m.getFinished())) return null;
+            if (m.getWinnerTeam() != null) return m.getWinnerTeam().getName();
+            if (m.getHomeScore() == null || m.getAwayScore() == null) return null;
+            if (m.getHomeScore() > m.getAwayScore()) return m.getHomeTeam() != null ? m.getHomeTeam().getName() : null;
+            if (m.getAwayScore() > m.getHomeScore()) return m.getAwayTeam() != null ? m.getAwayTeam().getName() : null;
+            return null;
+        };
+
+        List<String> offOctavos = new ArrayList<>();
+        if (r16Matches.size() >= 16) {
+            for (int i = 0; i < 16; i++) {
+                String w = getWinner.apply(r16Matches.get(i));
+                if (w != null) offOctavos.add(w);
+            }
+        }
+        
+        List<String> offQf = new ArrayList<>();
+        if (r16Matches.size() >= 24) {
+            for (int i = 16; i < 24; i++) {
+                String w = getWinner.apply(r16Matches.get(i));
+                if (w != null) offQf.add(w);
+            }
+        }
+        
+        List<String> offSf = new ArrayList<>();
+        for (Match m : qfMatches) {
+            String w = getWinner.apply(m);
+            if (w != null) offSf.add(w);
+        }
+        
+        List<String> offFinal = new ArrayList<>();
+        for (Match m : sfMatches) {
+            String w = getWinner.apply(m);
+            if (w != null) offFinal.add(w);
+        }
+        
+        String offChampion = finalMatchDb.isEmpty() ? null : getWinner.apply(finalMatchDb.get(0));
+
         for (Bet bet : groupBets) {
             if (bet.getParticipantName().equalsIgnoreCase("Admin")) continue;
             BetDataDTO participant = hashTransitionService.rebuildBetDataDtoFromTables(bet.getId());
             if (participant == null) continue;
 
-            ParticipantScoreDTO score = calculatePoints(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers);
+            CalculationContext ctx = new CalculationContext(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers, offOctavos, offQf, offSf, offFinal, offChampion);
+            ParticipantScoreDTO score = calculatePoints(ctx);
 
             score.setId(bet.getId());
             score.setUserId(bet.getUser() != null ? bet.getUser().getId() : null);
@@ -88,7 +148,10 @@ public class LeaderboardService {
         return leaderboard;
     }
 
-    private ParticipantScoreDTO calculatePoints(BetDataDTO part, BetDataDTO off, Map<String, Map<String, Map<String, Integer>>> officialPoints, Map<String, List<String>> orderedTeamsPerGroup, List<String> bestVirtualThirds, List<Map<String, Object>> allScorers) {
+    /**
+     * Calcula los puntos para un usuario individual aplicando todas las reglas de puntuación.
+     */
+    private ParticipantScoreDTO calculatePoints(CalculationContext ctx) {
         ParticipantScoreDTO score = ParticipantScoreDTO.builder()
                 .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).total(0)
                 .log(new ArrayList<>())
@@ -96,133 +159,180 @@ public class LeaderboardService {
                 .passedTeams(new HashMap<>())
                 .build();
 
-        if (part.getGroups() != null) {
-            for (String g : part.getGroups().keySet()) {
-                List<String> pTeams = part.getGroups().get(g);
-                String p1 = pTeams.size() > 0 ? pTeams.get(0) : null;
-                String p2 = pTeams.size() > 1 ? pTeams.get(1) : null;
-                String p3 = pTeams.size() > 2 ? pTeams.get(2) : null;
-
-                List<String> oTeams = (off != null && off.getGroups() != null) ? off.getGroups().get(g) : null;
-                String o1 = (oTeams != null && oTeams.size() > 0) ? oTeams.get(0) : null;
-                String o2 = (oTeams != null && oTeams.size() > 1) ? oTeams.get(1) : null;
-                String o3 = (oTeams != null && oTeams.size() > 2) ? oTeams.get(2) : null;
-
-                List<String> vTeams = orderedTeamsPerGroup.get(g);
-                String v1 = (vTeams != null && vTeams.size() > 0) ? vTeams.get(0) : null;
-                String v2 = (vTeams != null && vTeams.size() > 1) ? vTeams.get(1) : null;
-                String v3 = (vTeams != null && vTeams.size() > 2) ? vTeams.get(2) : null;
-
-                String actualO1 = (o1 != null && !o1.contains("º")) ? o1 : v1;
-                String actualO2 = (o2 != null && !o2.contains("º")) ? o2 : v2;
-                String actualO3 = (o3 != null && !o3.contains("º")) ? o3 : v3;
-
-                // Function to check if played
-                boolean p1Played = hasPlayed(p1, officialPoints, g);
-                boolean p2Played = hasPlayed(p2, officialPoints, g);
-                boolean p3Played = hasPlayed(p3, officialPoints, g);
-
-                boolean p1Passed = isPassed(p1, actualO1, actualO2, off, bestVirtualThirds, p1Played);
-                boolean p2Passed = isPassed(p2, actualO1, actualO2, off, bestVirtualThirds, p2Played);
-                
-                boolean p3Selected = part.getThirds() != null && part.getThirds().contains(p3);
-                boolean p3ActuallyPassed = isPassed(p3, actualO1, actualO2, off, bestVirtualThirds, p3Played);
-                boolean p3Passed = p3Selected && p3ActuallyPassed;
-
-                boolean p1Exact = actualO1 != null && actualO1.equals(p1);
-                boolean p2Exact = actualO2 != null && actualO2.equals(p2);
-                boolean p3Exact = actualO3 != null && actualO3.equals(p3) && p3Selected && p3ActuallyPassed;
-
-                awardGroupPoints(score, p1, g, "1º", p1Passed, p1Exact);
-                awardGroupPoints(score, p2, g, "2º", p2Passed, p2Exact);
-                awardGroupPoints(score, p3, g, "Mejor 3º", p3Passed, p3Exact);
-
-                Map<String, Object> exact = new HashMap<>();
-                exact.put("1", p1Exact);
-                exact.put("2", p2Exact);
-                exact.put("3", p3Exact);
-                score.getExactMatches().put(g, exact);
-
-                score.getPassedTeams().put(p1, p1Passed);
-                score.getPassedTeams().put(p2, p2Passed);
-                score.getPassedTeams().put(p3, p3Passed);
-            }
-        }
-
-        if (off != null) {
-            checkRound(score, part.getFlatR16(), off.getFlatR16(), 25, "r32", "1/16: %s clasificado a octavos");
-            checkRound(score, part.getFlatQf(), off.getFlatQf(), 30, "r16", "Octavos: %s clasificado a cuartos");
-            checkRound(score, part.getFlatSf(), off.getFlatSf(), 40, "qf", "Cuartos: %s clasificado a semis");
-            checkRound(score, part.getFinalMatch(), off.getFinalMatch(), 60, "sf", "Semis: %s clasificado a la final");
-
-            if (part.getChampion() != null && part.getChampion().equals(off.getChampion())) award(score, 200, "finals", "Final: " + part.getChampion() + " Campeón");
-            
-            String off2nd = getSecond(off.getFinalMatch(), off.getChampion());
-            String part2nd = getSecond(part.getFinalMatch(), part.getChampion());
-            if (part2nd != null && part2nd.equals(off2nd)) award(score, 150, "finals", "Final: " + part2nd + " Subcampeón");
-
-            if (part.getThirdPlaceWinner() != null && part.getThirdPlaceWinner().equals(off.getThirdPlaceWinner())) award(score, 100, "finals", "Tercer y Cuarto: " + part.getThirdPlaceWinner() + " Tercer puesto");
-            
-            String off4th = getSecond(off.getThirdPlaceMatch(), off.getThirdPlaceWinner());
-            String part4th = getSecond(part.getThirdPlaceMatch(), part.getThirdPlaceWinner());
-            if (part4th != null && part4th.equals(off4th)) award(score, 75, "finals", "Tercer y Cuarto: " + part4th + " Cuarto puesto");
-
-            if (part.getScorer() != null && !part.getScorer().trim().isEmpty()) {
-                boolean scorerAwarded = false;
-                
-                // First try to use the automated API data
-                if (allScorers != null && !allScorers.isEmpty()) {
-                    int maxGoals = (int) allScorers.get(0).get("goals");
-                    if (maxGoals > 0) {
-                        List<Map<String, Object>> topScorers = allScorers.stream()
-                                .filter(s -> (int) s.get("goals") == maxGoals)
-                                .collect(Collectors.toList());
-                        
-                        long validScorersCount = topScorers.size();
-                        if (validScorersCount > 0) {
-                            int points = (int) (100 / validScorersCount);
-                            boolean isMatch = topScorers.stream()
-                                    .anyMatch(s -> isScorerMatch(part.getScorer(), (String) s.get("name"), (String) s.get("shortName")));
-                            
-                            if (isMatch) {
-                                String msg = validScorersCount > 1 
-                                        ? "Pichichi: " + part.getScorer() + " acertado (" + points + " pts repartidos)"
-                                        : "Pichichi: " + part.getScorer() + " acertado";
-                                award(score, points, "scorer", msg);
-                            }
-                            scorerAwarded = true; // We processed it using API
-                        }
-                    }
-                }
-                
-                // Fallback to manual entry if API didn't process it or wasn't available
-                if (!scorerAwarded && off.getScorer() != null && !off.getScorer().trim().isEmpty()) {
-                    String[] officialScorers = off.getScorer().split(",");
-                    long validScorersCount = Arrays.stream(officialScorers)
-                            .map(String::trim)
-                            .filter(s -> !s.isEmpty())
-                            .count();
-                    
-                    if (validScorersCount > 0) {
-                        int points = (int) (100 / validScorersCount);
-                        boolean isMatch = Arrays.stream(officialScorers)
-                                .map(String::trim)
-                                .filter(s -> !s.isEmpty())
-                                .anyMatch(s -> isScorerMatch(part.getScorer(), s, s));
-                        
-                        if (isMatch) {
-                            String msg = validScorersCount > 1 
-                                    ? "Pichichi: " + part.getScorer() + " acertado (" + points + " pts repartidos)"
-                                    : "Pichichi: " + part.getScorer() + " acertado";
-                            award(score, points, "scorer", msg);
-                        }
-                    }
-                }
-            }
-        }
+        evaluateGroupStage(score, ctx);
+        evaluateKnockouts(score, ctx);
+        evaluateFinalsAndThirdPlace(score, ctx);
+        evaluateTopScorer(score, ctx);
 
         score.setTotal(score.getR1() + score.getR32() + score.getR16() + score.getQf() + score.getSf() + score.getFinals() + score.getScorer());
         return score;
+    }
+
+    /**
+     * Reglas de puntuación para fase de grupos. 
+     * Da 10 puntos por acertar clasificado, y otros 10 si además aciertas posición.
+     */
+    private void evaluateGroupStage(ParticipantScoreDTO score, CalculationContext ctx) {
+        if (ctx.part().getGroups() == null) return;
+
+        for (String g : ctx.part().getGroups().keySet()) {
+            List<String> pTeams = ctx.part().getGroups().get(g);
+            List<String> oTeams = (ctx.off() != null && ctx.off().getGroups() != null) ? ctx.off().getGroups().get(g) : null;
+            List<String> vTeams = ctx.orderedTeamsPerGroup().get(g);
+
+            String p1 = getSafeTeam(pTeams, 0);
+            String p2 = getSafeTeam(pTeams, 1);
+            String p3 = getSafeTeam(pTeams, 2);
+
+            String o1 = getSafeTeam(oTeams, 0);
+            String o2 = getSafeTeam(oTeams, 1);
+            String o3 = getSafeTeam(oTeams, 2);
+
+            String v1 = getSafeTeam(vTeams, 0);
+            String v2 = getSafeTeam(vTeams, 1);
+            String v3 = getSafeTeam(vTeams, 2);
+
+            String actualO1 = (o1 != null && !o1.contains("º")) ? o1 : v1;
+            String actualO2 = (o2 != null && !o2.contains("º")) ? o2 : v2;
+            String actualO3 = (o3 != null && !o3.contains("º")) ? o3 : v3;
+
+            boolean p1Played = hasPlayed(p1, ctx.officialPoints(), g);
+            boolean p2Played = hasPlayed(p2, ctx.officialPoints(), g);
+            boolean p3Played = hasPlayed(p3, ctx.officialPoints(), g);
+
+            boolean p1Passed = isPassed(p1, actualO1, actualO2, ctx.off(), ctx.bestVirtualThirds(), p1Played);
+            boolean p2Passed = isPassed(p2, actualO1, actualO2, ctx.off(), ctx.bestVirtualThirds(), p2Played);
+            
+            boolean p3Selected = ctx.part().getThirds() != null && ctx.part().getThirds().contains(p3);
+            boolean p3ActuallyPassed = isPassed(p3, actualO1, actualO2, ctx.off(), ctx.bestVirtualThirds(), p3Played);
+            boolean p3Passed = p3Selected && p3ActuallyPassed;
+
+            boolean p1Exact = actualO1 != null && actualO1.equals(p1);
+            boolean p2Exact = actualO2 != null && actualO2.equals(p2);
+            boolean p3Exact = actualO3 != null && actualO3.equals(p3) && p3Selected && p3ActuallyPassed;
+
+            awardGroupPoints(score, p1, g, "1º", p1Passed, p1Exact);
+            awardGroupPoints(score, p2, g, "2º", p2Passed, p2Exact);
+            awardGroupPoints(score, p3, g, "Mejor 3º", p3Passed, p3Exact);
+
+            Map<String, Object> exact = new HashMap<>();
+            exact.put("1", p1Exact);
+            exact.put("2", p2Exact);
+            exact.put("3", p3Exact);
+            score.getExactMatches().put(g, exact);
+
+            score.getPassedTeams().put(p1, p1Passed);
+            score.getPassedTeams().put(p2, p2Passed);
+            score.getPassedTeams().put(p3, p3Passed);
+        }
+    }
+
+    /**
+     * Reglas para octavos, cuartos y semis.
+     */
+    private void evaluateKnockouts(ParticipantScoreDTO score, CalculationContext ctx) {
+        checkRound(score, ctx.part().getFlatR16(), ctx.offOctavos(), 25, "r32", "1/16: %s a octavos");
+        checkRound(score, ctx.part().getFlatQf(), ctx.offQf(), 30, "r16", "Octavos: %s a cuartos");
+        checkRound(score, ctx.part().getFlatSf(), ctx.offSf(), 40, "qf", "Cuartos: %s a semis");
+        checkRound(score, ctx.part().getFinalMatch(), ctx.offFinal(), 60, "sf", "Semis: %s a la final");
+    }
+
+    /**
+     * Reglas para la gran Final.
+     */
+    private void evaluateFinalsAndThirdPlace(ParticipantScoreDTO score, CalculationContext ctx) {
+        if (ctx.part().getChampion() != null && ctx.part().getChampion().equals(ctx.offChampion())) {
+            award(score, 200, "finals", "Final: " + ctx.part().getChampion() + " Campeón");
+        }
+        
+        String off2nd = getSecond(ctx.offFinal(), ctx.offChampion());
+        String part2nd = getSecond(ctx.part().getFinalMatch(), ctx.part().getChampion());
+        if (part2nd != null && part2nd.equals(off2nd)) {
+            award(score, 150, "finals", "Final: " + part2nd + " Subcampeón");
+        }
+
+        if (ctx.off() != null) {
+            if (ctx.part().getThirdPlaceWinner() != null && ctx.part().getThirdPlaceWinner().equals(ctx.off().getThirdPlaceWinner())) {
+                award(score, 100, "finals", "3º/4º: " + ctx.part().getThirdPlaceWinner() + " Tercer puesto");
+            }
+            
+            String off4th = getSecond(ctx.off().getThirdPlaceMatch(), ctx.off().getThirdPlaceWinner());
+            String part4th = getSecond(ctx.part().getThirdPlaceMatch(), ctx.part().getThirdPlaceWinner());
+            if (part4th != null && part4th.equals(off4th)) {
+                award(score, 75, "finals", "3º/4º: " + part4th + " Cuarto puesto");
+            }
+        }
+    }
+
+    /**
+     * Lógica difusa (Fuzzy matching) para detectar si el usuario acertó el Pichichi.
+     * Como lo teclean a mano ("Mbappe", "mbappé", "Kylian Mbape"), hay que perdonar tildes,
+     * mayúsculas y permitir que escriban solo apellido.
+     */
+    private void evaluateTopScorer(ParticipantScoreDTO score, CalculationContext ctx) {
+        // Solo contar los puntos del Pichichi si el mundial ha terminado (es decir, ya hay campeón)
+        if (ctx.offChampion() == null) {
+            return;
+        }
+
+        if (ctx.part().getScorer() == null || ctx.part().getScorer().trim().isEmpty()) {
+            return;
+        }
+        
+        boolean scorerAwarded = false;
+        
+        // Automated API data
+        if (ctx.allScorers() != null && !ctx.allScorers().isEmpty()) {
+            int maxGoals = (int) ctx.allScorers().get(0).get("goals");
+            if (maxGoals > 0) {
+                List<Map<String, Object>> topScorers = ctx.allScorers().stream()
+                        .filter(s -> (int) s.get("goals") == maxGoals)
+                        .collect(Collectors.toList());
+                
+                long validScorersCount = topScorers.size();
+                if (validScorersCount > 0) {
+                    int points = (int) (100 / validScorersCount);
+                    boolean isMatch = topScorers.stream()
+                            .anyMatch(s -> isScorerMatch(ctx.part().getScorer(), (String) s.get("name"), (String) s.get("shortName")));
+                    
+                    if (isMatch) {
+                        String msg = validScorersCount > 1 
+                                ? "Pichichi: " + ctx.part().getScorer() + " acertado (" + points + " pts repartidos)"
+                                : "Pichichi: " + ctx.part().getScorer() + " acertado";
+                        award(score, points, "scorer", msg);
+                    }
+                    scorerAwarded = true;
+                }
+            }
+        }
+        
+        // Fallback to manual entry
+        if (!scorerAwarded && ctx.off() != null && ctx.off().getScorer() != null && !ctx.off().getScorer().trim().isEmpty()) {
+            String[] officialScorers = ctx.off().getScorer().split(",");
+            long validScorersCount = Arrays.stream(officialScorers)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .count();
+            
+            if (validScorersCount > 0) {
+                int points = (int) (100 / validScorersCount);
+                boolean isMatch = Arrays.stream(officialScorers)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .anyMatch(s -> isScorerMatch(ctx.part().getScorer(), s, s));
+                
+                if (isMatch) {
+                    String msg = validScorersCount > 1 
+                            ? "Pichichi: " + ctx.part().getScorer() + " acertado (" + points + " pts repartidos)"
+                            : "Pichichi: " + ctx.part().getScorer() + " acertado";
+                    award(score, points, "scorer", msg);
+                }
+            }
+        }
+    }
+
+    private String getSafeTeam(List<String> teams, int index) {
+        return (teams != null && teams.size() > index) ? teams.get(index) : null;
     }
 
     private void checkRound(ParticipantScoreDTO score, List<String> pTeams, List<String> oTeams, int pts, String stage, String msgTemplate) {
@@ -306,6 +416,46 @@ public class LeaderboardService {
             String lastName = shortName.substring(shortName.lastIndexOf(" ") + 1);
             if (user.contains(lastName) || lastName.contains(user)) return true;
         }
+        
+        // Levenshtein distance for typos like "Mbape" instead of "Mbappe"
+        if (levenshteinDistance(user, name) <= 2 || levenshteinDistance(user, shortName) <= 2) {
+            return true;
+        }
+        
+        if (shortName.contains(" ")) {
+            String lastName = shortName.substring(shortName.lastIndexOf(" ") + 1);
+            if (levenshteinDistance(user, lastName) <= 2) return true;
+        }
+        
         return false;
     }
+
+    private int levenshteinDistance(String a, String b) {
+        int[] costs = new int[b.length() + 1];
+        for (int j = 0; j < costs.length; j++) costs[j] = j;
+        for (int i = 1; i <= a.length(); i++) {
+            costs[0] = i;
+            int nw = i - 1;
+            for (int j = 1; j <= b.length(); j++) {
+                int cj = Math.min(1 + Math.min(costs[j], costs[j - 1]), a.charAt(i - 1) == b.charAt(j - 1) ? nw : nw + 1);
+                nw = costs[j];
+                costs[j] = cj;
+            }
+        }
+        return costs[b.length()];
+    }
+
+    private record CalculationContext(
+            BetDataDTO part,
+            BetDataDTO off,
+            Map<String, Map<String, Map<String, Integer>>> officialPoints,
+            Map<String, List<String>> orderedTeamsPerGroup,
+            List<String> bestVirtualThirds,
+            List<Map<String, Object>> allScorers,
+            List<String> offOctavos,
+            List<String> offQf,
+            List<String> offSf,
+            List<String> offFinal,
+            String offChampion
+    ) {}
 }

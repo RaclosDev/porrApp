@@ -3,6 +3,14 @@ import { useAppContext } from '../context/AppContext';
 import { getCountryCode } from '../utils/constants';
 import { openStats } from '../utils/navigation';
 
+/**
+ * Componente que muestra los partidos en vivo, recientes y próximos.
+ * Permite a los usuarios tener una visión rápida de los resultados más actuales
+ * o abrir estadísticas de un partido específico.
+ *
+ * @component
+ * @returns {JSX.Element} La vista del radar de partidos.
+ */
 function Radar() {
   const { matchRadar, loading } = useAppContext();
   const [activeTab, setActiveTab] = useState('ultimos');

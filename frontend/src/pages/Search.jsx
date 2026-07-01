@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { getCountryCode, countryCodeMap } from '../utils/constants';
+import { getCountryCode } from '../utils/constants';
+import { useSearchStats } from '../hooks/useSearchStats';
 
 const searchConditions = [
   { val: "passes_groups", label: "Pasa a 1/16", icon: "✅" },
@@ -15,9 +16,17 @@ const searchConditions = [
   { val: "eliminated_groups", label: "Cae en Grupos", icon: "❌" }
 ];
 
-const topTeams = ["Brasil", "Francia", "Argentina", "España", "Inglaterra", "Alemania", "Portugal", "Bélgica", "Países Bajos"];
-
-// Custom Dropdown Component
+/**
+ * Componente de menú desplegable personalizado con buscador integrado.
+ *
+ * @param {Object} props
+ * @param {string} props.value - Valor seleccionado actualmente.
+ * @param {Function} props.onChange - Función a llamar cuando el valor cambia.
+ * @param {Array} props.options - Opciones disponibles a seleccionar.
+ * @param {string} props.placeholder - Texto a mostrar cuando no hay nada seleccionado.
+ * @param {boolean} [props.withFlags=false] - Indica si mostrar banderas (si las opciones son países).
+ * @returns {JSX.Element} Un dropdown con buscador interno.
+ */
 function CustomDropdown({ value, onChange, options, placeholder, withFlags = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,241 +105,59 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
 }
 
 
+/**
+ * Componente que muestra la página de Búsqueda y Análisis de apuestas.
+ * Permite buscar por equipo y condición o ver el perfil psicológico de un usuario.
+ *
+ * @component
+ * @returns {JSX.Element} La vista de la central de inteligencia.
+ */
 function Search() {
-  const { participantsHashes, groupOdds, loading, userName } = useAppContext();
+  const { participantsHashes, groupOdds, loading, userName, setViewerBetId } = useAppContext();
   
-  const [searchMode, setSearchMode] = useState('team'); // 'team' or 'user'
-  
-  // Team Search State
-  const [selectedTeam, setSelectedTeam] = useState('');
-  const [selectedCondition, setSelectedCondition] = useState('passes_groups');
-  
-  // User Search State
-  const [selectedUser, setSelectedUser] = useState('');
+  // Read initial state from URL parameters (if shared link), fallback to localStorage, then default
+  const urlParams = new URLSearchParams(window.location.search);
+  const [searchMode, setSearchMode] = useState(urlParams.get('mode') || localStorage.getItem('searchMode') || 'team');
+  const [selectedTeam, setSelectedTeam] = useState(urlParams.get('team') || localStorage.getItem('searchTeam') || '');
+  const [selectedCondition, setSelectedCondition] = useState(urlParams.get('condition') || localStorage.getItem('searchCondition') || 'passes_groups');
+  const [selectedUser, setSelectedUser] = useState(urlParams.get('user') || localStorage.getItem('searchUser') || '');
 
-  const allTeams = useMemo(() => {
-    const teams = [];
-    if (groupOdds) {
-        Object.keys(groupOdds).forEach(g => {
-        groupOdds[g].forEach(t => teams.push(t.name));
-        });
+  // Update localStorage when state changes (keeps URL clean)
+  useEffect(() => {
+    localStorage.setItem('searchMode', searchMode);
+    if (searchMode === 'team') {
+        if (selectedTeam) localStorage.setItem('searchTeam', selectedTeam);
+        if (selectedCondition) localStorage.setItem('searchCondition', selectedCondition);
+    } else {
+        if (selectedUser) localStorage.setItem('searchUser', selectedUser);
     }
-    return teams.sort((a, b) => a.localeCompare(b));
-  }, [groupOdds]);
+    
+    // Optional: Clean up URL if they arrived from a shared link, to keep it clean.
+    if (window.location.search) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [searchMode, selectedTeam, selectedCondition, selectedUser]);
 
-  const allUsers = useMemo(() => {
-      const users = participantsHashes.map(p => {
-          const part = p.data;
-          return part ? (part.user || p.participantName || "Anónimo") : "Anónimo";
-      });
-      return [...new Set(users)].sort((a, b) => a.localeCompare(b));
-  }, [participantsHashes]);
+  const handleShareTeam = () => {
+    const url = `https://porra.raclos.es/search?mode=team&team=${encodeURIComponent(selectedTeam)}&condition=${encodeURIComponent(selectedCondition)}`;
+    const text = `¡Mira lo que la gente ha votado sobre ${selectedTeam} en la Porra del Mundial!\n\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
-  // Execute Team Search
-  const teamResults = useMemo(() => {
-      if (!selectedTeam) return null;
-      
-      const lowerTeam = selectedTeam.toLowerCase();
-      const matches = [];
+  const handleShareUser = () => {
+    const url = `https://porra.raclos.es/search?mode=user&user=${encodeURIComponent(selectedUser)}`;
+    const text = `¡Mira el perfil psicológico de ${selectedUser} en la Porra del Mundial!\n\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
-      participantsHashes.forEach(p => {
-          const part = p.data;
-          if (!part) return;
-          const uName = part.user || p.participantName || "Anónimo";
-          let match = false;
-
-          const cond = selectedCondition;
-
-          if (cond === "first_group" && part.groups) {
-              match = Object.values(part.groups).some(g => g[0].toLowerCase() === lowerTeam);
-          } else if (cond === "second_group" && part.groups) {
-              match = Object.values(part.groups).some(g => g[1].toLowerCase() === lowerTeam);
-          } else if (cond === "third_group" && part.groups) {
-              match = Object.values(part.groups).some(g => g[2].toLowerCase() === lowerTeam);
-          } else if (cond === "eliminated_groups" && part.r32) {
-              match = !part.r32.flat().map(t => t?.toLowerCase()).includes(lowerTeam);
-          } else if (cond === "passes_groups" && part.r32) {
-              match = part.r32.flat().map(t => t?.toLowerCase()).includes(lowerTeam);
-          } else if (cond === "passes_as_third" && part.r32 && part.groups) {
-              match = part.r32.flat().map(t => t?.toLowerCase()).includes(lowerTeam) && Object.values(part.groups).some(g => g[2] && g[2].toLowerCase() === lowerTeam);
-          } else if (cond === "reaches_r16" && part.r16) {
-              match = part.r16.flat().map(t => t?.toLowerCase()).includes(lowerTeam);
-          } else if (cond === "reaches_qf" && part.qf) {
-              match = part.qf.flat().map(t => t?.toLowerCase()).includes(lowerTeam);
-          } else if (cond === "reaches_sf" && part.sf) {
-              match = part.sf.flat().map(t => t?.toLowerCase()).includes(lowerTeam);
-          } else if (cond === "reaches_final" && part.final) {
-              match = part.final.map(t => t?.toLowerCase()).includes(lowerTeam);
-          } else if (cond === "is_runnerup" && part.final && part.champion) {
-              match = part.final.map(t => t?.toLowerCase()).includes(lowerTeam) && part.champion.toLowerCase() !== lowerTeam;
-          } else if (cond === "is_champion" && part.champion) {
-              match = part.champion.toLowerCase() === lowerTeam;
-          }
-
-          if (match) matches.push(uName);
-      });
-
-      return matches;
-  }, [selectedTeam, selectedCondition, participantsHashes]);
-
-  const globalFrequencies = useMemo(() => {
-      const freqs = {};
-
-      const increment = (type, team) => {
-          if (!team || team.includes("º")) return;
-          const key = `${type}:${team}`;
-          freqs[key] = (freqs[key] || 0) + 1;
-      };
-
-      participantsHashes.forEach(p => {
-          const part = p.data;
-          if (!part) return;
-
-          if (part.groups) {
-              Object.values(part.groups).forEach(g => {
-                  increment("1st_group", g[0]);
-                  increment("2nd_group", g[1]);
-                  increment("3rd_group", g[2]);
-                  increment("4th_group", g[3]);
-              });
-          }
-          if (part.r32) part.r32.flat().forEach(t => increment("passes_groups", t));
-          
-          if (part.r32) {
-              const r32Flat = part.r32.flat();
-              Object.keys(countryCodeMap).forEach(t => {
-                  if (t && !t.includes("º") && !r32Flat.includes(t)) {
-                      increment("eliminated_groups", t);
-                  }
-              });
-          }
-
-          if (part.r16) part.r16.flat().forEach(t => increment("reaches_r16", t));
-          if (part.qf) part.qf.flat().forEach(t => increment("reaches_qf", t));
-          if (part.sf) part.sf.flat().forEach(t => increment("reaches_sf", t));
-          if (part.final) part.final.forEach(t => increment("reaches_final", t));
-          if (part.champion) increment("is_champion", part.champion);
-          if (part.scorer) increment("is_scorer", part.scorer);
-      });
-
-      return freqs;
-  }, [participantsHashes]);
-
-  // Execute User Search & Profiling
-  const userStats = useMemo(() => {
-      if (!selectedUser) return null;
-      const targetHashObj = participantsHashes.find(p => {
-          const part = p.data;
-          return part && (part.user || p.participantName || "Anónimo") === selectedUser;
-      });
-      if (!targetHashObj) return null;
-      
-      const targetPart = targetHashObj.data;
-      
-      // Calculate Madness (Locuras) -> Non-top teams in QF/SF
-      const madness = [];
-      if (targetPart.qf) {
-          targetPart.qf.flat().forEach(t => {
-              if (t && !t.includes("º") && !topTeams.includes(t)) {
-                  if (!madness.includes(t)) madness.push(t);
-              }
-          });
-      }
-
-      // Calculate Haters (Decepciones) -> Top teams eliminated in Groups
-      const haters = [];
-      if (targetPart.r32) {
-          const qualified = targetPart.r32.flat();
-          topTeams.forEach(t => {
-              if (!qualified.includes(t)) haters.push(t);
-          });
-      }
-
-      // Calculate Asylum (Psiquiatra) -> Picks with frequency === 1
-      const asylumMap = {};
-      const checkUnique = (type, team, label) => {
-          if (!team || team.includes("º")) return;
-          if (globalFrequencies[`${type}:${team}`] === 1) {
-              if (!asylumMap[team]) asylumMap[team] = [];
-              if (!asylumMap[team].includes(label)) asylumMap[team].push(label);
-          }
-      };
-
-      if (targetPart.groups) {
-          Object.values(targetPart.groups).forEach(g => {
-              checkUnique("1st_group", g[0], "1º de Grupo");
-              checkUnique("2nd_group", g[1], "2º de Grupo");
-              checkUnique("3rd_group", g[2], "3º de Grupo");
-              checkUnique("4th_group", g[3], "4º de Grupo");
-          });
-      }
-      if (targetPart.r32) targetPart.r32.flat().forEach(t => checkUnique("passes_groups", t, "Pasa de Grupos"));
-      
-      if (targetPart.r32) {
-          const r32Flat = targetPart.r32.flat();
-          Object.keys(countryCodeMap).forEach(t => {
-              if (t && !t.includes("º") && !r32Flat.includes(t)) {
-                  checkUnique("eliminated_groups", t, "Cae en Grupos");
-              }
-          });
-      }
-      if (targetPart.r16) targetPart.r16.flat().forEach(t => checkUnique("reaches_r16", t, "A Octavos"));
-      if (targetPart.qf) targetPart.qf.flat().forEach(t => checkUnique("reaches_qf", t, "A Cuartos"));
-      if (targetPart.sf) targetPart.sf.flat().forEach(t => checkUnique("reaches_sf", t, "A Semis"));
-      if (targetPart.final) targetPart.final.forEach(t => checkUnique("reaches_final", t, "A la Final"));
-      if (targetPart.champion) checkUnique("is_champion", targetPart.champion, "Campeón");
-      if (targetPart.scorer && globalFrequencies[`is_scorer:${targetPart.scorer}`] === 1) {
-          if (!asylumMap[targetPart.scorer]) asylumMap[targetPart.scorer] = [];
-          asylumMap[targetPart.scorer].push("Pichichi");
-      }
-
-      const asylum = Object.entries(asylumMap).map(([team, labels]) => ({ team, labels }));
-
-      // Calculate Similarity with current user
-      let similarity = 0;
-      if (userName && userName !== selectedUser) {
-          const myHashObj = participantsHashes.find(p => {
-              const part = p.data;
-              return part && (part.user || p.participantName) === userName;
-          });
-          if (myHashObj) {
-              const myPart = myHashObj.data;
-              let totalMatches = 0;
-              let possibleMatches = 0;
-              
-              const compareRound = (arr1, arr2) => {
-                  if(!arr1 || !arr2) return;
-                  const flat1 = arr1.flat().filter(t => t && !t.includes("º"));
-                  const flat2 = arr2.flat().filter(t => t && !t.includes("º"));
-                  possibleMatches += flat2.length;
-                  flat1.forEach(t => { if(flat2.includes(t)) totalMatches++; });
-              };
-
-              compareRound(myPart.r32, targetPart.r32);
-              compareRound(myPart.r16, targetPart.r16);
-              compareRound(myPart.qf, targetPart.qf);
-              compareRound(myPart.sf, targetPart.sf);
-              compareRound(myPart.final, targetPart.final);
-              if (myPart.champion && targetPart.champion && !myPart.champion.includes("º")) {
-                  possibleMatches += 2; // Weight champion double
-                  if (myPart.champion === targetPart.champion) totalMatches += 2;
-              }
-
-              if (possibleMatches > 0) {
-                  similarity = Math.round((totalMatches / possibleMatches) * 100);
-              }
-          }
-      }
-
-      return {
-          ...targetPart,
-          madness,
-          haters,
-          asylum,
-          similarity
-      };
-
-  }, [selectedUser, participantsHashes, userName, globalFrequencies]);
+  const { allTeams, allUsers, teamResults, teamNegativeResults, userStats } = useSearchStats(
+      participantsHashes, 
+      groupOdds, 
+      userName, 
+      selectedTeam, 
+      selectedCondition, 
+      selectedUser
+  );
 
   if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando buscador...</div>;
 
@@ -344,21 +171,47 @@ function Search() {
           <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>Investiga las apuestas del grupo o analiza el perfil psicológico de tus rivales.</p>
       </div>
 
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '40px', justifyContent: 'center' }}>
-          <button 
-            onClick={() => setSearchMode('team')} 
-            className={`glass-btn ${searchMode === 'team' ? 'active' : ''}`}
-            style={{ padding: '12px 35px', fontSize: '1.1rem', background: searchMode === 'team' ? 'rgba(243, 104, 224, 0.2)' : 'rgba(255,255,255,0.05)', borderColor: searchMode === 'team' ? '#f368e0' : 'rgba(255,255,255,0.1)', boxShadow: searchMode === 'team' ? '0 0 20px rgba(243, 104, 224, 0.3)' : 'none' }}
-          >
-              🔍 Por Equipo
-          </button>
-          <button 
-            onClick={() => setSearchMode('user')} 
-            className={`glass-btn ${searchMode === 'user' ? 'active' : ''}`}
-            style={{ padding: '12px 35px', fontSize: '1.1rem', background: searchMode === 'user' ? 'rgba(0, 210, 211, 0.2)' : 'rgba(255,255,255,0.05)', borderColor: searchMode === 'user' ? '#00d2d3' : 'rgba(255,255,255,0.1)', boxShadow: searchMode === 'user' ? '0 0 20px rgba(0, 210, 211, 0.3)' : 'none' }}
-          >
-              🧠 Perfil de Jugador
-          </button>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '35px' }}>
+          <div style={{
+            display: 'flex',
+            background: 'rgba(15, 23, 42, 0.8)',
+            padding: '5px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(12px)',
+            position: 'relative',
+            gap: '6px'
+          }}>
+              <button 
+                onClick={() => setSearchMode('team')} 
+                style={{
+                  padding: '10px 30px', fontWeight: 800, fontSize: '1.05rem',
+                  background: searchMode === 'team' ? 'linear-gradient(135deg, #f368e0, #ff9ff3)' : 'transparent',
+                  border: 'none',
+                  color: searchMode === 'team' ? '#000000' : 'var(--text-muted)',
+                  cursor: 'pointer', borderRadius: '12px', transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  boxShadow: searchMode === 'team' ? '0 4px 15px rgba(243, 104, 224, 0.4)' : 'none',
+                  display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.5px'
+                }}
+              >
+                  🔍 Por Equipo
+              </button>
+              <button 
+                onClick={() => setSearchMode('user')} 
+                style={{
+                  padding: '10px 30px', fontWeight: 800, fontSize: '1.05rem',
+                  background: searchMode === 'user' ? 'linear-gradient(135deg, #00d2d3, #01a3a4)' : 'transparent',
+                  border: 'none',
+                  color: searchMode === 'user' ? '#000000' : 'var(--text-muted)',
+                  cursor: 'pointer', borderRadius: '12px', transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  boxShadow: searchMode === 'user' ? '0 4px 15px rgba(0, 210, 211, 0.4)' : 'none',
+                  display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.5px'
+                }}
+              >
+                  🧠 Perfil de Jugador
+              </button>
+          </div>
       </div>
 
       {searchMode === 'team' && (
@@ -401,20 +254,59 @@ function Search() {
                           </div>
                       </div>
 
-                      {teamResults.length > 0 ? (
+                      {(teamResults.length > 0 || (teamNegativeResults && teamNegativeResults.length > 0)) ? (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center' }}>
                               {teamResults.map(r => (
-                                  <div key={r} style={{ background: 'rgba(243, 104, 224, 0.1)', border: '1px solid rgba(243, 104, 224, 0.3)', padding: '10px 20px', borderRadius: '25px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem' }}>
+                                  <div 
+                                    key={r.id} 
+                                    onClick={() => setViewerBetId(r.id)}
+                                    style={{ cursor: 'pointer', background: 'rgba(243, 104, 224, 0.1)', border: '1px solid rgba(243, 104, 224, 0.3)', padding: '10px 20px', borderRadius: '25px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', transition: 'transform 0.2s, boxShadow 0.2s' }}
+                                    onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 0 15px rgba(243, 104, 224, 0.5)'; }}
+                                    onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                                  >
                                       <span style={{ background: '#f368e0', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                                          {r.charAt(0).toUpperCase()}
+                                          {r.name.charAt(0).toUpperCase()}
                                       </span>
-                                      {r}
+                                      {r.name}
+                                  </div>
+                              ))}
+                              {teamNegativeResults && teamNegativeResults.map(r => (
+                                  <div 
+                                    key={r.id} 
+                                    onClick={() => setViewerBetId(r.id)}
+                                    style={{ 
+                                      cursor: 'pointer', 
+                                      background: 'rgba(255, 255, 255, 0.03)', 
+                                      border: '1px dashed rgba(255, 255, 255, 0.2)', 
+                                      padding: '10px 20px', 
+                                      borderRadius: '25px', 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '10px', 
+                                      fontSize: '1.05rem', 
+                                      color: 'var(--text-muted)',
+                                      opacity: 0.45,
+                                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' 
+                                    }}
+                                    onMouseOver={(e) => { e.currentTarget.style.opacity = '0.95'; e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.border = '1px solid rgba(255, 100, 100, 0.4)'; e.currentTarget.style.background = 'rgba(255, 100, 100, 0.1)'; e.currentTarget.style.color = '#fff'; }}
+                                    onMouseOut={(e) => { e.currentTarget.style.opacity = '0.45'; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.border = '1px dashed rgba(255, 255, 255, 0.2)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                  >
+                                      <span style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#ff6b6b', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                                          ✕
+                                      </span>
+                                      <span style={{ textDecoration: 'line-through' }}>{r.name}</span>
                                   </div>
                               ))}
                           </div>
                       ) : (
-                          <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '1.2rem' }}>Nadie ha apostado por esta combinación.</div>
+                          <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '1.1rem' }}>Nadie ha apostado por esta combinación.</div>
                       )}
+                      
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '35px' }}>
+                          <button onClick={handleShareTeam} className="glass-btn" style={{ padding: '10px 25px', borderRadius: '25px', background: '#25D366', color: 'white', border: '1px solid #25D366', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem' }}>
+                              <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.2rem' }}></i> Compartir Búsqueda
+                          </button>
+                      </div>
                   </div>
               )}
           </div>
@@ -449,6 +341,16 @@ function Search() {
                                   <span style={{ fontSize: '1.1rem' }}>Este eres tú. ¡Mucha suerte!</span>
                               </div>
                           )}
+                          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '15px' }}>
+                              {userStats.id && (
+                                  <button onClick={() => setViewerBetId(userStats.id)} className="glass-btn primary-btn" style={{ padding: '8px 25px', borderRadius: '25px', fontSize: '1.1rem', background: 'rgba(0, 210, 211, 0.2)', border: '1px solid #00d2d3', color: '#00d2d3', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      👁️ Ver Porra Completa
+                                  </button>
+                              )}
+                              <button onClick={handleShareUser} className="glass-btn" style={{ padding: '8px 25px', borderRadius: '25px', fontSize: '1.1rem', background: '#25D366', color: 'white', border: '1px solid #25D366', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.2rem' }}></i> Compartir Perfil
+                              </button>
+                          </div>
                       </div>
                       
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
@@ -528,7 +430,7 @@ function Search() {
                                       {userStats.asylum.map(item => (
                                           <div key={item.team} style={{ background: 'rgba(0,0,0,0.4)', padding: '10px', borderRadius: '10px', fontSize: '0.9rem' }}>
                                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#e74c3c', marginBottom: '4px' }}>
-                                                  <img src={`https://flagcdn.com/16x12/${getCountryCode(item.team)}.png`} alt="" />
+                                                  <img src={`https://flagcdn.com/16x12/${getCountryCode(item.team)}.png`} alt="" loading="lazy" />
                                                   {item.team}
                                               </div>
                                               <div style={{ color: 'rgba(255,255,255,0.8)' }}>

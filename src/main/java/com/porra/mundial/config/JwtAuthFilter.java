@@ -17,6 +17,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Filtro de seguridad que se ejecuta una vez por cada petición HTTP (OncePerRequestFilter).
+ * Se encarga de interceptar las llamadas, extraer el token JWT de las cabeceras,
+ * validarlo e inyectar el usuario autenticado en el contexto de seguridad de Spring (SecurityContext).
+ */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
@@ -32,6 +37,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * Intercepta la petición para comprobar si trae credenciales (Bearer token).
+     * 
+     * @param request La petición HTTP entrante.
+     * @param response La respuesta HTTP saliente.
+     * @param filterChain La cadena de filtros para continuar el procesamiento.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -51,6 +63,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
         }
 
+        // 2. Si existe un token y su firma es válida (no expirado, clave secreta correcta)
         if (token != null && jwtUtil.validateToken(token)) {
             String username = jwtUtil.extractUsername(token);
 
@@ -61,6 +74,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String extractedEmail = jwtUtil.extractEmail(token);
                 final String email = extractedEmail == null ? username : extractedEmail; // username is the email now
 
+                // 3. Determinar Roles: Si el email está en la lista de administradores, asignamos ROLE_ADMIN
                 boolean isSuperAdmin = adminEmails.stream().anyMatch(ae -> email.equalsIgnoreCase(ae));
                 
                 if (isSuperAdmin) {
@@ -69,16 +83,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
                 }
 
+                // 4. Crear el token de Spring Security y registrarlo en el contexto de seguridad local
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(email, null, authorities);
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // Guardamos la autenticación en el contexto de seguridad
+                // Guardamos la autenticación en el contexto de seguridad (Habilita anotaciones @PreAuthorize)
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
-        // Continuamos con la cadena de filtros
+        // Continuamos con la cadena de filtros permitiendo que el Request avance a los Controladores
         filterChain.doFilter(request, response);
     }
 }

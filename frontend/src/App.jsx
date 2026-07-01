@@ -13,6 +13,7 @@ import GroupsDashboard from './pages/GroupsDashboard';
 import JoinRedirect from './components/JoinRedirect';
 import OfficialBracket from './pages/OfficialBracket';
 import LinkedInEntry from './pages/LinkedInEntry';
+import PwaUpdater from './components/PwaUpdater';
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
 const GUEST_ALLOWED_PATHS = [
@@ -43,6 +44,7 @@ function App() {
   return (
     <AppProvider>
       <Router>
+        <PwaUpdater />
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -53,6 +55,7 @@ function App() {
             {/* Rutas de lectura — accesibles en guest_mode */}
             <Route path="/radar" element={<ProtectedRoute guestAllowed><Radar /></ProtectedRoute>} />
             <Route path="/clasificacion" element={<ProtectedRoute guestAllowed><Leaderboard /></ProtectedRoute>} />
+            <Route path="/grupos" element={<Home defaultMode="groups" hideToggle={true} />} />
             <Route path="/stats" element={<ProtectedRoute guestAllowed><Stats /></ProtectedRoute>} />
             <Route path="/search" element={<ProtectedRoute guestAllowed><Search /></ProtectedRoute>} />
             <Route path="/mis-ligas" element={<ProtectedRoute guestAllowed><GroupsDashboard /></ProtectedRoute>} />

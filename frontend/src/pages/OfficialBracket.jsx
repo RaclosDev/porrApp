@@ -1,8 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { fetchOfficialBracket } from '../services/api';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
+import { buildBracketData } from '../utils/bracketBuilder';
+import { fetchTopScorers } from '../services/api';
+import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
+import TopScorersPanel from '../components/Home/TopScorersPanel';
 
+/**
+ * Componente de botón para alternar la visibilidad de una ronda del bracket.
+ * 
+ * @param {Object} props
+ * @param {string} props.label - Texto a mostrar.
+ * @param {boolean} props.isVisible - Estado actual de visibilidad.
+ * @param {Function} props.onToggle - Callback a ejecutar al hacer clic.
+ */
 const ToggleBtn = ({ label, isVisible, onToggle }) => (
   <button
     className="glass-btn"
@@ -18,98 +29,35 @@ const ToggleBtn = ({ label, isVisible, onToggle }) => (
   </button>
 );
 
+/**
+ * Componente que muestra el Bracket Oficial (los cruces reales del torneo).
+ * Calcula y resuelve en vivo qué equipos avanzan con la lógica de clasificación de terceros.
+ *
+ * @component
+ * @param {Object} props
+ * @param {boolean} [props.hideTitle] - Oculta el título del componente si es true.
+ * @returns {JSX.Element} La vista del bracket oficial.
+ */
 function OfficialBracket({ hideTitle }) {
-  const { officialPoints, groupOdds } = useAppContext();
-  const [part, setPart]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
-  const [vis, setVis]         = useState({ r32: true, r16: true, qf: true, sf: true, center: true });
-
-  const injectQualifiedTeams = (partData, ptsData) => {
-    if (!partData?.r32 || !ptsData) return partData;
-    const guaranteed = {};
-    Object.keys(ptsData).forEach(group => {
-      guaranteed[group] = {};
-      const status5Teams = [];
-      Object.keys(ptsData[group]).forEach(team => {
-        const st = ptsData[group][team].status;
-        if (st === 1) guaranteed[group]['1'] = team;
-        else if (st === 2) guaranteed[group]['2'] = team;
-        else if (st === 5) status5Teams.push(team);
-      });
-      
-      if (status5Teams.length > 0) {
-        const combinedName = status5Teams.join(' / ');
-        if (!guaranteed[group]['1']) guaranteed[group]['1'] = combinedName;
-        if (!guaranteed[group]['2']) guaranteed[group]['2'] = combinedName;
-      }
-    });
-    const newPart = JSON.parse(JSON.stringify(partData));
-    newPart.r32 = newPart.r32.map(match =>
-      match.map(teamName => {
-        if (typeof teamName === 'string' && teamName.includes('º Grupo ')) {
-          const parts = teamName.split(' ');
-          const pos = parts[0].replace('º', '');
-          const grp = parts[2];
-          if (guaranteed[grp]?.[pos]) return guaranteed[grp][pos];
-        }
-        return teamName;
-      })
-    );
-    return newPart;
-  };
+  const { officialPoints, groupOdds, allGames, matchRadar } = useAppContext();
+  const [vis, setVis] = useState({ r32: true, r16: true, qf: true, sf: true, center: true });
+  const [topScorers, setTopScorers] = useState([]);
+  const [activePanel, setActivePanel] = useState(null); // 'live', 'scorers', null
 
   useEffect(() => {
-    fetchOfficialBracket()
-      .then(data => { setPart(injectQualifiedTeams(data, officialPoints)); setLoading(false); })
-      .catch(err => {
-        console.error(err);
-        if (err.message.includes('404') || err.message.includes('Aún no se ha generado')) {
-          const fallback = {
-            r32: [
-              ['1º Grupo E','3º A/B/C/D/F'],['1º Grupo I','3º C/D/F/G/H'],
-              ['2º Grupo A','2º Grupo B'],['1º Grupo F','2º Grupo C'],
-              ['2º Grupo K','2º Grupo L'],['1º Grupo H','2º Grupo J'],
-              ['1º Grupo D','3º B/E/F/I/J'],['1º Grupo G','3º A/E/H/I/J'],
-              ['1º Grupo C','2º Grupo F'],['2º Grupo E','2º Grupo I'],
-              ['1º Grupo A','3º C/E/F/H/I'],['1º Grupo L','3º E/H/I/J/K'],
-              ['1º Grupo J','2º Grupo H'],['2º Grupo D','2º Grupo G'],
-              ['1º Grupo B','3º E/F/G/I/J'],['1º Grupo K','3º D/E/I/J/L'],
-            ],
-            r16: Array(8).fill([null, null]),
-            qf: Array(4).fill([null, null]),
-            sf: Array(2).fill([null, null]),
-            final: [null, null],
-            thirdPlaceMatch: [null, null],
-          };
-          setPart(injectQualifiedTeams(fallback, officialPoints));
-        } else {
-          setError(err.message || 'Error al cargar el cuadro oficial');
-        }
-        setLoading(false);
-      });
-  }, [officialPoints]);
+    fetchTopScorers().then(data => { if (data) setTopScorers(data); });
+  }, []);
 
-  if (loading) {
+  // ── Build bracket data ──────────────────────────────────────────────────
+  const part = buildBracketData(officialPoints, groupOdds, allGames);
+
+  if (!part) {
     return (
       <section className="view-section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
         <h2 style={{ color: 'var(--text-muted)' }}>Cargando cuadro oficial...</h2>
       </section>
     );
   }
-
-  if (error) {
-    return (
-      <section className="view-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '50vh', marginTop: 50 }}>
-        <h2 style={{ color: '#ff4757', marginBottom: 15 }}>Cuadro Oficial</h2>
-        <div className="glass-panel" style={{ padding: 30, textAlign: 'center', maxWidth: 500 }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>{error}</p>
-        </div>
-      </section>
-    );
-  }
-
-  if (!part) return null;
 
   // ── Convert flat arrays [name1, name2] → { home, away } ─────────────────
   const toMatches = (arr) => (arr || []).map(m => ({ home: m?.[0] || null, away: m?.[1] || null }));
@@ -127,38 +75,69 @@ function OfficialBracket({ hideTitle }) {
     toMatches(part.sf?.slice(1, 2)),
   ];
 
-  // ── Get team status from officialPoints ────────────────────────────────
-  const getTeamStatus = (teamName) => {
-    if (!teamName || !officialPoints || !groupOdds) return 0;
-    for (const groupName of Object.keys(officialPoints)) {
-      if (!groupOdds[groupName]) continue;
-      const isInGroup = groupOdds[groupName].some(t => t.name === teamName);
-      if (!isInGroup) continue;
-      const safeKey = teamName.replace(/[.#$[\]]/g, '');
-      const officialData = officialPoints[groupName][safeKey];
-      if (typeof officialData === 'object' && officialData !== null) {
-        return officialData.status || 0;
-      }
-    }
-    return 0;
-  };
+  // ── Render slot (read-only) ─────────────────────────────────────────────
+  const renderSlot = (teamOrObj, context) => {
+    const isObj = typeof teamOrObj === 'object' && teamOrObj !== null;
+    const name = isObj ? teamOrObj.name : teamOrObj;
+    const isProv = isObj ? teamOrObj.isProvisional : false;
+    
+    const style = isProv ? { 
+      border: '1px dashed #ff4757', 
+      animation: 'provisional-pulse 1.5s infinite',
+      boxShadow: 'inset 0 0 10px rgba(255, 71, 87, 0.2)'
+    } : {};
 
-  // ── Render slot (read-only, with status indicator) ──────────────────────
-  const renderSlot = (name, { roundIndex } = {}) => {
-    let statusIndicator = null;
-    if (roundIndex === 0 && name && !name.includes('º')) {
-      const teamStatus = getTeamStatus(name);
-      if (teamStatus >= 1 && teamStatus <= 4) {
-        statusIndicator = (
-          <span title="Posición Matemática Fija" style={{ marginLeft: '3px', fontSize: '0.75em', flexShrink: 0, lineHeight: 1 }}>📌</span>
-        );
-      } else if (teamStatus === 5) {
-        statusIndicator = (
-          <div title="Clasificado Matemáticamente" style={{ width: '6px', height: '6px', background: '#3498db', borderRadius: '50%', marginLeft: '4px', flexShrink: 0, boxShadow: '0 0 5px rgba(52,152,219,0.8)', display: 'inline-block' }} />
-        );
-      }
+    let scoreContent = null;
+    if (context && name && !name.includes('º') && name !== 'Por definir') {
+        const { side, roundIndex, matchIndex, isHome } = context;
+        let opponent = null;
+        if (side === 'left') {
+            opponent = isHome ? leftRounds[roundIndex][matchIndex]?.away : leftRounds[roundIndex][matchIndex]?.home;
+        } else if (side === 'right') {
+            opponent = isHome ? rightRounds[roundIndex][matchIndex]?.away : rightRounds[roundIndex][matchIndex]?.home;
+        } else if (side === 'center') {
+            if (roundIndex === 'final') opponent = isHome ? part.final?.[1] : part.final?.[0];
+            else if (roundIndex === 'thirdPlaceMatch') opponent = isHome ? part.thirdPlaceMatch?.[1] : part.thirdPlaceMatch?.[0];
+        }
+
+        const oppName = typeof opponent === 'object' && opponent ? opponent.name : opponent;
+
+        if (oppName && !oppName.includes('º') && oppName !== 'Por definir') {
+            const m = (allGames || []).find(g => (g.home === name && g.away === oppName) || (g.home === oppName && g.away === name));
+            if (m && m.home_score != null && m.away_score != null) {
+                let score = m.home === name ? m.home_score : m.away_score;
+                let isPenalties = m.home_penalty != null && m.away_penalty != null;
+                if (isPenalties) {
+                    const penScore = m.home === name ? m.home_penalty : m.away_penalty;
+                    score = `${score} (${penScore})`;
+                }
+                
+                // Determine if this team won the match
+                let isWinner = false;
+                if (m.winner) {
+                    isWinner = m.winner === name;
+                } else if (!isProv) {
+                    isWinner = m.home === name ? m.home_score > m.away_score : m.away_score > m.home_score;
+                }
+
+                scoreContent = (
+                    <span style={{ 
+                        marginLeft: '4px', 
+                        fontSize: '0.85em', 
+                        fontWeight: 'bold', 
+                        color: isWinner ? '#2ecc71' : 'var(--text-muted)',
+                        background: 'rgba(255,255,255,0.05)',
+                        padding: '2px 4px',
+                        borderRadius: '4px'
+                    }}>
+                        {score}
+                    </span>
+                );
+            }
+        }
     }
-    return <TeamSlot name={name} rightContent={statusIndicator} />;
+
+    return <TeamSlot name={name} slotStyle={style} rightContent={scoreContent} />;
   };
 
   // ── Hidden rounds from visibility toggles ──────────────────────────────
@@ -172,6 +151,9 @@ function OfficialBracket({ hideTitle }) {
   // ── Center content ───────────────────────────────────────────────────────
   const finalTopY = matchTop(3, 0);
 
+  const getName = (t) => typeof t === 'object' && t ? t.name : t;
+  const getIsProv = (t) => typeof t === 'object' && t ? t.isProvisional : false;
+
   const centerContent = (colW) => (
     <div style={{ display: vis.center ? 'block' : 'none' }}>
       {/* FINAL */}
@@ -179,16 +161,23 @@ function OfficialBracket({ hideTitle }) {
         🏆 Final 🏆
       </div>
       <div className="match final-match" style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}>
-        <TeamSlot name={part.final?.[0]} />
-        <TeamSlot name={part.final?.[1]} />
+        {renderSlot(part.final?.[0], { side: 'center', roundIndex: 'final', isHome: true })}
+        {renderSlot(part.final?.[1], { side: 'center', roundIndex: 'final', isHome: false })}
       </div>
 
       {/* CAMPEÓN */}
       <div style={{ position: 'absolute', top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW, textAlign: 'center' }}>
         <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--champion-gold)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>🏆 Campeón</div>
         <div className="champion-display">
-          <div className="team-slot" style={{ height: 50, fontSize: '1.1rem', fontWeight: 'bold', justifyContent: 'center', pointerEvents: 'none', borderColor: '#fbbf24', background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>
-            {part.champion || '???'}
+          <div className="team-slot" style={{ 
+              height: 50, fontSize: '1.1rem', fontWeight: 'bold', justifyContent: 'center', pointerEvents: 'none', 
+              borderColor: getIsProv(part.champion) ? '#ff4757' : '#fbbf24', 
+              background: 'rgba(251,191,36,0.15)', 
+              color: '#fbbf24',
+              borderStyle: getIsProv(part.champion) ? 'dashed' : 'solid',
+              animation: getIsProv(part.champion) ? 'provisional-pulse 1.5s infinite' : 'none'
+            }}>
+            {getName(part.champion) || '???'}
           </div>
         </div>
       </div>
@@ -197,30 +186,151 @@ function OfficialBracket({ hideTitle }) {
       <div style={{ position: 'absolute', top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}>
         <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>🥉 Tercer Puesto</div>
         <div className="match third-place">
-          <TeamSlot name={part.thirdPlaceMatch?.[0]} />
-          <TeamSlot name={part.thirdPlaceMatch?.[1]} />
+          {renderSlot(part.thirdPlaceMatch?.[0], { side: 'center', roundIndex: 'thirdPlaceMatch', isHome: true })}
+          {renderSlot(part.thirdPlaceMatch?.[1], { side: 'center', roundIndex: 'thirdPlaceMatch', isHome: false })}
         </div>
       </div>
     </div>
   );
 
-  // ── Toggle buttons ──────────────────────────────────────────────────────
   return (
-    <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 20 }}>
+    <>
+    <style>{`
+      @keyframes provisional-pulse {
+        0% { opacity: 1; border-color: #ff4757; }
+        50% { opacity: 0.5; border-color: rgba(255,71,87,0.4); }
+        100% { opacity: 1; border-color: #ff4757; }
+      }
+      @keyframes slideInRight {
+        from { transform: translateX(30px) scale(0.96); opacity: 0; }
+        to { transform: translateX(0) scale(1); opacity: 1; }
+      }
+    `}</style>
+    <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 10, position: 'relative' }}>
       {!hideTitle && (
-        <div className="section-header" style={{ marginBottom: 20, textAlign: 'center' }}>
-          <h2 style={{ margin: 0, color: 'var(--accent-color)' }}>Cuadro Oficial del Torneo</h2>
+        <div className="section-header" style={{ marginBottom: 10, textAlign: 'center' }}>
+          <h2 style={{ margin: 0, color: 'var(--accent-color)', fontSize: '1.25rem' }}>Cuadro Oficial del Torneo</h2>
         </div>
       )}
 
-      {/* Visibility toggles */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', padding: 10, background: 'rgba(0,0,0,0.2)', borderRadius: 8, maxWidth: 800, margin: '0 auto 10px auto' }}>
-        <strong style={{ color: 'var(--text-muted)', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>Mostrar:</strong>
-        <ToggleBtn label="1/16"     isVisible={vis.r32} onToggle={() => setVis(p => ({ ...p, r32: !p.r32 }))} />
-        <ToggleBtn label="Octavos"  isVisible={vis.r16} onToggle={() => setVis(p => ({ ...p, r16: !p.r16 }))} />
-        <ToggleBtn label="Cuartos"  isVisible={vis.qf}  onToggle={() => setVis(p => ({ ...p, qf: !p.qf }))} />
-        <ToggleBtn label="Semis"    isVisible={vis.sf}  onToggle={() => setVis(p => ({ ...p, sf: !p.sf }))} />
-        <ToggleBtn label="Finales"  isVisible={vis.center} onToggle={() => setVis(p => ({ ...p, center: !p.center }))} />
+      {/* ── CONTROLS & HUD OVERLAY (Partidos / Pichichi) ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '10px', position: 'relative', zIndex: 50 }}>
+        {/* Botones de Toggle en el Top */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="glass-btn"
+            onClick={() => setActivePanel(p => p === 'live' ? null : 'live')}
+            style={{
+              padding: '6px 14px', fontSize: '0.85rem', fontWeight: 'bold',
+              background: activePanel === 'live' ? 'rgba(255, 71, 87, 0.18)' : 'transparent',
+              borderColor: activePanel === 'live' ? '#ff4757' : 'var(--border-color)',
+              color: activePanel === 'live' ? '#ff4757' : 'var(--text-muted)',
+              borderRadius: '8px', transition: 'all 0.2s', cursor: 'pointer'
+            }}
+          >🔴 Partidos</button>
+          <button
+            className="glass-btn"
+            onClick={() => setActivePanel(p => p === 'scorers' ? null : 'scorers')}
+            style={{
+              padding: '6px 14px', fontSize: '0.85rem', fontWeight: 'bold',
+              background: activePanel === 'scorers' ? 'rgba(255, 211, 42, 0.18)' : 'transparent',
+              borderColor: activePanel === 'scorers' ? '#ffd32a' : 'var(--border-color)',
+              color: activePanel === 'scorers' ? '#ffd32a' : 'var(--text-muted)',
+              borderRadius: '8px', transition: 'all 0.2s', cursor: 'pointer'
+            }}
+          >🏆 Pichichi</button>
+        </div>
+
+        {/* HUD Modal Centrado debajo de los botones - Cierra al hacer clic en cualquier parte fuera */}
+        {activePanel && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+              paddingTop: '115px',
+              paddingBottom: '30px',
+              paddingLeft: '15px',
+              paddingRight: '15px',
+              background: 'transparent',
+              overflowY: 'auto'
+            }}
+            onClick={() => setActivePanel(null)}
+          >
+            <div 
+              style={{
+                width: '380px',
+                maxWidth: '92vw',
+                maxHeight: 'calc(100vh - 140px)',
+                background: 'rgba(15, 23, 42, 0.92)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '16px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(59, 130, 246, 0.15)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                animation: 'modalScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                marginTop: '10px'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Cabecera del HUD */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '14px 18px',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'rgba(255, 255, 255, 0.03)'
+              }}>
+                <span style={{
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  color: activePanel === 'live' ? '#ff4757' : '#ffd32a',
+                  letterSpacing: '0.5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textTransform: 'uppercase'
+                }}>
+                  {activePanel === 'live' ? '🔴 Partidos en Vivo / Próximos' : '🏆 Tabla Pichichi'}
+                </span>
+                <button
+                  onClick={() => setActivePanel(null)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseOut={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                >✕</button>
+              </div>
+
+              {/* Contenido del HUD */}
+              <div style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
+                {activePanel === 'live' && <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} />}
+                {activePanel === 'scorers' && <TopScorersPanel topScorers={topScorers} hideTitle={true} />}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <BracketCanvas
@@ -229,8 +339,44 @@ function OfficialBracket({ hideTitle }) {
         renderSlot={renderSlot}
         renderCenter={centerContent}
         hiddenRounds={hiddenRounds}
+        mobileCenter={() => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Final */}
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'rgba(251,191,36,0.9)', letterSpacing: 2, textTransform: 'uppercase', textAlign: 'center', marginBottom: 8 }}>🏆 Final 🏆</div>
+              <div className="mb-match-card">
+                {renderSlot(part.final?.[0], { side: 'center', roundIndex: 'final', isHome: true })}
+                {renderSlot(part.final?.[1], { side: 'center', roundIndex: 'final', isHome: false })}
+              </div>
+            </div>
+            {/* Campeón */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--champion-gold)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>🏆 Campeón</div>
+              <div className="champion-display">
+                <div className="team-slot" style={{
+                  height: 50, fontSize: '1.1rem', fontWeight: 'bold', justifyContent: 'center', pointerEvents: 'none',
+                  borderColor: getIsProv(part.champion) ? '#ff4757' : '#fbbf24',
+                  background: 'rgba(251,191,36,0.15)', color: '#fbbf24',
+                  borderStyle: getIsProv(part.champion) ? 'dashed' : 'solid',
+                  animation: getIsProv(part.champion) ? 'provisional-pulse 1.5s infinite' : 'none'
+                }}>
+                  {getName(part.champion) || '???'}
+                </div>
+              </div>
+            </div>
+            {/* Tercer Puesto */}
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 2, textTransform: 'uppercase', textAlign: 'center', marginBottom: 8 }}>🥉 Tercer Puesto</div>
+              <div className="mb-match-card">
+                {renderSlot(part.thirdPlaceMatch?.[0], { side: 'center', roundIndex: 'thirdPlaceMatch', isHome: true })}
+                {renderSlot(part.thirdPlaceMatch?.[1], { side: 'center', roundIndex: 'thirdPlaceMatch', isHome: false })}
+              </div>
+            </div>
+          </div>
+        )}
       />
     </section>
+    </>
   );
 }
 

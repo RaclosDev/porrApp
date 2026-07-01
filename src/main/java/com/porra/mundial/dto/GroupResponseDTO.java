@@ -5,18 +5,32 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * DTO para la respuesta de un Grupo.
+ * Contiene la información pública/básica de un grupo, junto con
+ * detalles de la edición activa para que el Frontend sepa qué reglas aplicar.
+ */
 @Data
 @Builder
 public class GroupResponseDTO {
+    /** Identificador único del grupo. */
     private Long id;
+    /** Nombre del grupo. */
     private String name;
+    /** Código de invitación necesario para unirse. */
     private String joinCode;
+    /** Nombre del participante que es administrador de este grupo. */
     private String adminParticipantName;
+    /** Identificador del usuario administrador del grupo. */
     private Long adminUserId;
+    /** Fecha de creación del grupo. */
     private LocalDateTime createdAt;
     
-    // Edition specific fields (active edition)
+    // Campos específicos de la Edición Activa (Edition) en este grupo
+    /** Nombre de la competición actual en curso (Ej: Euro 2024). */
     private String competitionName;
+    /** Modo de apuesta elegido para esta edición (TRADITIONAL, ADVANCED). */
     private String betMode;
+    /** Si esta edición cuenta con un premio/ranking al pichichi. */
     private Boolean pichichi;
 }

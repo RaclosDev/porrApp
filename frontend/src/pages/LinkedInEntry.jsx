@@ -3,6 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
 /**
+ * Componente temporal que maneja el redireccionamiento para usuarios que 
+ * acceden a través del navegador embebido de LinkedIn, el cual tiene problemas
+ * con la apertura del teclado virtual y ciertas cookies en móviles.
+ * Invita al usuario a abrir la página en su navegador nativo.
+ *
+ * @component
+ * @returns {JSX.Element|null} La vista de redirección de LinkedIn.
+ */
+
+/**
  * LinkedInEntry — Página de entrada para visitantes de LinkedIn.
  *
  * Al montar este componente:

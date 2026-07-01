@@ -5,39 +5,48 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 📝 Entidad 'Bet' (Apuesta / Porra)
- * Representa la porra que un usuario envía al servidor. 
- * Se guarda en la tabla "bets" de la base de datos.
+ * 📝 Entidad 'Bet' (Apuesta / Porra).
+ * Representa la cabecera principal de la porra que un usuario envía al servidor. 
+ * Está ligada a una edición de un torneo y a una cuenta de usuario.
+ * Se guarda en la tabla "bets_v2" de la base de datos.
  */
 @Entity
 @Table(name = "bets_v2")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Bet {
 
+    /** Identificador único autogenerado de la apuesta. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Usuario (Participante) propietario de esta apuesta. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserAccount user;
 
+    /** Edición de la competición (ej. Euro 2024, Mundial 2026) a la que pertenece la apuesta. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "edition_id", nullable = false)
     private Edition edition;
 
+    /** Nombre personalizable que el usuario le puede dar a su porra. */
     private String betName;
 
+    /** Cantidad pagada (o a pagar) si el grupo es de pago. */
     private java.math.BigDecimal paymentAmount;
 
+    /** Estado del pago: PENDING o PAID. Afecta si la apuesta es visible en el ranking. */
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String paymentStatus = "PENDING";
 
+    /** Usuario administrador del grupo que marcó esta apuesta como pagada. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_marked_by")
     private UserAccount paymentMarkedBy;
 
+    /** Fecha exacta en la que se envió o guardó la apuesta. */
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 

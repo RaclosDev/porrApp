@@ -14,7 +14,7 @@ import com.porra.mundial.dto.BetDataDTO;
 import java.util.Map;
 
 /**
- * 📊 Controlador de Clasificaciones
+ * 📊 Controlador de Clasificaciones Oficiales (Grupos de Mundial/Eurocopa).
  * Se encarga de devolver a la web la tabla de puntos oficial y de 
  * permitir que el Admin pulse el botón de "Forzar Sincronización".
  */
@@ -30,8 +30,11 @@ public class StandingsController {
 
     /**
      * 🥇 GET /api/standings
-     * La web nos pide la clasificación actual.
-     * Devuelve los equipos ya ordenados mágicamente por el algoritmo de desempate de la FIFA.
+     * La web nos pide la clasificación actual de la competición.
+     * Devuelve los equipos ya ordenados mágicamente por el algoritmo de desempate de la FIFA/UEFA
+     * procesados desde ESPN.
+     * 
+     * @return Un mapa anidado: Grupos (A, B...) -> Equipos -> Estadísticas (puntos, goles a favor, en contra).
      */
     @GetMapping("/standings")
     public Map<String, Map<String, Map<String, Integer>>> getStandings() {
@@ -41,7 +44,10 @@ public class StandingsController {
     /**
      * 🔄 POST /api/sync
      * ¡Botón de pánico del Admin! 
-     * Fuerza a Java a descargar los datos de la FIFA ahora mismo sin esperar 15 minutos.
+     * Fuerza a Java a descargar los datos de la ESPN ahora mismo de forma síncrona
+     * sin esperar al programador en background de 15 minutos.
+     * 
+     * @return Estado del proceso de sincronización (ok o error).
      */
     @PostMapping("/sync")
     public Map<String, Object> syncNow() {
@@ -50,7 +56,10 @@ public class StandingsController {
 
     /**
      * GET /api/standings/official-bracket
-     * Devuelve la porra oficial (la que el admin guarda como 'official').
+     * Devuelve la porra oficial con los resultados reales del torneo
+     * que ha introducido el administrador para que el Frontend dibuje el "Cuadro Oficial".
+     * 
+     * @return BetDataDTO conteniendo los datos oficiales si existen, sino 404 NOT_FOUND.
      */
     @GetMapping("/standings/official-bracket")
     public ResponseEntity<?> getOfficialBracket() {
