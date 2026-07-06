@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MATCH_H } from './BracketCanvas';
 
 /**
@@ -31,10 +31,19 @@ export default function MobileBracket({ leftRounds, rightRounds, renderSlot, mob
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [slideDir, setSlideDir] = useState('right');
   const [animKey, setAnimKey] = useState(0);
+  const hasUserNavigated = useRef(false);
+
+  // Sync activeTab when defaultTab changes (async data load) but only if user hasn't manually navigated
+  useEffect(() => {
+    if (!hasUserNavigated.current) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
 
   /** Cambia de pestaña con animación de deslizamiento */
   const goToTab = (newTab) => {
     if (newTab === activeTab) return;
+    hasUserNavigated.current = true;
     setSlideDir(newTab > activeTab ? 'right' : 'left');
     setActiveTab(newTab);
     setAnimKey(k => k + 1);

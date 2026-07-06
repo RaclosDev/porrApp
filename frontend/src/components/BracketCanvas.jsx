@@ -101,13 +101,13 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
       style={{ cursor: clickable ? 'pointer' : 'default', height: SLOT_H, padding: '0 8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', ...slotStyle }}
     >
       {!isEmpty && !isPlaceholder && !isCombined && (
-        <img src={`https://flagcdn.com/16x12/${getCountryCode(name)}.png`} alt="" loading="lazy"
+        <img src={`https://flagcdn.com/w80/${getCountryCode(name)}.png`} alt="" loading="lazy"
           style={{ width: 18, height: 13, borderRadius: 2, objectFit: 'cover', flexShrink: 0, marginRight: 6 }} />
       )}
       {!isEmpty && !isPlaceholder && isCombined && (
         <div style={{ display: 'flex', marginRight: 6, flexShrink: 0, alignItems: 'center' }}>
           {combinedTeams.map((t, idx) => (
-            <img key={t} src={`https://flagcdn.com/16x12/${getCountryCode(t)}.png`} alt=""
+            <img key={t} src={`https://flagcdn.com/w80/${getCountryCode(t)}.png`} alt=""
               style={{ width: 16, height: 12, borderRadius: 2, objectFit: 'cover', marginLeft: idx > 0 ? -6 : 0, border: '1px solid rgba(0,0,0,0.5)', zIndex: combinedTeams.length - idx }} />
           ))}
         </div>
@@ -118,6 +118,53 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
       {rightContent}
     </div>
   );
+}
+
+// ── Compute active tab (first incomplete round) ───────────────────────────
+/**
+ * Determina la pestaña activa por defecto para el bracket móvil.
+ * Busca la primera ronda donde NO todos los partidos están completos
+ * (tienen equipos reales, no placeholders).
+ * Si todas las rondas están completas, devuelve la última pestaña (Final).
+ *
+ * @param {Array[]} leftRounds  - Rondas del lado izquierdo.
+ * @param {Array[]} rightRounds - Rondas del lado derecho.
+ * @returns {number} Índice de la pestaña activa (0-4).
+ */
+function computeActiveTab(leftRounds, rightRounds) {
+  // TABS: 0=R32(16avos), 1=R16(octavos), 2=QF(cuartos), 3=SF(semis), 4=Final
+  const isRealTeam = (team) => {
+    if (!team) return false;
+    const name = typeof team === 'object' ? team.name : team;
+    if (!name) return false;
+    if (name.includes('º')) return false; // placeholder like "1º Grupo A"
+    if (name === 'Por definir') return false;
+    return true;
+  };
+
+  const isMatchComplete = (match) => {
+    if (!match) return false;
+    return isRealTeam(match.home) && isRealTeam(match.away);
+  };
+
+  const isRoundComplete = (roundIndex) => {
+    const leftMatches = leftRounds[roundIndex] || [];
+    const rightMatches = rightRounds[roundIndex] || [];
+    const allMatches = [...leftMatches, ...rightMatches];
+    if (allMatches.length === 0) return false;
+    return allMatches.every(isMatchComplete);
+  };
+
+  // Find the first round that's NOT fully populated with teams.
+  // The round BEFORE it is the one currently being played.
+  // E.g. if QF (i=2) is incomplete → R16 (i=1) is being played → show octavos.
+  for (let i = 0; i < 4; i++) {
+    if (!isRoundComplete(i)) {
+      return Math.max(0, i - 1);
+    }
+  }
+  // All rounds have teams → show Final tab
+  return 4;
 }
 
 // ── BracketCanvas ──────────────────────────────────────────────────────────
@@ -272,6 +319,7 @@ export default function BracketCanvas({ leftRounds, rightRounds, renderSlot, ren
         rightRounds={rightRounds}
         renderSlot={renderSlot}
         mobileCenter={mobileCenter}
+        defaultTab={computeActiveTab(leftRounds, rightRounds)}
       />
 
       {/* ── DESKTOP: Bracket horizontal clásico ── */}

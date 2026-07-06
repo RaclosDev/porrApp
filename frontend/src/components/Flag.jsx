@@ -12,14 +12,14 @@ import { getCountryCode } from '../utils/constants';
  * @param {string} [props.className=''] - Clases CSS adicionales.
  * @returns {JSX.Element|null} Elemento <img> con la bandera o null si no hay equipo.
  */
-const Flag = ({ team, size = '20x15', style = {}, className = '' }) => {
+const Flag = ({ team, size = 'w80', style = {}, className = '' }) => {
     if (!team) return null;
     return (
         <img 
             src={`https://flagcdn.com/${size}/${getCountryCode(team)}.png`} 
             alt={team} 
             loading="lazy"
-            style={style}
+            style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0, ...style }}
             className={className}
         />
     );

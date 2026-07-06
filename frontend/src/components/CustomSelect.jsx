@@ -50,7 +50,7 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flex: 1 }}>
           {selectedOption ? (
             <>
-              {selectedOption.value !== "" && <img src={`https://flagcdn.com/16x12/${getCountryCode(selectedOption.value)}.png`} alt="" style={{ width: '16px', height: '12px' }} />}
+              {selectedOption.value !== "" && <img src={`https://flagcdn.com/w80/${getCountryCode(selectedOption.value)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />}
               <span>{selectedOption.label}</span>
             </>
           ) : (
@@ -97,7 +97,7 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
                 setIsOpen(false);
               }}
             >
-              {opt.value !== "" && <img src={`https://flagcdn.com/16x12/${getCountryCode(opt.value)}.png`} alt="" style={{ width: '16px', height: '12px' }} />}
+              {opt.value !== "" && <img src={`https://flagcdn.com/w80/${getCountryCode(opt.value)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />}
               <span>{opt.label}</span>
             </div>
           ))}

@@ -13,7 +13,7 @@ import { openStats } from '../utils/navigation';
  */
 function Radar() {
   const { matchRadar, loading } = useAppContext();
-  const [activeTab, setActiveTab] = useState('ultimos');
+  const [activeTab, setActiveTab] = useState('proximos');
 
   if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando partidos...</div>;
 
@@ -27,8 +27,8 @@ function Radar() {
     let isActuallyLive = type === 'live' && new Date(m.date) <= new Date();
     let icon = isActuallyLive ? '🔴' : type === 'live' ? '⏳' : type === 'last' ? '✔️' : '🕒';
 
-    const homeFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(m.home)}.png`} alt="" />;
-    const awayFlag = <img src={`https://flagcdn.com/20x15/${getCountryCode(m.away)}.png`} alt="" />;
+    const homeFlag = <img src={`https://flagcdn.com/w80/${getCountryCode(m.home)}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />;
+    const awayFlag = <img src={`https://flagcdn.com/w80/${getCountryCode(m.away)}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />;
 
 
 
@@ -103,32 +103,32 @@ function Radar() {
         <div className="radar-tabs hide-on-desktop" style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
           <button 
             className="glass-btn"
-            onClick={() => setActiveTab('ultimos')}
-            style={{ flex: 1, maxWidth: '200px', background: activeTab === 'ultimos' ? 'rgba(0, 210, 211, 0.2)' : '', border: activeTab === 'ultimos' ? '1px solid #00d2d3' : '' }}
-          >
-            Últimos Resultados
-          </button>
-          <button 
-            className="glass-btn"
             onClick={() => setActiveTab('proximos')}
             style={{ flex: 1, maxWidth: '200px', background: activeTab === 'proximos' ? 'rgba(0, 210, 211, 0.2)' : '', border: activeTab === 'proximos' ? '1px solid #00d2d3' : '' }}
           >
             Próximos Partidos
           </button>
+          <button 
+            className="glass-btn"
+            onClick={() => setActiveTab('ultimos')}
+            style={{ flex: 1, maxWidth: '200px', background: activeTab === 'ultimos' ? 'rgba(0, 210, 211, 0.2)' : '', border: activeTab === 'ultimos' ? '1px solid #00d2d3' : '' }}
+          >
+            Últimos Resultados
+          </button>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', width: '100%' }}>
-          <div className={`radar-column radar-col-ultimos ${activeTab === 'ultimos' ? 'active-mobile' : ''}`} style={{ flex: 1, width: '100%' }}>
-            <h3 className="hide-on-mobile" style={{ textAlign: 'center', color: '#00d2d3', marginBottom: '15px' }}>Últimos Resultados</h3>
-            <div className="last-matches-grid" style={{ gridTemplateColumns: '1fr' }}>
-              {lastMatches.map(m => renderMatchCard(m, 'last'))}
-            </div>
-          </div>
-
           <div className={`radar-column radar-col-proximos ${activeTab === 'proximos' ? 'active-mobile' : ''}`} style={{ flex: 1, width: '100%' }}>
             <h3 className="hide-on-mobile" style={{ textAlign: 'center', color: '#00d2d3', marginBottom: '15px' }}>Próximos Partidos</h3>
             <div className="last-matches-grid" style={{ gridTemplateColumns: '1fr' }}>
               {nextMatches.map(m => renderMatchCard(m, 'next'))}
+            </div>
+          </div>
+
+          <div className={`radar-column radar-col-ultimos ${activeTab === 'ultimos' ? 'active-mobile' : ''}`} style={{ flex: 1, width: '100%' }}>
+            <h3 className="hide-on-mobile" style={{ textAlign: 'center', color: '#00d2d3', marginBottom: '15px' }}>Últimos Resultados</h3>
+            <div className="last-matches-grid" style={{ gridTemplateColumns: '1fr' }}>
+              {lastMatches.map(m => renderMatchCard(m, 'last'))}
             </div>
           </div>
         </div>

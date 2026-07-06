@@ -84,7 +84,7 @@ function Home({ defaultMode = 'bracket', hideToggle = false }) {
             return (
             <div key={team.name} className="group-slot">
               <span style={{ fontWeight: 'bold', width: '20px', flexShrink: 0 }}>{idx + 1}.</span>
-            <Flag team={team.name} size="16x12" style={{ marginRight: '8px' }} />
+            <Flag team={team.name} style={{ width: '18px', height: '13px', marginRight: '8px' }} />
               <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{team.name}{statusDot}</span>
               <div style={{ display: 'flex', gap: '8px', fontSize: '0.85em', alignItems: 'center' }}>
                 <span style={{ width: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>{team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}</span>
@@ -128,7 +128,7 @@ function Home({ defaultMode = 'bracket', hideToggle = false }) {
                 <BestThirdsPanel officialPoints={officialPoints} allGames={allGames} nameToIdMap={nameToIdMap} />
               </div>
               <div className={activeMobilePanel === 'live' ? '' : 'mobile-step-hidden'}>
-                <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} />
+                <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} maxNext={1} />
               </div>
               <div className={activeMobilePanel === 'scorers' ? '' : 'mobile-step-hidden'}>
                 <TopScorersPanel topScorers={topScorers} />
@@ -144,7 +144,7 @@ function Home({ defaultMode = 'bracket', hideToggle = false }) {
                   <BestThirdsPanel officialPoints={officialPoints} allGames={allGames} nameToIdMap={nameToIdMap} />
               </div>
               <div style={{ flex: 1, minWidth: 'min(100%, 350px)', maxWidth: '600px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} />
+                  <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} maxNext={1} />
               </div>
               <div style={{ flex: 1, minWidth: 'min(100%, 380px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }} className="pichichi-mobile-center">
                   <TopScorersPanel topScorers={topScorers} />
