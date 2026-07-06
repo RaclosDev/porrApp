@@ -8,6 +8,8 @@ export function useLeaderboard() {
   const { leaderboardData, loading, isRaclos, activeGroupName, activeGroupId, activeGroupAdminId, userId, userName } = state;
   const [sharing, setSharing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [sortColumn, setSortColumn] = useState('total');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   const isLeagueAdmin = activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
 
@@ -23,21 +25,29 @@ export function useLeaderboard() {
     thirdPlaceWinner: backendScore.thirdPlaceWinner
   }));
 
+  const col = sortColumn || 'total';
+
+  // 1. Siempre ordenamos primero de mayor a menor (descendente) para calcular rangos y medallas correctamente
   results.sort((a, b) => {
     if (a.paid !== b.paid) return a.paid ? -1 : 1;
-    return b.points.total - a.points.total;
+    const valA = Number(a.points[col]) || 0;
+    const valB = Number(b.points[col]) || 0;
+    if (valB !== valA) return valB - valA;
+    if (col !== 'total') return b.points.total - a.points.total;
+    return 0;
   });
 
   let currentRank = 1;
-  let previousPoints = -1;
+  let previousVal = null;
 
   results.forEach((r) => {
     if (r.paid) {
-      if (previousPoints !== -1 && r.points.total < previousPoints) {
+      const val = Number(r.points[col]) || 0;
+      if (previousVal !== null && val !== previousVal) {
         currentRank++;
       }
       r.rank = currentRank;
-      previousPoints = r.points.total;
+      previousVal = val;
     } else {
       r.rank = '-';
     }
@@ -49,6 +59,18 @@ export function useLeaderboard() {
       lowestPaidRank = r.rank;
     }
   });
+
+  // 2. Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
+  if (sortDirection === 'asc') {
+    results.sort((a, b) => {
+      if (a.paid !== b.paid) return a.paid ? -1 : 1;
+      const valA = Number(a.points[col]) || 0;
+      const valB = Number(b.points[col]) || 0;
+      if (valB !== valA) return valA - valB;
+      if (col !== 'total') return a.points.total - b.points.total;
+      return 0;
+    });
+  }
 
   const handleShare = async () => {
     setSharing(true);
@@ -107,6 +129,15 @@ export function useLeaderboard() {
     }
   };
 
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
   return {
     state,
     results,
@@ -122,6 +153,9 @@ export function useLeaderboard() {
     handleShare,
     handleAcceptBet,
     handleDeleteBet,
-    validResults: results.filter(r => r.paid)
+    validResults: results.filter(r => r.paid),
+    sortColumn,
+    sortDirection,
+    handleSort
   };
 }

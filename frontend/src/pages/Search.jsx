@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { getCountryCode } from '../utils/constants';
 import { useSearchStats } from '../hooks/useSearchStats';
+import WhatsAppIcon from '../components/WhatsAppIcon';
 
 const searchConditions = [
   { val: "passes_groups", label: "Pasa a 1/16", icon: "✅" },
@@ -62,7 +63,7 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexGrow: 1 }}>
             {displayIcon && <span>{displayIcon}</span>}
-            {displayFlag && displayFlag !== 'xx' && <img src={`https://flagcdn.com/20x15/${displayFlag}.png`} alt="" style={{ borderRadius: '2px' }} />}
+            {displayFlag && displayFlag !== 'xx' && <img src={`https://flagcdn.com/w80/${displayFlag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />}
             <input 
                 ref={inputRef}
                 type="text"
@@ -91,7 +92,7 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
                 onMouseOut={(e) => { if(value !== val) e.currentTarget.style.background = 'transparent'}}
               >
                 {icon && <span>{icon}</span>}
-                {flag && flag !== 'xx' && <img src={`https://flagcdn.com/20x15/${flag}.png`} alt="" style={{ borderRadius: '2px' }} />}
+                {flag && flag !== 'xx' && <img src={`https://flagcdn.com/w80/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />}
                 <span>{label}</span>
               </div>
             );
@@ -304,7 +305,7 @@ function Search() {
                       
                       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '35px' }}>
                           <button onClick={handleShareTeam} className="glass-btn" style={{ padding: '10px 25px', borderRadius: '25px', background: '#25D366', color: 'white', border: '1px solid #25D366', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem' }}>
-                              <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.2rem' }}></i> Compartir Búsqueda
+                              <WhatsAppIcon size={20} /> Compartir Búsqueda
                           </button>
                       </div>
                   </div>
@@ -348,7 +349,7 @@ function Search() {
                                   </button>
                               )}
                               <button onClick={handleShareUser} className="glass-btn" style={{ padding: '8px 25px', borderRadius: '25px', fontSize: '1.1rem', background: '#25D366', color: 'white', border: '1px solid #25D366', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.2rem' }}></i> Compartir Perfil
+                                  <WhatsAppIcon size={20} /> Compartir Perfil
                               </button>
                           </div>
                       </div>
@@ -395,7 +396,7 @@ function Search() {
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                                       {userStats.madness.map(t => (
                                           <div key={t} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(0,0,0,0.4)', padding: '6px 12px', borderRadius: '15px', fontSize: '0.95rem' }}>
-                                              <img src={`https://flagcdn.com/16x12/${getCountryCode(t)}.png`} alt="" />
+                                              <img src={`https://flagcdn.com/w80/${getCountryCode(t)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />
                                               {t}
                                           </div>
                                       ))}
@@ -412,7 +413,7 @@ function Search() {
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                                       {userStats.haters.map(t => (
                                           <div key={t} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(0,0,0,0.4)', padding: '6px 12px', borderRadius: '15px', fontSize: '0.95rem' }}>
-                                              <img src={`https://flagcdn.com/16x12/${getCountryCode(t)}.png`} alt="" />
+                                              <img src={`https://flagcdn.com/w80/${getCountryCode(t)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />
                                               {t}
                                           </div>
                                       ))}
@@ -430,7 +431,7 @@ function Search() {
                                       {userStats.asylum.map(item => (
                                           <div key={item.team} style={{ background: 'rgba(0,0,0,0.4)', padding: '10px', borderRadius: '10px', fontSize: '0.9rem' }}>
                                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#e74c3c', marginBottom: '4px' }}>
-                                                  <img src={`https://flagcdn.com/16x12/${getCountryCode(item.team)}.png`} alt="" loading="lazy" />
+                                                  <img src={`https://flagcdn.com/w80/${getCountryCode(item.team)}.png`} alt="" loading="lazy" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />
                                                   {item.team}
                                               </div>
                                               <div style={{ color: 'rgba(255,255,255,0.8)' }}>

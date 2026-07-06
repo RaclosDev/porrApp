@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
 import { buildBracketData } from '../utils/bracketBuilder';
@@ -51,6 +51,28 @@ function OfficialBracket({ hideTitle }) {
   // ── Build bracket data ──────────────────────────────────────────────────
   const part = buildBracketData(officialPoints, groupOdds, allGames);
 
+  // ── Featured upcoming match in knockout bracket ─────────────────────────
+  const featuredMatch = useMemo(() => {
+    if (!allGames || allGames.length === 0) return null;
+    const koUnfinished = allGames
+      .filter(g => g && g.round !== 'group' && g.round !== 'r1' && g.round !== '1' && !g.finished && !g.winner && (g.home_score === null || g.home_score === undefined || g.home_score === ''))
+      .sort((a, b) => new Date(a.date || Infinity) - new Date(b.date || Infinity));
+    return koUnfinished[0] || null;
+  }, [allGames]);
+
+  const isMatchInRound = (match, ctx) => {
+    if (!match || !ctx) return true;
+    const r = (match.round || '').toLowerCase();
+    const idx = ctx.roundIndex;
+    if (idx === 0) return r === 'r32' || r === '32' || r.includes('32') || r.includes('16avo');
+    if (idx === 1) return r === 'r16' || r === '16' || r.includes('16') || r.includes('octav');
+    if (idx === 2) return r === 'qf' || r.includes('quart') || r.includes('cuart');
+    if (idx === 3) return r === 'sf' || r.includes('semi') || r.includes('semis');
+    if (idx === 'final') return r === 'final' || r.includes('final');
+    if (idx === 'thirdPlaceMatch') return r === 'third' || r.includes('tercer') || r.includes('3rd') || r.includes('3er');
+    return true;
+  };
+
   if (!part) {
     return (
       <section className="view-section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
@@ -81,13 +103,14 @@ function OfficialBracket({ hideTitle }) {
     const name = isObj ? teamOrObj.name : teamOrObj;
     const isProv = isObj ? teamOrObj.isProvisional : false;
     
-    const style = isProv ? { 
+    let style = isProv ? { 
       border: '1px dashed #ff4757', 
       animation: 'provisional-pulse 1.5s infinite',
       boxShadow: 'inset 0 0 10px rgba(255, 71, 87, 0.2)'
     } : {};
 
     let scoreContent = null;
+    let oppName = null;
     if (context && name && !name.includes('º') && name !== 'Por definir') {
         const { side, roundIndex, matchIndex, isHome } = context;
         let opponent = null;
@@ -100,7 +123,7 @@ function OfficialBracket({ hideTitle }) {
             else if (roundIndex === 'thirdPlaceMatch') opponent = isHome ? part.thirdPlaceMatch?.[1] : part.thirdPlaceMatch?.[0];
         }
 
-        const oppName = typeof opponent === 'object' && opponent ? opponent.name : opponent;
+        oppName = typeof opponent === 'object' && opponent ? opponent.name : opponent;
 
         if (oppName && !oppName.includes('º') && oppName !== 'Por definir') {
             const m = (allGames || []).find(g => (g.home === name && g.away === oppName) || (g.home === oppName && g.away === name));
@@ -135,6 +158,32 @@ function OfficialBracket({ hideTitle }) {
                 );
             }
         }
+    }
+
+    let isFeatured = false;
+    let isLive = false;
+    if (featuredMatch && name && !name.includes('º') && name !== 'Por definir' && name !== '???') {
+      if (isMatchInRound(featuredMatch, context)) {
+        if (featuredMatch.home === name || featuredMatch.away === name) {
+          isFeatured = true;
+          if (featuredMatch.date && new Date(featuredMatch.date) <= new Date()) {
+            isLive = true;
+          }
+        }
+      }
+    }
+
+    if (isFeatured) {
+      style = {
+        ...style,
+        border: isLive ? '2px solid #ff4757' : '2px solid #00d2d3',
+        boxShadow: isLive ? '0 0 16px rgba(255, 71, 87, 0.8), inset 0 0 10px rgba(255, 71, 87, 0.3)' : '0 0 16px rgba(0, 210, 211, 0.8), inset 0 0 10px rgba(0, 210, 211, 0.3)',
+        background: isLive ? 'linear-gradient(90deg, rgba(255,71,87,0.25) 0%, rgba(15,15,26,0.95) 100%)' : 'linear-gradient(90deg, rgba(0,210,211,0.25) 0%, rgba(15,15,26,0.95) 100%)',
+        animation: 'featured-match-pulse 1.5s infinite ease-in-out',
+        position: 'relative',
+        zIndex: 10,
+        fontWeight: 'bold'
+      };
     }
 
     return <TeamSlot name={name} slotStyle={style} rightContent={scoreContent} />;
@@ -205,11 +254,46 @@ function OfficialBracket({ hideTitle }) {
         from { transform: translateX(30px) scale(0.96); opacity: 0; }
         to { transform: translateX(0) scale(1); opacity: 1; }
       }
+      @keyframes featured-match-pulse {
+        0% { filter: drop-shadow(0 0 2px rgba(0,210,211,0.4)); }
+        50% { filter: drop-shadow(0 0 8px rgba(0,210,211,0.9)) brightness(1.1); }
+        100% { filter: drop-shadow(0 0 2px rgba(0,210,211,0.4)); }
+      }
     `}</style>
     <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 10, position: 'relative' }}>
       {!hideTitle && (
         <div className="section-header" style={{ marginBottom: 10, textAlign: 'center' }}>
           <h2 style={{ margin: 0, color: 'var(--accent-color)', fontSize: '1.25rem' }}>Cuadro Oficial del Torneo</h2>
+        </div>
+      )}
+
+      {featuredMatch && (
+        <div style={{
+          margin: '0 auto 12px auto',
+          padding: '8px 18px',
+          background: 'rgba(0, 210, 211, 0.12)',
+          border: '1px solid rgba(0, 210, 211, 0.5)',
+          borderRadius: '25px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          flexWrap: 'wrap',
+          maxWidth: '580px',
+          boxShadow: '0 0 15px rgba(0, 210, 211, 0.2)',
+          animation: 'featured-match-pulse 2s infinite'
+        }}>
+          <span style={{ fontSize: '0.75rem', background: '#00d2d3', color: '#000', fontWeight: '900', padding: '2px 8px', borderRadius: '12px' }}>
+            🔜 PRÓXIMO PARTIDO EN EL BRACKET
+          </span>
+          <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}>
+            {featuredMatch.home || 'Por definir'} vs {featuredMatch.away || 'Por definir'}
+          </span>
+          {featuredMatch.date && (
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              🕒 {new Date(featuredMatch.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
         </div>
       )}
 
@@ -284,24 +368,11 @@ function OfficialBracket({ hideTitle }) {
               {/* Cabecera del HUD */}
               <div style={{
                 display: 'flex',
-                justifyContent: 'space-between',
+                justifyContent: 'flex-end',
                 alignItems: 'center',
-                padding: '14px 18px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                background: 'rgba(255, 255, 255, 0.03)'
+                padding: '12px 16px 0 16px',
+                background: 'transparent'
               }}>
-                <span style={{
-                  fontSize: '0.9rem',
-                  fontWeight: 800,
-                  color: activePanel === 'live' ? '#ff4757' : '#ffd32a',
-                  letterSpacing: '0.5px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  textTransform: 'uppercase'
-                }}>
-                  {activePanel === 'live' ? '🔴 Partidos en Vivo / Próximos' : '🏆 Tabla Pichichi'}
-                </span>
                 <button
                   onClick={() => setActivePanel(null)}
                   style={{
@@ -324,9 +395,9 @@ function OfficialBracket({ hideTitle }) {
               </div>
 
               {/* Contenido del HUD */}
-              <div style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
-                {activePanel === 'live' && <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} />}
-                {activePanel === 'scorers' && <TopScorersPanel topScorers={topScorers} hideTitle={true} />}
+              <div style={{ padding: '8px 16px 16px 16px', overflowY: 'auto', flex: 1 }}>
+                {activePanel === 'live' && <LiveMatchesPanel liveMatches={matchRadar?.live || []} matchRadar={matchRadar} maxNext={3} />}
+                {activePanel === 'scorers' && <TopScorersPanel topScorers={topScorers} />}
               </div>
             </div>
           </div>

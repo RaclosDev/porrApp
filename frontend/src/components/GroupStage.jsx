@@ -141,7 +141,7 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '12px' }}>
                 {teams.map(t => (
                   <div key={t.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', padding: '6px', borderRadius: '4px', overflow: 'hidden' }}>
-                    <img src={`https://flagcdn.com/16x12/${getCountryCode(t.name)}.png`} alt="" style={{width: '16px', height: '12px', flexShrink: 0}}/>
+                    <img src={`https://flagcdn.com/w80/${getCountryCode(t.name)}.png`} alt="" style={{width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0}}/>
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: '500' }} title={t.name}>{t.name}</span>
                   </div>
                 ))}
@@ -229,7 +229,7 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
                     padding: '8px 12px'
                   }}
                 >
-                  <img src={`https://flagcdn.com/16x12/${getCountryCode(t)}.png`} alt="" />
+                  <img src={`https://flagcdn.com/w80/${getCountryCode(t)}.png`} alt="" style={{width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px'}} />
                   {t}
                 </button>
               )

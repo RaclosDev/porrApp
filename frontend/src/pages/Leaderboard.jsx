@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { useLeaderboard } from '../hooks/useLeaderboard';
+import EvolutionChart from '../components/EvolutionChart';
+import WhatsAppIcon from '../components/WhatsAppIcon';
 
 /**
  * Componente que muestra la tabla de clasificación (Leaderboard) de una liga.
@@ -23,23 +26,133 @@ function Leaderboard() {
     handleShare,
     handleAcceptBet,
     handleDeleteBet,
-    validResults
+    validResults,
+    sortColumn,
+    sortDirection,
+    handleSort
   } = useLeaderboard();
+
+  const [activeTab, setActiveTab] = useState('table'); // 'table' | 'evolution'
 
   if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando clasificación...</div>;
 
   const mid = Math.ceil(validResults.length / 2);
 
+  const columns = [
+    { key: 'total', label: 'TOTAL' },
+    { key: 'r1', label: 'F.Grupos' },
+    { key: 'r32', label: 'Dieciseisavos' },
+    { key: 'r16', label: 'Octavos' },
+    { key: 'qf', label: 'Cuartos' },
+    { key: 'sf', label: 'Semis' },
+    { key: 'finals', label: 'Finales' },
+    { key: 'scorer', label: 'Pichichi' },
+  ];
+
+  const sortIndicator = (colKey) => {
+    if (sortColumn !== colKey) return '';
+    return sortDirection === 'desc' ? ' ▼' : ' ▲';
+  };
+
+  const thStyle = (colKey) => ({
+    cursor: 'pointer',
+    userSelect: 'none',
+    whiteSpace: 'nowrap',
+    transition: 'color 0.2s, background 0.2s',
+    background: sortColumn === colKey ? 'rgba(0, 210, 211, 0.15)' : 'transparent',
+    color: sortColumn === colKey ? '#00d2d3' : 'inherit',
+    borderBottom: sortColumn === colKey ? '2px solid #00d2d3' : undefined,
+  });
+
   return (
     <section id="view-leaderboard" className="view-section" style={{ display: 'block' }}>
-        <div className="section-header" style={{ marginBottom: '20px', textAlign: 'center' }}>
-            <h2 style={{ margin: 0 }}>Clasificación: <span className="text-blue-400">{activeGroupName}</span></h2>
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '15px' }}>
-                <button id="btn-share-wa" onClick={handleShare} disabled={sharing} className="glass-btn primary-btn" style={{ padding: '8px 20px', fontSize: '1.1em', display: 'flex', alignItems: 'center', gap: '8px', background: '#25D366', color: 'white', borderColor: '#25D366', borderRadius: '20px', cursor: sharing ? 'not-allowed' : 'pointer' }}>
-                    <span>{sharing ? 'Generando...' : 'Compartir en WhatsApp'}</span> 📱
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '30px', marginTop: '10px' }}>
+            <div style={{
+                display: 'flex',
+                background: 'rgba(15, 23, 42, 0.8)',
+                padding: '5px',
+                borderRadius: '16px',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(12px)',
+                position: 'relative',
+                gap: '6px'
+            }}>
+                <button
+                    onClick={() => setActiveTab('table')}
+                    style={{
+                        padding: '10px 24px',
+                        fontWeight: 800,
+                        fontSize: '1.05rem',
+                        background: activeTab === 'table' ? 'linear-gradient(135deg, #00d2d3, #01a3a4)' : 'transparent',
+                        border: 'none',
+                        color: activeTab === 'table' ? '#000000' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        borderRadius: '12px',
+                        transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                        boxShadow: activeTab === 'table' ? '0 4px 15px rgba(0, 210, 211, 0.4)' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        letterSpacing: '0.5px'
+                    }}
+                >
+                    📋 Tabla General
+                </button>
+                <button
+                    onClick={() => setActiveTab('evolution')}
+                    style={{
+                        padding: '10px 24px',
+                        fontWeight: 800,
+                        fontSize: '1.05rem',
+                        background: activeTab === 'evolution' ? 'linear-gradient(135deg, #ff9f43, #ffaf60)' : 'transparent',
+                        border: 'none',
+                        color: activeTab === 'evolution' ? '#000000' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        borderRadius: '12px',
+                        transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                        boxShadow: activeTab === 'evolution' ? '0 4px 15px rgba(255, 159, 67, 0.4)' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        letterSpacing: '0.5px'
+                    }}
+                >
+                    📈 Gráfica de Evolución
                 </button>
             </div>
+            <button
+                id="btn-share-wa"
+                onClick={handleShare}
+                disabled={sharing}
+                title="Compartir en WhatsApp"
+                style={{
+                    padding: '10px 18px',
+                    fontSize: '1.4rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #25D366, #1ebd5a)',
+                    color: 'white',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '16px',
+                    cursor: sharing ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 8px 25px rgba(37, 211, 102, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(12px)',
+                    transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    minHeight: '48px',
+                    minWidth: '48px'
+                }}
+            >
+                {sharing ? <span style={{ fontSize: '1rem' }}>⏳</span> : <WhatsAppIcon size={26} />}
+            </button>
         </div>
+
+        {activeTab === 'evolution' ? (
+            <div style={{ width: '100%', marginTop: '10px' }}>
+                <EvolutionChart validResults={validResults} userName={userName} allGames={state.allGames} />
+            </div>
+        ) : (
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
             <div className="table-container" style={{ flex: 1, minWidth: '300px', maxWidth: '1400px', margin: '0 auto' }}>
                 <table className="leaderboard-table">
@@ -47,14 +160,16 @@ function Leaderboard() {
                         <tr>
                             <th>Pos</th>
                             <th>Participante</th>
-                            <th>TOTAL</th>
-                            <th>F.Grupos</th>
-                            <th>1/16</th>
-                            <th>Octavos</th>
-                            <th>Cuartos</th>
-                            <th>Semis</th>
-                            <th>Finales</th>
-                            <th>Pichichi</th>
+                            {columns.map(col => (
+                                <th
+                                    key={col.key}
+                                    style={thStyle(col.key)}
+                                    onClick={() => handleSort(col.key)}
+                                    title={`Ordenar por ${col.label}`}
+                                >
+                                    {col.label}{sortIndicator(col.key)}
+                                </th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody id="leaderboard-body-tab">
@@ -138,6 +253,7 @@ function Leaderboard() {
                 </table>
             </div>
         </div>
+        )}
 
         {/* SHARE IMAGE TEMPLATE (Hidden) */}
         <div id="share-image-template" style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '800px', padding: '30px', background: '#0f0f1a', color: 'white', fontFamily: "'Outfit', sans-serif", boxSizing: 'border-box', borderRadius: '15px' }}>

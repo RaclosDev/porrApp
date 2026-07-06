@@ -27,11 +27,11 @@ function Stats() {
     } else if (isFinals) {
       const teams = name.split(" vs ");
       const t1 = teams[0], t2 = teams[1];
-      const f1 = t1.includes("º") ? null : <img src={`https://flagcdn.com/16x12/${getCountryCode(t1)}.png`} alt="" style={{ borderRadius: '2px' }} />;
-      const f2 = t2.includes("º") ? null : <img src={`https://flagcdn.com/16x12/${getCountryCode(t2)}.png`} alt="" style={{ borderRadius: '2px' }} />;
+      const f1 = t1.includes("º") ? null : <img src={`https://flagcdn.com/w80/${getCountryCode(t1)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />;
+      const f2 = t2.includes("º") ? null : <img src={`https://flagcdn.com/w80/${getCountryCode(t2)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />;
       cleanName = <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>{f1} {t1} <span>vs</span> {t2} {f2}</span>;
     } else if (!name.includes("º")) {
-      flagHtml = <img src={`https://flagcdn.com/16x12/${getCountryCode(name)}.png`} alt="" style={{ marginRight: '8px', borderRadius: '2px' }} />;
+      flagHtml = <img src={`https://flagcdn.com/w80/${getCountryCode(name)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', marginRight: '8px', borderRadius: '2px' }} />;
     }
 
     const count = usersArray.length;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { getCountryCode } from '../utils/constants';
 import { useBetViewerData } from '../hooks/useBetViewerData';
@@ -24,6 +24,27 @@ function BetViewer() {
     getCenterPointsTotal, getGroupTeamData 
   } = useBetViewerData(viewerBetId, officialPoints, state.leaderboardData, groupOdds, allGames, nameToIdMap);
 
+  const featuredMatch = useMemo(() => {
+    if (!allGames || allGames.length === 0) return null;
+    const koUnfinished = allGames
+      .filter(g => g && g.round !== 'group' && g.round !== 'r1' && g.round !== '1' && !g.finished && !g.winner && (g.home_score === null || g.home_score === undefined || g.home_score === ''))
+      .sort((a, b) => new Date(a.date || Infinity) - new Date(b.date || Infinity));
+    return koUnfinished[0] || null;
+  }, [allGames]);
+
+  const isMatchInRound = (match, ctx) => {
+    if (!match || !ctx) return true;
+    const r = (match.round || '').toLowerCase();
+    const idx = ctx.roundIndex;
+    if (idx === 0) return r === 'r32' || r === '32' || r.includes('32') || r.includes('16avo');
+    if (idx === 1) return r === 'r16' || r === '16' || r.includes('16') || r.includes('octav');
+    if (idx === 2) return r === 'qf' || r.includes('quart') || r.includes('cuart');
+    if (idx === 3) return r === 'sf' || r.includes('semi') || r.includes('semis');
+    if (idx === 'final') return r === 'final' || r.includes('final');
+    if (idx === 'thirdPlaceMatch') return r === 'third' || r.includes('tercer') || r.includes('3rd') || r.includes('3er');
+    return true;
+  };
+
   /**
    * Abre automáticamente la sección que tiene más sentido mostrar
    * basado en en qué fase del mundial nos encontremos.
@@ -43,25 +64,51 @@ function BetViewer() {
   const renderSlot = (name, { side, roundIndex, matchIndex, isHome }) => {
     const { isWinner, slotPoints } = getSlotDetails(name, roundIndex, side, matchIndex, isHome);
     
+    let style = isWinner ? { borderLeft: '3px solid #2ecc71', background: 'rgba(46, 204, 113, 0.1)' } : {};
+    let rightContent = slotPoints !== null ? (
+      <span style={{ 
+        marginLeft: '4px', 
+        fontSize: '0.85em', 
+        fontWeight: 'bold', 
+        color: slotPoints === "0" ? '#e74c3c' : '#2ecc71',
+        background: slotPoints === "0" ? 'rgba(231,76,60,0.1)' : 'rgba(46,204,113,0.1)',
+        padding: '2px 4px',
+        borderRadius: '4px'
+      }}>
+        {slotPoints}
+      </span>
+    ) : null;
+
+    let isFeatured = false;
+    let isLive = false;
+    if (featuredMatch && name && !name.includes('º') && name !== 'Por definir' && name !== '???') {
+      if (isMatchInRound(featuredMatch, { roundIndex })) {
+        if (featuredMatch.home === name || featuredMatch.away === name) {
+          isFeatured = true;
+          if (featuredMatch.date && new Date(featuredMatch.date) <= new Date()) {
+            isLive = true;
+          }
+        }
+      }
+    }
+
+    if (isFeatured) {
+      style = {
+        ...style,
+        border: isLive ? '2px solid #ff4757' : '2px solid #00d2d3',
+        boxShadow: isLive ? '0 0 16px rgba(255, 71, 87, 0.8), inset 0 0 10px rgba(255, 71, 87, 0.3)' : '0 0 16px rgba(0, 210, 211, 0.8), inset 0 0 10px rgba(0, 210, 211, 0.3)',
+        background: isLive ? 'linear-gradient(90deg, rgba(255,71,87,0.25) 0%, rgba(15,15,26,0.95) 100%)' : 'linear-gradient(90deg, rgba(0,210,211,0.25) 0%, rgba(15,15,26,0.95) 100%)',
+        position: 'relative',
+        zIndex: 10,
+        fontWeight: 'bold'
+      };
+    }
+
     return (
       <TeamSlot 
         name={name} 
-        slotStyle={isWinner ? { borderLeft: '3px solid #2ecc71', background: 'rgba(46, 204, 113, 0.1)' } : {}}
-        rightContent={
-          slotPoints !== null ? (
-            <span style={{ 
-              marginLeft: '4px', 
-              fontSize: '0.85em', 
-              fontWeight: 'bold', 
-              color: slotPoints === "0" ? '#e74c3c' : '#2ecc71',
-              background: slotPoints === "0" ? 'rgba(231,76,60,0.1)' : 'rgba(46,204,113,0.1)',
-              padding: '2px 4px',
-              borderRadius: '4px'
-            }}>
-              {slotPoints}
-            </span>
-          ) : null
-        }
+        slotStyle={style}
+        rightContent={rightContent}
       />
     );
   };
@@ -162,7 +209,7 @@ function BetViewer() {
 
     return (
       <div style={{ fontSize: '1em', color, marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
-        <span style={{ marginRight: '4px' }}>{medal}</span> {!teamName.includes("º") && getCountryCode(teamName) !== "xx" && <img src={`https://flagcdn.com/16x12/${getCountryCode(teamName)}.png`} alt="" loading="lazy" style={{ marginRight: '4px', flexShrink: 0 }} />} <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{teamName}{blueDot}</span>
+        <span style={{ marginRight: '4px' }}>{medal}</span> {!teamName.includes("º") && getCountryCode(teamName) !== "xx" && <img src={`https://flagcdn.com/w80/${getCountryCode(teamName)}.png`} alt="" loading="lazy" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px', marginRight: '4px', flexShrink: 0 }} />} <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{teamName}{blueDot}</span>
         {teamPts > 0 && <span style={{ marginLeft: '6px', fontSize: '0.85em', fontWeight: 'bold', color: 'rgba(0, 210, 211, 0.9)', background: 'rgba(0, 210, 211, 0.15)', padding: '1px 5px', borderRadius: '4px' }}>+{teamPts}</span>}
       </div>
     );
