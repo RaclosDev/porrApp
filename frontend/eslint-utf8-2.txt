@@ -1,0 +1,360 @@
+
+> frontend@0.0.0 lint
+> eslint .
+
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\dev-dist\sw.js
+  34:13  error  'importScripts' is not defined  no-undef
+  70:1   error  'define' is not defined         no-undef
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\dev-dist\workbox-7e5eb42b.js
+     1:1   error    'define' is not defined                                                         no-undef
+     5:37  error    '_' is not defined                                                              no-undef
+     6:14  error    'e' is defined but never used                                                   no-unused-vars
+     6:17  error    Empty block statement                                                           no-empty
+    69:7   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+   436:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+   452:5   warning  Unused eslint-disable directive (no problems were reported)
+   475:40  error    '_' is not defined                                                              no-undef
+   476:14  error    'e' is defined but never used                                                   no-unused-vars
+   476:17  error    Empty block statement                                                           no-empty
+   769:11  error    Definition for rule '@typescript-eslint/no-unsafe-member-access' was not found  @typescript-eslint/no-unsafe-member-access
+   771:13  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   965:11  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   981:13  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   987:13  warning  Unused eslint-disable directive (no problems were reported)
+  1214:53  error    'registration' is not defined                                                   no-undef
+  1272:43  error    '_' is not defined                                                              no-undef
+  1273:14  error    'e' is defined but never used                                                   no-unused-vars
+  1273:17  error    Empty block statement                                                           no-empty
+  1406:11  warning  Unused eslint-disable directive (no problems were reported)
+  1521:20  error    'error' is defined but never used                                               no-unused-vars
+  1556:43  error    'modifier' is defined but never used                                            no-unused-vars
+  1665:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+  1717:43  error    '_' is not defined                                                              no-undef
+  1718:14  error    'e' is defined but never used                                                   no-unused-vars
+  1718:17  error    Empty block statement                                                           no-empty
+  1796:56  error    'ExtendableEvent' is not defined                                                no-undef
+  1835:61  error    'FetchEvent' is not defined                                                     no-undef
+  1870:15  error    Unexpected constant condition                                                   no-constant-condition
+  2062:35  warning  Unused eslint-disable directive (no problems were reported)
+  2336:32  error    'FetchEvent' is not defined                                                     no-undef
+  2404:18  error    'error' is defined but never used                                               no-unused-vars
+  2793:9   error    Definition for rule '@typescript-eslint/no-unsafe-return' was not found         @typescript-eslint/no-unsafe-return
+  2840:9   error    Definition for rule '@typescript-eslint/no-unsafe-return' was not found         @typescript-eslint/no-unsafe-return
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\components\BetViewer.jsx
+    9:40  error  'officialResultsHash' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+   19:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  17 |   useEffect(() => {
+  18 |     if (!viewerBetId) {
+> 19 |       setPart(null);
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  20 |       setError(null);
+  21 |       return;
+  22 |     }  react-hooks/set-state-in-effect
+   81:9   error  'getHtmlTeam' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  182:43  error  Unnecessary escape character: \[                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-useless-escape
+  191:13  error  'pos' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\components\BracketCanvas.jsx
+  11:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\components\Flag.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\components\GroupMatchesModal.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\components\GroupStage.jsx
+    1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+    2:26  error  'getCountryEmoji' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+  111:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  109 |         initial[g] = { first: '', second: '', third: '' };
+  110 |       });
+> 111 |       setSelections(initial);
+      |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  112 |     }
+  113 |   }, [groupOdds, selections]);
+  114 |                                                                                                                                  react-hooks/set-state-in-effect
+  127:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  125 |   useEffect(() => {
+  126 |     const currentThirds = Object.values(selections).map(g => g.third).filter(t => t !== '');
+> 127 |     setAdvancingThirds(prev => prev.filter(t => currentThirds.includes(t)));
+      |     ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  128 |   }, [selections]);
+  129 |
+  130 |   const handleSelect = (group, pos, teamName) => {  react-hooks/set-state-in-effect
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\components\Layout.jsx
+   18:10  error  'googleEmail' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+   19:10  error  'googleName' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+   39:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  37 |   useEffect(() => {
+  38 |     if (location.state?.requireLogin) {
+> 39 |         setShowMyBetModal(true);
+     |         ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  40 |     }
+  41 |   }, [location.state]);
+  42 |                                                                                    react-hooks/set-state-in-effect
+   45:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  43 |   useEffect(() => {
+  44 |     if (isIos() && !isStandalone() && localStorage.getItem('pwa_banner_dismissed') !== 'true') {
+> 45 |       setShowInstallBanner(true);
+     |       ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  46 |     }
+  47 |
+  48 |     const handleBeforeInstallPrompt = (e) => {  react-hooks/set-state-in-effect
+   66:39  error  'choiceResult' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+  134:14  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\context\AppContext.jsx
+   90:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  88 |   useEffect(() => {
+  89 |     if (!isAdminAuthenticated) {
+> 90 |       setUserName('');
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  91 |       setUserId('');
+  92 |       localStorage.removeItem('my_bet_name');
+  93 |       localStorage.removeItem('my_user_id');  react-hooks/set-state-in-effect
+  337:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-refresh/only-export-components
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\pages\Admin.jsx
+  45:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  43 |   useEffect(() => {
+  44 |     if (!isAdminAuthenticated) return;
+> 45 |     setLoading(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  46 |     fetchConnectionHistory().then(data => {
+  47 |       if (data) setHistory(data);
+  48 |     });  react-hooks/set-state-in-effect
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\pages\GroupsDashboard.jsx
+  47:17  error    'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  47:22  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-empty
+  91:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  89 |       checkPendingJoin();
+  90 |     } else {
+> 91 |       setLoading(false);
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  92 |     }
+  93 |   }, [userName]);
+  94 |  react-hooks/set-state-in-effect
+  93:6   warning  React Hook useEffect has missing dependencies: 'changeGroup', 'loadGroupsAndCompetitions', and 'navigate'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\pages\Home.jsx
+   3:10  error  'getCountryCode' is defined but never used        no-unused-vars
+  12:70  error  'isRaclos' is assigned a value but never used     no-unused-vars
+  30:11  error  'hasFinished' is assigned a value but never used  no-unused-vars
+  69:43  error  Unnecessary escape character: \[                  no-useless-escape
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\pages\Leaderboard.jsx
+    9:79  error  'activeGroupAdmin' is assigned a value but never used  no-unused-vars
+  236:57  error  'idx' is defined but never used                        no-unused-vars
+  256:54  error  'idx' is defined but never used                        no-unused-vars
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\pages\OfficialBracket.jsx
+  181:10  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  179 |       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', padding: 10, background: 'rgba(0,0,0,0.2)', borderRadius: 8, maxWidth: 800, margin: '0 auto 10px auto' }}>
+  180 |         <strong style={{ color: 'var(--text-muted)', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>Mostrar:</strong>
+> 181 |         <ToggleBtn label="1/16"     field="r32" />
+      |          ^^^^^^^^^ This component is created during render
+  182 |         <ToggleBtn label="Octavos"  field="r16" />
+  183 |         <ToggleBtn label="Cuartos"  field="qf" />
+  184 |         <ToggleBtn label="Semis"    field="sf" />
+
+  153 |   // ── Toggle buttons ──────────────────────────────────────────────────────
+  154 |
+> 155 |   const ToggleBtn = ({ label, field }) => (
+      |                     ^^^^^^^^^^^^^^^^^^^^^^^
+> 156 |     <button
+      | ^^^^^^^^^^^
+> 157 |       className="glass-btn"
+      …
+      | ^^^^^^^^^^^
+> 167 |     </button>
+      | ^^^^^^^^^^^
+> 168 |   );
+      | ^^^^ The component is created during render here
+  169 |
+  170 |   return (
+  171 |     <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 20 }}>  react-hooks/static-components
+  182:10  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  180 |         <strong style={{ color: 'var(--text-muted)', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>Mostrar:</strong>
+  181 |         <ToggleBtn label="1/16"     field="r32" />
+> 182 |         <ToggleBtn label="Octavos"  field="r16" />
+      |          ^^^^^^^^^ This component is created during render
+  183 |         <ToggleBtn label="Cuartos"  field="qf" />
+  184 |         <ToggleBtn label="Semis"    field="sf" />
+  185 |         <ToggleBtn label="Finales"  field="center" />
+
+  153 |   // ── Toggle buttons ──────────────────────────────────────────────────────
+  154 |
+> 155 |   const ToggleBtn = ({ label, field }) => (
+      |                     ^^^^^^^^^^^^^^^^^^^^^^^
+> 156 |     <button
+      | ^^^^^^^^^^^
+> 157 |       className="glass-btn"
+      …
+      | ^^^^^^^^^^^
+> 167 |     </button>
+      | ^^^^^^^^^^^
+> 168 |   );
+      | ^^^^ The component is created during render here
+  169 |
+  170 |   return (
+  171 |     <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 20 }}>                                                                                                                                                react-hooks/static-components
+  183:10  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  181 |         <ToggleBtn label="1/16"     field="r32" />
+  182 |         <ToggleBtn label="Octavos"  field="r16" />
+> 183 |         <ToggleBtn label="Cuartos"  field="qf" />
+      |          ^^^^^^^^^ This component is created during render
+  184 |         <ToggleBtn label="Semis"    field="sf" />
+  185 |         <ToggleBtn label="Finales"  field="center" />
+  186 |       </div>
+
+  153 |   // ── Toggle buttons ──────────────────────────────────────────────────────
+  154 |
+> 155 |   const ToggleBtn = ({ label, field }) => (
+      |                     ^^^^^^^^^^^^^^^^^^^^^^^
+> 156 |     <button
+      | ^^^^^^^^^^^
+> 157 |       className="glass-btn"
+      …
+      | ^^^^^^^^^^^
+> 167 |     </button>
+      | ^^^^^^^^^^^
+> 168 |   );
+      | ^^^^ The component is created during render here
+  169 |
+  170 |   return (
+  171 |     <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 20 }}>                                                                                                                                                                                                                                                                      react-hooks/static-components
+  184:10  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  182 |         <ToggleBtn label="Octavos"  field="r16" />
+  183 |         <ToggleBtn label="Cuartos"  field="qf" />
+> 184 |         <ToggleBtn label="Semis"    field="sf" />
+      |          ^^^^^^^^^ This component is created during render
+  185 |         <ToggleBtn label="Finales"  field="center" />
+  186 |       </div>
+  187 |
+
+  153 |   // ── Toggle buttons ──────────────────────────────────────────────────────
+  154 |
+> 155 |   const ToggleBtn = ({ label, field }) => (
+      |                     ^^^^^^^^^^^^^^^^^^^^^^^
+> 156 |     <button
+      | ^^^^^^^^^^^
+> 157 |       className="glass-btn"
+      …
+      | ^^^^^^^^^^^
+> 167 |     </button>
+      | ^^^^^^^^^^^
+> 168 |   );
+      | ^^^^ The component is created during render here
+  169 |
+  170 |   return (
+  171 |     <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 20 }}>                                                                                                                                                                                                                                                                                                                         react-hooks/static-components
+  185:10  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  183 |         <ToggleBtn label="Cuartos"  field="qf" />
+  184 |         <ToggleBtn label="Semis"    field="sf" />
+> 185 |         <ToggleBtn label="Finales"  field="center" />
+      |          ^^^^^^^^^ This component is created during render
+  186 |       </div>
+  187 |
+  188 |       <BracketCanvas
+
+  153 |   // ── Toggle buttons ──────────────────────────────────────────────────────
+  154 |
+> 155 |   const ToggleBtn = ({ label, field }) => (
+      |                     ^^^^^^^^^^^^^^^^^^^^^^^
+> 156 |     <button
+      | ^^^^^^^^^^^
+> 157 |       className="glass-btn"
+      …
+      | ^^^^^^^^^^^
+> 167 |     </button>
+      | ^^^^^^^^^^^
+> 168 |   );
+      | ^^^^ The component is created during render here
+  169 |
+  170 |   return (
+  171 |     <section className="view-section" style={{ display: 'block', paddingTop: hideTitle ? 0 : 20 }}>                                                                                                                                                                                                                                                                                                                                                       react-hooks/static-components
+
+C:\Users\raclo\.gemini\antigravity-ide\scratch\porra-mundial-spring\frontend\src\utils\points.js
+  2:41  error  Unnecessary escape character: \[  no-useless-escape
+  3:41  error  Unnecessary escape character: \[  no-useless-escape
+
+✖ 75 problems (70 errors, 5 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+

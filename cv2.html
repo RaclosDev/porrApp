@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV - Carlos Sanz Tomero</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f3f4f6; 
+            display: flex; 
+            justify-content: center; 
+            padding: 2rem 0; 
+            margin: 0;
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+        }
+        .page { 
+            /* Dimensiones estrictas de A4 a 96 DPI */
+            width: 794px; 
+            height: 1123px; 
+            background: white; 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); 
+            padding: 55px 40px; 
+            box-sizing: border-box; 
+            overflow: hidden; /* Nada puede salir de los bordes del folio */
+            position: relative;
+        }
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { background: white; padding: 0; }
+            .page { width: 100%; height: 100%; box-shadow: none; padding: 55px 40px; }
+        }
+        
+        .cv-grid {
+            display: grid;
+            grid-template-columns: 230px 1fr;
+            gap: 40px;
+            height: 100%;
+        }
+        
+        .left-col {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .right-col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Profile Image */
+        .profile-wrapper {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+        }
+        .profile-image {
+            width: 165px; 
+            height: 165px; 
+            border-radius: 50%; 
+            border: 4px solid #fac114; 
+            overflow: hidden; 
+            background: #0ea5e9;
+        }
+        .profile-image img {
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover;
+        }
+
+        /* Left Column Typography */
+        .section-title-left { 
+            border-bottom: 3px solid #fac114; 
+            padding-bottom: 6px; 
+            margin-bottom: 16px; 
+            font-weight: 800; 
+            font-size: 14px; 
+            letter-spacing: 0.05em; 
+            color: #1e293b; 
+            text-transform: uppercase; 
+        }
+        .sub-title { font-weight: 700; font-size: 12.5px; color: #334155; margin-bottom: 3px; line-height: 1.3;}
+        .sub-text { font-size: 11.5px; color: #64748b; margin-bottom: 16px; line-height: 1.3;}
+        
+        /* Tech Section */
+        .tech-head { font-size: 11.5px; color: #64748b; margin-bottom: 10px; margin-top: 18px; font-weight: 500; }
+        .tech-item { font-size: 12px; color: #334155; display: flex; align-items: center; margin-bottom: 8px; }
+        .tech-item img, .tech-item .icon { width: 16px; height: 16px; margin-right: 10px; flex-shrink: 0; }
+        .icon { display: inline-flex; align-items: center; justify-content: center; border-radius: 2px; color: white; font-size: 9px; font-weight: bold; }
+        .icon-round { border-radius: 50%; }
+        
+        /* Idiomas */
+        .list-idiomas { list-style-type: disc; padding-left: 18px; font-size: 12.5px; color: #334155; margin-top: 12px; margin-bottom: 0; }
+        .list-idiomas li { margin-bottom: 6px; }
+
+        /* Right Column Header */
+        .header-right {
+            border-bottom: 2px solid #f1f5f9; 
+            padding-bottom: 16px; 
+            margin-bottom: 20px; 
+            margin-top: 0px; 
+        }
+        .name {
+            font-size: 38px; 
+            font-weight: 300; 
+            color: #0f172a; 
+            letter-spacing: 1px; 
+            margin: 0 0 16px 0; 
+            line-height: 1; 
+            white-space: nowrap;
+        }
+        .contact-info {
+            display: flex; 
+            gap: 16px; 
+            row-gap: 12px;
+            align-items: center; 
+            justify-content: flex-start; 
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .contact-item {
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+        }
+        .contact-icon {
+            width: 24px; 
+            height: 24px; 
+            background: #fac114; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        .contact-icon svg { width: 12px; height: 12px; color: white; }
+        .contact-text { font-size: 12px; font-weight: 600; color: #64748b; }
+
+        /* Timeline para Experiencia Laboral */
+        .timeline-container {
+            position: relative;
+            padding-left: 20px; /* Margen para alejar el texto de la línea */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* La línea vertical que nace desde el punto amarillo */
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 14px; /* Exactamente la mitad de los 28px de altura del exp-header */
+            bottom: 0;
+            width: 2px;
+            background-color: #e2e8f0;
+            z-index: 1;
+        }
+
+        .exp-header {
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 28px; 
+            position: relative;
+            height: 28px;
+        }
+        
+        .yellow-dot {
+            width: 16px; 
+            height: 16px; 
+            background: #fac114; 
+            border-radius: 50%;
+            position: absolute;
+            left: -27px; /* -20px de padding - 1px (mitad de la línea) - 8px (mitad del punto) + 2px ajuste = -27px */
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
+        .section-title-right {
+            font-size: 20px; 
+            font-weight: 800; 
+            color: #1e293b; 
+            margin: 0; 
+            text-transform: uppercase;
+        }
+
+        .exp-block { margin-bottom: 26px; }
+        .exp-date { font-size: 11.5px; font-weight: 700; color: #64748b; margin-bottom: 4px; }
+        .exp-title { font-size: 14.5px; font-weight: 800; color: #1e293b; margin-bottom: 4px; line-height: 1.2; }
+        .exp-company { font-size: 13.5px; font-weight: 800; color: #334155; margin-bottom: 8px; }
+        .exp-list { 
+            list-style-type: disc; 
+            padding-left: 16px; 
+            font-size: 12px; 
+            color: #475569; 
+            line-height: 1.6; 
+            margin: 0;
+        }
+        .exp-list li { margin-bottom: 6px; }
+        
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="cv-grid">
+            
+            <!-- Columna Izquierda -->
+            <div class="left-col">
+                <div class="profile-wrapper" style="margin-bottom: 20px;">
+                    <div class="profile-image">
+                        <img src="https://avatars.githubusercontent.com/u/47154808?s=400&u=0795f4858732b073130c92acae38c774d379fcea&v=4" alt="Carlos">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px;">
+                    <div class="contact-item">
+                        <div class="contact-icon" style="width: 22px; height: 22px;">
+                            <svg style="width: 11px; height: 11px;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        </div>
+                        <span class="contact-text" style="font-size: 11.5px;">github.com/raclosdev</span>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon" style="width: 22px; height: 22px;">
+                            <svg style="width: 11px; height: 11px;" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        </div>
+                        <span class="contact-text" style="font-size: 11.5px;">linkedin.com/in/raclosdev</span>
+                    </div>
+                </div>
+
+                <div class="section-title-left">EDUCACIÓN</div>
+                <div class="sub-title">Grado en Ingeniería Informática</div>
+                <div class="sub-text" style="margin-bottom: 24px;">Universidad Complutense, Madrid</div>
+
+                <div class="section-title-left" style="margin-top: 24px;">TECNOLOGÍAS</div>
+                
+                <div class="tech-head" style="margin-top: 0;">Backend y BBDD</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" /> Java (8, 11, 17+)</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/spring/spring-original.svg" /> Spring Boot & Spring AI</div>
+                <div class="tech-item"><div class="icon" style="background:#8b5cf6; border-radius: 50%;">W3</div> Web3 & APIs REST</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg" /> MySQL</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" /> PostgreSQL</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" /> MongoDB</div>
+                <div class="tech-item"><div class="icon" style="background:#ff6600; border-radius: 2px;">RMQ</div> RabbitMQ</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apachekafka/apachekafka-original.svg" /> Kafka</div>
+
+                <div class="tech-head">DevOps y Herramientas</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" /> Docker</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/jenkins/jenkins-original.svg" /> Jenkins</div>
+
+                <div class="tech-head">Testing y Control de Versiones</div>
+                <div class="tech-item"><div class="icon icon-round" style="background:#dc2626;">5</div> JUnit y Mockito</div>
+                <div class="tech-item"><div class="icon" style="background:#dc2626; padding-bottom: 2px;">Se</div> Selenium</div>
+                <div class="tech-item"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" /> Git</div>
+
+                <div class="section-title-left" style="margin-top: 24px;">IDIOMAS</div>
+                <ul class="list-idiomas">
+                    <li>Español: Nativo</li>
+                    <li>Inglés: B2 / Técnico</li>
+                </ul>
+            </div>
+
+            <!-- Columna Derecha -->
+            <div class="right-col">
+                
+                <!-- Encabezado (Nombre y Contacto) -->
+                <div class="header-right">
+                    <h1 class="name">CARLOS SANZ TOMERO</h1>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <svg fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>
+                            </div>
+                            <span class="contact-text">raclosdev@gmail.com</span>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <svg fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.518.76a11.034 11.034 0 006.364 6.364l.76-1.518a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                            </div>
+                            <span class="contact-text">+34 655110459</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 18px; font-size: 11.5px; color: #475569; line-height: 1.5; padding-right: 15px;">
+                        Backend Engineer especializado en ecosistemas de alta concurrencia. Combinando una sólida base bancaria (pasarelas de pago, microservicios) con tecnologías vanguardistas (Trading Algorítmico, Web3, IA) para diseñar arquitecturas escalables.
+                    </div>
+                </div>
+
+                <div class="timeline-container">
+                    <div class="exp-header">
+                        <div class="yellow-dot"></div>
+                        <h2 class="section-title-right">Experiencia Laboral</h2>
+                    </div>
+
+                    <div class="exp-block">
+                        <div class="exp-date">mar. 2025 – Actualidad · Autónomo / Remoto</div>
+                        <div class="exp-title" style="font-size: 14px;">Software Engineer - Algorithmic Trading & Prediction Markets</div>
+                        <ul class="exp-list">
+                            <li><strong>Trading Algorítmico & Arbitraje:</strong> Implementación de sistemas y bots multi-instancia para mercados de predicciones (Polymarket, Kalshi), ejecutando operaciones en tiempo real vía Web3 (USDC).</li>
+                            <li><strong>Inteligencia Artificial Aplicada:</strong> Automatización del flujo de inversión utilizando Spring AI (LLMs y RAG) para el análisis de contexto y refinamiento de estrategias predictivas.</li>
+                            <li><strong>Automatización & Bots:</strong> Diseño de soluciones concurrentes, incluyendo integraciones para plataformas de mensajería (WhatsApp, Telegram) y moderación en Discord.</li>
+                            <li><strong>Plataforma "Porra Mundial Spring":</strong> Desarrollo de API y backend de una app de pronósticos deportivos con Spring Boot.</li>
+                        </ul>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; margin-left: 16px;"><strong>Stack:</strong> Java 17, Spring Boot / Spring AI, Web3, PostgreSQL, WebSocket.</div>
+                    </div>
+
+                    <div class="exp-block">
+                        <div class="exp-date">nov. 2022 – mar. 2025</div>
+                        <div class="exp-title">Backend Engineer</div>
+                        <div class="exp-company">Monty Global Payments S.A.U.</div>
+                        <ul class="exp-list">
+                            <li>Desarrollo de microservicios RESTful para la migración de la plataforma financiera core de escritorio a entorno web.</li>
+                            <li>Gestión de sistemas críticos (contabilidad y transacciones), procesando de forma concurrente +50.000 operaciones diarias.</li>
+                            <li>Logros: Migración exitosa e implementación de arquitecturas escalables que redujeron la latencia operativa un 30%.</li>
+                        </ul>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; margin-left: 16px;"><strong>Stack:</strong> Java 11, Spring Boot, PostgreSQL, RabbitMQ, Docker.</div>
+                    </div>
+
+                    <div class="exp-block" style="margin-bottom: 0;">
+                        <div class="exp-date">oct. 2019 – jun. 2021</div>
+                        <div class="exp-title">Backend Engineer</div>
+                        <div class="exp-company">Redsys España</div>
+                        <ul class="exp-list">
+                            <li>Diseño e implementación de simuladores de protocolos de pago automatizados para validación de pasarelas a gran escala.</li>
+                            <li>Desarrollo de frameworks de testing para certificar la fiabilidad y conformidad 24/7 de la plataforma de pagos.</li>
+                            <li>Colaboración en proyectos de integración y certificación con entidades bancarias e infraestructuras de red.</li>
+                        </ul>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; margin-left: 16px;"><strong>Stack:</strong> Java 8, Spring, MySQL, JUnit, Jenkins.</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</body>
+</html>

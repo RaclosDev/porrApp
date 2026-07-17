@@ -1,0 +1,1 @@
+ALTER TABLE editions ADD COLUMN pichichi BOOLEAN NOT NULL DEFAULT true;
