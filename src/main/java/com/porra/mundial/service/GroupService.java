@@ -153,6 +153,7 @@ public class GroupService {
      * @param betMode Modo de la porra (Brackets o Fase de Grupos).
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
     public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode) {
         return createGroup(name, email, competitionId, betMode, true);
     }
@@ -161,6 +162,7 @@ public class GroupService {
      * Sobrecarga de creación de grupo para especificar si la predicción de Pichichi está activa.
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
     public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode, boolean pichichi) {
         String joinCode;
         // Genera un código de 6 caracteres aleatorio
@@ -204,6 +206,7 @@ public class GroupService {
      * Vincula a un usuario (Miembro) con un Grupo a través del JoinCode.
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
     public void joinGroupMembership(Long groupId, String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user == null) return;
@@ -226,6 +229,7 @@ public class GroupService {
      * Permite a un Admin renombrar su propia liga.
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
     public BetGroup updateGroupName(Long groupId, String newName, String email) {
         verifyGroupAdmin(groupId, email);
         if (newName == null || newName.trim().isEmpty()) {
@@ -241,6 +245,7 @@ public class GroupService {
      * Permite a un Admin eliminar toda la liga, incluyendo usuarios, membresías y apuestas dentro.
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         
@@ -260,6 +265,7 @@ public class GroupService {
         betGroupRepository.deleteById(groupId);
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode")
     public Optional<BetGroup> getGroupByJoinCode(String joinCode) {
         return betGroupRepository.findByJoinCode(joinCode);
     }
@@ -276,7 +282,7 @@ public class GroupService {
         List<Membership> memberships = membershipRepository.findByUserId(user.getId());
 
         List<Long> groupIds = memberships.stream()
-                .map(m -> m.getLeague().getId())
+                .map(m -> m.getId().getLeagueId())
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -287,6 +293,7 @@ public class GroupService {
      * @return DTOs planos para pasarlos al JSON (API).
      */
     @Transactional(readOnly = true)
+    @org.springframework.cache.annotation.Cacheable(value = "userGroups", key = "#email")
     public List<com.porra.mundial.dto.GroupResponseDTO> getUserGroupDTOs(String email) {
         List<BetGroup> groups = getUserGroups(email);
         if (groups.isEmpty()) return List.of();
@@ -313,6 +320,7 @@ public class GroupService {
         }).collect(Collectors.toList());
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
     public Optional<BetGroup> getGroupById(Long id) {
         return betGroupRepository.findById(id);
     }
@@ -321,6 +329,7 @@ public class GroupService {
      * Permite a un miembro normal (No-Admin) abandonar la liga por su cuenta.
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
     public void leaveGroup(Long groupId, String email) {
         BetGroup group = betGroupRepository.findById(groupId)
             .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
@@ -367,6 +376,7 @@ public class GroupService {
      * Cambiar el tick de "Pagado" de una apuesta concreta dentro del grupo.
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
     public Bet toggleBetPaymentStatus(Long groupId, Long betId, String email, boolean paid) {
         verifyGroupAdmin(groupId, email);
         Bet bet = betRepository.findById(betId)
@@ -379,6 +389,7 @@ public class GroupService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
     public void deleteBet(Long groupId, Long betId, String email) {
         verifyGroupAdmin(groupId, email);
         Bet bet = betRepository.findById(betId)

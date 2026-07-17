@@ -37,6 +37,7 @@ public class BetController {
      * @return Una lista de apuestas formateadas como BetResponseDTO para la vista de la web.
      */
     @GetMapping
+    @org.springframework.cache.annotation.Cacheable(value = "allBetsDto", key = "#groupId != null ? #groupId : 'ALL'")
     public List<BetResponseDTO> getAllBets(@RequestParam(required = false) Long groupId) {
         List<Bet> bets;
         if (groupId != null) {
@@ -57,6 +58,7 @@ public class BetController {
      * @return Lista de BetResponseDTO pertenecientes al usuario conectado.
      */
     @GetMapping("/mine")
+    @org.springframework.cache.annotation.Cacheable(value = "myBetsDto", key = "T(org.springframework.security.core.context.SecurityContextHolder).getContext().getAuthentication().getName()")
     public List<BetResponseDTO> getMyBets() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return betService.toBetDtoList(betService.getBetsByGoogleEmail(email));

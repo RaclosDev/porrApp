@@ -14,7 +14,27 @@ function Stats() {
   const [modalData, setModalData] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando estadísticas...</div>;
+  if (loading) return (
+    <section className="view-section" style={{ display: 'block' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center' }}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton-card" style={{ flex: 1, minWidth: '300px' }}>
+            <div className="skeleton skeleton-text medium" style={{ height: '20px' }} />
+            {Array.from({ length: 5 }).map((_, j) => (
+              <div key={j} style={{ marginBottom: '12px' }}>
+                <div className="skeleton-row" style={{ marginBottom: '6px' }}>
+                  <div className="skeleton skeleton-avatar" />
+                  <div className="skeleton skeleton-bar" style={{ maxWidth: '120px' }} />
+                  <div className="skeleton" style={{ width: '30px', height: '12px', borderRadius: '4px', marginLeft: 'auto' }} />
+                </div>
+                <div className="skeleton" style={{ width: '100%', height: '10px', borderRadius: '10px' }} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 
   const ProgressBarItem = ({ name, usersArray, total, icon, isFinals = false, color = "var(--accent-color)", overridePercentage }) => {
     let flagHtml = null;
@@ -27,10 +47,10 @@ function Stats() {
     } else if (isFinals) {
       const teams = name.split(" vs ");
       const t1 = teams[0], t2 = teams[1];
-      const f1 = t1.includes("º") ? null : <img src={`https://flagcdn.com/w80/${getCountryCode(t1)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />;
-      const f2 = t2.includes("º") ? null : <img src={`https://flagcdn.com/w80/${getCountryCode(t2)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />;
+      const f1 = t1.includes("º") || getCountryCode(t1) === 'xx' || t1.toLowerCase().includes("por definir") ? null : <img src={`https://flagcdn.com/w80/${getCountryCode(t1)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />;
+      const f2 = t2.includes("º") || getCountryCode(t2) === 'xx' || t2.toLowerCase().includes("por definir") ? null : <img src={`https://flagcdn.com/w80/${getCountryCode(t2)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />;
       cleanName = <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>{f1} {t1} <span>vs</span> {t2} {f2}</span>;
-    } else if (!name.includes("º")) {
+    } else if (!name.includes("º") && getCountryCode(name) !== 'xx' && !name.toLowerCase().includes("por definir")) {
       flagHtml = <img src={`https://flagcdn.com/w80/${getCountryCode(name)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', marginRight: '8px', borderRadius: '2px' }} />;
     }
 

@@ -67,11 +67,14 @@ public class StandingsController {
         if (officialBet.isPresent()) {
             try {
                 BetDataDTO dto = betService.getBetData(officialBet.get().getId());
+                syncService.enrichBetDataWithMatches(dto);
                 return ResponseEntity.ok(dto);
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error construyendo la porra oficial"));
             }
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Aún no hay cuadro oficial"));
+        BetDataDTO fallbackDto = new BetDataDTO();
+        syncService.enrichBetDataWithMatches(fallbackDto);
+        return ResponseEntity.ok(fallbackDto);
     }
 }

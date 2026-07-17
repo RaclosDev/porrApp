@@ -23,6 +23,7 @@ public class TeamService {
      * "Dame a todos los equipos ordenados"
      * @return Lista completa de todos los equipos ordenados por grupo y luego alfabéticamente.
      */
+    @org.springframework.cache.annotation.Cacheable("allTeams")
     public List<Team> getAllTeams() {
         return teamRepository.findAllByOrderByGroupNameAscNameAsc();
     }
@@ -33,8 +34,9 @@ public class TeamService {
      */
     public Map<String, List<Team>> getTeamsByGroup() {
         return getAllTeams().stream()
+                .filter(t -> t.getGroupName() != null && !"-".equals(t.getGroupName()) && !"Por definir".equalsIgnoreCase(t.getName()))
                 .collect(Collectors.groupingBy(
-                        Team::getGroupName,
+                        t -> t.getGroupName().toUpperCase().trim(),
                         TreeMap::new,
                         Collectors.toList()
                 ));
@@ -57,6 +59,7 @@ public class TeamService {
     /**
      * Guarda o actualiza un equipo en la base de datos.
      */
+    @org.springframework.cache.annotation.CacheEvict(value = {"allTeams", "groupOdds"}, allEntries = true)
     public Team save(Team team) {
         return teamRepository.save(team);
     }
@@ -67,6 +70,7 @@ public class TeamService {
      * Convierte los datos almacenados en BD al mismo formato JSON que antes leías
      * por HTTP para que el frontend siga funcionando sin tener que reescribirlo.
      */
+    @org.springframework.cache.annotation.Cacheable("groupOdds")
     public Map<String, List<Map<String, Object>>> getGroupOdds() {
         Map<String, List<Map<String, Object>>> result = new TreeMap<>();
         Map<String, List<Team>> groups = getTeamsByGroup();

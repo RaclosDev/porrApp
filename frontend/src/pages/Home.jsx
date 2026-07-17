@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { compareTeams } from '../utils/points';
-import { openStats } from '../utils/navigation';
-import { fetchTopScorers } from '../services/api';
 import Flag from '../components/Flag';
 import GroupMatchesModal from '../components/GroupMatchesModal';
 import OfficialBracket from './OfficialBracket';
@@ -19,23 +17,34 @@ import TopScorersPanel from '../components/Home/TopScorersPanel';
  * @component
  * @returns {JSX.Element} La página de inicio renderizada.
  */
-function Home({ defaultMode = 'bracket', hideToggle = false }) {
-  const { groupOdds, officialPoints, allGames, nameToIdMap, loading, matchRadar } = useAppContext();
+function Home({ defaultMode = 'bracket' }) {
+  const { groupOdds, officialPoints, allGames, nameToIdMap, loading, matchRadar, topScorers } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState(null);
-  const [topScorers, setTopScorers] = useState([]);
   const [viewMode, setViewMode] = useState(defaultMode);
   const [activeMobilePanel, setActiveMobilePanel] = useState(null); // null, 'thirds', 'live', 'scorers'
 
   useEffect(() => {
-    setViewMode(defaultMode);
+    setTimeout(() => setViewMode(defaultMode), 0);
   }, [defaultMode]);
-  const [imgErrors, setImgErrors] = useState({});
 
-  useEffect(() => {
-    fetchTopScorers().then(data => { if (data) setTopScorers(data); });
-  }, []);
-
-  if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando grupos...</div>;
+  if (loading) return (
+    <section className="view-section" style={{ display: 'block' }}>
+      <div className="groups-grid">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div key={i} className="skeleton-card">
+            <div className="skeleton skeleton-text short" style={{ height: '18px', marginBottom: '14px' }} />
+            {Array.from({ length: 4 }).map((_, j) => (
+              <div key={j} className="skeleton-row">
+                <div className="skeleton skeleton-avatar" />
+                <div className="skeleton skeleton-bar" />
+                <div className="skeleton" style={{ width: '28px', height: '14px', borderRadius: '4px' }} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 
 
 

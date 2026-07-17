@@ -14,12 +14,39 @@ import { compareTeams } from '../utils/points';
  * @param {Object} nameToIdMap - Mapa de resolución de nombres a IDs.
  * @returns {Object} Objeto con la información lista para el visor: { part, loading, error, points, initialSection, leftRounds, rightRounds, getSlotDetails, getRoundFooterTotal, getCenterPointsTotal, getGroupTeamData }
  */
+const checkIsKnockoutPhase = (games, officialData) => {
+  if (games && games.length > 0) {
+    const hasActiveKo = games.some(g => {
+      if (!g || g.round === 'group' || g.round === 'r1' || g.round === '1') return false;
+      if (g.finished || g.home_score != null || g.away_score != null) return true;
+      if (g.home && typeof g.home === 'string' && g.home !== 'Por definir' && g.home !== 'TBD' && !g.home.includes('º')) return true;
+      if (g.date && new Date(g.date) <= new Date()) return true;
+      return false;
+    });
+    if (hasActiveKo) return true;
+  }
+  if (officialData) {
+    const allKo = [
+      ...(officialData.r32 || []),
+      ...(officialData.r16 || []),
+      ...(officialData.qf || []),
+      ...(officialData.sf || []),
+      officialData.final || [],
+      officialData.thirdPlaceMatch || []
+    ].flat(2);
+    if (allKo.some(team => team && typeof team === 'string' && team !== 'Por definir' && team !== '???' && !team.includes('º'))) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export function useBetViewerData(viewerBetId, officialPoints, leaderboardData, groupOdds, allGames, nameToIdMap) {
   const [part, setPart] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [officialBracket, setOfficialBracket] = useState(null);
-  const [initialSection, setInitialSection] = useState('groups');
+  const [initialSection, setInitialSection] = useState(() => checkIsKnockoutPhase(allGames, null) ? 'knockout' : 'groups');
 
   const injectQualifiedTeams = (partData, ptsData) => {
     if (!partData?.r32 || !ptsData) return partData;
@@ -56,12 +83,16 @@ export function useBetViewerData(viewerBetId, officialPoints, leaderboardData, g
 
   useEffect(() => {
     if (!viewerBetId) {
-      setPart(null);
-      setError(null);
+      setTimeout(() => {
+        setPart(null);
+        setError(null);
+      }, 0);
       return;
     }
-    setError(null);
-    setLoading(true);
+    setTimeout(() => {
+      setError(null);
+      setLoading(true);
+    }, 0);
     Promise.all([
       fetch(`/api/bets/${viewerBetId}`).then(res => {
         if (!res.ok) return res.json().then(e => { throw new Error(e.error || "Error al cargar la apuesta"); });
@@ -94,8 +125,8 @@ export function useBetViewerData(viewerBetId, officialPoints, leaderboardData, g
         setPart(partData);
         setOfficialBracket(officialData);
         
-        const hasKnockouts = officialData?.r32?.some(match => match.some(team => team && !team.includes('º')));
-        if (hasKnockouts) {
+        const isKo = checkIsKnockoutPhase(allGames, officialData);
+        if (isKo) {
           setInitialSection('knockout');
         } else {
           setInitialSection('groups');
@@ -108,7 +139,7 @@ export function useBetViewerData(viewerBetId, officialPoints, leaderboardData, g
         setError(err.message);
         setLoading(false);
       });
-  }, [viewerBetId, officialPoints]);
+  }, [viewerBetId, officialPoints, allGames]);
 
   const points = useMemo(() => {
       return leaderboardData.find(lb => String(lb.id) === String(viewerBetId)) || { total: 0, r1: 0, r32: 0, r16: 0, qf: 0, sf: 0, finals: 0, scorer: 0, log: [], exactMatches: {}, passedTeams: {} };
@@ -168,31 +199,85 @@ export function useBetViewerData(viewerBetId, officialPoints, leaderboardData, g
     return false;
   };
 
-  const getSlotDetails = (name, roundIndex, side, matchIndex, isHome) => {
+  /**
+   * Checks if a team is impossible for a specific round based on cross-round exclusions.
+   * e.g., a team that won the semifinal (is in the final) cannot be in the third place match,
+   * and a team that lost the semifinal (is in 3rd place match) cannot be in the final/champion.
+   */
+  const isTeamImpossibleForRound = (teamName, roundIndex) => {
+    if (!teamName || teamName === '???' || teamName === 'Por definir' || teamName.includes('º')) return false;
+    if (!officialBracket) return false;
+
+    const namesMatch = (n1, n2) => {
+      if (!n1 || !n2) return false;
+      if (n1 === n2) return true;
+      if ((n1 === 'EEUU' && n2 === 'Estados Unidos') || (n1 === 'Estados Unidos' && n2 === 'EEUU')) return true;
+      return false;
+    };
+
+    const officialFinal = officialBracket.final || [];
+    const officialThird = officialBracket.thirdPlaceMatch || [];
+    const officialChampion = officialBracket.champion;
+    const isInOfficialFinal = officialFinal.some(t => namesMatch(t, teamName));
+    const isInOfficialThird = officialThird.some(t => namesMatch(t, teamName));
+
+    // A team in the official final cannot be in the third place match
+    if (roundIndex === 'thirdPlaceMatch' && isInOfficialFinal) return true;
+
+    // A team in the official third place match cannot be in the final or be champion
+    if ((roundIndex === 'final' || roundIndex === 'champion') && isInOfficialThird) return true;
+
+    // A team that is the official champion cannot be in the third place match
+    if (roundIndex === 'thirdPlaceMatch' && namesMatch(officialChampion, teamName)) return true;
+
+    // A semifinal loser (who goes to 3rd place match) cannot be in the final
+    // Check if team lost a semifinal — they go to 3rd place, not the final
+    if (roundIndex === 'final' || roundIndex === 'champion') {
+      if (allGames) {
+        for (const game of allGames) {
+          if (game.round === 'sf' && game.finished &&
+              (game.home === teamName || game.away === teamName)) {
+            const winner = game.winner ? game.winner :
+                           (game.home_score > game.away_score ? game.home :
+                           (game.away_score > game.home_score ? game.away : null));
+            if (winner && winner !== teamName) return true;
+          }
+        }
+      }
+    }
+
+    // A semifinal winner (who goes to final) cannot be in 3rd place match
+    if (roundIndex === 'thirdPlaceMatch') {
+      if (allGames) {
+        for (const game of allGames) {
+          if (game.round === 'sf' && game.finished &&
+              (game.home === teamName || game.away === teamName)) {
+            const winner = game.winner ? game.winner :
+                           (game.home_score > game.away_score ? game.home :
+                           (game.away_score > game.home_score ? game.away : null));
+            if (winner && winner === teamName) return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  };
+
+  const getSlotDetails = (name, roundIndex) => {
     let isWinner = false;
     if (name && name !== '???') {
       if (roundIndex === 0) isWinner = winR16.includes(name);
       else if (roundIndex === 1) isWinner = winQF.includes(name);
       else if (roundIndex === 2) isWinner = winSF.includes(name);
-      else if (roundIndex === 3 || roundIndex === 'final') isWinner = winFinal.includes(name);
+      else if (roundIndex === 3) isWinner = winFinal.includes(name);
+      else if (roundIndex === 'final') isWinner = part.champion === name;
       else if (roundIndex === 4 || roundIndex === 'champion') isWinner = part.champion === name;
       else if (roundIndex === 5 || roundIndex === 'thirdPlaceMatch') isWinner = part.thirdPlaceWinner === name;
     }
     
     let slotPoints = null;
     if (officialBracket && name && name !== '???') {
-       let officialName = null;
-       if (side === 'left' || side === 'right') {
-          if (roundIndex === 0) officialName = officialBracket.r32?.[side === 'left' ? matchIndex : matchIndex + 8]?.[isHome ? 0 : 1];
-          if (roundIndex === 1) officialName = officialBracket.r16?.[side === 'left' ? matchIndex : matchIndex + 4]?.[isHome ? 0 : 1];
-          if (roundIndex === 2) officialName = officialBracket.qf?.[side === 'left' ? matchIndex : matchIndex + 2]?.[isHome ? 0 : 1];
-          if (roundIndex === 3) officialName = officialBracket.sf?.[side === 'left' ? matchIndex : matchIndex + 1]?.[isHome ? 0 : 1];
-       } else {
-          if (roundIndex === 'final') officialName = officialBracket.final?.[isHome ? 0 : 1];
-          if (roundIndex === 'champion') officialName = officialBracket.champion;
-          if (roundIndex === 'thirdPlaceMatch') officialName = officialBracket.thirdPlaceMatch?.[isHome ? 0 : 1];
-       }
-
        const isRealTeam = (t) => t && t !== '???' && t !== 'Por definir' && !t.includes('º');
        let amount = 0;
        let foundLog = false;
@@ -250,7 +335,24 @@ export function useBetViewerData(viewerBetId, officialPoints, leaderboardData, g
            const expectedSize = {0: 32, 1: 16, 2: 8, 3: 4, 'final': 2, 'champion': 1, 'thirdPlaceMatch': 2}[roundIndex];
            const isFullyPopulated = flatRound.filter(isRealTeam).length === expectedSize;
            
-           if (isFullyPopulated || isTeamEliminated(name)) {
+           // For thirdPlaceMatch: SF losers are NOT eliminated — they play in the 3rd place match.
+           // Only teams eliminated BEFORE semis (lost in QF, R16, etc.) are truly out.
+           let eliminated = isTeamEliminated(name);
+           if (eliminated && roundIndex === 'thirdPlaceMatch') {
+             const resolveName = (n) => n === 'EEUU' ? 'Estados Unidos' : (n === 'Estados Unidos' ? 'EEUU' : n);
+             const resolved = resolveName(name);
+             const lostInSemifinal = allGames?.some(game =>
+               game.round === 'sf' && game.finished &&
+               (game.home === name || game.away === name || game.home === resolved || game.away === resolved) &&
+               (() => {
+                 const w = game.winner ? game.winner : (game.home_score > game.away_score ? game.home : (game.away_score > game.home_score ? game.away : null));
+                 return w && w !== name && w !== resolved;
+               })()
+             );
+             if (lostInSemifinal) eliminated = false;
+           }
+
+           if (isFullyPopulated || eliminated || isTeamImpossibleForRound(name, roundIndex)) {
              slotPoints = "0";
            }
          }

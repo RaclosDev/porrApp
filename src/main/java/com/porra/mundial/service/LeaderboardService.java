@@ -31,6 +31,7 @@ public class LeaderboardService {
     private final TopScorerService topScorerService;
     private final HashTransitionService hashTransitionService;
     private final MatchRepository matchRepository;
+    private final SyncService syncService;
 
     /**
      * @param groupId ID del grupo a consultar.
@@ -43,7 +44,8 @@ public class LeaderboardService {
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
         List<Bet> allBets = betRepository.findAll();
         Bet adminBet = allBets.stream().filter(b -> b.getParticipantName().equalsIgnoreCase("Admin") || (b.getBetName() != null && b.getBetName().equals("official"))).findFirst().orElse(null);
-        BetDataDTO officialData = adminBet != null ? hashTransitionService.rebuildBetDataDtoFromTables(adminBet.getId()) : null;
+        BetDataDTO officialData = adminBet != null ? hashTransitionService.rebuildBetDataDtoFromTables(adminBet.getId()) : new BetDataDTO();
+        syncService.enrichBetDataWithMatches(officialData);
 
         List<Bet> groupBets = allBets.stream().filter(b -> groupId.equals(b.getGroupId())).collect(Collectors.toList());
 
@@ -57,7 +59,8 @@ public class LeaderboardService {
         Map<String, GroupStanding> bestThirds = new HashMap<>(); // To calculate best thirds
 
         for (GroupStanding gs : allStandings) {
-            orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName(), k -> new ArrayList<>()).add(gs.getTeam().getName());
+            if (gs.getGroupName() == null || "-".equals(gs.getGroupName()) || gs.getTeam() == null || "Por definir".equalsIgnoreCase(gs.getTeam().getName())) continue;
+            orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName().toUpperCase().trim(), k -> new ArrayList<>()).add(gs.getTeam().getName());
         }
 
         // Sort all thirds to find best 8
@@ -82,17 +85,19 @@ public class LeaderboardService {
 
         // Dynamically build knockout stages from MatchRepository
         List<Match> allMatches = matchRepository.findAll();
-        List<Match> r16Matches = allMatches.stream().filter(m -> "r16".equals(m.getRound())).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> qfMatches = allMatches.stream().filter(m -> "qf".equals(m.getRound())).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> sfMatches = allMatches.stream().filter(m -> "sf".equals(m.getRound())).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> finalMatchDb = allMatches.stream().filter(m -> "final".equals(m.getRound())).collect(Collectors.toList());
+        List<Match> r16Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r16", "octav")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
+        List<Match> qfMatches = allMatches.stream().filter(m -> isRound(m.getRound(), "qf", "quarter", "cuart")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
+        List<Match> sfMatches = allMatches.stream().filter(m -> isRound(m.getRound(), "sf", "semi")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
+        List<Match> finalMatchDb = allMatches.stream().filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "octav")).collect(Collectors.toList());
         
         java.util.function.Function<Match, String> getWinner = (m) -> {
-            if (m == null || !Boolean.TRUE.equals(m.getFinished())) return null;
+            if (m == null) return null;
             if (m.getWinnerTeam() != null) return m.getWinnerTeam().getName();
             if (m.getHomeScore() == null || m.getAwayScore() == null) return null;
-            if (m.getHomeScore() > m.getAwayScore()) return m.getHomeTeam() != null ? m.getHomeTeam().getName() : null;
-            if (m.getAwayScore() > m.getHomeScore()) return m.getAwayTeam() != null ? m.getAwayTeam().getName() : null;
+            if (!Objects.equals(m.getHomeScore(), m.getAwayScore())) {
+                if (m.getHomeScore() > m.getAwayScore()) return m.getHomeTeam() != null ? m.getHomeTeam().getName() : null;
+                if (m.getAwayScore() > m.getHomeScore()) return m.getAwayTeam() != null ? m.getAwayTeam().getName() : null;
+            }
             return null;
         };
 
@@ -443,6 +448,15 @@ public class LeaderboardService {
             }
         }
         return costs[b.length()];
+    }
+
+    private boolean isRound(String r, String... keys) {
+        if (r == null) return false;
+        String lower = r.toLowerCase();
+        for (String k : keys) {
+            if (lower.equals(k) || lower.contains(k)) return true;
+        }
+        return false;
     }
 
     private record CalculationContext(

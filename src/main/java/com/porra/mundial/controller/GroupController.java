@@ -123,6 +123,7 @@ public class GroupController {
      * @return GroupResponseDTO con la información detallada.
      */
     @GetMapping("/{id}")
+    @org.springframework.cache.annotation.Cacheable(value = "groupResponse", key = "#id")
     public ResponseEntity<?> getGroup(@PathVariable Long id) {
         Optional<BetGroup> group = groupService.getGroupById(id);
         if (group.isPresent()) {

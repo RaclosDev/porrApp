@@ -63,7 +63,7 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexGrow: 1 }}>
             {displayIcon && <span>{displayIcon}</span>}
-            {displayFlag && displayFlag !== 'xx' && <img src={`https://flagcdn.com/w80/${displayFlag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />}
+            {displayFlag && displayFlag !== 'xx' && !displayLabel?.toLowerCase().includes('por definir') && <img src={`https://flagcdn.com/w80/${displayFlag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />}
             <input 
                 ref={inputRef}
                 type="text"
@@ -92,7 +92,7 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
                 onMouseOut={(e) => { if(value !== val) e.currentTarget.style.background = 'transparent'}}
               >
                 {icon && <span>{icon}</span>}
-                {flag && flag !== 'xx' && <img src={`https://flagcdn.com/w80/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />}
+                {flag && flag !== 'xx' && !label?.toLowerCase().includes('por definir') && <img src={`https://flagcdn.com/w80/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />}
                 <span>{label}</span>
               </div>
             );

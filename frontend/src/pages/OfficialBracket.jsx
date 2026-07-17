@@ -1,33 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
 import { buildBracketData } from '../utils/bracketBuilder';
-import { fetchTopScorers } from '../services/api';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
-
-/**
- * Componente de botón para alternar la visibilidad de una ronda del bracket.
- * 
- * @param {Object} props
- * @param {string} props.label - Texto a mostrar.
- * @param {boolean} props.isVisible - Estado actual de visibilidad.
- * @param {Function} props.onToggle - Callback a ejecutar al hacer clic.
- */
-const ToggleBtn = ({ label, isVisible, onToggle }) => (
-  <button
-    className="glass-btn"
-    style={{
-      padding: '4px 10px', fontSize: '0.8rem', transition: 'all 0.2s ease',
-      opacity: isVisible ? 1 : 0.5,
-      filter: isVisible ? 'none' : 'grayscale(100%)',
-      transform: isVisible ? 'none' : 'scale(0.95)',
-    }}
-    onClick={onToggle}
-  >
-    👁️ {label}
-  </button>
-);
 
 /**
  * Componente que muestra el Bracket Oficial (los cruces reales del torneo).
@@ -39,14 +15,8 @@ const ToggleBtn = ({ label, isVisible, onToggle }) => (
  * @returns {JSX.Element} La vista del bracket oficial.
  */
 function OfficialBracket({ hideTitle }) {
-  const { officialPoints, groupOdds, allGames, matchRadar } = useAppContext();
-  const [vis, setVis] = useState({ r32: true, r16: true, qf: true, sf: true, center: true });
-  const [topScorers, setTopScorers] = useState([]);
+  const { officialPoints, groupOdds, allGames, matchRadar, topScorers } = useAppContext();
   const [activePanel, setActivePanel] = useState(null); // 'live', 'scorers', null
-
-  useEffect(() => {
-    fetchTopScorers().then(data => { if (data) setTopScorers(data); });
-  }, []);
 
   // ── Build bracket data ──────────────────────────────────────────────────
   const part = buildBracketData(officialPoints, groupOdds, allGames);
@@ -191,10 +161,10 @@ function OfficialBracket({ hideTitle }) {
 
   // ── Hidden rounds from visibility toggles ──────────────────────────────
   const hiddenRounds = {
-    0: !vis.r32,
-    1: !vis.r16,
-    2: !vis.qf,
-    3: !vis.sf,
+    0: false,
+    1: false,
+    2: false,
+    3: false,
   };
 
   // ── Center content ───────────────────────────────────────────────────────
@@ -204,7 +174,7 @@ function OfficialBracket({ hideTitle }) {
   const getIsProv = (t) => typeof t === 'object' && t ? t.isProvisional : false;
 
   const centerContent = (colW) => (
-    <div style={{ display: vis.center ? 'block' : 'none' }}>
+    <div style={{ display: 'block' }}>
       {/* FINAL */}
       <div style={{ position: 'absolute', top: finalTopY - 22, left: COL_GAP, width: colW, textAlign: 'center', fontSize: '0.65rem', fontWeight: 700, color: 'rgba(251,191,36,0.9)', letterSpacing: 2, textTransform: 'uppercase' }}>
         🏆 Final 🏆

@@ -79,6 +79,7 @@ public class MatchController {
      * @return Mapa combinado con partidos en vivo, finalizados recientemente y los próximos.
      */
     @GetMapping("/radar")
+    @org.springframework.cache.annotation.Cacheable("matchRadar")
     public Map<String, List<MatchResponseDTO>> getMatchRadar() {
         Map<String, List<MatchResponseDTO>> radar = new java.util.LinkedHashMap<>();
         radar.put("live", matchService.getLiveMatches().stream().map(MatchResponseDTO::fromEntity).collect(Collectors.toList()));

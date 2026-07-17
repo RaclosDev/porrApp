@@ -6,6 +6,7 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.dto.BetDataDTO;
 import com.porra.mundial.config.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 📡 Servicio de Sincronización Automática con API Externa (ESPN).
@@ -78,6 +80,8 @@ public class SyncService {
             for (JsonNode event : events) {
                 processEvent(event, nameToTeamCache, context);
             }
+
+            propagateKnockoutWinners(context);
 
             // Una vez parseados todos los partidos, reconstruye la clasificación entera.
             updateStandings(context.teamStats);
@@ -152,10 +156,9 @@ public class SyncService {
 
         CompetitorNode homeComp = extractCompetitor(competitors, "home");
         CompetitorNode awayComp = extractCompetitor(competitors, "away");
-        if (homeComp == null || awayComp == null) return;
 
-        Team homeTeam = resolveAndUpdateTeam(homeComp, nameToTeamCache, context);
-        Team awayTeam = resolveAndUpdateTeam(awayComp, nameToTeamCache, context);
+        Team homeTeam = resolveOrPlaceholderTeam(homeComp, nameToTeamCache, context);
+        Team awayTeam = resolveOrPlaceholderTeam(awayComp, nameToTeamCache, context);
 
         if (homeTeam == null || awayTeam == null) return;
 
@@ -237,6 +240,30 @@ public class SyncService {
         return null;
     }
 
+    private Team resolveOrPlaceholderTeam(CompetitorNode comp, Map<String, Team> cache, SyncContext context) {
+        if (comp == null) return getOrCreatePlaceholderTeam(cache);
+        Team team = resolveAndUpdateTeam(comp, cache, context);
+        if (team != null) return team;
+        return getOrCreatePlaceholderTeam(cache);
+    }
+
+    private Team getOrCreatePlaceholderTeam(Map<String, Team> cache) {
+        String placeholderName = "Por definir";
+        if (cache.containsKey(placeholderName)) return cache.get(placeholderName);
+        Team placeholder = teamRepository.findByName(placeholderName)
+                .orElseGet(() -> teamRepository.save(Team.builder()
+                        .name(placeholderName)
+                        .nameEn("TBD")
+                        .groupName("-")
+                        .winOdds(1.0)
+                        .qualifyOdds(1.0)
+                        .outrightOdds(1.0)
+                        .build()));
+        cache.put(placeholderName, placeholder);
+        cache.put("TBD", placeholder);
+        return placeholder;
+    }
+
     private MatchScores parseScoresAndWinner(CompetitorNode home, CompetitorNode away, Team homeTeam, Team awayTeam, MatchStatus status) {
         MatchScores scores = new MatchScores();
         if (status.isLive || status.finished) {
@@ -257,16 +284,20 @@ public class SyncService {
 
     private MatchMetadata parseMetadata(JsonNode competition) {
         String altNote = competition.path("altGameNote").asText("");
+        String notes = competition.path("notes").toString();
+        String headline = competition.path("headlines").toString();
+        String combined = (altNote + " " + notes + " " + headline).toLowerCase();
         String group = null, round = "group";
         
         if (altNote.contains("Group ")) {
             group = altNote.substring(altNote.indexOf("Group ") + 6).trim();
             if (group.length() > 2) group = group.substring(0, 1);
-        } else if (altNote.contains("Round of 32") || altNote.contains("Round of 16")) round = "r16";
-        else if (altNote.contains("Quarterfinal")) round = "qf";
-        else if (altNote.contains("Semifinal")) round = "sf";
-        else if (altNote.contains("Third")) round = "third";
-        else if (altNote.contains("Final")) round = "final";
+            if (group != null) group = group.toUpperCase().trim();
+        } else if (combined.contains("round of 32") || combined.contains("round of 16") || combined.contains("octav")) round = "r16";
+        else if (combined.contains("quarter") || combined.contains("cuart") || combined.contains("qf")) round = "qf";
+        else if (combined.contains("semi") || combined.contains("sf")) round = "sf";
+        else if (combined.contains("third") || combined.contains("3rd") || combined.contains("tercer") || combined.contains("3er")) round = "third";
+        else if (combined.contains("final")) round = "final";
         
         return new MatchMetadata(group, round);
     }
@@ -287,7 +318,8 @@ public class SyncService {
         if (updateIfChanged(match.getMatchDate(), date, match::setMatchDate)) updated = true;
         if (updateIfChanged(match.getFinished(), status.finished, match::setFinished)) updated = true;
         if (updateIfChanged(match.getDisplayClock(), status.displayClock, match::setDisplayClock)) updated = true;
-        if (updateIfChanged(match.getGroupName(), meta.groupName, match::setGroupName)) updated = true;
+        String cleanGroup = meta.groupName != null && !"-".equals(meta.groupName) ? meta.groupName.toUpperCase().trim() : meta.groupName;
+        if (updateIfChanged(match.getGroupName(), cleanGroup, match::setGroupName)) updated = true;
         if (updateIfChanged(match.getRound(), meta.round, match::setRound)) updated = true;
 
         // Trigger manual Pichichi refresh when a match finishes (don't wait 30 minutes)
@@ -364,18 +396,212 @@ public class SyncService {
         return 0;
     }
 
+    private boolean isRound(String r, String... keys) {
+        if (r == null) return false;
+        String lower = r.toLowerCase();
+        for (String k : keys) {
+            if (lower.equals(k) || lower.contains(k)) return true;
+        }
+        return false;
+    }
+
+    public void propagateKnockoutWinners() {
+        propagateKnockoutWinners(new SyncContext());
+    }
+
+    private void propagateKnockoutWinners(SyncContext context) {
+        try {
+            List<Match> allMatches = matchRepository.findAll();
+            List<Match> sfMatches = allMatches.stream()
+                    .filter(m -> isRound(m.getRound(), "sf", "semi"))
+                    .filter(m -> Boolean.TRUE.equals(m.getFinished()) || m.getWinnerTeam() != null || (m.getHomeScore() != null && m.getAwayScore() != null && !Objects.equals(m.getHomeScore(), m.getAwayScore())))
+                    .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .collect(Collectors.toList());
+
+            if (sfMatches.isEmpty()) return;
+
+            List<Match> finals = allMatches.stream()
+                    .filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "octav"))
+                    .collect(Collectors.toList());
+            List<Match> thirds = allMatches.stream()
+                    .filter(m -> isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
+                    .collect(Collectors.toList());
+
+            Match finalMatch = finals.isEmpty() ? null : finals.get(0);
+            Match thirdMatch = thirds.isEmpty() ? null : thirds.get(0);
+
+            for (int i = 0; i < sfMatches.size(); i++) {
+                Match sf = sfMatches.get(i);
+                Team winner = sf.getWinnerTeam();
+                Team loser = getLoserTeam(sf);
+                if (winner == null && sf.getHomeScore() != null && sf.getAwayScore() != null && !Objects.equals(sf.getHomeScore(), sf.getAwayScore())) {
+                    winner = sf.getHomeScore() > sf.getAwayScore() ? sf.getHomeTeam() : sf.getAwayTeam();
+                }
+
+                if (finalMatch != null && winner != null) {
+                    placeTeamInKnockoutMatch(finalMatch, winner, i == 0 ? "home" : "away", context);
+                }
+                if (thirdMatch != null && loser != null) {
+                    placeTeamInKnockoutMatch(thirdMatch, loser, i == 0 ? "home" : "away", context);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not propagate knockout winners: {}", e.getMessage());
+        }
+    }
+
+    public void enrichBetDataWithMatches(BetDataDTO dto) {
+        if (dto == null) return;
+        try {
+            List<Match> allMatches = matchRepository.findAll();
+            List<Match> finals = allMatches.stream()
+                    .filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "octav"))
+                    .collect(Collectors.toList());
+            List<Match> thirds = allMatches.stream()
+                    .filter(m -> isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
+                    .collect(Collectors.toList());
+            List<Match> sfMatches = allMatches.stream()
+                    .filter(m -> isRound(m.getRound(), "sf", "semi"))
+                    .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .collect(Collectors.toList());
+
+            if (!finals.isEmpty()) {
+                Match fm = finals.get(0);
+                String h = fm.getHomeTeam() != null && !"Por definir".equalsIgnoreCase(fm.getHomeTeam().getName()) && !"TBD".equalsIgnoreCase(fm.getHomeTeam().getNameEn()) ? fm.getHomeTeam().getName() : null;
+                String a = fm.getAwayTeam() != null && !"Por definir".equalsIgnoreCase(fm.getAwayTeam().getName()) && !"TBD".equalsIgnoreCase(fm.getAwayTeam().getNameEn()) ? fm.getAwayTeam().getName() : null;
+                if (h == null && sfMatches.size() > 0) {
+                    Match sf0 = sfMatches.get(0);
+                    if (sf0.getWinnerTeam() != null) h = sf0.getWinnerTeam().getName();
+                    else if (sf0.getHomeScore() != null && sf0.getAwayScore() != null && !Objects.equals(sf0.getHomeScore(), sf0.getAwayScore())) {
+                        h = sf0.getHomeScore() > sf0.getAwayScore() && sf0.getHomeTeam() != null ? sf0.getHomeTeam().getName() : (sf0.getAwayTeam() != null ? sf0.getAwayTeam().getName() : null);
+                    }
+                }
+                if (a == null && sfMatches.size() > 1) {
+                    Match sf1 = sfMatches.get(1);
+                    if (sf1.getWinnerTeam() != null) a = sf1.getWinnerTeam().getName();
+                    else if (sf1.getHomeScore() != null && sf1.getAwayScore() != null && !Objects.equals(sf1.getHomeScore(), sf1.getAwayScore())) {
+                        a = sf1.getHomeScore() > sf1.getAwayScore() && sf1.getHomeTeam() != null ? sf1.getHomeTeam().getName() : (sf1.getAwayTeam() != null ? sf1.getAwayTeam().getName() : null);
+                    }
+                }
+                if (h != null || a != null) {
+                    List<String> currentFinal = dto.getFinalMatch();
+                    String curH = currentFinal != null && currentFinal.size() > 0 ? currentFinal.get(0) : null;
+                    String curA = currentFinal != null && currentFinal.size() > 1 ? currentFinal.get(1) : null;
+                    dto.setFinalMatch(Arrays.asList(h != null ? h : curH, a != null ? a : curA));
+                }
+                if (fm.getWinnerTeam() != null && !"Por definir".equalsIgnoreCase(fm.getWinnerTeam().getName())) {
+                    dto.setChampion(fm.getWinnerTeam().getName());
+                }
+            } else if (sfMatches.size() >= 2) {
+                String h = null, a = null;
+                Match sf0 = sfMatches.get(0);
+                if (sf0.getWinnerTeam() != null) h = sf0.getWinnerTeam().getName();
+                else if (sf0.getHomeScore() != null && sf0.getAwayScore() != null && !Objects.equals(sf0.getHomeScore(), sf0.getAwayScore())) {
+                    h = sf0.getHomeScore() > sf0.getAwayScore() && sf0.getHomeTeam() != null ? sf0.getHomeTeam().getName() : (sf0.getAwayTeam() != null ? sf0.getAwayTeam().getName() : null);
+                }
+                Match sf1 = sfMatches.get(1);
+                if (sf1.getWinnerTeam() != null) a = sf1.getWinnerTeam().getName();
+                else if (sf1.getHomeScore() != null && sf1.getAwayScore() != null && !Objects.equals(sf1.getHomeScore(), sf1.getAwayScore())) {
+                    a = sf1.getHomeScore() > sf1.getAwayScore() && sf1.getHomeTeam() != null ? sf1.getHomeTeam().getName() : (sf1.getAwayTeam() != null ? sf1.getAwayTeam().getName() : null);
+                }
+                if (h != null || a != null) {
+                    List<String> currentFinal = dto.getFinalMatch();
+                    String curH = currentFinal != null && currentFinal.size() > 0 ? currentFinal.get(0) : null;
+                    String curA = currentFinal != null && currentFinal.size() > 1 ? currentFinal.get(1) : null;
+                    dto.setFinalMatch(Arrays.asList(h != null ? h : curH, a != null ? a : curA));
+                }
+            }
+
+            if (!thirds.isEmpty() || sfMatches.size() >= 2) {
+                Match tm = !thirds.isEmpty() ? thirds.get(0) : null;
+                String h = tm != null && tm.getHomeTeam() != null && !"Por definir".equalsIgnoreCase(tm.getHomeTeam().getName()) && !"TBD".equalsIgnoreCase(tm.getHomeTeam().getNameEn()) ? tm.getHomeTeam().getName() : null;
+                String a = tm != null && tm.getAwayTeam() != null && !"Por definir".equalsIgnoreCase(tm.getAwayTeam().getName()) && !"TBD".equalsIgnoreCase(tm.getAwayTeam().getNameEn()) ? tm.getAwayTeam().getName() : null;
+                if (h == null && sfMatches.size() > 0) {
+                    Match sf0 = sfMatches.get(0);
+                    Team loser = getLoserTeam(sf0);
+                    if (loser != null && !"Por definir".equalsIgnoreCase(loser.getName())) h = loser.getName();
+                }
+                if (a == null && sfMatches.size() > 1) {
+                    Match sf1 = sfMatches.get(1);
+                    Team loser = getLoserTeam(sf1);
+                    if (loser != null && !"Por definir".equalsIgnoreCase(loser.getName())) a = loser.getName();
+                }
+                if (h != null || a != null) {
+                    List<String> currentThird = dto.getThirdPlaceMatch();
+                    String curH = currentThird != null && currentThird.size() > 0 ? currentThird.get(0) : null;
+                    String curA = currentThird != null && currentThird.size() > 1 ? currentThird.get(1) : null;
+                    dto.setThirdPlaceMatch(Arrays.asList(h != null ? h : curH, a != null ? a : curA));
+                }
+                if (tm != null && tm.getWinnerTeam() != null && !"Por definir".equalsIgnoreCase(tm.getWinnerTeam().getName())) {
+                    dto.setThirdPlaceWinner(tm.getWinnerTeam().getName());
+                } else if (tm != null && tm.getHomeScore() != null && tm.getAwayScore() != null && !Objects.equals(tm.getHomeScore(), tm.getAwayScore())) {
+                    Team w = tm.getHomeScore() > tm.getAwayScore() ? tm.getHomeTeam() : tm.getAwayTeam();
+                    if (w != null && !"Por definir".equalsIgnoreCase(w.getName())) dto.setThirdPlaceWinner(w.getName());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not enrich BetDataDTO with matches: {}", e.getMessage());
+        }
+    }
+
+    private Team getLoserTeam(Match m) {
+        if (m == null || m.getHomeTeam() == null || m.getAwayTeam() == null) return null;
+        if (m.getWinnerTeam() != null) {
+            if (Objects.equals(m.getWinnerTeam().getId(), m.getHomeTeam().getId())) return m.getAwayTeam();
+            return m.getHomeTeam();
+        }
+        if (m.getHomeScore() != null && m.getAwayScore() != null && !Objects.equals(m.getHomeScore(), m.getAwayScore())) {
+            return m.getHomeScore() > m.getAwayScore() ? m.getAwayTeam() : m.getHomeTeam();
+        }
+        return null;
+    }
+
+    private void placeTeamInKnockoutMatch(Match match, Team team, String slot, SyncContext context) {
+        if (team == null || "Por definir".equalsIgnoreCase(team.getName())) return;
+        boolean updated = false;
+
+        boolean homeIsPlaceholder = match.getHomeTeam() == null || "Por definir".equalsIgnoreCase(match.getHomeTeam().getName()) || "TBD".equalsIgnoreCase(match.getHomeTeam().getNameEn());
+        boolean awayIsPlaceholder = match.getAwayTeam() == null || "Por definir".equalsIgnoreCase(match.getAwayTeam().getName()) || "TBD".equalsIgnoreCase(match.getAwayTeam().getNameEn());
+
+        boolean alreadyHome = match.getHomeTeam() != null && Objects.equals(match.getHomeTeam().getId(), team.getId());
+        boolean alreadyAway = match.getAwayTeam() != null && Objects.equals(match.getAwayTeam().getId(), team.getId());
+
+        if (alreadyHome || alreadyAway) return;
+
+        if ("home".equals(slot) && homeIsPlaceholder) {
+            match.setHomeTeam(team);
+            updated = true;
+        } else if ("away".equals(slot) && awayIsPlaceholder) {
+            match.setAwayTeam(team);
+            updated = true;
+        } else if (homeIsPlaceholder) {
+            match.setHomeTeam(team);
+            updated = true;
+        } else if (awayIsPlaceholder) {
+            match.setAwayTeam(team);
+            updated = true;
+        }
+
+        if (updated) {
+            matchRepository.save(match);
+            context.matchesUpdated++;
+        }
+    }
+
     private void updateStandings(Map<Long, int[]> teamStats) {
         standingsService.clearAll();
         for (Map.Entry<Long, int[]> entry : teamStats.entrySet()) {
-            teamRepository.findById(entry.getKey()).ifPresent(team -> 
-                standingsService.updateStanding(team, team.getGroupName(),
-                        entry.getValue()[0], entry.getValue()[1], entry.getValue()[2], entry.getValue()[3], entry.getValue()[4])
-            );
+            teamRepository.findById(entry.getKey()).ifPresent(team -> {
+                if (team.getGroupName() != null && !"-".equals(team.getGroupName()) && !"Por definir".equalsIgnoreCase(team.getName())) {
+                    standingsService.updateStanding(team, team.getGroupName().toUpperCase().trim(),
+                            entry.getValue()[0], entry.getValue()[1], entry.getValue()[2], entry.getValue()[3], entry.getValue()[4]);
+                }
+            });
         }
 
         teamRepository.findAll().forEach(team -> {
-            if (team.getGroupName() != null && !teamStats.containsKey(team.getId())) {
-                standingsService.updateStanding(team, team.getGroupName(), 0, 0, 0, 0, 0);
+            if (team.getGroupName() != null && !"-".equals(team.getGroupName()) && !"Por definir".equalsIgnoreCase(team.getName()) && !teamStats.containsKey(team.getId())) {
+                standingsService.updateStanding(team, team.getGroupName().toUpperCase().trim(), 0, 0, 0, 0, 0);
             }
         });
     }

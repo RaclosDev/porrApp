@@ -34,7 +34,22 @@ function Leaderboard() {
 
   const [activeTab, setActiveTab] = useState('table'); // 'table' | 'evolution'
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando clasificación...</div>;
+  if (loading) return (
+    <section className="view-section" style={{ display: 'block' }}>
+      <div className="table-container" style={{ padding: '20px' }}>
+        <div className="skeleton skeleton-text medium" style={{ height: '20px', marginBottom: '20px' }} />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="skeleton-row" style={{ padding: '12px 0', borderBottom: '1px solid var(--border-color)' }}>
+            <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0 }} />
+            <div className="skeleton skeleton-bar" />
+            <div className="skeleton" style={{ width: '40px', height: '16px', borderRadius: '4px' }} />
+            <div className="skeleton" style={{ width: '40px', height: '16px', borderRadius: '4px' }} />
+            <div className="skeleton" style={{ width: '50px', height: '20px', borderRadius: '6px' }} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 
   const mid = Math.ceil(validResults.length / 2);
 

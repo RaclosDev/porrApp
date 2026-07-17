@@ -29,6 +29,7 @@ public class CompetitionController {
      * @return Lista JSON con objetos Competition (ID, Name).
      */
     @GetMapping
+    @org.springframework.cache.annotation.Cacheable("competitions")
     public ResponseEntity<List<Competition>> getAllCompetitions() {
         return ResponseEntity.ok(competitionRepository.findAll());
     }
