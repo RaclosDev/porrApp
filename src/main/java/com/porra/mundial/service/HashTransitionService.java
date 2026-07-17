@@ -52,7 +52,8 @@ public class HashTransitionService {
             // 2. Parse Groups (pronosticos_grupo)
             if (dto.getGroups() != null) {
                 for (Map.Entry<String, List<String>> entry : dto.getGroups().entrySet()) {
-                    String groupName = entry.getKey();
+                    String groupName = entry.getKey() != null && !"-".equals(entry.getKey()) ? entry.getKey().toUpperCase().trim() : null;
+                    if (groupName == null || "-".equals(groupName)) continue;
                     List<String> teamsList = entry.getValue();
                     for (int i = 0; i < teamsList.size(); i++) {
                         String teamName = teamsList.get(i);
@@ -124,7 +125,7 @@ public class HashTransitionService {
                 String winnerName = findWinnerInNextPhaseList(homeName, awayName, nextPhaseWinners);
                 Team winner = getTeamByName(winnerName);
 
-                if (winner != null) {
+                if (home != null || away != null || winner != null) {
                     bracketPredictionRepository.save(BracketPrediction.builder()
                             .bet(bet)
                             .phase(dbPhaseName)
@@ -148,7 +149,7 @@ public class HashTransitionService {
         Team away = getTeamByName(awayName);
         Team winner = getTeamByName(winnerName);
 
-        if (winner != null) {
+        if (home != null || away != null || winner != null) {
             bracketPredictionRepository.save(BracketPrediction.builder()
                     .bet(bet)
                     .phase(dbPhaseName)
@@ -183,6 +184,7 @@ public class HashTransitionService {
      * el súper JSON estructurado que el frontend React necesita para renderizar.
      */
     @Transactional(readOnly = true)
+    @org.springframework.cache.annotation.Cacheable(value = "rebuiltBetData", key = "#betId")
     public BetDataDTO rebuildBetDataDtoFromTables(Long betId) {
         BetDataDTO dto = new BetDataDTO();
 
@@ -190,14 +192,16 @@ public class HashTransitionService {
         List<GroupPrediction> groupPreds = groupPredictionRepository.findByBetId(betId);
         Map<String, List<String>> groupsMap = new LinkedHashMap<>();
         for (GroupPrediction gp : groupPreds) {
-            groupsMap.putIfAbsent(gp.getGroupName(), new ArrayList<>());
+            if (gp.getGroupName() != null && !"-".equals(gp.getGroupName())) {
+                groupsMap.putIfAbsent(gp.getGroupName().toUpperCase().trim(), new ArrayList<>());
+            }
         }
         
         // Sort by position before adding to the list
         groupPreds.sort(Comparator.comparingInt(GroupPrediction::getPosition));
         for (GroupPrediction gp : groupPreds) {
-            if (gp.getTeam() != null) {
-                groupsMap.get(gp.getGroupName()).add(gp.getTeam().getName());
+            if (gp.getTeam() != null && gp.getGroupName() != null && !"-".equals(gp.getGroupName())) {
+                groupsMap.get(gp.getGroupName().toUpperCase().trim()).add(gp.getTeam().getName());
             }
         }
         dto.setGroups(groupsMap);
@@ -227,13 +231,19 @@ public class HashTransitionService {
 
         // Final and Third Place
         BracketPrediction finalMatch = bracketPreds.stream().filter(p -> "FINAL".equals(p.getPhase())).findFirst().orElse(null);
-        if (finalMatch != null && finalMatch.getHomeTeam() != null && finalMatch.getAwayTeam() != null) {
-            dto.setFinalMatch(Arrays.asList(finalMatch.getHomeTeam().getName(), finalMatch.getAwayTeam().getName()));
+        if (finalMatch != null && (finalMatch.getHomeTeam() != null || finalMatch.getAwayTeam() != null)) {
+            dto.setFinalMatch(Arrays.asList(
+                    finalMatch.getHomeTeam() != null ? finalMatch.getHomeTeam().getName() : null,
+                    finalMatch.getAwayTeam() != null ? finalMatch.getAwayTeam().getName() : null
+            ));
         }
 
         BracketPrediction thirdPlace = bracketPreds.stream().filter(p -> "THIRD_PLACE".equals(p.getPhase())).findFirst().orElse(null);
-        if (thirdPlace != null && thirdPlace.getHomeTeam() != null && thirdPlace.getAwayTeam() != null) {
-            dto.setThirdPlaceMatch(Arrays.asList(thirdPlace.getHomeTeam().getName(), thirdPlace.getAwayTeam().getName()));
+        if (thirdPlace != null && (thirdPlace.getHomeTeam() != null || thirdPlace.getAwayTeam() != null)) {
+            dto.setThirdPlaceMatch(Arrays.asList(
+                    thirdPlace.getHomeTeam() != null ? thirdPlace.getHomeTeam().getName() : null,
+                    thirdPlace.getAwayTeam() != null ? thirdPlace.getAwayTeam().getName() : null
+            ));
         }
 
         // 3. Rebuild Extra

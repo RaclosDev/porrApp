@@ -15,14 +15,13 @@ import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCa
 function BetViewer() {
   const state = useAppContext();
   const { viewerBetId, setViewerBetId, officialPoints, groupOdds, allGames, nameToIdMap } = state;
-  const [openSection, setOpenSection] = useState('groups');
-  const [pointsOpen, setPointsOpen] = useState(true);
-  const [visibleRounds, setVisibleRounds] = useState({ r32: true, r16: true, qf: true, sf: true, center: true });
   const { 
     part, loading, error, points, initialSection, 
     leftRounds, rightRounds, getSlotDetails, getRoundFooterTotal, 
     getCenterPointsTotal, getGroupTeamData 
   } = useBetViewerData(viewerBetId, officialPoints, state.leaderboardData, groupOdds, allGames, nameToIdMap);
+
+  const [openSection, setOpenSection] = useState(() => initialSection || 'groups');
 
   const featuredMatch = useMemo(() => {
     if (!allGames || allGames.length === 0) return null;
@@ -50,8 +49,10 @@ function BetViewer() {
    * basado en en qué fase del mundial nos encontremos.
    */
   useEffect(() => {
-    if (initialSection) setOpenSection(initialSection);
-  }, [initialSection]);
+    if (initialSection) {
+      setTimeout(() => setOpenSection(initialSection), 0);
+    }
+  }, [initialSection, viewerBetId]);
 
   /**
    * Función inyectada a BracketCanvas para pintar un "Slot" de un equipo en eliminatorias.
@@ -61,8 +62,8 @@ function BetViewer() {
    * @param {Object} ctx - Contexto del slot (side, roundIndex, matchIndex, isHome).
    * @returns {JSX.Element} Un TeamSlot configurado.
    */
-  const renderSlot = (name, { side, roundIndex, matchIndex, isHome }) => {
-    const { isWinner, slotPoints } = getSlotDetails(name, roundIndex, side, matchIndex, isHome);
+  const renderSlot = (name, { roundIndex }) => {
+    const { isWinner, slotPoints } = getSlotDetails(name, roundIndex);
     
     let style = isWinner ? { borderLeft: '3px solid #2ecc71', background: 'rgba(46, 204, 113, 0.1)' } : {};
     let rightContent = slotPoints !== null ? (
@@ -131,10 +132,10 @@ function BetViewer() {
   };
 
   const hiddenRounds = {
-    0: !visibleRounds.r32,
-    1: !visibleRounds.r16,
-    2: !visibleRounds.qf,
-    3: !visibleRounds.sf,
+    0: false,
+    1: false,
+    2: false,
+    3: false,
   };
 
   const finalTopY = matchTop(3, 0);
@@ -143,7 +144,7 @@ function BetViewer() {
    * Renderiza el bloque central (Final y Tercer puesto).
    */
   const renderCenter = (colW) => (
-    <div style={{ display: visibleRounds.center ? 'block' : 'none' }}>
+    <div style={{ display: 'block' }}>
       {/* FINAL */}
       <div style={{ position: 'absolute', top: finalTopY - 38, left: COL_GAP, width: colW, textAlign: 'center', fontSize: '0.65rem', fontWeight: 700, color: 'rgba(251,191,36,0.9)', letterSpacing: 2, textTransform: 'uppercase' }}>
         🏆 Final 🏆
@@ -209,7 +210,7 @@ function BetViewer() {
 
     return (
       <div style={{ fontSize: '1em', color, marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
-        <span style={{ marginRight: '4px' }}>{medal}</span> {!teamName.includes("º") && getCountryCode(teamName) !== "xx" && <img src={`https://flagcdn.com/w80/${getCountryCode(teamName)}.png`} alt="" loading="lazy" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px', marginRight: '4px', flexShrink: 0 }} />} <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{teamName}{blueDot}</span>
+        <span style={{ marginRight: '4px' }}>{medal}</span> {!teamName.includes("º") && getCountryCode(teamName) !== "xx" && !teamName.toLowerCase().includes("por definir") && <img src={`https://flagcdn.com/w80/${getCountryCode(teamName)}.png`} alt="" loading="lazy" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px', marginRight: '4px', flexShrink: 0 }} />} <span style={{ flexGrow: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>{teamName}{blueDot}</span>
         {teamPts > 0 && <span style={{ marginLeft: '6px', fontSize: '0.85em', fontWeight: 'bold', color: 'rgba(0, 210, 211, 0.9)', background: 'rgba(0, 210, 211, 0.15)', padding: '1px 5px', borderRadius: '4px' }}>+{teamPts}</span>}
       </div>
     );

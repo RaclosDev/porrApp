@@ -16,7 +16,7 @@ export function useAdminData() {
 
   useEffect(() => {
     if (!isAdminAuthenticated) return;
-    setLoading(true);
+    setTimeout(() => setLoading(true), 0);
     fetchConnectionHistory().then(data => {
       if (data) setHistory(data);
     });

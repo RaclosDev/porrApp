@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { getCountryCode } from '../utils/constants';
 import { openStats } from '../utils/navigation';
+import Flag from '../components/Flag';
 
 /**
  * Componente que muestra los partidos en vivo, recientes y próximos.
@@ -15,7 +15,25 @@ function Radar() {
   const { matchRadar, loading } = useAppContext();
   const [activeTab, setActiveTab] = useState('proximos');
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando partidos...</div>;
+  if (loading) return (
+    <section className="view-section" style={{ display: 'block' }}>
+      <div className="skeleton skeleton-text short" style={{ height: '24px', margin: '0 auto 30px auto' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '600px', margin: '0 auto' }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="skeleton-card" style={{ minHeight: '120px' }}>
+            <div className="skeleton skeleton-text short" style={{ margin: '0 auto' }} />
+            <div className="skeleton-row" style={{ justifyContent: 'center', gap: '20px' }}>
+              <div className="skeleton skeleton-avatar" style={{ width: '24px', height: '18px' }} />
+              <div className="skeleton skeleton-bar" style={{ maxWidth: '100px' }} />
+              <div className="skeleton" style={{ width: '60px', height: '24px', borderRadius: '6px' }} />
+              <div className="skeleton skeleton-bar" style={{ maxWidth: '100px' }} />
+              <div className="skeleton skeleton-avatar" style={{ width: '24px', height: '18px' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 
   const liveMatches = matchRadar?.live || [];
   const lastMatches = (matchRadar?.last || []).slice(0, 10);
@@ -27,10 +45,8 @@ function Radar() {
     let isActuallyLive = type === 'live' && new Date(m.date) <= new Date();
     let icon = isActuallyLive ? '🔴' : type === 'live' ? '⏳' : type === 'last' ? '✔️' : '🕒';
 
-    const homeFlag = <img src={`https://flagcdn.com/w80/${getCountryCode(m.home)}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />;
-    const awayFlag = <img src={`https://flagcdn.com/w80/${getCountryCode(m.away)}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />;
-
-
+    const isPlaceholder = (t) => !t || t.toLowerCase().includes('por definir') || t.toLowerCase().includes('tbd') || t.includes('º') || t === '?';
+    const showStatsButton = m.home && m.away && !isPlaceholder(m.home) && !isPlaceholder(m.away);
 
     return (
       <div key={m.id} className="last-match-card">
@@ -39,7 +55,7 @@ function Radar() {
         </div>
         <div className="last-match-teams" style={{ margin: 'auto 0' }}>
           <div className="last-match-team">
-            {homeFlag}
+            <Flag team={m.home} />
             <span>{m.home}</span>
           </div>
 
@@ -52,23 +68,25 @@ function Radar() {
           </div>
 
           <div className="last-match-team away">
-            {awayFlag}
+            <Flag team={m.away} />
             <span>{m.away}</span>
           </div>
         </div>
 
         {/* Action Buttons at the bottom */}
-        <div style={{ textAlign: 'center' }}>
-          {type === 'last' ? (
-            <button onClick={() => openStats(m.home, m.away)} style={{ background: '#1e272e', color: '#00d2d3', border: '1px solid rgba(0,210,211,0.3)', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-              <span>📊</span> Stats
-            </button>
-          ) : (type === 'next' || type === 'live') ? (
-            <button onClick={() => openStats(m.home, m.away)} style={{ background: '#1e272e', color: '#00d2d3', border: '1px solid rgba(0,210,211,0.3)', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-              <span>📊</span> Ver Estadísticas
-            </button>
-          ) : null}
-        </div>
+        {showStatsButton && (
+          <div style={{ textAlign: 'center' }}>
+            {type === 'last' ? (
+              <button onClick={() => openStats(m.home, m.away)} style={{ background: '#1e272e', color: '#00d2d3', border: '1px solid rgba(0,210,211,0.3)', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                <span>📊</span> Stats
+              </button>
+            ) : (type === 'next' || type === 'live') ? (
+              <button onClick={() => openStats(m.home, m.away)} style={{ background: '#1e272e', color: '#00d2d3', border: '1px solid rgba(0,210,211,0.3)', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                <span>📊</span> Ver Estadísticas
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
     );
   };

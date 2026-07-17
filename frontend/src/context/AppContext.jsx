@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchStandings, fetchMatches, fetchMatchRadar, fetchBets, fetchTeamOdds, fetchPresence, getAdminToken, fetchLeaderboard, fetchGroup, fetchMyGroups, fetchMe, updateUserPreferences } from '../services/api';
+import { fetchStandings, fetchMatches, fetchMatchRadar, fetchBets, fetchTeamOdds, fetchPresence, getAdminToken, fetchLeaderboard, fetchGroup, fetchMyGroups, fetchMe, updateUserPreferences, fetchTopScorers } from '../services/api';
 import { useAdminActions } from '../hooks/useAdminActions';
 import { useWebSocket } from '../hooks/useWebSocket';
 
@@ -68,6 +68,7 @@ export function AppProvider({ children }) {
       queryFn: () => activeGroupId ? fetchGroup(activeGroupId).catch(() => ({ name: "Porra Global" })) : Promise.resolve({ name: "Ninguna Liga Seleccionada" }) 
   });
   const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
+  const { data: topScorers } = useQuery({ queryKey: ['topScorers'], queryFn: fetchTopScorers, staleTime: 300_000 }); // 5 min
 
   const activeGroupName = groupInfo?.name || "Ninguna Liga Seleccionada";
   const activeGroupAdmin = groupInfo?.adminParticipantName || null;
@@ -89,8 +90,10 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!isAdminAuthenticated) {
-      setUserName('');
-      setUserId('');
+      setTimeout(() => {
+        setUserName('');
+        setUserId('');
+      }, 0);
       localStorage.removeItem('my_bet_name');
       localStorage.removeItem('my_user_id');
     }
@@ -167,7 +170,8 @@ export function AppProvider({ children }) {
     deleteBet, fixThird, acceptBet, editBetName,
     activeGroupId, activeGroupName, activeGroupAdmin,
     activeGroupAdminId, activeGroupBetMode, activeGroupPichichi,
-    changeGroup
+    changeGroup,
+    topScorers: topScorers || []
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

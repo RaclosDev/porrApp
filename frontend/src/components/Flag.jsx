@@ -14,9 +14,14 @@ import { getCountryCode } from '../utils/constants';
  */
 const Flag = ({ team, size = 'w80', style = {}, className = '' }) => {
     if (!team) return null;
+    const code = getCountryCode(team);
+    const lower = team.toLowerCase();
+    if (!code || code === 'xx' || lower.includes('por definir') || lower.includes('por decidir') || lower.includes('tbd') || lower.includes('ganador') || lower.includes('perdedor') || lower.includes('º') || team === '?') {
+        return null;
+    }
     return (
         <img 
-            src={`https://flagcdn.com/${size}/${getCountryCode(team)}.png`} 
+            src={`https://flagcdn.com/${size}/${code}.png`} 
             alt={team} 
             loading="lazy"
             style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0, ...style }}

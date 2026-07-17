@@ -121,6 +121,7 @@ public class BetService {
      * @param groupId El grupo donde compite.
      * @return La nueva apuesta persistida.
      */
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
     public Bet createBet(String email, String betName, BetDataDTO betData, Long groupId) {
         if (groupId != null) {
             betRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
@@ -159,6 +160,7 @@ public class BetService {
     /**
      * Permite modificar el nombre de la apuesta o los pronósticos si la competición no ha cerrado.
      */
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
     public Bet updateBet(Long id, String participantName, String betName, BetDataDTO betData) {
         Bet bet = betRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Porra no encontrada: " + id));
         if (participantName != null) bet.setParticipantName(participantName);
@@ -173,6 +175,7 @@ public class BetService {
     /**
      * Marca una apuesta como pagada. A partir de este momento, aparecerá en el Leaderboard oficial.
      */
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
     public Bet markAsPaid(Long id) {
         Bet bet = betRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Porra no encontrada: " + id));
         bet.setPaid(true);
@@ -182,6 +185,7 @@ public class BetService {
     /**
      * Borra permanentemente una apuesta del sistema.
      */
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
     public void deleteBet(Long id) {
         betRepository.deleteById(id);
     }
@@ -189,6 +193,7 @@ public class BetService {
     /**
      * Restaura una apuesta utilizando la información histórica de la tabla de backups.
      */
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
     public Bet restoreBet(Long backupId) {
         BetBackup backup = betBackupRepository.findById(backupId)
                 .orElseThrow(() -> new NoSuchElementException("Backup no encontrado: " + backupId));

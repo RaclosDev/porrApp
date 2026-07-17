@@ -31,7 +31,13 @@ export function buildBracketData(officialPoints, groupOdds, allGames) {
     if (teams.length >= 2) guaranteed[group]['2'] = realName(teams[1]);
   });
 
-  const allR16 = (allGames || []).filter(m => m.round === 'r16').sort((a, b) => new Date(a.date) - new Date(b.date));
+  const matchRound = (m, ...keys) => {
+    if (!m || !m.round) return false;
+    const r = m.round.toLowerCase();
+    return keys.some(k => r === k || r.includes(k));
+  };
+
+  const allR16 = (allGames || []).filter(m => matchRound(m, 'r16', 'octav')).sort((a, b) => new Date(a.date) - new Date(b.date));
   const realR32Matches = allR16.slice(0, 16);
 
   const opponentMap = {};
@@ -99,11 +105,11 @@ export function buildBracketData(officialPoints, groupOdds, allGames) {
     }
   }
 
-  const realQF = (allGames || []).filter(m => m.round === 'qf').sort((a, b) => new Date(a.date) - new Date(b.date));
-  const realSF = (allGames || []).filter(m => m.round === 'sf').sort((a, b) => new Date(a.date) - new Date(b.date));
-  const realFinal = (allGames || []).filter(m => m.round === 'final');
-  const realThird = (allGames || []).filter(m => m.round === 'third');
-  const cleanName = (n) => (!n || n === 'Por definir') ? null : n;
+  const realQF = (allGames || []).filter(m => matchRound(m, 'qf', 'quarter', 'cuart')).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const realSF = (allGames || []).filter(m => matchRound(m, 'sf', 'semi')).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const realFinal = (allGames || []).filter(m => matchRound(m, 'final') && !matchRound(m, 'semi', 'quarter', 'octav'));
+  const realThird = (allGames || []).filter(m => matchRound(m, 'third', 'tercer', '3rd', '3er'));
+  const cleanName = (n) => (!n || n === 'Por definir' || n === '???') ? null : n;
 
   const qf = realQF.length > 0
     ? realQF.map(m => [cleanName(m.home), cleanName(m.away)])
@@ -133,6 +139,24 @@ export function buildBracketData(officialPoints, groupOdds, allGames) {
     return null;
   };
 
+  const findLoser = (t1, t2) => {
+    const n1 = typeof t1 === 'object' && t1 ? t1.name : t1;
+    const n2 = typeof t2 === 'object' && t2 ? t2.name : t2;
+    if (!n1 || !n2 || n1 === 'Por definir' || n2 === 'Por definir') return null;
+    const m = (allGames || []).find(g => (g.home === n1 && g.away === n2) || (g.home === n2 && g.away === n1));
+    if (m && m.home_score != null && m.away_score != null) {
+      const isProv = !m.finished;
+      const wName = m.winner ? m.winner : 
+                    m.home_score > m.away_score ? m.home : 
+                    (m.away_score > m.home_score ? m.away : null);
+      if (wName) {
+        const lName = (wName === n1) ? n2 : n1;
+        return { name: lName, isProvisional: isProv };
+      }
+    }
+    return null;
+  };
+
   for (let i = 0; i < 8; i += 2) {
     const idx = Math.floor(i / 2);
     if (!qf[idx][0]) qf[idx][0] = findWinner(r16[i][0], r16[i][1]);
@@ -146,7 +170,11 @@ export function buildBracketData(officialPoints, groupOdds, allGames) {
   if (!final_[0]) final_[0] = findWinner(sf[0][0], sf[0][1]);
   if (!final_[1]) final_[1] = findWinner(sf[1][0], sf[1][1]);
 
+  if (!thirdPlaceMatch[0]) thirdPlaceMatch[0] = findLoser(sf[0][0], sf[0][1]);
+  if (!thirdPlaceMatch[1]) thirdPlaceMatch[1] = findLoser(sf[1][0], sf[1][1]);
+
   let champion = findWinner(final_[0], final_[1]);
+  let thirdPlaceWinner = findWinner(thirdPlaceMatch[0], thirdPlaceMatch[1]);
 
   return {
     r32,
@@ -156,5 +184,6 @@ export function buildBracketData(officialPoints, groupOdds, allGames) {
     final: final_,
     champion: champion,
     thirdPlaceMatch: thirdPlaceMatch,
+    thirdPlaceWinner: thirdPlaceWinner,
   };
 }

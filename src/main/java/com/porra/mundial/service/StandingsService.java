@@ -26,13 +26,20 @@ public class StandingsService {
     /**
      * Obtiene la clasificación completa de todos los grupos ya ordenada.
      */
+    @org.springframework.cache.annotation.Cacheable("standings")
     public List<GroupStanding> getAllStandings() {
-        List<GroupStanding> allStandings = standingRepository.findAllByOrderByGroupNameAsc();
-        Map<String, List<GroupStanding>> byGroup = allStandings.stream().collect(Collectors.groupingBy(GroupStanding::getGroupName));
+        List<GroupStanding> allStandings = standingRepository.findAllByOrderByGroupNameAsc().stream()
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .collect(Collectors.toList());
+        Map<String, List<GroupStanding>> byGroup = allStandings.stream().collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
         
+        List<Match> allMatches = matchRepository.findAll();
         List<GroupStanding> sorted = new ArrayList<>();
         byGroup.keySet().stream().sorted().forEach(group -> {
-            List<Match> groupMatches = matchRepository.findByGroupNameOrderByMatchDateAsc(group);
+            List<Match> groupMatches = allMatches.stream()
+                .filter(m -> group.equalsIgnoreCase(m.getGroupName()))
+                .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
             sorted.addAll(sortGroupStandings(byGroup.get(group), groupMatches));
         });
         return sorted;
@@ -42,8 +49,15 @@ public class StandingsService {
      * Obtiene la clasificación ordenada de un grupo específico.
      */
     public List<GroupStanding> getStandingsByGroup(String groupName) {
-        List<GroupStanding> standings = standingRepository.findByGroupName(groupName);
-        List<Match> matches = matchRepository.findByGroupNameOrderByMatchDateAsc(groupName);
+        if (groupName == null || "-".equals(groupName)) return Collections.emptyList();
+        String cleanGroup = groupName.toUpperCase().trim();
+        List<GroupStanding> standings = standingRepository.findByGroupName(cleanGroup);
+        if (standings.isEmpty()) standings = standingRepository.findByGroupName(cleanGroup.toLowerCase());
+        standings = standings.stream()
+                .filter(gs -> gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName()))
+                .collect(Collectors.toList());
+        List<Match> matches = matchRepository.findByGroupNameOrderByMatchDateAsc(cleanGroup);
+        if (matches.isEmpty()) matches = matchRepository.findByGroupNameOrderByMatchDateAsc(cleanGroup.toLowerCase());
         return sortGroupStandings(standings, matches);
     }
 
@@ -133,15 +147,22 @@ public class StandingsService {
      * 
      * Formato: Map<Grupo, Map<Equipo, Map<StatName, Valor>>>
      */
+    @org.springframework.cache.annotation.Cacheable("officialPoints")
     public Map<String, Map<String, Map<String, Integer>>> getOfficialPoints() {
         Map<String, Map<String, Map<String, Integer>>> result = new TreeMap<>();
         List<GroupStanding> allStandings = getAllStandings();
-        Map<String, List<GroupStanding>> groupedStandings = allStandings.stream().collect(Collectors.groupingBy(GroupStanding::getGroupName));
+        Map<String, List<GroupStanding>> groupedStandings = allStandings.stream()
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
         
+        List<Match> allMatches = matchRepository.findAll();
         List<GroupStanding> thirdPlaceTeams = new ArrayList<>();
         for (String group : groupedStandings.keySet()) {
             List<GroupStanding> groupList = groupedStandings.get(group);
-            List<Match> groupMatches = matchRepository.findByGroupNameOrderByMatchDateAsc(group);
+            List<Match> groupMatches = allMatches.stream()
+                .filter(m -> group.equalsIgnoreCase(m.getGroupName()))
+                .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
             List<GroupStanding> sortedGroup = sortGroupStandings(groupList, groupMatches);
             if (sortedGroup.size() >= 3) {
                 thirdPlaceTeams.add(sortedGroup.get(2));
@@ -171,7 +192,10 @@ public class StandingsService {
             return a.getTeam().getName().compareTo(b.getTeam().getName());
         });
 
-        List<Match> allGroupMatches = matchRepository.findByRoundOrderByMatchDateAsc("group");
+        List<Match> allGroupMatches = allMatches.stream()
+                .filter(m -> "group".equalsIgnoreCase(m.getRound()))
+                .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
         boolean isGroupStageDone = !allGroupMatches.isEmpty() && allGroupMatches.stream().allMatch(m -> Boolean.TRUE.equals(m.getFinished()));
         boolean allThirdsPlayed = thirdPlaceTeams.size() >= 8 && thirdPlaceTeams.stream().allMatch(gs -> gs.getMatchesPlayed() >= 3);
         boolean bottomPlayed = thirdPlaceTeams.size() > 8 && thirdPlaceTeams.subList(8, thirdPlaceTeams.size()).stream().allMatch(gs -> gs.getMatchesPlayed() >= 3);
@@ -193,10 +217,16 @@ public class StandingsService {
     /**
      * Actualiza la tabla de posiciones de un equipo tras un sincronizado.
      */
+    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard", "matches"}, allEntries = true)
     public void updateStanding(Team team, String groupName, int points, int goalDiff, int goalsFor, int matchesPlayed, int fairPlayPoints) {
-        GroupStanding standing = standingRepository.findByTeamIdAndGroupName(team.getId(), groupName)
-                .orElseGet(() -> GroupStanding.builder().team(team).groupName(groupName).build());
+        if (groupName == null || "-".equals(groupName) || team == null || "Por definir".equalsIgnoreCase(team.getName())) {
+            return;
+        }
+        String cleanGroup = groupName.toUpperCase().trim();
+        GroupStanding standing = standingRepository.findByTeamIdAndGroupName(team.getId(), cleanGroup)
+                .orElseGet(() -> GroupStanding.builder().team(team).groupName(cleanGroup).build());
 
+        standing.setGroupName(cleanGroup);
         standing.setPoints(points);
         standing.setGoalDiff(goalDiff);
         standing.setGoalsFor(goalsFor);
@@ -205,6 +235,7 @@ public class StandingsService {
         standingRepository.save(standing);
     }
 
+    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard", "matches"}, allEntries = true)
     public void clearAll() {
         standingRepository.deleteAll();
     }

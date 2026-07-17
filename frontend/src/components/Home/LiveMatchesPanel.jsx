@@ -15,6 +15,8 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
         const d = new Date(m.date);
         const dateFormatted = `${d.getDate()}/${d.getMonth()+1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
         const hasStarted = new Date() >= d;
+        const isPlaceholder = (t) => !t || t.toLowerCase().includes('por definir') || t.toLowerCase().includes('tbd') || t.includes('º') || t === '?';
+        const showStatsButton = m.home && m.away && !isPlaceholder(m.home) && !isPlaceholder(m.away);
 
         return (
             <div key={m.id} className="last-match-card">
@@ -28,7 +30,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
                     </div>
                     
                     <div className="last-match-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        {hasStarted ? (
+                        {hasStarted && m.homeScore !== null && m.awayScore !== null ? (
                             <span className="last-match-score">{m.homeScore} - {m.awayScore}</span>
                         ) : (
                             <span style={{ fontSize: '0.9em', color: 'var(--text-muted)', fontWeight: 'bold' }}>VS</span>
@@ -41,11 +43,13 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
                     </div>
                 </div>
                 
-                <div style={{ textAlign: 'center' }}>
-                    <button onClick={() => openStats(m.home, m.away)} style={{ background: '#1e272e', color: '#00d2d3', border: '1px solid rgba(0,210,211,0.3)', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-                        <span>📊</span> Ver Estadísticas
-                    </button>
-                </div>
+                {showStatsButton && (
+                    <div style={{ textAlign: 'center' }}>
+                        <button onClick={() => openStats(m.home, m.away)} style={{ background: '#1e272e', color: '#00d2d3', border: '1px solid rgba(0,210,211,0.3)', padding: '6px 20px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                            <span>📊</span> Ver Estadísticas
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };

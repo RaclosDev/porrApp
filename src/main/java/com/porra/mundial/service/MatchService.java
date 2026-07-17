@@ -23,6 +23,7 @@ public class MatchService {
     /**
      * @return Todo el calendario completo del torneo.
      */
+    @org.springframework.cache.annotation.Cacheable("matches")
     public List<Match> getAllMatches() {
         return matchRepository.findAll();
     }
@@ -82,6 +83,7 @@ public class MatchService {
     /**
      * Guarda o actualiza un partido en base de datos.
      */
+    @org.springframework.cache.annotation.CacheEvict(value = {"matches", "matchRadar", "standings", "officialPoints", "leaderboard", "rebuiltBetData", "allBetsDto", "myBetsDto"}, allEntries = true)
     public Match save(Match match) {
         return matchRepository.save(match);
     }

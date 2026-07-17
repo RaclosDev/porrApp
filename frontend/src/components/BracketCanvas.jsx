@@ -26,8 +26,6 @@ export const CANVAS_H = leafTop(7) + MATCH_H;
 
 // ── Horizontal constants ───────────────────────────────────────────────────
 const GAP = 20;   // px between adjacent columns (fixed)
-const MIN_COL_W = 75;
-const MAX_COL_W = 170;
 const DEFAULT_COL = 155;
 
 // Re-export for pages that need gap value for center content positioning
@@ -88,7 +86,8 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }) {
  */
 export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }) {
   const isEmpty = !name;
-  const isPlaceholder = name?.includes('º');
+  const lower = name?.toLowerCase() || '';
+  const isPlaceholder = name?.includes('º') || lower.includes('por definir') || lower.includes('por decidir') || lower.includes('tbd') || lower.includes('ganador') || lower.includes('perdedor') || name === '?' || getCountryCode(name) === 'xx';
   const clickable = !!onClick && !isEmpty && !isPlaceholder;
 
   const isCombined = !isEmpty && !isPlaceholder && name.includes(' / ');

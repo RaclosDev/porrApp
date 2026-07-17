@@ -34,7 +34,7 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
       Object.keys(groupOdds).forEach(g => {
         initial[g] = { first: '', second: '', third: '' };
       });
-      setSelections(initial);
+      setTimeout(() => setSelections(initial), 0);
     }
   }, [groupOdds, selections]);
 
@@ -57,7 +57,7 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
    */
   useEffect(() => {
     const currentThirds = Object.values(selections).map(g => g.third).filter(t => t !== '');
-    setAdvancingThirds(prev => prev.filter(t => currentThirds.includes(t)));
+    setTimeout(() => setAdvancingThirds(prev => prev.filter(t => currentThirds.includes(t))), 0);
   }, [selections]);
 
   /**

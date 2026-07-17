@@ -42,7 +42,7 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
 
   React.useEffect(() => {
     if (Object.keys(selectedUsers).length === 0 && validResults.length > 0) {
-      setSelectedUsers(defaultSelected);
+      setTimeout(() => setSelectedUsers(defaultSelected), 0);
     }
   }, [defaultSelected, selectedUsers, validResults.length]);
 
@@ -316,7 +316,7 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
     if (minPts === Infinity || maxPts === -Infinity) { minPts = 0; maxPts = 100; }
     
     const rawRange = Math.max(maxPts - minPts, 10);
-    let step = 50;
+    let step;
     if (rawRange <= 20) step = 5;
     else if (rawRange <= 50) step = 10;
     else if (rawRange <= 120) step = 25;

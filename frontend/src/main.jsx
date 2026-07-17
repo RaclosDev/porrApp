@@ -11,7 +11,7 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: true, // Automáticamente pide nuevos datos al volver a la pestaña
       retry: 1,
-      staleTime: 5000,
+      staleTime: 60_000, // 1 minuto — los WebSockets cubren actualizaciones en tiempo real
     },
   },
 });

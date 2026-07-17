@@ -42,4 +42,4 @@ RUN apk add --no-cache tzdata && \
     echo $TZ > /etc/timezone && \
     apk del tzdata
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

@@ -6,9 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.BetDataDTO;
 import com.porra.mundial.repository.BetRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.repository.GroupStandingRepository;
+import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.service.HashTransitionService;
+import com.porra.mundial.service.SyncService;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Edition;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +41,9 @@ public class DataInitializer implements CommandLineRunner {
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
     private final HashTransitionService hashTransitionService;
+    private final SyncService syncService;
+    private final GroupStandingRepository standingRepository;
+    private final MatchRepository matchRepository;
 
     /**
      * Método principal que arranca con Spring Boot.
@@ -46,8 +52,50 @@ public class DataInitializer implements CommandLineRunner {
      */
     @Override
     public void run(String... args) {
+        if (teamRepository.findByName("Por definir").isEmpty()) {
+            teamRepository.save(Team.builder()
+                    .name("Por definir")
+                    .nameEn("TBD")
+                    .groupName("-")
+                    .winOdds(1.0)
+                    .qualifyOdds(1.0)
+                    .outrightOdds(1.0)
+                    .build());
+        }
+
+        try {
+            syncService.propagateKnockoutWinners();
+        } catch (Exception e) {
+            log.warn("Could not propagate knockout winners on startup: {}", e.getMessage());
+        }
+
+        try {
+            standingRepository.deleteByGroupName("-");
+            standingRepository.deleteByGroupName("l");
+            teamRepository.findAll().forEach(t -> {
+                if (t.getGroupName() != null && !"Por definir".equalsIgnoreCase(t.getName()) && !"-".equals(t.getGroupName())) {
+                    String upper = t.getGroupName().toUpperCase().trim();
+                    if (!t.getGroupName().equals(upper)) {
+                        t.setGroupName(upper);
+                        teamRepository.save(t);
+                    }
+                }
+            });
+            matchRepository.findAll().forEach(m -> {
+                if (m.getGroupName() != null && !"-".equals(m.getGroupName())) {
+                    String upper = m.getGroupName().toUpperCase().trim();
+                    if (!m.getGroupName().equals(upper)) {
+                        m.setGroupName(upper);
+                        matchRepository.save(m);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Could not sanitize group names on startup: {}", e.getMessage());
+        }
+
         // Validación para evitar duplicar datos en reinicios del servidor.
-        if (teamRepository.count() > 0) {
+        if (teamRepository.count() > 1) {
             log.info("Database already seeded with {} teams, skipping initialization.", teamRepository.count());
             return;
         }
@@ -149,7 +197,7 @@ public class DataInitializer implements CommandLineRunner {
     private void seedTeam(String name, String group, double win, double qualify, double outright) {
         Team team = Team.builder()
                 .name(name)
-                .groupName(group)
+                .groupName(group != null && !"-".equals(group) ? group.toUpperCase().trim() : group)
                 .winOdds(win)
                 .qualifyOdds(qualify)
                 .outrightOdds(outright)

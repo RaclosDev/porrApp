@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchMyGroups, createGroup, joinGroup, fetchGroup, leaveGroup, fetchCompetitions, updateGroup, deleteGroup } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +24,7 @@ export function useGroupsDashboard() {
   const { changeGroup, userName, userId, activeGroupId } = useAppContext();
   const navigate = useNavigate();
 
-  const loadGroupsAndCompetitions = async () => {
+  const loadGroupsAndCompetitions = useCallback(async () => {
     setLoading(true);
     try {
       const [myGroups, comps] = await Promise.all([
@@ -61,7 +61,7 @@ export function useGroupsDashboard() {
       setError('Error al cargar datos');
     }
     setLoading(false);
-  };
+  }, [activeGroupId, changeGroup]);
 
   useEffect(() => {
     const checkPendingJoin = async () => {
@@ -89,9 +89,9 @@ export function useGroupsDashboard() {
     if (userName) {
       checkPendingJoin();
     } else {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 0);
     }
-  }, [userName, changeGroup, navigate]);
+  }, [userName, changeGroup, navigate, loadGroupsAndCompetitions]);
 
   const handleCreate = async (e) => {
     e.preventDefault();

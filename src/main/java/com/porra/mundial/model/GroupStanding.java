@@ -46,5 +46,6 @@ public class GroupStanding {
 
     /** Puntos de fair play (tarjetas amarillas/rojas) - último criterio de desempate en la vida real. */
     @Column(name = "fair_play_points")
+    @Builder.Default
     private Integer fairPlayPoints = 0;
 }
