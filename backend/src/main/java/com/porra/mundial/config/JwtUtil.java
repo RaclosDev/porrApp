@@ -13,9 +13,9 @@ import java.util.Date;
  * Componente utilitario encargado de todo el ciclo de vida de los tokens JWT (JSON Web Tokens).
  * <p>
  * Responsabilidades:
- * 1. Generar nuevos tokens al hacer login.
- * 2. Extraer información (Claims) de tokens recibidos en las peticiones.
- * 3. Validar firmas y caducidades para garantizar la seguridad.
+ * Generar nuevos tokens al hacer login.
+ * Extraer información (Claims) de tokens recibidos en las peticiones.
+ * Validar firmas y caducidades para garantizar la seguridad.
  * </p>
  */
 @Component

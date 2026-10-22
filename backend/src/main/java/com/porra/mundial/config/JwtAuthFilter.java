@@ -48,7 +48,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Obtener la cabecera "Authorization"
+        // Obtener la cabecera "Authorization"
         String authHeader = request.getHeader("Authorization");
         String token = null;
 
@@ -63,7 +63,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
         }
 
-        // 2. Si existe un token y su firma es válida (no expirado, clave secreta correcta)
+        // Si existe un token y su firma es válida (no expirado, clave secreta correcta)
         if (token != null && jwtUtil.validateToken(token)) {
             String username = jwtUtil.extractUsername(token);
 
@@ -74,7 +74,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String extractedEmail = jwtUtil.extractEmail(token);
                 final String email = extractedEmail == null ? username : extractedEmail; // username is the email now
 
-                // 3. Determinar Roles: Si el email está en la lista de administradores, asignamos ROLE_ADMIN
+                // Determinar Roles: Si el email está en la lista de administradores, asignamos ROLE_ADMIN
                 boolean isSuperAdmin = adminEmails.stream().anyMatch(ae -> email.equalsIgnoreCase(ae));
                 
                 if (isSuperAdmin) {
@@ -83,7 +83,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
                 }
 
-                // 4. Crear el token de Spring Security y registrarlo en el contexto de seguridad local
+                // Crear el token de Spring Security y registrarlo en el contexto de seguridad local
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(email, null, authorities);
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

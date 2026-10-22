@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 🗄️ Repositorio de Partidos.
+ * ️ Repositorio de Partidos.
  * Aquí le pedimos datos a la Base de Datos sin necesidad de escribir código SQL.
  * Spring Boot adivina qué queremos hacer simplemente leyendo el nombre del método en inglés. ¡Magia!
  */

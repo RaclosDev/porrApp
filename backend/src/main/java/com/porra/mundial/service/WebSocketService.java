@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * 📡 Servicio WebSocket.
+ *  Servicio WebSocket.
  * Mantiene la lista de clientes (Navegadores web) conectados en tiempo real.
  * Si ocurre un gol (desde ESPN) o alguien sube su apuesta, manda una señal 
  * para que todos los navegadores recarguen los datos automáticamente.

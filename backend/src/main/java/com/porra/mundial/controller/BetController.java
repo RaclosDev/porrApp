@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
- * 🎫 Controlador REST Principal para las Apuestas (Porras).
+ *  Controlador REST Principal para las Apuestas (Porras).
  * Constituye el puente entre la interfaz de usuario de React y la lógica de negocio en el Backend.
  * Permite listar, crear, modificar y eliminar las apuestas de los usuarios.
  */
@@ -29,7 +29,7 @@ public class BetController {
     private final com.porra.mundial.service.WebSocketService webSocketService;
 
     /**
-     * 📥 GET /api/bets
+     *  GET /api/bets
      * Recupera todas las apuestas almacenadas en la base de datos.
      * Si se le pasa el query param `groupId`, devuelve únicamente las apuestas pertenecientes a ese grupo específico.
      * 
@@ -51,7 +51,7 @@ public class BetController {
     }
 
     /**
-     * 📥 GET /api/bets/mine
+     *  GET /api/bets/mine
      * Recupera exclusivamente las apuestas creadas por el usuario que hace la petición.
      * Lee la identidad automáticamente a través del Token JWT verificado.
      * 
@@ -65,7 +65,7 @@ public class BetController {
     }
 
     /**
-     * 📤 POST /api/bets
+     *  POST /api/bets
      * Endpoint crítico activado al pulsar "Enviar Porra" en la interfaz.
      * Guarda la predicción completa de un usuario en un grupo determinado.
      * 
@@ -94,7 +94,7 @@ public class BetController {
     }
 
     /**
-     * ✏️ PUT /api/bets/{id}
+     * ️ PUT /api/bets/{id}
      * Permite a un administrador modificar o sobreescribir la predicción de una apuesta existente
      * en caso de algún error técnico (por ejemplo, si el usuario la mandó mal y pidió corrección).
      * 
@@ -109,7 +109,7 @@ public class BetController {
     }
 
     /**
-     * 🔍 GET /api/bets/{id}
+     *  GET /api/bets/{id}
      * Recupera una apuesta específica con todo su árbol de relaciones (Predicciones, Cruces, etc.)
      * Recompone los datos relacionales al formato JSON que React sabe dibujar.
      * 
@@ -123,7 +123,7 @@ public class BetController {
     }
 
     /**
-     * 💰 PUT /api/bets/{id}/pay
+     *  PUT /api/bets/{id}/pay
      * Marca manualmente una apuesta como 'PAGADA' (PAID) por el administrador del grupo.
      * Afecta a su visibilidad o elegibilidad en la clasificación general.
      * 
@@ -137,7 +137,7 @@ public class BetController {
     }
 
     /**
-     * 🗑️ DELETE /api/bets/{id}
+     * ️ DELETE /api/bets/{id}
      * Elimina completamente la apuesta y sus predicciones en cascada.
      * 
      * @param id Identificador de la apuesta a eliminar.

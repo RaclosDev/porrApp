@@ -88,3 +88,9 @@ maven.zip
 cv*.html
 *.zip
 scratch/
+
+anti-slop/
+
+frontend/dev-dist/
+backend/.mvn/wrapper/maven-wrapper.jar
+DESIGN.md

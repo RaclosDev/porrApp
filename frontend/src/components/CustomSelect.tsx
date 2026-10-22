@@ -30,27 +30,53 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedOption = options.find(o => o.value === value);
+  const selectedOption = options.find((o) => o.value === value);
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative', flex: 1, zIndex: isOpen ? 1000 : 1 }}>
-      <div 
+      <div
         className="glass-input"
-        style={{ 
-          padding: '6px 8px', 
-          fontSize: '0.85rem', 
+        role="combobox"
+        aria-expanded={isOpen}
+        tabIndex={0}
+        aria-label={placeholder || 'Seleccionar'}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          } else if (e.key === 'Escape') {
+            setIsOpen(false);
+          }
+        }}
+        style={{
+          padding: '6px 8px',
+          fontSize: '0.85rem',
           cursor: 'pointer',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          minHeight: '30px'
+          minHeight: '44px',
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flex: 1 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            flex: 1,
+          }}
+        >
           {selectedOption ? (
             <>
-              {selectedOption.value !== "" && <img src={`https://flagcdn.com/w80/${getCountryCode(selectedOption.value)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />}
+              {selectedOption.value !== '' && (
+                <img
+                  src={`https://flagcdn.com/w80/${getCountryCode(selectedOption.value)}.png`}
+                  alt=""
+                  style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }}
+                />
+              )}
               <span>{selectedOption.label}</span>
             </>
           ) : (
@@ -61,22 +87,34 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
       </div>
 
       {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          background: '#0f172a',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '8px',
-          marginTop: '4px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-          zIndex: 100,
-          overflow: 'hidden'
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            background: '#0f172a',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '8px',
+            marginTop: '4px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            zIndex: 100,
+            overflow: 'hidden',
+          }}
+        >
           {options.map((opt, idx) => (
-            <div 
+            <div
               key={idx}
+              role="option"
+              tabIndex={0}
+              aria-selected={value === opt.value}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }
+              }}
               style={{
                 padding: '8px 10px',
                 fontSize: '0.85rem',
@@ -86,9 +124,10 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
                 justifyContent: 'center',
                 gap: '8px',
                 background: value === opt.value ? 'rgba(255,255,255,0.1)' : 'transparent',
-                borderBottom: idx < options.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'
+                borderBottom:
+                  idx < options.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
               onMouseLeave={(e) => {
                 if (value !== opt.value) e.currentTarget.style.background = 'transparent';
               }}
@@ -97,7 +136,13 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
                 setIsOpen(false);
               }}
             >
-              {opt.value !== "" && <img src={`https://flagcdn.com/w80/${getCountryCode(opt.value)}.png`} alt="" style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }} />}
+              {opt.value !== '' && (
+                <img
+                  src={`https://flagcdn.com/w80/${getCountryCode(opt.value)}.png`}
+                  alt=""
+                  style={{ width: '16px', height: '12px', objectFit: 'cover', borderRadius: '2px' }}
+                />
+              )}
               <span>{opt.label}</span>
             </div>
           ))}

@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 📝 Entidad 'Bet' (Apuesta / Porra).
+ *  Entidad 'Bet' (Apuesta / Porra).
  * Representa la cabecera principal de la porra que un usuario envía al servidor. 
  * Está ligada a una edición de un torneo y a una cuenta de usuario.
  * Se guarda en la tabla "bets_v2" de la base de datos.

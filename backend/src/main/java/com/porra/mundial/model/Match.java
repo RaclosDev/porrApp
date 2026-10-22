@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * ⚽ Entidad 'Match' (Partido Real).
+ *  Entidad 'Match' (Partido Real).
  * Representa un partido de fútbol real del torneo oficial.
  * Se sincroniza continuamente con la API de ESPN para obtener resultados en vivo.
  */

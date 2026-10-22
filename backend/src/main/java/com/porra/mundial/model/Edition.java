@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 📅 Entidad 'Edition' (Edición).
+ *  Entidad 'Edition' (Edición).
  * Es el enlace central que une a un Grupo (BetGroup) con una Competición (Competition).
  * Permite que un mismo grupo ("Los Amigos") juegue múltiples ediciones
  * a lo largo de los años ("Mundial 22", "Euro 24", "Mundial 26") sin perder el grupo.

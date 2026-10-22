@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * 🛡️ Entidad 'Team' (Equipo).
+ * ️ Entidad 'Team' (Equipo).
  * Representa a cada una de las selecciones nacionales que juegan el Torneo.
  */
 @Entity

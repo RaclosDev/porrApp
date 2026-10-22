@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 👀 Controlador de Presencia y Registro (El "Chivato" y el "Historiador").
+ *  Controlador de Presencia y Registro (El "Chivato" y el "Historiador").
  * Expone la información recolectada por el WebSocketHandler sobre qué usuarios
  * están actualmente conectados leyendo la porra.
  */

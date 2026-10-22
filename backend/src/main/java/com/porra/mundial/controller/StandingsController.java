@@ -14,7 +14,7 @@ import com.porra.mundial.dto.BetDataDTO;
 import java.util.Map;
 
 /**
- * 📊 Controlador de Clasificaciones Oficiales (Grupos de Mundial/Eurocopa).
+ *  Controlador de Clasificaciones Oficiales (Grupos de Mundial/Eurocopa).
  * Se encarga de devolver a la web la tabla de puntos oficial y de 
  * permitir que el Admin pulse el botón de "Forzar Sincronización".
  */
@@ -29,7 +29,7 @@ public class StandingsController {
     private final BetService betService;
 
     /**
-     * 🥇 GET /api/standings
+     *  GET /api/standings
      * La web nos pide la clasificación actual de la competición.
      * Devuelve los equipos ya ordenados mágicamente por el algoritmo de desempate de la FIFA/UEFA
      * procesados desde ESPN.
@@ -42,7 +42,7 @@ public class StandingsController {
     }
 
     /**
-     * 🔄 POST /api/sync
+     *  POST /api/sync
      * ¡Botón de pánico del Admin! 
      * Fuerza a Java a descargar los datos de la ESPN ahora mismo de forma síncrona
      * sin esperar al programador en background de 15 minutos.

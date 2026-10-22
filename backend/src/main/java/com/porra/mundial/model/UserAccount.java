@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 👤 Entidad 'UserAccount'.
+ *  Entidad 'UserAccount'.
  * Guarda la relación entre una cuenta de Google (email) y el nombre de participante en la porra.
  * Esto evita suplantaciones de identidad y permite el SSO seguro.
  */

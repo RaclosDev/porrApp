@@ -1,6 +1,18 @@
 ﻿import React, { useEffect, createContext, useContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchStandings, fetchMatches, fetchMatchRadar, fetchBets, fetchTeamOdds, fetchLeaderboard, fetchGroup, fetchPresence, fetchTopScorers, fetchMe, fetchMyGroups, updateUserPreferences, getAdminToken } from '../services/api';
+import {
+  fetchStandings,
+  fetchMatches,
+  fetchMatchRadar,
+  fetchBets,
+  fetchTeamOdds,
+  fetchLeaderboard,
+  fetchGroup,
+  fetchPresence,
+  fetchTopScorers,
+  fetchMe,
+  fetchMyGroups,
+} from '../services/api';
 import { useAdminActions } from '../hooks/useAdminActions';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore } from '../store/useAppStore';
@@ -9,17 +21,16 @@ const GlobalEffectsContext = createContext(null);
 
 export function AppProvider({ children }) {
   const queryClient = useQueryClient();
-  
-  const userName = useAppStore(state => state.userName);
-  const userId = useAppStore(state => state.userId);
-  const activeGroupId = useAppStore(state => state.activeGroupId);
-  const bracketState = useAppStore(state => state.bracketState);
-  const isAdminAuthenticated = useAppStore(state => state.isAdminAuthenticated);
-  
-  const setUserName = useAppStore(state => state.setUserName);
-  const setUserId = useAppStore(state => state.setUserId);
-  const changeGroup = useAppStore(state => state.changeGroup);
-  const setActiveGroupId = useAppStore(state => state.setActiveGroupId);
+
+  const userName = useAppStore((state) => state.userName);
+  const activeGroupId = useAppStore((state) => state.activeGroupId);
+  const bracketState = useAppStore((state) => state.bracketState);
+  const isAdminAuthenticated = useAppStore((state) => state.isAdminAuthenticated);
+
+  const setUserName = useAppStore((state) => state.setUserName);
+  const setUserId = useAppStore((state) => state.setUserId);
+  const changeGroup = useAppStore((state) => state.changeGroup);
+  const setActiveGroupId = useAppStore((state) => state.setActiveGroupId);
 
   const adminActions = useAdminActions();
 
@@ -46,12 +57,14 @@ export function AppProvider({ children }) {
       try {
         let dbGroupId = null;
         if (isAdminAuthenticated) {
-           try {
-               const me = await fetchMe();
-               dbGroupId = me.lastSelectedGroupId?.toString();
-           } catch { /* ignore */ }
+          try {
+            const me = await fetchMe();
+            dbGroupId = me.lastSelectedGroupId?.toString();
+          } catch {
+            /* ignore */
+          }
         }
-        
+
         const myGroups = await fetchMyGroups();
         if (myGroups.length === 1) {
           const onlyGroupId = myGroups[0].id.toString();
@@ -63,45 +76,63 @@ export function AppProvider({ children }) {
           if (currentLocal !== dbGroupId) changeGroup(dbGroupId);
           else if (activeGroupId !== dbGroupId) setActiveGroupId(dbGroupId);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
     autoSelectGroup();
   }, [userName, isAdminAuthenticated, activeGroupId, changeGroup, setActiveGroupId]);
 
-  return <GlobalEffectsContext.Provider value={adminActions}>{children}</GlobalEffectsContext.Provider>;
+  return (
+    <GlobalEffectsContext.Provider value={adminActions}>{children}</GlobalEffectsContext.Provider>
+  );
 }
 
 export const useAppContext = () => {
   const store = useAppStore();
   const adminActions = useContext(GlobalEffectsContext) || useAdminActions();
-  
+
   const activeGroupId = store.activeGroupId;
   const userName = store.userName;
 
   const { data: standings } = useQuery({ queryKey: ['standings'], queryFn: fetchStandings });
   const { data: radar } = useQuery({ queryKey: ['radar'], queryFn: fetchMatchRadar });
   const { data: matches } = useQuery({ queryKey: ['matches'], queryFn: fetchMatches });
-  const { data: bets } = useQuery({ queryKey: ['bets', activeGroupId], queryFn: () => fetchBets(activeGroupId) });
+  const { data: bets } = useQuery({
+    queryKey: ['bets', activeGroupId],
+    queryFn: () => fetchBets(activeGroupId),
+  });
   const { data: odds } = useQuery({ queryKey: ['odds'], queryFn: fetchTeamOdds });
-  const { data: leaderboard } = useQuery({ queryKey: ['leaderboard', activeGroupId], queryFn: () => fetchLeaderboard(activeGroupId) });
-  const { data: groupInfo } = useQuery({ 
-      queryKey: ['group', activeGroupId], 
-      queryFn: () => activeGroupId ? fetchGroup(activeGroupId).catch(() => ({ name: "Porra Global" })) : Promise.resolve({ name: "Ninguna Liga Seleccionada" }) 
+  const { data: leaderboard } = useQuery({
+    queryKey: ['leaderboard', activeGroupId],
+    queryFn: () => fetchLeaderboard(activeGroupId),
+  });
+  const { data: groupInfo } = useQuery({
+    queryKey: ['group', activeGroupId],
+    queryFn: () =>
+      activeGroupId
+        ? fetchGroup(activeGroupId).catch(() => ({ name: 'Porra Global' }))
+        : Promise.resolve({ name: 'Ninguna Liga Seleccionada' }),
   });
   const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
-  const { data: topScorers } = useQuery({ queryKey: ['topScorers'], queryFn: fetchTopScorers, staleTime: 300_000 });
+  const { data: topScorers } = useQuery({
+    queryKey: ['topScorers'],
+    queryFn: fetchTopScorers,
+    staleTime: 300_000,
+  });
 
-  const activeGroupName = groupInfo?.name || "Ninguna Liga Seleccionada";
+  const activeGroupName = groupInfo?.name || 'Ninguna Liga Seleccionada';
   const activeGroupAdmin = groupInfo?.adminParticipantName || null;
   const activeGroupAdminId = groupInfo?.adminUserId || null;
   const activeGroupBetMode = groupInfo?.betMode || 'FULL_BRACKET';
   const activeGroupPichichi = groupInfo?.pichichi !== undefined ? groupInfo.pichichi : true;
 
-  const nameToIdMap = matches?.reduce((acc, m) => {
-    acc[m.home] = m.home_team_id;
-    acc[m.away] = m.away_team_id;
-    return acc;
-  }, {}) || {};
+  const nameToIdMap =
+    matches?.reduce((acc, m) => {
+      acc[m.home] = m.home_team_id;
+      acc[m.away] = m.away_team_id;
+      return acc;
+    }, {}) || {};
 
   const loading = !standings || !matches || !bets;
 
@@ -109,7 +140,7 @@ export const useAppContext = () => {
     if (!str) return false;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = (hash << 5) - hash + str.charCodeAt(i);
       hash = hash & hash;
     }
     return hash === 576654803 || hash === -1061661165;
@@ -130,12 +161,15 @@ export const useAppContext = () => {
     fetchData: adminActions.refreshAll,
     onlineUsers: onlineUsers || [],
     isRaclos,
-    deleteBet: adminActions.deleteBet, 
-    fixThird: adminActions.fixThird, 
-    acceptBet: adminActions.acceptBet, 
+    deleteBet: adminActions.deleteBet,
+    fixThird: adminActions.fixThird,
+    acceptBet: adminActions.acceptBet,
     editBetName: adminActions.editBetName,
-    activeGroupName, activeGroupAdmin,
-    activeGroupAdminId, activeGroupBetMode, activeGroupPichichi,
-    topScorers: topScorers || []
+    activeGroupName,
+    activeGroupAdmin,
+    activeGroupAdminId,
+    activeGroupBetMode,
+    activeGroupPichichi,
+    topScorers: topScorers || [],
   };
 };

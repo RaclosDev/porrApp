@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 🗄️ Repositorio de la Clasificación de Grupos.
+ * ️ Repositorio de la Clasificación de Grupos.
  * Aquí guardamos y leemos cuántos puntos, goles a favor, etc., tiene cada equipo oficialmente.
  */
 @Repository

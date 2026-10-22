@@ -25,7 +25,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * 👥 Servicio de Grupos/Ligas (GroupService).
+ *  Servicio de Grupos/Ligas (GroupService).
  * Maneja la creación de ligas privadas, invitar amigos con códigos (Join Code),
  * nombrar administradores y borrar o abandonar ligas.
  */

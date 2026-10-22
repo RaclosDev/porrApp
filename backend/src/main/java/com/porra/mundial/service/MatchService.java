@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * ⚽ Servicio de Partidos (MatchService).
+ *  Servicio de Partidos (MatchService).
  * Encapsula la lógica de negocio para consultar la cartelera de partidos
  * reales (finalizados, en directo o próximos).
  */

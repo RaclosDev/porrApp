@@ -1,5 +1,5 @@
 /**
- * Servicio de API — Comunicación con el backend de Spring Boot
+ * Servicio de API : Comunicación con el backend de Spring Boot
  * Centraliza todas las llamadas HTTP en un solo sitio.
  */
 const API_BASE = '/api';
@@ -9,7 +9,9 @@ const API_BASE = '/api';
  * @returns {string|null} Token JWT o null si no existe.
  */
 export function getAdminToken() {
-  return localStorage.getItem('adminToken') || window.adminToken || localStorage.getItem('token') || null;
+  return (
+    localStorage.getItem('adminToken') || window.adminToken || localStorage.getItem('token') || null
+  );
 }
 
 /**
@@ -30,8 +32,8 @@ async function fetchJson(url, options = {}) {
     ...options,
     headers: {
       ...options.headers,
-      ...(getAdminToken() ? { 'Authorization': `Bearer ${getAdminToken()}` } : {})
-    }
+      ...(getAdminToken() ? { Authorization: `Bearer ${getAdminToken()}` } : {}),
+    },
   });
   if (!res.ok) {
     throw new Error(`HTTP error! status: ${res.status}`);
@@ -68,9 +70,9 @@ export async function createBet(betData, groupId = null) {
   const url = groupId ? `${API_BASE}/bets?groupId=${groupId}` : `${API_BASE}/bets`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getAdminToken() || ''}`
+      Authorization: `Bearer ${getAdminToken() || ''}`,
     },
     body: JSON.stringify(betData),
   });
@@ -84,9 +86,9 @@ export async function deleteBet(key) {
 export async function updateBet(key, data) {
   return fetch(`${API_BASE}/bets/${key}`, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getAdminToken() || ''}`
+      Authorization: `Bearer ${getAdminToken() || ''}`,
     },
     body: JSON.stringify(data),
   });
@@ -113,7 +115,7 @@ export async function fetchConnectionHistory() {
 export async function deleteConnectionLog(id) {
   return fetch(`${API_BASE}/presence/history/${id}`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${getAdminToken() || ''}` }
+    headers: { Authorization: `Bearer ${getAdminToken() || ''}` },
   });
 }
 
@@ -142,7 +144,7 @@ export async function leaveGroup(id) {
 
   const res = await fetch(`${API_BASE}/groups/${id}/leave`, {
     method: 'DELETE',
-    headers
+    headers,
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -157,8 +159,8 @@ export async function acceptGroupBet(groupId, betId) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    }
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -173,8 +175,8 @@ export async function deleteGroupBet(groupId, betId) {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    }
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -190,9 +192,9 @@ export async function fetchCompetitions() {
 export async function createGroup(name, competitionId, betMode, pichichi = true) {
   const res = await fetch(`${API_BASE}/groups`, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getAdminToken() || ''}`
+      Authorization: `Bearer ${getAdminToken() || ''}`,
     },
     body: JSON.stringify({ name, competitionId, betMode, pichichi }),
   });
@@ -206,9 +208,9 @@ export async function createGroup(name, competitionId, betMode, pichichi = true)
 export async function updateGroup(id, name) {
   const res = await fetch(`${API_BASE}/groups/${id}`, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getAdminToken() || ''}`
+      Authorization: `Bearer ${getAdminToken() || ''}`,
     },
     body: JSON.stringify({ name }),
   });
@@ -222,9 +224,9 @@ export async function updateGroup(id, name) {
 export async function deleteGroup(id) {
   const res = await fetch(`${API_BASE}/groups/${id}`, {
     method: 'DELETE',
-    headers: { 
-      'Authorization': `Bearer ${getAdminToken() || ''}`
-    }
+    headers: {
+      Authorization: `Bearer ${getAdminToken() || ''}`,
+    },
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -236,9 +238,9 @@ export async function deleteGroup(id) {
 export async function joinGroup(joinCode) {
   const res = await fetch(`${API_BASE}/groups/join`, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getAdminToken() || ''}`
+      Authorization: `Bearer ${getAdminToken() || ''}`,
     },
     body: JSON.stringify({ joinCode }),
   });
@@ -267,9 +269,9 @@ export async function updateUserPreferences(preferences) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
-    body: JSON.stringify(preferences)
+    body: JSON.stringify(preferences),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));

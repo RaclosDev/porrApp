@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 🗄️ Entidad 'BetBackup' (Copia de Seguridad de Apuesta)
+ * ️ Entidad 'BetBackup' (Copia de Seguridad de Apuesta)
  * Actúa como una caja negra / historial de auditoría.
  */
 @Entity

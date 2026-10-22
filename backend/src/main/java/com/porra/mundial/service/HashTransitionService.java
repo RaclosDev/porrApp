@@ -12,14 +12,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 🔄 Servicio de Transición / Persistencia Compleja.
+ *  Servicio de Transición / Persistencia Compleja.
  * Es el puente entre el JSON masivo (BetDataDTO) que envía React
  * y las múltiples tablas normalizadas SQL en el Backend.
  * 
  * Se encarga de:
- * 1. Leer el JSON.
- * 2. Desglosarlo y guardarlo en BracketPrediction, GroupPrediction, ExtraPrediction.
- * 3. Hacer el proceso inverso: Leer BD y ensamblar de nuevo el JSON para React.
+ * Leer el JSON.
+ * Desglosarlo y guardarlo en BracketPrediction, GroupPrediction, ExtraPrediction.
+ * Hacer el proceso inverso: Leer BD y ensamblar de nuevo el JSON para React.
  */
 @Slf4j
 @Service
@@ -49,7 +49,7 @@ public class HashTransitionService {
                 legacyThirds.addAll(dto.getThirds());
             }
 
-            // 2. Parse Groups (pronosticos_grupo)
+            // Parse Groups (pronosticos_grupo)
             if (dto.getGroups() != null) {
                 for (Map.Entry<String, List<String>> entry : dto.getGroups().entrySet()) {
                     String groupName = entry.getKey() != null && !"-".equals(entry.getKey()) ? entry.getKey().toUpperCase().trim() : null;
@@ -72,7 +72,7 @@ public class HashTransitionService {
                 }
             }
 
-            // 3. Parse Bracket (pronosticos_cuadro)
+            // Parse Bracket (pronosticos_cuadro)
             saveBracketPhase(bet, dto.getR16(), "R16", dto.getFlatQf());
             saveBracketPhase(bet, dto.getQf(), "QF", dto.getFlatSf());
             saveBracketPhase(bet, dto.getSf(), "SF", dto.getFinalMatch());
@@ -84,7 +84,7 @@ public class HashTransitionService {
                 saveBracketSingleMatch(bet, dto.getThirdPlaceMatch(), "THIRD_PLACE", dto.getThirdPlaceWinner());
             }
 
-            // 4. Parse Extra (pronosticos_extra)
+            // Parse Extra (pronosticos_extra)
             Team championTeam = getTeamByName(dto.getChampion());
             Team thirdPlaceTeam = getTeamByName(dto.getThirdPlaceWinner());
 
@@ -188,7 +188,7 @@ public class HashTransitionService {
     public BetDataDTO rebuildBetDataDtoFromTables(Long betId) {
         BetDataDTO dto = new BetDataDTO();
 
-        // 1. Rebuild Groups
+        // Rebuild Groups
         List<GroupPrediction> groupPreds = groupPredictionRepository.findByBetId(betId);
         Map<String, List<String>> groupsMap = new LinkedHashMap<>();
         for (GroupPrediction gp : groupPreds) {
@@ -197,7 +197,6 @@ public class HashTransitionService {
             }
         }
         
-        // Sort by position before adding to the list
         groupPreds.sort(Comparator.comparingInt(GroupPrediction::getPosition));
         for (GroupPrediction gp : groupPreds) {
             if (gp.getTeam() != null && gp.getGroupName() != null && !"-".equals(gp.getGroupName())) {
@@ -215,7 +214,7 @@ public class HashTransitionService {
         }
         dto.setThirds(thirds);
 
-        // 2. Rebuild Bracket
+        // Rebuild Bracket
         List<BracketPrediction> bracketPreds = bracketPredictionRepository.findByBetId(betId);
         
         // Knockout Phase Rebuild
@@ -246,7 +245,7 @@ public class HashTransitionService {
             ));
         }
 
-        // 3. Rebuild Extra
+        // Rebuild Extra
         ExtraPrediction extra = extraPredictionRepository.findById(betId).orElse(null);
         if (extra != null) {
             dto.setScorer(extra.getTopScorer());

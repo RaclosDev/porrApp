@@ -27,7 +27,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 📡 Servicio de Sincronización Automática con API Externa (ESPN).
+ *  Servicio de Sincronización Automática con API Externa (ESPN).
  * Mantiene la base de datos de la Porra actualizada con resultados y horarios reales.
  * Se ejecuta automáticamente (Cron job en background).
  */

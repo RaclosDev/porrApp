@@ -18,13 +18,7 @@ const OfficialBracket = React.lazy(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
-const GUEST_ALLOWED_PATHS = [
-  '/clasificacion',
-  '/search',
-  '/stats',
-  '/radar',
-  '/mis-ligas',
-];
+const GUEST_ALLOWED_PATHS = ['/clasificacion', '/search', '/stats', '/radar', '/mis-ligas'];
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {
   const { isAdminAuthenticated } = useAppContext();
@@ -50,26 +44,75 @@ function App() {
         <Layout>
           <Suspense fallback={<div className="flex justify-center p-8">Cargando...</div>}>
             <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/reglas" element={<Rules />} />
-            <Route path="/join/:code" element={<JoinRedirect />} />
-            <Route path="/linkedin" element={<LinkedInEntry />} />
+              <Route path="/" element={<Home />} />
+              <Route path="/reglas" element={<Rules />} />
+              <Route path="/join/:code" element={<JoinRedirect />} />
+              <Route path="/linkedin" element={<LinkedInEntry />} />
 
-            {/* Rutas de lectura — accesibles en guest_mode */}
-            <Route path="/radar" element={<ProtectedRoute guestAllowed><Radar /></ProtectedRoute>} />
-            <Route path="/clasificacion" element={<ProtectedRoute guestAllowed><Leaderboard /></ProtectedRoute>} />
-            <Route path="/grupos" element={<Home defaultMode="groups" hideToggle={true} />} />
-            <Route path="/stats" element={<ProtectedRoute guestAllowed><Stats /></ProtectedRoute>} />
-            <Route path="/search" element={<ProtectedRoute guestAllowed><Search /></ProtectedRoute>} />
-            <Route path="/mis-ligas" element={<ProtectedRoute guestAllowed><GroupsDashboard /></ProtectedRoute>} />
-            <Route path="/cuadro" element={<OfficialBracket />} />
+              {/* Rutas de lectura - accesibles en guest_mode */}
+              <Route
+                path="/radar"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <Radar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clasificacion"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <Leaderboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/grupos" element={<Home defaultMode="groups" hideToggle={true} />} />
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <Stats />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <Search />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mis-ligas"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <GroupsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/cuadro" element={<OfficialBracket />} />
 
-            {/* Rutas privadas — siempre requieren login real */}
-            <Route path="/bracket" element={<ProtectedRoute><Bracket /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Rutas privadas - siempre requieren login real */}
+              <Route
+                path="/bracket"
+                element={
+                  <ProtectedRoute>
+                    <Bracket />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <Admin />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </Suspense>
         </Layout>
       </Router>
@@ -78,4 +121,3 @@ function App() {
 }
 
 export default App;
-

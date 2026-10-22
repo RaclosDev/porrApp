@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 🌟 Entidad 'ExtraPrediction' (Predicciones Extra).
+ *  Entidad 'ExtraPrediction' (Predicciones Extra).
  * Tabla que almacena las predicciones "singulares" de una apuesta que no encajan en el Bracket.
  * Ej: El Pichichi, o el Campeón Final de forma directa.
  * Comparte el mismo ID que la Bet (Relación 1 a 1).

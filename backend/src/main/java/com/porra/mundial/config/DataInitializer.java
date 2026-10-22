@@ -26,8 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
  * de que el contexto de Spring se haya cargado.
  * <p>
  * Responsabilidades:
- * 1. Insertar los 48 equipos del Mundial 2026 junto con sus cuotas iniciales (Win, Qualify, Outright).
- * 2. Migrar las apuestas legacy en Base64 (hashes) a la nueva estructura relacional de la BD.
+ * Insertar los 48 equipos del Mundial 2026 junto con sus cuotas iniciales (Win, Qualify, Outright).
+ * Migrar las apuestas legacy en Base64 (hashes) a la nueva estructura relacional de la BD.
  * </p>
  */
 @Component

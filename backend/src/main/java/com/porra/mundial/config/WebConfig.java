@@ -51,23 +51,23 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResolver(new PathResourceResolver() {
                     @Override
                     protected Resource getResource(String resourcePath, Resource location) throws IOException {
-                        // 1. Intenta cargar el recurso solicitado de forma normal (ej: un .css, .jpg)
+                        // Intenta cargar el recurso solicitado de forma normal (ej: un .css, .jpg)
                         Resource requestedResource = location.createRelative(resourcePath);
                         if (requestedResource.exists() && requestedResource.isReadable()) {
                             return requestedResource;
                         }
                         
-                        // 2. Si la ruta pertenece a la API, no devolvemos el HTML de React, devolvemos NULL (Dará 404 de Spring)
+                        // Si la ruta pertenece a la API, no devolvemos el HTML de React, devolvemos NULL (Dará 404 de Spring)
                         if (resourcePath.startsWith("api/")) {
                             return null;
                         }
                         
-                        // 3. Fallback de seguridad si un JS empaquetado no se encuentra (borrado o renombrado)
+                        // Fallback de seguridad si un JS empaquetado no se encuentra (borrado o renombrado)
                         if (resourcePath.startsWith("assets/") && resourcePath.endsWith(".js")) {
                             return new ClassPathResource("/static/recovery.js");
                         }
                         
-                        // 4. Si es una ruta de navegación de React (ej: /standings), servimos index.html 
+                        // Si es una ruta de navegación de React (ej: /standings), servimos index.html
                         // y dejamos que React Router se encargue de mostrar la vista correcta en el navegador.
                         return new ClassPathResource("/static/index.html");
                     }
