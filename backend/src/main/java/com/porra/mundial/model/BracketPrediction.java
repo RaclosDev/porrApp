@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 🏆 Entidad 'BracketPrediction' (Pronóstico del Cuadro Eliminatorio).
+ *  Entidad 'BracketPrediction' (Pronóstico del Cuadro Eliminatorio).
  * Representa una predicción individual de un emparejamiento eliminatorio (ej. Octavos o Cuartos).
  * Una apuesta (Bet) tiene múltiples registros de estos.
  */

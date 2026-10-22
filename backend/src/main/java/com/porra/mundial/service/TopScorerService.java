@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * ⚽ Servicio de Pichichi — Extracts top scorers from ESPN match details
+ * Servicio de Pichichi : Extracts top scorers from ESPN match details
  * - Refreshes every 30 minutes via @Scheduled
  * - Also refreshable on demand (e.g., when a match finishes)
  * - Uses ESPN's free public API (no API key needed)

@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 🤝 Entidad 'Membership' (Membresía).
+ *  Entidad 'Membership' (Membresía).
  * Tabla intermedia que representa la relación Muchos-a-Muchos entre Usuarios y Grupos.
  * Indica que un usuario pertenece a un grupo específico.
  */

@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 🏆 Entidad 'Competition' (Competición).
+ *  Entidad 'Competition' (Competición).
  * Representa un torneo global gestionado por la aplicación.
  * Ejemplos: "Mundial 2026", "Eurocopa 2024".
  */

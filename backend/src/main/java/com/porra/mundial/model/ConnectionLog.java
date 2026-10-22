@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 /**
- * 🕵️‍♂️ Entidad 'ConnectionLog' (Registro de Conexión).
+ * ️‍️ Entidad 'ConnectionLog' (Registro de Conexión).
  * Guarda un registro histórico de cuándo se conectó un usuario a la aplicación.
  * Útil para analíticas o para saber si un usuario del grupo entra mucho a espiar.
  */

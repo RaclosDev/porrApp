@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 🗄️ Repositorio de Apuestas/Porras (Bet).
+ * ️ Repositorio de Apuestas/Porras (Bet).
  * Aquí guardamos y leemos las porras que envía la gente desde la web.
  */
 @Repository

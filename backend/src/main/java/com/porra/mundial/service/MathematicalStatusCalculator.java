@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 🧮 Calculadora de Estatus Matemático para la Fase de Grupos.
+ *  Calculadora de Estatus Matemático para la Fase de Grupos.
  * Esta clase NO es un @Service de Spring, es una utilidad estática.
  * 
  * ¿Qué hace?

@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 🏆 Servicio de Clasificación (Leaderboard).
+ *  Servicio de Clasificación (Leaderboard).
  * Es el motor matemático que enfrenta las apuestas de todos los usuarios
  * contra los resultados reales (la apuesta "official") y asigna puntos.
  */
@@ -63,7 +63,6 @@ public class LeaderboardService {
             orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName().toUpperCase().trim(), k -> new ArrayList<>()).add(gs.getTeam().getName());
         }
 
-        // Sort all thirds to find best 8
         List<GroupStanding> allThirds = new ArrayList<>();
         for (String group : orderedTeamsPerGroup.keySet()) {
             List<String> teams = orderedTeamsPerGroup.get(group);
@@ -73,7 +72,6 @@ public class LeaderboardService {
             }
         }
         
-        // Sort best thirds (points, diff, goals)
         allThirds.sort((a, b) -> {
             if (a.getPoints() != b.getPoints()) return Integer.compare(b.getPoints(), a.getPoints());
             if (a.getGoalDiff() != b.getGoalDiff()) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());

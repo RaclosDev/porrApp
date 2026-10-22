@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * 🗄️ Repositorio para la entidad BetBackup.
+ * ️ Repositorio para la entidad BetBackup.
  * Proporciona métodos de acceso a datos para el historial de modificaciones de apuestas.
  */
 @Repository

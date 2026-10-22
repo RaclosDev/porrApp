@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 🛠️ Servicio de Apuestas (BetService).
+ * ️ Servicio de Apuestas (BetService).
  * Encargado de orquestar todo el ciclo de vida de una Porra/Apuesta (Crear, Actualizar, Borrar, Pagar).
  * También delega en HashTransitionService para persistir el "Bracket" y el "Group Phase" de la apuesta.
  */

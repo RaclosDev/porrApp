@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 👥 Entidad 'BetGroup' (Grupo o Liga Privada).
+ *  Entidad 'BetGroup' (Grupo o Liga Privada).
  * Representa un grupo privado de amigos o compañeros de trabajo.
  * Cada grupo tiene un administrador y un código único para invitar a otros.
  * Se almacena en la tabla "leagues".

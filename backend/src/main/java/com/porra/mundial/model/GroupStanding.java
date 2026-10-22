@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * 📊 Entidad 'GroupStanding' (Clasificación Oficial de Grupos Reales).
+ *  Entidad 'GroupStanding' (Clasificación Oficial de Grupos Reales).
  * Sirve como un "espejo" de los puntos reales que tiene cada equipo en el torneo oficial (ESPN).
  * OJO: Esta tabla se auto-actualiza descargando datos de la API de ESPN, 
  * ¡no calcula los puntos mágicamente sumando los goles de nuestros partidos locales!

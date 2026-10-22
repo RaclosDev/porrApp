@@ -5,15 +5,25 @@ import { acceptGroupBet, deleteGroupBet } from '../services/api';
 
 export function useLeaderboard() {
   const state = useAppContext();
-  const { leaderboardData, loading, isRaclos, activeGroupName, activeGroupId, activeGroupAdminId, userId, userName } = state;
+  const {
+    leaderboardData,
+    loading,
+    isRaclos,
+    activeGroupName,
+    activeGroupId,
+    activeGroupAdminId,
+    userId,
+    userName,
+  } = state;
   const [sharing, setSharing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [sortColumn, setSortColumn] = useState('total');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  const isLeagueAdmin = activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
+  const isLeagueAdmin =
+    activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
 
-  const results = leaderboardData.map(backendScore => ({
+  const results = leaderboardData.map((backendScore) => ({
     key: backendScore.id,
     id: backendScore.id,
     userId: backendScore.userId,
@@ -22,12 +32,12 @@ export function useLeaderboard() {
     points: backendScore,
     paid: !backendScore.pending,
     thirdPlaceMatch: backendScore.thirdPlaceMatch,
-    thirdPlaceWinner: backendScore.thirdPlaceWinner
+    thirdPlaceWinner: backendScore.thirdPlaceWinner,
   }));
 
   const col = sortColumn || 'total';
 
-  // 1. Siempre ordenamos primero de mayor a menor (descendente) para calcular rangos y medallas correctamente
+  // Siempre ordenamos primero de mayor a menor (descendente) para calcular rangos y medallas correctamente
   results.sort((a, b) => {
     if (a.paid !== b.paid) return a.paid ? -1 : 1;
     const valA = Number(a.points[col]) || 0;
@@ -54,13 +64,13 @@ export function useLeaderboard() {
   });
 
   let lowestPaidRank = 1;
-  results.forEach(r => {
+  results.forEach((r) => {
     if (r.paid && typeof r.rank === 'number' && r.rank > lowestPaidRank) {
       lowestPaidRank = r.rank;
     }
   });
 
-  // 2. Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
+  // Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
   if (sortDirection === 'asc') {
     results.sort((a, b) => {
       if (a.paid !== b.paid) return a.paid ? -1 : 1;
@@ -80,7 +90,7 @@ export function useLeaderboard() {
         backgroundColor: '#0f0f1a',
         scale: 2,
         logging: false,
-        useCORS: true
+        useCORS: true,
       });
       const imgData = canvas.toDataURL('image/png');
       const fetchRes = await fetch(imgData);
@@ -97,14 +107,14 @@ export function useLeaderboard() {
       }
     } catch (e) {
       console.error(e);
-      alert("Error al generar la imagen para compartir");
+      alert('Error al generar la imagen para compartir');
     } finally {
       setSharing(false);
     }
   };
 
   const handleAcceptBet = async (betId) => {
-    if (!window.confirm("¿Confirmar que este jugador ha pagado / es aceptado en la liga?")) return;
+    if (!window.confirm('¿Confirmar que este jugador ha pagado / es aceptado en la liga?')) return;
     setActionLoading(true);
     try {
       await acceptGroupBet(activeGroupId, betId);
@@ -117,7 +127,8 @@ export function useLeaderboard() {
   };
 
   const handleDeleteBet = async (betId) => {
-    if (!window.confirm("¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.")) return;
+    if (!window.confirm('¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.'))
+      return;
     setActionLoading(true);
     try {
       await deleteGroupBet(activeGroupId, betId);
@@ -131,7 +142,7 @@ export function useLeaderboard() {
 
   const handleSort = (column) => {
     if (sortColumn === column) {
-      setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+      setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
     } else {
       setSortColumn(column);
       setSortDirection('desc');
@@ -153,9 +164,9 @@ export function useLeaderboard() {
     handleShare,
     handleAcceptBet,
     handleDeleteBet,
-    validResults: results.filter(r => r.paid),
+    validResults: results.filter((r) => r.paid),
     sortColumn,
     sortDirection,
-    handleSort
+    handleSort,
   };
 }

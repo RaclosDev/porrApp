@@ -54,7 +54,7 @@ public class AuthGoogleController {
         String requestedParticipantName = payload.get("participantName");
 
         try {
-            // 1. Verificar el token con la clave pública de Google (Previene suplantación de identidad)
+            // Verificar el token con la clave pública de Google (Previene suplantación de identidad)
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
@@ -68,7 +68,7 @@ public class AuthGoogleController {
             String email = googlePayload.getEmail();
             String name = (String) googlePayload.get("name");
 
-            // 2. Buscar si el usuario ya está registrado en nuestra base de datos
+            // Buscar si el usuario ya está registrado en nuestra base de datos
             Optional<UserAccount> existingAccount = userAccountRepository.findByGoogleEmail(email);
 
             if (existingAccount.isPresent()) {
@@ -126,7 +126,7 @@ public class AuthGoogleController {
                     userAccountRepository.save(finalAccount);
                 }
 
-                // 4. Emitir el token con el email de Google como identificador principal
+                // Emitir el token con el email de Google como identificador principal
                 String appToken = jwtUtil.generateToken(email, email);
                 Map<String, Object> responseMap = new java.util.HashMap<>();
                 responseMap.put("token", appToken);

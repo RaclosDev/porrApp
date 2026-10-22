@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 📊 Servicio de Clasificaciones (StandingsService).
+ *  Servicio de Clasificaciones (StandingsService).
  * Gestiona y calcula la clasificación real de los grupos del Mundial.
  * Utiliza las reglas oficiales de desempate (Puntos > H2H > Goal Average > Goles).
  */
