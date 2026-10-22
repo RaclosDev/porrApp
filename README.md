@@ -1,4 +1,4 @@
-﻿# Porra Mundial 2026
+# Porra Mundial 2026
 
 ![Tech Stack](https://img.shields.io/badge/Tech_Stack-React_18_+_Spring_Boot_3-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -27,17 +27,21 @@ Permite crear ligas privadas, apostar por el cuadro completo (Fase de Grupos y E
 *   React Query & Zustand
 *   PWA / Workbox (Service Workers)
 
+## 🏛️ Arquitectura del Sistema
+
+Para consultar el diseño técnico detallado de capas, entidades JPA, gestión de WebSockets y algoritmos de puntuación, consulta la [Documentación de Arquitectura](docs/architecture.md).
+
 ## 🚀 Despliegue Rápido (Docker)
 
 El repositorio está completamente dockerizado. Para levantar tanto el Backend (puerto 8080) como la Base de Datos (puerto 5432) en un solo comando:
 
-\\\ash
+```bash
 # 1. Copia el archivo de variables de entorno
 cp .env.example .env
 
 # 2. Levanta los contenedores
 docker compose up --build -d
-\\\
+```
 
 > **Nota:** El contenedor del backend automáticamente compila el frontend usando una build multi-etapa y sirve los archivos estáticos generados a través de Spring Boot. Puedes acceder a la aplicación en http://localhost:8080/.
 
