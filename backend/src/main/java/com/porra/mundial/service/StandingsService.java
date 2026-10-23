@@ -275,6 +275,11 @@ public class StandingsService {
             h[1] += (hScore - aScore); // gd
             a[1] += (aScore - hScore); // gd
 
+            int homeFp = m.getHomeFairPlay() != null ? m.getHomeFairPlay() : 0;
+            int awayFp = m.getAwayFairPlay() != null ? m.getAwayFairPlay() : 0;
+            h[4] += homeFp;
+            a[4] += awayFp;
+
             if (hScore > aScore) {
                 h[0] += 3;
             } else if (aScore > hScore) {

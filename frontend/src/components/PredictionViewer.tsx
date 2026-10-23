@@ -418,6 +418,38 @@ function PredictionViewer() {
 
   if (!viewerBetId) return null;
 
+  if (error) {
+    return (
+      <div
+        id="points-breakdown-modal"
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Visor de porra"
+        style={{ display: 'flex', zIndex: 999999 }}
+        onClick={() => setViewerBetId(null)}
+      >
+        <div
+          className="modal-content"
+          style={{ width: '95vw', maxWidth: '600px', textAlign: 'center', padding: '50px' }}
+          role="presentation"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔒</div>
+          <h3 style={{ color: '#e74c3c', marginBottom: '10px' }}>Porra no disponible</h3>
+          <p style={{ color: 'var(--text-muted)', lineHeight: '1.5' }}>{error}</p>
+          <button
+            onClick={() => setViewerBetId(null)}
+            className="glass-btn primary-btn"
+            style={{ marginTop: '20px' }}
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading || !part) {
     return (
       <div
@@ -436,37 +468,6 @@ function PredictionViewer() {
           onClick={(e) => e.stopPropagation()}
         >
           <h2 style={{ color: 'var(--accent-color)' }}>Cargando porra...</h2>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div
-        id="points-breakdown-modal"
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Visor de porra"
-        style={{ display: 'flex', zIndex: 999999 }}
-        onClick={() => setViewerBetId(null)}
-      >
-        <div
-          className="modal-content"
-          style={{ width: '95vw', maxWidth: '600px', textAlign: 'center', padding: '50px' }}
-          role="presentation"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h2 style={{ color: '#e74c3c' }}>Error</h2>
-          <p>{error}</p>
-          <button
-            onClick={() => setViewerBetId(null)}
-            className="glass-btn primary-btn"
-            style={{ marginTop: '20px' }}
-          >
-            Cerrar
-          </button>
         </div>
       </div>
     );

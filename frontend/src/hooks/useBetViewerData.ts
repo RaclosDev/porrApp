@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchOfficialBracket } from '../services/api';
+import { fetchOfficialBracket, getAuthToken } from '../services/api';
 import { compareTeams } from '../utils/points';
 
 /**
@@ -120,10 +120,14 @@ export function useBetViewerData(
       setLoading(true);
     }, 0);
     Promise.all([
-      fetch(`/api/predictions/${viewerBetId}`).then((res) => {
+      fetch(`/api/predictions/${viewerBetId}`, {
+        headers: {
+          ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}),
+        },
+      }).then((res) => {
         if (!res.ok)
           return res.json().then((e) => {
-            throw new Error(e.error || 'Error al cargar la porra');
+            throw new Error(e.error || e.message || 'Error al cargar la porra');
           });
         return res.json();
       }),

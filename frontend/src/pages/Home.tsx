@@ -65,7 +65,13 @@ function Home({ defaultMode = 'bracket' }) {
   const renderGroup = (groupName, teams) => {
     const teamsWithStats = teams.map((t) => {
       const safeKey = t.name.replace(/[.#$[\]]/g, '');
-      const stats = officialPoints?.[groupName]?.[safeKey] || { pts: 0, diff: 0, gls: 0, mp: 0 };
+      const stats = officialPoints?.[groupName]?.[safeKey] || {
+        pts: 0,
+        diff: 0,
+        gls: 0,
+        mp: 0,
+        fp: 0,
+      };
       return { ...t, stats };
     });
 
@@ -125,6 +131,9 @@ function Home({ defaultMode = 'bracket' }) {
             <span style={{ width: '16px', textAlign: 'center' }} title="Goles a favor">
               GF
             </span>
+            <span style={{ width: '18px', textAlign: 'center' }} title="Fair Play (Tarjetas)">
+              FP
+            </span>
             <span style={{ width: '24px', textAlign: 'center' }} title="Puntos">
               PT
             </span>
@@ -178,6 +187,16 @@ function Home({ defaultMode = 'bracket' }) {
                 </span>
                 <span style={{ width: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   {team.stats.gls}
+                </span>
+                <span
+                  style={{
+                    width: '18px',
+                    textAlign: 'center',
+                    color: (team.stats.fp || 0) < 0 ? '#ff7675' : 'var(--text-muted)',
+                  }}
+                  title={`Fair Play: ${team.stats.fp || 0}`}
+                >
+                  {team.stats.fp || 0}
                 </span>
                 <span
                   style={{
