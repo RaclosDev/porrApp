@@ -104,7 +104,7 @@ export default function GroupsDashboard() {
               gap: '10px',
             }}
           >
-            Crear Nueva Liga
+            Crear Nueva Liga / Grupo
           </h3>
           <form
             onSubmit={handleCreate}
@@ -114,33 +114,33 @@ export default function GroupsDashboard() {
               type="text"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
-              placeholder="Ej: Amigos del Barrio"
-              aria-label="Nombre de la nueva liga"
+              placeholder="Nombre del grupo (ej: Amigos del Barrio)"
+              aria-label="Nombre del nuevo grupo"
               className="glass-input"
             />
             {competitions.length > 0 && (
               <select
-                aria-label="Seleccionar competición"
+                aria-label="Seleccionar competición deportiva"
                 value={selectedCompetition}
                 onChange={(e) => setSelectedCompetition(e.target.value)}
                 className="glass-input"
               >
                 {competitions.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    Torneo: {c.name}
                   </option>
                 ))}
               </select>
             )}
             <select
-              aria-label="Seleccionar modo de porra"
+              aria-label="Seleccionar formato de porra"
               value={selectedBetMode}
               onChange={(e) => setSelectedBetMode(e.target.value)}
               className="glass-input"
             >
               {BET_MODES.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.label}
+                  Formato: {m.label}
                 </option>
               ))}
             </select>

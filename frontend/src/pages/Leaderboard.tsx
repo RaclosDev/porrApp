@@ -197,6 +197,36 @@ function Leaderboard() {
         >
           {sharing ? <span style={{ fontSize: '1rem' }}>⏳</span> : <WhatsAppIcon size={26} />}
         </button>
+        <a
+          href={
+            activeGroupId
+              ? `/api/standings/export/csv?groupId=${activeGroupId}`
+              : '/api/standings/export/csv'
+          }
+          download="clasificacion-porra.csv"
+          title="Descargar clasificación en formato CSV"
+          style={{
+            padding: '10px 18px',
+            fontSize: '0.95rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            background: 'rgba(255, 255, 255, 0.08)',
+            color: 'white',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '16px',
+            textDecoration: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(12px)',
+            transition: 'all 0.25s',
+            minHeight: '48px',
+          }}
+        >
+          <span>📥 Exportar CSV</span>
+        </a>
       </div>
 
       {activeTab === 'evolution' ? (

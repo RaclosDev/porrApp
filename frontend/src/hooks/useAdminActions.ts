@@ -10,7 +10,7 @@ export function useAdminActions() {
     if (window.confirm('¿Estás seguro de que quieres borrar esta porra?')) {
       try {
         const token = getAdminToken();
-        const response = await fetch(`/api/bets/${key}`, {
+        const response = await fetch(`/api/predictions/${key}`, {
           method: 'DELETE',
           headers: { ...(token && { Authorization: `Bearer ${token}`, 'X-Admin-Token': token }) },
         });
@@ -30,7 +30,7 @@ export function useAdminActions() {
     if (!window.confirm('¿Asignar a ' + winner + ' como ganador del 3º Puesto para esta porra?'))
       return;
     try {
-      const res = await fetch(`/api/bets/${key}`);
+      const res = await fetch(`/api/predictions/${key}`);
       if (!res.ok) throw new Error('Error fetching bet');
       const part = await res.json();
 
@@ -51,7 +51,7 @@ export function useAdminActions() {
   const acceptBet = async (key) => {
     try {
       const token = getAdminToken();
-      const response = await fetch(`/api/bets/${key}/pay`, {
+      const response = await fetch(`/api/predictions/${key}/pay`, {
         method: 'PUT',
         headers: { ...(token && { Authorization: `Bearer ${token}`, 'X-Admin-Token': token }) },
       });
@@ -68,7 +68,7 @@ export function useAdminActions() {
 
   const editBetName = async (key) => {
     try {
-      const res = await fetch(`/api/bets/${key}`);
+      const res = await fetch(`/api/predictions/${key}`);
       if (!res.ok) throw new Error('Error fetching bet');
       const decoded = await res.json();
 

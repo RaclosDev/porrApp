@@ -2,10 +2,10 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.dto.BetDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
-import com.porra.mundial.model.Bet;
+import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
-import com.porra.mundial.repository.BetRepository;
+import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.scoring.CalculationContext;
 import com.porra.mundial.scoring.ScoringStrategy;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class LeaderboardService {
 
-    private final BetRepository betRepository;
+    private final PredictionRepository predictionRepository;
     private final StandingsService standingsService;
     private final TopScorerService topScorerService;
     private final PredictionPersistenceService predictionPersistenceService;
@@ -42,17 +42,17 @@ public class LeaderboardService {
     @Cacheable(value = "leaderboard", key = "#groupId")
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
-        Bet adminBet = betRepository.findByIsOfficialTrue()
-                .or(() -> betRepository.findByBetName("official"))
-                .or(() -> betRepository.findAll().stream()
-                        .filter(b -> (b.getBetName() != null && b.getBetName().equalsIgnoreCase("official"))
+        Prediction adminPrediction = predictionRepository.findByIsOfficialTrue()
+                .or(() -> predictionRepository.findByName("official"))
+                .or(() -> predictionRepository.findAll().stream()
+                        .filter(b -> (b.getName() != null && b.getName().equalsIgnoreCase("official"))
                                 || (b.getParticipantName() != null && b.getParticipantName().equalsIgnoreCase("Admin")))
                         .findFirst())
                 .orElse(null);
-        BetDataDTO officialData = adminBet != null ? predictionPersistenceService.rebuildBetDataDtoFromTables(adminBet.getId()) : new BetDataDTO();
+        BetDataDTO officialData = adminPrediction != null ? predictionPersistenceService.rebuildBetDataDtoFromTables(adminPrediction.getId()) : new BetDataDTO();
         syncService.enrichBetDataWithMatches(officialData);
 
-        List<Bet> groupBets = groupId != null ? betRepository.findByEditionLeagueId(groupId) : betRepository.findAll();
+        List<Prediction> groupPredictions = groupId != null ? predictionRepository.findByEditionLeagueId(groupId) : predictionRepository.findAll();
 
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();
@@ -131,26 +131,51 @@ public class LeaderboardService {
 
         String offChampion = finalMatchDb.isEmpty() ? null : getWinner.apply(finalMatchDb.get(0));
 
-        for (Bet bet : groupBets) {
-            if (bet.getParticipantName().equalsIgnoreCase("Admin")) continue;
-            BetDataDTO participant = predictionPersistenceService.rebuildBetDataDtoFromTables(bet.getId());
+        for (Prediction pred : groupPredictions) {
+            if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
+            BetDataDTO participant = predictionPersistenceService.rebuildBetDataDtoFromTables(pred.getId());
             if (participant == null) continue;
 
             CalculationContext ctx = new CalculationContext(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers, offOctavos, offQf, offSf, offFinal, offChampion);
             ParticipantScoreDTO score = calculatePoints(ctx);
 
-            score.setId(bet.getId());
-            score.setUserId(bet.getUser() != null ? bet.getUser().getId() : null);
-            score.setName(bet.getParticipantName());
-            score.setBetName(bet.getBetName());
+            score.setId(pred.getId());
+            score.setUserId(pred.getUser() != null ? pred.getUser().getId() : null);
+            score.setName(pred.getParticipantName());
+            score.setBetName(pred.getBetName());
             score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
             score.setThirdPlaceWinner(participant.getThirdPlaceWinner());
-            score.setPending(!Boolean.TRUE.equals(bet.getPaid()));
+            score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
             leaderboard.add(score);
         }
 
         leaderboard.sort((a, b) -> Integer.compare(b.getTotal(), a.getTotal()));
         return leaderboard;
+    }
+
+    public String exportLeaderboardCsv(Long groupId) {
+        List<ParticipantScoreDTO> leaderboard = getLeaderboard(groupId);
+        StringBuilder sb = new StringBuilder();
+        sb.append("Posicion,Participante,Nombre Porra,Puntos Totales,Fase Grupos,R32,Octavos,Cuartos,Semifinales,Final,Pichichi,Estado Pago\n");
+        int pos = 1;
+        for (ParticipantScoreDTO score : leaderboard) {
+            String pName = score.getName() != null ? score.getName().replace(",", " ") : "";
+            String bName = score.getBetName() != null ? score.getBetName().replace(",", " ") : "";
+            String status = score.isPending() ? "Pendiente" : "Pagado";
+            sb.append(pos++).append(",")
+              .append(pName).append(",")
+              .append(bName).append(",")
+              .append(score.getTotal()).append(",")
+              .append(score.getR1()).append(",")
+              .append(score.getR32()).append(",")
+              .append(score.getR16()).append(",")
+              .append(score.getQf()).append(",")
+              .append(score.getSf()).append(",")
+              .append(score.getFinals()).append(",")
+              .append(score.getScorer()).append(",")
+              .append(status).append("\n");
+        }
+        return sb.toString();
     }
 
     private ParticipantScoreDTO calculatePoints(CalculationContext ctx) {

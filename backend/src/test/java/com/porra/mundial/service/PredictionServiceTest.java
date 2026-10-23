@@ -1,8 +1,16 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.dto.BetDataDTO;
-import com.porra.mundial.model.*;
-import com.porra.mundial.repository.*;
+import com.porra.mundial.dto.BetResponseDTO;
+import com.porra.mundial.model.Edition;
+import com.porra.mundial.model.League;
+import com.porra.mundial.model.Prediction;
+import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.repository.PredictionBackupRepository;
+import com.porra.mundial.repository.PredictionRepository;
+import com.porra.mundial.repository.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,8 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,10 +32,10 @@ import static org.mockito.Mockito.*;
 class PredictionServiceTest {
 
     @Mock
-    private BetRepository betRepository;
+    private PredictionRepository predictionRepository;
 
     @Mock
-    private BetBackupRepository betBackupRepository;
+    private PredictionBackupRepository predictionBackupRepository;
 
     @Mock
     private UserAccountRepository userAccountRepository;
@@ -42,19 +50,19 @@ class PredictionServiceTest {
     private MembershipRepository membershipRepository;
 
     @InjectMocks
-    private PredictionService betService;
+    private PredictionService predictionService;
 
     private UserAccount owner;
     private UserAccount groupAdmin;
     private UserAccount stranger;
     private League group;
     private Edition edition;
-    private Bet bet;
+    private Prediction prediction;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(betService, "appAdmins", List.of("Admin", "Raclos"));
-        ReflectionTestUtils.setField(betService, "adminEmails", List.of("superadmin@porra.com"));
+        ReflectionTestUtils.setField(predictionService, "appAdmins", List.of("Admin", "Raclos"));
+        ReflectionTestUtils.setField(predictionService, "adminEmails", List.of("superadmin@porra.com"));
 
         owner = UserAccount.builder()
                 .id(10L)
@@ -90,161 +98,213 @@ class PredictionServiceTest {
                 .status("ACTIVE")
                 .build();
 
-        bet = Bet.builder()
+        prediction = Prediction.builder()
                 .id(1L)
                 .user(owner)
                 .edition(edition)
-                .betName("Porra Ganadora")
+                .name("Porra Ganadora")
                 .paymentStatus("PENDING")
                 .build();
     }
 
     @Test
-    @DisplayName("Dueño puede actualizar su propia apuesta")
-    void ownerCanUpdateOwnBet() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
-        when(betRepository.save(any(Bet.class))).thenAnswer(inv -> inv.getArgument(0));
+    @DisplayName("Dueño puede actualizar su propio pronostico")
+    void ownerCanUpdateOwnPrediction() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Bet updated = betService.updateBet(1L, "owner@test.com", "OwnerUser", "Nuevo Nombre", null);
+        Prediction updated = predictionService.updatePrediction(1L, "owner@test.com", "OwnerUser", "Nuevo Nombre", null);
 
         assertNotNull(updated);
-        assertEquals("Nuevo Nombre", updated.getBetName());
-        verify(betRepository).save(bet);
+        assertEquals("Nuevo Nombre", updated.getName());
+        verify(predictionRepository).save(prediction);
     }
 
     @Test
-    @DisplayName("Admin del grupo puede actualizar la apuesta de un miembro")
-    void groupAdminCanUpdateMemberBet() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
-        when(betRepository.save(any(Bet.class))).thenAnswer(inv -> inv.getArgument(0));
+    @DisplayName("Admin del grupo puede actualizar el pronostico de un miembro")
+    void groupAdminCanUpdateMemberPrediction() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Bet updated = betService.updateBet(1L, "admin@test.com", "OwnerUser", "Corregido por Admin", null);
+        Prediction updated = predictionService.updatePrediction(1L, "admin@test.com", "OwnerUser", "Corregido por Admin", null);
 
         assertNotNull(updated);
-        assertEquals("Corregido por Admin", updated.getBetName());
+        assertEquals("Corregido por Admin", updated.getName());
     }
 
     @Test
-    @DisplayName("Superadmin global puede actualizar cualquier apuesta")
-    void superAdminCanUpdateAnyBet() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
-        when(betRepository.save(any(Bet.class))).thenAnswer(inv -> inv.getArgument(0));
+    @DisplayName("Superadmin global puede actualizar cualquier pronostico")
+    void superAdminCanUpdateAnyPrediction() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Bet updated = betService.updateBet(1L, "superadmin@porra.com", "OwnerUser", "Porra Superadmin", null);
+        Prediction updated = predictionService.updatePrediction(1L, "superadmin@porra.com", "OwnerUser", "Porra Superadmin", null);
 
         assertNotNull(updated);
-        assertEquals("Porra Superadmin", updated.getBetName());
+        assertEquals("Porra Superadmin", updated.getName());
     }
 
     @Test
-    @DisplayName("Extraño NO puede actualizar la apuesta de otro usuario (403 SecurityException)")
-    void strangerCannotUpdateBet() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
+    @DisplayName("Extraño NO puede actualizar el pronostico de otro usuario (403 SecurityException)")
+    void strangerCannotUpdatePrediction() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                betService.updateBet(1L, "stranger@test.com", "Hacker", "Robada", null)
+                predictionService.updatePrediction(1L, "stranger@test.com", "Hacker", "Robada", null)
         );
 
-        verify(betRepository, never()).save(any());
+        verify(predictionRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Usuario no autenticado (email null) es rechazado")
-    void unauthenticatedCannotUpdateBet() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
+    void unauthenticatedCannotUpdatePrediction() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                betService.updateBet(1L, null, "User", "Sin Auth", null)
+                predictionService.updatePrediction(1L, null, "User", "Sin Auth", null)
         );
     }
 
     @Test
-    @DisplayName("Participante normal NO puede marcar su propia apuesta como pagada")
-    void ownerCannotMarkOwnBetAsPaid() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
+    @DisplayName("Participante normal NO puede marcar su propio pronostico como pagado")
+    void ownerCannotMarkOwnPredictionAsPaid() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                betService.markAsPaid(1L, "owner@test.com")
+                predictionService.markAsPaid(1L, "owner@test.com")
         );
 
-        assertFalse(bet.getPaid());
-        verify(betRepository, never()).save(any());
+        assertFalse(prediction.getPaid());
+        verify(predictionRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Admin del grupo sí puede marcar la apuesta de un miembro como pagada")
-    void groupAdminCanMarkBetAsPaid() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
-        when(betRepository.save(any(Bet.class))).thenAnswer(inv -> inv.getArgument(0));
+    @DisplayName("Admin del grupo sí puede marcar el pronostico de un miembro como pagado")
+    void groupAdminCanMarkPredictionAsPaid() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(groupAdmin));
 
-        Bet paidBet = betService.markAsPaid(1L, "admin@test.com");
+        Prediction paidPrediction = predictionService.markAsPaid(1L, "admin@test.com");
 
-        assertTrue(paidBet.getPaid());
-        assertEquals(groupAdmin, paidBet.getPaymentMarkedBy());
-        verify(betRepository).save(bet);
+        assertTrue(paidPrediction.getPaid());
+        assertEquals(groupAdmin, paidPrediction.getPaymentMarkedBy());
+        verify(predictionRepository).save(prediction);
     }
 
     @Test
-    @DisplayName("Dueño puede borrar su propia apuesta")
-    void ownerCanDeleteOwnBet() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
+    @DisplayName("Dueño puede borrar su propio pronostico")
+    void ownerCanDeleteOwnPrediction() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
-        betService.deleteBet(1L, "owner@test.com");
+        predictionService.deletePrediction(1L, "owner@test.com");
 
-        verify(betRepository).delete(bet);
+        verify(predictionRepository).delete(prediction);
     }
 
     @Test
-    @DisplayName("Extraño NO puede borrar la apuesta de otro usuario")
-    void strangerCannotDeleteBet() {
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
+    @DisplayName("Extraño NO puede borrar el pronostico de otro usuario")
+    void strangerCannotDeletePrediction() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                betService.deleteBet(1L, "stranger@test.com")
+                predictionService.deletePrediction(1L, "stranger@test.com")
         );
 
-        verify(betRepository, never()).delete(any());
+        verify(predictionRepository, never()).delete(any());
     }
 
     @Test
-    @DisplayName("No se puede crear apuesta si la edicion/porra esta bloqueada")
-    void cannotCreateBetWhenEditionIsLocked() {
+    @DisplayName("No se puede crear pronostico si la edicion/porra esta bloqueada")
+    void cannotCreatePredictionWhenEditionIsLocked() {
         edition.setStatus("LOCKED");
         when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
 
         assertThrows(IllegalStateException.class, () ->
-                betService.createBet("owner@test.com", "Mi Porra", new BetDataDTO(), 100L)
+                predictionService.createPrediction("owner@test.com", "Mi Porra", new BetDataDTO(), 100L)
         );
 
-        verify(betRepository, never()).save(any());
+        verify(predictionRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("No se puede actualizar apuesta si la edicion/porra ha superado la fecha limite")
-    void cannotUpdateBetWhenEditionLockDatePassed() {
-        edition.setLockDate(java.time.LocalDateTime.now().minusHours(2));
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
+    @DisplayName("No se puede actualizar pronostico si la edicion/porra ha superado la fecha limite")
+    void cannotUpdatePredictionWhenEditionLockDatePassed() {
+        edition.setLockDate(LocalDateTime.now().minusHours(2));
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(IllegalStateException.class, () ->
-                betService.updateBet(1L, "owner@test.com", "OwnerUser", "Cambio", null)
+                predictionService.updatePrediction(1L, "owner@test.com", "OwnerUser", "Cambio", null)
         );
 
-        verify(betRepository, never()).save(any());
+        verify(predictionRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Superadmin puede actualizar apuesta incluso con la edicion bloqueada")
-    void superAdminCanUpdateBetEvenIfLocked() {
+    @DisplayName("Superadmin puede actualizar pronostico incluso con la edicion bloqueada")
+    void superAdminCanUpdatePredictionEvenIfLocked() {
         edition.setStatus("LOCKED");
 
-        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
-        when(betRepository.save(any(Bet.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Bet updated = betService.updateBet(1L, "superadmin@porra.com", "OwnerUser", "Fix de Admin", null);
+        Prediction updated = predictionService.updatePrediction(1L, "superadmin@porra.com", "OwnerUser", "Fix de Admin", null);
 
         assertNotNull(updated);
-        assertEquals("Fix de Admin", updated.getBetName());
-        verify(betRepository).save(bet);
+        assertEquals("Fix de Admin", updated.getName());
+        verify(predictionRepository).save(prediction);
+    }
+
+    @Test
+    @DisplayName("Usuarios desconocidos no ven los pronosticos detallados de otros antes del cierre")
+    void otherUsersCannotSeePredictionsBeforeLock() {
+        edition.setStatus("ACTIVE");
+
+        List<BetResponseDTO> result = predictionService.toBetDtoList(List.of(prediction), "stranger@test.com");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("OwnerUser", result.get(0).getParticipantName());
+        assertNull(result.get(0).getData(), "Los datos de la porra ajena deben estar ocultos antes del cierre");
+    }
+
+    @Test
+    @DisplayName("El dueno de la porra si puede ver sus propios pronosticos antes del cierre")
+    void ownerCanSeePredictionsBeforeLock() {
+        edition.setStatus("ACTIVE");
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionPersistenceService.rebuildBetDataDtoFromTables(1L)).thenReturn(new BetDataDTO());
+
+        List<BetResponseDTO> result = predictionService.toBetDtoList(List.of(prediction), "owner@test.com");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertNotNull(result.get(0).getData(), "El dueno debe poder ver sus propios datos");
+    }
+
+    @Test
+    @DisplayName("Todos los usuarios pueden ver todas las porras una vez alcanzado el cierre")
+    void allUsersCanSeePredictionsAfterLock() {
+        edition.setStatus("LOCKED");
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionPersistenceService.rebuildBetDataDtoFromTables(1L)).thenReturn(new BetDataDTO());
+
+        List<BetResponseDTO> result = predictionService.toBetDtoList(List.of(prediction), "stranger@test.com");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertNotNull(result.get(0).getData(), "Tras el cierre, los datos deben ser publicos para todos");
+    }
+
+    @Test
+    @DisplayName("Consultar el detalle individual de una porra ajena antes del cierre lanza SecurityException")
+    void strangerCannotGetSinglePredictionBeforeLock() {
+        edition.setStatus("ACTIVE");
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+
+        assertThrows(SecurityException.class, () ->
+                predictionService.getBetData(1L, "stranger@test.com")
+        );
     }
 }

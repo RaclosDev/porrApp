@@ -11,10 +11,10 @@ import java.util.List;
  */
 @Repository
 public interface GroupPredictionRepository extends JpaRepository<GroupPrediction, Long> {
-    
-    /**
-     * @param betId ID de la apuesta.
-     * @return Todas las predicciones de la fase de grupos asociadas a esta apuesta.
-     */
-    List<GroupPrediction> findByBetId(Long betId);
+
+    List<GroupPrediction> findByPredictionId(Long predictionId);
+
+    default List<GroupPrediction> findByBetId(Long betId) {
+        return findByPredictionId(betId);
+    }
 }
