@@ -45,7 +45,7 @@ public class ScoringRuleSet {
 
     // Goleador / Pichichi
     @Builder.Default
-    private int topScorerPoints = 0;
+    private int topScorerPoints = 200;
 
     // Puntuacion de partidos directos (1X2 y marcador exacto)
     @Builder.Default

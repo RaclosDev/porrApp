@@ -37,9 +37,10 @@ export const PRESET_TEMPLATES = [
     icon: '🏆',
     badge: 'Torneo',
     poolFormat: 'FULL_BRACKET',
-    pichichi: false,
-    tagline: 'Fase de grupos + eliminatorias',
-    description: 'Cuadro clasificatorio completo con puntuación escalonada sin Pichichi.',
+    pichichi: true,
+    tagline: 'Fase de grupos + eliminatorias + Pichichi oficial',
+    description:
+      'Cuadro clasificatorio completo con puntuación escalonada y Pichichi oficial (200 pts).',
   },
   {
     id: 'KNOCKOUT_BRACKET',

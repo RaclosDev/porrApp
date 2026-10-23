@@ -28,7 +28,7 @@ public class GroupCreateDTO {
     private String poolFormat;
     
     /** Indica si el grupo tendrá premio o clasificación específica para el Pichichi. */
-    private Boolean pichichi = false;
+    private Boolean pichichi = true;
 
     @AssertTrue(message = "El formato de porra (poolFormat o betMode) es obligatorio")
     public boolean isValidFormat() {

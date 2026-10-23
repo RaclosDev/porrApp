@@ -129,7 +129,7 @@ export const useAppContext = () => {
     },
   });
   const activeGroupPichichi =
-    groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : false;
+    groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : true;
   const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
   const { data: topScorers } = useQuery({
     queryKey: ['topScorers'],

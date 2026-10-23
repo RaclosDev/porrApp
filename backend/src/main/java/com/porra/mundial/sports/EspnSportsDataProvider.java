@@ -64,7 +64,10 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         String slug = resolveSlug(competitionSlug);
         String url = BASE_SOCCER_URL + "/" + slug + "/scoreboard";
 
-        if (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) {
+        if ("fifa.world".equalsIgnoreCase(slug)) {
+            String dateParam = (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) ? dateRange : "2026";
+            url += "?dates=" + dateParam + "&limit=300";
+        } else if (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) {
             url += "?dates=" + dateRange + "&limit=200";
         } else {
             url += "?limit=200";
