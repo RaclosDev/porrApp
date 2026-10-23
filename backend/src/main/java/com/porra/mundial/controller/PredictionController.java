@@ -1,7 +1,7 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.dto.BetDataDTO;
-import com.porra.mundial.dto.BetResponseDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
+import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.WebSocketService;
@@ -37,8 +37,8 @@ public class PredictionController {
     }
 
     @GetMapping
-    @Cacheable(value = "allBetsDto", key = "#groupId != null ? #groupId : 'ALL'")
-    public List<BetResponseDTO> getAllBets(@RequestParam(required = false) Long groupId, Principal principal) {
+    @Cacheable(value = "allPredictionsDto", key = "#groupId != null ? #groupId : 'ALL'")
+    public List<PredictionResponseDTO> getAllPredictions(@RequestParam(required = false) Long groupId, Principal principal) {
         String email = getRequesterEmail(principal);
         List<Prediction> predictions;
 
@@ -52,24 +52,24 @@ public class PredictionController {
             }
         }
 
-        return predictionService.toBetDtoList(predictions, email);
+        return predictionService.toPredictionDtoList(predictions, email);
     }
 
     @GetMapping("/mine")
-    @Cacheable(value = "myBetsDto", key = "T(org.springframework.security.core.context.SecurityContextHolder).getContext().getAuthentication().getName()")
-    public List<BetResponseDTO> getMyBets(Principal principal) {
+    @Cacheable(value = "myPredictionsDto", key = "T(org.springframework.security.core.context.SecurityContextHolder).getContext().getAuthentication().getName()")
+    public List<PredictionResponseDTO> getMyPredictions(Principal principal) {
         String email = getRequesterEmail(principal);
-        return predictionService.toBetDtoList(predictionService.getPredictionsByGoogleEmail(email), email);
+        return predictionService.toPredictionDtoList(predictionService.getPredictionsByGoogleEmail(email), email);
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createBet(@Valid @RequestBody BetDataDTO body,
-                                                         @RequestParam(required = false) Long groupId,
-                                                         Principal principal) {
+    public ResponseEntity<Map<String, Object>> createPrediction(@Valid @RequestBody PredictionDataDTO body,
+                                                                 @RequestParam(required = false) Long groupId,
+                                                                 Principal principal) {
         String email = getRequesterEmail(principal);
-        String betName = body.getBet();
+        String name = body.getPrediction() != null ? body.getPrediction() : body.getUser();
 
-        Prediction prediction = predictionService.createPrediction(email, betName != null ? betName : body.getUser(), body, groupId);
+        Prediction prediction = predictionService.createPrediction(email, name, body, groupId);
         webSocketService.invalidateAndNotify();
 
         return ResponseEntity.ok(Map.of(
@@ -81,19 +81,19 @@ public class PredictionController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateBet(@PathVariable Long id,
-                                       @Valid @RequestBody BetDataDTO body,
-                                       Principal principal) {
+    public ResponseEntity<?> updatePrediction(@PathVariable Long id,
+                                               @Valid @RequestBody PredictionDataDTO body,
+                                               Principal principal) {
         String email = getRequesterEmail(principal);
-        Prediction prediction = predictionService.updatePrediction(id, email, body.getUser(), body.getBet(), body);
+        Prediction prediction = predictionService.updatePrediction(id, email, body.getUser(), body.getPrediction(), body);
 
         return ResponseEntity.ok(Map.of("id", prediction.getId(), "status", "actualizada_con_exito"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getBet(@PathVariable Long id, Principal principal) {
+    public ResponseEntity<?> getPrediction(@PathVariable Long id, Principal principal) {
         String email = getRequesterEmail(principal);
-        BetDataDTO dto = predictionService.getBetData(id, email);
+        PredictionDataDTO dto = predictionService.getPredictionData(id, email);
         return ResponseEntity.ok(dto);
     }
 
@@ -105,7 +105,7 @@ public class PredictionController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteBet(@PathVariable Long id, Principal principal) {
+    public ResponseEntity<?> deletePrediction(@PathVariable Long id, Principal principal) {
         String email = getRequesterEmail(principal);
         predictionService.deletePrediction(id, email);
         return ResponseEntity.ok(Map.of("status", "deleted"));

@@ -6,7 +6,7 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.config.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -311,6 +311,7 @@ public class SyncService {
         }
         if (updateIfChanged(match.getHomeTeam(), home, match::setHomeTeam)) updated = true;
         if (updateIfChanged(match.getAwayTeam(), away, match::setAwayTeam)) updated = true;
+        boolean scoreChanged = !Objects.equals(match.getHomeScore(), scores.home) || !Objects.equals(match.getAwayScore(), scores.away);
         if (updateIfChanged(match.getWinnerTeam(), scores.winner, match::setWinnerTeam)) updated = true;
         if (updateIfChanged(match.getHomeScore(), scores.home, match::setHomeScore)) updated = true;
         if (updateIfChanged(match.getAwayScore(), scores.away, match::setAwayScore)) updated = true;
@@ -330,6 +331,16 @@ public class SyncService {
         if (updated) {
             matchRepository.save(match);
             context.matchesUpdated++;
+            if (scoreChanged) {
+                webSocketService.broadcastMatchScore(
+                        match.getId(),
+                        match.getHomeTeam() != null ? match.getHomeTeam().getName() : null,
+                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
+                        match.getHomeScore(),
+                        match.getAwayScore(),
+                        status.finished() ? "FINISHED" : (status.isLive() ? "IN_PLAY" : "SCHEDULED")
+                );
+            }
         }
     }
 
@@ -449,7 +460,7 @@ public class SyncService {
         }
     }
 
-    public void enrichBetDataWithMatches(BetDataDTO dto) {
+    public void enrichPredictionDataWithMatches(PredictionDataDTO dto) {
         if (dto == null) return;
         try {
             List<Match> allMatches = matchRepository.findAll();
@@ -539,8 +550,12 @@ public class SyncService {
                 }
             }
         } catch (Exception e) {
-            log.warn("Could not enrich BetDataDTO with matches: {}", e.getMessage());
+            log.warn("Could not enrich PredictionDataDTO with matches: {}", e.getMessage());
         }
+    }
+
+    public void enrichBetDataWithMatches(PredictionDataDTO dto) {
+        enrichPredictionDataWithMatches(dto);
     }
 
     private Team getLoserTeam(Match m) {
@@ -639,3 +654,4 @@ public class SyncService {
         Team winner;
     }
 }
+

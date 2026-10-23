@@ -1,6 +1,6 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.GroupStanding;
@@ -49,7 +49,7 @@ public class LeaderboardService {
                                 || (b.getParticipantName() != null && b.getParticipantName().equalsIgnoreCase("Admin")))
                         .findFirst())
                 .orElse(null);
-        BetDataDTO officialData = adminPrediction != null ? predictionPersistenceService.rebuildBetDataDtoFromTables(adminPrediction.getId()) : new BetDataDTO();
+        PredictionDataDTO officialData = adminPrediction != null ? predictionPersistenceService.rebuildPredictionDataDtoFromTables(adminPrediction.getId()) : new PredictionDataDTO();
         syncService.enrichBetDataWithMatches(officialData);
 
         List<Prediction> groupPredictions = groupId != null ? predictionRepository.findByEditionLeagueId(groupId) : predictionRepository.findAll();
@@ -133,7 +133,7 @@ public class LeaderboardService {
 
         for (Prediction pred : groupPredictions) {
             if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
-            BetDataDTO participant = predictionPersistenceService.rebuildBetDataDtoFromTables(pred.getId());
+            PredictionDataDTO participant = predictionPersistenceService.rebuildPredictionDataDtoFromTables(pred.getId());
             if (participant == null) continue;
 
             CalculationContext ctx = new CalculationContext(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers, offOctavos, offQf, offSf, offFinal, offChampion);

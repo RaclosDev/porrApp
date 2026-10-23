@@ -1,6 +1,6 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.SyncService;
@@ -40,7 +40,7 @@ public class AdminController {
     }
 
     @PostMapping("/official")
-    public ResponseEntity<?> updateOfficialResults(@RequestBody BetDataDTO body) {
+    public ResponseEntity<?> updateOfficialResults(@RequestBody PredictionDataDTO body) {
         Prediction pred = predictionService.createPrediction("Admin", "official", body, null);
         return ResponseEntity.ok(pred);
     }

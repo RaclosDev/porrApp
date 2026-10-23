@@ -20,7 +20,7 @@ public class PredictionResponseDTO {
     private Long userId;
     private String predictionName;
     private Long groupId;
-    private BetDataDTO data;
+    private PredictionDataDTO data;
 
     public String getBetName() {
         return predictionName;

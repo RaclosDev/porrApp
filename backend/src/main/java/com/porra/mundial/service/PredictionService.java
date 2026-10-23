@@ -1,7 +1,6 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.dto.BetDataDTO;
-import com.porra.mundial.dto.BetResponseDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Membership;
@@ -175,8 +174,8 @@ public class PredictionService {
         return predictionRepository.findById(id);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
-    public Prediction createPrediction(String email, String predictionName, BetDataDTO betData, Long groupId) {
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    public Prediction createPrediction(String email, String predictionName, PredictionDataDTO betData, Long groupId) {
         if (groupId != null) {
             predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
                     .ifPresent(predictionRepository::delete);
@@ -217,13 +216,13 @@ public class PredictionService {
         return prediction;
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
-    public Prediction createBet(String email, String betName, BetDataDTO betData, Long groupId) {
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    public Prediction createBet(String email, String betName, PredictionDataDTO betData, Long groupId) {
         return createPrediction(email, betName, betData, groupId);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
-    public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, BetDataDTO betData) {
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, PredictionDataDTO betData) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
@@ -241,11 +240,11 @@ public class PredictionService {
         return prediction;
     }
 
-    public Prediction updateBet(Long id, String requesterEmail, String participantName, String betName, BetDataDTO betData) {
+    public Prediction updateBet(Long id, String requesterEmail, String participantName, String betName, PredictionDataDTO betData) {
         return updatePrediction(id, requesterEmail, participantName, betName, betData);
     }
 
-    public Prediction updateBet(Long id, String participantName, String betName, BetDataDTO betData) {
+    public Prediction updateBet(Long id, String participantName, String betName, PredictionDataDTO betData) {
         return updatePrediction(id, null, participantName, betName, betData);
     }
 
@@ -306,11 +305,19 @@ public class PredictionService {
         return restorePrediction(backupId);
     }
 
-    public List<BetResponseDTO> toBetDtoList(List<Prediction> predictions) {
-        return toBetDtoList(predictions, null);
+    public List<PredictionResponseDTO> toPredictionDtoList(List<Prediction> predictions) {
+        return toPredictionDtoList(predictions, null);
     }
 
-    public List<BetResponseDTO> toBetDtoList(List<Prediction> predictions, String requesterEmail) {
+    public List<PredictionResponseDTO> toBetDtoList(List<Prediction> predictions) {
+        return toPredictionDtoList(predictions, null);
+    }
+
+    public List<PredictionResponseDTO> toBetDtoList(List<Prediction> predictions, String requesterEmail) {
+        return toPredictionDtoList(predictions, requesterEmail);
+    }
+
+    public List<PredictionResponseDTO> toPredictionDtoList(List<Prediction> predictions, String requesterEmail) {
         return predictions.stream().map(pred -> {
             boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
             boolean isSuper = isSuperAdmin(requesterEmail);
@@ -318,22 +325,22 @@ public class PredictionService {
             boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
             boolean canViewDetails = isLocked || isOwner || isSuper || isOfficial;
 
-            BetDataDTO dataDto = null;
+            PredictionDataDTO dataDto = null;
             if (canViewDetails) {
                 try {
-                    dataDto = getBetData(pred.getId());
+                    dataDto = getPredictionData(pred.getId());
                 } catch (Exception e) {
-                    log.warn("Failed to retrieve bet data for prediction ID {}: {}", pred.getId(), e.getMessage());
+                    log.warn("Failed to retrieve prediction data for prediction ID {}: {}", pred.getId(), e.getMessage());
                 }
             }
 
-            return BetResponseDTO.builder()
+            return PredictionResponseDTO.builder()
                     .key(pred.getId().toString())
                     .hash(pred.getId().toString())
                     .paid(pred.getPaid())
                     .participantName(pred.getParticipantName())
                     .userId(pred.getUser() != null ? pred.getUser().getId() : null)
-                    .betName(pred.getBetName())
+                    .predictionName(pred.getBetName())
                     .groupId(pred.getGroupId())
                     .data(dataDto)
                     .build();
@@ -341,7 +348,7 @@ public class PredictionService {
     }
 
     @Transactional(readOnly = true)
-    public BetDataDTO getBetData(Long id, String requesterEmail) {
+    public PredictionDataDTO getPredictionData(Long id, String requesterEmail) {
         Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
         boolean isSuper = isSuperAdmin(requesterEmail);
@@ -352,15 +359,25 @@ public class PredictionService {
             throw new SecurityException("Los pronosticos de otros participantes estaran ocultos hasta que finalice el plazo de inscripcion.");
         }
 
-        return getBetData(id);
+        return getPredictionData(id);
     }
 
     @Transactional(readOnly = true)
-    public BetDataDTO getBetData(Long id) {
+    public PredictionDataDTO getBetData(Long id, String requesterEmail) {
+        return getPredictionData(id, requesterEmail);
+    }
+
+    @Transactional(readOnly = true)
+    public PredictionDataDTO getPredictionData(Long id) {
         Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found"));
-        BetDataDTO dto = predictionPersistenceService.rebuildBetDataDtoFromTables(id);
+        PredictionDataDTO dto = predictionPersistenceService.rebuildPredictionDataDtoFromTables(id);
         dto.setUser(pred.getParticipantName());
-        dto.setBet(pred.getBetName());
+        dto.setPrediction(pred.getBetName());
         return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public PredictionDataDTO getBetData(Long id) {
+        return getPredictionData(id);
     }
 }

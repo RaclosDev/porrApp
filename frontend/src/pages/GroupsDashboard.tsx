@@ -1,4 +1,4 @@
-import { BET_MODES, useGroupsDashboard } from '../hooks/useGroupsDashboard';
+import { POOL_FORMATS, useGroupsDashboard } from '../hooks/useGroupsDashboard';
 
 /**
  * Vista del listado y gestión de grupos/ligas disponibles.
@@ -138,7 +138,7 @@ export default function GroupsDashboard() {
               onChange={(e) => setSelectedBetMode(e.target.value)}
               className="glass-input"
             >
-              {BET_MODES.map((m) => (
+              {POOL_FORMATS.map((m) => (
                 <option key={m.id} value={m.id}>
                   Formato: {m.label}
                 </option>

@@ -1,6 +1,6 @@
 package com.porra.mundial.scoring;
 
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import java.util.List;
 import java.util.Map;
 
@@ -9,8 +9,8 @@ import java.util.Map;
  * y el estado actual de partidos y clasificaciones.
  */
 public record CalculationContext(
-        BetDataDTO part,
-        BetDataDTO off,
+        PredictionDataDTO part,
+        PredictionDataDTO off,
         Map<String, Map<String, Map<String, Integer>>> officialPoints,
         Map<String, List<String>> orderedTeamsPerGroup,
         List<String> bestVirtualThirds,

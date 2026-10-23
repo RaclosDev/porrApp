@@ -50,8 +50,16 @@ export const defaultBracketState = {
 };
 
 export const useAppStore = create((set) => ({
-  userName: localStorage.getItem('my_bet_name') || '',
-  setUserName: (userName) => set({ userName }),
+  userName: localStorage.getItem('my_prediction_name') || localStorage.getItem('my_bet_name') || '',
+  setUserName: (userName) => {
+    if (userName) {
+      localStorage.setItem('my_prediction_name', userName);
+    } else {
+      localStorage.removeItem('my_prediction_name');
+      localStorage.removeItem('my_bet_name');
+    }
+    set({ userName });
+  },
 
   userId: localStorage.getItem('my_user_id') || '',
   setUserId: (userId) => set({ userId }),
@@ -68,8 +76,11 @@ export const useAppStore = create((set) => ({
   topScorer: '',
   setTopScorer: (topScorer) => set({ topScorer }),
 
+  viewerPredictionId: null,
+  setViewerPredictionId: (id) => set({ viewerPredictionId: id, viewerBetId: id }),
+
   viewerBetId: null,
-  setViewerBetId: (viewerBetId) => set({ viewerBetId }),
+  setViewerBetId: (id) => set({ viewerPredictionId: id, viewerBetId: id }),
 
   isAuthenticated:
     !!localStorage.getItem('token') || !!localStorage.getItem('adminToken') || !!window.adminToken,

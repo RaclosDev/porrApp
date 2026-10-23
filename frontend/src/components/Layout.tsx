@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { getAuthToken, setAuthToken, fetchClaimedNames } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
-import BetViewer from './BetViewer';
+import PredictionViewer from './PredictionViewer';
 
 /**
  * Componente Layout principal que envuelve a todas las rutas.
@@ -139,6 +139,7 @@ function Layout({ children }) {
         setAuthToken(data.token);
         setIsAuthenticated?.(true);
         setUserName(data.participantName);
+        localStorage.setItem('my_prediction_name', data.participantName);
         localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
         if (data.lastSelectedGroupId) {
@@ -170,6 +171,7 @@ function Layout({ children }) {
         setAuthToken(data.token);
         setIsAuthenticated?.(true);
         setUserName(data.participantName);
+        localStorage.setItem('my_prediction_name', data.participantName);
         localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
         if (data.lastSelectedGroupId) {
@@ -396,8 +398,18 @@ function Layout({ children }) {
             className="glass-btn"
             style={{
               height: '36px',
-              width: userName || localStorage.getItem('my_bet_name') ? 'auto' : '36px',
-              padding: userName || localStorage.getItem('my_bet_name') ? '0 12px' : '0',
+              width:
+                userName ||
+                localStorage.getItem('my_prediction_name') ||
+                localStorage.getItem('my_bet_name')
+                  ? 'auto'
+                  : '36px',
+              padding:
+                userName ||
+                localStorage.getItem('my_prediction_name') ||
+                localStorage.getItem('my_bet_name')
+                  ? '0 12px'
+                  : '0',
               fontSize: '1rem',
               borderRadius: '8px',
               display: 'flex',
@@ -409,9 +421,13 @@ function Layout({ children }) {
             aria-label="Menú de Usuario"
           >
             <span style={{ fontSize: '1.1rem' }}>👤</span>
-            {(userName || localStorage.getItem('my_bet_name')) && (
+            {(userName ||
+              localStorage.getItem('my_prediction_name') ||
+              localStorage.getItem('my_bet_name')) && (
               <span style={{ fontWeight: 'bold' }}>
-                {userName || localStorage.getItem('my_bet_name')}
+                {userName ||
+                  localStorage.getItem('my_prediction_name') ||
+                  localStorage.getItem('my_bet_name')}
               </span>
             )}
           </button>
@@ -480,6 +496,7 @@ function Layout({ children }) {
                     setIsAuthenticated?.(false);
                     setIsAdminAuthenticated?.(false);
                     setUserName('');
+                    localStorage.removeItem('my_prediction_name');
                     localStorage.removeItem('my_bet_name');
                     localStorage.removeItem('my_user_id');
                     window.location.reload();
@@ -734,7 +751,7 @@ function Layout({ children }) {
       </div>
 
       {/* Visor Global de Porras (Portal Inyectado) */}
-      <BetViewer />
+      <PredictionViewer />
     </>
   );
 }

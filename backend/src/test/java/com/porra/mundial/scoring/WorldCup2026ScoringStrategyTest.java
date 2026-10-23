@@ -1,6 +1,6 @@
 package com.porra.mundial.scoring;
 
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,11 +23,11 @@ class WorldCup2026ScoringStrategyTest {
     @Test
     @DisplayName("Debe otorgar 20 puntos por clasificado en posicion exacta y 200 por acertar campeon")
     void evaluateScores_awardsPointsCorrectly() {
-        BetDataDTO participant = new BetDataDTO();
+        PredictionDataDTO participant = new PredictionDataDTO();
         participant.setGroups(Map.of("A", List.of("España", "Alemania", "Japón", "Costa Rica")));
         participant.setChampion("España");
 
-        BetDataDTO official = new BetDataDTO();
+        PredictionDataDTO official = new PredictionDataDTO();
         official.setGroups(Map.of("A", List.of("España", "Alemania", "Japón", "Costa Rica")));
 
         Map<String, List<String>> orderedTeams = Map.of("A", List.of("España", "Alemania", "Japón", "Costa Rica"));

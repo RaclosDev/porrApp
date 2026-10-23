@@ -1,8 +1,8 @@
 package com.porra.mundial.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.porra.mundial.dto.BetDataDTO;
-import com.porra.mundial.dto.BetResponseDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
+import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.PredictionService;
@@ -49,13 +49,13 @@ class PredictionControllerTest {
 
     @Test
     void getAllPredictions_ReturnsList() throws Exception {
-        BetResponseDTO dto = BetResponseDTO.builder()
+        PredictionResponseDTO dto = PredictionResponseDTO.builder()
                 .key("1")
                 .participantName("Juan")
                 .build();
 
         Mockito.when(predictionService.getAllPredictions()).thenReturn(List.of());
-        Mockito.when(predictionService.toBetDtoList(any(), any())).thenReturn(List.of(dto));
+        Mockito.when(predictionService.toPredictionDtoList(any(), any())).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/predictions"))
                 .andExpect(status().isOk())
@@ -70,9 +70,9 @@ class PredictionControllerTest {
         Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
 
-        BetDataDTO body = new BetDataDTO();
+        PredictionDataDTO body = new PredictionDataDTO();
         body.setUser("Ana");
-        body.setBet("Mi Porra");
+        body.setPrediction("Mi Porra");
         body.setGroups(Map.of("A", List.of("Team1", "Team2")));
         body.setR32(List.of(List.of("Team1", "Team2")));
         body.setR16(List.of(List.of("Team1", "Team2")));
@@ -83,7 +83,7 @@ class PredictionControllerTest {
                 .name("Mi Porra")
                 .build();
 
-        Mockito.when(predictionService.createPrediction(anyString(), anyString(), any(BetDataDTO.class), any())).thenReturn(saved);
+        Mockito.when(predictionService.createPrediction(anyString(), anyString(), any(PredictionDataDTO.class), any())).thenReturn(saved);
 
         mockMvc.perform(post("/api/predictions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,9 +113,9 @@ class PredictionControllerTest {
 
     @Test
     void updatePrediction_Forbidden_WhenNotOwner() throws Exception {
-        BetDataDTO body = new BetDataDTO();
+        PredictionDataDTO body = new PredictionDataDTO();
         body.setUser("Hacker");
-        body.setBet("Stolen Prediction");
+        body.setPrediction("Stolen Prediction");
         body.setGroups(Map.of("A", List.of("Team1", "Team2")));
         body.setR32(List.of(List.of("Team1", "Team2")));
         body.setR16(List.of(List.of("Team1", "Team2")));
@@ -142,13 +142,13 @@ class PredictionControllerTest {
 
     @Test
     void getAllBets_LegacyRoute_ReturnsList() throws Exception {
-        BetResponseDTO dto = BetResponseDTO.builder()
+        PredictionResponseDTO dto = PredictionResponseDTO.builder()
                 .key("1")
                 .participantName("Carlos")
                 .build();
 
         Mockito.when(predictionService.getPredictionsByGroupId(1L)).thenReturn(List.of());
-        Mockito.when(predictionService.toBetDtoList(any(), any())).thenReturn(List.of(dto));
+        Mockito.when(predictionService.toPredictionDtoList(any(), any())).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/bets"))
                 .andExpect(status().isOk())

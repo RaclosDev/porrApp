@@ -30,7 +30,7 @@ La base de datos relacional almacena el estado completo del torneo y las predicc
 *   **`Team`**: Entidad que representa a un país o un "placeholder" (ej. "1º Grupo A").
 *   **`Match`**: Entidad central del torneo. Almacena equipos, fecha, ronda, resultados, estado (`SCHEDULED`, `IN_PLAY`, `FINISHED`) y URLs de escudos.
 *   **`UserAccount`**: Representa a un jugador de la porra.
-*   **`Bet`**: Almacena las predicciones (JSON o relaciones) enviadas por un jugador.
+*   **`Prediction`**: Almacena los pronosticos (relaciones normalizadas y backups) enviados por un jugador para una porra/edicion.
 *   **`GroupStanding`**: Guarda el estado actual (puntos, goles) de un equipo en la fase de grupos real del torneo.
 
 ```java
@@ -97,7 +97,7 @@ public record MatchResponseDTO(
 Los controladores gestionan las peticiones HTTP y delegan el trabajo pesado a los servicios. Responden exclusivamente con JSON.
 
 *   **`MatchController`**: Expone endpoints como `/api/matches/live` o `/api/matches/radar`. Intercepta peticiones, invoca a `MatchService` y mapea entidades a `MatchResponseDTO`.
-*   **`BetController`**: Permite crear, listar y borrar apuestas. Valida los payloads usando Jakarta Validation (`@Valid` en `BetDataDTO`).
+*   **`PredictionController`**: Permite crear, listar y borrar pronosticos. Valida los payloads usando Jakarta Validation (`@Valid` en `PredictionDataDTO`).
 *   **`StandingsController`**: Devuelve la clasificación oficial de los grupos generada algorítmicamente.
 *   **`LeaderboardController`**: Devuelve el ranking de los usuarios basado en los aciertos de sus predicciones frente a la realidad.
 
@@ -114,7 +114,7 @@ Se encarga de computar la tabla de clasificación de la fase de grupos. Reciente
 3. Goles a favor.
 4. Enfrentamientos directos (Head-to-Head).
 
-### B. `BetService`
+### B. `PredictionService`
 Recibe los complejos JSON de la fase eliminatoria (Fase de Grupos, Octavos, Cuartos...) y los serializa en base de datos. Utiliza fuertemente la **Stream API** de Java y Optionals para navegar jerarquías sin riesgo de `NullPointerException`. Además, gestiona transacciones (`@Transactional`).
 
 ### C. `SyncService`

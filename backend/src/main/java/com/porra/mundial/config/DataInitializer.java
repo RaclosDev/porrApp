@@ -1,7 +1,7 @@
 package com.porra.mundial.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.Team;
@@ -227,7 +227,7 @@ public class DataInitializer implements CommandLineRunner {
             try {
                 String decoded = new String(Base64.getDecoder().decode(hashes[i]), StandardCharsets.UTF_8);
                 ObjectMapper mapper = new ObjectMapper();
-                BetDataDTO dto = mapper.readValue(decoded, BetDataDTO.class);
+                PredictionDataDTO dto = mapper.readValue(decoded, PredictionDataDTO.class);
                 predictionPersistenceService.saveRelationalPredictions(pred, dto);
             } catch (Exception e) {
                 log.error("Failed to parse initial prediction data", e);

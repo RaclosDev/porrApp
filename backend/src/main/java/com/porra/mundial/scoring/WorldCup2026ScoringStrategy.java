@@ -1,6 +1,6 @@
 package com.porra.mundial.scoring;
 
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import org.springframework.stereotype.Component;
 
@@ -225,7 +225,7 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
         score.getLog().add(ParticipantScoreDTO.LogEntry.builder().stage(stage).amount(amount).msg(msg).build());
     }
 
-    private boolean isPassed(String team, String actualO1, String actualO2, BetDataDTO off, List<String> bestVirtualThirds, boolean hasPlayed) {
+    private boolean isPassed(String team, String actualO1, String actualO2, PredictionDataDTO off, List<String> bestVirtualThirds, boolean hasPlayed) {
         if (team == null) return false;
         if (actualO1 != null && actualO1.equals(team)) return true;
         if (actualO2 != null && actualO2.equals(team)) return true;

@@ -192,9 +192,9 @@ export async function leaveGroup(id) {
   return res.json();
 }
 
-export async function acceptGroupBet(groupId, betId) {
+export async function acceptGroupPrediction(groupId, predictionId) {
   const token = getAdminToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/bets/${betId}/accept`, {
+  const res = await fetch(`${API_BASE}/groups/${groupId}/predictions/${predictionId}/accept`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -207,10 +207,11 @@ export async function acceptGroupBet(groupId, betId) {
   }
   return res.json();
 }
+export const acceptGroupBet = acceptGroupPrediction;
 
-export async function deleteGroupBet(groupId, betId) {
+export async function deleteGroupPrediction(groupId, predictionId) {
   const token = getAdminToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/bets/${betId}`, {
+  const res = await fetch(`${API_BASE}/groups/${groupId}/predictions/${predictionId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -223,19 +224,20 @@ export async function deleteGroupBet(groupId, betId) {
   }
   return res.json();
 }
+export const deleteGroupBet = deleteGroupPrediction;
 
 export async function fetchCompetitions() {
   return fetchJson(`${API_BASE}/competitions`);
 }
 
-export async function createGroup(name, competitionId, betMode, pichichi = true) {
+export async function createGroup(name, competitionId, poolFormat, pichichi = true) {
   const res = await fetch(`${API_BASE}/groups`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${getAdminToken() || ''}`,
     },
-    body: JSON.stringify({ name, competitionId, betMode, pichichi }),
+    body: JSON.stringify({ name, competitionId, poolFormat, betMode: poolFormat, pichichi }),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -318,9 +320,6 @@ export async function updateUserPreferences(preferences) {
   }
   return res.json();
 }
-
-export const acceptGroupPrediction = acceptGroupBet;
-export const deleteGroupPrediction = deleteGroupBet;
 
 export async function fetchRules() {
   return fetchJson(`${API_BASE}/rules`);
