@@ -16,6 +16,9 @@ export function compareTeams(a, b, groupName, officialPoints, allGames, nameToId
   const glsA = typeof statsA === 'object' && statsA !== null ? statsA.gls || 0 : 0;
   const glsB = typeof statsB === 'object' && statsB !== null ? statsB.gls || 0 : 0;
 
+  const fpA = typeof statsA === 'object' && statsA !== null ? statsA.fp || 0 : 0;
+  const fpB = typeof statsB === 'object' && statsB !== null ? statsB.fp || 0 : 0;
+
   // Puntos totales
   if (ptsB !== ptsA) return ptsB - ptsA;
 
@@ -84,6 +87,9 @@ export function compareTeams(a, b, groupName, officialPoints, allGames, nameToId
   // 6. Goles marcados (General)
   if (glsB !== glsA) return glsB - glsA;
 
-  // 7. Sorteo / Orden alfabético
+  // 7. Puntos de Fair Play / Conducta de equipo (menos puntos negativos es mejor)
+  if (fpB !== fpA) return fpB - fpA;
+
+  // 8. Sorteo / Orden alfabético
   return a.name.localeCompare(b.name);
 }
