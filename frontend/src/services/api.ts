@@ -354,3 +354,45 @@ export async function submitMatchdayPredictions(groupId, predictions) {
   }
   return res.json();
 }
+
+export async function fetchSyncStatus() {
+  return fetchJson(`${API_BASE}/admin/sync/status`);
+}
+
+export async function triggerAdminSync(competitionId = null) {
+  const token = getAdminToken();
+  const query = competitionId ? `?competitionId=${competitionId}` : '';
+  const res = await fetch(`${API_BASE}/admin/sync${query}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al ejecutar sincronización');
+  }
+  return res.json();
+}
+
+export async function overrideMatchResult(matchId, homeScore, awayScore, status = 'FINISHED') {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/matches/${matchId}/manual-result`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify({
+      homeScore: Number(homeScore),
+      awayScore: Number(awayScore),
+      status,
+    }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al actualizar resultado manual');
+  }
+  return res.json();
+}
