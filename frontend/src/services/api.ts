@@ -5,27 +5,35 @@
 const API_BASE = '/api';
 
 /**
- * Obtiene el token de administrador (o de autenticación) del localStorage.
+ * Obtiene el token de autenticación (usuario o administrador) del localStorage o memoria.
  * @returns {string|null} Token JWT o null si no existe.
  */
-export function getAdminToken() {
+export function getAuthToken() {
   return (
-    localStorage.getItem('adminToken') || window.adminToken || localStorage.getItem('token') || null
+    localStorage.getItem('token') || localStorage.getItem('adminToken') || window.adminToken || null
   );
 }
 
+/** Alias de compatibilidad hacia atrás */
+export const getAdminToken = getAuthToken;
+
 /**
- * Guarda el token de administrador en memoria y en localStorage.
+ * Guarda el token de autenticación en memoria y en localStorage.
  * @param {string|null} token - El token a guardar.
  */
-export function setAdminToken(token) {
+export function setAuthToken(token) {
   window.adminToken = token;
   if (token) {
+    localStorage.setItem('token', token);
     localStorage.setItem('adminToken', token);
   } else {
+    localStorage.removeItem('token');
     localStorage.removeItem('adminToken');
   }
 }
+
+/** Alias de compatibilidad hacia atrás */
+export const setAdminToken = setAuthToken;
 
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, {
@@ -80,22 +88,44 @@ export async function createBet(betData, groupId = null) {
 }
 
 export async function deleteBet(key) {
-  return fetch(`${API_BASE}/bets/${key}`, { method: 'DELETE' });
+  const token = getAdminToken();
+  return fetch(`${API_BASE}/bets/${key}`, {
+    method: 'DELETE',
+    headers: {
+      ...(token && {
+        Authorization: `Bearer ${token}`,
+        'X-Admin-Token': token,
+      }),
+    },
+  });
 }
 
 export async function updateBet(key, data) {
+  const token = getAdminToken();
   return fetch(`${API_BASE}/bets/${key}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${getAdminToken() || ''}`,
+      ...(token && {
+        Authorization: `Bearer ${token}`,
+        'X-Admin-Token': token,
+      }),
     },
     body: JSON.stringify(data),
   });
 }
 
 export async function acceptBet(key) {
-  return fetch(`${API_BASE}/bets/${key}/pay`, { method: 'PUT' });
+  const token = getAdminToken();
+  return fetch(`${API_BASE}/bets/${key}/pay`, {
+    method: 'PUT',
+    headers: {
+      ...(token && {
+        Authorization: `Bearer ${token}`,
+        'X-Admin-Token': token,
+      }),
+    },
+  });
 }
 
 export async function fetchTeamOdds() {
@@ -164,7 +194,7 @@ export async function acceptGroupBet(groupId, betId) {
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al aceptar la apuesta');
+    throw new Error(error.error || 'Error al confirmar la porra');
   }
   return res.json();
 }
@@ -180,7 +210,7 @@ export async function deleteGroupBet(groupId, betId) {
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al eliminar la apuesta');
+    throw new Error(error.error || 'Error al eliminar la porra');
   }
   return res.json();
 }
@@ -279,3 +309,13 @@ export async function updateUserPreferences(preferences) {
   }
   return res.json();
 }
+
+// ── Aliases de dominio: Predicciones / Pronósticos ──
+export const fetchPredictions = fetchBets;
+export const fetchMyPredictions = fetchMyBets;
+export const createPrediction = createBet;
+export const deletePrediction = deleteBet;
+export const updatePrediction = updateBet;
+export const acceptPrediction = acceptBet;
+export const acceptGroupPrediction = acceptGroupBet;
+export const deleteGroupPrediction = deleteGroupBet;

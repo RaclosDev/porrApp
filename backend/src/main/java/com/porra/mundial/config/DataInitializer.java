@@ -10,7 +10,7 @@ import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.repository.EditionRepository;
-import com.porra.mundial.service.HashTransitionService;
+import com.porra.mundial.service.PredictionPersistenceService;
 import com.porra.mundial.service.SyncService;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Edition;
@@ -40,7 +40,7 @@ public class DataInitializer implements CommandLineRunner {
     private final BetRepository betRepository;
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
-    private final HashTransitionService hashTransitionService;
+    private final PredictionPersistenceService predictionPersistenceService;
     private final SyncService syncService;
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
@@ -208,7 +208,7 @@ public class DataInitializer implements CommandLineRunner {
     /**
      * Procesa los hashes en Base64 procedentes del antiguo participants.js.
      * Decodifica el JSON, crea los usuarios, vincula sus apuestas a la edición GLOBAL (ID=1)
-     * y utiliza el HashTransitionService para rellenar todas las tablas relacionales.
+     * y utiliza el PredictionPersistenceService para rellenar todas las tablas relacionales.
      */
     private void seedExistingBets() {
         // Hashes en Base64 de las apuestas iniciales importadas
@@ -256,7 +256,7 @@ public class DataInitializer implements CommandLineRunner {
                 // Parsea el string en un DTO con la estructura antigua del bracket
                 BetDataDTO dto = mapper.readValue(decoded, BetDataDTO.class);
                 // Llama al servicio que descompone el DTO y guarda registros en bracket_predictions, group_predictions, etc.
-                hashTransitionService.saveRelationalPredictions(bet, dto);
+                predictionPersistenceService.saveRelationalPredictions(bet, dto);
             } catch (Exception e) {
                 log.error("Failed to parse initial bet data", e);
             }

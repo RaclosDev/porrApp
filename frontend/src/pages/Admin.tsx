@@ -256,7 +256,7 @@ function Admin() {
               ? '✅ Guardado'
               : refreshStatus['snapshot'] === 'error'
                 ? '❌ Error'
-                : 'Guardar Backup de Apuestas'}
+                : 'Guardar Backup de Porras'}
         </button>
       </div>
 

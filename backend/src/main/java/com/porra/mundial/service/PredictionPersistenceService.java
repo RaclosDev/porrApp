@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class HashTransitionService {
+public class PredictionPersistenceService {
 
     private final TeamRepository teamRepository;
     private final BetRepository betRepository;

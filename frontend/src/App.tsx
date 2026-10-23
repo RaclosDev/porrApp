@@ -21,7 +21,8 @@ const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
 const GUEST_ALLOWED_PATHS = ['/clasificacion', '/search', '/stats', '/radar', '/mis-ligas'];
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {
-  const { isAdminAuthenticated } = useAppContext();
+  const { isAuthenticated, isAdminAuthenticated } = useAppContext();
+  const isAuthed = isAuthenticated || isAdminAuthenticated;
   const location = useLocation();
   const isGuest = localStorage.getItem('guest_mode') === 'true';
 
@@ -30,7 +31,7 @@ const ProtectedRoute = ({ children, guestAllowed = false }) => {
     return children;
   }
 
-  if (!isAdminAuthenticated) {
+  if (!isAuthed) {
     return <Navigate to="/" state={{ requireLogin: true, from: location.pathname }} replace />;
   }
   return children;

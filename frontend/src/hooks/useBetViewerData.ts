@@ -3,10 +3,10 @@ import { fetchOfficialBracket } from '../services/api';
 import { compareTeams } from '../utils/points';
 
 /**
- * Hook personalizado que carga y procesa los datos necesarios para visualizar la apuesta de un usuario.
+ * Hook personalizado que carga y procesa los datos necesarios para visualizar la porra de un usuario.
  * Maneja la lógica de obtener los puntos oficiales, combinarlos con los de la porra y calcular en vivo qué se ha acertado.
  *
- * @param {string|number} viewerBetId - ID de la apuesta a visualizar.
+ * @param {string|number} viewerBetId - ID de la porra a visualizar.
  * @param {Object} officialPoints - Puntuación oficial calculada de los equipos.
  * @param {Array} leaderboardData - Datos globales del Leaderboard para extraer la información de los puntos obtenidos por este usuario.
  * @param {Object} groupOdds - Datos de los grupos y equipos que los conforman.
@@ -123,7 +123,7 @@ export function useBetViewerData(
       fetch(`/api/bets/${viewerBetId}`).then((res) => {
         if (!res.ok)
           return res.json().then((e) => {
-            throw new Error(e.error || 'Error al cargar la apuesta');
+            throw new Error(e.error || 'Error al cargar la porra');
           });
         return res.json();
       }),

@@ -5,12 +5,12 @@ import { useBetViewerData } from '../hooks/useBetViewerData';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCanvas';
 
 /**
- * Componente principal para visualizar la apuesta de un usuario específico.
+ * Componente principal para visualizar la porra de un usuario específico.
  * Se muestra como un modal flotante.
  * Integra la fase de grupos y la vista de Bracket de eliminatorias.
  *
  * @component
- * @returns {JSX.Element|null} El modal del visor de apuestas, o null si no hay apuesta seleccionada.
+ * @returns {JSX.Element|null} El modal del visor de porras, o null si no hay porra seleccionada.
  */
 function BetViewer() {
   const state = useAppContext();
@@ -425,7 +425,7 @@ function BetViewer() {
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Visor de apuesta"
+        aria-label="Visor de porra"
         style={{ display: 'flex', zIndex: 999999 }}
         onClick={() => setViewerBetId(null)}
       >
@@ -435,7 +435,7 @@ function BetViewer() {
           role="presentation"
           onClick={(e) => e.stopPropagation()}
         >
-          <h2 style={{ color: 'var(--accent-color)' }}>Cargando apuesta...</h2>
+          <h2 style={{ color: 'var(--accent-color)' }}>Cargando porra...</h2>
         </div>
       </div>
     );
@@ -448,7 +448,7 @@ function BetViewer() {
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Visor de apuesta"
+        aria-label="Visor de porra"
         style={{ display: 'flex', zIndex: 999999 }}
         onClick={() => setViewerBetId(null)}
       >
@@ -478,7 +478,7 @@ function BetViewer() {
       className="modal"
       role="dialog"
       aria-modal="true"
-      aria-label="Visor de apuesta"
+      aria-label="Visor de porra"
       style={{ display: 'flex', zIndex: 999999 }}
       onClick={() => setViewerBetId(null)}
     >
