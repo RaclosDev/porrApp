@@ -18,10 +18,10 @@ function OfficialBracket({ hideTitle }) {
   const { officialPoints, groupOdds, allGames, matchRadar, topScorers } = useAppContext();
   const [activePanel, setActivePanel] = useState(null); // 'live', 'scorers', null
 
-  // ── Build bracket data ──────────────────────────────────────────────────
+  // Build bracket data
   const part = buildBracketData(officialPoints, groupOdds, allGames);
 
-  // ── Featured upcoming match in knockout bracket ─────────────────────────
+  // Featured upcoming match
   const featuredMatch = useMemo(() => {
     if (!allGames || allGames.length === 0) return null;
     const koUnfinished = allGames
@@ -69,7 +69,7 @@ function OfficialBracket({ hideTitle }) {
     );
   }
 
-  // ── Convert flat arrays [name1, name2] → { home, away } ─────────────────
+  // Convert flat arrays
   const toMatches = (arr) =>
     (arr || []).map((m) => ({ home: m?.[0] || null, away: m?.[1] || null }));
 
@@ -86,7 +86,7 @@ function OfficialBracket({ hideTitle }) {
     toMatches(part.sf?.slice(1, 2)),
   ];
 
-  // ── Render slot (read-only) ─────────────────────────────────────────────
+  // Render slot
   const renderSlot = (teamOrObj, context) => {
     const isObj = typeof teamOrObj === 'object' && teamOrObj !== null;
     const name = isObj ? teamOrObj.name : teamOrObj;
@@ -192,7 +192,7 @@ function OfficialBracket({ hideTitle }) {
     return <TeamSlot name={name} slotStyle={style} rightContent={scoreContent} />;
   };
 
-  // ── Hidden rounds from visibility toggles ──────────────────────────────
+  // Hidden rounds
   const hiddenRounds = {
     0: false,
     1: false,
@@ -200,7 +200,7 @@ function OfficialBracket({ hideTitle }) {
     3: false,
   };
 
-  // ── Center content ───────────────────────────────────────────────────────
+  // Center content
   const finalTopY = matchTop(3, 0);
 
   const getName = (t) => (typeof t === 'object' && t ? t.name : t);
@@ -391,7 +391,7 @@ function OfficialBracket({ hideTitle }) {
           </div>
         )}
 
-        {/* ── CONTROLS & HUD OVERLAY (Partidos / Pichichi) ── */}
+        {/* Controls overlay */}
         <div
           style={{
             display: 'flex',

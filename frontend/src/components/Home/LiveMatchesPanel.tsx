@@ -1,15 +1,6 @@
 import Flag from '../Flag';
 import { openStats } from '../../utils/navigation';
 
-/**
- * Componente que muestra los partidos que se están jugando en directo o el próximo en comenzar.
- *
- * @component
- * @param {Object} props
- * @param {Array} props.liveMatches - Lista de partidos actualmente en juego.
- * @param {Object} props.matchRadar - Objeto con datos de próximos partidos ({ next: [...] }).
- * @returns {JSX.Element|null} Panel renderizado con los partidos, o null si no hay datos.
- */
 function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
   const renderLiveMatch = (m) => {
     const d = new Date(m.date);

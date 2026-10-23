@@ -328,14 +328,13 @@ function Search() {
               padding: '10px 30px',
               fontWeight: 800,
               fontSize: '1.05rem',
-              background:
-                searchMode === 'team' ? 'linear-gradient(135deg, #f368e0, #ff9ff3)' : 'transparent',
+              background: searchMode === 'team' ? 'var(--accent-color)' : 'transparent',
               border: 'none',
-              color: searchMode === 'team' ? '#000000' : 'var(--text-muted)',
+              color: searchMode === 'team' ? '#ffffff' : 'var(--text-muted)',
               cursor: 'pointer',
               borderRadius: '12px',
               transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: searchMode === 'team' ? '0 4px 15px rgba(243, 104, 224, 0.4)' : 'none',
+              boxShadow: searchMode === 'team' ? '0 4px 12px rgba(0, 0, 0, 0.25)' : 'none',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -350,14 +349,13 @@ function Search() {
               padding: '10px 30px',
               fontWeight: 800,
               fontSize: '1.05rem',
-              background:
-                searchMode === 'user' ? 'linear-gradient(135deg, #00d2d3, #01a3a4)' : 'transparent',
+              background: searchMode === 'user' ? 'var(--accent-cyan)' : 'transparent',
               border: 'none',
               color: searchMode === 'user' ? '#000000' : 'var(--text-muted)',
               cursor: 'pointer',
               borderRadius: '12px',
               transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: searchMode === 'user' ? '0 4px 15px rgba(0, 210, 211, 0.4)' : 'none',
+              boxShadow: searchMode === 'user' ? '0 4px 12px rgba(0, 0, 0, 0.25)' : 'none',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -531,7 +529,7 @@ function Search() {
                       }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.transform = 'scale(1.05)';
-                        e.currentTarget.style.boxShadow = '0 0 15px rgba(243, 104, 224, 0.5)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
                       }}
                       onMouseOut={(e) => {
                         e.currentTarget.style.transform = 'scale(1)';

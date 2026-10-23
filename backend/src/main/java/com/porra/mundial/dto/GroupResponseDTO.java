@@ -26,7 +26,6 @@ public class GroupResponseDTO {
     /** Fecha de creación del grupo. */
     private LocalDateTime createdAt;
     
-    // Campos específicos de la Edición Activa (Edition) en este grupo
     /** Identificador de la competición asociada a la edición activa. */
     private Long competitionId;
     /** Nombre de la competición actual en curso (Ej: Euro 2024). */

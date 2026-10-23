@@ -261,19 +261,15 @@ public class GroupService {
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         
-        // Delete all predictions
         List<Prediction> predictions = predictionRepository.findByEditionLeagueId(groupId);
         predictionRepository.deleteAll(predictions);
         
-        // Delete all editions
         List<Edition> editions = editionRepository.findByLeagueId(groupId);
         editionRepository.deleteAll(editions);
         
-        // Delete all memberships
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
         membershipRepository.deleteAll(memberships);
         
-        // Finally, delete the group
         leagueRepository.deleteById(groupId);
     }
 
@@ -370,7 +366,6 @@ public class GroupService {
             throw new IllegalArgumentException("El creador de la liga no puede abandonarla.");
         }
 
-        // We delete their predictions
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user != null) {
             List<Prediction> predictions = predictionRepository.findByEditionLeagueId(groupId).stream()
@@ -378,7 +373,6 @@ public class GroupService {
                     .collect(Collectors.toList());
             predictionRepository.deleteAll(predictions);
             
-            // Delete membership
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
             if (membershipRepository.existsById(memId)) {
                 membershipRepository.deleteById(memId);

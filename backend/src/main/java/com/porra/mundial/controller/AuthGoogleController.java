@@ -18,11 +18,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Controlador de Autenticación mediante Google OAuth2.
- * Verifica los tokens generados en el frontend (React Google Login) 
- * con la librería oficial de Google API Client para asegurar que son legítimos y no han sido falsificados.
- */
 @RestController
 @RequestMapping("/api/auth/google")
 @RequiredArgsConstructor
@@ -41,20 +36,12 @@ public class AuthGoogleController {
     @Value("${app.admin-emails:raclosnegocios@gmail.com}")
     private java.util.List<String> adminEmails;
 
-    /**
-     * Endpoint para iniciar sesión con Google.
-     * Recibe el token de Google y el nombre de participante deseado (solo necesario la primera vez).
-     * 
-     * @param payload Contiene el "credential" (token de Google) y "participantName" (opcional).
-     * @return Token JWT propio de la app y datos básicos del usuario, o código 202 si necesita indicar su nombre.
-     */
     @PostMapping("/login")
     public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> payload) {
         String idTokenString = payload.get("credential");
         String requestedParticipantName = payload.get("participantName");
 
         try {
-            // Verificar el token con la clave pública de Google (Previene suplantación de identidad)
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
@@ -68,11 +55,9 @@ public class AuthGoogleController {
             String email = googlePayload.getEmail();
             String name = (String) googlePayload.get("name");
 
-            // Buscar si el usuario ya está registrado en nuestra base de datos
             Optional<UserAccount> existingAccount = userAccountRepository.findByGoogleEmail(email);
 
             if (existingAccount.isPresent()) {
-                // Usuario existente: Emitir nuestro JWT con su email de Google como principal
                 UserAccount acc = existingAccount.get();
                 String appToken = jwtUtil.generateToken(acc.getGoogleEmail(), acc.getGoogleEmail());
                 return ResponseEntity.ok(Map.of(
@@ -83,9 +68,7 @@ public class AuthGoogleController {
                         "lastSelectedGroupId", acc.getLastSelectedGroupId() != null ? acc.getLastSelectedGroupId() : -1
                 ));
             } else {
-                // Usuario NUEVO: Necesitamos que nos diga qué nombre de participante quiere usar públicamente
                 if (requestedParticipantName == null || requestedParticipantName.trim().isEmpty()) {
-                    // Si no nos ha dicho nombre, le decimos al frontend que se lo pregunte (Código 202 Accepted)
                     return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
                             "status", "requires_name",
                             "googleEmail", email,
@@ -95,7 +78,6 @@ public class AuthGoogleController {
 
                 String cleanName = requestedParticipantName.trim();
                 
-                // Comprobar nombres reservados para el administrador
                 boolean isReservedName = appAdmins.stream().anyMatch(a -> a.equalsIgnoreCase(cleanName));
                 if (isReservedName) {
                     boolean isAllowedEmail = adminEmails.stream().anyMatch(ae -> ae.equalsIgnoreCase(email));
@@ -106,18 +88,15 @@ public class AuthGoogleController {
                     }
                 }
 
-                // Comprobar si existe una cuenta legacy pendiente de reclamar para este nombre
-                // (Usuarios que estaban en la antigua BD sin email asociado)
+                // Vincula cuentas preexistentes creadas de forma legacy sin email
                 java.util.Optional<UserAccount> legacyAccount = userAccountRepository.findByGoogleEmail(cleanName + "@auto.generated");
                 UserAccount finalAccount;
                 if (legacyAccount.isPresent()) {
-                    // Si es auto-generated, "reclamamos" su cuenta vinculándole el email y nombre real
                     finalAccount = legacyAccount.get();
                     finalAccount.setGoogleEmail(email);
                     finalAccount.setGoogleName(name);
                     userAccountRepository.save(finalAccount);
                 } else {
-                    // Crear nueva cuenta completamente limpia
                     finalAccount = UserAccount.builder()
                             .googleEmail(email)
                             .googleName(name)
@@ -126,7 +105,6 @@ public class AuthGoogleController {
                     userAccountRepository.save(finalAccount);
                 }
 
-                // Emitir el token con el email de Google como identificador principal
                 String appToken = jwtUtil.generateToken(email, email);
                 Map<String, Object> responseMap = new java.util.HashMap<>();
                 responseMap.put("token", appToken);
@@ -142,10 +120,6 @@ public class AuthGoogleController {
         }
     }
 
-    /**
-     * Endpoint público para que el frontend sepa qué nombres ya no se pueden elegir.
-     * @return Lista de nombres tomados.
-     */
     @GetMapping("/claimed-names")
     public ResponseEntity<java.util.List<String>> getClaimedNames() {
         return ResponseEntity.ok(userAccountRepository.findAllClaimedNames());

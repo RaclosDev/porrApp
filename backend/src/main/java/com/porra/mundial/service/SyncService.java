@@ -759,7 +759,6 @@ public class SyncService {
         return diffMs > 0 && diffMs <= 30 * 60 * 1000;
     }
 
-    // Helper classes
     private static class SyncContext {
         int teamsUpdated = 0;
         int matchesUpdated = 0;

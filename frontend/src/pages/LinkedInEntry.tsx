@@ -29,14 +29,9 @@ export default function LinkedInEntry() {
   const { changeGroup } = useAppContext();
 
   useEffect(() => {
-    // Activar modo invitado
     localStorage.setItem('guest_mode', 'true');
-
-    // Forzar Porra Global (id 1)
     localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
     changeGroup(GLOBAL_LEAGUE_ID);
-
-    // Redirigir al Home
     navigate('/', { replace: true });
   }, [navigate, changeGroup]);
 
