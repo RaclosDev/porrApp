@@ -4,6 +4,7 @@ import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
@@ -46,6 +47,9 @@ class LeaderboardBenchmarkTest {
     @Mock
     private SyncService syncService;
 
+    @Mock
+    private MatchPredictionRepository matchPredictionRepository;
+
     @Spy
     private WorldCup2026ScoringStrategy scoringStrategy = new WorldCup2026ScoringStrategy();
 
@@ -68,44 +72,55 @@ class LeaderboardBenchmarkTest {
         officialData.setGroups(Map.of("A", List.of("México", "Sudáfrica", "Corea del Sur", "Chequia")));
         officialData.setR16(List.of(List.of("España", "Francia"), List.of("Brasil", "Alemania")));
         officialData.setQf(List.of(List.of("España", "Brasil")));
-        officialData.setSf(List.of(List.of("España", "Argentina")));
-        officialData.setFinalMatch(List.of("España", "Inglaterra"));
+        officialData.setSf(List.of(List.of("España", "Alemania")));
+        officialData.setFinalMatch(List.of("España", "Alemania"));
+
         when(predictionPersistenceService.rebuildPredictionDataDtoFromTables(1L)).thenReturn(officialData);
-
-        List<Prediction> simulated1000 = new ArrayList<>(1000);
-        for (long i = 2; i <= 1001; i++) {
-            simulated1000.add(Prediction.builder()
-                    .id(i)
-                    .name("Porra " + i)
-                    .user(UserAccount.builder().id(i).participantName("User_" + i).build())
-                    .paymentStatus("PAID")
-                    .build());
-        }
-        when(predictionRepository.findByEditionLeagueId(10L)).thenReturn(simulated1000);
-
-        PredictionDataDTO participantData = new PredictionDataDTO();
-        participantData.setChampion("España");
-        participantData.setScorer("Kylian Mbappé");
-        participantData.setGroups(Map.of("A", List.of("México", "Sudáfrica", "Corea del Sur", "Chequia")));
-        participantData.setR16(List.of(List.of("España", "Francia"), List.of("Brasil", "Alemania")));
-        participantData.setQf(List.of(List.of("España", "Brasil")));
-        participantData.setSf(List.of(List.of("España", "Argentina")));
-        participantData.setFinalMatch(List.of("España", "Inglaterra"));
-        when(predictionPersistenceService.rebuildPredictionDataDtoFromTables(anyLong())).thenAnswer(inv -> {
-            Long id = inv.getArgument(0);
-            return id.equals(1L) ? officialData : participantData;
-        });
-
         when(standingsService.getOfficialPoints()).thenReturn(Collections.emptyMap());
         when(standingsService.getAllStandings()).thenReturn(Collections.emptyList());
-        when(topScorerService.getTopScorers()).thenReturn(List.of(Map.of("name", "Kylian Mbappé", "goals", 6)));
+        when(topScorerService.getTopScorers()).thenReturn(Collections.emptyList());
         when(matchRepository.findAll()).thenReturn(Collections.emptyList());
 
-        long start = System.currentTimeMillis();
-        List<ParticipantScoreDTO> result = leaderboardService.getLeaderboard(10L);
-        long elapsed = System.currentTimeMillis() - start;
+        int participantCount = 1000;
+        List<Prediction> participants = new ArrayList<>(participantCount);
+        for (int i = 2; i <= participantCount + 1; i++) {
+            UserAccount user = UserAccount.builder()
+                    .id((long) i)
+                    .googleEmail("user" + i + "@example.com")
+                    .participantName("Participante " + i)
+                    .build();
 
-        assertEquals(1000, result.size());
-        assertTrue(elapsed < 2000, "El calculo de 1000 participantes debe completarse en menos de 2000ms. Tomo: " + elapsed + "ms");
+            Prediction pred = Prediction.builder()
+                    .id((long) i)
+                    .user(user)
+                    .name("Porra " + i)
+                    .paymentStatus("PAID")
+                    .build();
+            participants.add(pred);
+
+            PredictionDataDTO pData = new PredictionDataDTO();
+            pData.setChampion(i % 2 == 0 ? "España" : "Brasil");
+            pData.setScorer(i % 3 == 0 ? "Kylian Mbappé" : "Vinicius Jr");
+            pData.setGroups(Map.of("A", List.of("México", "Corea del Sur", "Sudáfrica", "Chequia")));
+            pData.setR16(List.of(List.of("España", "Francia"), List.of("Brasil", "Alemania")));
+            pData.setQf(List.of(List.of("España", "Brasil")));
+            pData.setSf(List.of(List.of("España", "Alemania")));
+            pData.setFinalMatch(List.of("España", "Alemania"));
+
+            when(predictionPersistenceService.rebuildPredictionDataDtoFromTables((long) i)).thenReturn(pData);
+        }
+
+        when(predictionRepository.findAll()).thenReturn(participants);
+        when(matchPredictionRepository.findByPredictionId(anyLong())).thenReturn(Collections.emptyList());
+
+        long startTime = System.currentTimeMillis();
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(null);
+        long duration = System.currentTimeMillis() - startTime;
+
+        System.out.printf("Benchmark completado: %d participantes calculados en %d ms%n", leaderboard.size(), duration);
+
+        assertEquals(1000, leaderboard.size());
+        assertTrue(duration < 2000, "El cálculo del ranking para 1000 participantes debe tardar menos de 2000ms. Tardó: " + duration + "ms");
+        assertTrue(leaderboard.get(0).getTotal() >= leaderboard.get(leaderboard.size() - 1).getTotal(), "La clasificación debe estar ordenada descendentemente");
     }
 }

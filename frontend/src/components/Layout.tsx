@@ -25,6 +25,7 @@ function Layout({ children }) {
     isRaclos,
     setIsAuthenticated,
     setIsAdminAuthenticated,
+    activeGroupPoolFormat,
     loading,
   } = useAppContext();
   const navigate = useNavigate();
@@ -316,9 +317,13 @@ function Layout({ children }) {
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                 }}
-                onClick={() => navigate('/bracket')}
+                onClick={() =>
+                  navigate(activeGroupPoolFormat === 'MATCH_DAY' ? '/jornadas' : '/bracket')
+                }
               >
-                ✍️ Completar Mi Porra
+                {activeGroupPoolFormat === 'MATCH_DAY'
+                  ? '✍️ Pronosticar Jornada'
+                  : '✍️ Completar Mi Porra'}
               </button>
             )}
           </div>
@@ -344,12 +349,21 @@ function Layout({ children }) {
             >
               Grupos
             </NavLink>
-            <NavLink
-              to="/cuadro"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Cuadro
-            </NavLink>
+            {activeGroupPoolFormat === 'MATCH_DAY' ? (
+              <NavLink
+                to="/jornadas"
+                className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+              >
+                ⚽ Jornadas
+              </NavLink>
+            ) : (
+              <NavLink
+                to="/cuadro"
+                className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+              >
+                Cuadro
+              </NavLink>
+            )}
             <NavLink
               to="/radar"
               className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
