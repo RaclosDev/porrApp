@@ -68,31 +68,34 @@ export async function fetchOfficialBracket() {
   return fetchJson(`${API_BASE}/standings/official-bracket`);
 }
 
-export async function fetchBets(groupId = null) {
-  const url = groupId ? `${API_BASE}/bets?groupId=${groupId}` : `${API_BASE}/bets`;
+export async function fetchPredictions(groupId = null) {
+  const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
   return fetchJson(url);
 }
+export const fetchBets = fetchPredictions;
 
-export async function fetchMyBets() {
-  return fetchJson(`${API_BASE}/bets/mine`);
+export async function fetchMyPredictions() {
+  return fetchJson(`${API_BASE}/predictions/mine`);
 }
+export const fetchMyBets = fetchMyPredictions;
 
-export async function createBet(betData, groupId = null) {
-  const url = groupId ? `${API_BASE}/bets?groupId=${groupId}` : `${API_BASE}/bets`;
+export async function createPrediction(predictionData, groupId = null) {
+  const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${getAdminToken() || ''}`,
     },
-    body: JSON.stringify(betData),
+    body: JSON.stringify(predictionData),
   });
   return res.json();
 }
+export const createBet = createPrediction;
 
-export async function deleteBet(key) {
+export async function deletePrediction(key) {
   const token = getAdminToken();
-  return fetch(`${API_BASE}/bets/${key}`, {
+  return fetch(`${API_BASE}/predictions/${key}`, {
     method: 'DELETE',
     headers: {
       ...(token && {
@@ -102,10 +105,11 @@ export async function deleteBet(key) {
     },
   });
 }
+export const deleteBet = deletePrediction;
 
-export async function updateBet(key, data) {
+export async function updatePrediction(key, data) {
   const token = getAdminToken();
-  return fetch(`${API_BASE}/bets/${key}`, {
+  return fetch(`${API_BASE}/predictions/${key}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -117,10 +121,11 @@ export async function updateBet(key, data) {
     body: JSON.stringify(data),
   });
 }
+export const updateBet = updatePrediction;
 
-export async function acceptBet(key) {
+export async function acceptPrediction(key) {
   const token = getAdminToken();
-  return fetch(`${API_BASE}/bets/${key}/pay`, {
+  return fetch(`${API_BASE}/predictions/${key}/pay`, {
     method: 'PUT',
     headers: {
       ...(token && {
@@ -130,6 +135,7 @@ export async function acceptBet(key) {
     },
   });
 }
+export const acceptBet = acceptPrediction;
 
 export async function fetchTeamOdds() {
   return fetchJson(`${API_BASE}/teams/odds`);
@@ -313,13 +319,6 @@ export async function updateUserPreferences(preferences) {
   return res.json();
 }
 
-// ── Aliases de dominio: Predicciones / Pronósticos ──
-export const fetchPredictions = fetchBets;
-export const fetchMyPredictions = fetchMyBets;
-export const createPrediction = createBet;
-export const deletePrediction = deleteBet;
-export const updatePrediction = updateBet;
-export const acceptPrediction = acceptBet;
 export const acceptGroupPrediction = acceptGroupBet;
 export const deleteGroupPrediction = deleteGroupBet;
 

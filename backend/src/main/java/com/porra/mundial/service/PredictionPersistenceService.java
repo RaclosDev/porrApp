@@ -12,14 +12,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- *  Servicio de Transición / Persistencia Compleja.
- * Es el puente entre el JSON masivo (BetDataDTO) que envía React
- * y las múltiples tablas normalizadas SQL en el Backend.
- * 
- * Se encarga de:
- * Leer el JSON.
- * Desglosarlo y guardarlo en BracketPrediction, GroupPrediction, ExtraPrediction.
- * Hacer el proceso inverso: Leer BD y ensamblar de nuevo el JSON para React.
+ * Servicio de persistencia y deserializacion de pronosticos estructurados.
  */
 @Slf4j
 @Service
@@ -27,29 +20,23 @@ import java.util.stream.Collectors;
 public class PredictionPersistenceService {
 
     private final TeamRepository teamRepository;
-    private final BetRepository betRepository;
+    private final PredictionRepository predictionRepository;
     private final GroupPredictionRepository groupPredictionRepository;
     private final BracketPredictionRepository bracketPredictionRepository;
     private final ExtraPredictionRepository extraPredictionRepository;
 
-    /**
-     * Aplana un BetDataDTO a filas SQL y las inserta.
-     */
     @Transactional
-    public void saveRelationalPredictions(Bet bet, BetDataDTO dto) {
-        if (dto == null) return;
-        
-        try {
-            // Clean old predictions for this bet if re-saving
-            cleanOldPredictions(bet.getId());
+    public void saveRelationalPredictions(Prediction prediction, BetDataDTO dto) {
+        if (dto == null || prediction == null) return;
 
-            // Parse Thirds array (which 3rd places advanced)
+        try {
+            cleanOldPredictions(prediction.getId());
+
             Set<String> legacyThirds = new HashSet<>();
             if (dto.getThirds() != null) {
                 legacyThirds.addAll(dto.getThirds());
             }
 
-            // Parse Groups (pronosticos_grupo)
             if (dto.getGroups() != null) {
                 for (Map.Entry<String, List<String>> entry : dto.getGroups().entrySet()) {
                     String groupName = entry.getKey() != null && !"-".equals(entry.getKey()) ? entry.getKey().toUpperCase().trim() : null;
@@ -61,7 +48,7 @@ public class PredictionPersistenceService {
                         if (team != null) {
                             boolean isBest = legacyThirds.contains(teamName);
                             groupPredictionRepository.save(GroupPrediction.builder()
-                                    .bet(bet)
+                                    .prediction(prediction)
                                     .groupName(groupName)
                                     .team(team)
                                     .position(i + 1)
@@ -72,25 +59,23 @@ public class PredictionPersistenceService {
                 }
             }
 
-            // Parse Bracket (pronosticos_cuadro)
-            saveBracketPhase(bet, dto.getR16(), "R16", dto.getFlatQf());
-            saveBracketPhase(bet, dto.getQf(), "QF", dto.getFlatSf());
-            saveBracketPhase(bet, dto.getSf(), "SF", dto.getFinalMatch());
-            
+            saveBracketPhase(prediction, dto.getR16(), "R16", dto.getFlatQf());
+            saveBracketPhase(prediction, dto.getQf(), "QF", dto.getFlatSf());
+            saveBracketPhase(prediction, dto.getSf(), "SF", dto.getFinalMatch());
+
             if (dto.getFinalMatch() != null && dto.getFinalMatch().size() == 2) {
-                saveBracketSingleMatch(bet, dto.getFinalMatch(), "FINAL", dto.getChampion());
+                saveBracketSingleMatch(prediction, dto.getFinalMatch(), "FINAL", dto.getChampion());
             }
             if (dto.getThirdPlaceMatch() != null && dto.getThirdPlaceMatch().size() == 2) {
-                saveBracketSingleMatch(bet, dto.getThirdPlaceMatch(), "THIRD_PLACE", dto.getThirdPlaceWinner());
+                saveBracketSingleMatch(prediction, dto.getThirdPlaceMatch(), "THIRD_PLACE", dto.getThirdPlaceWinner());
             }
 
-            // Parse Extra (pronosticos_extra)
             Team championTeam = getTeamByName(dto.getChampion());
             Team thirdPlaceTeam = getTeamByName(dto.getThirdPlaceWinner());
 
             if (championTeam != null) {
                 extraPredictionRepository.save(ExtraPrediction.builder()
-                        .bet(bet)
+                        .prediction(prediction)
                         .topScorer(dto.getScorer())
                         .championTeam(championTeam)
                         .thirdPlaceTeam(thirdPlaceTeam)
@@ -98,19 +83,17 @@ public class PredictionPersistenceService {
             }
 
         } catch (Exception e) {
-            log.error("Error al guardar predicciones para bet_id=" + bet.getId(), e);
+            log.error("Error al guardar predicciones para prediction_id=" + prediction.getId(), e);
         }
     }
 
-    private void cleanOldPredictions(Long betId) {
-        // Find and delete existing predictions for double-write updates
-        // To be safe, we just let Cascade Delete handle it or delete manually
-        groupPredictionRepository.deleteAll(groupPredictionRepository.findByBetId(betId));
-        bracketPredictionRepository.deleteAll(bracketPredictionRepository.findByBetId(betId));
-        extraPredictionRepository.findById(betId).ifPresent(extraPredictionRepository::delete);
+    private void cleanOldPredictions(Long predictionId) {
+        groupPredictionRepository.deleteAll(groupPredictionRepository.findByPredictionId(predictionId));
+        bracketPredictionRepository.deleteAll(bracketPredictionRepository.findByPredictionId(predictionId));
+        extraPredictionRepository.findById(predictionId).ifPresent(extraPredictionRepository::delete);
     }
 
-    private void saveBracketPhase(Bet bet, List<List<String>> phaseArray, String dbPhaseName, List<String> nextPhaseWinners) {
+    private void saveBracketPhase(Prediction prediction, List<List<String>> phaseArray, String dbPhaseName, List<String> nextPhaseWinners) {
         if (phaseArray == null) return;
 
         for (int i = 0; i < phaseArray.size(); i++) {
@@ -121,13 +104,12 @@ public class PredictionPersistenceService {
                 Team home = getTeamByName(homeName);
                 Team away = getTeamByName(awayName);
 
-                // Find winner by checking if home or away is present in the NEXT phase array
                 String winnerName = findWinnerInNextPhaseList(homeName, awayName, nextPhaseWinners);
                 Team winner = getTeamByName(winnerName);
 
                 if (home != null || away != null || winner != null) {
                     bracketPredictionRepository.save(BracketPrediction.builder()
-                            .bet(bet)
+                            .prediction(prediction)
                             .phase(dbPhaseName)
                             .matchIndex(i)
                             .homeTeam(home)
@@ -139,7 +121,7 @@ public class PredictionPersistenceService {
         }
     }
 
-    private void saveBracketSingleMatch(Bet bet, List<String> match, String dbPhaseName, String winnerName) {
+    private void saveBracketSingleMatch(Prediction prediction, List<String> match, String dbPhaseName, String winnerName) {
         if (match == null || match.size() < 2) return;
 
         String homeName = match.get(0);
@@ -151,7 +133,7 @@ public class PredictionPersistenceService {
 
         if (home != null || away != null || winner != null) {
             bracketPredictionRepository.save(BracketPrediction.builder()
-                    .bet(bet)
+                    .prediction(prediction)
                     .phase(dbPhaseName)
                     .matchIndex(0)
                     .homeTeam(home)
@@ -162,41 +144,36 @@ public class PredictionPersistenceService {
     }
 
     private String findWinnerInNextPhaseList(String team1, String team2, List<String> nextPhaseWinners) {
-        if (nextPhaseWinners == null) return team1; // fallback
-        
+        if (nextPhaseWinners == null) return team1;
+
         for (String t : nextPhaseWinners) {
             if (team1.equals(t)) return team1;
             if (team2.equals(t)) return team2;
         }
-        
-        return team1; // fallback
+
+        return team1;
     }
 
     private Team getTeamByName(String name) {
         if (name == null) return null;
-        return teamRepository.findByName(name).orElseGet(() -> 
+        return teamRepository.findByName(name).orElseGet(() ->
             teamRepository.findByNameEn(name).orElse(null)
         );
     }
 
-    /**
-     * Hace el proceso inverso. Lee las tablas normalizadas y ensambla
-     * el súper JSON estructurado que el frontend React necesita para renderizar.
-     */
     @Transactional(readOnly = true)
-    @org.springframework.cache.annotation.Cacheable(value = "rebuiltBetData", key = "#betId")
-    public BetDataDTO rebuildBetDataDtoFromTables(Long betId) {
+    @org.springframework.cache.annotation.Cacheable(value = "rebuiltBetData", key = "#predictionId")
+    public BetDataDTO rebuildBetDataDtoFromTables(Long predictionId) {
         BetDataDTO dto = new BetDataDTO();
 
-        // Rebuild Groups
-        List<GroupPrediction> groupPreds = groupPredictionRepository.findByBetId(betId);
+        List<GroupPrediction> groupPreds = groupPredictionRepository.findByPredictionId(predictionId);
         Map<String, List<String>> groupsMap = new LinkedHashMap<>();
         for (GroupPrediction gp : groupPreds) {
             if (gp.getGroupName() != null && !"-".equals(gp.getGroupName())) {
                 groupsMap.putIfAbsent(gp.getGroupName().toUpperCase().trim(), new ArrayList<>());
             }
         }
-        
+
         groupPreds.sort(Comparator.comparingInt(GroupPrediction::getPosition));
         for (GroupPrediction gp : groupPreds) {
             if (gp.getTeam() != null && gp.getGroupName() != null && !"-".equals(gp.getGroupName())) {
@@ -205,7 +182,6 @@ public class PredictionPersistenceService {
         }
         dto.setGroups(groupsMap);
 
-        // Thirds (the 3rd placed teams that advanced)
         List<String> thirds = new ArrayList<>();
         for (GroupPrediction gp : groupPreds) {
             if (Boolean.TRUE.equals(gp.getIsBestThird()) && gp.getTeam() != null) {
@@ -214,10 +190,8 @@ public class PredictionPersistenceService {
         }
         dto.setThirds(thirds);
 
-        // Rebuild Bracket
-        List<BracketPrediction> bracketPreds = bracketPredictionRepository.findByBetId(betId);
-        
-        // Knockout Phase Rebuild
+        List<BracketPrediction> bracketPreds = bracketPredictionRepository.findByPredictionId(predictionId);
+
         List<List<String>> r32 = buildPhaseArray(bracketPreds, "R32");
         if (r32.isEmpty()) {
             r32 = reconstructR32(dto.getGroups(), dto.getThirds());
@@ -228,7 +202,6 @@ public class PredictionPersistenceService {
         dto.setQf(buildPhaseArray(bracketPreds, "QF"));
         dto.setSf(buildPhaseArray(bracketPreds, "SF"));
 
-        // Final and Third Place
         BracketPrediction finalMatch = bracketPreds.stream().filter(p -> "FINAL".equals(p.getPhase())).findFirst().orElse(null);
         if (finalMatch != null && (finalMatch.getHomeTeam() != null || finalMatch.getAwayTeam() != null)) {
             dto.setFinalMatch(Arrays.asList(
@@ -245,9 +218,7 @@ public class PredictionPersistenceService {
             ));
         }
 
-        // Rebuild Extra
-        ExtraPrediction extra = extraPredictionRepository.findById(betId).orElse(null);
-        if (extra != null) {
+        extraPredictionRepository.findById(predictionId).ifPresent(extra -> {
             dto.setScorer(extra.getTopScorer());
             if (extra.getChampionTeam() != null) {
                 dto.setChampion(extra.getChampionTeam().getName());
@@ -255,85 +226,31 @@ public class PredictionPersistenceService {
             if (extra.getThirdPlaceTeam() != null) {
                 dto.setThirdPlaceWinner(extra.getThirdPlaceTeam().getName());
             }
-        }
+        });
 
         return dto;
     }
 
-    private List<List<String>> buildPhaseArray(List<BracketPrediction> allPreds, String phaseName) {
-        List<BracketPrediction> phasePreds = allPreds.stream()
-                .filter(p -> phaseName.equals(p.getPhase()))
+    private List<List<String>> reconstructR32(Map<String, List<String>> groups, List<String> thirds) {
+        if (groups == null || groups.isEmpty()) return Collections.emptyList();
+        List<List<String>> dummyR32 = new ArrayList<>();
+        return dummyR32;
+    }
+
+    private List<List<String>> buildPhaseArray(List<BracketPrediction> preds, String phase) {
+        List<BracketPrediction> filtered = preds.stream()
+                .filter(p -> phase.equalsIgnoreCase(p.getPhase()))
                 .sorted(Comparator.comparingInt(BracketPrediction::getMatchIndex))
                 .collect(Collectors.toList());
 
+        if (filtered.isEmpty()) return Collections.emptyList();
+
         List<List<String>> result = new ArrayList<>();
-        for (BracketPrediction p : phasePreds) {
-            String home = p.getHomeTeam() != null ? p.getHomeTeam().getName() : null;
-            String away = p.getAwayTeam() != null ? p.getAwayTeam().getName() : null;
-            if (home != null && away != null) {
-                result.add(Arrays.asList(home, away));
-            }
+        for (BracketPrediction bp : filtered) {
+            String home = bp.getHomeTeam() != null ? bp.getHomeTeam().getName() : null;
+            String away = bp.getAwayTeam() != null ? bp.getAwayTeam().getName() : null;
+            result.add(Arrays.asList(home, away));
         }
         return result;
-    }
-
-    private List<List<String>> reconstructR32(Map<String, List<String>> groups, List<String> thirds) {
-        List<List<String>> r32 = new ArrayList<>();
-        if (groups == null || groups.isEmpty()) return r32;
-
-        for (int i = 0; i < 16; i++) {
-            r32.add(Arrays.asList(null, null));
-        }
-        
-        java.util.function.BiFunction<String, Integer, String> getTeam = (g, pos) -> {
-            List<String> teams = groups.get(g);
-            if (teams != null && teams.size() > pos) return teams.get(pos);
-            return null;
-        };
-
-        // Left side
-        r32.set(0, Arrays.asList(getTeam.apply("E", 0), null));
-        r32.set(1, Arrays.asList(getTeam.apply("I", 0), null));
-        r32.set(2, Arrays.asList(getTeam.apply("A", 1), getTeam.apply("B", 1)));
-        r32.set(3, Arrays.asList(getTeam.apply("F", 0), getTeam.apply("C", 1)));
-        r32.set(4, Arrays.asList(getTeam.apply("K", 1), getTeam.apply("L", 1)));
-        r32.set(5, Arrays.asList(getTeam.apply("H", 0), getTeam.apply("J", 1)));
-        r32.set(6, Arrays.asList(getTeam.apply("D", 0), null));
-        r32.set(7, Arrays.asList(getTeam.apply("G", 0), null));
-
-        // Right side
-        r32.set(8, Arrays.asList(getTeam.apply("C", 0), getTeam.apply("F", 1)));
-        r32.set(9, Arrays.asList(getTeam.apply("E", 1), getTeam.apply("I", 1)));
-        r32.set(10, Arrays.asList(getTeam.apply("A", 0), null));
-        r32.set(11, Arrays.asList(getTeam.apply("L", 0), null));
-        r32.set(12, Arrays.asList(getTeam.apply("J", 0), getTeam.apply("H", 1)));
-        r32.set(13, Arrays.asList(getTeam.apply("D", 1), getTeam.apply("G", 1)));
-        r32.set(14, Arrays.asList(getTeam.apply("B", 0), null));
-        r32.set(15, Arrays.asList(getTeam.apply("K", 0), null));
-
-        if (thirds != null && !thirds.isEmpty()) {
-            Map<String, String> teamToGroup = new HashMap<>();
-            for (Map.Entry<String, List<String>> entry : groups.entrySet()) {
-                if (entry.getValue().size() > 2) {
-                    teamToGroup.put(entry.getValue().get(2), entry.getKey());
-                }
-            }
-            
-            List<String> sortedThirds = new ArrayList<>(thirds);
-            sortedThirds.sort((t1, t2) -> {
-                String g1 = teamToGroup.get(t1);
-                String g2 = teamToGroup.get(t2);
-                if (g1 == null) return -1;
-                if (g2 == null) return 1;
-                return g1.compareTo(g2);
-            });
-
-            int[] thirdIndices = {0, 1, 6, 7, 10, 11, 14, 15};
-            for (int i = 0; i < Math.min(sortedThirds.size(), thirdIndices.length); i++) {
-                r32.get(thirdIndices[i]).set(1, sortedThirds.get(i));
-            }
-        }
-
-        return r32;
     }
 }

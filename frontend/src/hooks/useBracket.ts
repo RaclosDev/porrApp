@@ -101,7 +101,7 @@ export function useBracket() {
     }
     if (!window.confirm('¿Quieres copiar esta porra y enviarla a la liga actual?')) return;
     try {
-      const res = await fetch(`/api/bets/${betId}`);
+      const res = await fetch(`/api/predictions/${betId}`);
       if (!res.ok) throw new Error();
       const betData = await res.json();
       betData.user = userName;

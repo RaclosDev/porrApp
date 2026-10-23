@@ -30,9 +30,9 @@ public class Edition {
     @JoinColumn(name = "competition_id", nullable = false)
     private Competition competition;
 
-    /** El formato de la porra o reglas con las que juega este grupo esta edición. */
+    /** El formato de la porra o reglas con las que juega este grupo esta edicion. */
     @Enumerated(EnumType.STRING)
-    @Column(name = "bet_mode", nullable = false, length = 50)
+    @Column(name = "pool_format", nullable = false, length = 50)
     private PoolFormat poolFormat;
 
     /** Estado actual de la edición (ej. ACTIVE, ARCHIVED). */

@@ -120,7 +120,7 @@ export function useBetViewerData(
       setLoading(true);
     }, 0);
     Promise.all([
-      fetch(`/api/bets/${viewerBetId}`).then((res) => {
+      fetch(`/api/predictions/${viewerBetId}`).then((res) => {
         if (!res.ok)
           return res.json().then((e) => {
             throw new Error(e.error || 'Error al cargar la porra');

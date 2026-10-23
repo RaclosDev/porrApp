@@ -12,11 +12,12 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
-export const BET_MODES = [
+export const POOL_FORMATS = [
   { id: 'FULL_BRACKET', label: 'Completa (Fase de grupos y cruces)' },
   { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
   { id: 'MATCH_DAY', label: 'Por Jornadas' },
 ];
+export const BET_MODES = POOL_FORMATS;
 
 export function useGroupsDashboard() {
   const [groups, setGroups] = useState([]);

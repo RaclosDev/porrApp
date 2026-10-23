@@ -1,604 +1,366 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.model.Bet;
-
-import com.porra.mundial.model.BetBackup;
-
-import com.porra.mundial.repository.BetBackupRepository;
-
-import com.porra.mundial.repository.BetRepository;
-
-import com.porra.mundial.repository.UserAccountRepository;
-
-import com.porra.mundial.repository.EditionRepository;
-
-import com.porra.mundial.repository.MembershipRepository;
-
-import com.porra.mundial.model.UserAccount;
-
-import com.porra.mundial.model.Edition;
-
-import com.porra.mundial.model.Membership;
-
 import com.porra.mundial.dto.BetDataDTO;
-
 import com.porra.mundial.dto.BetResponseDTO;
-
+import com.porra.mundial.dto.PredictionResponseDTO;
+import com.porra.mundial.model.Edition;
+import com.porra.mundial.model.Membership;
+import com.porra.mundial.model.Prediction;
+import com.porra.mundial.model.PredictionBackup;
+import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.repository.PredictionBackupRepository;
+import com.porra.mundial.repository.PredictionRepository;
+import com.porra.mundial.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
-
 import lombok.extern.slf4j.Slf4j;
-
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
-
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-
-import java.util.*;
-
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
-
- * ️ Servicio de Apuestas (BetService).
-
- * Encargado de orquestar todo el ciclo de vida de una Porra/Apuesta (Crear, Actualizar, Borrar, Pagar).
-
- * También delega en PredictionPersistenceService para persistir el "Bracket" y el "Group Phase" de la apuesta.
-
+ * Servicio principal de gestion de pronosticos y porras (Prediction).
  */
-
 @Slf4j
-
 @Service
-
 @Transactional
-
 @RequiredArgsConstructor
-
 public class PredictionService {
 
-    private final BetRepository betRepository;
-
-    private final BetBackupRepository betBackupRepository;
-
+    private final PredictionRepository predictionRepository;
+    private final PredictionBackupRepository predictionBackupRepository;
     private final UserAccountRepository userAccountRepository;
-
     private final EditionRepository editionRepository;
-
     private final PredictionPersistenceService predictionPersistenceService;
-
     private final MembershipRepository membershipRepository;
 
-    @org.springframework.beans.factory.annotation.Value("${app.admins:Admin}")
-
+    @Value("${app.admins:Admin}")
     private List<String> appAdmins;
 
-    @org.springframework.beans.factory.annotation.Value("${app.admin-emails:raclosdev@gmail.com,raclosnegocios@gmail.com}")
-
+    @Value("${app.admin-emails:raclosdev@gmail.com,raclosnegocios@gmail.com}")
     private List<String> adminEmails;
 
     public boolean isSuperAdmin(String email) {
-
         if (email == null || email.isBlank()) return false;
 
         if (adminEmails != null && adminEmails.stream().anyMatch(ae -> ae.equalsIgnoreCase(email))) {
-
             return true;
-
         }
 
         if (appAdmins != null && appAdmins.stream().anyMatch(a -> a.equalsIgnoreCase(email))) {
-
             return true;
-
         }
 
         return userAccountRepository.findByGoogleEmail(email)
-
                 .map(UserAccount::isSuperadmin)
-
                 .orElse(false);
-
     }
 
-    public void verifyBetOwnershipOrAdmin(Bet bet, String requesterEmail) {
-
+    public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
-
             throw new SecurityException("Usuario no autenticado");
-
         }
 
         if (isSuperAdmin(requesterEmail)) {
-
             return;
-
         }
 
-        if (bet.getUser() != null && bet.getUser().getGoogleEmail() != null
-
-                && bet.getUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
-
+        if (prediction.getUser() != null && prediction.getUser().getGoogleEmail() != null
+                && prediction.getUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
             return;
-
         }
 
-        if (bet.getEdition() != null && bet.getEdition().getLeague() != null
-
-                && bet.getEdition().getLeague().getAdminUser() != null
-
-                && bet.getEdition().getLeague().getAdminUser().getGoogleEmail() != null
-
-                && bet.getEdition().getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
-
+        if (prediction.getEdition() != null && prediction.getEdition().getLeague() != null
+                && prediction.getEdition().getLeague().getAdminUser() != null
+                && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail() != null
+                && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
             return;
-
         }
 
-        throw new SecurityException("No tienes permiso para modificar o eliminar esta apuesta.");
-
+        throw new SecurityException("No tienes permiso para modificar o eliminar este pronostico.");
     }
 
-    public void verifyGroupAdminForPayment(Bet bet, String requesterEmail) {
-
+    public void verifyGroupAdminForPayment(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
-
             throw new SecurityException("Usuario no autenticado");
-
         }
 
         if (isSuperAdmin(requesterEmail)) {
-
             return;
-
         }
 
-        if (bet.getEdition() != null && bet.getEdition().getLeague() != null
-
-                && bet.getEdition().getLeague().getAdminUser() != null
-
-                && bet.getEdition().getLeague().getAdminUser().getGoogleEmail() != null
-
-                && bet.getEdition().getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
-
+        if (prediction.getEdition() != null && prediction.getEdition().getLeague() != null
+                && prediction.getEdition().getLeague().getAdminUser() != null
+                && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail() != null
+                && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
             return;
-
         }
 
-        throw new SecurityException("Solo el administrador del grupo puede marcar la apuesta como pagada.");
-
+        throw new SecurityException("Solo el administrador del grupo puede marcar el pronostico como pagado.");
     }
 
-    /**
+    private void saveBackup(Prediction prediction, String action) {
+        if (prediction == null) return;
 
-     * Guarda una instantánea o backup de la apuesta en el estado actual.
-
-     * @param bet Apuesta a respaldar.
-
-     * @param action Acción que provocó el backup (ej. "CREATED", "SNAPSHOT").
-
-     */
-
-    private void saveBackup(Bet bet, String action) {
-
-        if (bet == null) return;
-
-        BetBackup backup = BetBackup.builder()
-
-                .originalBetId(bet.getId())
-
-                .participantName(bet.getParticipantName())
-
-                .betName(bet.getBetName())
-
-                .paid(bet.getPaid())
-
+        PredictionBackup backup = PredictionBackup.builder()
+                .originalBetId(prediction.getId())
+                .participantName(prediction.getParticipantName())
+                .betName(prediction.getBetName())
+                .paid(prediction.getPaid())
                 .action(action)
-
                 .backupTimestamp(LocalDateTime.now())
-
                 .build();
 
-        betBackupRepository.save(backup);
-
+        predictionBackupRepository.save(backup);
     }
-
-    /**
-
-     * Crea un backup inicial para todas las apuestas que no lo tengan.
-
-     * Útil para migraciones o despliegues iniciales.
-
-     */
 
     public void createOneTimeSnapshot() {
-
-        betRepository.findAll().forEach(bet -> {
-
-            if (betBackupRepository.findByOriginalBetIdOrderByBackupTimestampDesc(bet.getId()).isEmpty()) {
-
-                saveBackup(bet, "SNAPSHOT");
-
+        predictionRepository.findAll().forEach(prediction -> {
+            if (predictionBackupRepository.findByOriginalBetIdOrderByBackupTimestampDesc(prediction.getId()).isEmpty()) {
+                saveBackup(prediction, "SNAPSHOT");
             }
-
         });
-
     }
-
-    /**
-
-     * @return Todas las apuestas registradas en el sistema.
-
-     */
 
     @Transactional(readOnly = true)
-
-    public List<Bet> getAllBets() {
-
-        return betRepository.findAllByOrderByCreatedAtDesc();
-
+    public List<Prediction> getAllPredictions() {
+        return predictionRepository.findAllByOrderByCreatedAtDesc();
     }
-
-    /**
-
-     * @param groupId ID del grupo.
-
-     * @return Todas las apuestas pertenecientes a un grupo/liga concreto.
-
-     */
 
     @Transactional(readOnly = true)
-
-    public List<Bet> getBetsByGroupId(Long groupId) {
-
-        return betRepository.findByEditionLeagueId(groupId);
-
+    public List<Prediction> getAllBets() {
+        return getAllPredictions();
     }
-
-    /**
-
-     * @param email Email del usuario en Google.
-
-     * @return Todas las apuestas que ha realizado este usuario.
-
-     */
 
     @Transactional(readOnly = true)
-
-    public List<Bet> getBetsByGoogleEmail(String email) {
-
-        return betRepository.findByUserGoogleEmail(email);
-
+    public List<Prediction> getPredictionsByGroupId(Long groupId) {
+        return predictionRepository.findByEditionLeagueId(groupId);
     }
-
-    /**
-
-     * @return Todas las apuestas que ya han pagado su inscripción (solo para el Leaderboard).
-
-     */
 
     @Transactional(readOnly = true)
-
-    public List<Bet> getPaidBets() {
-
-        return betRepository.findByPaymentStatus("PAID");
-
+    public List<Prediction> getBetsByGroupId(Long groupId) {
+        return getPredictionsByGroupId(groupId);
     }
-
-    /**
-
-     * @param id ID de la apuesta.
-
-     * @return Optional con la apuesta si existe.
-
-     */
 
     @Transactional(readOnly = true)
-
-    public Optional<Bet> findById(Long id) {
-
-        return betRepository.findById(id);
-
+    public List<Prediction> getPredictionsByGoogleEmail(String email) {
+        return predictionRepository.findByUserGoogleEmail(email);
     }
 
-    /**
+    @Transactional(readOnly = true)
+    public List<Prediction> getBetsByGoogleEmail(String email) {
+        return getPredictionsByGoogleEmail(email);
+    }
 
-     * Registra una nueva porra enviada por el usuario.
+    @Transactional(readOnly = true)
+    public List<Prediction> getPaidPredictions() {
+        return predictionRepository.findByPaymentStatus("PAID");
+    }
 
-     * Si el usuario ya tenía una apuesta en ese grupo, la borra (solo se permite 1 por grupo).
+    @Transactional(readOnly = true)
+    public List<Prediction> getPaidBets() {
+        return getPaidPredictions();
+    }
 
-     * @param email Email del usuario que la manda.
+    @Transactional(readOnly = true)
+    public Optional<Prediction> findById(Long id) {
+        return predictionRepository.findById(id);
+    }
 
-     * @param betName Nombre personalizable de la apuesta.
-
-     * @param betData Los pronósticos (Grupos, Cuadro, Pichichi).
-
-     * @param groupId El grupo donde compite.
-
-     * @return La nueva apuesta persistida.
-
-     */
-
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
-
-    public Bet createBet(String email, String betName, BetDataDTO betData, Long groupId) {
-
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    public Prediction createPrediction(String email, String predictionName, BetDataDTO betData, Long groupId) {
         if (groupId != null) {
-
-            betRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
-
-                .ifPresent(betRepository::delete);
-
+            predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
+                    .ifPresent(predictionRepository::delete);
         }
 
-        
-
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
-
         Edition edition = groupId != null ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null) : null;
 
         if (edition != null && edition.isLocked() && !isSuperAdmin(email)) {
             throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
         }
 
-        boolean isOfficial = "official".equalsIgnoreCase(betName) || "Admin".equalsIgnoreCase(email);
+        boolean isOfficial = "official".equalsIgnoreCase(predictionName) || "Admin".equalsIgnoreCase(email);
 
-        Bet bet = betRepository.save(Bet.builder()
-
+        Prediction prediction = predictionRepository.save(Prediction.builder()
                 .user(user)
-
                 .edition(edition)
-
-                .betName(betName)
-
+                .name(predictionName)
                 .isOfficial(isOfficial)
-
                 .paymentStatus("PENDING")
-
                 .createdAt(LocalDateTime.now())
-
                 .build());
 
-        
+        predictionPersistenceService.saveRelationalPredictions(prediction, betData);
 
-        // Transforma el JSON del frontend a filas SQL relacionales
-
-        predictionPersistenceService.saveRelationalPredictions(bet, betData);
-
-        
-
-        if (groupId != null && user != null) {
-
+        if (groupId != null && user != null && edition != null && edition.getLeague() != null) {
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-
             if (!membershipRepository.existsById(memId)) {
-
                 membershipRepository.save(Membership.builder()
-
                         .id(memId)
-
                         .user(user)
-
                         .league(edition.getLeague())
-
                         .role("MEMBER")
-
                         .build());
-
             }
-
         }
 
-        
-
-        return bet;
-
+        return prediction;
     }
 
-    /**
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    public Prediction createBet(String email, String betName, BetDataDTO betData, Long groupId) {
+        return createPrediction(email, betName, betData, groupId);
+    }
 
-     * Permite modificar el nombre de la apuesta o los pronósticos si la competición no ha cerrado.
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, BetDataDTO betData) {
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
-     */
+        verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
-
-    public Bet updateBet(Long id, String requesterEmail, String participantName, String betName, BetDataDTO betData) {
-
-        Bet bet = betRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Porra no encontrada: " + id));
-
-        verifyBetOwnershipOrAdmin(bet, requesterEmail);
-
-        if (bet.getEdition() != null && bet.getEdition().isLocked() && !isSuperAdmin(requesterEmail)) {
+        if (prediction.getEdition() != null && prediction.getEdition().isLocked() && !isSuperAdmin(requesterEmail)) {
             throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
         }
 
-        if (participantName != null) bet.setParticipantName(participantName);
+        if (participantName != null) prediction.setParticipantName(participantName);
+        if (predictionName != null) prediction.setName(predictionName);
 
-        if (betName != null) bet.setBetName(betName);
+        prediction = predictionRepository.save(prediction);
+        if (betData != null) predictionPersistenceService.saveRelationalPredictions(prediction, betData);
 
-        
-
-        bet = betRepository.save(bet);
-
-        if (betData != null) predictionPersistenceService.saveRelationalPredictions(bet, betData);
-
-        
-
-        return bet;
-
+        return prediction;
     }
 
-    public Bet updateBet(Long id, String participantName, String betName, BetDataDTO betData) {
-
-        return updateBet(id, null, participantName, betName, betData);
-
+    public Prediction updateBet(Long id, String requesterEmail, String participantName, String betName, BetDataDTO betData) {
+        return updatePrediction(id, requesterEmail, participantName, betName, betData);
     }
 
-    /**
+    public Prediction updateBet(Long id, String participantName, String betName, BetDataDTO betData) {
+        return updatePrediction(id, null, participantName, betName, betData);
+    }
 
-     * Marca una apuesta como pagada. A partir de este momento, aparecerá en el Leaderboard oficial.
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    public Prediction markAsPaid(Long id, String requesterEmail) {
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
-     */
+        verifyGroupAdminForPayment(prediction, requesterEmail);
 
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
-
-    public Bet markAsPaid(Long id, String requesterEmail) {
-
-        Bet bet = betRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Porra no encontrada: " + id));
-
-        verifyGroupAdminForPayment(bet, requesterEmail);
-
-        bet.setPaid(true);
+        prediction.setPaid(true);
 
         if (requesterEmail != null) {
-
-            userAccountRepository.findByGoogleEmail(requesterEmail).ifPresent(bet::setPaymentMarkedBy);
-
+            userAccountRepository.findByGoogleEmail(requesterEmail).ifPresent(prediction::setPaymentMarkedBy);
         }
 
-        return betRepository.save(bet);
-
+        return predictionRepository.save(prediction);
     }
 
-    public Bet markAsPaid(Long id) {
-
+    public Prediction markAsPaid(Long id) {
         return markAsPaid(id, null);
-
     }
 
-    /**
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    public void deletePrediction(Long id, String requesterEmail) {
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
-     * Borra permanentemente una apuesta del sistema.
+        verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
-     */
-
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+        predictionRepository.delete(prediction);
+    }
 
     public void deleteBet(Long id, String requesterEmail) {
-
-        Bet bet = betRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Porra no encontrada: " + id));
-
-        verifyBetOwnershipOrAdmin(bet, requesterEmail);
-
-        betRepository.delete(bet);
-
+        deletePrediction(id, requesterEmail);
     }
 
     public void deleteBet(Long id) {
-
-        deleteBet(id, null);
-
+        deletePrediction(id, null);
     }
 
-    /**
-
-     * Restaura una apuesta utilizando la información histórica de la tabla de backups.
-
-     */
-
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
-
-    public Bet restoreBet(Long backupId) {
-
-        BetBackup backup = betBackupRepository.findById(backupId)
-
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    public Prediction restorePrediction(Long backupId) {
+        PredictionBackup backup = predictionBackupRepository.findById(backupId)
                 .orElseThrow(() -> new NoSuchElementException("Backup no encontrado: " + backupId));
 
-        
+        Prediction prediction = predictionRepository.findById(backup.getOriginalBetId()).orElseGet(Prediction::new);
+        prediction.setId(backup.getOriginalBetId());
+        prediction.setParticipantName(backup.getParticipantName());
+        prediction.setName(backup.getBetName());
+        prediction.setPaid(backup.getPaid());
 
-        Bet bet = betRepository.findById(backup.getOriginalBetId()).orElseGet(Bet::new);
+        prediction = predictionRepository.save(prediction);
+        saveBackup(prediction, "RESTORED_FROM_" + backupId);
 
-        bet.setId(backup.getOriginalBetId());
-
-        bet.setParticipantName(backup.getParticipantName());
-
-        bet.setBetName(backup.getBetName());
-
-        bet.setPaid(backup.getPaid());
-
-        
-
-        bet = betRepository.save(bet);
-
-        saveBackup(bet, "RESTORED_FROM_" + backupId);
-
-        return bet;
-
+        return prediction;
     }
 
-    /**
+    public Prediction restoreBet(Long backupId) {
+        return restorePrediction(backupId);
+    }
 
-     * @param bets Lista de Entidades JPA.
+    public List<BetResponseDTO> toBetDtoList(List<Prediction> predictions) {
+        return toBetDtoList(predictions, null);
+    }
 
-     * @return Lista de DTOs mapeados y listos para enviar por JSON al Frontend.
-
-     */
-
-    public List<BetResponseDTO> toBetDtoList(List<Bet> bets) {
-
-        return bets.stream().map(bet -> {
+    public List<BetResponseDTO> toBetDtoList(List<Prediction> predictions, String requesterEmail) {
+        return predictions.stream().map(pred -> {
+            boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
+            boolean isSuper = isSuperAdmin(requesterEmail);
+            boolean isOfficial = pred.isOfficial();
+            boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
+            boolean canViewDetails = isLocked || isOwner || isSuper || isOfficial;
 
             BetDataDTO dataDto = null;
-
-            try {
-
-                dataDto = getBetData(bet.getId());
-
-            } catch (Exception e) {
-
-                log.warn("Failed to retrieve bet data for bet ID {}: {}", bet.getId(), e.getMessage());
-
+            if (canViewDetails) {
+                try {
+                    dataDto = getBetData(pred.getId());
+                } catch (Exception e) {
+                    log.warn("Failed to retrieve bet data for prediction ID {}: {}", pred.getId(), e.getMessage());
+                }
             }
 
             return BetResponseDTO.builder()
-
-                    .key(bet.getId().toString())
-
-                    .hash(bet.getId().toString())
-
-                    .paid(bet.getPaid())
-
-                    .participantName(bet.getParticipantName())
-
-                    .userId(bet.getUser() != null ? bet.getUser().getId() : null)
-
-                    .betName(bet.getBetName())
-
-                    .groupId(bet.getGroupId())
-
+                    .key(pred.getId().toString())
+                    .hash(pred.getId().toString())
+                    .paid(pred.getPaid())
+                    .participantName(pred.getParticipantName())
+                    .userId(pred.getUser() != null ? pred.getUser().getId() : null)
+                    .betName(pred.getBetName())
+                    .groupId(pred.getGroupId())
                     .data(dataDto)
-
                     .build();
-
         }).collect(Collectors.toList());
-
     }
-
-    /**
-
-     * @param id ID de la apuesta.
-
-     * @return El DTO consolidado con todos los pronósticos estructurados (Grupos, Bracket, Pichichi).
-
-     */
 
     @Transactional(readOnly = true)
+    public BetDataDTO getBetData(Long id, String requesterEmail) {
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
+        boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
+        boolean isSuper = isSuperAdmin(requesterEmail);
+        boolean isOfficial = pred.isOfficial();
+        boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
 
-    public BetDataDTO getBetData(Long id) {
+        if (!isLocked && !isOwner && !isSuper && !isOfficial) {
+            throw new SecurityException("Los pronosticos de otros participantes estaran ocultos hasta que finalice el plazo de inscripcion.");
+        }
 
-        Bet bet = betRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Bet not found"));
-
-        BetDataDTO dto = predictionPersistenceService.rebuildBetDataDtoFromTables(id);
-
-        dto.setUser(bet.getParticipantName());
-
-        dto.setBet(bet.getBetName());
-
-        return dto;
-
+        return getBetData(id);
     }
 
+    @Transactional(readOnly = true)
+    public BetDataDTO getBetData(Long id) {
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found"));
+        BetDataDTO dto = predictionPersistenceService.rebuildBetDataDtoFromTables(id);
+        dto.setUser(pred.getParticipantName());
+        dto.setBet(pred.getBetName());
+        return dto;
+    }
 }
-

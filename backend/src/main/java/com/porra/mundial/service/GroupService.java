@@ -1,9 +1,9 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.model.Bet;
+import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.LeagueRepository;
-import com.porra.mundial.repository.BetRepository;
+import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class GroupService {
 
     private final LeagueRepository leagueRepository;
-    private final BetRepository betRepository;
+    private final PredictionRepository predictionRepository;
     private final UserAccountRepository userAccountRepository;
     private final CompetitionRepository competitionRepository;
     private final EditionRepository editionRepository;
@@ -125,23 +125,23 @@ public class GroupService {
                 .build());
         }
 
-        // Migrate all existing bets to this global group (except the Admin template)
-        List<Bet> allBets = betRepository.findAll();
+        // Migrate all existing predictions to this global group (except the Admin template)
+        List<Prediction> allPredictions = predictionRepository.findAll();
         boolean migrated = false;
-        for (Bet bet : allBets) {
-            if (bet.getEdition() == null) {
-                if (bet.getParticipantName().equalsIgnoreCase("Admin")) {
-                    // Admin bet stays global (null)
+        for (Prediction pred : allPredictions) {
+            if (pred.getEdition() == null) {
+                if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) {
+                    // Admin prediction stays global (null)
                     continue;
                 }
-                bet.setEdition(edition);
-                betRepository.save(bet);
+                pred.setEdition(edition);
+                predictionRepository.save(pred);
                 migrated = true;
             }
         }
         
         if (migrated) {
-            log.info("Migradas las porras existentes al Grupo Global.");
+            log.info("Migrados los pronosticos existentes al Grupo Global.");
         }
     }
 
@@ -261,9 +261,9 @@ public class GroupService {
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         
-        // Delete all bets
-        List<Bet> bets = betRepository.findByEditionLeagueId(groupId);
-        betRepository.deleteAll(bets);
+        // Delete all predictions
+        List<Prediction> predictions = predictionRepository.findByEditionLeagueId(groupId);
+        predictionRepository.deleteAll(predictions);
         
         // Delete all editions
         List<Edition> editions = editionRepository.findByLeagueId(groupId);
@@ -370,13 +370,13 @@ public class GroupService {
             throw new IllegalArgumentException("El creador de la liga no puede abandonarla.");
         }
 
-        // We delete their bets
+        // We delete their predictions
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user != null) {
-            List<Bet> bets = betRepository.findByEditionLeagueId(groupId).stream()
+            List<Prediction> predictions = predictionRepository.findByEditionLeagueId(groupId).stream()
                     .filter(b -> b.getUser().getId().equals(user.getId())) 
                     .collect(Collectors.toList());
-            betRepository.deleteAll(bets);
+            predictionRepository.deleteAll(predictions);
             
             // Delete membership
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
@@ -387,7 +387,7 @@ public class GroupService {
     }
 
     /**
-     * Middleware de seguridad para comprobar si eres Admin antes de ejecutar acciones críticas.
+     * Middleware de seguridad para comprobar si eres Admin antes de ejecutar acciones criticas.
      */
     private void verifyGroupAdmin(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
@@ -399,37 +399,54 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true)
-    public List<Bet> getGroupBetsForAdmin(Long groupId, String email) {
+    public List<Prediction> getGroupPredictionsForAdmin(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
-        return betRepository.findByEditionLeagueId(groupId);
+        return predictionRepository.findByEditionLeagueId(groupId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Prediction> getGroupBetsForAdmin(Long groupId, String email) {
+        return getGroupPredictionsForAdmin(groupId, email);
     }
 
     /**
-     * Cambiar el tick de "Pagado" de una apuesta concreta dentro del grupo.
+     * Cambiar el estado de pago de un pronostico concreto dentro del grupo.
      */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
-    public Bet toggleBetPaymentStatus(Long groupId, Long betId, String email, boolean paid) {
+    public Prediction togglePredictionPaymentStatus(Long groupId, Long predictionId, String email, boolean paid) {
         verifyGroupAdmin(groupId, email);
-        Bet bet = betRepository.findById(betId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Apuesta no encontrada"));
-        if (!groupId.equals(bet.getGroupId())) {
-            throw new IllegalArgumentException("La apuesta no pertenece a este grupo");
+        Prediction pred = predictionRepository.findById(predictionId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Pronostico no encontrado"));
+        if (!groupId.equals(pred.getGroupId())) {
+            throw new IllegalArgumentException("El pronostico no pertenece a este grupo");
         }
-        bet.setPaid(paid);
-        return betRepository.save(bet);
+        pred.setPaid(paid);
+        return predictionRepository.save(pred);
+    }
+
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    public Prediction toggleBetPaymentStatus(Long groupId, Long betId, String email, boolean paid) {
+        return togglePredictionPaymentStatus(groupId, betId, email, paid);
+    }
+
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    public void deletePrediction(Long groupId, Long predictionId, String email) {
+        verifyGroupAdmin(groupId, email);
+        Prediction pred = predictionRepository.findById(predictionId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Pronostico no encontrado"));
+        if (!groupId.equals(pred.getGroupId())) {
+            throw new IllegalArgumentException("El pronostico no pertenece a este grupo");
+        }
+        predictionRepository.delete(pred);
     }
 
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
     public void deleteBet(Long groupId, Long betId, String email) {
-        verifyGroupAdmin(groupId, email);
-        Bet bet = betRepository.findById(betId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Apuesta no encontrada"));
-        if (!groupId.equals(bet.getGroupId())) {
-            throw new IllegalArgumentException("La apuesta no pertenece a este grupo");
-        }
-        betRepository.delete(bet);
+        deletePrediction(groupId, betId, email);
     }
 
 }
