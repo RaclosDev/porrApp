@@ -230,7 +230,7 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
 }
 
 /**
- * Componente que muestra la página de Búsqueda y Análisis de apuestas.
+ * Componente que muestra la página de Búsqueda y Análisis de pronósticos.
  * Permite buscar por equipo y condición o ver el perfil psicológico de un usuario.
  *
  * @component
@@ -304,7 +304,7 @@ function Search() {
           Central de Inteligencia
         </h2>
         <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>
-          Investiga las apuestas del grupo o analiza el perfil psicológico de tus rivales.
+          Investiga los pronósticos del grupo o analiza el perfil psicológico de tus rivales.
         </p>
       </div>
 
@@ -509,7 +509,7 @@ function Search() {
                       key={r.id}
                       role="button"
                       tabIndex={0}
-                      aria-label={`Ver apuesta de ${r.name || 'participante'}`}
+                      aria-label={`Ver porra de ${r.name || 'participante'}`}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
@@ -563,7 +563,7 @@ function Search() {
                         key={r.id}
                         role="button"
                         tabIndex={0}
-                        aria-label={`Ver apuesta de ${r.name || 'participante'}`}
+                        aria-label={`Ver porra de ${r.name || 'participante'}`}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();

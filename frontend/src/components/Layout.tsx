@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { getAdminToken, setAdminToken, fetchClaimedNames } from '../services/api';
+import { getAuthToken, setAuthToken, fetchClaimedNames } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
 import BetViewer from './BetViewer';
 
 /**
  * Componente Layout principal que envuelve a todas las rutas.
  * Contiene la barra de navegación superior (Header), el manejo de autenticación global (Google Login),
- * el banner de instalación PWA, y el visor global de apuestas (BetViewer).
+ * el banner de instalación PWA, y el visor global de porras (BetViewer).
  *
  * @component
  * @param {Object} props
@@ -23,6 +23,7 @@ function Layout({ children }) {
     setViewerBetId,
     onlineUsers,
     isRaclos,
+    setIsAuthenticated,
     setIsAdminAuthenticated,
     loading,
   } = useAppContext();
@@ -38,7 +39,7 @@ function Layout({ children }) {
   const [claimedNames, setClaimedNames] = useState([]);
   const [newNameInput, setNewNameInput] = useState('');
   const [pendingCredential, setPendingCredential] = useState(null);
-  const isAuthenticated = !!getAdminToken();
+  const isAuthenticated = !!getAuthToken();
 
   /**
    * Determina si el usuario está desde un dispositivo iOS.
@@ -135,8 +136,8 @@ function Layout({ children }) {
         fetchClaimedNames().then((names) => setClaimedNames(names));
       } else if (data.token) {
         // Logueo exitoso.
-        setAdminToken(data.token);
-        setIsAdminAuthenticated(true);
+        setAuthToken(data.token);
+        setIsAuthenticated?.(true);
         setUserName(data.participantName);
         localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
@@ -166,8 +167,8 @@ function Layout({ children }) {
       });
       const data = await res.json();
       if (res.ok && data.token) {
-        setAdminToken(data.token);
-        setIsAdminAuthenticated(true);
+        setAuthToken(data.token);
+        setIsAuthenticated?.(true);
         setUserName(data.participantName);
         localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
@@ -475,7 +476,9 @@ function Layout({ children }) {
               {isAuthenticated && (
                 <button
                   onClick={() => {
-                    setAdminToken(null);
+                    setAuthToken(null);
+                    setIsAuthenticated?.(false);
+                    setIsAdminAuthenticated?.(false);
                     setUserName('');
                     localStorage.removeItem('my_bet_name');
                     localStorage.removeItem('my_user_id');
@@ -730,7 +733,7 @@ function Layout({ children }) {
         </div>
       </div>
 
-      {/* Visor Global de Apuestas (Portal Inyectado) */}
+      {/* Visor Global de Porras (Portal Inyectado) */}
       <BetViewer />
     </>
   );

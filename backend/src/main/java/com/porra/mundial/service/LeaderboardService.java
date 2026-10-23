@@ -29,7 +29,7 @@ public class LeaderboardService {
     private final BetRepository betRepository;
     private final StandingsService standingsService;
     private final TopScorerService topScorerService;
-    private final HashTransitionService hashTransitionService;
+    private final PredictionPersistenceService predictionPersistenceService;
     private final MatchRepository matchRepository;
     private final SyncService syncService;
 
@@ -44,7 +44,7 @@ public class LeaderboardService {
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
         List<Bet> allBets = betRepository.findAll();
         Bet adminBet = allBets.stream().filter(b -> b.getParticipantName().equalsIgnoreCase("Admin") || (b.getBetName() != null && b.getBetName().equals("official"))).findFirst().orElse(null);
-        BetDataDTO officialData = adminBet != null ? hashTransitionService.rebuildBetDataDtoFromTables(adminBet.getId()) : new BetDataDTO();
+        BetDataDTO officialData = adminBet != null ? predictionPersistenceService.rebuildBetDataDtoFromTables(adminBet.getId()) : new BetDataDTO();
         syncService.enrichBetDataWithMatches(officialData);
 
         List<Bet> groupBets = allBets.stream().filter(b -> groupId.equals(b.getGroupId())).collect(Collectors.toList());
@@ -131,7 +131,7 @@ public class LeaderboardService {
 
         for (Bet bet : groupBets) {
             if (bet.getParticipantName().equalsIgnoreCase("Admin")) continue;
-            BetDataDTO participant = hashTransitionService.rebuildBetDataDtoFromTables(bet.getId());
+            BetDataDTO participant = predictionPersistenceService.rebuildBetDataDtoFromTables(bet.getId());
             if (participant == null) continue;
 
             CalculationContext ctx = new CalculationContext(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers, offOctavos, offQf, offSf, offFinal, offChampion);

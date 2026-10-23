@@ -4,7 +4,7 @@ import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../componen
 import { useBracket } from '../hooks/useBracket';
 
 /**
- * Componente principal para crear una Apuesta (Porra).
+ * Componente principal para crear una Porra (Pronóstico).
  * Coordina el paso 1 (Grupos) y el paso 2 (Eliminatorias).
  *
  * @component
@@ -415,7 +415,7 @@ function Bracket() {
                   setMobileStep('save');
                 }}
               >
-                Continuar a Guardar Apuesta
+                Continuar a Guardar Porra
               </button>
             </div>
           </div>
@@ -432,7 +432,7 @@ function Bracket() {
               border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            <h3 style={{ marginTop: 0, color: 'var(--accent-color)' }}>Guardar Apuesta</h3>
+            <h3 style={{ marginTop: 0, color: 'var(--accent-color)' }}>Guardar Porra</h3>
             <div style={{ display: 'flex', gap: 15, flexWrap: 'wrap', marginBottom: 15 }}>
               <input
                 type="text"
@@ -446,8 +446,8 @@ function Bracket() {
               />
               <input
                 type="text"
-                placeholder="Nombre Apuesta (ej: Apuesta 1)"
-                aria-label="Nombre de la Apuesta"
+                placeholder="Nombre de la Porra (ej: Mi Porra 1)"
+                aria-label="Nombre de la Porra"
                 value={betName}
                 onChange={(e) => setBetName(e.target.value)}
                 className="glass-input"
@@ -466,7 +466,7 @@ function Bracket() {
               )}
             </div>
             <button className="glass-btn primary-btn" onClick={generateBetData}>
-              Generar y Enviar Apuesta
+              Guardar Pronóstico
             </button>
           </div>
         </>

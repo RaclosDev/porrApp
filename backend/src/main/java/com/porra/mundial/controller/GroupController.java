@@ -60,8 +60,8 @@ public class GroupController {
     public ResponseEntity<?> createGroup(@Valid @RequestBody GroupCreateDTO payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         
-        com.porra.mundial.model.BetMode betMode = com.porra.mundial.model.BetMode.valueOf(payload.getBetMode());
-        BetGroup group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(), betMode, payload.getPichichi());
+        com.porra.mundial.model.PoolFormat poolFormat = com.porra.mundial.model.PoolFormat.fromString(payload.resolveFormat());
+        BetGroup group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(), poolFormat, payload.getPichichi());
         return ResponseEntity.ok(group);
     }
 
@@ -123,15 +123,17 @@ public class GroupController {
      * @return GroupResponseDTO con la información detallada.
      */
     @GetMapping("/{id}")
-    @org.springframework.cache.annotation.Cacheable(value = "groupResponse", key = "#id")
-    public ResponseEntity<?> getGroup(@PathVariable Long id) {
+    public ResponseEntity<?> getGroup(@PathVariable Long id, Principal principal) {
         Optional<BetGroup> group = groupService.getGroupById(id);
         if (group.isPresent()) {
             BetGroup g = group.get();
+            String email = principal != null ? principal.getName() : null;
+            boolean isMember = email != null && groupService.isUserMemberOrAdmin(id, email);
+
             GroupResponseDTO.GroupResponseDTOBuilder builder = GroupResponseDTO.builder()
                     .id(g.getId())
                     .name(g.getName())
-                    .joinCode(g.getJoinCode())
+                    .joinCode(isMember ? g.getJoinCode() : null)
                     .adminParticipantName(g.getAdminParticipantName())
                     .adminUserId(g.getAdminUserId())
                     .createdAt(g.getCreatedAt());
@@ -140,6 +142,7 @@ public class GroupController {
             editionRepository.findByLeagueIdAndStatus(g.getId(), "ACTIVE").ifPresent(e -> {
                 builder.competitionName(e.getCompetition().getName())
                        .betMode(e.getBetMode().name())
+                       .poolFormat(e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
                        .pichichi(e.isPichichi());
             });
             
@@ -169,7 +172,7 @@ public class GroupController {
      * @param principal Identidad del usuario (debe coincidir con el administrador del grupo).
      * @return Lista de apuestas con datos adicionales de gestión.
      */
-    @GetMapping("/{id}/bets")
+    @GetMapping({"/{id}/bets", "/{id}/predictions"})
     public ResponseEntity<?> getGroupBetsAdmin(@PathVariable Long id, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.getGroupBetsForAdmin(id, principal.getName()));
@@ -179,7 +182,7 @@ public class GroupController {
      * El administrador del grupo marca una apuesta como "Aceptada" o "Pagada" (PAID).
      * Esto normalmente la hace visible en el leaderboard.
      */
-    @PutMapping("/{id}/bets/{betId}/accept")
+    @PutMapping({"/{id}/bets/{betId}/accept", "/{id}/predictions/{betId}/accept"})
     public ResponseEntity<?> acceptBetAdmin(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         Object result = groupService.toggleBetPaymentStatus(id, betId, principal.getName(), true);
@@ -190,7 +193,7 @@ public class GroupController {
     /**
      * El administrador del grupo revoca el estado de "Pagado" de una apuesta.
      */
-    @PutMapping("/{id}/bets/{betId}/reject")
+    @PutMapping({"/{id}/bets/{betId}/reject", "/{id}/predictions/{betId}/reject"})
     public ResponseEntity<?> rejectBet(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.toggleBetPaymentStatus(id, betId, principal.getName(), false));
@@ -199,7 +202,7 @@ public class GroupController {
     /**
      * El administrador del grupo elimina una apuesta del grupo por ser inválida, morosa, etc.
      */
-    @DeleteMapping("/{id}/bets/{betId}")
+    @DeleteMapping({"/{id}/bets/{betId}", "/{id}/predictions/{betId}"})
     public ResponseEntity<?> deleteBetAdmin(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         groupService.deleteBet(id, betId, principal.getName());

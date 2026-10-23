@@ -1,4 +1,4 @@
-﻿import React, { useEffect, createContext, useContext } from 'react';
+import React, { useEffect, createContext, useContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchStandings,
@@ -25,7 +25,9 @@ export function AppProvider({ children }) {
   const userName = useAppStore((state) => state.userName);
   const activeGroupId = useAppStore((state) => state.activeGroupId);
   const bracketState = useAppStore((state) => state.bracketState);
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
   const isAdminAuthenticated = useAppStore((state) => state.isAdminAuthenticated);
+  const isUserAuthed = isAuthenticated || isAdminAuthenticated;
 
   const setUserName = useAppStore((state) => state.setUserName);
   const setUserId = useAppStore((state) => state.setUserId);
@@ -41,7 +43,7 @@ export function AppProvider({ children }) {
   }, [bracketState, activeGroupId]);
 
   useEffect(() => {
-    if (!isAdminAuthenticated) {
+    if (!isUserAuthed) {
       setTimeout(() => {
         setUserName('');
         setUserId('');
@@ -49,14 +51,14 @@ export function AppProvider({ children }) {
       localStorage.removeItem('my_bet_name');
       localStorage.removeItem('my_user_id');
     }
-  }, [isAdminAuthenticated, setUserName, setUserId]);
+  }, [isUserAuthed, setUserName, setUserId]);
 
   useEffect(() => {
     const autoSelectGroup = async () => {
       if (!userName) return;
       try {
         let dbGroupId = null;
-        if (isAdminAuthenticated) {
+        if (isUserAuthed) {
           try {
             const me = await fetchMe();
             dbGroupId = me.lastSelectedGroupId?.toString();
@@ -81,7 +83,7 @@ export function AppProvider({ children }) {
       }
     };
     autoSelectGroup();
-  }, [userName, isAdminAuthenticated, activeGroupId, changeGroup, setActiveGroupId]);
+  }, [userName, isUserAuthed, activeGroupId, changeGroup, setActiveGroupId]);
 
   return (
     <GlobalEffectsContext.Provider value={adminActions}>{children}</GlobalEffectsContext.Provider>
@@ -150,6 +152,7 @@ export const useAppContext = () => {
 
   return {
     ...store,
+    isAuthenticated: isUserAuthed,
     officialPoints: standings || {},
     matchRadar: radar || { live: [], last: [], next: [] },
     participantsHashes: bets || [],

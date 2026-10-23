@@ -14,6 +14,7 @@ import java.util.Map;
  * Permite a los superusuarios obtener un token JWT administrativo válido
  * al proporcionar la contraseña correcta.
  */
+@lombok.extern.slf4j.Slf4j
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -21,8 +22,8 @@ public class AdminAuthController {
 
     private final JwtUtil jwtUtil;
 
-    // Contraseña estática definida en las propiedades de Spring (application.properties o Variables de Entorno)
-    @Value("${admin.password}")
+    // Contraseña definida en variables de entorno (ADMIN_PASSWORD). Si no está seteada, el login queda inhabilitado.
+    @Value("${admin.password:}")
     private String adminPassword;
 
     /**
@@ -33,10 +34,13 @@ public class AdminAuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> payload) {
-        String password = payload.get("password");
-        // Verifica si la contraseña enviada coincide con la estática del sistema
-        if (adminPassword.equals(password)) {
-            // Genera un JWT genérico con el subject "admin"
+        String password = payload != null ? payload.get("password") : null;
+        if (adminPassword == null || adminPassword.isBlank()) {
+            log.error("ADMIN_PASSWORD no está configurada en las variables de entorno.");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "El acceso administrativo no está configurado en el servidor"));
+        }
+        if (password != null && adminPassword.equals(password)) {
             String token = jwtUtil.generateToken("admin");
             return ResponseEntity.ok(Map.of("token", token));
         }

@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 
 export const defaultBracketState = {
   r32: {
@@ -70,6 +70,10 @@ export const useAppStore = create((set) => ({
 
   viewerBetId: null,
   setViewerBetId: (viewerBetId) => set({ viewerBetId }),
+
+  isAuthenticated:
+    !!localStorage.getItem('token') || !!localStorage.getItem('adminToken') || !!window.adminToken,
+  setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
 
   isAdminAuthenticated: !!localStorage.getItem('adminToken') || !!window.adminToken,
   setIsAdminAuthenticated: (isAdminAuthenticated) => set({ isAdminAuthenticated }),

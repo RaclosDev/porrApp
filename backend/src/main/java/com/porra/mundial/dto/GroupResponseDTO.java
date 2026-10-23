@@ -29,8 +29,10 @@ public class GroupResponseDTO {
     // Campos específicos de la Edición Activa (Edition) en este grupo
     /** Nombre de la competición actual en curso (Ej: Euro 2024). */
     private String competitionName;
-    /** Modo de apuesta elegido para esta edición (TRADITIONAL, ADVANCED). */
+    /** Formato de porra (legacy). */
     private String betMode;
+    /** Formato de porra / modalidad (FULL_BRACKET, KNOCKOUTS_ONLY). */
+    private String poolFormat;
     /** Si esta edición cuenta con un premio/ranking al pichichi. */
     private Boolean pichichi;
 }

@@ -1,18 +1,27 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.model.Bet;
+
 import com.porra.mundial.service.BetService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.web.bind.annotation.*;
 
 import com.porra.mundial.dto.BetDataDTO;
+
 import com.porra.mundial.dto.BetResponseDTO;
+
 import jakarta.validation.Valid;
 
 import java.util.List;
+
 import java.util.Map;
+
 import java.util.NoSuchElementException;
 
 /**
@@ -20,12 +29,17 @@ import java.util.NoSuchElementException;
  * Constituye el puente entre la interfaz de usuario de React y la lógica de negocio en el Backend.
  * Permite listar, crear, modificar y eliminar las apuestas de los usuarios.
  */
+
 @RestController
-@RequestMapping("/api/bets")
+
+@RequestMapping({"/api/bets", "/api/predictions"})
+
 @RequiredArgsConstructor
+
 public class BetController {
 
     private final BetService betService;
+
     private final com.porra.mundial.service.WebSocketService webSocketService;
 
     /**
@@ -36,18 +50,45 @@ public class BetController {
      * @param groupId (Opcional) El ID del grupo para filtrar las apuestas.
      * @return Una lista de apuestas formateadas como BetResponseDTO para la vista de la web.
      */
+
     @GetMapping
+
     @org.springframework.cache.annotation.Cacheable(value = "allBetsDto", key = "#groupId != null ? #groupId : 'ALL'")
+
     public List<BetResponseDTO> getAllBets(@RequestParam(required = false) Long groupId) {
+
         List<Bet> bets;
+
         if (groupId != null) {
+
             // Filtro por grupo (ej: Grupo de amigos de Carlos)
+
             bets = betService.getBetsByGroupId(groupId);
+
         } else {
-            // Sin filtro: trae todas las apuestas del sistema (Comportamiento legacy / Admin)
-            bets = betService.getAllBets();
+
+            // Si no se aporta groupId, por seguridad devolvemos las apuestas del grupo global (ID 1)
+
+            // salvo que sea un superadministrador solicitando el volcado completo
+
+            String email = SecurityContextHolder.getContext().getAuthentication() != null
+
+                    ? SecurityContextHolder.getContext().getAuthentication().getName() : null;
+
+            if (betService.isSuperAdmin(email)) {
+
+                bets = betService.getAllBets();
+
+            } else {
+
+                bets = betService.getBetsByGroupId(1L);
+
+            }
+
         }
+
         return betService.toBetDtoList(bets);
+
     }
 
     /**
@@ -57,11 +98,17 @@ public class BetController {
      * 
      * @return Lista de BetResponseDTO pertenecientes al usuario conectado.
      */
+
     @GetMapping("/mine")
+
     @org.springframework.cache.annotation.Cacheable(value = "myBetsDto", key = "T(org.springframework.security.core.context.SecurityContextHolder).getContext().getAuthentication().getName()")
+
     public List<BetResponseDTO> getMyBets() {
+
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
         return betService.toBetDtoList(betService.getBetsByGoogleEmail(email));
+
     }
 
     /**
@@ -73,24 +120,37 @@ public class BetController {
      * @param groupId ID del grupo en el que participa la apuesta.
      * @return Objeto JSON con el estado de creación y el ID asignado a la nueva apuesta.
      */
+
     @PostMapping
+
     public ResponseEntity<Map<String, Object>> createBet(@Valid @RequestBody BetDataDTO body, @RequestParam(required = false) Long groupId) {
+
         // Obtenemos el email directamente del contexto de Spring Security para garantizar identidad
+
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
         String betName = body.getBet();
 
         // Creamos la apuesta y todo su árbol de predicciones (Bracket, Groups, Extras) a través del BetService
+
         Bet bet = betService.createBet(email, betName != null ? betName : body.getUser(), body, groupId);
 
         // Notifica por WebSocket a todos los clientes que hay una nueva apuesta (actualiza vistas en tiempo real)
+
         webSocketService.invalidateAndNotify();
 
         return ResponseEntity.ok(Map.of(
+
                 "id", bet.getId(),
+
                 "participantName", bet.getParticipantName(),
+
                 "groupId", bet.getGroupId() != null ? bet.getGroupId().toString() : "",
+
                 "status", "creada_con_exito"
+
         ));
+
     }
 
     /**
@@ -102,10 +162,24 @@ public class BetController {
      * @param body Payload JSON actualizado de la apuesta.
      * @return OK si fue actualizada con éxito.
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateBet(@PathVariable Long id, @Valid @RequestBody BetDataDTO body) {
-        Bet bet = betService.updateBet(id, body.getUser(), body.getBet(), body);
+
+        private String getRequesterEmail(java.security.Principal principal) {
+        if (principal != null && principal.getName() != null) {
+            return principal.getName();
+        }
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null) ? auth.getName() : null;
+    }
+
+@PutMapping("/{id}")
+
+    public ResponseEntity<?> updateBet(@PathVariable Long id, @Valid @RequestBody BetDataDTO body, java.security.Principal principal) {
+        String email = getRequesterEmail(principal);
+
+        Bet bet = betService.updateBet(id, email, body.getUser(), body.getBet(), body);
+
         return ResponseEntity.ok(Map.of("id", bet.getId(), "status", "actualizada_con_exito"));
+
     }
 
     /**
@@ -116,10 +190,15 @@ public class BetController {
      * @param id ID de la apuesta.
      * @return BetDataDTO (Objeto complejo de datos compatible con React Bracket).
      */
+
     @GetMapping("/{id}")
+
     public ResponseEntity<?> getBet(@PathVariable Long id) {
+
         BetDataDTO dto = betService.getBetData(id);
+
         return ResponseEntity.ok(dto);
+
     }
 
     /**
@@ -130,10 +209,16 @@ public class BetController {
      * @param id Identificador de la apuesta.
      * @return Confirmación de actualización de estado.
      */
+
     @PutMapping("/{id}/pay")
-    public ResponseEntity<?> markAsPaid(@PathVariable Long id) {
-        betService.markAsPaid(id);
+
+    public ResponseEntity<?> markAsPaid(@PathVariable Long id, java.security.Principal principal) {
+        String email = getRequesterEmail(principal);
+
+        betService.markAsPaid(id, email);
+
         return ResponseEntity.ok(Map.of("status", "paid"));
+
     }
 
     /**
@@ -143,9 +228,16 @@ public class BetController {
      * @param id Identificador de la apuesta a eliminar.
      * @return Confirmación de eliminación.
      */
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteBet(@PathVariable Long id) {
-        betService.deleteBet(id);
+
+    public ResponseEntity<?> deleteBet(@PathVariable Long id, java.security.Principal principal) {
+        String email = getRequesterEmail(principal);
+
+        betService.deleteBet(id, email);
+
         return ResponseEntity.ok(Map.of("status", "deleted"));
+
     }
+
 }

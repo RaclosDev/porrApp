@@ -110,7 +110,7 @@ public class GroupService {
             .orElseGet(() -> editionRepository.save(Edition.builder()
                     .league(finalGlobalGroup)
                     .competition(comp)
-                    .betMode(com.porra.mundial.model.BetMode.FULL_BRACKET)
+                    .poolFormat(com.porra.mundial.model.PoolFormat.FULL_BRACKET)
                     .status("ACTIVE")
                     .build()));
 
@@ -155,7 +155,19 @@ public class GroupService {
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
     public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode) {
-        return createGroup(name, email, competitionId, betMode, true);
+        return createGroup(name, email, competitionId, betMode != null ? betMode.toPoolFormat() : com.porra.mundial.model.PoolFormat.FULL_BRACKET, true);
+    }
+
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat) {
+        return createGroup(name, email, competitionId, poolFormat, true);
+    }
+
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode, boolean pichichi) {
+        return createGroup(name, email, competitionId, betMode != null ? betMode.toPoolFormat() : com.porra.mundial.model.PoolFormat.FULL_BRACKET, pichichi);
     }
 
     /**
@@ -163,7 +175,7 @@ public class GroupService {
      */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
-    public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode, boolean pichichi) {
+    public BetGroup createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
         String joinCode;
         // Genera un código de 6 caracteres aleatorio
         do {
@@ -194,7 +206,7 @@ public class GroupService {
         editionRepository.save(Edition.builder()
                 .league(group)
                 .competition(comp)
-                .betMode(betMode)
+                .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
                 .pichichi(pichichi)
                 .status("ACTIVE")
                 .build());
@@ -314,7 +326,8 @@ public class GroupService {
                     .adminUserId(g.getAdminUserId())
                     .createdAt(g.getCreatedAt())
                     .competitionName(e != null ? e.getCompetition().getName() : null)
-                    .betMode(e != null ? e.getBetMode().name() : null)
+                    .betMode(e != null && e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
+                    .poolFormat(e != null && e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
                     .pichichi(e != null ? e.isPichichi() : null)
                     .build();
         }).collect(Collectors.toList());
@@ -323,6 +336,22 @@ public class GroupService {
     @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
     public Optional<BetGroup> getGroupById(Long id) {
         return betGroupRepository.findById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isUserMemberOrAdmin(Long groupId, String email) {
+        if (groupId == null || email == null || email.isBlank()) {
+            return false;
+        }
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user == null) {
+            return false;
+        }
+        if (user.isSuperadmin()) {
+            return true;
+        }
+        Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
+        return membershipRepository.existsById(memId);
     }
 
     /**
