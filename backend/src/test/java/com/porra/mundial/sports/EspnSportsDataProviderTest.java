@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.net.http.HttpClient;
@@ -40,13 +39,25 @@ class EspnSportsDataProviderTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         provider = new EspnSportsDataProvider(httpClient, objectMapper);
-        ReflectionTestUtils.setField(provider, "espnScoreboardUrl", "https://mock.espn.com/scoreboard");
     }
 
     @Test
     @DisplayName("Debe reportar ESPN como nombre del proveedor")
     void getProviderName_returnsEspn() {
         assertEquals("ESPN", provider.getProviderName());
+    }
+
+    @Test
+    @DisplayName("Debe soportar múltiples competiciones (LaLiga, Champions, Premier, Mundial)")
+    void supports_returnsTrueForSupportedCompetitions() {
+        assertTrue(provider.supports("esp.1"));
+        assertTrue(provider.supports("uefa.champions"));
+        assertTrue(provider.supports("eng.1"));
+        assertTrue(provider.supports("fifa.world"));
+        assertTrue(provider.supports("LaLiga EA Sports"));
+        assertTrue(provider.supports("UEFA Champions League"));
+        assertTrue(provider.supports("Premier League"));
+        assertTrue(provider.supports("FIFA World Cup 2026"));
     }
 
     @Test
@@ -58,7 +69,7 @@ class EspnSportsDataProviderTest {
         when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
-        JsonNode events = provider.fetchScoreboardEvents("20260611-20260722");
+        JsonNode events = provider.fetchScoreboardEvents("esp.1", "20261024");
 
         assertNotNull(events);
         assertTrue(events.isArray());
@@ -81,7 +92,7 @@ class EspnSportsDataProviderTest {
         when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of("Content-Encoding", List.of("gzip")), (k, v) -> true));
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
-        JsonNode events = provider.fetchScoreboardEvents("20260719");
+        JsonNode events = provider.fetchScoreboardEvents("uefa.champions", "20261025");
 
         assertNotNull(events);
         assertTrue(events.isArray());
@@ -97,10 +108,27 @@ class EspnSportsDataProviderTest {
         when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
-        JsonNode events = provider.fetchScoreboardEvents("20260611-20260722");
+        JsonNode events = provider.fetchScoreboardEvents("esp.1", "20261024");
 
         assertNotNull(events);
         assertTrue(events.isArray());
         assertEquals(0, events.size());
+    }
+
+    @Test
+    @DisplayName("Debe descargar y parsear el catálogo de equipos de una liga")
+    void fetchTeams_parsesTeamsCorrectly() throws Exception {
+        String json = "{\"sports\": [{\"leagues\": [{\"teams\": [{\"team\": {\"id\": \"96\", \"displayName\": \"Alavés\"}}]}]}]}";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode teams = provider.fetchTeams("esp.1");
+
+        assertNotNull(teams);
+        assertTrue(teams.isArray());
+        assertEquals(1, teams.size());
+        assertEquals("Alavés", teams.get(0).path("team").path("displayName").asText());
     }
 }
