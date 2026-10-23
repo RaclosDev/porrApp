@@ -14,7 +14,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * Adaptador para la API publica de ESPN (scoreboard de futbol).
+ * Adaptador para la API pública de ESPN (scoreboard de fútbol).
  */
 @Component
 @RequiredArgsConstructor
@@ -30,6 +30,13 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     @Override
     public String getProviderName() {
         return "ESPN";
+    }
+
+    @Override
+    public boolean supports(String competitionCode) {
+        if (competitionCode == null || competitionCode.isBlank()) return true;
+        String lower = competitionCode.toLowerCase();
+        return lower.contains("fifa") || lower.contains("world") || lower.contains("mundial") || lower.contains("espn");
     }
 
     @Override

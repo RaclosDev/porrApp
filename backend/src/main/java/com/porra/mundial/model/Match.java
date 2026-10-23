@@ -5,9 +5,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- *  Entidad 'Match' (Partido Real).
+ * Entidad 'Match' (Partido Real).
  * Representa un partido de fútbol real del torneo oficial.
- * Se sincroniza continuamente con la API de ESPN para obtener resultados en vivo.
+ * Se sincroniza continuamente con proveedores deportivos para obtener resultados en vivo.
  */
 @Entity
 @Table(name = "matches")
@@ -60,9 +60,15 @@ public class Match {
     @Builder.Default
     private String round = "group"; 
 
-    /** El ID que usa la API externa oficial (ESPN) para no crear duplicados al sincronizar. */
+    /** El ID que usa la API externa oficial para no crear duplicados al sincronizar. */
     private String externalId;
 
     /** El minuto actual del partido si está en directo (ej. "45'", "HT", "FT"). */
     private String displayClock;
+
+    /** Estado canónico normalizado del partido (ej. SCHEDULED, LIVE, FINISHED, POSTPONED). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 30)
+    @Builder.Default
+    private MatchStatusNormalized status = MatchStatusNormalized.SCHEDULED;
 }

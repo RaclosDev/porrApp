@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useAdminData } from '../hooks/useAdminData';
+import { fetchSyncStatus, overrideMatchResult, fetchMatches } from '../services/api';
 
 /**
  * Botón genérico para realizar acciones de refresco o llamadas a API del administrador.
@@ -76,6 +78,70 @@ function Admin() {
     unifiedUsers,
     handleDeleteLog,
   } = useAdminData();
+
+  const [syncOverview, setSyncOverview] = useState(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [matchesList, setMatchesList] = useState([]);
+  const [selectedMatchId, setSelectedMatchId] = useState('');
+  const [manualHomeScore, setManualHomeScore] = useState('');
+  const [manualAwayScore, setManualAwayScore] = useState('');
+  const [manualStatus, setManualStatus] = useState('FINISHED');
+  const [manualSubmitStatus, setManualSubmitStatus] = useState(null);
+  const [manualMessage, setManualMessage] = useState('');
+
+  const loadSyncData = async () => {
+    try {
+      setSyncLoading(true);
+      const data = await fetchSyncStatus();
+      setSyncOverview(data);
+    } catch (err) {
+      console.error('Error fetching sync overview', err);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdminAuthenticated) {
+      loadSyncData();
+      fetchMatches()
+        .then((m) => {
+          if (Array.isArray(m)) setMatchesList(m);
+        })
+        .catch(() => {});
+    }
+  }, [isAdminAuthenticated]);
+
+  const handleManualOverride = async (e) => {
+    e.preventDefault();
+    if (!selectedMatchId || manualHomeScore === '' || manualAwayScore === '') {
+      setManualMessage('Por favor completa todos los campos requeridos');
+      setManualSubmitStatus('error');
+      return;
+    }
+    setManualSubmitStatus('loading');
+    setManualMessage('');
+    try {
+      await overrideMatchResult(
+        Number(selectedMatchId),
+        Number(manualHomeScore),
+        Number(manualAwayScore),
+        manualStatus,
+      );
+      setManualSubmitStatus('ok');
+      setManualMessage('Resultado actualizado y puntuaciones recalculadas exitosamente');
+      loadSyncData();
+      const m = await fetchMatches();
+      if (Array.isArray(m)) setMatchesList(m);
+      setTimeout(() => {
+        setManualSubmitStatus(null);
+        setManualMessage('');
+      }, 4000);
+    } catch (err) {
+      setManualSubmitStatus('error');
+      setManualMessage(err.message || 'Error al actualizar el partido');
+    }
+  };
 
   const formatDate = (isoString) => {
     const d = new Date(isoString);
@@ -258,6 +324,387 @@ function Admin() {
                 ? '❌ Error'
                 : 'Guardar Backup de Porras'}
         </button>
+      </div>
+
+      {/* Panel de Sincronización y Observabilidad Deportiva (Fase 4) */}
+      <div
+        style={{
+          marginTop: '20px',
+          padding: '18px',
+          background: 'var(--bg-card)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '14px',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#00cec9' }}>
+            📡 Sincronización Deportiva y Proveedores
+          </div>
+          <button
+            onClick={loadSyncData}
+            disabled={syncLoading}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              border: 'none',
+              background: 'rgba(255,255,255,0.1)',
+              color: 'white',
+              cursor: syncLoading ? 'wait' : 'pointer',
+              fontSize: '0.85rem',
+            }}
+          >
+            {syncLoading ? 'Actualizando...' : '🔄 Actualizar Estado'}
+          </button>
+        </div>
+
+        {syncOverview ? (
+          <div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                gap: '10px',
+                marginBottom: '16px',
+              }}
+            >
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Estado Sync</div>
+                <div
+                  style={{
+                    fontWeight: 'bold',
+                    color:
+                      syncOverview.status === 'SUCCESS' || syncOverview.status === 'HEALTHY'
+                        ? '#00b894'
+                        : syncOverview.status === 'circuit_breaker_open'
+                          ? '#ff4757'
+                          : '#fbc531',
+                  }}
+                >
+                  {syncOverview.status || 'N/A'}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Proveedor Activo
+                </div>
+                <div style={{ fontWeight: 'bold', color: 'white' }}>
+                  {syncOverview.defaultProvider || 'ESPN'}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Último Refresco
+                </div>
+                <div style={{ fontWeight: 'bold', color: 'white', fontSize: '0.85rem' }}>
+                  {syncOverview.lastSyncTime ? formatDate(syncOverview.lastSyncTime) : 'Pendiente'}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Partidos Actualizados
+                </div>
+                <div style={{ fontWeight: 'bold', color: '#00cec9' }}>
+                  {syncOverview.matchesUpdated ?? 0}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
+              Proveedores registrados:{' '}
+              <span style={{ color: 'white' }}>
+                {Array.isArray(syncOverview.availableProviders)
+                  ? syncOverview.availableProviders.join(', ')
+                  : 'ESPN'}
+              </span>
+            </div>
+
+            {Array.isArray(syncOverview.recentLogs) && syncOverview.recentLogs.length > 0 && (
+              <div style={{ marginTop: '12px' }}>
+                <div
+                  style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    color: 'var(--text-muted)',
+                    marginBottom: '8px',
+                  }}
+                >
+                  📋 Últimas Sincronizaciones Auditadas:
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table
+                    style={{
+                      width: '100%',
+                      fontSize: '0.8rem',
+                      borderCollapse: 'collapse',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <thead>
+                      <tr
+                        style={{
+                          color: 'var(--text-muted)',
+                          borderBottom: '1px solid rgba(255,255,255,0.1)',
+                        }}
+                      >
+                        <th style={{ padding: '6px' }}>Fecha</th>
+                        <th style={{ padding: '6px' }}>Proveedor</th>
+                        <th style={{ padding: '6px' }}>Competición</th>
+                        <th style={{ padding: '6px' }}>Estado</th>
+                        <th style={{ padding: '6px' }}>Partidos</th>
+                        <th style={{ padding: '6px' }}>Duración</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {syncOverview.recentLogs.slice(0, 5).map((log) => (
+                        <tr
+                          key={log.id}
+                          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                        >
+                          <td style={{ padding: '6px' }}>{formatDate(log.syncedAt)}</td>
+                          <td style={{ padding: '6px', color: '#00cec9' }}>{log.providerName}</td>
+                          <td style={{ padding: '6px' }}>{log.competitionCode || 'General'}</td>
+                          <td
+                            style={{
+                              padding: '6px',
+                              color: log.status === 'SUCCESS' ? '#00b894' : '#ff4757',
+                            }}
+                          >
+                            {log.status}
+                          </td>
+                          <td style={{ padding: '6px' }}>{log.matchesUpdated}</td>
+                          <td style={{ padding: '6px' }}>{log.durationMs}ms</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            Cargando estado del servicio de datos...
+          </div>
+        )}
+      </div>
+
+      {/* Formulario de Corrección Manual de Resultados (Fase 4) */}
+      <div
+        style={{
+          marginTop: '20px',
+          padding: '18px',
+          background: 'var(--bg-card)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }}
+      >
+        <div
+          style={{ fontWeight: 'bold', fontSize: '1rem', color: '#fbc531', marginBottom: '10px' }}
+        >
+          ⚖️ Corrección Manual de Resultados de Partidos
+        </div>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
+          Permite corregir o forzar el resultado de cualquier partido. Al guardar se recalcularán
+          inmediatamente las puntuaciones de todos los participantes y se notificará en tiempo real.
+        </p>
+
+        <form onSubmit={handleManualOverride}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-muted)',
+                  marginBottom: '4px',
+                }}
+              >
+                Seleccionar Partido:
+              </label>
+              <select
+                value={selectedMatchId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelectedMatchId(id);
+                  const found = matchesList.find((m) => String(m.id) === String(id));
+                  if (found) {
+                    setManualHomeScore(
+                      found.homeScore !== null && found.homeScore !== undefined
+                        ? String(found.homeScore)
+                        : '0',
+                    );
+                    setManualAwayScore(
+                      found.awayScore !== null && found.awayScore !== undefined
+                        ? String(found.awayScore)
+                        : '0',
+                    );
+                    setManualStatus(found.status || 'FINISHED');
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                }}
+              >
+                <option value="">-- Elige un partido para corregir --</option>
+                {matchesList.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    #{m.id} - {m.homeTeam?.name || 'Local'} ({m.homeScore ?? '-'}) vs (
+                    {m.awayScore ?? '-'}) {m.awayTeam?.name || 'Visitante'} [
+                    {m.status || (m.finished ? 'FINISHED' : 'SCHEDULED')}]
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 120px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Goles Local:
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={manualHomeScore}
+                  onChange={(e) => setManualHomeScore(e.target.value)}
+                  placeholder="0"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: 'white',
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: '1 1 120px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Goles Visitante:
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={manualAwayScore}
+                  onChange={(e) => setManualAwayScore(e.target.value)}
+                  placeholder="0"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: 'white',
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: '1 1 160px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Estado Canónico:
+                </label>
+                <select
+                  value={manualStatus}
+                  onChange={(e) => setManualStatus(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: 'white',
+                  }}
+                >
+                  <option value="FINISHED">FINALIZADO (FINISHED)</option>
+                  <option value="LIVE">EN DIRECTO (LIVE)</option>
+                  <option value="PAUSED">EN DESCANSO (PAUSED)</option>
+                  <option value="SCHEDULED">PROGRAMADO (SCHEDULED)</option>
+                  <option value="POSTPONED">APLAZADO (POSTPONED)</option>
+                  <option value="CANCELLED">CANCELADO (CANCELLED)</option>
+                </select>
+              </div>
+            </div>
+
+            {manualMessage && (
+              <div
+                style={{
+                  fontSize: '0.85rem',
+                  color: manualSubmitStatus === 'ok' ? '#00b894' : '#ff4757',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(0,0,0,0.2)',
+                }}
+              >
+                {manualMessage}
+              </div>
+            )}
+
+            <div>
+              <button
+                type="submit"
+                disabled={manualSubmitStatus === 'loading' || !selectedMatchId}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#fbc531',
+                  color: '#1e272e',
+                  fontWeight: 'bold',
+                  cursor:
+                    !selectedMatchId || manualSubmitStatus === 'loading'
+                      ? 'not-allowed'
+                      : 'pointer',
+                  opacity: !selectedMatchId ? 0.6 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                {manualSubmitStatus === 'loading'
+                  ? 'Guardando...'
+                  : '💾 Guardar y Recalcular Puntuaciones'}
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
 
       {/* Directorio Unificado de Usuarios */}
