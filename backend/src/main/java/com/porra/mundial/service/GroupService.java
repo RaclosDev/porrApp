@@ -111,8 +111,13 @@ public class GroupService {
                     .league(finalGlobalGroup)
                     .competition(comp)
                     .poolFormat(com.porra.mundial.model.PoolFormat.FULL_BRACKET)
+                    .pichichi(false)
                     .status("ACTIVE")
                     .build()));
+        if (edition.isPichichi()) {
+            edition.setPichichi(false);
+            editionRepository.save(edition);
+        }
 
         // Ensure Membership for Admin
         Membership.MembershipId memId = new Membership.MembershipId(finalGlobalGroup.getAdminUser().getId(), finalGlobalGroup.getId());
@@ -161,7 +166,7 @@ public class GroupService {
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat) {
-        return createGroup(name, email, competitionId, poolFormat, true);
+        return createGroup(name, email, competitionId, poolFormat, false);
     }
 
     @Transactional

@@ -15,7 +15,8 @@ import TopScorersPanel from '../components/Home/TopScorersPanel';
  * @returns {JSX.Element} La vista del bracket oficial.
  */
 function OfficialBracket({ hideTitle }) {
-  const { officialPoints, groupOdds, allGames, matchRadar, topScorers } = useAppContext();
+  const { officialPoints, groupOdds, allGames, matchRadar, topScorers, activeGroupPichichi } =
+    useAppContext();
   const [activePanel, setActivePanel] = useState(null); // 'live', 'scorers', null
 
   // Build bracket data
@@ -421,23 +422,26 @@ function OfficialBracket({ hideTitle }) {
             >
               🔴 Partidos
             </button>
-            <button
-              className="glass-btn"
-              onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
-              style={{
-                padding: '6px 14px',
-                fontSize: '0.85rem',
-                fontWeight: 'bold',
-                background: activePanel === 'scorers' ? 'rgba(255, 211, 42, 0.18)' : 'transparent',
-                borderColor: activePanel === 'scorers' ? '#ffd32a' : 'var(--border-color)',
-                color: activePanel === 'scorers' ? '#ffd32a' : 'var(--text-muted)',
-                borderRadius: '8px',
-                transition: 'all 0.2s',
-                cursor: 'pointer',
-              }}
-            >
-              🏆 Pichichi
-            </button>
+            {activeGroupPichichi && (
+              <button
+                className="glass-btn"
+                onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '0.85rem',
+                  fontWeight: 'bold',
+                  background:
+                    activePanel === 'scorers' ? 'rgba(255, 211, 42, 0.18)' : 'transparent',
+                  borderColor: activePanel === 'scorers' ? '#ffd32a' : 'var(--border-color)',
+                  color: activePanel === 'scorers' ? '#ffd32a' : 'var(--text-muted)',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                }}
+              >
+                🏆 Pichichi
+              </button>
+            )}
           </div>
 
           {/* HUD Modal Centrado debajo de los botones - Cierra al hacer clic en cualquier parte fuera */}

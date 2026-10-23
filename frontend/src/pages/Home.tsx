@@ -18,8 +18,16 @@ import TopScorersPanel from '../components/Home/TopScorersPanel';
  * @returns {JSX.Element} La página de inicio renderizada.
  */
 function Home({ defaultMode = 'bracket' }) {
-  const { groupOdds, officialPoints, allGames, nameToIdMap, loading, matchRadar, topScorers } =
-    useAppContext();
+  const {
+    groupOdds,
+    officialPoints,
+    allGames,
+    nameToIdMap,
+    loading,
+    matchRadar,
+    topScorers,
+    activeGroupPichichi,
+  } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [viewMode, setViewMode] = useState(defaultMode);
   const [activeMobilePanel, setActiveMobilePanel] = useState(null); // null, 'thirds', 'live', 'scorers'
@@ -242,24 +250,26 @@ function Home({ defaultMode = 'bracket' }) {
             >
               🔴 Partidos
             </button>
-            <button
-              className={`mb-tab ${activeMobilePanel === 'scorers' ? 'mb-tab-active' : ''}`}
-              onClick={() => setActiveMobilePanel((p) => (p === 'scorers' ? null : 'scorers'))}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                ...(activeMobilePanel === 'scorers'
-                  ? {
-                      background: 'rgba(255, 211, 42, 0.18)',
-                      borderColor: '#ffd32a',
-                      color: '#ffd32a',
-                      boxShadow: 'none',
-                    }
-                  : {}),
-              }}
-            >
-              🏆 Pichichi
-            </button>
+            {activeGroupPichichi && (
+              <button
+                className={`mb-tab ${activeMobilePanel === 'scorers' ? 'mb-tab-active' : ''}`}
+                onClick={() => setActiveMobilePanel((p) => (p === 'scorers' ? null : 'scorers'))}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  ...(activeMobilePanel === 'scorers'
+                    ? {
+                        background: 'rgba(255, 211, 42, 0.18)',
+                        borderColor: '#ffd32a',
+                        color: '#ffd32a',
+                        boxShadow: 'none',
+                      }
+                    : {}),
+                }}
+              >
+                🏆 Pichichi
+              </button>
+            )}
           </div>
 
           <div
@@ -286,9 +296,11 @@ function Home({ defaultMode = 'bracket' }) {
                 maxNext={1}
               />
             </div>
-            <div className={activeMobilePanel === 'scorers' ? '' : 'mobile-step-hidden'}>
-              <TopScorersPanel topScorers={topScorers} />
-            </div>
+            {activeGroupPichichi && (
+              <div className={activeMobilePanel === 'scorers' ? '' : 'mobile-step-hidden'}>
+                <TopScorersPanel topScorers={topScorers} />
+              </div>
+            )}
           </div>
         </>
       )}
@@ -338,18 +350,20 @@ function Home({ defaultMode = 'bracket' }) {
               maxNext={1}
             />
           </div>
-          <div
-            style={{
-              flex: 1,
-              minWidth: 'min(100%, 380px)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'flex-start',
-            }}
-            className="pichichi-mobile-center"
-          >
-            <TopScorersPanel topScorers={topScorers} />
-          </div>
+          {activeGroupPichichi && (
+            <div
+              style={{
+                flex: 1,
+                minWidth: 'min(100%, 380px)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+              }}
+              className="pichichi-mobile-center"
+            >
+              <TopScorersPanel topScorers={topScorers} />
+            </div>
+          )}
         </div>
       )}
 

@@ -125,6 +125,9 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
     }
 
     private void evaluateTopScorer(ParticipantScoreDTO score, CalculationContext ctx) {
+        if (rules == null || rules.getTopScorerPoints() <= 0) {
+            return;
+        }
         if (ctx.offChampion() == null) {
             return;
         }

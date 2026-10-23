@@ -18,6 +18,7 @@ function Leaderboard() {
     isRaclos,
     activeGroupName,
     activeGroupId,
+    activeGroupPichichi,
     userId,
     userName,
     isLeagueAdmin,
@@ -83,7 +84,7 @@ function Leaderboard() {
     { key: 'qf', label: 'Cuartos' },
     { key: 'sf', label: 'Semis' },
     { key: 'finals', label: 'Finales' },
-    { key: 'scorer', label: 'Pichichi' },
+    ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi' }] : []),
   ];
 
   const sortIndicator = (colKey) => {
@@ -503,7 +504,7 @@ function Leaderboard() {
                       <td>{r.paid ? r.points.qf : '-'}</td>
                       <td>{r.paid ? r.points.sf : '-'}</td>
                       <td>{r.paid ? r.points.finals : '-'}</td>
-                      <td>{r.paid ? r.points.scorer : '-'}</td>
+                      {activeGroupPichichi && <td>{r.paid ? r.points.scorer : '-'}</td>}
                     </tr>
                   );
                 })}

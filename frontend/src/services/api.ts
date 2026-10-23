@@ -230,7 +230,7 @@ export async function fetchCompetitions() {
   return fetchJson(`${API_BASE}/competitions`);
 }
 
-export async function createGroup(name, competitionId, poolFormat, pichichi = true) {
+export async function createGroup(name, competitionId, poolFormat, pichichi = false) {
   const res = await fetch(`${API_BASE}/groups`, {
     method: 'POST',
     headers: {

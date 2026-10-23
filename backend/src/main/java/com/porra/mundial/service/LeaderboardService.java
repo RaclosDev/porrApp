@@ -85,7 +85,9 @@ public class LeaderboardService {
         });
 
         List<String> bestVirtualThirds = allThirds.stream().limit(8).map(gs -> gs.getTeam().getName()).collect(Collectors.toList());
-        List<Map<String, Object>> allScorers = topScorerService.getTopScorers();
+        boolean pichichiActive = groupPredictions.stream()
+                .anyMatch(p -> p.getEdition() != null && p.getEdition().isPichichi());
+        List<Map<String, Object>> allScorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
 
         List<Match> allMatches = matchRepository.findAll();
         List<Match> r16Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r16", "octav")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());

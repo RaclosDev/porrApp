@@ -10,7 +10,7 @@ import { fetchRules } from '../services/api';
  * @returns {JSX.Element} Vista con las reglas del juego.
  */
 function Rules() {
-  const { participantsHashes } = useAppContext();
+  const { participantsHashes, activeGroupPichichi } = useAppContext();
   const { data: rules } = useQuery({ queryKey: ['rules'], queryFn: fetchRules });
 
   const qualifierPts = rules?.groupQualifierPoints ?? 10;
@@ -163,9 +163,11 @@ function Rules() {
               <li>
                 🥉 Tercero: <b>{thirdPts} pts</b> / 🏅 Cuarto: <b>{fourthPts} pts</b>
               </li>
-              <li>
-                👟 Pichichi: <b>{pichichiPts} pts</b>
-              </li>
+              {activeGroupPichichi && pichichiPts > 0 && (
+                <li>
+                  👟 Pichichi: <b>{pichichiPts} pts</b>
+                </li>
+              )}
             </ul>
           </div>
           <div
