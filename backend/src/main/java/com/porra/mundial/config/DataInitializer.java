@@ -44,6 +44,7 @@ public class DataInitializer implements CommandLineRunner {
     private final SyncService syncService;
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
+    private final com.porra.mundial.repository.CompetitionRepository competitionRepository;
 
     /**
      * Método principal que arranca con Spring Boot.
@@ -52,6 +53,13 @@ public class DataInitializer implements CommandLineRunner {
      */
     @Override
     public void run(String... args) {
+        if (competitionRepository.count() == 0) {
+            competitionRepository.save(com.porra.mundial.model.Competition.builder()
+                    .name("FIFA World Cup 2026")
+                    .externalId("fifa.world")
+                    .build());
+        }
+
         if (teamRepository.findByName("Por definir").isEmpty()) {
             teamRepository.save(Team.builder()
                     .name("Por definir")

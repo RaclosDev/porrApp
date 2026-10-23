@@ -47,4 +47,14 @@ public interface BetRepository extends JpaRepository<Bet, Long> {
      * que contiene el cuadro con resultados reales.
      */
     Optional<Bet> findByBetName(String betName);
+
+    /**
+     * Localiza la porra oficial del sistema mediante el flag directo isOfficial.
+     */
+    Optional<Bet> findByIsOfficialTrue();
+
+    /**
+     * Localiza la porra oficial para una edición concreta.
+     */
+    Optional<Bet> findByEditionIdAndIsOfficialTrue(Long editionId);
 }

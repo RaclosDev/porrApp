@@ -2,7 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.model.Bet;
 
-import com.porra.mundial.service.BetService;
+import com.porra.mundial.service.PredictionService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,7 +38,7 @@ import java.util.NoSuchElementException;
 
 public class BetController {
 
-    private final BetService betService;
+    private final PredictionService predictionService;
 
     private final com.porra.mundial.service.WebSocketService webSocketService;
 
@@ -63,7 +63,7 @@ public class BetController {
 
             // Filtro por grupo (ej: Grupo de amigos de Carlos)
 
-            bets = betService.getBetsByGroupId(groupId);
+            bets = predictionService.getBetsByGroupId(groupId);
 
         } else {
 
@@ -75,19 +75,19 @@ public class BetController {
 
                     ? SecurityContextHolder.getContext().getAuthentication().getName() : null;
 
-            if (betService.isSuperAdmin(email)) {
+            if (predictionService.isSuperAdmin(email)) {
 
-                bets = betService.getAllBets();
+                bets = predictionService.getAllBets();
 
             } else {
 
-                bets = betService.getBetsByGroupId(1L);
+                bets = predictionService.getBetsByGroupId(1L);
 
             }
 
         }
 
-        return betService.toBetDtoList(bets);
+        return predictionService.toBetDtoList(bets);
 
     }
 
@@ -107,7 +107,7 @@ public class BetController {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        return betService.toBetDtoList(betService.getBetsByGoogleEmail(email));
+        return predictionService.toBetDtoList(predictionService.getBetsByGoogleEmail(email));
 
     }
 
@@ -133,7 +133,7 @@ public class BetController {
 
         // Creamos la apuesta y todo su árbol de predicciones (Bracket, Groups, Extras) a través del BetService
 
-        Bet bet = betService.createBet(email, betName != null ? betName : body.getUser(), body, groupId);
+        Bet bet = predictionService.createBet(email, betName != null ? betName : body.getUser(), body, groupId);
 
         // Notifica por WebSocket a todos los clientes que hay una nueva apuesta (actualiza vistas en tiempo real)
 
@@ -176,7 +176,7 @@ public class BetController {
     public ResponseEntity<?> updateBet(@PathVariable Long id, @Valid @RequestBody BetDataDTO body, java.security.Principal principal) {
         String email = getRequesterEmail(principal);
 
-        Bet bet = betService.updateBet(id, email, body.getUser(), body.getBet(), body);
+        Bet bet = predictionService.updateBet(id, email, body.getUser(), body.getBet(), body);
 
         return ResponseEntity.ok(Map.of("id", bet.getId(), "status", "actualizada_con_exito"));
 
@@ -195,7 +195,7 @@ public class BetController {
 
     public ResponseEntity<?> getBet(@PathVariable Long id) {
 
-        BetDataDTO dto = betService.getBetData(id);
+        BetDataDTO dto = predictionService.getBetData(id);
 
         return ResponseEntity.ok(dto);
 
@@ -215,7 +215,7 @@ public class BetController {
     public ResponseEntity<?> markAsPaid(@PathVariable Long id, java.security.Principal principal) {
         String email = getRequesterEmail(principal);
 
-        betService.markAsPaid(id, email);
+        predictionService.markAsPaid(id, email);
 
         return ResponseEntity.ok(Map.of("status", "paid"));
 
@@ -234,7 +234,7 @@ public class BetController {
     public ResponseEntity<?> deleteBet(@PathVariable Long id, java.security.Principal principal) {
         String email = getRequesterEmail(principal);
 
-        betService.deleteBet(id, email);
+        predictionService.deleteBet(id, email);
 
         return ResponseEntity.ok(Map.of("status", "deleted"));
 

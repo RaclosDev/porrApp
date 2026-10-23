@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.porra.mundial.model.Bet;
 
-import com.porra.mundial.service.BetService;
+import com.porra.mundial.service.PredictionService;
 
 import org.junit.jupiter.api.Test;
 
@@ -62,7 +62,7 @@ class BetControllerTest {
 
     @MockBean
 
-    private BetService betService;
+    private PredictionService betService;
 
     @MockBean
 
@@ -260,5 +260,25 @@ class BetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(15))
                 .andExpect(jsonPath("$.participantName").value("Carlos"));
+    }
+
+    @Test
+    void deletePrediction_ViaAlias_Forbidden_WhenNotOwner() throws Exception {
+        Mockito.doThrow(new SecurityException("No tienes permiso para modificar o eliminar esta apuesta."))
+                .when(betService).deleteBet(Mockito.eq(99L), any());
+
+        mockMvc.perform(delete("/api/predictions/99"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("No tienes permiso para modificar o eliminar esta apuesta."));
+    }
+
+    @Test
+    void markAsPaidPrediction_ViaAlias_Forbidden_WhenNotGroupAdmin() throws Exception {
+        Mockito.doThrow(new SecurityException("Solo el administrador del grupo puede marcar la apuesta como pagada."))
+                .when(betService).markAsPaid(Mockito.eq(99L), any());
+
+        mockMvc.perform(put("/api/predictions/99/pay"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Solo el administrador del grupo puede marcar la apuesta como pagada."));
     }
 }

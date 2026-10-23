@@ -16,9 +16,6 @@ import org.springframework.stereotype.Service;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -42,13 +39,23 @@ public class SyncService {
     private final TopScorerService topScorerService;
     private final ObjectMapper objectMapper;
     private final WebSocketService webSocketService;
-    private final HttpClient httpClient;
-
-    @Value("${app.espn.scoreboard-url}")
-    private String espnScoreboardUrl;
+    private final com.porra.mundial.repository.CompetitionRepository competitionRepository;
+    private final com.porra.mundial.sports.SportsDataProvider sportsDataProvider;
 
     private static final String WC_DATE_RANGE = "20260611-20260722";
     private static final ZoneId SPAIN_ZONE = ZoneId.of("Europe/Madrid");
+    private volatile LocalDateTime lastSyncTime;
+    private volatile String lastSyncStatus = "INITIALIZING";
+    private volatile int lastMatchesUpdated = 0;
+    private volatile int lastTeamsUpdated = 0;
+    private volatile String lastErrorMessage;
+
+    public LocalDateTime getLastSyncTime() { return lastSyncTime; }
+    public String getLastSyncStatus() { return lastSyncStatus; }
+    public int getLastMatchesUpdated() { return lastMatchesUpdated; }
+    public int getLastTeamsUpdated() { return lastTeamsUpdated; }
+    public String getLastErrorMessage() { return lastErrorMessage; }
+
 
     /**
      * Tarea programada que se dispara cíclicamente según app.sync.interval-ms.
@@ -72,10 +79,13 @@ public class SyncService {
         Map<String, Object> result = new LinkedHashMap<>();
 
         try {
-            JsonNode events = fetchEspnEvents();
+            JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);
             Map<String, Team> nameToTeamCache = buildTeamCache();
             
             SyncContext context = new SyncContext();
+            context.competition = competitionRepository.findByName("FIFA World Cup 2026")
+                    .or(() -> competitionRepository.findAll().stream().findFirst())
+                    .orElse(null);
 
             for (JsonNode event : events) {
                 processEvent(event, nameToTeamCache, context);
@@ -91,6 +101,11 @@ public class SyncService {
             result.put("standingsUpdated", context.teamStats.size());
             result.put("status", "success");
             
+            lastSyncTime = LocalDateTime.now();
+            lastSyncStatus = "success";
+            lastMatchesUpdated = context.matchesUpdated;
+            lastTeamsUpdated = context.teamsUpdated;
+            lastErrorMessage = null;
             log.info("ESPN sync completed: {} teams, {} matches updated", context.teamsUpdated, context.matchesUpdated);
 
             // Si ha habido algún cambio real en base de datos, grita al frontend.
@@ -98,6 +113,9 @@ public class SyncService {
                 webSocketService.invalidateAndNotify();
             }
         } catch (Exception e) {
+            lastSyncTime = LocalDateTime.now();
+            lastSyncStatus = "error";
+            lastErrorMessage = e.getMessage();
             log.error("Sync failed: {}", e.getMessage(), e);
             result.put("status", "error");
             result.put("message", e.getMessage());
@@ -106,30 +124,7 @@ public class SyncService {
         return result;
     }
 
-    private JsonNode fetchEspnEvents() throws Exception {
-        String url = espnScoreboardUrl + "?dates=" + WC_DATE_RANGE + "&limit=200";
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(15))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        String json = response.body();
-
-        if (json == null || !json.trim().startsWith("{")) {
-            throw new IllegalStateException("ESPN API returned non-JSON response");
-        }
-
-        JsonNode root = objectMapper.readTree(json);
-        JsonNode events = root.path("events");
-
-        if (!events.isArray()) {
-            throw new IllegalStateException("ESPN API: no events array found");
-        }
-        return events;
-    }
 
     private Map<String, Team> buildTeamCache() {
         Map<String, Team> cache = new HashMap<>();
@@ -310,6 +305,10 @@ public class SyncService {
         boolean wasFinished = Boolean.TRUE.equals(match.getFinished());
         boolean updated = match.getId() == null;
 
+        if (match.getCompetition() == null && context.competition != null) {
+            match.setCompetition(context.competition);
+            updated = true;
+        }
         if (updateIfChanged(match.getHomeTeam(), home, match::setHomeTeam)) updated = true;
         if (updateIfChanged(match.getAwayTeam(), away, match::setAwayTeam)) updated = true;
         if (updateIfChanged(match.getWinnerTeam(), scores.winner, match::setWinnerTeam)) updated = true;
@@ -610,6 +609,9 @@ public class SyncService {
      * Fallback method llamado si ESPN falla repetidas veces.
      */
     public Map<String, Object> syncFallback(Exception e) {
+        lastSyncTime = LocalDateTime.now();
+        lastSyncStatus = "circuit_breaker_open";
+        lastErrorMessage = e.getMessage();
         log.warn("Circuit Breaker OPEN or API call failed. Fallback activated. Error: {}", e.getMessage());
         return Map.of("status", "error", "message", "Circuit Breaker activado por fallos reiterados en la API. Reintentando más tarde.");
     }
@@ -625,6 +627,7 @@ public class SyncService {
         int teamsUpdated = 0;
         int matchesUpdated = 0;
         Map<Long, int[]> teamStats = new HashMap<>();
+        com.porra.mundial.model.Competition competition;
     }
 
     private record MatchStatus(boolean isLive, boolean finished, String displayClock) {}

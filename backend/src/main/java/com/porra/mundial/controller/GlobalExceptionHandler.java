@@ -50,6 +50,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Maneja errores de estado o plazos vencidos (ej. porra bloqueada tras el cierre).
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalStateException(IllegalStateException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
      * Maneja errores de validación de JSON en entrada de Spring (@Valid en los DTOs).
      * Por ejemplo: enviar un nombre vacío o un JSON con formato incorrecto.
      */

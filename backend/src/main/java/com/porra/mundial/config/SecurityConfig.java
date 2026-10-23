@@ -103,6 +103,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/standings/**").permitAll()
 
                 .requestMatchers("/api/scorers/**").permitAll()
+                .requestMatchers("/api/rules/**").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
 
                 .requestMatchers("/api/teams/odds").permitAll()
 

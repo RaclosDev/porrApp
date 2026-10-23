@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class BetServiceTest {
+class PredictionServiceTest {
 
     @Mock
     private BetRepository betRepository;
@@ -42,12 +42,12 @@ class BetServiceTest {
     private MembershipRepository membershipRepository;
 
     @InjectMocks
-    private BetService betService;
+    private PredictionService betService;
 
     private UserAccount owner;
     private UserAccount groupAdmin;
     private UserAccount stranger;
-    private BetGroup group;
+    private League group;
     private Edition edition;
     private Bet bet;
 
@@ -77,7 +77,7 @@ class BetServiceTest {
                 .isSuperadmin(false)
                 .build();
 
-        group = BetGroup.builder()
+        group = League.builder()
                 .id(100L)
                 .name("Liga Amigos")
                 .joinCode("AMIGOS")
@@ -205,5 +205,46 @@ class BetServiceTest {
         );
 
         verify(betRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("No se puede crear apuesta si la edicion/porra esta bloqueada")
+    void cannotCreateBetWhenEditionIsLocked() {
+        edition.setStatus("LOCKED");
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
+
+        assertThrows(IllegalStateException.class, () ->
+                betService.createBet("owner@test.com", "Mi Porra", new BetDataDTO(), 100L)
+        );
+
+        verify(betRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("No se puede actualizar apuesta si la edicion/porra ha superado la fecha limite")
+    void cannotUpdateBetWhenEditionLockDatePassed() {
+        edition.setLockDate(java.time.LocalDateTime.now().minusHours(2));
+        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
+
+        assertThrows(IllegalStateException.class, () ->
+                betService.updateBet(1L, "owner@test.com", "OwnerUser", "Cambio", null)
+        );
+
+        verify(betRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Superadmin puede actualizar apuesta incluso con la edicion bloqueada")
+    void superAdminCanUpdateBetEvenIfLocked() {
+        edition.setStatus("LOCKED");
+
+        when(betRepository.findById(1L)).thenReturn(Optional.of(bet));
+        when(betRepository.save(any(Bet.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Bet updated = betService.updateBet(1L, "superadmin@porra.com", "OwnerUser", "Fix de Admin", null);
+
+        assertNotNull(updated);
+        assertEquals("Fix de Admin", updated.getBetName());
+        verify(betRepository).save(bet);
     }
 }

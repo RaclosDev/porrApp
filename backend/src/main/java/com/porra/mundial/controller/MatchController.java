@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.MatchResponseDTO;
+import com.porra.mundial.model.Match;
 import com.porra.mundial.service.MatchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -22,11 +23,15 @@ public class MatchController {
     private final MatchService matchService;
 
     /**
-     * @return Todos los partidos de la base de datos.
+     * @param competitionId (Opcional) Filtrar los partidos por competición.
+     * @return Todos los partidos de la base de datos (o los de la competición dada).
      */
     @GetMapping
-    public List<MatchResponseDTO> getAllMatches() {
-        return matchService.getAllMatches().stream()
+    public List<MatchResponseDTO> getAllMatches(@RequestParam(required = false) Long competitionId) {
+        List<Match> matches = competitionId != null
+                ? matchService.getMatchesByCompetition(competitionId)
+                : matchService.getAllMatches();
+        return matches.stream()
                 .map(MatchResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }

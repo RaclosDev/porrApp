@@ -50,6 +50,11 @@ public class Bet {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** Flag que indica si esta apuesta es el Cuadro Oficial del sistema para evaluar puntuaciones. */
+    @Column(name = "is_official", nullable = false)
+    @Builder.Default
+    private Boolean isOfficial = false;
+
     // -- HELPER METHODS FOR BACKWARDS COMPATIBILITY --
     
     @Transient

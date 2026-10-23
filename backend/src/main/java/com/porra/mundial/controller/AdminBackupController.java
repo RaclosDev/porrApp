@@ -3,7 +3,7 @@ package com.porra.mundial.controller;
 import com.porra.mundial.model.Bet;
 import com.porra.mundial.model.BetBackup;
 import com.porra.mundial.repository.BetBackupRepository;
-import com.porra.mundial.service.BetService;
+import com.porra.mundial.service.PredictionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ import java.util.Map;
 public class AdminBackupController {
 
     private final BetBackupRepository betBackupRepository;
-    private final BetService betService;
+    private final PredictionService predictionService;
 
     /**
      * Endpoint para obtener el historial completo de copias de seguridad.
@@ -45,7 +45,7 @@ public class AdminBackupController {
     @PostMapping("/snapshot")
     public ResponseEntity<?> createSnapshot() {
         try {
-            betService.createOneTimeSnapshot();
+            predictionService.createOneTimeSnapshot();
             return ResponseEntity.ok(Map.of("status", "snapshot_created"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -62,7 +62,7 @@ public class AdminBackupController {
     @PostMapping("/{backupId}/restore")
     public ResponseEntity<?> restoreBackup(@PathVariable Long backupId) {
         try {
-            Bet restoredBet = betService.restoreBet(backupId);
+            Bet restoredBet = predictionService.restoreBet(backupId);
             return ResponseEntity.ok(Map.of("status", "restored", "betId", restoredBet.getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

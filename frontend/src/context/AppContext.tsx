@@ -99,7 +99,6 @@ export const useAppContext = () => {
 
   const { data: standings } = useQuery({ queryKey: ['standings'], queryFn: fetchStandings });
   const { data: radar } = useQuery({ queryKey: ['radar'], queryFn: fetchMatchRadar });
-  const { data: matches } = useQuery({ queryKey: ['matches'], queryFn: fetchMatches });
   const { data: bets } = useQuery({
     queryKey: ['bets', activeGroupId],
     queryFn: () => fetchBets(activeGroupId),
@@ -116,6 +115,11 @@ export const useAppContext = () => {
         ? fetchGroup(activeGroupId).catch(() => ({ name: 'Porra Global' }))
         : Promise.resolve({ name: 'Ninguna Liga Seleccionada' }),
   });
+  const activeCompetitionId = groupInfo?.competitionId || null;
+  const { data: matches } = useQuery({
+    queryKey: ['matches', activeCompetitionId],
+    queryFn: () => fetchMatches(activeCompetitionId),
+  });
   const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
   const { data: topScorers } = useQuery({
     queryKey: ['topScorers'],
@@ -128,6 +132,8 @@ export const useAppContext = () => {
   const activeGroupAdminId = groupInfo?.adminUserId || null;
   const activeGroupBetMode = groupInfo?.betMode || 'FULL_BRACKET';
   const activeGroupPichichi = groupInfo?.pichichi !== undefined ? groupInfo.pichichi : true;
+  const activeGroupIsLocked = Boolean(groupInfo?.isLocked);
+  const activeGroupLockDate = groupInfo?.lockDate || null;
 
   const nameToIdMap =
     matches?.reduce((acc, m) => {
@@ -173,6 +179,10 @@ export const useAppContext = () => {
     activeGroupAdminId,
     activeGroupBetMode,
     activeGroupPichichi,
+    activeGroupIsLocked,
+    activeGroupLockDate,
+    activeCompetitionId,
+    activeCompetitionName: groupInfo?.competitionName || null,
     topScorers: topScorers || [],
   };
 };

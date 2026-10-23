@@ -30,9 +30,7 @@ public class TopScorerService {
     private final ObjectMapper objectMapper;
     private final WebSocketService webSocketService;
     private final HttpClient httpClient;
-
-    @Value("${app.espn.scoreboard-url}")
-    private String espnScoreboardUrl;
+    private final com.porra.mundial.sports.SportsDataProvider sportsDataProvider;
 
     // Date range covering the entire World Cup
     private static final String WC_DATE_RANGE = "20260611-20260722";
@@ -62,7 +60,7 @@ public class TopScorerService {
     public void refresh() {
         imageCache.clear(); // Clear the image cache on manual/forced refresh to retry failed images
         try {
-            JsonNode events = fetchEspnEvents();
+            JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);
             if (events == null) return;
 
             Map<String, int[]> playerGoals = new LinkedHashMap<>();
@@ -89,31 +87,7 @@ public class TopScorerService {
         }
     }
 
-    private JsonNode fetchEspnEvents() throws Exception {
-        String url = espnScoreboardUrl + "?dates=" + WC_DATE_RANGE + "&limit=200";
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(15))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            log.warn("TopScorerService: ESPN API returned status {}", response.statusCode());
-            return null;
-        }
-
-        JsonNode root = objectMapper.readTree(response.body());
-        JsonNode events = root.path("events");
-
-        if (!events.isArray()) {
-            log.warn("TopScorerService: No events array found in ESPN response");
-            return null;
-        }
-        return events;
-    }
 
     private void processEvents(JsonNode events, Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                Map<String, String> playerPositions, Map<String, String> playerIds,
