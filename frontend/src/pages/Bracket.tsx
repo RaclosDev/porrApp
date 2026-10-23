@@ -27,6 +27,7 @@ function Bracket() {
     activeGroupId,
     groupOdds,
     activeGroupPichichi,
+    activeGroupIsLocked,
     handleCopyBet,
     setR32Team,
     advanceTeam,
@@ -465,8 +466,29 @@ function Bracket() {
                 />
               )}
             </div>
-            <button className="glass-btn primary-btn" onClick={generateBetData}>
-              Guardar Pronóstico
+            {activeGroupIsLocked && (
+              <div
+                style={{
+                  padding: '10px 14px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  borderRadius: 8,
+                  color: '#fca5a5',
+                  marginBottom: 15,
+                  fontSize: '0.9rem',
+                }}
+              >
+                🔒 <b>Pronósticos cerrados:</b> El plazo para enviar o modificar porras en esta liga
+                ha finalizado.
+              </div>
+            )}
+            <button
+              className="glass-btn primary-btn"
+              onClick={generateBetData}
+              disabled={activeGroupIsLocked}
+              style={activeGroupIsLocked ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            >
+              {activeGroupIsLocked ? 'Plazo Cerrado' : 'Guardar Pronóstico'}
             </button>
           </div>
         </>

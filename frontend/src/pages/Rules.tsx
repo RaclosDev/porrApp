@@ -1,14 +1,29 @@
 import { useAppContext } from '../context/AppContext';
+import { useQuery } from '@tanstack/react-query';
+import { fetchRules } from '../services/api';
 
 /**
- * Vista estática de las Reglas y Puntuaciones de la porra.
- * Muestra el bote acumulado basado en el número de participantes.
+ * Vista de las Reglas y Puntuaciones de la porra.
+ * Muestra las puntuaciones configuradas en el ScoringRuleSet activo.
  *
  * @component
  * @returns {JSX.Element} Vista con las reglas del juego.
  */
 function Rules() {
   const { participantsHashes } = useAppContext();
+  const { data: rules } = useQuery({ queryKey: ['rules'], queryFn: fetchRules });
+
+  const qualifierPts = rules?.groupQualifierPoints ?? 10;
+  const exactPosPts = rules?.groupExactPositionPoints ?? 10;
+  const r32Pts = rules?.roundOf32Points ?? 25;
+  const r16Pts = rules?.roundOf16Points ?? 30;
+  const qfPts = rules?.quarterFinalPoints ?? 40;
+  const sfPts = rules?.semiFinalPoints ?? 60;
+  const championPts = rules?.championPoints ?? 200;
+  const runnerUpPts = rules?.runnerUpPoints ?? 150;
+  const thirdPts = rules?.thirdPlacePoints ?? 100;
+  const fourthPts = rules?.fourthPlacePoints ?? 75;
+  const pichichiPts = rules?.topScorerPoints ?? 100;
 
   return (
     <section id="view-rules" className="view-section" style={{ display: 'block', opacity: 1 }}>
@@ -83,10 +98,10 @@ function Rules() {
             </h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, lineHeight: 1.8 }}>
               <li>
-                ✔️ Acertar un clasificado: <b>10 pts</b>
+                ✔️ Acertar un clasificado: <b>{qualifierPts} pts</b>
               </li>
               <li>
-                🎯 Acertar posición exacta: <b>+10 pts</b>
+                🎯 Acertar posición exacta: <b>+{exactPosPts} pts</b>
               </li>
             </ul>
           </div>
@@ -110,16 +125,16 @@ function Rules() {
             </h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, lineHeight: 1.8 }}>
               <li>
-                ⚽ Pasan a Octavos: <b>25 pts</b>
+                ⚽ Pasan a Octavos: <b>{r32Pts} pts</b>
               </li>
               <li>
-                ⚽ Pasan a Cuartos: <b>30 pts</b>
+                ⚽ Pasan a Cuartos: <b>{r16Pts} pts</b>
               </li>
               <li>
-                ⚽ Pasan a Semis: <b>40 pts</b>
+                ⚽ Pasan a Semis: <b>{qfPts} pts</b>
               </li>
               <li>
-                ⚽ Pasan a la Final: <b>60 pts</b>
+                ⚽ Pasan a la Final: <b>{sfPts} pts</b>
               </li>
             </ul>
           </div>
@@ -143,13 +158,13 @@ function Rules() {
             </h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, lineHeight: 1.8 }}>
               <li>
-                🏆 Campeón: <b>200 pts</b> / 🥈 Sub: <b>150 pts</b>
+                🏆 Campeón: <b>{championPts} pts</b> / 🥈 Sub: <b>{runnerUpPts} pts</b>
               </li>
               <li>
-                🥉 Tercero: <b>100 pts</b> / 🏅 Cuarto: <b>75 pts</b>
+                🥉 Tercero: <b>{thirdPts} pts</b> / 🏅 Cuarto: <b>{fourthPts} pts</b>
               </li>
               <li>
-                👟 Pichichi: <b>100 pts</b>
+                👟 Pichichi: <b>{pichichiPts} pts</b>
               </li>
             </ul>
           </div>

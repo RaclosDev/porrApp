@@ -29,7 +29,7 @@ public class Membership {
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("leagueId")
     @JoinColumn(name = "league_id")
-    private BetGroup league;
+    private League league;
 
     /** Rol del usuario dentro del grupo (Ej. MEMBER, ADMIN). */
     @Column(nullable = false, length = 20)

@@ -31,6 +31,14 @@ public class MatchService {
     }
 
     /**
+     * @param competitionId Identificador de la competición.
+     * @return Todos los partidos disputados o por disputar en una competición, ordenados cronológicamente.
+     */
+    public List<Match> getMatchesByCompetition(Long competitionId) {
+        return matchRepository.findByCompetitionIdOrderByMatchDateAsc(competitionId);
+    }
+
+    /**
      * @param groupName La letra del grupo ("A", "B").
      * @return Todos los partidos disputados o por disputar en ese grupo, ordenados cronológicamente.
      */

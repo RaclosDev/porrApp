@@ -5,36 +5,37 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- *  Entidad 'BetGroup' (Grupo o Liga Privada).
- * Representa un grupo privado de amigos o compañeros de trabajo.
- * Cada grupo tiene un administrador y un código único para invitar a otros.
+ * Entidad 'League' (Liga / Grupo Privado).
+ * Representa una liga o comunidad de participantes (amigos, empresa, familia).
+ * Cada liga cuenta con un administrador, un código único de invitación y participa
+ * en una o más ediciones de torneos.
  * Se almacena en la tabla "leagues".
  */
 @Entity
 @Table(name = "leagues")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class BetGroup {
+public class League {
 
-    /** Identificador autogenerado del grupo. */
+    /** Identificador autogenerado de la liga. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Nombre visible del grupo. Ej: "Informática Euro 24". */
+    /** Nombre visible de la liga. Ej: "Los Amigos del Barrio", "Oficina Euro 2024". */
     @Column(nullable = false)
     private String name;
 
-    /** Código alfanumérico único para unirse al grupo. */
+    /** Código alfanumérico único para unirse a la liga. */
     @Column(nullable = false, unique = true, length = 10)
     private String joinCode;
 
-    /** Usuario que creó el grupo y que tiene permisos para borrar miembros o validar pagos. */
+    /** Usuario que creó la liga y que actúa como administrador de la misma. */
     @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "admin_user_id", nullable = false)
     private UserAccount adminUser;
 
-    /** Fecha de creación. */
+    /** Fecha de creación de la liga. */
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -45,7 +46,7 @@ public class BetGroup {
 
     @Transient
     public void setAdminParticipantName(String name) {
-        // Ignored by JPA, needed for builders temporarily
+        // Ignored by JPA, needed for compatibility
     }
 
     @com.fasterxml.jackson.annotation.JsonProperty("adminUserId")

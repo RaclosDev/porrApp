@@ -1,6 +1,6 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.model.BetGroup;
+import com.porra.mundial.model.League;
 import com.porra.mundial.dto.GroupCreateDTO;
 import com.porra.mundial.dto.GroupUpdateDTO;
 import com.porra.mundial.dto.GroupJoinDTO;
@@ -61,7 +61,7 @@ public class GroupController {
         if (principal == null) return ResponseEntity.status(401).build();
         
         com.porra.mundial.model.PoolFormat poolFormat = com.porra.mundial.model.PoolFormat.fromString(payload.resolveFormat());
-        BetGroup group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(), poolFormat, payload.getPichichi());
+        League group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(), poolFormat, payload.getPichichi());
         return ResponseEntity.ok(group);
     }
 
@@ -77,7 +77,7 @@ public class GroupController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateGroup(@PathVariable Long id, @Valid @RequestBody GroupUpdateDTO payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        BetGroup group = groupService.updateGroupName(id, payload.getName(), principal.getName());
+        League group = groupService.updateGroupName(id, payload.getName(), principal.getName());
         return ResponseEntity.ok(group);
     }
 
@@ -105,7 +105,7 @@ public class GroupController {
      */
     @PostMapping("/join")
     public ResponseEntity<?> joinGroup(@Valid @RequestBody GroupJoinDTO payload, Principal principal) {
-        Optional<BetGroup> group = groupService.getGroupByJoinCode(payload.getJoinCode().trim().toUpperCase());
+        Optional<League> group = groupService.getGroupByJoinCode(payload.getJoinCode().trim().toUpperCase());
         if (group.isPresent()) {
             if (principal != null) {
                 groupService.joinGroupMembership(group.get().getId(), principal.getName());
@@ -124,9 +124,9 @@ public class GroupController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getGroup(@PathVariable Long id, Principal principal) {
-        Optional<BetGroup> group = groupService.getGroupById(id);
+        Optional<League> group = groupService.getGroupById(id);
         if (group.isPresent()) {
-            BetGroup g = group.get();
+            League g = group.get();
             String email = principal != null ? principal.getName() : null;
             boolean isMember = email != null && groupService.isUserMemberOrAdmin(id, email);
 
@@ -140,10 +140,13 @@ public class GroupController {
                     
             // Busca la edición activa vinculada a este grupo para extraer metadatos
             editionRepository.findByLeagueIdAndStatus(g.getId(), "ACTIVE").ifPresent(e -> {
-                builder.competitionName(e.getCompetition().getName())
-                       .betMode(e.getBetMode().name())
+                builder.competitionId(e.getCompetition() != null ? e.getCompetition().getId() : null)
+                       .competitionName(e.getCompetition() != null ? e.getCompetition().getName() : null)
+                       .betMode(e.getBetMode() != null ? e.getBetMode().name() : null)
                        .poolFormat(e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
-                       .pichichi(e.isPichichi());
+                       .pichichi(e.isPichichi())
+                       .lockDate(e.getLockDate())
+                       .isLocked(e.isLocked());
             });
             
             return ResponseEntity.ok(builder.build());

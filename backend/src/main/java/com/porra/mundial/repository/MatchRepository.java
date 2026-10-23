@@ -38,4 +38,14 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
      * "Búscame un partido usando el ID raro de la API externa (ESPN) para no crear duplicados"
      */
     Optional<Match> findByExternalId(String externalId);
+
+    /**
+     * "Búscame todos los partidos pertenecientes a una competición específica"
+     */
+    List<Match> findByCompetitionId(Long competitionId);
+
+    /**
+     * "Búscame todos los partidos de una competición específica ordenados por fecha"
+     */
+    List<Match> findByCompetitionIdOrderByMatchDateAsc(Long competitionId);
 }

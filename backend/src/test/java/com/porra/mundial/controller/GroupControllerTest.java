@@ -1,7 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.config.JwtUtil;
-import com.porra.mundial.model.BetGroup;
+import com.porra.mundial.model.League;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.PoolFormat;
@@ -55,7 +55,7 @@ class GroupControllerTest {
     @Test
     @DisplayName("Miembro del grupo puede ver el joinCode")
     void memberCanSeeJoinCode() throws Exception {
-        BetGroup group = BetGroup.builder()
+        League group = League.builder()
                 .id(10L)
                 .name("Grupo Amigos")
                 .joinCode("SECRET10")
@@ -75,7 +75,7 @@ class GroupControllerTest {
     @Test
     @DisplayName("No miembro NO puede ver el joinCode (recibe null)")
     void nonMemberCannotSeeJoinCode() throws Exception {
-        BetGroup group = BetGroup.builder()
+        League group = League.builder()
                 .id(10L)
                 .name("Grupo Privado")
                 .joinCode("SUPERSECRET")
@@ -95,7 +95,7 @@ class GroupControllerTest {
     @Test
     @DisplayName("Detalle del grupo incluye tanto betMode como poolFormat")
     void groupDetailsIncludesBothBetModeAndPoolFormat() throws Exception {
-        BetGroup group = BetGroup.builder()
+        League group = League.builder()
                 .id(20L)
                 .name("Liga Mundial")
                 .joinCode("WC2026")
@@ -125,7 +125,7 @@ class GroupControllerTest {
     @Test
     @DisplayName("Crear grupo con nuevo campo poolFormat es exitoso")
     void createGroupWithPoolFormatField() throws Exception {
-        BetGroup createdGroup = BetGroup.builder()
+        League createdGroup = League.builder()
                 .id(30L)
                 .name("Liga Nueva")
                 .joinCode("NUEVA30")

@@ -37,7 +37,7 @@ class StandingsControllerTest {
     private com.porra.mundial.repository.BetRepository betRepository;
 
     @MockBean
-    private com.porra.mundial.service.BetService betService;
+    private com.porra.mundial.service.PredictionService betService;
 
     @Test
     void getStandings_ReturnsGroupedStandingsMap() throws Exception {

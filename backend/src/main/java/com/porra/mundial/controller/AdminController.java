@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.ResponseEntity;
 
-import com.porra.mundial.service.BetService;
+import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.dto.BetDataDTO;
 import org.springframework.web.bind.annotation.RequestBody;
 import java.util.Map;
@@ -26,7 +26,7 @@ public class AdminController {
 
     private final SyncService syncService;
     private final UserAccountRepository userAccountRepository;
-    private final BetService betService;
+    private final PredictionService predictionService;
 
     /**
      * Endpoint para obtener el listado completo de cuentas de usuario del sistema.
@@ -58,7 +58,7 @@ public class AdminController {
      */
     @PostMapping("/official")
     public ResponseEntity<?> updateOfficialResults(@RequestBody BetDataDTO body) {
-        return ResponseEntity.ok(betService.createBet("Admin", "official", body, null));
+        return ResponseEntity.ok(predictionService.createBet("Admin", "official", body, null));
     }
 
 

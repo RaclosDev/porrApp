@@ -34,6 +34,11 @@ public class Match {
     @JoinColumn(name = "winner_team_id")
     private Team winnerTeam;
 
+    /** Competición a la que pertenece este partido (ej. Mundial 2026, Euro 2024). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "competition_id")
+    private Competition competition;
+
     /** Goles que ha marcado el local. Si es 'null', el partido aún no se ha jugado. */
     private Integer homeScore;
     

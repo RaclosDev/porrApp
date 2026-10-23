@@ -27,6 +27,8 @@ export function useBracket() {
     activeGroupBetMode,
     officialPoints,
     activeGroupPichichi,
+    activeGroupIsLocked,
+    activeGroupLockDate,
   } = useAppContext();
 
   const [betName, setBetName] = useState('');
@@ -93,6 +95,10 @@ export function useBracket() {
   }, [userName, activeGroupId]);
 
   const handleCopyBet = async (betId) => {
+    if (activeGroupIsLocked) {
+      alert('El plazo para enviar o modificar porras en esta liga ha finalizado.');
+      return;
+    }
     if (!window.confirm('¿Quieres copiar esta porra y enviarla a la liga actual?')) return;
     try {
       const res = await fetch(`/api/bets/${betId}`);
@@ -267,6 +273,10 @@ export function useBracket() {
       groups: isKnockoutsOnly ? {} : formattedGroups,
       thirds: isKnockoutsOnly ? [] : advancingThirds,
     };
+    if (activeGroupIsLocked && !(isAdminAuthenticated && betName === 'official')) {
+      alert('El plazo para enviar o modificar porras en esta liga ha finalizado.');
+      return;
+    }
     try {
       if (isAdminAuthenticated && betName === 'official') {
         const res = await fetch('/api/admin/official', {
@@ -326,6 +336,8 @@ export function useBracket() {
     activeGroupId,
     groupOdds,
     activeGroupPichichi,
+    activeGroupIsLocked,
+    activeGroupLockDate,
     handleCopyBet,
     setR32Team,
     advanceTeam,

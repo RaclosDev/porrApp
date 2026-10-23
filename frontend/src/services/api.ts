@@ -53,8 +53,11 @@ export async function fetchStandings() {
   return fetchJson(`${API_BASE}/standings`);
 }
 
-export async function fetchMatches() {
-  return fetchJson(`${API_BASE}/matches`);
+export async function fetchMatches(competitionId = null) {
+  const url = competitionId
+    ? `${API_BASE}/matches?competitionId=${competitionId}`
+    : `${API_BASE}/matches`;
+  return fetchJson(url);
 }
 
 export async function fetchMatchRadar() {
@@ -319,3 +322,13 @@ export const updatePrediction = updateBet;
 export const acceptPrediction = acceptBet;
 export const acceptGroupPrediction = acceptGroupBet;
 export const deleteGroupPrediction = deleteGroupBet;
+
+export async function fetchRules() {
+  return fetchJson(`${API_BASE}/rules`);
+}
+
+export async function fetchRulePreview(predHome, predAway, actualHome, actualAway) {
+  return fetchJson(
+    `${API_BASE}/rules/preview?predHome=${predHome}&predAway=${predAway}&actualHome=${actualHome}&actualAway=${actualAway}`,
+  );
+}

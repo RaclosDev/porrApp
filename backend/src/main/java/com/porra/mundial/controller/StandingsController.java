@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import com.porra.mundial.repository.BetRepository;
-import com.porra.mundial.service.BetService;
+import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.model.Bet;
 import com.porra.mundial.dto.BetDataDTO;
 
@@ -26,7 +26,7 @@ public class StandingsController {
     private final StandingsService standingsService;
     private final SyncService syncService;
     private final BetRepository betRepository;
-    private final BetService betService;
+    private final PredictionService predictionService;
 
     /**
      *  GET /api/standings
@@ -63,10 +63,11 @@ public class StandingsController {
      */
     @GetMapping("/standings/official-bracket")
     public ResponseEntity<?> getOfficialBracket() {
-        java.util.Optional<Bet> officialBet = betRepository.findByBetName("official");
+        java.util.Optional<Bet> officialBet = betRepository.findByIsOfficialTrue()
+                .or(() -> betRepository.findByBetName("official"));
         if (officialBet.isPresent()) {
             try {
-                BetDataDTO dto = betService.getBetData(officialBet.get().getId());
+                BetDataDTO dto = predictionService.getBetData(officialBet.get().getId());
                 syncService.enrichBetDataWithMatches(dto);
                 return ResponseEntity.ok(dto);
             } catch (Exception e) {

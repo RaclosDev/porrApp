@@ -27,6 +27,8 @@ public class GroupResponseDTO {
     private LocalDateTime createdAt;
     
     // Campos específicos de la Edición Activa (Edition) en este grupo
+    /** Identificador de la competición asociada a la edición activa. */
+    private Long competitionId;
     /** Nombre de la competición actual en curso (Ej: Euro 2024). */
     private String competitionName;
     /** Formato de porra (legacy). */
@@ -35,4 +37,8 @@ public class GroupResponseDTO {
     private String poolFormat;
     /** Si esta edición cuenta con un premio/ranking al pichichi. */
     private Boolean pichichi;
+    /** Fecha y hora límite para enviar pronósticos en esta edición. */
+    private LocalDateTime lockDate;
+    /** Si la edición se encuentra cerrada para nuevos pronósticos o cambios. */
+    private Boolean isLocked;
 }
