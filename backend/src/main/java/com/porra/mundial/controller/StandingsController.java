@@ -68,4 +68,11 @@ public class StandingsController {
         syncService.enrichPredictionDataWithMatches(fallbackDto);
         return ResponseEntity.ok(fallbackDto);
     }
+
+    @PostMapping("/standings/recalculate")
+    public ResponseEntity<?> recalculateStandings() {
+        standingsService.recalculateStandingsFromMatches();
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Standings recalculated from matches"));
+    }
+
 }

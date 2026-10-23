@@ -157,6 +157,7 @@ export function useLeaderboard() {
     loading,
     isRaclos,
     activeGroupName,
+    activeGroupId,
     userId,
     userName,
     isLeagueAdmin,

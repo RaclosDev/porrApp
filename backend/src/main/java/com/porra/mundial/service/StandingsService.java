@@ -22,6 +22,7 @@ public class StandingsService {
 
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
+    private final com.porra.mundial.repository.TeamRepository teamRepository;
 
     /**
      * Obtiene la clasificación completa de todos los grupos ya ordenada.
@@ -239,4 +240,64 @@ public class StandingsService {
     public void clearAll() {
         standingRepository.deleteAll();
     }
+
+    /**
+     * Recalcula la clasificación de todos los grupos a partir de los partidos reales
+     * finalizados en la tabla de matches.
+     */
+    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard"}, allEntries = true)
+    @org.springframework.transaction.annotation.Transactional
+    public void recalculateStandingsFromMatches() {
+        List<Match> groupMatches = matchRepository.findAll().stream()
+                .filter(m -> "group".equalsIgnoreCase(m.getRound()) && Boolean.TRUE.equals(m.getFinished())
+                        && m.getHomeTeam() != null && m.getAwayTeam() != null
+                        && m.getHomeScore() != null && m.getAwayScore() != null)
+                .toList();
+
+        Map<Long, int[]> teamStats = new HashMap<>(); // [pts, gd, gf, mp, fp]
+        for (Match m : groupMatches) {
+            Long homeId = m.getHomeTeam().getId();
+            Long awayId = m.getAwayTeam().getId();
+            int hScore = m.getHomeScore();
+            int aScore = m.getAwayScore();
+
+            int[] h = teamStats.computeIfAbsent(homeId, k -> new int[5]);
+            int[] a = teamStats.computeIfAbsent(awayId, k -> new int[5]);
+
+            h[3]++; // mp
+            a[3]++; // mp
+
+            h[2] += hScore; // gf
+            a[2] += aScore; // gf
+
+            h[1] += (hScore - aScore); // gd
+            a[1] += (aScore - hScore); // gd
+
+            if (hScore > aScore) {
+                h[0] += 3;
+            } else if (aScore > hScore) {
+                a[0] += 3;
+            } else {
+                h[0] += 1;
+                a[0] += 1;
+            }
+        }
+
+        clearAll();
+        for (Map.Entry<Long, int[]> entry : teamStats.entrySet()) {
+            teamRepository.findById(entry.getKey()).ifPresent(team -> {
+                if (team.getGroupName() != null && !"-".equals(team.getGroupName()) && !"Por definir".equalsIgnoreCase(team.getName())) {
+                    updateStanding(team, team.getGroupName().toUpperCase().trim(),
+                            entry.getValue()[0], entry.getValue()[1], entry.getValue()[2], entry.getValue()[3], entry.getValue()[4]);
+                }
+            });
+        }
+
+        teamRepository.findAll().forEach(team -> {
+            if (team.getGroupName() != null && !"-".equals(team.getGroupName()) && !"Por definir".equalsIgnoreCase(team.getName()) && !teamStats.containsKey(team.getId())) {
+                updateStanding(team, team.getGroupName().toUpperCase().trim(), 0, 0, 0, 0, 0);
+            }
+        });
+    }
+
 }

@@ -725,6 +725,10 @@ public class SyncService {
     }
 
     private void updateStandings(Map<Long, int[]> teamStats) {
+        if (teamStats == null || teamStats.isEmpty()) {
+            standingsService.recalculateStandingsFromMatches();
+            return;
+        }
         standingsService.clearAll();
         for (Map.Entry<Long, int[]> entry : teamStats.entrySet()) {
             teamRepository.findById(entry.getKey()).ifPresent(team -> {

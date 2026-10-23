@@ -45,6 +45,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/leaderboard").permitAll()
                 .requestMatchers("/api/presence/**").permitAll()
                 .requestMatchers("/api/ws").permitAll()
+                .requestMatchers("/api/groups/mine").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/groups/**").permitAll()
+                .requestMatchers("/api/competitions/**").permitAll()
 
                 .requestMatchers(HttpMethod.POST, "/api/predictions", "/api/bets").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/predictions/**", "/api/bets/**").authenticated()

@@ -17,6 +17,7 @@ function Leaderboard() {
     loading,
     isRaclos,
     activeGroupName,
+    activeGroupId,
     userId,
     userName,
     isLeagueAdmin,
