@@ -13,11 +13,45 @@ import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
 export const POOL_FORMATS = [
+  { id: 'MATCH_DAY', label: 'Por Jornadas (1X2 y Marcador Exacto)' },
   { id: 'FULL_BRACKET', label: 'Completa (Fase de grupos y cruces)' },
   { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
-  { id: 'MATCH_DAY', label: 'Por Jornadas' },
 ];
 export const BET_MODES = POOL_FORMATS;
+
+export const PRESET_TEMPLATES = [
+  {
+    id: 'MATCH_DAY_LEAGUE',
+    name: 'Liga Jornada a Jornada',
+    icon: '⚡',
+    badge: 'Recomendada',
+    poolFormat: 'MATCH_DAY',
+    pichichi: false,
+    tagline: 'Ideal para ligas de fútbol (LaLiga, Premier, Champions)',
+    description:
+      'Pronósticos partido a partido con cierre individual. 3 pts por signo (1X2) y +2 pts por marcador exacto.',
+  },
+  {
+    id: 'WORLD_CUP_FULL',
+    name: 'Mundial 2026 Completo',
+    icon: '🏆',
+    badge: 'Torneo',
+    poolFormat: 'FULL_BRACKET',
+    pichichi: true,
+    tagline: 'Fase de grupos + eliminatorias + máximo goleador',
+    description: 'Cuadro clasificatorio completo con puntuación escalonada y Pichichi oficial.',
+  },
+  {
+    id: 'KNOCKOUT_BRACKET',
+    name: 'Solo Eliminatorias',
+    icon: '🎯',
+    badge: 'Rápido',
+    poolFormat: 'KNOCKOUTS_ONLY',
+    pichichi: false,
+    tagline: 'Pronósticos directos de cruces eliminatorios',
+    description: 'Pronostica las rondas eliminatorias desde octavos de final hasta la final.',
+  },
+];
 
 export function useGroupsDashboard() {
   const [groups, setGroups] = useState([]);
@@ -25,8 +59,12 @@ export function useGroupsDashboard() {
   const [loading, setLoading] = useState(true);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
-  const [selectedBetMode, setSelectedBetMode] = useState('');
-  const [includePichichi, setIncludePichichi] = useState(true);
+  const [selectedBetMode, setSelectedBetMode] = useState('MATCH_DAY');
+  const [includePichichi, setIncludePichichi] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('MATCH_DAY_LEAGUE');
+  const [wizardStep, setWizardStep] = useState(1);
+  const [newlyCreatedGroup, setNewlyCreatedGroup] = useState(null);
+  const [pendingJoinCodeNotice, setPendingJoinCodeNotice] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [visibleCodes, setVisibleCodes] = useState(new Set());
@@ -43,8 +81,9 @@ export function useGroupsDashboard() {
       ]);
 
       setCompetitions(comps);
-      if (comps.length > 0) setSelectedCompetition(comps[0].id.toString());
-      setSelectedBetMode(BET_MODES[0].id);
+      if (comps.length > 0 && !selectedCompetition) {
+        setSelectedCompetition(comps[0].id.toString());
+      }
 
       const knownIds = JSON.parse(localStorage.getItem('knownGroups') || '[]');
       const missingIds = knownIds.filter(
@@ -75,13 +114,21 @@ export function useGroupsDashboard() {
       setError('Error al cargar datos');
     }
     setLoading(false);
-  }, [activeGroupId, changeGroup]);
+  }, [activeGroupId, changeGroup, selectedCompetition]);
+
+  useEffect(() => {
+    const pending = localStorage.getItem('pendingJoinCode');
+    if (pending) {
+      setPendingJoinCodeNotice(pending);
+    }
+  }, []);
 
   useEffect(() => {
     const checkPendingJoin = async () => {
       const pendingCode = localStorage.getItem('pendingJoinCode');
       if (pendingCode) {
         localStorage.removeItem('pendingJoinCode');
+        setPendingJoinCodeNotice('');
         try {
           const group = await joinGroup(pendingCode);
           const knownGroups = JSON.parse(localStorage.getItem('knownGroups') || '[]');
@@ -91,7 +138,11 @@ export function useGroupsDashboard() {
           }
           alert(`¡Te has unido correctamente a la liga "${group.name}" a través de la invitación!`);
           changeGroup(group.id.toString());
-          navigate('/bracket');
+          if (group.poolFormat === 'MATCH_DAY') {
+            navigate('/jornadas');
+          } else {
+            navigate('/bracket');
+          }
         } catch (e) {
           setError(e.message);
         }
@@ -107,25 +158,49 @@ export function useGroupsDashboard() {
     }
   }, [userName, changeGroup, navigate, loadGroupsAndCompetitions]);
 
+  const selectTemplate = (templateId) => {
+    setSelectedTemplate(templateId);
+    const tmpl = PRESET_TEMPLATES.find((t) => t.id === templateId);
+    if (tmpl) {
+      setSelectedBetMode(tmpl.poolFormat);
+      setIncludePichichi(tmpl.pichichi);
+      if (tmpl.id === 'WORLD_CUP_FULL' && competitions.length > 0) {
+        const wc = competitions.find(
+          (c) =>
+            c.name.toLowerCase().includes('world cup') || c.name.toLowerCase().includes('mundial'),
+        );
+        if (wc) setSelectedCompetition(wc.id.toString());
+      }
+    }
+  };
+
   const handleCreate = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!newGroupName.trim() || !selectedCompetition || !selectedBetMode) {
       setError('El nombre del grupo y la competición son obligatorios');
       return;
     }
     try {
       const group = await createGroup(
-        newGroupName,
+        newGroupName.trim(),
         selectedCompetition,
         selectedBetMode,
         includePichichi,
       );
       setNewGroupName('');
+      setNewlyCreatedGroup(group);
       changeGroup(group.id.toString());
       loadGroupsAndCompetitions();
     } catch (e) {
       setError(e.message || 'Error al crear el grupo');
     }
+  };
+
+  const handleShareWhatsApp = (group) => {
+    if (!group || !group.joinCode) return;
+    const link = `${window.location.origin}/join/${group.joinCode}`;
+    const text = `⚽ ¡Únete a mi porra "${group.name}" en PorrApp!\n\nEntra con este enlace: ${link}\nO introduce el código: *${group.joinCode}*`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleEditGroup = async (groupId, currentName) => {
@@ -177,11 +252,15 @@ export function useGroupsDashboard() {
         localStorage.setItem('knownGroups', JSON.stringify(knownGroups));
       }
 
-      alert(
-        `¡Te has unido correctamente a la liga "${group.name}"! Ahora rellena y envía tu porra para participar.`,
-      );
+      alert(`¡Te has unido correctamente a la liga "${group.name}"!`);
+      setJoinCode('');
       changeGroup(group.id.toString());
-      navigate('/bracket');
+      loadGroupsAndCompetitions();
+      if (group.poolFormat === 'MATCH_DAY') {
+        navigate('/jornadas');
+      } else {
+        navigate('/bracket');
+      }
     } catch (e) {
       setError(e.message);
     }
@@ -189,7 +268,12 @@ export function useGroupsDashboard() {
 
   const handleEnterGroup = (groupId) => {
     changeGroup(groupId.toString());
-    navigate('/');
+    const g = groups.find((item) => item.id.toString() === groupId.toString());
+    if (g && g.poolFormat === 'MATCH_DAY') {
+      navigate('/jornadas');
+    } else {
+      navigate('/');
+    }
   };
 
   const handleLeaveGroup = async (groupId, groupName) => {
@@ -248,6 +332,13 @@ export function useGroupsDashboard() {
     setSelectedBetMode,
     includePichichi,
     setIncludePichichi,
+    selectedTemplate,
+    selectTemplate,
+    wizardStep,
+    setWizardStep,
+    newlyCreatedGroup,
+    setNewlyCreatedGroup,
+    pendingJoinCodeNotice,
     joinCode,
     setJoinCode,
     visibleCodes,
@@ -260,8 +351,10 @@ export function useGroupsDashboard() {
     handleLeaveGroup,
     handleCopyCode,
     handleCopyLink,
+    handleShareWhatsApp,
     userName,
     userId,
     activeGroupId,
+    navigate,
   };
 }
