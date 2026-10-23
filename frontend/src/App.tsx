@@ -16,6 +16,7 @@ const GroupsDashboard = React.lazy(() => import('./pages/GroupsDashboard'));
 const JoinRedirect = React.lazy(() => import('./components/JoinRedirect'));
 const OfficialBracket = React.lazy(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
+const MatchdayPredictor = React.lazy(() => import('./pages/MatchdayPredictor'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
 const GUEST_ALLOWED_PATHS = ['/clasificacion', '/search', '/stats', '/radar', '/mis-ligas'];
@@ -100,6 +101,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Bracket />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/jornadas"
+                element={
+                  <ProtectedRoute>
+                    <MatchdayPredictor />
                   </ProtectedRoute>
                 }
               />

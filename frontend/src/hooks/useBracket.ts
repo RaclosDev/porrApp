@@ -36,6 +36,7 @@ export function useBracket() {
   const navigate = useNavigate();
 
   const isKnockoutsOnly = activeGroupBetMode === 'KNOCKOUTS_ONLY';
+  const isMatchDay = activeGroupBetMode === 'MATCH_DAY';
   const allTeams = groupOdds
     ? Object.values(groupOdds)
         .flat()
@@ -329,6 +330,7 @@ export function useBracket() {
     setBetName,
     myPreviousBets,
     isKnockoutsOnly,
+    isMatchDay,
     allTeams,
     isInitialState,
     isAuthenticated,

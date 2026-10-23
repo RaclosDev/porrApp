@@ -330,3 +330,27 @@ export async function fetchRulePreview(predHome, predAway, actualHome, actualAwa
     `${API_BASE}/rules/preview?predHome=${predHome}&predAway=${predAway}&actualHome=${actualHome}&actualAway=${actualAway}`,
   );
 }
+
+export async function fetchMatchdayFixtures(groupId, round = '') {
+  const query = round
+    ? `groupId=${groupId}&round=${encodeURIComponent(round)}`
+    : `groupId=${groupId}`;
+  return fetchJson(`${API_BASE}/predictions/matchday?${query}`);
+}
+
+export async function submitMatchdayPredictions(groupId, predictions) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/predictions/matchday`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ groupId: Number(groupId), predictions }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al guardar pronósticos de jornada');
+  }
+  return res.json();
+}

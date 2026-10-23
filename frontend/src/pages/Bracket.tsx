@@ -2,6 +2,7 @@ import { useState } from 'react';
 import GroupStage from '../components/GroupStage';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
 import { useBracket } from '../hooks/useBracket';
+import MatchdayPredictor from './MatchdayPredictor';
 
 /**
  * Componente principal para crear una Porra (Pronóstico).
@@ -21,6 +22,7 @@ function Bracket() {
     setBetName,
     myPreviousBets,
     isKnockoutsOnly,
+    isMatchDay,
     allTeams,
     isInitialState,
     isAuthenticated,
@@ -37,6 +39,10 @@ function Bracket() {
   } = useBracket();
 
   const [mobileStep, setMobileStep] = useState('bracket'); // 'bracket' | 'save'
+
+  if (isMatchDay) {
+    return <MatchdayPredictor />;
+  }
 
   /** Slot renderer for BracketCanvas */
   const renderSlot = (team, { side, roundIndex, matchIndex, isHome }) => {

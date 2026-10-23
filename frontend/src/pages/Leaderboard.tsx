@@ -75,6 +75,7 @@ function Leaderboard() {
 
   const columns = [
     { key: 'total', label: 'TOTAL' },
+    { key: 'matchPoints', label: 'Jornadas' },
     { key: 'r1', label: 'F.Grupos' },
     { key: 'r32', label: 'Dieciseisavos' },
     { key: 'r16', label: 'Octavos' },
@@ -494,6 +495,7 @@ function Leaderboard() {
                       >
                         {r.paid ? r.points.total + ' pts' : '-'}
                       </td>
+                      <td>{r.paid ? r.points.matchPoints || 0 : '-'}</td>
                       <td>{r.paid ? r.points.r1 : '-'}</td>
                       <td>{r.paid ? r.points.r32 : '-'}</td>
                       <td>{r.paid ? r.points.r16 : '-'}</td>
