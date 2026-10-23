@@ -2,8 +2,9 @@ package com.porra.mundial.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import com.porra.mundial.sports.SportsDataProvider;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -23,14 +24,24 @@ import java.util.concurrent.atomic.AtomicReference;
  * - Uses ESPN's free public API (no API key needed)
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class TopScorerService {
 
     private final ObjectMapper objectMapper;
     private final WebSocketService webSocketService;
     private final HttpClient httpClient;
-    private final com.porra.mundial.sports.SportsDataProvider sportsDataProvider;
+    private final SportsDataProvider sportsDataProvider;
+
+    public TopScorerService(
+            ObjectMapper objectMapper,
+            WebSocketService webSocketService,
+            HttpClient httpClient,
+            @Qualifier("espnSportsDataProvider") SportsDataProvider sportsDataProvider) {
+        this.objectMapper = objectMapper;
+        this.webSocketService = webSocketService;
+        this.httpClient = httpClient;
+        this.sportsDataProvider = sportsDataProvider;
+    }
 
     // Date range covering the entire World Cup
     private static final String WC_DATE_RANGE = "20260611-20260722";
