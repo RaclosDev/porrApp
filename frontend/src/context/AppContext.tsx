@@ -93,6 +93,7 @@ export function AppProvider({ children }) {
 
 export const useAppContext = () => {
   const store = useAppStore();
+  const isUserAuthed = store.isAuthenticated || store.isAdminAuthenticated;
   const adminActions = useContext(GlobalEffectsContext) || useAdminActions();
 
   const activeGroupId = store.activeGroupId;
@@ -119,7 +120,13 @@ export const useAppContext = () => {
   const activeCompetitionId = groupInfo?.competitionId || null;
   const { data: matches } = useQuery({
     queryKey: ['matches', activeCompetitionId],
-    queryFn: () => fetchMatches(activeCompetitionId),
+    queryFn: async () => {
+      const data = await fetchMatches(activeCompetitionId);
+      if (!data || data.length === 0) {
+        return fetchMatches(null);
+      }
+      return data;
+    },
   });
   const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
   const { data: topScorers } = useQuery({

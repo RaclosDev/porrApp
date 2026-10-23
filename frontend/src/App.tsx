@@ -25,10 +25,9 @@ const ProtectedRoute = ({ children, guestAllowed = false }) => {
   const { isAuthenticated, isAdminAuthenticated } = useAppContext();
   const isAuthed = isAuthenticated || isAdminAuthenticated;
   const location = useLocation();
-  const isGuest = localStorage.getItem('guest_mode') === 'true';
 
-  // Invitado con permiso explícito o ruta en lista blanca
-  if (isGuest && (guestAllowed || GUEST_ALLOWED_PATHS.includes(location.pathname))) {
+  // Rutas públicas de lectura accesibles para cualquier visitante sin login
+  if (guestAllowed || GUEST_ALLOWED_PATHS.includes(location.pathname)) {
     return children;
   }
 

@@ -31,6 +31,9 @@ public class MatchController {
         List<Match> matches = competitionId != null
                 ? matchService.getMatchesByCompetition(competitionId)
                 : matchService.getAllMatches();
+        if (matches.isEmpty() && competitionId != null) {
+            matches = matchService.getAllMatches();
+        }
         return matches.stream()
                 .map(MatchResponseDTO::fromEntity)
                 .collect(Collectors.toList());

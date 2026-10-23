@@ -42,6 +42,7 @@ public class DataInitializer implements CommandLineRunner {
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
     private final CompetitionRepository competitionRepository;
+    private final com.porra.mundial.service.StandingsService standingsService;
 
     @Override
     public void run(String... args) {
@@ -65,6 +66,12 @@ public class DataInitializer implements CommandLineRunner {
 
         try {
             syncService.propagateKnockoutWinners();
+        } catch (Exception e) {
+            log.warn("Could not propagate knockout winners on startup: {}", e.getMessage());
+        }
+
+        try {
+            standingsService.recalculateStandingsFromMatches();
         } catch (Exception e) {
             log.warn("Could not propagate knockout winners on startup: {}", e.getMessage());
         }

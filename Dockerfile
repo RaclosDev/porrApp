@@ -34,7 +34,7 @@ WORKDIR /app
 
 COPY --from=backend-build /app/target/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 8080 10000
 
 ENV TZ=Europe/Madrid
 RUN apk add --no-cache tzdata && \
@@ -44,7 +44,7 @@ RUN apk add --no-cache tzdata && \
 
 ENV SPRING_PROFILES_ACTIVE=prod
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
-  CMD wget -qO- http://localhost:8080/actuator/health > /dev/null || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD wget -qO- http://localhost:${PORT:-8080}/actuator/health > /dev/null || exit 1
 
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

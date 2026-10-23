@@ -10,9 +10,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,7 +31,7 @@ class EspnSportsDataProviderTest {
     private HttpClient httpClient;
 
     @Mock
-    private HttpResponse<String> httpResponse;
+    private HttpResponse<byte[]> httpResponse;
 
     private ObjectMapper objectMapper;
     private EspnSportsDataProvider provider;
@@ -44,11 +50,13 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
-    @DisplayName("Debe parsear correctamente el arreglo de eventos de ESPN")
+    @DisplayName("Debe parsear correctamente el arreglo de eventos de ESPN en texto plano")
     void fetchScoreboardEvents_parsesJsonSuccessfully() throws Exception {
         String json = "{\"events\": [{\"id\": \"1\", \"name\": \"TeamA vs TeamB\"}]}";
-        when(httpResponse.body()).thenReturn(json);
-        when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
         JsonNode events = provider.fetchScoreboardEvents("20260611-20260722");
 
@@ -59,13 +67,40 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
-    @DisplayName("Debe lanzar excepcion si la respuesta no es un JSON valido")
-    void fetchScoreboardEvents_throwsOnNonJsonResponse() throws Exception {
-        when(httpResponse.body()).thenReturn("<html><body>Error</body></html>");
-        when(httpClient.<String>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+    @DisplayName("Debe descomprimir y parsear respuesta GZIP de ESPN")
+    void fetchScoreboardEvents_decompressesGzip() throws Exception {
+        String json = "{\"events\": [{\"id\": \"99\", \"name\": \"Final Match\"}]}";
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (GZIPOutputStream gzos = new GZIPOutputStream(baos)) {
+            gzos.write(json.getBytes(StandardCharsets.UTF_8));
+        }
+        byte[] gzippedBytes = baos.toByteArray();
 
-        assertThrows(IllegalStateException.class, () ->
-                provider.fetchScoreboardEvents("20260611-20260722")
-        );
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(gzippedBytes);
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of("Content-Encoding", List.of("gzip")), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode events = provider.fetchScoreboardEvents("20260719");
+
+        assertNotNull(events);
+        assertTrue(events.isArray());
+        assertEquals(1, events.size());
+        assertEquals("99", events.get(0).get("id").asText());
+    }
+
+    @Test
+    @DisplayName("Debe retornar array vacío de forma segura si la respuesta no es un JSON válido")
+    void fetchScoreboardEvents_handlesNonJsonResponseGracefully() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn("<html><body>Error</body></html>".getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode events = provider.fetchScoreboardEvents("20260611-20260722");
+
+        assertNotNull(events);
+        assertTrue(events.isArray());
+        assertEquals(0, events.size());
     }
 }
