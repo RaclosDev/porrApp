@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
@@ -104,7 +106,9 @@ public class SyncService {
         SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(compName);
 
         try {
-            JsonNode events = provider.fetchScoreboardEvents(WC_DATE_RANGE);
+            String slug = targetComp != null && targetComp.getExternalId() != null ? targetComp.getExternalId() : "fifa.world";
+            String dateParam = "fifa.world".equalsIgnoreCase(slug) ? WC_DATE_RANGE : LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            JsonNode events = provider.fetchScoreboardEvents(slug, dateParam);
             Map<String, Team> nameToTeamCache = buildTeamCache();
 
             SyncContext context = new SyncContext();
@@ -240,6 +244,109 @@ public class SyncService {
 
         return saved;
     }
+
+    /**
+     * Importa el catálogo completo de equipos (con escudos oficiales) y los partidos próximos de una competición vía ESPN.
+     */
+    @Transactional
+    public Map<String, Object> importCompetitionData(Long competitionId) {
+        Competition comp = competitionRepository.findById(competitionId)
+                .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada con ID: " + competitionId));
+
+        String slug = comp.getExternalId();
+        if (slug == null || slug.isBlank()) {
+            throw new IllegalArgumentException("La competición '" + comp.getName() + "' no tiene externalId (slug) configurado");
+        }
+
+        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(comp.getName());
+        Map<String, Object> result = new LinkedHashMap<>();
+        int importedTeams = 0;
+
+        try {
+            // 1. Descargar equipos y sus escudos oficiales
+            JsonNode teamsNode = provider.fetchTeams(slug);
+            Map<String, Team> teamCache = buildTeamCache();
+
+            if (teamsNode != null && teamsNode.isArray()) {
+                for (JsonNode item : teamsNode) {
+                    JsonNode t = item.path("team");
+                    if (t.isMissingNode()) t = item;
+
+                    String id = t.path("id").asText(null);
+                    String displayName = t.path("displayName").asText(t.path("name").asText(null));
+                    String abbr = t.path("abbreviation").asText(null);
+                    String logo = t.path("logos").path(0).path("href").asText(t.path("logo").asText(null));
+
+                    if (displayName != null && !displayName.isBlank()) {
+                        final String fName = displayName;
+                        Team team = teamRepository.findByName(fName)
+                                .or(() -> id != null ? teamRepository.findByExternalId(id) : Optional.empty())
+                                .orElseGet(() -> Team.builder().name(fName).groupName("-").build());
+
+                        team.setName(displayName);
+                        if (abbr != null) team.setNameEn(abbr);
+                        if (id != null) team.setExternalId(id);
+                        if (logo != null && !logo.isBlank()) team.setLogoUrl(logo);
+
+                        teamRepository.save(team);
+                        teamCache.put(displayName, team);
+                        if (id != null) teamCache.put(id, team);
+                        importedTeams++;
+                    }
+                }
+            }
+
+            // 2. Descargar partidos del calendario de la temporada
+            SyncContext context = new SyncContext();
+            context.competition = comp;
+
+            LocalDate today = LocalDate.now();
+            List<String> datesToQuery = new ArrayList<>();
+            datesToQuery.add(today.minusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+            datesToQuery.add(today.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+            for (int i = 1; i <= 7; i++) {
+                datesToQuery.add(today.plusDays(i).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+            }
+
+            List<String> calendarDates = provider.fetchSeasonCalendarDates(slug);
+            for (String iso : calendarDates) {
+                try {
+                    LocalDate d = ZonedDateTime.parse(iso).toLocalDate();
+                    if (!d.isBefore(today.minusDays(7)) && !d.isAfter(today.plusDays(30))) {
+                        String ymd = d.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+                        if (!datesToQuery.contains(ymd)) datesToQuery.add(ymd);
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            for (String dateStr : datesToQuery) {
+                try {
+                    JsonNode events = provider.fetchScoreboardEvents(slug, dateStr);
+                    if (events != null && events.isArray()) {
+                        for (JsonNode event : events) {
+                            processEvent(event, teamCache, context);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("No events for {}: {}", dateStr, e.getMessage());
+                }
+            }
+
+            result.put("status", "success");
+            result.put("competition", comp.getName());
+            result.put("slug", slug);
+            result.put("importedTeams", importedTeams);
+            result.put("importedMatches", context.matchesUpdated);
+            log.info("Imported {} teams and {} matches for {}", importedTeams, context.matchesUpdated, comp.getName());
+        } catch (Exception e) {
+            log.error("Error al importar datos para {}: {}", comp.getName(), e.getMessage(), e);
+            result.put("status", "error");
+            result.put("message", e.getMessage());
+        }
+
+        return result;
+    }
+
 
     private Map<String, Team> buildTeamCache() {
         Map<String, Team> cache = new HashMap<>();

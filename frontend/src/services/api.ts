@@ -396,3 +396,19 @@ export async function overrideMatchResult(matchId, homeScore, awayScore, status 
   }
   return res.json();
 }
+
+export async function importCompetitionData(competitionId) {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/competitions/${competitionId}/import-data`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || `Error al importar datos deportivos: ${res.status}`);
+  }
+  return await res.json();
+}

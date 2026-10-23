@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAdminData } from '../hooks/useAdminData';
-import { fetchSyncStatus, overrideMatchResult, fetchMatches } from '../services/api';
+import {
+  fetchSyncStatus,
+  overrideMatchResult,
+  fetchMatches,
+  fetchCompetitions,
+  importCompetitionData,
+} from '../services/api';
 
 /**
  * Botón genérico para realizar acciones de refresco o llamadas a API del administrador.
@@ -88,6 +94,10 @@ function Admin() {
   const [manualStatus, setManualStatus] = useState('FINISHED');
   const [manualSubmitStatus, setManualSubmitStatus] = useState(null);
   const [manualMessage, setManualMessage] = useState('');
+  const [competitionsList, setCompetitionsList] = useState([]);
+  const [selectedCompToImport, setSelectedCompToImport] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState('');
 
   const loadSyncData = async () => {
     try {
@@ -109,8 +119,37 @@ function Admin() {
           if (Array.isArray(m)) setMatchesList(m);
         })
         .catch(() => {});
+      fetchCompetitions()
+        .then((c) => {
+          if (Array.isArray(c)) {
+            setCompetitionsList(c);
+            if (c.length > 0 && !selectedCompToImport) {
+              setSelectedCompToImport(String(c[0].id));
+            }
+          }
+        })
+        .catch(() => {});
     }
   }, [isAdminAuthenticated]);
+
+  const handleImportCompetition = async () => {
+    if (!selectedCompToImport) return;
+    setImportLoading(true);
+    setImportResult('');
+    try {
+      const res = await importCompetitionData(selectedCompToImport);
+      setImportResult(
+        `✅ Éxito: Importados ${res.importedTeams || 0} equipos y ${res.importedMatches || 0} partidos para ${res.competition || 'la competición'}.`,
+      );
+      loadSyncData();
+      const m = await fetchMatches();
+      if (Array.isArray(m)) setMatchesList(m);
+    } catch (err) {
+      setImportResult(`❌ Error al importar: ${err.message || err}`);
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   const handleManualOverride = async (e) => {
     e.preventDefault();
@@ -364,6 +403,82 @@ function Admin() {
           >
             {syncLoading ? 'Actualizando...' : '🔄 Actualizar Estado'}
           </button>
+        </div>
+
+        {/* Importador Multi-Competición ESPN */}
+        <div
+          style={{
+            background: 'rgba(0, 206, 201, 0.08)',
+            border: '1px solid rgba(0, 206, 201, 0.25)',
+            borderRadius: '10px',
+            padding: '14px',
+            marginBottom: '16px',
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              color: '#00cec9',
+              marginBottom: '8px',
+            }}
+          >
+            📥 Importador Automático de Competición (ESPN API)
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+            Descarga directamente de ESPN todos los equipos con sus escudos oficiales y los partidos
+            del calendario de la competición seleccionada.
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <select
+              value={selectedCompToImport}
+              onChange={(e) => setSelectedCompToImport(e.target.value)}
+              style={{
+                flex: '1',
+                minWidth: '200px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: 'rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                fontSize: '0.85rem',
+              }}
+            >
+              {competitionsList.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.externalId || 'sin slug'}) [{c.formatType || 'LEAGUE'}]
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleImportCompetition}
+              disabled={importLoading || !selectedCompToImport}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#00cec9',
+                color: '#1a1a1a',
+                fontWeight: 'bold',
+                cursor: importLoading ? 'wait' : 'pointer',
+                fontSize: '0.85rem',
+              }}
+            >
+              {importLoading ? 'Importando...' : '⚡ Descargar Equipos y Partidos'}
+            </button>
+          </div>
+          {importResult && (
+            <div
+              style={{
+                marginTop: '10px',
+                fontSize: '0.85rem',
+                color: importResult.startsWith('✅') ? '#00b894' : '#ff7675',
+              }}
+            >
+              {importResult}
+            </div>
+          )}
         </div>
 
         {syncOverview ? (

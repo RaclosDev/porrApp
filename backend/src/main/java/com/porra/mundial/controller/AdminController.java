@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * Controlador de Administración para sincronización de datos deportivos,
- * corrección manual auditada de partidos y cuadro oficial.
+ * importación de competiciones, corrección manual auditada de partidos y cuadro oficial.
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -49,6 +49,14 @@ public class AdminController {
     @PostMapping("/sync/refresh")
     public ResponseEntity<Map<String, Object>> forceSync() {
         return ResponseEntity.ok(syncService.syncAll());
+    }
+
+    /**
+     * Importa equipos, escudos oficiales y calendario de partidos para una competición específica (ESPN).
+     */
+    @PostMapping("/competitions/{id}/import-data")
+    public ResponseEntity<Map<String, Object>> importCompetitionData(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(syncService.importCompetitionData(id));
     }
 
     /**

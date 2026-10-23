@@ -46,12 +46,10 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (competitionRepository.count() == 0) {
-            competitionRepository.save(com.porra.mundial.model.Competition.builder()
-                    .name("FIFA World Cup 2026")
-                    .externalId("fifa.world")
-                    .build());
-        }
+        seedCompetitionIfMissing("FIFA World Cup 2026", "fifa.world", "TOURNAMENT");
+        seedCompetitionIfMissing("LaLiga EA Sports", "esp.1", "LEAGUE");
+        seedCompetitionIfMissing("UEFA Champions League", "uefa.champions", "LEAGUE");
+        seedCompetitionIfMissing("Premier League", "eng.1", "LEAGUE");
 
         if (teamRepository.findByName("Por definir").isEmpty()) {
             teamRepository.save(Team.builder()
@@ -184,6 +182,16 @@ public class DataInitializer implements CommandLineRunner {
 
         if (predictionRepository.count() == 0) {
             seedExistingPredictions();
+        }
+    }
+
+    private void seedCompetitionIfMissing(String name, String externalId, String formatType) {
+        if (competitionRepository.findByExternalId(externalId).isEmpty() && competitionRepository.findByName(name).isEmpty()) {
+            competitionRepository.save(com.porra.mundial.model.Competition.builder()
+                    .name(name)
+                    .externalId(externalId)
+                    .formatType(formatType)
+                    .build());
         }
     }
 
