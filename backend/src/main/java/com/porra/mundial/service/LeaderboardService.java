@@ -86,7 +86,7 @@ public class LeaderboardService {
 
         List<String> bestVirtualThirds = allThirds.stream().limit(8).map(gs -> gs.getTeam().getName()).collect(Collectors.toList());
         boolean pichichiActive = groupPredictions.stream()
-                .anyMatch(p -> p.getEdition() != null && p.getEdition().isPichichi());
+                .anyMatch(p -> p.getEdition() == null || p.getEdition().isPichichi());
         List<Map<String, Object>> allScorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
 
         List<Match> allMatches = matchRepository.findAll();

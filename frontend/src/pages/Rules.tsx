@@ -23,7 +23,7 @@ function Rules() {
   const runnerUpPts = rules?.runnerUpPoints ?? 150;
   const thirdPts = rules?.thirdPlacePoints ?? 100;
   const fourthPts = rules?.fourthPlacePoints ?? 75;
-  const pichichiPts = rules?.topScorerPoints ?? 100;
+  const pichichiPts = rules?.topScorerPoints ?? 200;
 
   return (
     <section id="view-rules" className="view-section" style={{ display: 'block', opacity: 1 }}>

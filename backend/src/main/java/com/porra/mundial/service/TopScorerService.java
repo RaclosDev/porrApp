@@ -44,7 +44,7 @@ public class TopScorerService {
     }
 
     // Date range covering the entire World Cup
-    private static final String WC_DATE_RANGE = "20260611-20260722";
+    private static final String WC_DATE_RANGE = "2026";
 
     // Cached list of top scorers (thread-safe)
     private final AtomicReference<List<Map<String, Object>>> cachedScorers = new AtomicReference<>(Collections.emptyList());
@@ -62,7 +62,7 @@ public class TopScorerService {
     ));
 
     /** Called every 30 minutes */
-    @Scheduled(fixedDelay = 1_800_000)
+    @Scheduled(initialDelay = 5_000, fixedDelay = 1_800_000)
     public void scheduledRefresh() {
         refresh();
     }

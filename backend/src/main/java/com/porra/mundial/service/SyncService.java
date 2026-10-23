@@ -51,7 +51,7 @@ public class SyncService {
     private final SyncAuditLogRepository syncAuditLogRepository;
     private final MatchPredictionService matchPredictionService;
 
-    private static final String WC_DATE_RANGE = "20260611-20260722";
+    private static final String WC_DATE_RANGE = "2026";
     private static final ZoneId SPAIN_ZONE = ZoneId.of("Europe/Madrid");
     private volatile LocalDateTime lastSyncTime;
     private volatile String lastSyncStatus = "INITIALIZING";
