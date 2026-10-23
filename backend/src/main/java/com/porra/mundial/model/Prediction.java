@@ -56,7 +56,6 @@ public class Prediction {
     @Builder.Default
     private Boolean isOfficial = false;
 
-    // -- Metodos de conveniencia y compatibilidad --
 
     public boolean isOfficial() {
         return Boolean.TRUE.equals(isOfficial);

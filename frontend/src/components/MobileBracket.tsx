@@ -99,7 +99,7 @@ export default function MobileBracket({
   const renderTabContent = () => {
     const tab = TABS[activeTab];
 
-    // ── Pestaña Final ──
+    // Final
     if (tab.key === 'final') {
       return mobileCenter ? (
         <div className="mb-final-content">{mobileCenter()}</div>
@@ -112,7 +112,7 @@ export default function MobileBracket({
 
     const roundIndex = tab.roundIndex;
 
-    // ── Pestaña Semifinales (caso especial: los 2 SF vienen de lados distintos) ──
+    // Semifinales
     if (roundIndex === 3) {
       const leftSF = leftRounds[3]?.[0];
       const rightSF = rightRounds[3]?.[0];
@@ -187,7 +187,7 @@ export default function MobileBracket({
       );
     }
 
-    // ── Rondas normales (R32, R16, QF) ──
+    // Rondas previas
     const groups = buildGroups(roundIndex);
 
     return (
@@ -207,7 +207,7 @@ export default function MobileBracket({
 
   return (
     <div className="mobile-bracket">
-      {/* ── Pestañas ── */}
+      {/* Pestañas */}
       <div className="mb-tabs">
         {TABS.map((t, i) => (
           <button
@@ -220,7 +220,7 @@ export default function MobileBracket({
         ))}
       </div>
 
-      {/* ── Contenido con animación ── */}
+      {/* Contenido */}
       <div key={animKey} className={`mb-content mb-slide-${slideDir}`}>
         {renderTabContent()}
       </div>
@@ -241,7 +241,7 @@ export default function MobileBracket({
 function BracketGroup({ group, roundIndex, renderSlot, onNavigateNext }) {
   const { matchA, matchB, nextMatch } = group;
 
-  // ── Cálculo de posiciones para SVG ──
+  // Posiciones SVG
   const CARD_GAP = 10;
   const totalH = MATCH_H * 2 + CARD_GAP;
   const midA = MATCH_H / 2;

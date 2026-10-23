@@ -215,8 +215,6 @@ function Bracket() {
     </>
   );
 
-  // ── JSX ──────────────────────────────────────────────────────────────────
-
   return (
     <section id="view-bracket" className="view-section" style={{ display: 'block' }}>
       {isInitialState ? (
