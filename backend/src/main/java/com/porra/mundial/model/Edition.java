@@ -47,7 +47,7 @@ public class Edition {
     /** Flag indicando si en esta edición se otorgan puntos extra por adivinar al Pichichi. */
     @Builder.Default
     @Column(nullable = false)
-    private boolean pichichi = true;
+    private boolean pichichi = false;
 
     /** Fecha y hora límite para enviar o editar pronósticos. */
     @Column(name = "lock_date")

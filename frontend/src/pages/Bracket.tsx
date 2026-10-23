@@ -286,7 +286,7 @@ function Bracket() {
               className={`mb-tab ${mobileStep === 'save' ? 'mb-tab-active' : ''}`}
               onClick={() => setMobileStep('save')}
             >
-              Guardar y Pichichi
+              {activeGroupPichichi ? 'Guardar y Pichichi' : 'Guardar Porra'}
             </button>
           </div>
 

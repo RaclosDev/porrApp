@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getCountryCode } from '../utils/constants';
 import { useStatsData } from '../hooks/useStatsData';
+import { useAppContext } from '../context/AppContext';
 
 /**
  * Vista de Estadisticas Globales de la porra.
@@ -8,6 +9,7 @@ import { useStatsData } from '../hooks/useStatsData';
  */
 function Stats() {
   const { stats, loading } = useStatsData();
+  const { activeGroupPichichi } = useAppContext();
   const [modalData, setModalData] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
 
@@ -291,7 +293,10 @@ function Stats() {
         {renderCard('Sorpresas (Pasan de Grupo)', '🦄', stats.darkHorses, '#e84393')}
         {renderCard('Llegan a Semifinales', '💫', stats.semis, '#e67e22')}
         {renderCard('Finales Más Repetidas', '⚔️', stats.finals, '#e74c3c', true)}
-        {renderCard('Pichichi', '👟', stats.scorers, '#3498db')}
+        {activeGroupPichichi &&
+          stats.scorers &&
+          stats.scorers.length > 0 &&
+          renderCard('Pichichi', '👟', stats.scorers, '#3498db')}
         {renderCard('Decepciones (Caen en Grupos)', '💀', stats.disappointments, '#9b59b6')}
         {renderCard('Almas Gemelas', '👯', stats.twins, '#00d8d6')}
       </div>

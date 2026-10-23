@@ -237,7 +237,8 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
  * @returns {JSX.Element} La vista de la central de inteligencia.
  */
 function Search() {
-  const { participantsHashes, groupOdds, loading, userName, setViewerBetId } = useAppContext();
+  const { participantsHashes, groupOdds, loading, userName, setViewerBetId, activeGroupPichichi } =
+    useAppContext();
 
   // Read initial state from URL parameters (if shared link), fallback to localStorage, then default
   const urlParams = new URLSearchParams(window.location.search);
@@ -852,30 +853,32 @@ function Search() {
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👟</div>
+                {activeGroupPichichi && (
                   <div
                     style={{
-                      color: 'var(--text-muted)',
-                      fontSize: '0.9rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
+                      background: 'rgba(255,255,255,0.03)',
+                      padding: '20px',
+                      borderRadius: '12px',
+                      textAlign: 'center',
+                      border: '1px solid rgba(255,255,255,0.05)',
                     }}
                   >
-                    Pichichi
+                    <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👟</div>
+                    <div
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.9rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                      }}
+                    >
+                      Pichichi
+                    </div>
+                    <div style={{ fontWeight: 'bold', fontSize: '1.3rem', marginTop: '10px' }}>
+                      {userStats.scorer || 'No elegido'}
+                    </div>
                   </div>
-                  <div style={{ fontWeight: 'bold', fontSize: '1.3rem', marginTop: '10px' }}>
-                    {userStats.scorer || 'No elegido'}
-                  </div>
-                </div>
+                )}
 
                 <div
                   style={{

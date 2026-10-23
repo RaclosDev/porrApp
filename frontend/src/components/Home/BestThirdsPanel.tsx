@@ -27,10 +27,6 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
       if (b.diff !== a.diff) return b.diff - a.diff;
       if (b.gls !== a.gls) return b.gls - a.gls;
 
-      const fpA = a.fp || 0;
-      const fpB = b.fp || 0;
-      if (fpB !== fpA) return fpB - fpA;
-
       return a.name.localeCompare(b.name);
     });
 
@@ -83,7 +79,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '20px 1fr 25px 30px 28px',
+                gridTemplateColumns: '22px 1fr 28px 32px',
                 gap: '6px',
                 paddingBottom: '6px',
                 borderBottom: '1px solid rgba(255,255,255,0.1)',
@@ -97,7 +93,6 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
               <span style={{ textAlign: 'left' }}>Equipo</span>
               <span>PT</span>
               <span>DF</span>
-              <span title="Fair Play">FP</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {thirds.slice(0, 6).map((t, idx) => {
@@ -109,7 +104,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
                     key={t.name}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '20px 1fr 25px 30px 28px',
+                      gridTemplateColumns: '22px 1fr 28px 32px',
                       gap: '6px',
                       padding: '5px 0',
                       alignItems: 'center',
@@ -157,15 +152,6 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
                     <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                       {t.diff > 0 ? `+${t.diff}` : t.diff}
                     </span>
-                    <span
-                      style={{
-                        textAlign: 'center',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.75rem',
-                      }}
-                    >
-                      {t.fp || 0}
-                    </span>
                   </div>
                 );
               })}
@@ -176,7 +162,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '20px 1fr 25px 30px 28px',
+                gridTemplateColumns: '22px 1fr 28px 32px',
                 gap: '6px',
                 paddingBottom: '6px',
                 borderBottom: '1px solid rgba(255,255,255,0.1)',
@@ -190,7 +176,6 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
               <span style={{ textAlign: 'left' }}>Equipo</span>
               <span>PT</span>
               <span>DF</span>
-              <span title="Fair Play">FP</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {thirds.slice(6, 12).map((t, idx) => {
@@ -204,7 +189,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
                     key={t.name}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '20px 1fr 25px 30px 28px',
+                      gridTemplateColumns: '22px 1fr 28px 32px',
                       gap: '6px',
                       padding: '5px 0',
                       alignItems: 'center',
@@ -253,15 +238,6 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
                     </span>
                     <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                       {t.diff > 0 ? `+${t.diff}` : t.diff}
-                    </span>
-                    <span
-                      style={{
-                        textAlign: 'center',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.75rem',
-                      }}
-                    >
-                      {t.fp || 0}
                     </span>
                   </div>
                 );

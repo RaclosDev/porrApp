@@ -128,10 +128,13 @@ export const useAppContext = () => {
       return data;
     },
   });
+  const activeGroupPichichi =
+    groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : false;
   const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
   const { data: topScorers } = useQuery({
     queryKey: ['topScorers'],
     queryFn: fetchTopScorers,
+    enabled: activeGroupPichichi,
     staleTime: 300_000,
   });
 
@@ -139,7 +142,6 @@ export const useAppContext = () => {
   const activeGroupAdmin = groupInfo?.adminParticipantName || null;
   const activeGroupAdminId = groupInfo?.adminUserId || null;
   const activeGroupBetMode = groupInfo?.betMode || 'FULL_BRACKET';
-  const activeGroupPichichi = groupInfo?.pichichi !== undefined ? groupInfo.pichichi : true;
   const activeGroupIsLocked = Boolean(groupInfo?.isLocked);
   const activeGroupLockDate = groupInfo?.lockDate || null;
 

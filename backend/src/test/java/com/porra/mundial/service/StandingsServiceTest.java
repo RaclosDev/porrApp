@@ -109,7 +109,7 @@ class StandingsServiceTest {
     }
 
     @Test
-    void testFairPlayTieBreaker() {
+    void testTieBreakerWithoutFairPlay() {
         // Empate absoluto en TODO (0-0 en su partido, mismos puntos, misma diff)
         GroupStanding gsA = GroupStanding.builder().team(teamA).points(3).goalDiff(0).goalsFor(0).fairPlayPoints(-5).build();
         GroupStanding gsB = GroupStanding.builder().team(teamB).points(3).goalDiff(0).goalsFor(0).fairPlayPoints(-2).build();
@@ -125,7 +125,7 @@ class StandingsServiceTest {
 
         List<GroupStanding> sorted = standingsService.getStandingsByGroup("A");
 
-        assertEquals("TeamB", sorted.get(0).getTeam().getName(), "TeamB gana por desempate de Fair Play (menos puntos negativos)");
+        assertEquals("TeamA", sorted.get(0).getTeam().getName(), "TeamA gana por orden alfabético al no haber desempate de Fair Play");
     }
 
     @Test
