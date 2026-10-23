@@ -4,7 +4,7 @@ import {
   fetchStandings,
   fetchMatches,
   fetchMatchRadar,
-  fetchBets,
+  fetchPredictions,
   fetchTeamOdds,
   fetchLeaderboard,
   fetchGroup,
@@ -48,6 +48,7 @@ export function AppProvider({ children }) {
         setUserName('');
         setUserId('');
       }, 0);
+      localStorage.removeItem('my_prediction_name');
       localStorage.removeItem('my_bet_name');
       localStorage.removeItem('my_user_id');
     }
@@ -99,9 +100,9 @@ export const useAppContext = () => {
 
   const { data: standings } = useQuery({ queryKey: ['standings'], queryFn: fetchStandings });
   const { data: radar } = useQuery({ queryKey: ['radar'], queryFn: fetchMatchRadar });
-  const { data: bets } = useQuery({
-    queryKey: ['bets', activeGroupId],
-    queryFn: () => fetchBets(activeGroupId),
+  const { data: predictions } = useQuery({
+    queryKey: ['predictions', activeGroupId],
+    queryFn: () => fetchPredictions(activeGroupId),
   });
   const { data: odds } = useQuery({ queryKey: ['odds'], queryFn: fetchTeamOdds });
   const { data: leaderboard } = useQuery({
@@ -142,7 +143,7 @@ export const useAppContext = () => {
       return acc;
     }, {}) || {};
 
-  const loading = !standings || !matches || !bets;
+  const loading = !standings || !matches || !predictions;
 
   const checkAdmin = (str) => {
     if (!str) return false;
@@ -161,7 +162,7 @@ export const useAppContext = () => {
     isAuthenticated: isUserAuthed,
     officialPoints: standings || {},
     matchRadar: radar || { live: [], last: [], next: [] },
-    participantsHashes: bets || [],
+    participantsHashes: predictions || [],
     allGames: matches || [],
     groupOdds: odds || {},
     nameToIdMap,
@@ -170,13 +171,17 @@ export const useAppContext = () => {
     fetchData: adminActions.refreshAll,
     onlineUsers: onlineUsers || [],
     isRaclos,
-    deleteBet: adminActions.deleteBet,
+    deletePrediction: adminActions.deletePrediction || adminActions.deleteBet,
+    deleteBet: adminActions.deletePrediction || adminActions.deleteBet,
     fixThird: adminActions.fixThird,
-    acceptBet: adminActions.acceptBet,
-    editBetName: adminActions.editBetName,
+    acceptPrediction: adminActions.acceptPrediction || adminActions.acceptBet,
+    acceptBet: adminActions.acceptPrediction || adminActions.acceptBet,
+    editPredictionName: adminActions.editPredictionName || adminActions.editBetName,
+    editBetName: adminActions.editPredictionName || adminActions.editBetName,
     activeGroupName,
     activeGroupAdmin,
     activeGroupAdminId,
+    activeGroupPoolFormat: activeGroupBetMode,
     activeGroupBetMode,
     activeGroupPichichi,
     activeGroupIsLocked,

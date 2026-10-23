@@ -97,5 +97,6 @@ export function useAdminActions() {
     refreshAll,
     deletePrediction: deleteBet,
     acceptPrediction: acceptBet,
+    editPredictionName: editBetName,
   };
 }

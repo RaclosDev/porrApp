@@ -1,10 +1,11 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.*;
 import com.porra.mundial.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,7 @@ public class PredictionPersistenceService {
     private final ExtraPredictionRepository extraPredictionRepository;
 
     @Transactional
-    public void saveRelationalPredictions(Prediction prediction, BetDataDTO dto) {
+    public void saveRelationalPredictions(Prediction prediction, PredictionDataDTO dto) {
         if (dto == null || prediction == null) return;
 
         try {
@@ -162,9 +163,9 @@ public class PredictionPersistenceService {
     }
 
     @Transactional(readOnly = true)
-    @org.springframework.cache.annotation.Cacheable(value = "rebuiltBetData", key = "#predictionId")
-    public BetDataDTO rebuildBetDataDtoFromTables(Long predictionId) {
-        BetDataDTO dto = new BetDataDTO();
+    @Cacheable(value = "rebuiltPredictionData", key = "#predictionId")
+    public PredictionDataDTO rebuildPredictionDataDtoFromTables(Long predictionId) {
+        PredictionDataDTO dto = new PredictionDataDTO();
 
         List<GroupPrediction> groupPreds = groupPredictionRepository.findByPredictionId(predictionId);
         Map<String, List<String>> groupsMap = new LinkedHashMap<>();
@@ -229,6 +230,11 @@ public class PredictionPersistenceService {
         });
 
         return dto;
+    }
+
+    @Deprecated
+    public PredictionDataDTO rebuildBetDataDtoFromTables(Long predictionId) {
+        return rebuildPredictionDataDtoFromTables(predictionId);
     }
 
     private List<List<String>> reconstructR32(Map<String, List<String>> groups, List<String> thirds) {

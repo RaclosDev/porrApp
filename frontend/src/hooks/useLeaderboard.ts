@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import html2canvas from 'html2canvas';
-import { acceptGroupBet, deleteGroupBet } from '../services/api';
+import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
 
 export function useLeaderboard() {
   const state = useAppContext();
@@ -113,11 +113,11 @@ export function useLeaderboard() {
     }
   };
 
-  const handleAcceptBet = async (betId) => {
+  const handleAcceptPrediction = async (predictionId) => {
     if (!window.confirm('¿Confirmar que este jugador ha pagado / es aceptado en la liga?')) return;
     setActionLoading(true);
     try {
-      await acceptGroupBet(activeGroupId, betId);
+      await acceptGroupPrediction(activeGroupId, predictionId);
       state.fetchData();
     } catch (e) {
       alert(e.message);
@@ -125,13 +125,14 @@ export function useLeaderboard() {
       setActionLoading(false);
     }
   };
+  const handleAcceptBet = handleAcceptPrediction;
 
-  const handleDeleteBet = async (betId) => {
+  const handleDeletePrediction = async (predictionId) => {
     if (!window.confirm('¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.'))
       return;
     setActionLoading(true);
     try {
-      await deleteGroupBet(activeGroupId, betId);
+      await deleteGroupPrediction(activeGroupId, predictionId);
       state.fetchData();
     } catch (e) {
       alert(e.message);
@@ -139,6 +140,7 @@ export function useLeaderboard() {
       setActionLoading(false);
     }
   };
+  const handleDeleteBet = handleDeletePrediction;
 
   const handleSort = (column) => {
     if (sortColumn === column) {
@@ -164,6 +166,8 @@ export function useLeaderboard() {
     handleShare,
     handleAcceptBet,
     handleDeleteBet,
+    handleAcceptPrediction,
+    handleDeletePrediction,
     validResults: results.filter((r) => r.paid),
     sortColumn,
     sortDirection,

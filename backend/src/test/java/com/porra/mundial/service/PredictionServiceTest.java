@@ -1,7 +1,7 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.dto.BetDataDTO;
-import com.porra.mundial.dto.BetResponseDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
+import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Prediction;
@@ -222,7 +222,7 @@ class PredictionServiceTest {
         when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
 
         assertThrows(IllegalStateException.class, () ->
-                predictionService.createPrediction("owner@test.com", "Mi Porra", new BetDataDTO(), 100L)
+                predictionService.createPrediction("owner@test.com", "Mi Porra", new PredictionDataDTO(), 100L)
         );
 
         verify(predictionRepository, never()).save(any());
@@ -261,7 +261,7 @@ class PredictionServiceTest {
     void otherUsersCannotSeePredictionsBeforeLock() {
         edition.setStatus("ACTIVE");
 
-        List<BetResponseDTO> result = predictionService.toBetDtoList(List.of(prediction), "stranger@test.com");
+        List<PredictionResponseDTO> result = predictionService.toPredictionDtoList(List.of(prediction), "stranger@test.com");
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -274,9 +274,9 @@ class PredictionServiceTest {
     void ownerCanSeePredictionsBeforeLock() {
         edition.setStatus("ACTIVE");
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionPersistenceService.rebuildBetDataDtoFromTables(1L)).thenReturn(new BetDataDTO());
+        when(predictionPersistenceService.rebuildPredictionDataDtoFromTables(1L)).thenReturn(new PredictionDataDTO());
 
-        List<BetResponseDTO> result = predictionService.toBetDtoList(List.of(prediction), "owner@test.com");
+        List<PredictionResponseDTO> result = predictionService.toPredictionDtoList(List.of(prediction), "owner@test.com");
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -288,9 +288,9 @@ class PredictionServiceTest {
     void allUsersCanSeePredictionsAfterLock() {
         edition.setStatus("LOCKED");
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionPersistenceService.rebuildBetDataDtoFromTables(1L)).thenReturn(new BetDataDTO());
+        when(predictionPersistenceService.rebuildPredictionDataDtoFromTables(1L)).thenReturn(new PredictionDataDTO());
 
-        List<BetResponseDTO> result = predictionService.toBetDtoList(List.of(prediction), "stranger@test.com");
+        List<PredictionResponseDTO> result = predictionService.toPredictionDtoList(List.of(prediction), "stranger@test.com");
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -304,7 +304,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                predictionService.getBetData(1L, "stranger@test.com")
+                predictionService.getPredictionData(1L, "stranger@test.com")
         );
     }
 }

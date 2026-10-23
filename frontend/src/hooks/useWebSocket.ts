@@ -1,56 +1,63 @@
 import { useEffect } from 'react';
 
 export function useWebSocket(userName, queryClient) {
-    useEffect(() => {
-        const loc = window.location;
-        const wsUrl = (loc.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + loc.host + '/api/ws';
-        let ws = null;
-        let wsPingInterval = null;
+  useEffect(() => {
+    const loc = window.location;
+    const wsUrl = (loc.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + loc.host + '/api/ws';
+    let ws = null;
+    let wsPingInterval = null;
 
-        const connectWebSocket = () => {
-            ws = new WebSocket(wsUrl);
+    const connectWebSocket = () => {
+      ws = new WebSocket(wsUrl);
 
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-                const name = userName || localStorage.getItem('my_bet_name') || "Anónimo";
-                ws.send(JSON.stringify({ type: 'HEARTBEAT', name }));
-                
-                wsPingInterval = setInterval(() => {
-                    if (ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({ type: 'PING' }));
-                        queryClient.invalidateQueries({ queryKey: ['presence'] });
-                    }
-                }, 10000);
-            };
+      ws.onopen = () => {
+        const name =
+          userName ||
+          localStorage.getItem('my_prediction_name') ||
+          localStorage.getItem('my_bet_name') ||
+          'Anónimo';
+        ws.send(JSON.stringify({ type: 'HEARTBEAT', name }));
 
-            ws.onmessage = (event) => {
-                try {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'DATA_UPDATED') {
-                        queryClient.invalidateQueries();
-                    } else if (msg.type === 'PRESENCE_UPDATED') {
-                        queryClient.invalidateQueries({ queryKey: ['presence'] });
-                    }
-                } catch {
-                    // ignore
-                }
-            };
+        wsPingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PING' }));
+            queryClient.invalidateQueries({ queryKey: ['presence'] });
+          }
+        }, 10000);
+      };
 
-            ws.onclose = () => {
-                console.log('WebSocket disconnected, reconnecting in 5s...');
-                clearInterval(wsPingInterval);
-                setTimeout(connectWebSocket, 5000);
-            };
-        };
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'DATA_UPDATED') {
+            queryClient.invalidateQueries();
+          } else if (msg.type === 'MATCH_SCORE_UPDATED') {
+            queryClient.invalidateQueries({ queryKey: ['matches'] });
+            queryClient.invalidateQueries({ queryKey: ['matchRadar'] });
+            queryClient.invalidateQueries({ queryKey: ['standings'] });
+            queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+          } else if (msg.type === 'PRESENCE_UPDATED') {
+            queryClient.invalidateQueries({ queryKey: ['presence'] });
+          }
+        } catch {
+          // Ignore malformed payloads
+        }
+      };
 
-        connectWebSocket();
+      ws.onclose = () => {
+        clearInterval(wsPingInterval);
+        setTimeout(connectWebSocket, 5000);
+      };
+    };
 
-        return () => {
-            if (ws) {
-                ws.onclose = null;
-                ws.close();
-            }
-            clearInterval(wsPingInterval);
-        };
-    }, [userName, queryClient]);
+    connectWebSocket();
+
+    return () => {
+      if (ws) {
+        ws.onclose = null;
+        ws.close();
+      }
+      clearInterval(wsPingInterval);
+    };
+  }, [userName, queryClient]);
 }

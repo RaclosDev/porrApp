@@ -1,6 +1,6 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.service.LeaderboardService;
@@ -55,17 +55,17 @@ public class StandingsController {
 
         if (officialPrediction.isPresent()) {
             try {
-                BetDataDTO dto = predictionService.getBetData(officialPrediction.get().getId());
-                syncService.enrichBetDataWithMatches(dto);
+                PredictionDataDTO dto = predictionService.getPredictionData(officialPrediction.get().getId());
+                syncService.enrichPredictionDataWithMatches(dto);
                 return ResponseEntity.ok(dto);
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Map.of("error", "Error construyendo la porra oficial"));
+                        .body(Map.of("error", "Error construyendo el cuadro oficial"));
             }
         }
 
-        BetDataDTO fallbackDto = new BetDataDTO();
-        syncService.enrichBetDataWithMatches(fallbackDto);
+        PredictionDataDTO fallbackDto = new PredictionDataDTO();
+        syncService.enrichPredictionDataWithMatches(fallbackDto);
         return ResponseEntity.ok(fallbackDto);
     }
 }
