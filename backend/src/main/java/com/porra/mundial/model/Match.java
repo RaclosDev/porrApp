@@ -71,4 +71,14 @@ public class Match {
     @Column(name = "status", length = 30)
     @Builder.Default
     private MatchStatusNormalized status = MatchStatusNormalized.SCHEDULED;
+
+    /** Puntos Fair Play del equipo local en este partido (tarjetas). */
+    @Column(name = "home_fair_play")
+    @Builder.Default
+    private Integer homeFairPlay = 0;
+
+    /** Puntos Fair Play del equipo visitante en este partido (tarjetas). */
+    @Column(name = "away_fair_play")
+    @Builder.Default
+    private Integer awayFairPlay = 0;
 }

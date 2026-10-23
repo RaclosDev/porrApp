@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.Base64;
 
 /**
@@ -70,8 +71,9 @@ public class DataInitializer implements CommandLineRunner {
 
         try {
             standingsService.recalculateStandingsFromMatches();
+            syncService.syncAll();
         } catch (Exception e) {
-            log.warn("Could not propagate knockout winners on startup: {}", e.getMessage());
+            log.warn("Could not sync standings on startup: {}", e.getMessage());
         }
 
         try {
@@ -220,6 +222,10 @@ public class DataInitializer implements CommandLineRunner {
         };
 
         Edition globalEdition = editionRepository.findByLeagueIdAndStatus(1L, "ACTIVE").orElse(null);
+        if (globalEdition != null && globalEdition.getLockDate() == null) {
+            globalEdition.setLockDate(LocalDateTime.of(2026, 6, 11, 20, 0));
+            globalEdition = editionRepository.save(globalEdition);
+        }
 
         for (int i = 0; i < hashes.length; i++) {
             final String pName = predictionInfo[i][0];

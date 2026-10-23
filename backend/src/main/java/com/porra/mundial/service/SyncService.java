@@ -68,7 +68,7 @@ public class SyncService {
     /**
      * Tarea programada cíclica en background.
      */
-    @Scheduled(fixedDelayString = "${app.sync.interval-ms}")
+    @Scheduled(initialDelay = 5000, fixedDelayString = "${app.sync.interval-ms}")
     public void scheduledSync() {
         try {
             syncAll();
@@ -382,10 +382,11 @@ public class SyncService {
         MatchScores scores = parseScoresAndWinner(homeComp, awayComp, homeTeam, awayTeam, status);
         MatchMetadata metadata = parseMetadata(competition);
 
-        upsertMatch(espnEventId, homeTeam, awayTeam, scores, matchDate, status, metadata, context);
+        int[] cards = calculateMatchCards(competition, homeComp != null ? homeComp.espnId : null, awayComp != null ? awayComp.espnId : null, homeTeam, awayTeam);
+        upsertMatch(espnEventId, homeTeam, awayTeam, scores, cards, matchDate, status, metadata, context);
 
         if (scores.hasScores && "group".equals(metadata.round) && (status.finished || (status.isLive && !isStartingSoon(matchDate)))) {
-            updateMatchStats(competition, homeTeam, awayTeam, scores, context.teamStats);
+            updateMatchStats(cards, homeTeam, awayTeam, scores, context.teamStats);
         }
     }
 
@@ -519,7 +520,7 @@ public class SyncService {
         return new MatchMetadata(group, round);
     }
 
-    private void upsertMatch(String espnEventId, Team home, Team away, MatchScores scores, 
+    private void upsertMatch(String espnEventId, Team home, Team away, MatchScores scores, int[] cards,
                              LocalDateTime date, MatchStatus status, MatchMetadata meta, SyncContext context) {
         Match match = matchRepository.findByExternalId(espnEventId)
                 .orElseGet(() -> Match.builder().externalId(espnEventId).build());
@@ -543,6 +544,10 @@ public class SyncService {
         String cleanGroup = meta.groupName != null && !"-".equals(meta.groupName) ? meta.groupName.toUpperCase().trim() : meta.groupName;
         if (updateIfChanged(match.getGroupName(), cleanGroup, match::setGroupName)) updated = true;
         if (updateIfChanged(match.getRound(), meta.round, match::setRound)) updated = true;
+        if (cards != null && cards.length >= 2) {
+            if (updateIfChanged(match.getHomeFairPlay(), cards[0], match::setHomeFairPlay)) updated = true;
+            if (updateIfChanged(match.getAwayFairPlay(), cards[1], match::setAwayFairPlay)) updated = true;
+        }
 
         MatchStatusNormalized normStatus = MatchStatusNormalized.fromExternal(
                 status.isLive ? "in" : (status.finished ? "completed" : "scheduled"),
@@ -581,7 +586,7 @@ public class SyncService {
         return false;
     }
 
-    private void updateMatchStats(JsonNode competition, Team home, Team away, MatchScores scores, Map<Long, int[]> teamStats) {
+    private void updateMatchStats(int[] cards, Team home, Team away, MatchScores scores, Map<Long, int[]> teamStats) {
         int[] homeStats = teamStats.computeIfAbsent(home.getId(), k -> new int[5]);
         int[] awayStats = teamStats.computeIfAbsent(away.getId(), k -> new int[5]);
 
@@ -593,16 +598,25 @@ public class SyncService {
         else if (scores.away > scores.home) awayStats[0] += 3;
         else { homeStats[0] += 1; awayStats[0] += 1; }
 
-        calculateFairPlay(competition, home, away, homeStats, awayStats);
+        if (cards != null && cards.length >= 2) {
+            homeStats[4] += cards[0];
+            awayStats[4] += cards[1];
+        }
     }
 
     /**
      * Calcula los puntos de Fair Play (tarjetas) desde el JSON de la API.
      * Tarjeta Amarilla = -1. Roja Directa = -4. Doble Amarilla = -3.
      */
-    private void calculateFairPlay(JsonNode competition, Team home, Team away, int[] homeStats, int[] awayStats) {
+    /**
+     * Calcula los puntos de Fair Play (tarjetas) desde el JSON de la API para este partido.
+     * Tarjeta Amarilla = -1. Roja Directa = -4. Doble Amarilla = -3.
+     */
+    private int[] calculateMatchCards(JsonNode competition, String homeEspnId, String awayEspnId, Team home, Team away) {
+        int homeFp = 0;
+        int awayFp = 0;
         JsonNode details = competition.path("details");
-        if (details == null || !details.isArray()) return;
+        if (details == null || !details.isArray()) return new int[] { 0, 0 };
 
         Set<String> yellowPlayers = new HashSet<>();
         for (JsonNode detail : details) {
@@ -616,9 +630,15 @@ public class SyncService {
             
             int penalty = calculateCardPenalty(isYellow, isRed, playerId, yellowPlayers);
             
-            if (Objects.equals(home.getExternalId(), espnTeamId)) homeStats[4] += penalty;
-            else if (Objects.equals(away.getExternalId(), espnTeamId)) awayStats[4] += penalty;
+            boolean isHome = (espnTeamId != null && espnTeamId.equals(homeEspnId))
+                    || (home != null && Objects.equals(home.getExternalId(), espnTeamId));
+            boolean isAway = (espnTeamId != null && espnTeamId.equals(awayEspnId))
+                    || (away != null && Objects.equals(away.getExternalId(), espnTeamId));
+
+            if (isHome) homeFp += penalty;
+            else if (isAway) awayFp += penalty;
         }
+        return new int[] { homeFp, awayFp };
     }
 
     private String extractPlayerId(JsonNode athletes) {
