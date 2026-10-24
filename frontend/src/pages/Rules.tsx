@@ -23,9 +23,7 @@ function Rules() {
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
   // Permite al usuario alternar entre reglas de Liga y reglas de Torneo
-  const [selectedTab, setSelectedTab] = useState<'LEAGUE' | 'TOURNAMENT'>(
-    isCurrentMatchday ? 'LEAGUE' : 'TOURNAMENT',
-  );
+  const [selectedTab, setSelectedTab] = useState(isCurrentMatchday ? 'LEAGUE' : 'TOURNAMENT');
 
   const { data: rules } = useQuery({ queryKey: ['rules'], queryFn: fetchRules });
 

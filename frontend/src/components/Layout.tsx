@@ -29,6 +29,7 @@ function Layout({ children }) {
     setIsAuthenticated,
     setIsAdminAuthenticated,
     activeGroupPoolFormat,
+    activeCompetitionFormatType,
     loading,
   } = useAppContext();
   const navigate = useNavigate();
