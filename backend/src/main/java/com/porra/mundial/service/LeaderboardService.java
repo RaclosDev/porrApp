@@ -63,18 +63,23 @@ public class LeaderboardService {
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
 
         Map<String, List<String>> orderedTeamsPerGroup = new HashMap<>();
+        Map<String, List<GroupStanding>> groupedStandings = allStandings.stream()
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
 
-        for (GroupStanding gs : allStandings) {
-            if (gs.getGroupName() == null || "-".equals(gs.getGroupName()) || gs.getTeam() == null || "Por definir".equalsIgnoreCase(gs.getTeam().getName())) continue;
-            orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName().toUpperCase().trim(), k -> new ArrayList<>()).add(gs.getTeam().getName());
-        }
-
+        List<Match> allMatches = matchRepository.findAll();
         List<GroupStanding> allThirds = new ArrayList<>();
-        for (String group : orderedTeamsPerGroup.keySet()) {
-            List<String> teams = orderedTeamsPerGroup.get(group);
-            if (teams.size() >= 3) {
-                String thirdPlaceName = teams.get(2);
-                allStandings.stream().filter(gs -> gs.getTeam().getName().equals(thirdPlaceName)).findFirst().ifPresent(allThirds::add);
+
+        for (String group : groupedStandings.keySet()) {
+            List<GroupStanding> groupList = groupedStandings.get(group);
+            List<Match> groupMatches = allMatches.stream()
+                    .filter(m -> group.equalsIgnoreCase(m.getGroupName()))
+                    .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .toList();
+            List<GroupStanding> sortedGroup = standingsService.sortGroupStandings(groupList, groupMatches);
+            orderedTeamsPerGroup.put(group, sortedGroup.stream().map(gs -> gs.getTeam().getName()).toList());
+            if (sortedGroup.size() >= 3) {
+                allThirds.add(sortedGroup.get(2));
             }
         }
 
@@ -91,7 +96,6 @@ public class LeaderboardService {
                 .anyMatch(p -> p.getEdition() == null || p.getEdition().isPichichi());
         List<Map<String, Object>> allScorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
 
-        List<Match> allMatches = matchRepository.findAll();
         List<Match> r32Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
         List<Match> r16Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
         List<Match> qfMatches = allMatches.stream().filter(m -> isRound(m.getRound(), "qf", "quarter", "cuart")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());

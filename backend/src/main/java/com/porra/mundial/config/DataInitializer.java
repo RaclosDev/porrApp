@@ -64,16 +64,21 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         try {
-            syncService.propagateKnockoutWinners();
+            syncService.syncAll();
         } catch (Exception e) {
-            log.warn("Could not propagate knockout winners on startup: {}", e.getMessage());
+            log.warn("Could not sync on startup: {}", e.getMessage());
         }
 
         try {
             standingsService.recalculateStandingsFromMatches();
-            syncService.syncAll();
         } catch (Exception e) {
-            log.warn("Could not sync standings on startup: {}", e.getMessage());
+            log.warn("Could not recalculate standings on startup: {}", e.getMessage());
+        }
+
+        try {
+            syncService.propagateKnockoutWinners();
+        } catch (Exception e) {
+            log.warn("Could not propagate knockout winners on startup: {}", e.getMessage());
         }
 
         try {

@@ -68,7 +68,7 @@ public class StandingsService {
      * @param allGroupMatches Partidos del grupo para calcular H2H en caso de empate.
      * @return Clasificación perfectamente ordenada.
      */
-    private List<GroupStanding> sortGroupStandings(List<GroupStanding> standings, List<Match> allGroupMatches) {
+    public List<GroupStanding> sortGroupStandings(List<GroupStanding> standings, List<Match> allGroupMatches) {
         if (standings == null || standings.isEmpty()) return Collections.emptyList();
 
         List<Match> finishedMatches = allGroupMatches.stream()

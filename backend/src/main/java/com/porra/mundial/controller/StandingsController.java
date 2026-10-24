@@ -37,7 +37,9 @@ public class StandingsController {
 
     @PostMapping("/sync")
     public Map<String, Object> syncNow() {
-        return syncService.syncAll();
+        Map<String, Object> res = syncService.syncAll();
+        standingsService.recalculateStandingsFromMatches();
+        return res;
     }
 
     @GetMapping(value = "/standings/export/csv", produces = "text/csv; charset=UTF-8")

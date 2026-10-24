@@ -97,9 +97,21 @@ public class SyncService {
             targetComp = competitionRepository.findById(competitionId).orElse(null);
         }
         if (targetComp == null) {
-            targetComp = competitionRepository.findByName("FIFA World Cup 2026")
+            targetComp = competitionRepository.findByExternalId("fifa.world")
+                    .or(() -> competitionRepository.findByName("FIFA World Cup 2026"))
+                    .or(() -> competitionRepository.findByName("FIFA_WORLD_CUP_2026"))
+                    .or(() -> competitionRepository.findAll().stream()
+                            .filter(c -> "fifa.world".equalsIgnoreCase(c.getExternalId())
+                                    || (c.getName() != null && (c.getName().toLowerCase().contains("world") || c.getName().toLowerCase().contains("mundial"))))
+                            .findFirst())
                     .or(() -> competitionRepository.findAll().stream().findFirst())
                     .orElse(null);
+        }
+
+        if (targetComp != null && (targetComp.getExternalId() == null || targetComp.getExternalId().isBlank())) {
+            targetComp.setExternalId("fifa.world");
+            targetComp.setFormatType("TOURNAMENT");
+            competitionRepository.save(targetComp);
         }
 
         String compName = targetComp != null ? targetComp.getName() : "FIFA World Cup 2026";
