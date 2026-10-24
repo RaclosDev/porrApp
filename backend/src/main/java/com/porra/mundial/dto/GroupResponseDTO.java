@@ -28,11 +28,13 @@ public class GroupResponseDTO {
     
     /** Identificador de la competición asociada a la edición activa. */
     private Long competitionId;
-    /** Nombre de la competición actual en curso (Ej: Euro 2024). */
+    /** Nombre de la competición actual en curso (Ej: Euro 2024, LaLiga). */
     private String competitionName;
+    /** Formato de competición física: "LEAGUE" o "TOURNAMENT". */
+    private String formatType;
     /** Formato de porra (legacy). */
     private String betMode;
-    /** Formato de porra / modalidad (FULL_BRACKET, KNOCKOUTS_ONLY). */
+    /** Formato de porra / modalidad (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY). */
     private String poolFormat;
     /** Si esta edición cuenta con un premio/ranking al pichichi. */
     private Boolean pichichi;

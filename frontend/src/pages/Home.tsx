@@ -7,6 +7,7 @@ import OfficialBracket from './OfficialBracket';
 import BestThirdsPanel from '../components/Home/BestThirdsPanel';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
+import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
 
 /**
  * Componente de la página principal (Home).
@@ -27,6 +28,8 @@ function Home({ defaultMode = 'bracket' }) {
     matchRadar,
     topScorers,
     activeGroupPichichi,
+    activeGroupPoolFormat,
+    activeCompetitionFormatType,
   } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [viewMode, setViewMode] = useState(defaultMode);
@@ -64,6 +67,12 @@ function Home({ defaultMode = 'bracket' }) {
     });
     return res;
   }, [groupOdds, officialPoints, allGames, nameToIdMap]);
+
+  const isMatchDayLeague =
+    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+  if (isMatchDayLeague) {
+    return <MatchdayHomeDashboard />;
+  }
 
   // Si estamos en modo bracket, delegamos directamente en OfficialBracket sin mostrar nunca el skeleton de grupos
   if (viewMode === 'bracket') {

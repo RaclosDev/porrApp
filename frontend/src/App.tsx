@@ -17,9 +17,17 @@ const JoinRedirect = React.lazy(() => import('./components/JoinRedirect'));
 const OfficialBracket = React.lazy(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
 const MatchdayPredictor = React.lazy(() => import('./pages/MatchdayPredictor'));
+const LeagueStandings = React.lazy(() => import('./pages/LeagueStandings'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
-const GUEST_ALLOWED_PATHS = ['/clasificacion', '/search', '/stats', '/radar', '/mis-ligas'];
+const GUEST_ALLOWED_PATHS = [
+  '/clasificacion',
+  '/search',
+  '/stats',
+  '/radar',
+  '/mis-ligas',
+  '/tabla',
+];
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {
   const { isAuthenticated, isAdminAuthenticated } = useAppContext();
@@ -93,6 +101,14 @@ function App() {
                 }
               />
               <Route path="/cuadro" element={<OfficialBracket />} />
+              <Route
+                path="/tabla"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <LeagueStandings />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Rutas privadas - siempre requieren login real */}
               <Route

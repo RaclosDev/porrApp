@@ -328,6 +328,7 @@ public class GroupService {
                     .createdAt(g.getCreatedAt())
                     .competitionId(e != null && e.getCompetition() != null ? e.getCompetition().getId() : null)
                     .competitionName(e != null && e.getCompetition() != null ? e.getCompetition().getName() : null)
+                    .formatType(e != null && e.getCompetition() != null ? e.getCompetition().getFormatType() : null)
                     .betMode(e != null && e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
                     .poolFormat(e != null && e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
                     .pichichi(e != null ? e.isPichichi() : null)

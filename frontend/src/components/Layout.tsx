@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { getAuthToken, setAuthToken, fetchClaimedNames } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
+import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -43,6 +44,8 @@ function Layout({ children }) {
   const [newNameInput, setNewNameInput] = useState('');
   const [pendingCredential, setPendingCredential] = useState(null);
   const isAuthenticated = !!getAuthToken();
+  const isMatchDayLeague =
+    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
   /**
    * Determina si el usuario está desde un dispositivo iOS.
@@ -283,15 +286,34 @@ function Layout({ children }) {
                 </div>
               )}
             </div>
-            {/* Botón Ver Mi Porra / Completar Mi Porra */}
-            {loading ? null : userName &&
-              participantsHashes.find((h) => h.participantName === userName) ? (
+            {/* Selector Global de Liga Activa */}
+            <ActiveLeagueDropdown />
+
+            {/* Botón Ver Mi Porra / Pronosticar Jornada */}
+            {loading ? null : isMatchDayLeague ? (
+              <button
+                id="btn-complete-my-bet-header"
+                className="glass-btn primary-btn"
+                style={{
+                  padding: '6px 14px',
+                  minHeight: '38px',
+                  borderRadius: '10px',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+                onClick={() => navigate('/jornadas')}
+              >
+                ⚽ Pronosticar Jornada
+              </button>
+            ) : userName && participantsHashes.find((h) => h.participantName === userName) ? (
               <button
                 id="btn-view-my-bet-header"
                 className="glass-btn primary-btn"
                 style={{
                   padding: '6px 14px',
-                  minHeight: '40px',
+                  minHeight: '38px',
                   borderRadius: '10px',
                   fontWeight: 'bold',
                   fontSize: '0.85rem',
@@ -313,20 +335,16 @@ function Layout({ children }) {
                 className="glass-btn primary-btn"
                 style={{
                   padding: '6px 14px',
-                  minHeight: '40px',
+                  minHeight: '38px',
                   borderRadius: '10px',
                   fontWeight: 'bold',
                   fontSize: '0.85rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                 }}
-                onClick={() =>
-                  navigate(activeGroupPoolFormat === 'MATCH_DAY' ? '/jornadas' : '/bracket')
-                }
+                onClick={() => navigate('/bracket')}
               >
-                {activeGroupPoolFormat === 'MATCH_DAY'
-                  ? '✍️ Pronosticar Jornada'
-                  : '✍️ Completar Mi Porra'}
+                ✍️ Completar Mi Porra
               </button>
             )}
           </div>
@@ -340,57 +358,85 @@ function Layout({ children }) {
             >
               Inicio
             </NavLink>
-            <NavLink
-              to="/clasificacion"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Clasificación
-            </NavLink>
-            <NavLink
-              to="/grupos"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Grupos
-            </NavLink>
-            {activeGroupPoolFormat === 'MATCH_DAY' ? (
-              <NavLink
-                to="/jornadas"
-                className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-              >
-                ⚽ Jornadas
-              </NavLink>
+            {isMatchDayLeague ? (
+              <>
+                <NavLink
+                  to="/jornadas"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  ⚽ Jornadas
+                </NavLink>
+                <NavLink
+                  to="/clasificacion"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  🏆 Clasificación Porra
+                </NavLink>
+                <NavLink
+                  to="/tabla"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  📊 Tabla Oficial
+                </NavLink>
+                <NavLink
+                  to="/radar"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  📅 Partidos
+                </NavLink>
+                <NavLink
+                  to="/reglas"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  📜 Reglas
+                </NavLink>
+              </>
             ) : (
-              <NavLink
-                to="/cuadro"
-                className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-              >
-                Cuadro
-              </NavLink>
+              <>
+                <NavLink
+                  to="/clasificacion"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Clasificación
+                </NavLink>
+                <NavLink
+                  to="/cuadro"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Cuadro
+                </NavLink>
+                <NavLink
+                  to="/grupos"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Grupos
+                </NavLink>
+                <NavLink
+                  to="/radar"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Partidos
+                </NavLink>
+                <NavLink
+                  to="/search"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  🔍 Buscador
+                </NavLink>
+                <NavLink
+                  to="/stats"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Más Elegidos
+                </NavLink>
+                <NavLink
+                  to="/reglas"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Reglas
+                </NavLink>
+              </>
             )}
-            <NavLink
-              to="/radar"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Partidos
-            </NavLink>
-            <NavLink
-              to="/search"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              🔍 Buscador
-            </NavLink>
-            <NavLink
-              to="/stats"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Más Elegidos
-            </NavLink>
-            <NavLink
-              to="/reglas"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Reglas
-            </NavLink>
           </nav>
         </div>
         <div

@@ -142,6 +142,7 @@ public class GroupController {
             editionRepository.findByLeagueIdAndStatus(g.getId(), "ACTIVE").ifPresent(e -> {
                 builder.competitionId(e.getCompetition() != null ? e.getCompetition().getId() : null)
                        .competitionName(e.getCompetition() != null ? e.getCompetition().getName() : null)
+                       .formatType(e.getCompetition() != null ? e.getCompetition().getFormatType() : null)
                        .betMode(e.getBetMode() != null ? e.getBetMode().name() : null)
                        .poolFormat(e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
                        .pichichi(e.isPichichi())

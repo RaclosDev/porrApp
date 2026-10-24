@@ -132,6 +132,13 @@ export const useAppContext = () => {
     queryFn: () => fetchLeaderboard(activeGroupId),
     placeholderData: keepPreviousData,
   });
+  const { data: userGroups } = useQuery({
+    queryKey: ['myGroups', isUserAuthed],
+    queryFn: () => (isUserAuthed ? fetchMyGroups() : Promise.resolve([])),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
   const { data: groupInfo } = useQuery({
     queryKey: ['group', activeGroupId],
     queryFn: () =>
@@ -237,6 +244,9 @@ export const useAppContext = () => {
     activeGroupLockDate,
     activeCompetitionId,
     activeCompetitionName: groupInfo?.competitionName || null,
+    activeCompetitionFormatType:
+      groupInfo?.formatType || (activeGroupBetMode === 'MATCH_DAY' ? 'LEAGUE' : 'TOURNAMENT'),
+    userGroups: userGroups || EMPTY_ARRAY,
     topScorers: topScorers || EMPTY_ARRAY,
   };
 };

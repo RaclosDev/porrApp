@@ -167,6 +167,11 @@ export async function fetchLeaderboard(groupId = null) {
   return fetchJson(url);
 }
 
+export async function fetchCompetitionStandings(competitionId) {
+  if (!competitionId) return [];
+  return fetchJson(`${API_BASE}/competitions/${competitionId}/standings`);
+}
+
 // Groups API
 export async function fetchMyGroups() {
   return fetchJson(`${API_BASE}/groups/mine`);
