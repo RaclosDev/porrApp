@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * ️ Repositorio de la Clasificación de Grupos.
- * Aquí guardamos y leemos cuántos puntos, goles a favor, etc., tiene cada equipo oficialmente.
+ * Repositorio de la Clasificación de Grupos.
+ * Gestiona el acceso a puntos, estadísticas y posiciones oficiales de la fase de grupos.
  */
 @Repository
 public interface GroupStandingRepository extends JpaRepository<GroupStanding, Long> {
@@ -22,6 +22,16 @@ public interface GroupStandingRepository extends JpaRepository<GroupStanding, Lo
      * "Dame la clasificación de todo el Mundial, ordenada por grupos de la A a la L"
      */
     List<GroupStanding> findAllByOrderByGroupNameAsc();
+
+    /**
+     * "Dame la clasificación completa ordenada directamente por grupo y posición oficial"
+     */
+    List<GroupStanding> findAllByOrderByGroupNameAscPositionAsc();
+
+    /**
+     * "Dame todos los equipos clasificados en una posición concreta (ej. 3 para mejores terceros)"
+     */
+    List<GroupStanding> findByPositionOrderByPointsDescGoalDiffDescGoalsForDescFairPlayPointsDesc(Integer position);
     
     /**
      * "Búscame los puntos exactos de un equipo (por su ID) en su grupo"

@@ -4,10 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- *  Entidad 'GroupStanding' (Clasificación Oficial de Grupos Reales).
+ * Entidad 'GroupStanding' (Clasificación Oficial de Grupos Reales).
  * Sirve como un "espejo" de los puntos reales que tiene cada equipo en el torneo oficial (ESPN).
- * OJO: Esta tabla se auto-actualiza descargando datos de la API de ESPN, 
- * ¡no calcula los puntos mágicamente sumando los goles de nuestros partidos locales!
+ * Almacena estadísticas de la fase de grupos y la posición/estado matemático materializado.
  */
 @Entity
 @Table(name = "group_standings")
@@ -48,4 +47,14 @@ public class GroupStanding {
     @Column(name = "fair_play_points")
     @Builder.Default
     private Integer fairPlayPoints = 0;
+
+    /** Posición calculada en el grupo (1 a 4). */
+    @Column(name = "position")
+    @Builder.Default
+    private Integer position = 0;
+
+    /** Estado matemático (0: en juego, 5: clasificado, -1: eliminado). */
+    @Column(name = "status")
+    @Builder.Default
+    private Integer status = 0;
 }

@@ -21,6 +21,10 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 
     List<Prediction> findByEditionLeagueId(Long groupId);
 
+    List<Prediction> findByEditionLeagueIdOrderByTotalPointsDesc(Long groupId);
+
+    List<Prediction> findAllByOrderByTotalPointsDesc();
+
     List<Prediction> findByUserGoogleEmail(String email);
 
     Optional<Prediction> findByUserGoogleEmailAndEditionLeagueId(String email, Long groupId);
@@ -33,4 +37,8 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     Optional<Prediction> findByIsOfficialTrue();
 
     Optional<Prediction> findByEditionIdAndIsOfficialTrue(Long editionId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Prediction p SET p.scoreCalculatedAt = null")
+    void invalidateAllScores();
 }

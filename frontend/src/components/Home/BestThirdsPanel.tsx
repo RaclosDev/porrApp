@@ -8,17 +8,26 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
 
     const arr = [];
     Object.keys(officialPoints).forEach((groupName) => {
-      const teamsWithStats = Object.keys(officialPoints[groupName]).map((teamName) => ({
-        name: teamName,
-        ...officialPoints[groupName][teamName],
-      }));
+      const groupData = officialPoints[groupName];
+      const teamNames = Object.keys(groupData);
 
-      teamsWithStats.sort((a, b) =>
-        compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap),
-      );
+      // Fast-path: pick the 3rd place team directly by materialized position
+      const thirdTeamName = teamNames.find((name) => groupData[name]?.pos === 3);
+      if (thirdTeamName) {
+        arr.push({ group: groupName, name: thirdTeamName, ...groupData[thirdTeamName] });
+      } else {
+        const teamsWithStats = teamNames.map((teamName) => ({
+          name: teamName,
+          ...groupData[teamName],
+        }));
 
-      if (teamsWithStats.length >= 3) {
-        arr.push({ group: groupName, ...teamsWithStats[2] });
+        teamsWithStats.sort((a, b) =>
+          compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap),
+        );
+
+        if (teamsWithStats.length >= 3) {
+          arr.push({ group: groupName, ...teamsWithStats[2] });
+        }
       }
     });
 

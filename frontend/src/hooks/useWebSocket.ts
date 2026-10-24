@@ -29,7 +29,11 @@ export function useWebSocket(userName, queryClient) {
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === 'DATA_UPDATED') {
-            queryClient.invalidateQueries();
+            queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+            queryClient.invalidateQueries({ queryKey: ['predictions'] });
+            queryClient.invalidateQueries({ queryKey: ['myPredictions'] });
+            queryClient.invalidateQueries({ queryKey: ['standings'] });
+            queryClient.invalidateQueries({ queryKey: ['matches'] });
           } else if (msg.type === 'MATCH_SCORE_UPDATED') {
             queryClient.invalidateQueries({ queryKey: ['matches'] });
             queryClient.invalidateQueries({ queryKey: ['matchRadar'] });

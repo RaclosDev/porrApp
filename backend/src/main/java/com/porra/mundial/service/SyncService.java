@@ -883,25 +883,7 @@ public class SyncService {
     }
 
     private void updateStandings(Map<Long, int[]> teamStats) {
-        if (teamStats == null || teamStats.isEmpty()) {
-            standingsService.recalculateStandingsFromMatches();
-            return;
-        }
-        standingsService.clearAll();
-        for (Map.Entry<Long, int[]> entry : teamStats.entrySet()) {
-            teamRepository.findById(entry.getKey()).ifPresent(team -> {
-                if (team.getGroupName() != null && !"-".equals(team.getGroupName()) && !"Por definir".equalsIgnoreCase(team.getName())) {
-                    standingsService.updateStanding(team, team.getGroupName().toUpperCase().trim(),
-                            entry.getValue()[0], entry.getValue()[1], entry.getValue()[2], entry.getValue()[3], entry.getValue()[4]);
-                }
-            });
-        }
-
-        teamRepository.findAll().forEach(team -> {
-            if (team.getGroupName() != null && !"-".equals(team.getGroupName()) && !"Por definir".equalsIgnoreCase(team.getName()) && !teamStats.containsKey(team.getId())) {
-                standingsService.updateStanding(team, team.getGroupName().toUpperCase().trim(), 0, 0, 0, 0, 0);
-            }
-        });
+        standingsService.recalculateStandingsFromMatches();
     }
 
     /**

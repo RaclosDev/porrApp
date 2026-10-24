@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
  * Servicio de Clasificacion (Leaderboard).
  * Orquesta la clasificacion general o de grupo recuperando datos oficiales y delegando
  * el calculo matematico en la ScoringStrategy configurada, integrando tambien los puntos de jornadas.
+ * Soporta materializacion de puntuaciones para evitar N+1 queries.
  */
 @Service
 @RequiredArgsConstructor
@@ -42,9 +43,45 @@ public class LeaderboardService {
      * @param groupId ID del grupo a consultar.
      * @return El ranking ordenado de participantes con todos sus desgloses de puntos.
      */
-    @Cacheable(value = "leaderboard", key = "#groupId")
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Cacheable(value = "leaderboard", key = "#groupId != null ? #groupId : 0L")
+    @org.springframework.transaction.annotation.Transactional
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
+        List<Prediction> groupPredictions = groupId != null ? predictionRepository.findByEditionLeagueId(groupId) : predictionRepository.findAll();
+
+        boolean allMaterialized = !groupPredictions.isEmpty() && groupPredictions.stream()
+                .filter(p -> p.getParticipantName() == null || !p.getParticipantName().equalsIgnoreCase("Admin"))
+                .allMatch(p -> p.getScoreCalculatedAt() != null);
+
+        if (allMaterialized) {
+            List<ParticipantScoreDTO> fastLeaderboard = new ArrayList<>(groupPredictions.size());
+            for (Prediction pred : groupPredictions) {
+                if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
+
+                ParticipantScoreDTO score = ParticipantScoreDTO.builder()
+                        .id(pred.getId())
+                        .userId(pred.getUser() != null ? pred.getUser().getId() : null)
+                        .name(pred.getParticipantName())
+                        .betName(pred.getBetName())
+                        .pending(!Boolean.TRUE.equals(pred.getPaid()))
+                        .total(pred.getTotalPoints() != null ? pred.getTotalPoints() : 0)
+                        .r1(pred.getR1Points() != null ? pred.getR1Points() : 0)
+                        .r32(pred.getR32Points() != null ? pred.getR32Points() : 0)
+                        .r16(pred.getR16Points() != null ? pred.getR16Points() : 0)
+                        .qf(pred.getQfPoints() != null ? pred.getQfPoints() : 0)
+                        .sf(pred.getSfPoints() != null ? pred.getSfPoints() : 0)
+                        .finals(pred.getFinalsPoints() != null ? pred.getFinalsPoints() : 0)
+                        .scorer(pred.getScorerPoints() != null ? pred.getScorerPoints() : 0)
+                        .matchPoints(pred.getMatchPoints() != null ? pred.getMatchPoints() : 0)
+                        .log(new ArrayList<>())
+                        .exactMatches(new HashMap<>())
+                        .passedTeams(new HashMap<>())
+                        .build();
+                fastLeaderboard.add(score);
+            }
+            fastLeaderboard.sort((a, b) -> Integer.compare(b.getTotal(), a.getTotal()));
+            return fastLeaderboard;
+        }
+
         Prediction adminPrediction = predictionRepository.findByIsOfficialTrue()
                 .or(() -> predictionRepository.findByName("official"))
                 .or(() -> predictionRepository.findAll().stream()
@@ -55,47 +92,36 @@ public class LeaderboardService {
         PredictionDataDTO officialData = adminPrediction != null ? predictionPersistenceService.rebuildPredictionDataDtoFromTables(adminPrediction.getId()) : new PredictionDataDTO();
         syncService.enrichBetDataWithMatches(officialData);
 
-        List<Prediction> groupPredictions = groupId != null ? predictionRepository.findByEditionLeagueId(groupId) : predictionRepository.findAll();
-
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();
 
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
-
         Map<String, List<String>> orderedTeamsPerGroup = new HashMap<>();
-        Map<String, List<GroupStanding>> groupedStandings = allStandings.stream()
-                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
-                .collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
 
-        List<Match> allMatches = matchRepository.findAll();
-        List<GroupStanding> allThirds = new ArrayList<>();
-
-        for (String group : groupedStandings.keySet()) {
-            List<GroupStanding> groupList = groupedStandings.get(group);
-            List<Match> groupMatches = allMatches.stream()
-                    .filter(m -> group.equalsIgnoreCase(m.getGroupName()))
-                    .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
-                    .toList();
-            List<GroupStanding> sortedGroup = standingsService.sortGroupStandings(groupList, groupMatches);
-            orderedTeamsPerGroup.put(group, sortedGroup.stream().map(gs -> gs.getTeam().getName()).toList());
-            if (sortedGroup.size() >= 3) {
-                allThirds.add(sortedGroup.get(2));
+        for (GroupStanding gs : allStandings) {
+            if (gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && gs.getTeam() != null) {
+                orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName().toUpperCase().trim(), k -> new ArrayList<>())
+                        .add(gs.getTeam().getName());
             }
         }
 
-        allThirds.sort((a, b) -> {
-            if (a.getPoints() != b.getPoints()) return Integer.compare(b.getPoints(), a.getPoints());
-            if (a.getGoalDiff() != b.getGoalDiff()) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
-            if (a.getGoalsFor() != b.getGoalsFor()) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
-            if (a.getFairPlayPoints() != b.getFairPlayPoints()) return Integer.compare(b.getFairPlayPoints(), a.getFairPlayPoints());
-            return a.getTeam().getName().compareTo(b.getTeam().getName());
-        });
+        List<GroupStanding> allThirds = allStandings.stream()
+                .filter(gs -> Integer.valueOf(3).equals(gs.getPosition()) && gs.getTeam() != null)
+                .sorted((a, b) -> {
+                    if (!Objects.equals(a.getPoints(), b.getPoints())) return Integer.compare(b.getPoints(), a.getPoints());
+                    if (!Objects.equals(a.getGoalDiff(), b.getGoalDiff())) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
+                    if (!Objects.equals(a.getGoalsFor(), b.getGoalsFor())) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
+                    if (!Objects.equals(a.getFairPlayPoints(), b.getFairPlayPoints())) return Integer.compare(b.getFairPlayPoints(), a.getFairPlayPoints());
+                    return a.getTeam().getName().compareTo(b.getTeam().getName());
+                })
+                .collect(Collectors.toList());
 
         List<String> bestVirtualThirds = allThirds.stream().limit(8).map(gs -> gs.getTeam().getName()).collect(Collectors.toList());
         boolean pichichiActive = groupPredictions.stream()
                 .anyMatch(p -> p.getEdition() == null || p.getEdition().isPichichi());
         List<Map<String, Object>> allScorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
 
+        List<Match> allMatches = matchRepository.findAll();
         List<Match> r32Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
         List<Match> r16Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
         List<Match> qfMatches = allMatches.stream().filter(m -> isRound(m.getRound(), "qf", "quarter", "cuart")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
@@ -138,6 +164,7 @@ public class LeaderboardService {
 
         String offChampion = finalMatchDb.isEmpty() ? null : getWinner.apply(finalMatchDb.get(0));
 
+        List<Prediction> toUpdate = new ArrayList<>();
         for (Prediction pred : groupPredictions) {
             if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
 
@@ -163,7 +190,6 @@ public class LeaderboardService {
                         .build();
             }
 
-            // Integrar puntuación de partidos individuales y jornadas (Fase 3)
             int matchPoints = 0;
             if (matchPreds != null) {
                 for (MatchPrediction mp : matchPreds) {
@@ -186,10 +212,36 @@ public class LeaderboardService {
             score.setBetName(pred.getBetName());
             score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
             leaderboard.add(score);
+
+            pred.setTotalPoints(score.getTotal());
+            pred.setR1Points(score.getR1());
+            pred.setR32Points(score.getR32());
+            pred.setR16Points(score.getR16());
+            pred.setQfPoints(score.getQf());
+            pred.setSfPoints(score.getSf());
+            pred.setFinalsPoints(score.getFinals());
+            pred.setScorerPoints(score.getScorer());
+            pred.setMatchPoints(score.getMatchPoints());
+            pred.setScoreCalculatedAt(java.time.LocalDateTime.now());
+            toUpdate.add(pred);
+        }
+
+        if (!toUpdate.isEmpty()) {
+            try {
+                predictionRepository.saveAll(toUpdate);
+            } catch (Exception e) {
+                log.warn("Could not save materialized prediction scores: {}", e.getMessage());
+            }
         }
 
         leaderboard.sort((a, b) -> Integer.compare(b.getTotal(), a.getTotal()));
         return leaderboard;
+    }
+
+    @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", allEntries = true)
+    @org.springframework.transaction.annotation.Transactional
+    public void invalidateScores() {
+        predictionRepository.invalidateAllScores();
     }
 
     public String exportLeaderboardCsv(Long groupId) {

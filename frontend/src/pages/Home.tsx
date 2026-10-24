@@ -54,9 +54,12 @@ function Home({ defaultMode = 'bracket' }) {
         return { ...t, stats };
       });
 
-      teamsWithStats.sort((a, b) =>
-        compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap),
-      );
+      teamsWithStats.sort((a, b) => {
+        if (a.stats?.pos && b.stats?.pos) {
+          return a.stats.pos - b.stats.pos;
+        }
+        return compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap);
+      });
       res[groupName] = teamsWithStats;
     });
     return res;
