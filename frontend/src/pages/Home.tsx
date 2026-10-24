@@ -62,7 +62,13 @@ function Home({ defaultMode = 'bracket' }) {
     return res;
   }, [groupOdds, officialPoints, allGames, nameToIdMap]);
 
-  if (loading)
+  // Si estamos en modo bracket, delegamos directamente en OfficialBracket sin mostrar nunca el skeleton de grupos
+  if (viewMode === 'bracket') {
+    return <OfficialBracket hideTitle />;
+  }
+
+  const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;
+  if (loading && !hasGroupsData) {
     return (
       <section className="view-section" style={{ display: 'block' }}>
         <div className="groups-grid">
@@ -87,6 +93,7 @@ function Home({ defaultMode = 'bracket' }) {
         </div>
       </section>
     );
+  }
 
   const renderGroup = (groupName, teams) => {
     const teamsWithStats = sortedGroups[groupName] || [];
@@ -131,27 +138,33 @@ function Home({ defaultMode = 'bracket' }) {
             style={{
               display: 'flex',
               gap: '8px',
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
+              fontSize: '0.75em',
               fontWeight: 'bold',
-              paddingRight: '4px',
+              color: 'var(--text-muted)',
+              paddingRight: '6px',
             }}
           >
-            <span style={{ width: '20px', textAlign: 'center' }} title="Diferencia de goles">
-              DF
-            </span>
-            <span style={{ width: '16px', textAlign: 'center' }} title="Goles a favor">
-              GF
-            </span>
-            <span style={{ width: '18px', textAlign: 'center' }} title="Fair Play (Tarjetas)">
-              FP
-            </span>
-            <span style={{ width: '24px', textAlign: 'center' }} title="Puntos">
-              PT
-            </span>
+            <span style={{ width: '20px', textAlign: 'center' }}>DG</span>
+            <span style={{ width: '16px', textAlign: 'center' }}>GF</span>
+            <span style={{ width: '18px', textAlign: 'center' }}>FP</span>
+            <span style={{ width: '24px', textAlign: 'center' }}>PTS</span>
           </div>
         </div>
+
         {teamsWithStats.map((team, idx) => {
+          let posColor = 'inherit';
+          let borderLeftStyle = 'none';
+          if (idx === 0) {
+            posColor = 'var(--champion-gold)';
+            borderLeftStyle = '3px solid var(--champion-gold)';
+          } else if (idx === 1) {
+            posColor = '#e0e0e0';
+            borderLeftStyle = '3px solid #e0e0e0';
+          } else if (idx === 2) {
+            posColor = '#cd7f32';
+            borderLeftStyle = '3px solid #cd7f32';
+          }
+
           let statusDot = null;
           if (team.stats.status === 5) {
             statusDot = (
@@ -163,21 +176,55 @@ function Home({ defaultMode = 'bracket' }) {
                   height: '8px',
                   background: '#3498db',
                   borderRadius: '50%',
-                  marginLeft: '5px',
+                  marginLeft: '4px',
                   flexShrink: 0,
                   display: 'inline-block',
                 }}
-              ></span>
+              />
+            );
+          } else if (team.stats.status === -1) {
+            statusDot = (
+              <span
+                title="Eliminado Matemáticamente"
+                aria-label="Eliminado Matemáticamente"
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  background: '#ff4757',
+                  borderRadius: '50%',
+                  marginLeft: '4px',
+                  flexShrink: 0,
+                  display: 'inline-block',
+                }}
+              />
             );
           }
 
           return (
-            <div key={team.name} className="group-slot">
-              <span style={{ fontWeight: 'bold', width: '20px', flexShrink: 0 }}>{idx + 1}.</span>
-              <Flag
-                team={team.name}
-                style={{ width: '18px', height: '13px', marginRight: '8px' }}
-              />
+            <div
+              key={team.name}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '6px 8px',
+                borderLeft: borderLeftStyle,
+                marginBottom: '4px',
+                borderRadius: '0 6px 6px 0',
+                background: idx < 2 ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
+              }}
+            >
+              <span
+                style={{
+                  width: '18px',
+                  fontWeight: 'bold',
+                  color: posColor,
+                  fontSize: '0.85em',
+                  flexShrink: 0,
+                }}
+              >
+                {idx + 1}
+              </span>
+              <Flag team={team.name} />
               <span
                 style={{
                   flexGrow: 1,
@@ -234,122 +281,149 @@ function Home({ defaultMode = 'bracket' }) {
   return (
     <section id="view-home" className="view-section" style={{ display: 'block' }}>
       {/* Pestañas y paneles de móvil (sólo en modo grupos) */}
-      {viewMode === 'groups' && (
-        <>
-          <div
-            className="mb-tabs hide-on-desktop"
-            style={{
-              width: '100%',
-              maxWidth: '420px',
-              margin: '0 auto 20px auto',
-              justifyContent: 'center',
-            }}
-          >
-            <button
-              className={`mb-tab ${activeMobilePanel === 'thirds' ? 'mb-tab-active' : ''}`}
-              onClick={() => setActiveMobilePanel((p) => (p === 'thirds' ? null : 'thirds'))}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                ...(activeMobilePanel === 'thirds'
-                  ? {
-                      background: 'rgba(0, 206, 201, 0.18)',
-                      borderColor: '#00cec9',
-                      color: '#00cec9',
-                      boxShadow: 'none',
-                    }
-                  : {}),
-              }}
-            >
-              🥉 Terceros
-            </button>
-            <button
-              className={`mb-tab ${activeMobilePanel === 'live' ? 'mb-tab-active' : ''}`}
-              onClick={() => setActiveMobilePanel((p) => (p === 'live' ? null : 'live'))}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                ...(activeMobilePanel === 'live'
-                  ? {
-                      background: 'rgba(255, 71, 87, 0.18)',
-                      borderColor: '#ff4757',
-                      color: '#ff4757',
-                      boxShadow: 'none',
-                    }
-                  : {}),
-              }}
-            >
-              🔴 Partidos
-            </button>
-            {activeGroupPichichi && (
-              <button
-                className={`mb-tab ${activeMobilePanel === 'scorers' ? 'mb-tab-active' : ''}`}
-                onClick={() => setActiveMobilePanel((p) => (p === 'scorers' ? null : 'scorers'))}
-                style={{
-                  flex: 1,
-                  textAlign: 'center',
-                  ...(activeMobilePanel === 'scorers'
-                    ? {
-                        background: 'rgba(255, 211, 42, 0.18)',
-                        borderColor: '#ffd32a',
-                        color: '#ffd32a',
-                        boxShadow: 'none',
-                      }
-                    : {}),
-                }}
-              >
-                🏆 Pichichi
-              </button>
-            )}
-          </div>
-
-          <div
-            className="hide-on-desktop"
-            style={{
-              marginBottom: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              width: '100%',
-            }}
-          >
-            <div className={activeMobilePanel === 'thirds' ? '' : 'mobile-step-hidden'}>
-              <BestThirdsPanel
-                officialPoints={officialPoints}
-                allGames={allGames}
-                nameToIdMap={nameToIdMap}
-              />
-            </div>
-            <div className={activeMobilePanel === 'live' ? '' : 'mobile-step-hidden'}>
-              <LiveMatchesPanel
-                liveMatches={matchRadar?.live || []}
-                matchRadar={matchRadar}
-                maxNext={1}
-              />
-            </div>
-            {activeGroupPichichi && (
-              <div className={activeMobilePanel === 'scorers' ? '' : 'mobile-step-hidden'}>
-                <TopScorersPanel topScorers={topScorers} />
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Paneles desktop (siempre visibles, solo en groups) */}
-      {viewMode === 'groups' && (
-        <div
-          className="hide-on-mobile"
+      <div
+        className="mb-tabs hide-on-desktop"
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          margin: '0 auto 20px auto',
+          justifyContent: 'center',
+        }}
+      >
+        <button
+          className={`mb-tab ${activeMobilePanel === 'thirds' ? 'mb-tab-active' : ''}`}
+          onClick={() => setActiveMobilePanel((p) => (p === 'thirds' ? null : 'thirds'))}
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-            marginBottom: '20px',
-            width: '100%',
-            gap: '20px',
+            flex: 1,
+            textAlign: 'center',
+            ...(activeMobilePanel === 'thirds'
+              ? {
+                  background: 'rgba(0, 206, 201, 0.18)',
+                  borderColor: '#00cec9',
+                  color: '#00cec9',
+                  boxShadow: 'none',
+                }
+              : {}),
           }}
         >
+          🥉 Terceros
+        </button>
+        <button
+          className={`mb-tab ${activeMobilePanel === 'live' ? 'mb-tab-active' : ''}`}
+          onClick={() => setActiveMobilePanel((p) => (p === 'live' ? null : 'live'))}
+          style={{
+            flex: 1,
+            textAlign: 'center',
+            ...(activeMobilePanel === 'live'
+              ? {
+                  background: 'rgba(255, 71, 87, 0.18)',
+                  borderColor: '#ff4757',
+                  color: '#ff4757',
+                  boxShadow: 'none',
+                }
+              : {}),
+          }}
+        >
+          🔴 Partidos
+        </button>
+        {activeGroupPichichi && (
+          <button
+            className={`mb-tab ${activeMobilePanel === 'scorers' ? 'mb-tab-active' : ''}`}
+            onClick={() => setActiveMobilePanel((p) => (p === 'scorers' ? null : 'scorers'))}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              ...(activeMobilePanel === 'scorers'
+                ? {
+                    background: 'rgba(255, 211, 42, 0.18)',
+                    borderColor: '#ffd32a',
+                    color: '#ffd32a',
+                    boxShadow: 'none',
+                  }
+                : {}),
+            }}
+          >
+            🏆 Pichichi
+          </button>
+        )}
+      </div>
+
+      <div
+        className="hide-on-desktop"
+        style={{
+          marginBottom: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          width: '100%',
+        }}
+      >
+        <div className={activeMobilePanel === 'thirds' ? '' : 'mobile-step-hidden'}>
+          <BestThirdsPanel
+            officialPoints={officialPoints}
+            allGames={allGames}
+            nameToIdMap={nameToIdMap}
+          />
+        </div>
+        <div className={activeMobilePanel === 'live' ? '' : 'mobile-step-hidden'}>
+          <LiveMatchesPanel
+            liveMatches={matchRadar?.live || []}
+            matchRadar={matchRadar}
+            maxNext={1}
+          />
+        </div>
+        {activeGroupPichichi && (
+          <div className={activeMobilePanel === 'scorers' ? '' : 'mobile-step-hidden'}>
+            <TopScorersPanel topScorers={topScorers} />
+          </div>
+        )}
+      </div>
+
+      {/* Paneles desktop (siempre visibles, solo en groups) */}
+      <div
+        className="hide-on-mobile"
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          marginBottom: '20px',
+          width: '100%',
+          gap: '20px',
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            minWidth: 'min(100%, 380px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+          }}
+        >
+          <BestThirdsPanel
+            officialPoints={officialPoints}
+            allGames={allGames}
+            nameToIdMap={nameToIdMap}
+          />
+        </div>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 'min(100%, 350px)',
+            maxWidth: '600px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <LiveMatchesPanel
+            liveMatches={matchRadar?.live || []}
+            matchRadar={matchRadar}
+            maxNext={1}
+          />
+        </div>
+        {activeGroupPichichi && (
           <div
             style={{
               flex: 1,
@@ -358,62 +432,21 @@ function Home({ defaultMode = 'bracket' }) {
               justifyContent: 'center',
               alignItems: 'flex-start',
             }}
+            className="pichichi-mobile-center"
           >
-            <BestThirdsPanel
-              officialPoints={officialPoints}
-              allGames={allGames}
-              nameToIdMap={nameToIdMap}
-            />
+            <TopScorersPanel topScorers={topScorers} />
           </div>
-          <div
-            style={{
-              flex: 1,
-              minWidth: 'min(100%, 350px)',
-              maxWidth: '600px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <LiveMatchesPanel
-              liveMatches={matchRadar?.live || []}
-              matchRadar={matchRadar}
-              maxNext={1}
-            />
-          </div>
-          {activeGroupPichichi && (
-            <div
-              style={{
-                flex: 1,
-                minWidth: 'min(100%, 380px)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-              }}
-              className="pichichi-mobile-center"
-            >
-              <TopScorersPanel topScorers={topScorers} />
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
-      {viewMode === 'groups' ? (
-        <>
-          <div id="home-standings-grid" className="groups-grid">
-            {Object.keys(groupOdds).map((groupName) =>
-              renderGroup(groupName, groupOdds[groupName]),
-            )}
-          </div>
-          <GroupMatchesModal
-            selectedGroup={selectedGroup}
-            allGames={allGames}
-            onClose={() => setSelectedGroup(null)}
-          />
-        </>
-      ) : (
-        <OfficialBracket hideTitle />
-      )}
+      <div id="home-standings-grid" className="groups-grid">
+        {Object.keys(groupOdds).map((groupName) => renderGroup(groupName, groupOdds[groupName]))}
+      </div>
+      <GroupMatchesModal
+        selectedGroup={selectedGroup}
+        allGames={allGames}
+        onClose={() => setSelectedGroup(null)}
+      />
     </section>
   );
 }

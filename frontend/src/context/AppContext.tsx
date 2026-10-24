@@ -1,5 +1,5 @@
 import React, { useEffect, createContext, useContext, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   fetchStandings,
   fetchMatches,
@@ -36,7 +36,6 @@ export function AppProvider({ children }) {
   const setUserName = useAppStore((state) => state.setUserName);
   const setUserId = useAppStore((state) => state.setUserId);
   const changeGroup = useAppStore((state) => state.changeGroup);
-  const setActiveGroupId = useAppStore((state) => state.setActiveGroupId);
 
   const adminActions = useAdminActions();
 
@@ -59,36 +58,39 @@ export function AppProvider({ children }) {
   }, [isUserAuthed, setUserName, setUserId]);
 
   useEffect(() => {
+    let isCancelled = false;
     const autoSelectGroup = async () => {
-      if (!userName) return;
+      if (!userName || !isUserAuthed) return;
       try {
         let dbGroupId = null;
-        if (isUserAuthed) {
-          try {
-            const me = await fetchMe();
-            dbGroupId = me.lastSelectedGroupId?.toString();
-          } catch {
-            /* ignore */
-          }
+        try {
+          const me = await fetchMe();
+          dbGroupId = me.lastSelectedGroupId?.toString();
+        } catch {
+          /* ignore */
         }
 
         const myGroups = await fetchMyGroups();
+        if (isCancelled) return;
+
+        const currentLocal = localStorage.getItem('activeGroupId');
         if (myGroups.length === 1) {
           const onlyGroupId = myGroups[0].id.toString();
-          if (localStorage.getItem('activeGroupId') !== onlyGroupId) {
+          if (currentLocal !== onlyGroupId) {
             changeGroup(onlyGroupId);
           }
-        } else if (dbGroupId) {
-          const currentLocal = localStorage.getItem('activeGroupId');
-          if (currentLocal !== dbGroupId) changeGroup(dbGroupId);
-          else if (activeGroupId !== dbGroupId) setActiveGroupId(dbGroupId);
+        } else if (dbGroupId && currentLocal !== dbGroupId) {
+          changeGroup(dbGroupId);
         }
       } catch {
         /* ignore */
       }
     };
     autoSelectGroup();
-  }, [userName, isUserAuthed, activeGroupId, changeGroup, setActiveGroupId]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [userName, isUserAuthed, changeGroup]);
 
   return (
     <GlobalEffectsContext.Provider value={adminActions}>{children}</GlobalEffectsContext.Provider>
@@ -102,20 +104,33 @@ export const useAppContext = () => {
 
   const activeGroupId = store.activeGroupId;
   const userName = store.userName;
+  const storeCompetitionId = store.activeCompetitionId;
+  const setActiveCompetitionId = store.setActiveCompetitionId;
 
   const { data: standings, isLoading: loadingStandings } = useQuery({
     queryKey: ['standings'],
     queryFn: fetchStandings,
+    placeholderData: keepPreviousData,
   });
-  const { data: radar } = useQuery({ queryKey: ['radar'], queryFn: fetchMatchRadar });
-  const { data: predictions, isLoading: loadingPredictions } = useQuery({
+  const { data: radar } = useQuery({
+    queryKey: ['radar'],
+    queryFn: fetchMatchRadar,
+    placeholderData: keepPreviousData,
+  });
+  const { data: predictions } = useQuery({
     queryKey: ['predictions', activeGroupId],
     queryFn: () => fetchPredictions(activeGroupId),
+    placeholderData: keepPreviousData,
   });
-  const { data: odds } = useQuery({ queryKey: ['odds'], queryFn: fetchTeamOdds });
+  const { data: odds } = useQuery({
+    queryKey: ['odds'],
+    queryFn: fetchTeamOdds,
+    placeholderData: keepPreviousData,
+  });
   const { data: leaderboard } = useQuery({
     queryKey: ['leaderboard', activeGroupId],
     queryFn: () => fetchLeaderboard(activeGroupId),
+    placeholderData: keepPreviousData,
   });
   const { data: groupInfo } = useQuery({
     queryKey: ['group', activeGroupId],
@@ -123,8 +138,17 @@ export const useAppContext = () => {
       activeGroupId
         ? fetchGroup(activeGroupId).catch(() => ({ name: 'Porra Global' }))
         : Promise.resolve({ name: 'Ninguna Liga Seleccionada' }),
+    placeholderData: keepPreviousData,
   });
-  const activeCompetitionId = groupInfo?.competitionId || null;
+
+  const activeCompetitionId = groupInfo?.competitionId ?? storeCompetitionId;
+
+  useEffect(() => {
+    if (groupInfo?.competitionId != null && groupInfo.competitionId !== storeCompetitionId) {
+      setActiveCompetitionId(groupInfo.competitionId);
+    }
+  }, [groupInfo?.competitionId, storeCompetitionId, setActiveCompetitionId]);
+
   const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: ['matches', activeCompetitionId],
     queryFn: async () => {
@@ -134,15 +158,21 @@ export const useAppContext = () => {
       }
       return data;
     },
+    placeholderData: keepPreviousData,
   });
   const activeGroupPichichi =
     groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : true;
-  const { data: onlineUsers } = useQuery({ queryKey: ['presence'], queryFn: fetchPresence });
+  const { data: onlineUsers } = useQuery({
+    queryKey: ['presence'],
+    queryFn: fetchPresence,
+    placeholderData: keepPreviousData,
+  });
   const { data: topScorers } = useQuery({
     queryKey: ['topScorers'],
     queryFn: fetchTopScorers,
     enabled: activeGroupPichichi,
     staleTime: 300_000,
+    placeholderData: keepPreviousData,
   });
 
   const activeGroupName = groupInfo?.name || 'Ninguna Liga Seleccionada';
@@ -162,10 +192,7 @@ export const useAppContext = () => {
     );
   }, [matches]);
 
-  const loading =
-    (loadingStandings && !standings) ||
-    (loadingMatches && !matches) ||
-    (loadingPredictions && !predictions);
+  const loading = (loadingStandings && !standings) || (loadingMatches && !matches);
 
   const checkAdmin = (str) => {
     if (!str) return false;

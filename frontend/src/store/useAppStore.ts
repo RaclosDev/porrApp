@@ -70,6 +70,19 @@ export const useAppStore = create((set) => ({
     set({ activeGroupId });
   },
 
+  activeCompetitionId:
+    typeof window !== 'undefined' && localStorage.getItem('activeCompetitionId')
+      ? Number(localStorage.getItem('activeCompetitionId'))
+      : null,
+  setActiveCompetitionId: (activeCompetitionId) => {
+    if (activeCompetitionId != null) {
+      localStorage.setItem('activeCompetitionId', activeCompetitionId.toString());
+    } else {
+      localStorage.removeItem('activeCompetitionId');
+    }
+    set({ activeCompetitionId });
+  },
+
   bracketState: defaultBracketState,
   setBracketState: (bracketState) => set({ bracketState }),
 
