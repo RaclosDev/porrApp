@@ -30,7 +30,9 @@ export function useAdminActions() {
     if (!window.confirm('¿Asignar a ' + winner + ' como ganador del 3º Puesto para esta porra?'))
       return;
     try {
-      const res = await fetch(`/api/predictions/${key}`);
+      const res = await fetch(`/api/predictions/${key}`, {
+        headers: { ...(getAdminToken() ? { Authorization: `Bearer ${getAdminToken()}` } : {}) },
+      });
       if (!res.ok) throw new Error('Error fetching bet');
       const part = await res.json();
 
@@ -68,7 +70,9 @@ export function useAdminActions() {
 
   const editBetName = async (key) => {
     try {
-      const res = await fetch(`/api/predictions/${key}`);
+      const res = await fetch(`/api/predictions/${key}`, {
+        headers: { ...(getAdminToken() ? { Authorization: `Bearer ${getAdminToken()}` } : {}) },
+      });
       if (!res.ok) throw new Error('Error fetching bet');
       const decoded = await res.json();
 

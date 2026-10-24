@@ -99,9 +99,12 @@ export const useAppContext = () => {
   const activeGroupId = store.activeGroupId;
   const userName = store.userName;
 
-  const { data: standings } = useQuery({ queryKey: ['standings'], queryFn: fetchStandings });
+  const { data: standings, isLoading: loadingStandings } = useQuery({
+    queryKey: ['standings'],
+    queryFn: fetchStandings,
+  });
   const { data: radar } = useQuery({ queryKey: ['radar'], queryFn: fetchMatchRadar });
-  const { data: predictions } = useQuery({
+  const { data: predictions, isLoading: loadingPredictions } = useQuery({
     queryKey: ['predictions', activeGroupId],
     queryFn: () => fetchPredictions(activeGroupId),
   });
@@ -118,7 +121,7 @@ export const useAppContext = () => {
         : Promise.resolve({ name: 'Ninguna Liga Seleccionada' }),
   });
   const activeCompetitionId = groupInfo?.competitionId || null;
-  const { data: matches } = useQuery({
+  const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: ['matches', activeCompetitionId],
     queryFn: async () => {
       const data = await fetchMatches(activeCompetitionId);
@@ -152,7 +155,10 @@ export const useAppContext = () => {
       return acc;
     }, {}) || {};
 
-  const loading = !standings || !matches || !predictions;
+  const loading =
+    (loadingStandings && !standings) ||
+    (loadingMatches && !matches) ||
+    (loadingPredictions && !predictions);
 
   const checkAdmin = (str) => {
     if (!str) return false;

@@ -203,11 +203,18 @@ public class SyncService {
      */
     @Transactional
     public Match overrideMatchResult(Long matchId, Integer homeScore, Integer awayScore, MatchStatusNormalized status, String adminUser) {
+        return overrideMatchResult(matchId, homeScore, awayScore, null, null, status, adminUser);
+    }
+
+    @Transactional
+    public Match overrideMatchResult(Long matchId, Integer homeScore, Integer awayScore, Integer homeFairPlay, Integer awayFairPlay, MatchStatusNormalized status, String adminUser) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new IllegalArgumentException("Partido no encontrado con ID: " + matchId));
 
         match.setHomeScore(homeScore);
         match.setAwayScore(awayScore);
+        if (homeFairPlay != null) match.setHomeFairPlay(homeFairPlay);
+        if (awayFairPlay != null) match.setAwayFairPlay(awayFairPlay);
         MatchStatusNormalized finalStatus = status != null ? status : MatchStatusNormalized.FINISHED;
         match.setStatus(finalStatus);
         match.setFinished(finalStatus.isFinished());
@@ -223,6 +230,14 @@ public class SyncService {
             matchPredictionService.evaluatePredictionsForMatch(saved);
         } catch (Exception e) {
             log.warn("Evaluation failed during manual override", e);
+        }
+
+        if ("group".equalsIgnoreCase(saved.getRound()) || saved.getGroupName() != null) {
+            try {
+                standingsService.recalculateStandingsFromMatches();
+            } catch (Exception e) {
+                log.warn("Standings recalculation failed during manual override", e);
+            }
         }
 
         webSocketService.broadcastMatchScore(
@@ -331,6 +346,9 @@ public class SyncService {
                     log.debug("No events for {}: {}", dateStr, e.getMessage());
                 }
             }
+
+            propagateKnockoutWinners(context);
+            updateStandings(context.teamStats);
 
             result.put("status", "success");
             result.put("competition", comp.getName());
@@ -511,7 +529,8 @@ public class SyncService {
             group = altNote.substring(altNote.indexOf("Group ") + 6).trim();
             if (group.length() > 2) group = group.substring(0, 1);
             if (group != null) group = group.toUpperCase().trim();
-        } else if (combined.contains("round of 32") || combined.contains("round of 16") || combined.contains("octav")) round = "r16";
+        } else if (combined.contains("round of 32") || combined.contains("16avo") || combined.contains("dieciseis")) round = "r32";
+        else if (combined.contains("round of 16") || combined.contains("octav")) round = "r16";
         else if (combined.contains("quarter") || combined.contains("cuart") || combined.contains("qf")) round = "qf";
         else if (combined.contains("semi") || combined.contains("sf")) round = "sf";
         else if (combined.contains("third") || combined.contains("3rd") || combined.contains("tercer") || combined.contains("3er")) round = "third";

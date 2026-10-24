@@ -376,7 +376,14 @@ export async function triggerAdminSync(competitionId = null) {
   return res.json();
 }
 
-export async function overrideMatchResult(matchId, homeScore, awayScore, status = 'FINISHED') {
+export async function overrideMatchResult(
+  matchId,
+  homeScore,
+  awayScore,
+  status = 'FINISHED',
+  homeFairPlay = 0,
+  awayFairPlay = 0,
+) {
   const token = getAdminToken();
   const res = await fetch(`${API_BASE}/admin/matches/${matchId}/manual-result`, {
     method: 'PUT',
@@ -387,6 +394,8 @@ export async function overrideMatchResult(matchId, homeScore, awayScore, status 
     body: JSON.stringify({
       homeScore: Number(homeScore),
       awayScore: Number(awayScore),
+      homeFairPlay: Number(homeFairPlay),
+      awayFairPlay: Number(awayFairPlay),
       status,
     }),
   });
