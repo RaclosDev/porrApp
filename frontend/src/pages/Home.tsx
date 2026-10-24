@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { compareTeams } from '../utils/points';
 import Flag from '../components/Flag';
@@ -33,8 +33,34 @@ function Home({ defaultMode = 'bracket' }) {
   const [activeMobilePanel, setActiveMobilePanel] = useState(null); // null, 'thirds', 'live', 'scorers'
 
   useEffect(() => {
-    setTimeout(() => setViewMode(defaultMode), 0);
-  }, [defaultMode]);
+    if (defaultMode !== viewMode) {
+      setViewMode(defaultMode);
+    }
+  }, [defaultMode, viewMode]);
+
+  const sortedGroups = useMemo(() => {
+    if (!groupOdds) return {};
+    const res = {};
+    Object.entries(groupOdds).forEach(([groupName, teams]) => {
+      const teamsWithStats = (teams || []).map((t) => {
+        const safeKey = t.name.replace(/[.#$[\]]/g, '');
+        const stats = officialPoints?.[groupName]?.[safeKey] || {
+          pts: 0,
+          diff: 0,
+          gls: 0,
+          mp: 0,
+          fp: 0,
+        };
+        return { ...t, stats };
+      });
+
+      teamsWithStats.sort((a, b) =>
+        compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap),
+      );
+      res[groupName] = teamsWithStats;
+    });
+    return res;
+  }, [groupOdds, officialPoints, allGames, nameToIdMap]);
 
   if (loading)
     return (
@@ -63,21 +89,7 @@ function Home({ defaultMode = 'bracket' }) {
     );
 
   const renderGroup = (groupName, teams) => {
-    const teamsWithStats = teams.map((t) => {
-      const safeKey = t.name.replace(/[.#$[\]]/g, '');
-      const stats = officialPoints?.[groupName]?.[safeKey] || {
-        pts: 0,
-        diff: 0,
-        gls: 0,
-        mp: 0,
-        fp: 0,
-      };
-      return { ...t, stats };
-    });
-
-    teamsWithStats.sort((a, b) =>
-      compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap),
-    );
+    const teamsWithStats = sortedGroups[groupName] || [];
 
     return (
       <div

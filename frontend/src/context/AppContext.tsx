@@ -1,4 +1,4 @@
-import React, { useEffect, createContext, useContext } from 'react';
+import React, { useEffect, createContext, useContext, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchStandings,
@@ -16,6 +16,10 @@ import {
 import { useAdminActions } from '../hooks/useAdminActions';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore } from '../store/useAppStore';
+
+const EMPTY_OBJECT = Object.freeze({});
+const EMPTY_ARRAY = Object.freeze([]);
+const EMPTY_RADAR = Object.freeze({ live: [], last: [], next: [] });
 
 const GlobalEffectsContext = createContext(null);
 
@@ -148,12 +152,15 @@ export const useAppContext = () => {
   const activeGroupIsLocked = Boolean(groupInfo?.isLocked);
   const activeGroupLockDate = groupInfo?.lockDate || null;
 
-  const nameToIdMap =
-    matches?.reduce((acc, m) => {
-      acc[m.home] = m.home_team_id;
-      acc[m.away] = m.away_team_id;
-      return acc;
-    }, {}) || {};
+  const nameToIdMap = useMemo(() => {
+    return (
+      matches?.reduce((acc, m) => {
+        acc[m.home] = m.home_team_id;
+        acc[m.away] = m.away_team_id;
+        return acc;
+      }, {}) || EMPTY_OBJECT
+    );
+  }, [matches]);
 
   const loading =
     (loadingStandings && !standings) ||
@@ -170,21 +177,21 @@ export const useAppContext = () => {
     return hash === 576654803 || hash === -1061661165;
   };
 
-  const isRaclos = checkAdmin(userName?.trim());
+  const isRaclos = useMemo(() => checkAdmin(userName?.trim()), [userName]);
 
   return {
     ...store,
     isAuthenticated: isUserAuthed,
-    officialPoints: standings || {},
-    matchRadar: radar || { live: [], last: [], next: [] },
-    participantsHashes: predictions || [],
-    allGames: matches || [],
-    groupOdds: odds || {},
+    officialPoints: standings || EMPTY_OBJECT,
+    matchRadar: radar || EMPTY_RADAR,
+    participantsHashes: predictions || EMPTY_ARRAY,
+    allGames: matches || EMPTY_ARRAY,
+    groupOdds: odds || EMPTY_OBJECT,
     nameToIdMap,
-    leaderboardData: leaderboard || [],
+    leaderboardData: leaderboard || EMPTY_ARRAY,
     loading,
     fetchData: adminActions.refreshAll,
-    onlineUsers: onlineUsers || [],
+    onlineUsers: onlineUsers || EMPTY_ARRAY,
     isRaclos,
     deletePrediction: adminActions.deletePrediction || adminActions.deleteBet,
     deleteBet: adminActions.deletePrediction || adminActions.deleteBet,
@@ -203,6 +210,6 @@ export const useAppContext = () => {
     activeGroupLockDate,
     activeCompetitionId,
     activeCompetitionName: groupInfo?.competitionName || null,
-    topScorers: topScorers || [],
+    topScorers: topScorers || EMPTY_ARRAY,
   };
 };

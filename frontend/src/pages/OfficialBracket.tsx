@@ -20,7 +20,10 @@ function OfficialBracket({ hideTitle }) {
   const [activePanel, setActivePanel] = useState(null); // 'live', 'scorers', null
 
   // Build bracket data
-  const part = buildBracketData(officialPoints, groupOdds, allGames);
+  const part = useMemo(
+    () => buildBracketData(officialPoints, groupOdds, allGames),
+    [officialPoints, groupOdds, allGames],
+  );
 
   // Featured upcoming match
   const featuredMatch = useMemo(() => {
@@ -54,6 +57,27 @@ function OfficialBracket({ hideTitle }) {
     return true;
   };
 
+  const { leftRounds, rightRounds } = useMemo(() => {
+    if (!part) return { leftRounds: [], rightRounds: [] };
+    const toMatches = (arr) =>
+      (arr || []).map((m) => ({ home: m?.[0] || null, away: m?.[1] || null }));
+
+    return {
+      leftRounds: [
+        toMatches(part.r32?.slice(0, 8)),
+        toMatches(part.r16?.slice(0, 4)),
+        toMatches(part.qf?.slice(0, 2)),
+        toMatches(part.sf?.slice(0, 1)),
+      ],
+      rightRounds: [
+        toMatches(part.r32?.slice(8, 16)),
+        toMatches(part.r16?.slice(4, 8)),
+        toMatches(part.qf?.slice(2, 4)),
+        toMatches(part.sf?.slice(1, 2)),
+      ],
+    };
+  }, [part]);
+
   if (!part) {
     return (
       <section
@@ -69,23 +93,6 @@ function OfficialBracket({ hideTitle }) {
       </section>
     );
   }
-
-  // Convert flat arrays
-  const toMatches = (arr) =>
-    (arr || []).map((m) => ({ home: m?.[0] || null, away: m?.[1] || null }));
-
-  const leftRounds = [
-    toMatches(part.r32?.slice(0, 8)),
-    toMatches(part.r16?.slice(0, 4)),
-    toMatches(part.qf?.slice(0, 2)),
-    toMatches(part.sf?.slice(0, 1)),
-  ];
-  const rightRounds = [
-    toMatches(part.r32?.slice(8, 16)),
-    toMatches(part.r16?.slice(4, 8)),
-    toMatches(part.qf?.slice(2, 4)),
-    toMatches(part.sf?.slice(1, 2)),
-  ];
 
   // Render slot
   const renderSlot = (teamOrObj, context) => {

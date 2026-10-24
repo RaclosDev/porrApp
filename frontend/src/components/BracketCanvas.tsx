@@ -127,8 +127,10 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
     >
       {!isEmpty && !isPlaceholder && !isCombined && (
         <img
-          src={`https://flagcdn.com/w80/${getCountryCode(name)}.png`}
+          src={`https://flagcdn.com/w40/${getCountryCode(name)}.png`}
           alt=""
+          width={18}
+          height={13}
           loading="lazy"
           style={{
             width: 18,
@@ -145,8 +147,11 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
           {combinedTeams.map((t, idx) => (
             <img
               key={t}
-              src={`https://flagcdn.com/w80/${getCountryCode(t)}.png`}
+              src={`https://flagcdn.com/w40/${getCountryCode(t)}.png`}
               alt=""
+              width={16}
+              height={12}
+              loading="lazy"
               style={{
                 width: 16,
                 height: 12,

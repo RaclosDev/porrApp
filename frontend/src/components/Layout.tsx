@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { getAuthToken, setAuthToken, fetchClaimedNames } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
-import PredictionViewer from './PredictionViewer';
+
+const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
 /**
  * Componente Layout principal que envuelve a todas las rutas.
@@ -20,6 +21,7 @@ function Layout({ children }) {
     participantsHashes,
     userName,
     setUserName,
+    viewerBetId,
     setViewerBetId,
     onlineUsers,
     isRaclos,
@@ -766,7 +768,11 @@ function Layout({ children }) {
       </div>
 
       {/* Visor Global de Porras (Portal Inyectado) */}
-      <PredictionViewer />
+      {viewerBetId && (
+        <Suspense fallback={null}>
+          <PredictionViewer />
+        </Suspense>
+      )}
     </>
   );
 }

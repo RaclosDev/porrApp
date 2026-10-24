@@ -367,8 +367,10 @@ function PredictionViewer() {
           getCountryCode(teamName) !== 'xx' &&
           !teamName.toLowerCase().includes('por definir') && (
             <img
-              src={`https://flagcdn.com/w80/${getCountryCode(teamName)}.png`}
+              src={`https://flagcdn.com/w40/${getCountryCode(teamName)}.png`}
               alt=""
+              width={16}
+              height={12}
               loading="lazy"
               style={{
                 width: '16px',

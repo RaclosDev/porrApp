@@ -21,7 +21,6 @@ export function useWebSocket(userName, queryClient) {
         wsPingInterval = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'PING' }));
-            queryClient.invalidateQueries({ queryKey: ['presence'] });
           }
         }, 10000);
       };

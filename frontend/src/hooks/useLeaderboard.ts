@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
-import html2canvas from 'html2canvas';
 import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
 
 export function useLeaderboard() {
@@ -24,68 +23,74 @@ export function useLeaderboard() {
   const isLeagueAdmin =
     activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
 
-  const results = leaderboardData.map((backendScore) => ({
-    key: backendScore.id,
-    id: backendScore.id,
-    userId: backendScore.userId,
-    name: backendScore.name || 'Anónimo',
-    betName: backendScore.betName || '',
-    points: backendScore,
-    paid: !backendScore.pending,
-    thirdPlaceMatch: backendScore.thirdPlaceMatch,
-    thirdPlaceWinner: backendScore.thirdPlaceWinner,
-  }));
+  const { results, lowestPaidRank } = useMemo(() => {
+    const list = (leaderboardData || []).map((backendScore) => ({
+      key: backendScore.id,
+      id: backendScore.id,
+      userId: backendScore.userId,
+      name: backendScore.name || 'Anónimo',
+      betName: backendScore.betName || '',
+      points: backendScore,
+      paid: !backendScore.pending,
+      thirdPlaceMatch: backendScore.thirdPlaceMatch,
+      thirdPlaceWinner: backendScore.thirdPlaceWinner,
+    }));
 
-  const col = sortColumn || 'total';
+    const col = sortColumn || 'total';
 
-  // Siempre ordenamos primero de mayor a menor (descendente) para calcular rangos y medallas correctamente
-  results.sort((a, b) => {
-    if (a.paid !== b.paid) return a.paid ? -1 : 1;
-    const valA = Number(a.points[col]) || 0;
-    const valB = Number(b.points[col]) || 0;
-    if (valB !== valA) return valB - valA;
-    if (col !== 'total') return b.points.total - a.points.total;
-    return 0;
-  });
-
-  let currentRank = 1;
-  let previousVal = null;
-
-  results.forEach((r) => {
-    if (r.paid) {
-      const val = Number(r.points[col]) || 0;
-      if (previousVal !== null && val !== previousVal) {
-        currentRank++;
-      }
-      r.rank = currentRank;
-      previousVal = val;
-    } else {
-      r.rank = '-';
-    }
-  });
-
-  let lowestPaidRank = 1;
-  results.forEach((r) => {
-    if (r.paid && typeof r.rank === 'number' && r.rank > lowestPaidRank) {
-      lowestPaidRank = r.rank;
-    }
-  });
-
-  // Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
-  if (sortDirection === 'asc') {
-    results.sort((a, b) => {
+    // Siempre ordenamos primero de mayor a menor (descendente) para calcular rangos y medallas correctamente
+    list.sort((a, b) => {
       if (a.paid !== b.paid) return a.paid ? -1 : 1;
       const valA = Number(a.points[col]) || 0;
       const valB = Number(b.points[col]) || 0;
-      if (valB !== valA) return valA - valB;
-      if (col !== 'total') return a.points.total - b.points.total;
+      if (valB !== valA) return valB - valA;
+      if (col !== 'total') return b.points.total - a.points.total;
       return 0;
     });
-  }
+
+    let currentRank = 1;
+    let previousVal = null;
+
+    list.forEach((r) => {
+      if (r.paid) {
+        const val = Number(r.points[col]) || 0;
+        if (previousVal !== null && val !== previousVal) {
+          currentRank++;
+        }
+        r.rank = currentRank;
+        previousVal = val;
+      } else {
+        r.rank = '-';
+      }
+    });
+
+    let lowestRank = 1;
+    list.forEach((r) => {
+      if (r.paid && typeof r.rank === 'number' && r.rank > lowestRank) {
+        lowestRank = r.rank;
+      }
+    });
+
+    // Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
+    if (sortDirection === 'asc') {
+      list.sort((a, b) => {
+        if (a.paid !== b.paid) return a.paid ? -1 : 1;
+        const valA = Number(a.points[col]) || 0;
+        const valB = Number(b.points[col]) || 0;
+        if (valB !== valA) return valA - valB;
+        if (col !== 'total') return a.points.total - b.points.total;
+        return 0;
+      });
+    }
+
+    return { results: list, lowestPaidRank: lowestRank };
+  }, [leaderboardData, sortColumn, sortDirection]);
 
   const handleShare = async () => {
     setSharing(true);
     try {
+      const html2canvasModule = await import('html2canvas');
+      const html2canvas = html2canvasModule.default;
       const template = document.getElementById('share-image-template');
       const canvas = await html2canvas(template, {
         backgroundColor: '#0f0f1a',
