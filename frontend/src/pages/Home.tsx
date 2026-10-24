@@ -192,7 +192,7 @@ function Home({ defaultMode = 'bracket' }) {
                   style={{
                     width: '18px',
                     textAlign: 'center',
-                    color: (team.stats.fp || 0) < 0 ? '#ff7675' : 'var(--text-muted)',
+                    color: 'var(--text-muted)',
                   }}
                   title={`Fair Play: ${team.stats.fp || 0}`}
                 >

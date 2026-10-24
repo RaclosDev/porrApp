@@ -160,7 +160,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
                     <span
                       style={{
                         textAlign: 'center',
-                        color: (t.fp || 0) < 0 ? '#ff7675' : 'var(--text-muted)',
+                        color: 'var(--text-muted)',
                         fontSize: '0.75rem',
                       }}
                       title="Puntos de Fair Play"
@@ -258,7 +258,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
                     <span
                       style={{
                         textAlign: 'center',
-                        color: (t.fp || 0) < 0 ? '#ff7675' : 'var(--text-muted)',
+                        color: 'var(--text-muted)',
                         fontSize: '0.75rem',
                       }}
                       title="Puntos de Fair Play"
