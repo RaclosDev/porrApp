@@ -71,13 +71,26 @@ public class AdminController {
         String adminUser = (authentication != null && authentication.getName() != null)
                 ? authentication.getName()
                 : "Admin";
-        Match match = syncService.overrideMatchResult(
-                id,
-                body.getHomeScore(),
-                body.getAwayScore(),
-                body.getStatus(),
-                adminUser
-        );
+        Match match;
+        if (body.getHomeFairPlay() != null || body.getAwayFairPlay() != null) {
+            match = syncService.overrideMatchResult(
+                    id,
+                    body.getHomeScore(),
+                    body.getAwayScore(),
+                    body.getHomeFairPlay(),
+                    body.getAwayFairPlay(),
+                    body.getStatus(),
+                    adminUser
+            );
+        } else {
+            match = syncService.overrideMatchResult(
+                    id,
+                    body.getHomeScore(),
+                    body.getAwayScore(),
+                    body.getStatus(),
+                    adminUser
+            );
+        }
         return ResponseEntity.ok(match);
     }
 

@@ -21,5 +21,8 @@ public class ManualMatchOverrideDTO {
     @NotNull(message = "El marcador visitante es obligatorio")
     private Integer awayScore;
 
+    private Integer homeFairPlay;
+    private Integer awayFairPlay;
+
     private MatchStatusNormalized status;
 }

@@ -60,6 +60,7 @@ public class PredictionPersistenceService {
                 }
             }
 
+            saveBracketPhase(prediction, dto.getR32(), "R32", dto.getFlatR16());
             saveBracketPhase(prediction, dto.getR16(), "R16", dto.getFlatQf());
             saveBracketPhase(prediction, dto.getQf(), "QF", dto.getFlatSf());
             saveBracketPhase(prediction, dto.getSf(), "SF", dto.getFinalMatch());

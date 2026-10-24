@@ -91,6 +91,8 @@ function Admin() {
   const [selectedMatchId, setSelectedMatchId] = useState('');
   const [manualHomeScore, setManualHomeScore] = useState('');
   const [manualAwayScore, setManualAwayScore] = useState('');
+  const [manualHomeFairPlay, setManualHomeFairPlay] = useState('0');
+  const [manualAwayFairPlay, setManualAwayFairPlay] = useState('0');
   const [manualStatus, setManualStatus] = useState('FINISHED');
   const [manualSubmitStatus, setManualSubmitStatus] = useState(null);
   const [manualMessage, setManualMessage] = useState('');
@@ -166,6 +168,8 @@ function Admin() {
         Number(manualHomeScore),
         Number(manualAwayScore),
         manualStatus,
+        Number(manualHomeFairPlay || 0),
+        Number(manualAwayFairPlay || 0),
       );
       setManualSubmitStatus('ok');
       setManualMessage('Resultado actualizado y puntuaciones recalculadas exitosamente');
@@ -662,6 +666,16 @@ function Admin() {
                         ? String(found.awayScore)
                         : '0',
                     );
+                    setManualHomeFairPlay(
+                      found.homeFairPlay !== null && found.homeFairPlay !== undefined
+                        ? String(found.homeFairPlay)
+                        : '0',
+                    );
+                    setManualAwayFairPlay(
+                      found.awayFairPlay !== null && found.awayFairPlay !== undefined
+                        ? String(found.awayFairPlay)
+                        : '0',
+                    );
                     setManualStatus(found.status || 'FINISHED');
                   }
                 }}
@@ -733,6 +747,66 @@ function Admin() {
                   max="30"
                   value={manualAwayScore}
                   onChange={(e) => setManualAwayScore(e.target.value)}
+                  placeholder="0"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: 'white',
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: '1 1 120px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                  title="Fair Play Local (ej: -1 por amarilla, -4 por roja)"
+                >
+                  FP Local (Tarjetas):
+                </label>
+                <input
+                  type="number"
+                  max="0"
+                  min="-30"
+                  value={manualHomeFairPlay}
+                  onChange={(e) => setManualHomeFairPlay(e.target.value)}
+                  placeholder="0"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: 'white',
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: '1 1 120px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                  title="Fair Play Visitante (ej: -1 por amarilla, -4 por roja)"
+                >
+                  FP Visitante (Tarjetas):
+                </label>
+                <input
+                  type="number"
+                  max="0"
+                  min="-30"
+                  value={manualAwayFairPlay}
+                  onChange={(e) => setManualAwayFairPlay(e.target.value)}
                   placeholder="0"
                   style={{
                     width: '100%',

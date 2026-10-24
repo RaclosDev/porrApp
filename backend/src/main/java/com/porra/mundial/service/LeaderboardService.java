@@ -81,7 +81,9 @@ public class LeaderboardService {
         allThirds.sort((a, b) -> {
             if (a.getPoints() != b.getPoints()) return Integer.compare(b.getPoints(), a.getPoints());
             if (a.getGoalDiff() != b.getGoalDiff()) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
-            return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
+            if (a.getGoalsFor() != b.getGoalsFor()) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
+            if (a.getFairPlayPoints() != b.getFairPlayPoints()) return Integer.compare(b.getFairPlayPoints(), a.getFairPlayPoints());
+            return a.getTeam().getName().compareTo(b.getTeam().getName());
         });
 
         List<String> bestVirtualThirds = allThirds.stream().limit(8).map(gs -> gs.getTeam().getName()).collect(Collectors.toList());
@@ -90,7 +92,8 @@ public class LeaderboardService {
         List<Map<String, Object>> allScorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
 
         List<Match> allMatches = matchRepository.findAll();
-        List<Match> r16Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r16", "octav")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
+        List<Match> r32Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
+        List<Match> r16Matches = allMatches.stream().filter(m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
         List<Match> qfMatches = allMatches.stream().filter(m -> isRound(m.getRound(), "qf", "quarter", "cuart")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
         List<Match> sfMatches = allMatches.stream().filter(m -> isRound(m.getRound(), "sf", "semi")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
         List<Match> finalMatchDb = allMatches.stream().filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter")).collect(Collectors.toList());
@@ -106,7 +109,7 @@ public class LeaderboardService {
         };
 
         List<String> offOctavos = new ArrayList<>();
-        for (Match m : r16Matches) {
+        for (Match m : r32Matches) {
             String w = getWinner.apply(m);
             if (w != null) offOctavos.add(w);
         }

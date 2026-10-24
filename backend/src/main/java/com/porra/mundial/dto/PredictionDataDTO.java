@@ -31,7 +31,6 @@ public class PredictionDataDTO {
     
     private List<String> thirds;
     
-    @NotNull(message = "Faltan predicciones de la fase eliminatoria")
     private List<List<String>> r32;
     
     @NotNull(message = "Faltan predicciones de la fase eliminatoria")

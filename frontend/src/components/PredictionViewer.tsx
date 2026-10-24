@@ -450,7 +450,7 @@ function PredictionViewer() {
     );
   }
 
-  if (loading || !part) {
+  if (loading) {
     return (
       <div
         id="points-breakdown-modal"
@@ -467,7 +467,48 @@ function PredictionViewer() {
           role="presentation"
           onClick={(e) => e.stopPropagation()}
         >
-          <h2 style={{ color: 'var(--accent-color)' }}>Cargando porra...</h2>
+          <h2 style={{ color: 'var(--accent-color)', marginBottom: '16px' }}>Cargando porra...</h2>
+          <button
+            onClick={() => setViewerBetId(null)}
+            className="glass-btn"
+            style={{ marginTop: '10px' }}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!part) {
+    return (
+      <div
+        id="points-breakdown-modal"
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Visor de porra"
+        style={{ display: 'flex', zIndex: 999999 }}
+        onClick={() => setViewerBetId(null)}
+      >
+        <div
+          className="modal-content"
+          style={{ width: '95vw', maxWidth: '600px', textAlign: 'center', padding: '50px' }}
+          role="presentation"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>⚠️</div>
+          <h3 style={{ color: 'var(--text-color)', marginBottom: '10px' }}>Porra no encontrada</h3>
+          <p style={{ color: 'var(--text-muted)' }}>
+            No se encontraron los datos de la porra seleccionada.
+          </p>
+          <button
+            onClick={() => setViewerBetId(null)}
+            className="glass-btn primary-btn"
+            style={{ marginTop: '20px' }}
+          >
+            Cerrar
+          </button>
         </div>
       </div>
     );

@@ -296,11 +296,12 @@ function Layout({ children }) {
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                 }}
-                onClick={() =>
-                  setViewerBetId(
-                    Number(participantsHashes.find((h) => h.participantName === userName)?.key),
-                  )
-                }
+                onClick={() => {
+                  const myPred = participantsHashes.find((h) => h.participantName === userName);
+                  if (myPred?.key) {
+                    setViewerBetId(myPred.key);
+                  }
+                }}
               >
                 👁️ Ver Mi Porra
               </button>
