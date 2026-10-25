@@ -3,10 +3,13 @@ package com.porra.mundial.config;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
@@ -21,8 +24,9 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    // Extrae la clave secreta desde application.properties o usa una fuerte por defecto si no existe.
-    // En producción (Railway) siempre se debe inyectar a través de la variable de entorno JWT_SECRET.
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
+
+    // Clave criptográfica para firma y verificación HMAC-SHA256
     private final SecretKey key;
 
     // Tiempo de expiración: 7 días (ajustable) en milisegundos
@@ -30,14 +34,21 @@ public class JwtUtil {
 
     /**
      * Constructor que inyecta el secreto JWT.
+     * Si no se provee en el entorno o es demasiado corto, genera una clave segura en memoria
+     * de 256 bits para evitar bloquear el arranque del servicio en producción.
      * 
-     * @param secret Clave secreta (mínimo 256 bits recomendados para el algoritmo HS256)
+     * @param secret Clave secreta (mínimo 256 bits recomendados para HS256)
      */
-        public JwtUtil(@Value("${app.jwt.secret:}") String secret) {
-        if (secret == null || secret.isBlank() || "1234567890123456789012345678901234567890".equals(secret) || secret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
-            throw new IllegalStateException("FATAL: app.jwt.secret DEBE estar configurado y contener al menos 32 caracteres (256 bits). El secreto estático por defecto está prohibido.");
+    public JwtUtil(@Value("${app.jwt.secret:}") String secret) {
+        if (secret != null && !secret.isBlank() && !"1234567890123456789012345678901234567890".equals(secret) && secret.getBytes(StandardCharsets.UTF_8).length >= 32) {
+            this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            log.info("JwtUtil inicializado con éxito usando JWT_SECRET inyectado.");
+        } else {
+            this.key = Jwts.SIG.HS256.key().build();
+            log.warn("AVISO: La variable JWT_SECRET no está configurada en Render (o es menor de 32 bytes). " +
+                     "Se ha generado una clave segura de 256 bits efímera en memoria para no interrumpir el servicio. " +
+                     "Configura JWT_SECRET en las variables de entorno de Render para mantener sesiones tras reinicios.");
         }
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     /**
