@@ -56,7 +56,8 @@ export const PRESET_TEMPLATES = [
 ];
 
 export function useGroupsDashboard() {
-  const { changeGroup, userName, userId, activeGroupId, userGroups } = useAppContext();
+  const { changeGroup, userName, userId, activeGroupId, userGroups, isAuthenticated } =
+    useAppContext();
   const [groups, setGroups] = useState(userGroups && userGroups.length > 0 ? userGroups : []);
   const [competitions, setCompetitions] = useState([]);
   const [loading, setLoading] = useState(!userGroups || userGroups.length === 0);
@@ -106,9 +107,12 @@ export function useGroupsDashboard() {
       } catch {
         knownIds = [];
       }
-      const missingIds = Array.isArray(knownIds)
-        ? knownIds.filter((id) => !myGroups.find((g) => g.id.toString() === id.toString()))
-        : [];
+      const missingIds =
+        !isAuthenticated && Array.isArray(knownIds)
+          ? knownIds
+              .filter((id) => !myGroups.find((g) => g.id.toString() === id.toString()))
+              .slice(0, 3)
+          : [];
 
       if (missingIds.length > 0) {
         try {
