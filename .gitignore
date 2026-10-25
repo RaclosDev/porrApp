@@ -72,10 +72,12 @@ temp_*.py
 public/workbox-*.js
 
 # ==============================================================================
-# AI Config
+# AI Config & Graphify
 # ==============================================================================
 AGENTS.md
 .agents/
+graphify-out/
+.graphify*
 
 apache-maven-3.9.6/
 maven/
