@@ -174,18 +174,26 @@ public class PredictionService {
         return predictionRepository.findById(id);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO betData, Long groupId) {
-        if (groupId != null) {
-            predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
-                    .ifPresent(predictionRepository::delete);
-        }
-
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         Edition edition = groupId != null ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null) : null;
 
         if (edition != null && edition.isLocked() && !isSuperAdmin(email)) {
             throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
+        }
+
+        if (groupId != null && user != null && edition != null && edition.getLeague() != null) {
+            Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
+            boolean isGlobal = "GLOBAL".equalsIgnoreCase(edition.getLeague().getJoinCode());
+            if (!membershipRepository.existsById(memId) && !isGlobal && !isSuperAdmin(email)) {
+                throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
+            }
+        }
+
+        if (groupId != null) {
+            predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
+                    .ifPresent(predictionRepository::delete);
         }
 
         boolean isOfficial = "official".equalsIgnoreCase(predictionName) || "Admin".equalsIgnoreCase(email);
@@ -201,27 +209,15 @@ public class PredictionService {
 
         predictionPersistenceService.saveRelationalPredictions(prediction, betData);
 
-        if (groupId != null && user != null && edition != null && edition.getLeague() != null) {
-            Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-            if (!membershipRepository.existsById(memId)) {
-                membershipRepository.save(Membership.builder()
-                        .id(memId)
-                        .user(user)
-                        .league(edition.getLeague())
-                        .role("MEMBER")
-                        .build());
-            }
-        }
-
         return prediction;
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction createBet(String email, String betName, PredictionDataDTO betData, Long groupId) {
         return createPrediction(email, betName, betData, groupId);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, PredictionDataDTO betData) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
@@ -248,7 +244,7 @@ public class PredictionService {
         return updatePrediction(id, null, participantName, betName, betData);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction markAsPaid(Long id, String requesterEmail) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
@@ -267,7 +263,7 @@ public class PredictionService {
         return markAsPaid(id, null);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void deletePrediction(Long id, String requesterEmail) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
@@ -284,7 +280,7 @@ public class PredictionService {
         deletePrediction(id, null);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction restorePrediction(Long backupId) {
         PredictionBackup backup = predictionBackupRepository.findById(backupId)
                 .orElseThrow(() -> new NoSuchElementException("Backup no encontrado: " + backupId));

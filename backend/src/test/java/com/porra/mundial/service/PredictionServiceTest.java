@@ -4,6 +4,7 @@ import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
+import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.EditionRepository;
@@ -216,7 +217,23 @@ class PredictionServiceTest {
     }
 
     @Test
-    @DisplayName("No se puede crear pronostico si la edicion/porra esta bloqueada")
+    @DisplayName("createPrediction rechaza si el usuario no es miembro de la liga privada")
+    void cannotCreatePredictionIfNotMemberOfPrivateLeague() {
+        edition.setStatus("ACTIVE");
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
+        when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
+
+        SecurityException ex = assertThrows(SecurityException.class, () ->
+                predictionService.createPrediction("stranger@test.com", "Mi Porra", new PredictionDataDTO(), 100L)
+        );
+
+        assertTrue(ex.getMessage().contains("No perteneces a esta liga privada"));
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("cannotCreatePredictionWhenEditionIsLocked")
     void cannotCreatePredictionWhenEditionIsLocked() {
         edition.setStatus("LOCKED");
         when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));

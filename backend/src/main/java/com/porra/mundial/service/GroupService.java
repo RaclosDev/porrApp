@@ -176,19 +176,19 @@ public class GroupService {
      * @param betMode Modo de la porra (Brackets o Fase de Grupos).
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "groupById", "groupByCode", "groupResponse", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode) {
         return createGroup(name, email, competitionId, betMode != null ? betMode.toPoolFormat() : com.porra.mundial.model.PoolFormat.FULL_BRACKET, true);
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat) {
         return createGroup(name, email, competitionId, poolFormat, true);
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode, boolean pichichi) {
         return createGroup(name, email, competitionId, betMode != null ? betMode.toPoolFormat() : com.porra.mundial.model.PoolFormat.FULL_BRACKET, pichichi);
     }
@@ -197,7 +197,7 @@ public class GroupService {
      * Sobrecarga de creación de grupo para especificar si la predicción de Pichichi está activa.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
         String joinCode;
         // Genera un código de 6 caracteres aleatorio
@@ -252,7 +252,7 @@ public class GroupService {
      * Vincula a un usuario (Miembro) con un Grupo a través del JoinCode.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void joinGroupMembership(Long groupId, String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user == null) return;
@@ -275,7 +275,7 @@ public class GroupService {
      * Permite a un Admin renombrar su propia liga.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public League updateGroupName(Long groupId, String newName, String email) {
         verifyGroupAdmin(groupId, email);
         if (newName == null || newName.trim().isEmpty()) {
@@ -291,7 +291,7 @@ public class GroupService {
      * Permite a un Admin eliminar toda la liga, incluyendo usuarios, membresías y apuestas dentro.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         
@@ -392,7 +392,7 @@ public class GroupService {
      * Permite a un miembro normal (No-Admin) abandonar la liga por su cuenta.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void leaveGroup(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
             .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
@@ -442,7 +442,7 @@ public class GroupService {
      * Cambiar el estado de pago de un pronostico concreto dentro del grupo.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction togglePredictionPaymentStatus(Long groupId, Long predictionId, String email, boolean paid) {
         verifyGroupAdmin(groupId, email);
         Prediction pred = predictionRepository.findById(predictionId)
@@ -455,13 +455,13 @@ public class GroupService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction toggleBetPaymentStatus(Long groupId, Long betId, String email, boolean paid) {
         return togglePredictionPaymentStatus(groupId, betId, email, paid);
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void deletePrediction(Long groupId, Long predictionId, String email) {
         verifyGroupAdmin(groupId, email);
         Prediction pred = predictionRepository.findById(predictionId)
@@ -473,7 +473,7 @@ public class GroupService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void deleteBet(Long groupId, Long betId, String email) {
         deletePrediction(groupId, betId, email);
     }
@@ -487,6 +487,23 @@ public class GroupService {
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
 
+        boolean isGlobal = "GLOBAL".equalsIgnoreCase(group.getJoinCode());
+        boolean callerIsAdmin = false;
+
+        if (email != null && !email.isBlank()) {
+            boolean isSuper = userAccountRepository.findByGoogleEmail(email).map(UserAccount::isSuperadmin).orElse(false);
+            boolean isLeagueAdmin = group.getAdminUser() != null && group.getAdminUser().getGoogleEmail() != null && group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email);
+            callerIsAdmin = isLeagueAdmin || isSuper;
+            if (!callerIsAdmin && !isGlobal) {
+                UserAccount caller = userAccountRepository.findByGoogleEmail(email).orElse(null);
+                if (caller == null || !membershipRepository.existsById(new Membership.MembershipId(caller.getId(), groupId))) {
+                    throw new SecurityException("No perteneces a esta liga privada.");
+                }
+            }
+        } else if (!isGlobal) {
+            throw new SecurityException("No autenticado para consultar miembros de una liga privada.");
+        }
+
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
         List<GroupMemberDTO> list = new ArrayList<>();
 
@@ -496,10 +513,14 @@ public class GroupService {
             boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
                     || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
 
+            String displayEmail = (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
+                    ? u.getGoogleEmail()
+                    : maskEmail(u.getGoogleEmail());
+
             list.add(GroupMemberDTO.builder()
                     .userId(u.getId())
                     .participantName(u.getParticipantName())
-                    .googleEmail(u.getGoogleEmail())
+                    .googleEmail(displayEmail)
                     .role(m.getRole())
                     .paymentStatus(m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING")
                     .joinedAt(m.getJoinedAt())
@@ -515,11 +536,20 @@ public class GroupService {
         return list;
     }
 
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) return null;
+        int atIdx = email.indexOf("@");
+        String name = email.substring(0, atIdx);
+        String domain = email.substring(atIdx);
+        if (name.length() <= 2) return name.charAt(0) + "***" + domain;
+        return name.substring(0, 2) + "***" + domain;
+    }
+
     /**
      * Cambia el estado de pago de un miembro en la liga y sincroniza su pronóstico.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void toggleMemberPayment(Long groupId, Long targetUserId, String email, String status) {
         verifyGroupAdmin(groupId, email);
 
@@ -546,7 +576,7 @@ public class GroupService {
      * Expulsa a un participante de la liga eliminando sus pronósticos y membresía.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void kickMember(Long groupId, Long targetUserId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
@@ -572,7 +602,7 @@ public class GroupService {
      * Regenera el código de invitación de la liga si se ha filtrado.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public String regenerateJoinCode(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)

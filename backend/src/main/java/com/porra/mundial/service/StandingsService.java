@@ -209,7 +209,11 @@ public class StandingsService {
                 if (!Objects.equals(a.getPoints(), b.getPoints())) return Integer.compare(b.getPoints(), a.getPoints());
                 if (!Objects.equals(a.getGoalDiff(), b.getGoalDiff())) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
                 if (!Objects.equals(a.getGoalsFor(), b.getGoalsFor())) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
-                if (!Objects.equals(a.getFairPlayPoints(), b.getFairPlayPoints())) return Integer.compare(b.getFairPlayPoints(), a.getFairPlayPoints());
+                if (!Objects.equals(a.getFairPlayPoints(), b.getFairPlayPoints())) {
+                    int fpA = a.getFairPlayPoints() != null ? a.getFairPlayPoints() : 0;
+                    int fpB = b.getFairPlayPoints() != null ? b.getFairPlayPoints() : 0;
+                    if (fpA != fpB) return Integer.compare(fpB, fpA);
+                }
                 return a.getTeam().getName().compareTo(b.getTeam().getName());
             });
 

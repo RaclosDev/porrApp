@@ -1,4 +1,9 @@
 -- V28: Añadir restricción de unicidad para evitar duplicados concurrentes en predicciones
+DELETE FROM predictions a USING predictions b
+WHERE a.id < b.id 
+  AND a.user_id = b.user_id 
+  AND a.edition_id = b.edition_id;
+
 DO $$
 BEGIN
     IF NOT EXISTS (

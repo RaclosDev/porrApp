@@ -65,7 +65,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                path.startsWith("/api/matches") ||
                path.startsWith("/api/predictions") ||
                path.startsWith("/api/bets") ||
-               path.startsWith("/api/leaderboard");
+               path.startsWith("/api/leaderboard") ||
+               path.startsWith("/api/admin/login") ||
+               path.startsWith("/api/auth/");
     }
 
     private boolean isAllowed(String clientIp) {

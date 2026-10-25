@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
  * Se guarda en la tabla "predictions" de la base de datos con puntuaciones materializadas.
  */
 @Entity
-@Table(name = "predictions")
+@Table(name = "predictions", uniqueConstraints = {
+    @UniqueConstraint(name = "uq_predictions_user_edition", columnNames = {"user_id", "edition_id"})
+})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Prediction {
 

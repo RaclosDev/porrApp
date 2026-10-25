@@ -108,6 +108,8 @@ class MatchPredictionServiceTest {
                 .awayScore(1)
                 .round("Jornada 1")
                 .build();
+    
+        lenient().when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(true);
     }
 
     @Test
@@ -198,6 +200,22 @@ class MatchPredictionServiceTest {
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
 
         assertTrue(ex.getMessage().contains("ya ha finalizado"));
+        verify(matchPredictionRepository, never()).save(any(MatchPrediction.class));
+    }
+
+    @Test
+    @DisplayName("saveMatchdayPredictions rechaza si el usuario no es miembro de la liga privada")
+    void saveMatchdayPredictions_ThrowsSecurityExceptionWhenNotMember() {
+        when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
+
+        MatchPredictionItemDTO item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
+
+        SecurityException ex = assertThrows(SecurityException.class, () ->
+                matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
+
+        assertTrue(ex.getMessage().contains("No perteneces a esta liga privada"));
         verify(matchPredictionRepository, never()).save(any(MatchPrediction.class));
     }
 

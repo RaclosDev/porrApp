@@ -182,6 +182,14 @@ public class MatchPredictionService {
             throw new IllegalStateException("El plazo general de la porra ha finalizado.");
         }
 
+        // Asegurar membresía previa en ligas privadas
+        Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
+        boolean isGlobal = edition.getLeague() != null && "GLOBAL".equalsIgnoreCase(edition.getLeague().getJoinCode());
+        boolean isSuper = userAccountRepository.findByGoogleEmail(email).map(UserAccount::isSuperadmin).orElse(false);
+        if (!membershipRepository.existsById(memId) && !isGlobal && !isSuper) {
+            throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
+        }
+
         // Obtener o crear la predicción principal del usuario en esta liga
         Prediction prediction = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
                 .orElseGet(() -> {
@@ -196,16 +204,7 @@ public class MatchPredictionService {
                             .build());
                 });
 
-        // Asegurar membresía en la liga
-        Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-        if (!membershipRepository.existsById(memId) && edition.getLeague() != null) {
-            membershipRepository.save(Membership.builder()
-                    .id(memId)
-                    .user(user)
-                    .league(edition.getLeague())
-                    .role("MEMBER")
-                    .build());
-        }
+        
 
         ScoringRuleSet rules = ScoringRuleSet.fromJson(edition.getScoringRulesJson());
         LocalDateTime now = LocalDateTime.now();
