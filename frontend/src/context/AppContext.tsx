@@ -35,10 +35,23 @@ export function AppProvider({ children }) {
   const setUserName = useAppStore((state) => state.setUserName);
   const setUserId = useAppStore((state) => state.setUserId);
   const changeGroup = useAppStore((state) => state.changeGroup);
+  const setIsAuthenticated = useAppStore((state) => state.setIsAuthenticated);
+  const setIsAdminAuthenticated = useAppStore((state) => state.setIsAdminAuthenticated);
 
   const adminActions = useAdminActions();
 
   useWebSocket(userName, queryClient);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setIsAuthenticated(false);
+      setIsAdminAuthenticated(false);
+      setUserName('');
+      setUserId('');
+    };
+    window.addEventListener('auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('auth-expired', handleAuthExpired);
+  }, [setIsAuthenticated, setIsAdminAuthenticated, setUserName, setUserId]);
 
   useEffect(() => {
     if (!activeGroupId) return;

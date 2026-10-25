@@ -1353,22 +1353,12 @@ option {
    Mobile Bottom Navigation & Ergonomics
    ========================================================================== */
 @media (min-width: 769px) {
-  .mobile-bottom-nav,
-  .mobile-leaderboard-list {
+  .mobile-bottom-nav {
     display: none !important;
   }
 }
 
 @media (max-width: 768px) {
-  /* En pantallas móviles la tabla de clasificación pasa a tarjetas legibles */
-  .desktop-leaderboard-table {
-    display: none !important;
-  }
-  .mobile-leaderboard-list {
-    display: block !important;
-    width: 100% !important;
-  }
-
   /* En pantallas móviles la navegación principal pasa al pulgar inferior */
   .header-center {
     display: none !important;

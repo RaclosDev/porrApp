@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import { GoogleLogin } from '@react-oauth/google';
 import { POOL_FORMATS, PRESET_TEMPLATES, useGroupsDashboard } from '../hooks/useGroupsDashboard';
@@ -11,6 +12,7 @@ import { POOL_FORMATS, PRESET_TEMPLATES, useGroupsDashboard } from '../hooks/use
  * @returns {JSX.Element} Vista del dashboard de grupos.
  */
 export default function GroupsDashboard() {
+  const [selectedGroupForMembers, setSelectedGroupForMembers] = useState(null);
   const {
     groups,
     competitions,

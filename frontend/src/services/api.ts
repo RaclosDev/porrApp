@@ -36,14 +36,24 @@ export function setAuthToken(token) {
 export const setAdminToken = setAuthToken;
 
 async function fetchJson(url, options = {}) {
+  const currentToken = getAuthToken();
   const res = await fetch(url, {
     ...options,
     headers: {
       ...options.headers,
-      ...(getAdminToken() ? { Authorization: `Bearer ${getAdminToken()}` } : {}),
+      ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
     },
   });
   if (!res.ok) {
+    if (res.status === 401 && currentToken) {
+      setAuthToken(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('my_prediction_name');
+      localStorage.removeItem('my_bet_name');
+      localStorage.removeItem('my_user_id');
+      window.dispatchEvent(new Event('auth-expired'));
+    }
     throw new Error(`HTTP error! status: ${res.status}`);
   }
   return await res.json();
