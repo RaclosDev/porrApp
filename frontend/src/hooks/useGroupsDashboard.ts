@@ -55,9 +55,10 @@ export const PRESET_TEMPLATES = [
 ];
 
 export function useGroupsDashboard() {
-  const [groups, setGroups] = useState([]);
+  const { changeGroup, userName, userId, activeGroupId, userGroups } = useAppContext();
+  const [groups, setGroups] = useState(userGroups && userGroups.length > 0 ? userGroups : []);
   const [competitions, setCompetitions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!userGroups || userGroups.length === 0);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
   const [selectedBetMode, setSelectedBetMode] = useState('MATCH_DAY');
@@ -71,11 +72,18 @@ export function useGroupsDashboard() {
   const [visibleCodes, setVisibleCodes] = useState(new Set());
   const [isCreating, setIsCreating] = useState(false);
 
-  const { changeGroup, userName, userId, activeGroupId } = useAppContext();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (userGroups && userGroups.length > 0) {
+      setGroups(userGroups);
+      setLoading(false);
+    }
+  }, [userGroups]);
+
   const loadGroupsAndCompetitions = useCallback(async () => {
-    setLoading(true);
+    // Only show full loading spinner if we don't already have groups in memory
+    setLoading((prev) => (groups.length > 0 ? false : prev));
     setError('');
     try {
       const [myGroups, comps] = await Promise.all([
@@ -87,8 +95,8 @@ export function useGroupsDashboard() {
       ]);
 
       setCompetitions(comps);
-      if (comps.length > 0 && !selectedCompetition) {
-        setSelectedCompetition(comps[0].id.toString());
+      if (comps.length > 0) {
+        setSelectedCompetition((prev) => (prev ? prev : comps[0].id.toString()));
       }
 
       let knownIds = [];
@@ -103,9 +111,24 @@ export function useGroupsDashboard() {
 
       if (missingIds.length > 0) {
         try {
+          const invalidIds = [];
           const extraGroups = await Promise.all(
-            missingIds.map((id) => fetchGroup(id).catch(() => null)),
+            missingIds.map((id) =>
+              fetchGroup(id).catch(() => {
+                invalidIds.push(id.toString());
+                return null;
+              }),
+            ),
           );
+          if (invalidIds.length > 0) {
+            try {
+              const current = JSON.parse(localStorage.getItem('knownGroups') || '[]');
+              const pruned = current.filter((x) => !invalidIds.includes(x.toString()));
+              localStorage.setItem('knownGroups', JSON.stringify(pruned));
+            } catch {
+              /* ignore */
+            }
+          }
           const validExtras = extraGroups.filter((g) => g !== null && g !== undefined);
           myGroups.push(...validExtras);
         } catch (err) {
@@ -115,7 +138,8 @@ export function useGroupsDashboard() {
 
       if (myGroups.length === 1) {
         const onlyGroupId = myGroups[0].id.toString();
-        if (activeGroupId !== onlyGroupId) {
+        const currentActive = localStorage.getItem('activeGroupId');
+        if (currentActive !== onlyGroupId) {
           changeGroup(onlyGroupId);
         }
       }
@@ -125,7 +149,7 @@ export function useGroupsDashboard() {
       setError('Error al cargar datos');
     }
     setLoading(false);
-  }, [activeGroupId, changeGroup, selectedCompetition]);
+  }, [changeGroup]);
 
   useEffect(() => {
     const pending = localStorage.getItem('pendingJoinCode');

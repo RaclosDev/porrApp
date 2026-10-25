@@ -244,8 +244,12 @@ export async function deleteGroupPrediction(groupId, predictionId) {
 }
 export const deleteGroupBet = deleteGroupPrediction;
 
+let cachedCompetitions = null;
 export async function fetchCompetitions() {
-  return fetchJson(`${API_BASE}/competitions`);
+  if (cachedCompetitions) return cachedCompetitions;
+  const data = await fetchJson(`${API_BASE}/competitions`);
+  cachedCompetitions = data;
+  return data;
 }
 
 export async function createGroup(name, competitionId, poolFormat, pichichi = true) {

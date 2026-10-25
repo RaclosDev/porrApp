@@ -355,7 +355,7 @@ public class GroupService {
         List<Edition> activeEditions = editionRepository.findByLeagueIdInAndStatus(groupIds, "ACTIVE");
         
         java.util.Map<Long, Edition> editionMap = activeEditions.stream()
-                .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e));
+                .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e, (e1, e2) -> e1));
 
         return groups.stream().map(g -> {
             Edition e = editionMap.get(g.getId());

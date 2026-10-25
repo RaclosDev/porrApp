@@ -253,26 +253,34 @@ function Layout({ children }) {
             background:
               'linear-gradient(90deg, rgba(0, 210, 211, 0.2) 0%, rgba(37, 99, 235, 0.22) 100%)',
             borderBottom: '1px solid rgba(0, 210, 211, 0.35)',
-            padding: '8px 16px',
+            padding: '6px 12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-            fontSize: '0.84rem',
+            justifyContent: 'space-between',
+            gap: '8px',
+            fontSize: '0.8rem',
             color: '#f8fafc',
-            textAlign: 'center',
-            flexWrap: 'wrap',
             position: 'sticky',
             top: 0,
             zIndex: 110,
             backdropFilter: 'blur(8px)',
           }}
         >
-          <span>
-            🌍 <strong>Modo Demostración</strong> · Estás explorando la{' '}
-            <strong>Porra Oficial del Mundial 2026</strong> (cuadro, grupos y participantes reales).
-          </span>
-          <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
+            <span style={{ fontSize: '0.9rem' }}>✨</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <strong>Modo Demo:</strong> Cuadro, resultados y participantes reales
+            </span>
+          </div>
+          <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => setShowMyBetModal(true)}
@@ -281,13 +289,14 @@ function Layout({ children }) {
                 color: '#0f172a',
                 border: 'none',
                 borderRadius: '6px',
-                padding: '4px 12px',
+                padding: '4px 10px',
                 fontWeight: 800,
-                fontSize: '0.78rem',
+                fontSize: '0.75rem',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
-              Crear mi cuenta / Jugar
+              Jugar
             </button>
             <button
               type="button"
@@ -300,12 +309,13 @@ function Layout({ children }) {
                 color: '#94a3b8',
                 border: 'none',
                 textDecoration: 'underline',
-                fontSize: '0.78rem',
+                fontSize: '0.75rem',
                 cursor: 'pointer',
-                marginLeft: '4px',
+                padding: '2px 4px',
+                whiteSpace: 'nowrap',
               }}
             >
-              Salir del demo
+              Salir
             </button>
           </div>
         </div>
@@ -613,7 +623,7 @@ function Layout({ children }) {
                 exitDemoMode?.();
                 navigate('/');
               }}
-              className="glass-btn"
+              className="glass-btn hidden sm:inline-flex"
               style={{
                 fontSize: '0.84rem',
                 padding: '6px 12px',
@@ -628,34 +638,36 @@ function Layout({ children }) {
 
           {!isUserLoggedIn ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                id="btn-header-demo"
-                type="button"
-                onClick={() => {
-                  if (enterDemoMode) enterDemoMode();
-                  navigate('/demo');
-                }}
-                className="glass-btn"
-                style={{
-                  height: '38px',
-                  padding: '0 12px',
-                  fontSize: '0.82rem',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#e2e8f0',
-                }}
-                title="Probar Demo del Mundial"
-              >
-                <span>🚀</span>
-                <span>Demo</span>
-              </button>
+              {!isDemo && (
+                <button
+                  id="btn-header-demo"
+                  type="button"
+                  onClick={() => {
+                    if (enterDemoMode) enterDemoMode();
+                    navigate('/demo');
+                  }}
+                  className="glass-btn"
+                  style={{
+                    height: '38px',
+                    padding: '0 12px',
+                    fontSize: '0.82rem',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#e2e8f0',
+                  }}
+                  title="Probar Demo del Mundial"
+                >
+                  <span>🚀</span>
+                  <span>Demo</span>
+                </button>
+              )}
               <button
                 id="btn-login-header"
                 type="button"
