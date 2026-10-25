@@ -65,6 +65,9 @@ function Layout({ children }) {
     activeGroupPoolFormat,
     activeCompetitionFormatType,
     loading,
+    isDemoMode,
+    enterDemoMode,
+    exitDemoMode,
   } = useAppContext();
   const navigate = useNavigate();
   const [showMyBetModal, setShowMyBetModal] = useState(false);
@@ -81,17 +84,16 @@ function Layout({ children }) {
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
-  /**
-   * Determina si el usuario está desde un dispositivo iOS.
-   */
+  const location = useLocation();
+  const isDemo =
+    isDemoMode || location.pathname === '/demo' || location.pathname === '/mundial-2026';
+  const isLanding = location.pathname === '/' && !isAuthenticated && !isDemo;
+
   const isIos = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();
     return /iphone|ipad|ipod/.test(userAgent);
   };
 
-  /**
-   * Determina si la app ya está instalada como PWA (standalone).
-   */
   const isStandalone = () => {
     return (
       ('standalone' in window.navigator && window.navigator.standalone) ||
@@ -110,7 +112,11 @@ function Layout({ children }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const location = useLocation();
+  useEffect(() => {
+    const handleOpenLogin = () => setShowMyBetModal(true);
+    window.addEventListener('open-login-modal', handleOpenLogin);
+    return () => window.removeEventListener('open-login-modal', handleOpenLogin);
+  }, []);
 
   /**
    * Efecto para forzar la apertura del modal de login si la ruta a la que se
@@ -238,86 +244,278 @@ function Layout({ children }) {
 
   return (
     <>
+      {/* Banner flotante de Modo Demo */}
+      {isDemo && !isAuthenticated && (
+        <div
+          id="demo-mode-banner"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(0, 210, 211, 0.2) 0%, rgba(37, 99, 235, 0.22) 100%)',
+            borderBottom: '1px solid rgba(0, 210, 211, 0.35)',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            fontSize: '0.84rem',
+            color: '#f8fafc',
+            textAlign: 'center',
+            flexWrap: 'wrap',
+            position: 'sticky',
+            top: 0,
+            zIndex: 110,
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <span>
+            🌍 <strong>Modo Demostración</strong> · Estás explorando la{' '}
+            <strong>Porra Oficial del Mundial 2026</strong> (cuadro, grupos y participantes reales).
+          </span>
+          <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setShowMyBetModal(true)}
+              style={{
+                background: 'var(--accent-cyan, #00d2d3)',
+                color: '#0f172a',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 12px',
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+              }}
+            >
+              Crear mi cuenta / Jugar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                exitDemoMode?.();
+                navigate('/');
+              }}
+              style={{
+                background: 'transparent',
+                color: '#94a3b8',
+                border: 'none',
+                textDecoration: 'underline',
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                marginLeft: '4px',
+              }}
+            >
+              Salir del demo
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="top-bar">
         <div className="header-left">
           <div
             className="header-title-row"
             style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'nowrap' }}
           >
-            {/* Selector Global de Liga Activa */}
-            <ActiveLeagueDropdown />
+            {/* Logo de PorrApp */}
+            <NavLink
+              to={isAuthenticated ? '/' : isDemo ? '/demo' : '/'}
+              className="header-brand-link"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                textDecoration: 'none',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '1.25rem',
+                fontFamily: "'Outfit', sans-serif",
+                letterSpacing: '-0.3px',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: '1.35rem' }}>⚽</span>
+              <span>
+                Porr<span style={{ color: 'var(--accent-cyan, #00d2d3)' }}>App</span>
+              </span>
+            </NavLink>
 
-            {/* Botón Ver Mi Porra / Pronosticar Jornada */}
-            {loading ? null : isMatchDayLeague ? (
-              <button
-                id="btn-complete-my-bet-header"
-                className="glass-btn primary-btn"
+            {isLanding ? null : isDemo ? (
+              <span
                 style={{
-                  padding: '6px 14px',
-                  minHeight: '38px',
-                  borderRadius: '10px',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  borderRadius: '16px',
+                  background: 'rgba(0, 210, 211, 0.12)',
+                  border: '1px solid rgba(0, 210, 211, 0.4)',
+                  color: 'var(--accent-cyan, #00d2d3)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
                   whiteSpace: 'nowrap',
                 }}
-                onClick={() => navigate('/jornadas')}
               >
-                ⚽ Pronosticar Jornada
-              </button>
-            ) : userName && participantsHashes.find((h) => h.participantName === userName) ? (
-              <button
-                id="btn-view-my-bet-header"
-                className="glass-btn primary-btn"
-                style={{
-                  padding: '6px 14px',
-                  minHeight: '38px',
-                  borderRadius: '10px',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-                onClick={() => {
-                  const myPred = participantsHashes.find((h) => h.participantName === userName);
-                  if (myPred?.key) {
-                    setViewerBetId(myPred.key);
-                  }
-                }}
-              >
-                👁️ Ver Mi Porra
-              </button>
+                🌍 Mundial 2026
+              </span>
             ) : (
-              <button
-                id="btn-complete-my-bet-header"
-                className="glass-btn primary-btn"
-                style={{
-                  padding: '6px 14px',
-                  minHeight: '38px',
-                  borderRadius: '10px',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-                onClick={() => navigate('/bracket')}
-              >
-                ✍️ Completar Mi Porra
-              </button>
+              <>
+                {/* Selector Global de Liga Activa */}
+                <ActiveLeagueDropdown />
+
+                {/* Botón Ver Mi Porra / Pronosticar Jornada */}
+                {loading ? null : isMatchDayLeague ? (
+                  <button
+                    id="btn-complete-my-bet-header"
+                    className="glass-btn primary-btn"
+                    style={{
+                      padding: '6px 14px',
+                      minHeight: '38px',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onClick={() => navigate('/jornadas')}
+                  >
+                    ⚽ Pronosticar Jornada
+                  </button>
+                ) : userName && participantsHashes.find((h) => h.participantName === userName) ? (
+                  <button
+                    id="btn-view-my-bet-header"
+                    className="glass-btn primary-btn"
+                    style={{
+                      padding: '6px 14px',
+                      minHeight: '38px',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onClick={() => {
+                      const myPred = participantsHashes.find((h) => h.participantName === userName);
+                      if (myPred?.key) {
+                        setViewerBetId(myPred.key);
+                      }
+                    }}
+                  >
+                    👁️ Ver Mi Porra
+                  </button>
+                ) : (
+                  <button
+                    id="btn-complete-my-bet-header"
+                    className="glass-btn primary-btn"
+                    style={{
+                      padding: '6px 14px',
+                      minHeight: '38px',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onClick={() => navigate('/bracket')}
+                  >
+                    ✍️ Completar Mi Porra
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
+
         <div className="header-center">
           {/* Navegación */}
           <nav className="nav-links">
-            <NavLink
-              to="/"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Inicio
-            </NavLink>
-            {isMatchDayLeague ? (
+            {isLanding ? (
               <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    enterDemoMode?.();
+                    navigate('/demo');
+                  }}
+                  className="glass-btn"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: 'var(--accent-cyan, #00d2d3)',
+                    fontWeight: 700,
+                  }}
+                >
+                  <span>🚀</span>
+                  <span>Demo Mundial 2026</span>
+                </button>
+                <NavLink
+                  to="/reglas"
+                  onMouseEnter={() => prefetchRoute('/reglas')}
+                  onFocus={() => prefetchRoute('/reglas')}
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  📜 Reglas
+                </NavLink>
+              </>
+            ) : isDemo ? (
+              <>
+                <NavLink
+                  to="/cuadro"
+                  onMouseEnter={() => prefetchRoute('/cuadro')}
+                  onFocus={() => prefetchRoute('/cuadro')}
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Cuadro
+                </NavLink>
+                <NavLink
+                  to="/grupos"
+                  onMouseEnter={() => prefetchRoute('/grupos')}
+                  onFocus={() => prefetchRoute('/grupos')}
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Grupos
+                </NavLink>
+                <NavLink
+                  to="/clasificacion"
+                  onMouseEnter={() => prefetchRoute('/clasificacion')}
+                  onFocus={() => prefetchRoute('/clasificacion')}
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  🏆 Clasificación
+                </NavLink>
+                <NavLink
+                  to="/radar"
+                  onMouseEnter={() => prefetchRoute('/radar')}
+                  onFocus={() => prefetchRoute('/radar')}
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Partidos
+                </NavLink>
+                <NavLink
+                  to="/stats"
+                  onMouseEnter={() => prefetchRoute('/stats')}
+                  onFocus={() => prefetchRoute('/stats')}
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Más Elegidos
+                </NavLink>
+                <NavLink
+                  to="/reglas"
+                  onMouseEnter={() => prefetchRoute('/reglas')}
+                  onFocus={() => prefetchRoute('/reglas')}
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Reglas
+                </NavLink>
+              </>
+            ) : isMatchDayLeague ? (
+              <>
+                <NavLink
+                  to="/"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Inicio
+                </NavLink>
                 <NavLink
                   to="/jornadas"
                   onMouseEnter={() => prefetchRoute('/jornadas')}
@@ -361,6 +559,12 @@ function Layout({ children }) {
               </>
             ) : (
               <>
+                <NavLink
+                  to="/"
+                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                >
+                  Inicio
+                </NavLink>
                 <NavLink
                   to="/clasificacion"
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
@@ -415,6 +619,7 @@ function Layout({ children }) {
             )}
           </nav>
         </div>
+
         <div
           className="header-right"
           style={{
@@ -425,142 +630,178 @@ function Layout({ children }) {
             position: 'relative',
           }}
         >
-          {/* Menú de Perfil de Usuario */}
-          <button
-            onClick={() => {
-              if (userName || isAuthenticated) {
-                setShowProfileMenu(!showProfileMenu);
-              } else {
-                setShowMyBetModal(true);
-              }
-            }}
-            className="glass-btn"
-            style={{
-              height: '36px',
-              width:
-                userName ||
-                localStorage.getItem('my_prediction_name') ||
-                localStorage.getItem('my_bet_name')
-                  ? 'auto'
-                  : '36px',
-              padding:
-                userName ||
-                localStorage.getItem('my_prediction_name') ||
-                localStorage.getItem('my_bet_name')
-                  ? '0 12px'
-                  : '0',
-              fontSize: '1rem',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-            }}
-            title="Menú de Usuario"
-            aria-label="Menú de Usuario"
-          >
-            <span style={{ fontSize: '1.1rem' }}>👤</span>
-            {(userName ||
-              localStorage.getItem('my_prediction_name') ||
-              localStorage.getItem('my_bet_name')) && (
-              <span style={{ fontWeight: 'bold' }}>
-                {userName ||
-                  localStorage.getItem('my_prediction_name') ||
-                  localStorage.getItem('my_bet_name')}
-              </span>
-            )}
-          </button>
-
-          {showProfileMenu && (userName || isAuthenticated) && (
-            <div
+          {isDemo && !isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => {
+                exitDemoMode?.();
+                navigate('/');
+              }}
+              className="glass-btn"
               style={{
-                position: 'absolute',
-                top: '100%',
-                right: '0',
-                background: '#151525',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                fontSize: '0.84rem',
+                padding: '6px 12px',
+                minHeight: '36px',
                 borderRadius: '8px',
-                padding: '10px',
-                marginTop: '10px',
-                zIndex: 100,
-                minWidth: '180px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
+                cursor: 'pointer',
               }}
             >
+              Volver al inicio
+            </button>
+          )}
+
+          {!isAuthenticated ? (
+            <button
+              id="btn-login-header"
+              type="button"
+              onClick={() => setShowMyBetModal(true)}
+              className="glass-btn primary-btn"
+              style={{
+                height: '36px',
+                padding: '0 14px',
+                fontSize: '0.88rem',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span>🔑</span>
+              <span>Iniciar Sesión</span>
+            </button>
+          ) : (
+            <>
               <button
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  navigate('/mis-ligas');
-                }}
+                id="btn-profile-menu"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="glass-btn"
                 style={{
-                  textAlign: 'left',
+                  height: '36px',
+                  width: 'auto',
+                  padding: '0 12px',
+                  fontSize: '0.95rem',
+                  borderRadius: '8px',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '8px',
-                  width: '100%',
-                  border: 'none',
-                  background: 'transparent',
+                  cursor: 'pointer',
                 }}
+                title="Menú de Usuario"
+                aria-label="Menú de Usuario"
               >
-                🏆 Mis Ligas
+                <span style={{ fontSize: '1.1rem' }}>👤</span>
+                {userName && (
+                  <span
+                    style={{
+                      fontWeight: 'bold',
+                      maxWidth: '120px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {userName}
+                  </span>
+                )}
               </button>
-              {isRaclos && (
-                <button
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    navigate('/admin');
-                  }}
-                  className="glass-btn"
+
+              {showProfileMenu && (
+                <div
                   style={{
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    border: 'none',
-                    background: 'transparent',
-                  }}
-                >
-                  ⚙️ Panel Admin
-                </button>
-              )}
-              {isAuthenticated && (
-                <button
-                  onClick={() => {
-                    setAuthToken(null);
-                    setIsAuthenticated?.(false);
-                    setIsAdminAuthenticated?.(false);
-                    setUserName('');
-                    localStorage.removeItem('my_prediction_name');
-                    localStorage.removeItem('my_bet_name');
-                    localStorage.removeItem('my_user_id');
-                    window.location.reload();
-                  }}
-                  style={{
-                    background: 'rgba(255, 71, 87, 0.1)',
-                    border: '1px solid rgba(255, 71, 87, 0.5)',
-                    color: '#ff4757',
-                    padding: '8px',
+                    position: 'absolute',
+                    top: '100%',
+                    right: '0',
+                    background: '#151525',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
+                    padding: '10px',
+                    marginTop: '10px',
+                    zIndex: 100,
+                    minWidth: '180px',
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     gap: '8px',
-                    fontWeight: 'bold',
-                    width: '100%',
-                    textAlign: 'left',
-                    marginTop: '5px',
                   }}
                 >
-                  🚪 Salir
-                </button>
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      navigate('/mis-ligas');
+                    }}
+                    className="glass-btn"
+                    style={{
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🏆 Mis Ligas
+                  </button>
+                  {isRaclos && (
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        navigate('/admin');
+                      }}
+                      className="glass-btn"
+                      style={{
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ⚙️ Panel Admin
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setAuthToken(null);
+                      setIsAuthenticated?.(false);
+                      setIsAdminAuthenticated?.(false);
+                      setUserName('');
+                      localStorage.removeItem('my_prediction_name');
+                      localStorage.removeItem('my_bet_name');
+                      localStorage.removeItem('my_user_id');
+                      window.location.reload();
+                    }}
+                    style={{
+                      background: 'rgba(255, 71, 87, 0.1)',
+                      border: '1px solid rgba(255, 71, 87, 0.5)',
+                      color: '#ff4757',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: 'bold',
+                      width: '100%',
+                      textAlign: 'left',
+                      marginTop: '5px',
+                    }}
+                  >
+                    🚪 Salir
+                  </button>
+                </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </header>

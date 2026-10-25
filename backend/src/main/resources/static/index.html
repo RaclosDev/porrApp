@@ -18,15 +18,37 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://flagcdn.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://a.espncdn.com" crossorigin>
+    <link rel="dns-prefetch" href="https://a.espncdn.com">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    </noscript>
+
+    <!-- Modern Speculation Rules for Instant Client Route Prefetching -->
+    <script type="speculationrules">
+    {
+      "prefetch": [
+        {
+          "source": "list",
+          "urls": ["/clasificacion", "/jornadas", "/radar", "/stats", "/tabla", "/mis-ligas", "/reglas"],
+          "eagerness": "moderate"
+        }
+      ]
+    }
+    </script>
 
     <!-- AdSense -->
     <meta name="google-adsense-account" content="ca-pub-7312966368630315">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7312966368630315" crossorigin="anonymous"></script>
-    <script type="module" crossorigin src="/assets/index-B5aWqAVW.js"></script>
+    <script type="module" crossorigin src="/assets/index-C2AvVbPL.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-CbXtAM7H.js">
-    <link rel="modulepreload" crossorigin href="/assets/react-C9Cb8gy3.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-DOIzU0tg.css">
+    <link rel="modulepreload" crossorigin href="/assets/auth-vendor-BPwHqJBz.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-core-GosKK9LS.js">
+    <link rel="modulepreload" crossorigin href="/assets/data-vendor-CuMgIX2F.js">
+    <link rel="modulepreload" crossorigin href="/assets/store-vendor-imq6dLrE.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-ixRRzWpf.css">
   <link rel="manifest" href="/manifest.webmanifest"></head>
   <body>
     <div id="root"></div>

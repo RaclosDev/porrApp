@@ -102,6 +102,36 @@ export const useAppStore = create((set) => ({
   isAdminAuthenticated: !!localStorage.getItem('adminToken') || !!window.adminToken,
   setIsAdminAuthenticated: (isAdminAuthenticated) => set({ isAdminAuthenticated }),
 
+  isDemoMode: localStorage.getItem('isDemoMode') === 'true',
+  setIsDemoMode: (isDemoMode) => {
+    if (isDemoMode) {
+      localStorage.setItem('isDemoMode', 'true');
+    } else {
+      localStorage.removeItem('isDemoMode');
+    }
+    set({ isDemoMode });
+  },
+
+  enterDemoMode: () => {
+    localStorage.setItem('isDemoMode', 'true');
+    localStorage.setItem('activeGroupId', '1');
+    localStorage.setItem('activeCompetitionId', '2');
+    set({
+      isDemoMode: true,
+      activeGroupId: '1',
+      activeCompetitionId: 2,
+      viewerBetId: null,
+      viewerPredictionId: null,
+    });
+  },
+
+  exitDemoMode: () => {
+    localStorage.removeItem('isDemoMode');
+    set({
+      isDemoMode: false,
+    });
+  },
+
   changeGroup: (groupId) => {
     localStorage.setItem('activeGroupId', groupId);
     const saved = localStorage.getItem(`draft_bracket_${groupId}`);

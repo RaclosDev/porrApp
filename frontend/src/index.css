@@ -898,6 +898,16 @@ option {
     display: contents !important;
   }
 
+  .header-brand-link {
+    order: 0 !important;
+    margin-right: auto !important;
+  }
+
+  #btn-login-header {
+    order: 5 !important;
+    margin-left: auto !important;
+  }
+
   .header-center {
     width: 100%;
     order: 10;

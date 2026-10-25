@@ -7,6 +7,7 @@ import PwaUpdater from './components/PwaUpdater';
 const Rules = React.lazy(() => import('./pages/Rules'));
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const Home = React.lazy(() => import('./pages/Home'));
+const Landing = React.lazy(() => import('./pages/Landing'));
 const Radar = React.lazy(() => import('./pages/Radar'));
 const Bracket = React.lazy(() => import('./pages/Bracket'));
 const Stats = React.lazy(() => import('./pages/Stats'));
@@ -21,6 +22,12 @@ const LeagueStandings = React.lazy(() => import('./pages/LeagueStandings'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
 const GUEST_ALLOWED_PATHS = [
+  '/',
+  '/demo',
+  '/mundial-2026',
+  '/cuadro',
+  '/grupos',
+  '/reglas',
   '/clasificacion',
   '/search',
   '/stats',
@@ -28,6 +35,30 @@ const GUEST_ALLOWED_PATHS = [
   '/mis-ligas',
   '/tabla',
 ];
+
+const RootPage = () => {
+  const { isAuthenticated, isAdminAuthenticated, isDemoMode } = useAppContext();
+  const isAuthed = isAuthenticated || isAdminAuthenticated;
+
+  if (isAuthed) {
+    return <Home />;
+  }
+
+  if (isDemoMode) {
+    return <Home defaultMode="bracket" />;
+  }
+
+  return <Landing onOpenLogin={() => window.dispatchEvent(new CustomEvent('open-login-modal'))} />;
+};
+
+const DemoPage = () => {
+  const { enterDemoMode } = useAppContext();
+  React.useEffect(() => {
+    enterDemoMode?.();
+  }, [enterDemoMode]);
+
+  return <Home defaultMode="bracket" />;
+};
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {
   const { isAuthenticated, isAdminAuthenticated } = useAppContext();
@@ -53,7 +84,9 @@ function App() {
         <Layout>
           <Suspense fallback={<div className="flex justify-center p-8">Cargando...</div>}>
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<RootPage />} />
+              <Route path="/demo" element={<DemoPage />} />
+              <Route path="/mundial-2026" element={<DemoPage />} />
               <Route path="/reglas" element={<Rules />} />
               <Route path="/join/:code" element={<JoinRedirect />} />
               <Route path="/linkedin" element={<LinkedInEntry />} />
