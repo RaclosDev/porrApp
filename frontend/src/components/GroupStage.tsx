@@ -17,12 +17,20 @@ import CustomSelect from './CustomSelect';
  */
 export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
   const [selections, setSelections] = useState(() => {
-    const saved = localStorage.getItem('draft_groups_' + activeGroupId);
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem('draft_groups_' + activeGroupId);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
   });
   const [advancingThirds, setAdvancingThirds] = useState(() => {
-    const saved = localStorage.getItem('draft_advancing_' + activeGroupId);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('draft_advancing_' + activeGroupId);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
   const [mobileStep, setMobileStep] = useState('groups'); // 'groups' | 'thirds'
 

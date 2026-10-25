@@ -243,10 +243,20 @@ export function useBracket() {
     const qf = [...getTeamPairs(bracketState.qf.left), ...getTeamPairs(bracketState.qf.right)];
     const sf = [...getTeamPairs(bracketState.sf.left), ...getTeamPairs(bracketState.sf.right)];
 
-    const savedGroups = localStorage.getItem('draft_groups_' + activeGroupId);
-    const savedThirds = localStorage.getItem('draft_advancing_' + activeGroupId);
-    const groupsRaw = savedGroups ? JSON.parse(savedGroups) : {};
-    const advancingThirds = savedThirds ? JSON.parse(savedThirds) : [];
+    let groupsRaw = {};
+    let advancingThirds = [];
+    try {
+      const savedGroups = localStorage.getItem('draft_groups_' + activeGroupId);
+      if (savedGroups) groupsRaw = JSON.parse(savedGroups);
+    } catch {
+      groupsRaw = {};
+    }
+    try {
+      const savedThirds = localStorage.getItem('draft_advancing_' + activeGroupId);
+      if (savedThirds) advancingThirds = JSON.parse(savedThirds);
+    } catch {
+      advancingThirds = [];
+    }
 
     const formattedGroups = {};
     Object.keys(groupsRaw).forEach((g) => {
