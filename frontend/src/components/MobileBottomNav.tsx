@@ -13,10 +13,9 @@ import {
 import { useAppContext } from '../context/AppContext';
 
 /**
- * Barra de navegación inferior móvil (Bottom Navigation Bar)
- * Diseñada para ergonomía de uso con una sola mano en smartphones, con
- * iconos vectoriales SVG de alta definición, efectos de cristal translúcido (glassmorphism)
- * e indicador visual de sección activa.
+ * Barra de navegación móvil estilo "Isla Flotante" / "Cápsula" (Floating Dock)
+ * Elevada respecto al fondo, centrada con bordes redondeados y efecto glassmorphic.
+ * Proporciona acceso ergonómico sin sensación de pie de página tosco.
  */
 export default function MobileBottomNav() {
   const { activeGroupPoolFormat, activeCompetitionFormatType, isDemoMode } = useAppContext();
@@ -53,24 +52,28 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className="mobile-bottom-nav"
+      className="mobile-bottom-nav floating-capsule-nav"
       aria-label="Navegación principal móvil"
       style={{
         position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 'calc(58px + env(safe-area-inset-bottom, 0px))',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        background: 'rgba(10, 15, 29, 0.92)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'calc(100% - 24px)',
+        maxWidth: '430px',
+        height: '62px',
+        background: 'rgba(12, 18, 34, 0.88)',
+        backdropFilter: 'blur(24px) saturate(190%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(190%)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: '32px',
         display: 'flex',
-        alignItems: 'stretch',
+        alignItems: 'center',
         justifyContent: 'space-around',
+        padding: '0 6px',
         zIndex: 1000,
-        boxShadow: '0 -8px 28px rgba(0, 0, 0, 0.55)',
+        boxShadow:
+          '0 16px 36px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
       }}
     >
       {navItems.map((item) => {
@@ -87,55 +90,43 @@ export default function MobileBottomNav() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '3px',
+              gap: '2px',
               textDecoration: 'none',
               flex: 1,
-              height: '100%',
+              height: '50px',
+              borderRadius: '25px',
+              background: isActive ? 'rgba(0, 210, 211, 0.14)' : 'transparent',
               color: isActive ? 'var(--accent-cyan, #00d2d3)' : '#94a3b8',
-              transition: 'all 0.15s ease',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               WebkitTapHighlightColor: 'transparent',
             })}
           >
             {({ isActive }) => (
               <>
-                {/* Indicador sutil de tab activo en el borde superior */}
-                {isActive && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      width: '24px',
-                      height: '2.5px',
-                      borderRadius: '0 0 3px 3px',
-                      background: 'var(--accent-cyan, #00d2d3)',
-                      boxShadow: '0 0 8px rgba(0, 210, 211, 0.8)',
-                    }}
-                  />
-                )}
                 <span
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     lineHeight: 1,
-                    filter: isActive ? 'drop-shadow(0 0 8px rgba(0, 210, 211, 0.5))' : 'none',
-                    transform: isActive ? 'translateY(-1px)' : 'none',
-                    transition: 'all 0.15s ease',
+                    filter: isActive ? 'drop-shadow(0 0 8px rgba(0, 210, 211, 0.55))' : 'none',
+                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                    transition: 'transform 0.2s ease',
                   }}
                 >
                   <IconComponent
                     size={20}
-                    strokeWidth={isActive ? 2.3 : 1.8}
+                    strokeWidth={isActive ? 2.4 : 1.8}
                     color={isActive ? 'var(--accent-cyan, #00d2d3)' : '#94a3b8'}
                   />
                 </span>
                 <span
                   style={{
-                    fontSize: '0.67rem',
+                    fontSize: '0.64rem',
                     fontWeight: isActive ? 700 : 500,
                     letterSpacing: '0.2px',
                     color: isActive ? 'var(--accent-cyan, #00d2d3)' : '#8899a6',
-                    transition: 'color 0.15s ease',
+                    transition: 'color 0.2s ease',
                   }}
                 >
                   {item.label}

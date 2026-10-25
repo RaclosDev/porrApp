@@ -45,7 +45,7 @@ async function fetchJson(url, options = {}) {
     },
   });
   if (!res.ok) {
-    if (res.status === 401 && currentToken) {
+    if ((res.status === 401 || res.status === 403) && currentToken) {
       setAuthToken(null);
       localStorage.removeItem('token');
       localStorage.removeItem('adminToken');

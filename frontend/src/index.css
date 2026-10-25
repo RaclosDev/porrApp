@@ -1366,12 +1366,12 @@ option {
 
   /* Padding inferior para que el contenido no quede tapado por la barra flotante */
   .app-container.has-mobile-bottom-nav {
-    padding-bottom: calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Los botones flotantes de acción se elevan por encima de la barra */
   .floating-bottom-action {
-    bottom: calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .mobile-bottom-nav .mobile-nav-item:active {

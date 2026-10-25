@@ -76,9 +76,13 @@ export function useGroupsDashboard() {
 
   const loadGroupsAndCompetitions = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
       const [myGroups, comps] = await Promise.all([
-        fetchMyGroups(),
+        fetchMyGroups().catch((err) => {
+          console.warn('No se pudieron obtener las ligas del usuario', err);
+          return [];
+        }),
         fetchCompetitions().catch(() => []),
       ]);
 
@@ -87,10 +91,15 @@ export function useGroupsDashboard() {
         setSelectedCompetition(comps[0].id.toString());
       }
 
-      const knownIds = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-      const missingIds = knownIds.filter(
-        (id) => !myGroups.find((g) => g.id.toString() === id.toString()),
-      );
+      let knownIds = [];
+      try {
+        knownIds = JSON.parse(localStorage.getItem('knownGroups') || '[]');
+      } catch {
+        knownIds = [];
+      }
+      const missingIds = Array.isArray(knownIds)
+        ? knownIds.filter((id) => !myGroups.find((g) => g.id.toString() === id.toString()))
+        : [];
 
       if (missingIds.length > 0) {
         try {
