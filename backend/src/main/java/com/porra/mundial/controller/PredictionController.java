@@ -48,11 +48,7 @@ public class PredictionController {
             }
             predictions = predictionService.getPredictionsByGroupId(groupId);
         } else {
-            if (predictionService.isSuperAdmin(email)) {
-                predictions = predictionService.getAllPredictions();
-            } else {
-                predictions = predictionService.getPredictionsByGroupId(1L);
-            }
+            predictions = predictionService.getPredictionsByGroupId(1L);
         }
 
         return predictionService.toPredictionDtoList(predictions, email);

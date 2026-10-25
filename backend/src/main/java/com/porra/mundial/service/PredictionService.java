@@ -41,36 +41,14 @@ public class PredictionService {
     private final PredictionPersistenceService predictionPersistenceService;
     private final MembershipRepository membershipRepository;
 
-    @Value("${app.admins:Admin}")
-    private List<String> appAdmins;
-
-    @Value("${app.admin-emails:raclosdev@gmail.com,raclosnegocios@gmail.com}")
-    private List<String> adminEmails;
-
-    public boolean isSuperAdmin(String email) {
-        if (email == null || email.isBlank()) return false;
-
-        if (adminEmails != null && adminEmails.stream().anyMatch(ae -> ae.equalsIgnoreCase(email))) {
-            return true;
-        }
-
-        if (appAdmins != null && appAdmins.stream().anyMatch(a -> a.equalsIgnoreCase(email))) {
-            return true;
-        }
-
-        return userAccountRepository.findByGoogleEmail(email)
-                .map(UserAccount::isSuperadmin)
-                .orElse(false);
-    }
+    
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
             throw new SecurityException("Usuario no autenticado");
         }
 
-        if (isSuperAdmin(requesterEmail)) {
-            return;
-        }
+        
 
         if (prediction.getUser() != null && prediction.getUser().getGoogleEmail() != null
                 && prediction.getUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
@@ -92,9 +70,7 @@ public class PredictionService {
             throw new SecurityException("Usuario no autenticado");
         }
 
-        if (isSuperAdmin(requesterEmail)) {
-            return;
-        }
+        
 
         if (prediction.getEdition() != null && prediction.getEdition().getLeague() != null
                 && prediction.getEdition().getLeague().getAdminUser() != null
@@ -182,14 +158,14 @@ public class PredictionService {
                 .or(() -> editionRepository.findByLeagueIdAndStatus(1L, "ACTIVE"))
                 .orElse(null);
 
-        if (edition != null && edition.isLocked() && !isSuperAdmin(email)) {
+        if (edition != null && edition.isLocked()) {
             throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
         }
 
         if (groupId != null && user != null && edition != null && edition.getLeague() != null) {
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
             boolean isGlobal = "GLOBAL".equalsIgnoreCase(edition.getLeague().getJoinCode());
-            if (!membershipRepository.existsById(memId) && !isGlobal && !isSuperAdmin(email)) {
+            if (!membershipRepository.existsById(memId) && !isGlobal) {
                 throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
             }
         }
@@ -226,7 +202,7 @@ public class PredictionService {
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
-        if (prediction.getEdition() != null && prediction.getEdition().isLocked() && !isSuperAdmin(requesterEmail)) {
+        if (prediction.getEdition() != null && prediction.getEdition().isLocked()) {
             throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
         }
 
@@ -319,10 +295,10 @@ public class PredictionService {
     public List<PredictionResponseDTO> toPredictionDtoList(List<Prediction> predictions, String requesterEmail) {
         return predictions.stream().map(pred -> {
             boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-            boolean isSuper = isSuperAdmin(requesterEmail);
+            
             boolean isOfficial = pred.isOfficial();
             boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
-            boolean canViewDetails = isLocked || isOwner || isSuper || isOfficial;
+            boolean canViewDetails = isLocked || isOwner || isOfficial;
 
             PredictionDataDTO dataDto = null;
             if (canViewDetails) {
@@ -350,11 +326,11 @@ public class PredictionService {
     public PredictionDataDTO getPredictionData(Long id, String requesterEmail) {
         Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-        boolean isSuper = isSuperAdmin(requesterEmail);
+        
         boolean isOfficial = pred.isOfficial();
         boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
 
-        if (!isLocked && !isOwner && !isSuper && !isOfficial) {
+        if (!isLocked && !isOwner && !isOfficial) {
             throw new SecurityException("Los pronosticos de otros participantes estaran ocultos hasta que finalice el plazo de inscripcion.");
         }
 

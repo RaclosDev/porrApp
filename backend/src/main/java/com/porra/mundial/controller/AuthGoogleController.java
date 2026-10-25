@@ -4,9 +4,9 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.config.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,16 +30,9 @@ public class AuthGoogleController {
     @Value("${google.client.id:498045926443-u02u6penjkggongduv26qlm7934449ee.apps.googleusercontent.com}")
     private String googleClientId;
 
-    @Value("${app.admins:Admin}")
-    private java.util.List<String> appAdmins;
-
-    @Value("${app.admin-emails:raclosnegocios@gmail.com}")
-    private java.util.List<String> adminEmails;
-
     @PostMapping("/login")
     public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> payload) {
         String idTokenString = payload.get("credential");
-        String requestedParticipantName = payload.get("participantName");
 
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
@@ -72,7 +65,7 @@ public class AuthGoogleController {
                         "lastSelectedGroupId", acc.getLastSelectedGroupId() != null ? acc.getLastSelectedGroupId() : -1
                 ));
             } else {
-                // Registro automatico y directo con datos de Google
+                // Registro automático y directo con datos de Google
                 String initialName = (name != null && !name.trim().isEmpty())
                         ? name.trim()
                         : email.split("@")[0];

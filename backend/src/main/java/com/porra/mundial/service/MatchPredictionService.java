@@ -48,12 +48,8 @@ public class MatchPredictionService {
                         .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
                         .orElse(null);
                 if (user != null) {
-                    if (user.isSuperadmin()) {
-                        isMember = true;
-                    } else {
-                        Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-                        isMember = membershipRepository.existsById(memId);
-                    }
+                    Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
+                    isMember = membershipRepository.existsById(memId);
                 }
             }
             if (!isMember) {
@@ -220,8 +216,7 @@ public class MatchPredictionService {
         // Asegurar membresía previa en ligas privadas
         Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
         boolean isGlobal = edition.getLeague() != null && "GLOBAL".equalsIgnoreCase(edition.getLeague().getJoinCode());
-        boolean isSuper = userAccountRepository.findByGoogleEmail(email).map(UserAccount::isSuperadmin).orElse(false);
-        if (!membershipRepository.existsById(memId) && !isGlobal && !isSuper) {
+        if (!membershipRepository.existsById(memId) && !isGlobal) {
             throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
         }
 
@@ -359,13 +354,9 @@ public class MatchPredictionService {
         if (!Long.valueOf(1L).equals(groupId)) {
             boolean isMember = false;
             if (caller != null) {
-                if (caller.isSuperadmin()) {
-                    isMember = true;
-                } else {
                     Membership.MembershipId memId = new Membership.MembershipId(caller.getId(), groupId);
                     isMember = membershipRepository.existsById(memId);
                 }
-            }
             if (!isMember) {
                 throw new SecurityException("No perteneces a esta liga privada.");
             }

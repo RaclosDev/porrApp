@@ -13,7 +13,6 @@ const Radar = React.lazy(() => import('./pages/Radar'));
 const Bracket = React.lazy(() => import('./pages/Bracket'));
 const Stats = React.lazy(() => import('./pages/Stats'));
 const Search = React.lazy(() => import('./pages/Search'));
-const Admin = React.lazy(() => import('./pages/Admin'));
 const GroupsDashboard = React.lazy(() => import('./pages/GroupsDashboard'));
 const JoinRedirect = React.lazy(() => import('./components/JoinRedirect'));
 const OfficialBracket = React.lazy(() => import('./pages/OfficialBracket'));
@@ -38,8 +37,8 @@ const GUEST_ALLOWED_PATHS = [
 ];
 
 const RootPage = () => {
-  const { isAuthenticated, isAdminAuthenticated, isDemoMode, userName } = useAppContext();
-  const isAuthed = (isAuthenticated && Boolean(userName)) || isAdminAuthenticated;
+  const { isAuthenticated, isDemoMode, userName } = useAppContext();
+  const isAuthed = isAuthenticated && Boolean(userName);
 
   if (isAuthed) {
     return <Home />;
@@ -62,8 +61,8 @@ const DemoPage = () => {
 };
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {
-  const { isAuthenticated, isAdminAuthenticated, userName } = useAppContext();
-  const isAuthed = (isAuthenticated && Boolean(userName)) || isAdminAuthenticated;
+  const { isAuthenticated, userName } = useAppContext();
+  const isAuthed = isAuthenticated && Boolean(userName);
   const location = useLocation();
 
   // Rutas públicas de lectura accesibles para cualquier visitante sin login
@@ -171,14 +170,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MatchdayPredictor />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <Admin />
                   </ProtectedRoute>
                 }
               />

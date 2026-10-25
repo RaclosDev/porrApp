@@ -62,28 +62,23 @@ class PredictionServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(predictionService, "appAdmins", List.of("Admin", "Raclos"));
-        ReflectionTestUtils.setField(predictionService, "adminEmails", List.of("superadmin@porra.com"));
 
         owner = UserAccount.builder()
                 .id(10L)
                 .googleEmail("owner@test.com")
                 .participantName("OwnerUser")
-                .isSuperadmin(false)
                 .build();
 
         groupAdmin = UserAccount.builder()
                 .id(20L)
                 .googleEmail("admin@test.com")
                 .participantName("GroupAdminUser")
-                .isSuperadmin(false)
                 .build();
 
         stranger = UserAccount.builder()
                 .id(30L)
                 .googleEmail("stranger@test.com")
                 .participantName("StrangerUser")
-                .isSuperadmin(false)
                 .build();
 
         group = League.builder()
@@ -133,17 +128,7 @@ class PredictionServiceTest {
         assertEquals("Corregido por Admin", updated.getName());
     }
 
-    @Test
-    @DisplayName("Superadmin global puede actualizar cualquier pronostico")
-    void superAdminCanUpdateAnyPrediction() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        Prediction updated = predictionService.updatePrediction(1L, "superadmin@porra.com", "OwnerUser", "Porra Superadmin", null);
-
-        assertNotNull(updated);
-        assertEquals("Porra Superadmin", updated.getName());
-    }
+    
 
     @Test
     @DisplayName("Extraño NO puede actualizar el pronostico de otro usuario (403 SecurityException)")
@@ -259,18 +244,16 @@ class PredictionServiceTest {
     }
 
     @Test
-    @DisplayName("Superadmin puede actualizar pronostico incluso con la edicion bloqueada")
-    void superAdminCanUpdatePredictionEvenIfLocked() {
+    @DisplayName("Nadie puede actualizar pronostico con la edicion bloqueada")
+    void cannotUpdatePredictionWhenEditionIsLocked() {
         edition.setStatus("LOCKED");
 
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Prediction updated = predictionService.updatePrediction(1L, "superadmin@porra.com", "OwnerUser", "Fix de Admin", null);
-
-        assertNotNull(updated);
-        assertEquals("Fix de Admin", updated.getName());
-        verify(predictionRepository).save(prediction);
+        assertThrows(IllegalStateException.class, () ->
+                predictionService.updatePrediction(1L, "admin@test.com", "OwnerUser", "Fix de Admin", null)
+        );
+        verify(predictionRepository, never()).save(any());
     }
 
     @Test

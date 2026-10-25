@@ -1,39 +1,28 @@
 /**
- * Servicio de API : Comunicación con el backend de Spring Boot
- * Centraliza todas las llamadas HTTP en un solo sitio.
+ * Servicio de API: Comunicación con el backend de Spring Boot.
+ * Centraliza todas las llamadas HTTP de la aplicación.
  */
 const API_BASE = '/api';
 
 /**
- * Obtiene el token de autenticación (usuario o administrador) del localStorage o memoria.
+ * Obtiene el token JWT de autenticación del usuario desde localStorage.
  * @returns {string|null} Token JWT o null si no existe.
  */
 export function getAuthToken() {
-  return (
-    localStorage.getItem('token') || localStorage.getItem('adminToken') || window.adminToken || null
-  );
+  return localStorage.getItem('token') || null;
 }
-
-/** Alias de compatibilidad hacia atrás */
-export const getAdminToken = getAuthToken;
 
 /**
- * Guarda el token de autenticación en memoria y en localStorage.
- * @param {string|null} token - El token a guardar.
+ * Guarda o elimina el token JWT de autenticación en localStorage.
+ * @param {string|null} token - El token a guardar (o null para borrarlo).
  */
 export function setAuthToken(token) {
-  window.adminToken = token;
   if (token) {
     localStorage.setItem('token', token);
-    localStorage.setItem('adminToken', token);
   } else {
     localStorage.removeItem('token');
-    localStorage.removeItem('adminToken');
   }
 }
-
-/** Alias de compatibilidad hacia atrás */
-export const setAdminToken = setAuthToken;
 
 async function fetchJson(url, options = {}) {
   const currentToken = getAuthToken();
@@ -48,7 +37,6 @@ async function fetchJson(url, options = {}) {
     if ((res.status === 401 || res.status === 403) && currentToken) {
       setAuthToken(null);
       localStorage.removeItem('token');
-      localStorage.removeItem('adminToken');
       localStorage.removeItem('my_prediction_name');
       localStorage.removeItem('my_bet_name');
       localStorage.removeItem('my_user_id');
@@ -94,11 +82,12 @@ export const fetchMyBets = fetchMyPredictions;
 
 export async function createPrediction(predictionData, groupId = null) {
   const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
+  const token = getAuthToken();
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${getAdminToken() || ''}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(predictionData),
   });
@@ -107,29 +96,23 @@ export async function createPrediction(predictionData, groupId = null) {
 export const createBet = createPrediction;
 
 export async function deletePrediction(key) {
-  const token = getAdminToken();
+  const token = getAuthToken();
   return fetch(`${API_BASE}/predictions/${key}`, {
     method: 'DELETE',
     headers: {
-      ...(token && {
-        Authorization: `Bearer ${token}`,
-        'X-Admin-Token': token,
-      }),
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
 }
 export const deleteBet = deletePrediction;
 
 export async function updatePrediction(key, data) {
-  const token = getAdminToken();
+  const token = getAuthToken();
   return fetch(`${API_BASE}/predictions/${key}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      ...(token && {
-        Authorization: `Bearer ${token}`,
-        'X-Admin-Token': token,
-      }),
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: JSON.stringify(data),
   });
@@ -137,14 +120,11 @@ export async function updatePrediction(key, data) {
 export const updateBet = updatePrediction;
 
 export async function acceptPrediction(key) {
-  const token = getAdminToken();
+  const token = getAuthToken();
   return fetch(`${API_BASE}/predictions/${key}/pay`, {
     method: 'PUT',
     headers: {
-      ...(token && {
-        Authorization: `Bearer ${token}`,
-        'X-Admin-Token': token,
-      }),
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
 }
@@ -152,23 +132,6 @@ export const acceptBet = acceptPrediction;
 
 export async function fetchTeamOdds() {
   return fetchJson(`${API_BASE}/teams/odds`);
-}
-
-// Removed sendPresenceHeartbeat since it's handled by WebSockets now
-
-export async function fetchPresence() {
-  return fetchJson(`${API_BASE}/presence`);
-}
-
-export async function fetchConnectionHistory() {
-  return fetchJson(`${API_BASE}/presence/history`);
-}
-
-export async function deleteConnectionLog(id) {
-  return fetch(`${API_BASE}/presence/history/${id}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${getAdminToken() || ''}` },
-  });
 }
 
 export async function fetchTopScorers() {
@@ -195,7 +158,7 @@ export async function fetchGroup(id) {
 }
 
 export async function leaveGroup(id) {
-  const token = getAdminToken();
+  const token = getAuthToken();
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -211,7 +174,7 @@ export async function leaveGroup(id) {
 }
 
 export async function acceptGroupPrediction(groupId, predictionId) {
-  const token = getAdminToken();
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/groups/${groupId}/predictions/${predictionId}/accept`, {
     method: 'PUT',
     headers: {
@@ -228,7 +191,7 @@ export async function acceptGroupPrediction(groupId, predictionId) {
 export const acceptGroupBet = acceptGroupPrediction;
 
 export async function deleteGroupPrediction(groupId, predictionId) {
-  const token = getAdminToken();
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/groups/${groupId}/predictions/${predictionId}`, {
     method: 'DELETE',
     headers: {
@@ -253,11 +216,12 @@ export async function fetchCompetitions() {
 }
 
 export async function createGroup(name, competitionId, poolFormat, pichichi = true) {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/groups`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${getAdminToken() || ''}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ name, competitionId, poolFormat, betMode: poolFormat, pichichi }),
   });
@@ -269,11 +233,12 @@ export async function createGroup(name, competitionId, poolFormat, pichichi = tr
 }
 
 export async function updateGroup(id, name) {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/groups/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${getAdminToken() || ''}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ name }),
   });
@@ -285,10 +250,11 @@ export async function updateGroup(id, name) {
 }
 
 export async function deleteGroup(id) {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/groups/${id}`, {
     method: 'DELETE',
     headers: {
-      Authorization: `Bearer ${getAdminToken() || ''}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   if (!res.ok) {
@@ -299,11 +265,12 @@ export async function deleteGroup(id) {
 }
 
 export async function joinGroup(joinCode) {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/groups/join`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${getAdminToken() || ''}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ joinCode }),
   });
@@ -312,16 +279,12 @@ export async function joinGroup(joinCode) {
   throw new Error(error.error || 'Grupo no encontrado o código inválido');
 }
 
-export async function fetchRegisteredUsers() {
-  return fetchJson(`${API_BASE}/admin/users`);
-}
-
 export async function fetchMe() {
   return fetchJson(`${API_BASE}/users/me`);
 }
 
 export async function updateUserPreferences(preferences) {
-  const token = getAdminToken();
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/users/me/preferences`, {
     method: 'PUT',
     headers: {
@@ -444,71 +407,4 @@ export async function fetchMissingRoundUsers(groupId, round = '') {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
-}
-
-export async function fetchSyncStatus() {
-  return fetchJson(`${API_BASE}/admin/sync/status`);
-}
-
-export async function triggerAdminSync(competitionId = null) {
-  const token = getAdminToken();
-  const query = competitionId ? `?competitionId=${competitionId}` : '';
-  const res = await fetch(`${API_BASE}/admin/sync${query}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al ejecutar sincronización');
-  }
-  return res.json();
-}
-
-export async function overrideMatchResult(
-  matchId,
-  homeScore,
-  awayScore,
-  status = 'FINISHED',
-  homeFairPlay = 0,
-  awayFairPlay = 0,
-) {
-  const token = getAdminToken();
-  const res = await fetch(`${API_BASE}/admin/matches/${matchId}/manual-result`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify({
-      homeScore: Number(homeScore),
-      awayScore: Number(awayScore),
-      homeFairPlay: Number(homeFairPlay),
-      awayFairPlay: Number(awayFairPlay),
-      status,
-    }),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al actualizar resultado manual');
-  }
-  return res.json();
-}
-
-export async function importCompetitionData(competitionId) {
-  const token = getAdminToken();
-  const res = await fetch(`${API_BASE}/admin/competitions/${competitionId}/import-data`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || `Error al importar datos deportivos: ${res.status}`);
-  }
-  return await res.json();
 }

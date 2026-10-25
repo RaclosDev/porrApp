@@ -63,7 +63,6 @@ function Layout({ children }) {
     setViewerBetId,
     isRaclos,
     setIsAuthenticated,
-    setIsAdminAuthenticated,
     activeGroupPoolFormat,
     activeCompetitionFormatType,
     loading,
@@ -745,13 +744,11 @@ function Layout({ children }) {
                     onClick={() => {
                       setAuthToken(null);
                       setIsAuthenticated?.(false);
-                      setIsAdminAuthenticated?.(false);
                       setUserName('');
                       localStorage.removeItem('my_prediction_name');
                       localStorage.removeItem('my_bet_name');
                       localStorage.removeItem('my_user_id');
                       localStorage.removeItem('token');
-                      localStorage.removeItem('adminToken');
                       window.location.href = '/';
                     }}
                     style={{

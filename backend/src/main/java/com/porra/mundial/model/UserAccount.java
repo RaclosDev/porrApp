@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- *  Entidad 'UserAccount'.
+ * Entidad 'UserAccount'.
  * Guarda la relación entre una cuenta de Google (email) y el nombre de participante en la porra.
  * Esto evita suplantaciones de identidad y permite el SSO seguro.
  */
@@ -30,10 +30,6 @@ public class UserAccount {
     /** El apodo o nombre visible con el que se identifica en el ranking y grupos (Ej: "Raclos"). */
     @Column(nullable = false)
     private String participantName;
-
-    /** Flag de seguridad para detectar si el usuario tiene privilegios de superadministrador global. */
-    @Builder.Default
-    private boolean isSuperadmin = false;
 
     /** Fecha y hora en la que se registró por primera vez en la aplicación. */
     @Builder.Default

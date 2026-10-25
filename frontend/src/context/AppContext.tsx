@@ -1,4 +1,4 @@
-import React, { useEffect, createContext, useContext, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   getAuthToken,
@@ -13,7 +13,6 @@ import {
   fetchMe,
   fetchMyGroups,
 } from '../services/api';
-import { useAdminActions } from '../hooks/useAdminActions';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore } from '../store/useAppStore';
 
@@ -39,38 +38,29 @@ const saveCachedJson = (key, data) => {
   }
 };
 
-const GlobalEffectsContext = createContext(null);
-
 export function AppProvider({ children }) {
   const queryClient = useQueryClient();
 
   const userName = useAppStore((state) => state.userName);
   const activeGroupId = useAppStore((state) => state.activeGroupId);
   const bracketState = useAppStore((state) => state.bracketState);
-  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
-  const isAdminAuthenticated = useAppStore((state) => state.isAdminAuthenticated);
-  const isUserAuthed = isAuthenticated || isAdminAuthenticated;
 
   const setUserName = useAppStore((state) => state.setUserName);
   const setUserId = useAppStore((state) => state.setUserId);
   const changeGroup = useAppStore((state) => state.changeGroup);
   const setIsAuthenticated = useAppStore((state) => state.setIsAuthenticated);
-  const setIsAdminAuthenticated = useAppStore((state) => state.setIsAdminAuthenticated);
-
-  const adminActions = useAdminActions();
 
   useWebSocket(userName, queryClient);
 
   useEffect(() => {
     const handleAuthExpired = () => {
       setIsAuthenticated(false);
-      setIsAdminAuthenticated(false);
       setUserName('');
       setUserId('');
     };
     window.addEventListener('auth-expired', handleAuthExpired);
     return () => window.removeEventListener('auth-expired', handleAuthExpired);
-  }, [setIsAuthenticated, setIsAdminAuthenticated, setUserName, setUserId]);
+  }, [setIsAuthenticated, setUserName, setUserId]);
 
   useEffect(() => {
     if (!activeGroupId) return;
@@ -141,15 +131,13 @@ export function AppProvider({ children }) {
     };
   }, [userName, isUserAuthed, changeGroup]);
 
-  return (
-    <GlobalEffectsContext.Provider value={adminActions}>{children}</GlobalEffectsContext.Provider>
-  );
+  return children;
 }
 
 export const useAppContext = () => {
   const store = useAppStore();
-  const isUserAuthed = store.isAuthenticated || store.isAdminAuthenticated;
-  const adminActions = useContext(GlobalEffectsContext) || useAdminActions();
+  const queryClient = useQueryClient();
+  const isUserAuthed = store.isAuthenticated;
 
   const activeGroupId = store.activeGroupId;
   const storeCompetitionId = store.activeCompetitionId;
@@ -262,15 +250,12 @@ export const useAppContext = () => {
   const loading = (loadingStandings && !standings) || (loadingMatches && !matches);
 
   const isRaclos = useMemo(() => {
-    if (store.isAdminAuthenticated) return true;
     const token = getAuthToken();
     if (!token) return false;
     try {
       const parts = token.split('.');
       if (parts.length !== 3) return false;
       const payload = JSON.parse(atob(parts[1]));
-      if (payload.sub === 'admin') return true;
-      if (Array.isArray(payload.roles) && payload.roles.includes('ROLE_ADMIN')) return true;
       if (
         payload.email &&
         ['raclosdev@gmail.com', 'raclosnegocios@gmail.com'].includes(payload.email.toLowerCase())
@@ -281,7 +266,7 @@ export const useAppContext = () => {
     } catch {
       return false;
     }
-  }, [store.isAdminAuthenticated, store.isAuthenticated]);
+  }, [store.isAuthenticated]);
 
   return {
     ...store,
@@ -294,16 +279,9 @@ export const useAppContext = () => {
     nameToIdMap,
     leaderboardData: leaderboard || EMPTY_ARRAY,
     loading,
-    fetchData: adminActions.refreshAll,
+    fetchData: () => queryClient.invalidateQueries(),
     onlineUsers: EMPTY_ARRAY,
     isRaclos,
-    deletePrediction: adminActions.deletePrediction || adminActions.deleteBet,
-    deleteBet: adminActions.deletePrediction || adminActions.deleteBet,
-    fixThird: adminActions.fixThird,
-    acceptPrediction: adminActions.acceptPrediction || adminActions.acceptBet,
-    acceptBet: adminActions.acceptPrediction || adminActions.acceptBet,
-    editPredictionName: adminActions.editPredictionName || adminActions.editBetName,
-    editBetName: adminActions.editPredictionName || adminActions.editBetName,
     activeGroupName,
     activeGroupAdmin,
     activeGroupAdminId,

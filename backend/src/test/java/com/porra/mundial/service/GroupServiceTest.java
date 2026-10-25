@@ -64,21 +64,18 @@ class GroupServiceTest {
                 .id(1L)
                 .googleEmail("admin@test.com")
                 .participantName("Admin Liga")
-                .isSuperadmin(false)
                 .build();
 
         member = UserAccount.builder()
                 .id(2L)
                 .googleEmail("member@test.com")
                 .participantName("Miembro Regular")
-                .isSuperadmin(false)
                 .build();
 
         stranger = UserAccount.builder()
                 .id(3L)
                 .googleEmail("stranger@test.com")
                 .participantName("Desconocido")
-                .isSuperadmin(false)
                 .build();
 
         league = League.builder()

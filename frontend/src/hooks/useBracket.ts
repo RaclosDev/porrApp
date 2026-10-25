@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { createBet, fetchMyBets, getAdminToken } from '../services/api';
+import { createBet, fetchMyBets, getAuthToken } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
 
@@ -21,7 +21,6 @@ export function useBracket() {
     topScorer,
     setTopScorer,
     isAuthenticated,
-    isAdminAuthenticated,
     activeGroupId,
     fetchData,
     groupOdds,
@@ -104,7 +103,7 @@ export function useBracket() {
     if (!window.confirm('¿Quieres copiar esta porra y enviarla a la liga actual?')) return;
     try {
       const res = await fetch(`/api/predictions/${betId}`, {
-        headers: { ...(getAdminToken() ? { Authorization: `Bearer ${getAdminToken()}` } : {}) },
+        headers: { ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}) },
       });
       if (!res.ok) throw new Error();
       const betData = await res.json();
@@ -287,27 +286,14 @@ export function useBracket() {
       groups: isKnockoutsOnly ? {} : formattedGroups,
       thirds: isKnockoutsOnly ? [] : advancingThirds,
     };
-    if (activeGroupIsLocked && !(isAdminAuthenticated && betName === 'official')) {
+    if (activeGroupIsLocked) {
       toast.error('El plazo para enviar o modificar porras en esta liga ha finalizado.');
       return;
     }
     try {
-      if (isAdminAuthenticated && betName === 'official') {
-        const res = await fetch('/api/admin/official', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(betData),
-        });
-        if (res.ok) {
-          toast.success('¡Resultados oficiales actualizados!');
-        } else {
-          toast.error('Error al actualizar resultados oficiales');
-        }
-      } else {
-        await createBet(betData, activeGroupId);
-        toast.success('¡Porra guardada correctamente en la liga!');
-        fetchData();
-      }
+      await createBet(betData, activeGroupId);
+      toast.success('¡Porra guardada correctamente en la liga!');
+      fetchData();
     } catch (e) {
       toast.error(e.message || 'Hubo un error al guardar la porra.');
     }
@@ -347,7 +333,6 @@ export function useBracket() {
     allTeams,
     isInitialState,
     isAuthenticated,
-    isAdminAuthenticated,
     activeGroupId,
     groupOdds,
     activeGroupPichichi,

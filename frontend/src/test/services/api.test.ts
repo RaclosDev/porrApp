@@ -4,7 +4,6 @@ import { getAuthToken, setAuthToken, fetchStandings, fetchMatches } from '../../
 describe('api.ts service', () => {
   beforeEach(() => {
     localStorage.clear();
-    delete window.adminToken;
     vi.restoreAllMocks();
   });
 

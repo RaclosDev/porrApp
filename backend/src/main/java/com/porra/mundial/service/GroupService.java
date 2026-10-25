@@ -75,7 +75,6 @@ public class GroupService {
                         .googleEmail("admin@local")
                         .googleName("Admin")
                         .participantName("Admin")
-                        .isSuperadmin(true)
                         .build()));
 
         League globalGroup = leagueRepository.findById(1L).orElse(null);
@@ -392,9 +391,6 @@ public class GroupService {
         if (user == null) {
             return false;
         }
-        if (user.isSuperadmin()) {
-            return true;
-        }
         Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
         return membershipRepository.existsById(memId);
     }
@@ -502,9 +498,8 @@ public class GroupService {
         boolean callerIsAdmin = false;
 
         if (email != null && !email.isBlank()) {
-            boolean isSuper = userAccountRepository.findByGoogleEmail(email).map(UserAccount::isSuperadmin).orElse(false);
             boolean isLeagueAdmin = group.getAdminUser() != null && group.getAdminUser().getGoogleEmail() != null && group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email);
-            callerIsAdmin = isLeagueAdmin || isSuper;
+            callerIsAdmin = isLeagueAdmin;
             if (!callerIsAdmin && !isGlobal) {
                 UserAccount caller = userAccountRepository.findByGoogleEmail(email).orElse(null);
                 if (caller == null || !membershipRepository.existsById(new Membership.MembershipId(caller.getId(), groupId))) {

@@ -99,12 +99,8 @@ export const useAppStore = create((set) => ({
   viewerBetId: null,
   setViewerBetId: (id) => set({ viewerPredictionId: id, viewerBetId: id }),
 
-  isAuthenticated:
-    !!localStorage.getItem('token') || !!localStorage.getItem('adminToken') || !!window.adminToken,
+  isAuthenticated: !!localStorage.getItem('token'),
   setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
-
-  isAdminAuthenticated: !!localStorage.getItem('adminToken') || !!window.adminToken,
-  setIsAdminAuthenticated: (isAdminAuthenticated) => set({ isAdminAuthenticated }),
 
   isDemoMode: localStorage.getItem('isDemoMode') === 'true',
   setIsDemoMode: (isDemoMode) => {
