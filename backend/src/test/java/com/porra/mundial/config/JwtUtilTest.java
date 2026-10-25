@@ -38,4 +38,31 @@ class JwtUtilTest {
         assertNotNull(token);
         assertTrue(jwtUtil.validateToken(token));
     }
+
+    @Test
+    @DisplayName("Rechaza secreto de plantilla de ejemplo y usa clave efímera segura en modo no-prod")
+    void testInitWithTemplateSecretFallback() {
+        JwtUtil jwtUtil = new JwtUtil("super-secret-jwt-key-change-me-in-production");
+        String token = jwtUtil.generateToken("templateUser");
+        assertNotNull(token);
+        assertTrue(jwtUtil.validateToken(token));
+    }
+
+    @Test
+    @DisplayName("Lanza IllegalStateException en perfil de producción si JWT_SECRET es inseguro")
+    void testFailsInProductionWithInsecureSecret() {
+        String prev = System.getProperty("spring.profiles.active");
+        try {
+            System.setProperty("spring.profiles.active", "prod");
+            assertThrows(IllegalStateException.class, () -> new JwtUtil("super-secret-jwt-key-change-me-in-production"));
+            assertThrows(IllegalStateException.class, () -> new JwtUtil(""));
+            assertThrows(IllegalStateException.class, () -> new JwtUtil("too-short-key"));
+        } finally {
+            if (prev != null) {
+                System.setProperty("spring.profiles.active", prev);
+            } else {
+                System.clearProperty("spring.profiles.active");
+            }
+        }
+    }
 }

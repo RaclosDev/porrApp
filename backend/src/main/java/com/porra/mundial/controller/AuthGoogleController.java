@@ -27,11 +27,17 @@ public class AuthGoogleController {
     private final UserAccountRepository userAccountRepository;
     private final JwtUtil jwtUtil;
 
-    @Value("${google.client.id:498045926443-u02u6penjkggongduv26qlm7934449ee.apps.googleusercontent.com}")
+    @Value("${google.client.id:}")
     private String googleClientId;
 
     @PostMapping("/login")
     public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> payload) {
+        if (googleClientId == null || googleClientId.isBlank()) {
+            log.error("GOOGLE_CLIENT_ID no configurado en el servidor");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Servicio de autenticación no configurado (GOOGLE_CLIENT_ID ausente)"));
+        }
+
         String idTokenString = payload.get("credential");
 
         try {

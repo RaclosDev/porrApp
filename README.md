@@ -259,4 +259,4 @@ porrApp/
 
 ## Licencia
 
-Actualmente el repositorio no declara una licencia de software en los metadatos de GitHub. No debe asumirse que el código puede reutilizarse o redistribuirse bajo MIT hasta que se incorpore una licencia explícita al proyecto.
+Este proyecto está distribuido bajo la licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más información.

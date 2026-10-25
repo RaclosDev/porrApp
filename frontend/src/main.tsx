@@ -17,13 +17,17 @@ const queryClient = new QueryClient({
   },
 });
 
+const googleClientId =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '498045926443-u02u6penjkggongduv26qlm7934449ee.apps.googleusercontent.com';
+
 const rootElement = document.getElementById('root');
 if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GoogleOAuthProvider clientId="498045926443-u02u6penjkggongduv26qlm7934449ee.apps.googleusercontent.com">
+          <GoogleOAuthProvider clientId={googleClientId}>
             <App />
           </GoogleOAuthProvider>
         </QueryClientProvider>
