@@ -6,8 +6,11 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+permissions:
+  contents: read
+
 jobs:
-  frontend-lint:
+  frontend-check:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,6 +27,8 @@ jobs:
         run: npm ci
       - name: Run ESLint
         run: npm run lint
+      - name: Run Vitest Tests
+        run: npm test
       - name: Build Frontend
         run: npm run build
 

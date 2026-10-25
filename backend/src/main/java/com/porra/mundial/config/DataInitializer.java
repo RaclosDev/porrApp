@@ -63,23 +63,29 @@ public class DataInitializer implements CommandLineRunner {
                     .build());
         }
 
-        try {
-            syncService.syncAll();
-        } catch (Exception e) {
-            log.warn("Could not sync on startup: {}", e.getMessage());
-        }
+        // Ejecuta la sincronización externa y cálculos pesados en segundo plano
+        // para que Tomcat levante de inmediato y pase los health checks de Render sin demoras.
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                log.info("Iniciando sincronización externa asíncrona de arranque...");
+                syncService.syncAll();
+            } catch (Exception e) {
+                log.warn("Could not sync on startup: {}", e.getMessage());
+            }
 
-        try {
-            standingsService.recalculateStandingsFromMatches();
-        } catch (Exception e) {
-            log.warn("Could not recalculate standings on startup: {}", e.getMessage());
-        }
+            try {
+                standingsService.recalculateStandingsFromMatches();
+            } catch (Exception e) {
+                log.warn("Could not recalculate standings on startup: {}", e.getMessage());
+            }
 
-        try {
-            syncService.propagateKnockoutWinners();
-        } catch (Exception e) {
-            log.warn("Could not propagate knockout winners on startup: {}", e.getMessage());
-        }
+            try {
+                syncService.propagateKnockoutWinners();
+            } catch (Exception e) {
+                log.warn("Could not propagate knockout winners on startup: {}", e.getMessage());
+            }
+            log.info("Sincronización externa asíncrona de arranque finalizada.");
+        });
 
         try {
             standingRepository.deleteByGroupName("-");

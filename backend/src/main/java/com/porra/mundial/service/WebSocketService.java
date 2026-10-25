@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
@@ -7,7 +8,9 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -21,9 +24,11 @@ public class WebSocketService {
 
     private final List<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
     private final CacheManager cacheManager;
+    private final ObjectMapper objectMapper;
 
-    public WebSocketService(CacheManager cacheManager) {
+    public WebSocketService(CacheManager cacheManager, ObjectMapper objectMapper) {
         this.cacheManager = cacheManager;
+        this.objectMapper = objectMapper;
     }
 
     public void addSession(WebSocketSession session) {
@@ -43,16 +48,19 @@ public class WebSocketService {
     }
 
     public void broadcastMatchScore(Long matchId, String homeTeam, String awayTeam, Integer homeScore, Integer awayScore, String status) {
-        String json = String.format(
-                "{\"type\":\"MATCH_SCORE_UPDATED\",\"matchId\":%d,\"homeTeam\":\"%s\",\"awayTeam\":\"%s\",\"homeScore\":%s,\"awayScore\":%s,\"status\":\"%s\"}",
-                matchId != null ? matchId : 0L,
-                homeTeam != null ? homeTeam.replace("\"", "\\\"") : "",
-                awayTeam != null ? awayTeam.replace("\"", "\\\"") : "",
-                homeScore != null ? homeScore : "null",
-                awayScore != null ? awayScore : "null",
-                status != null ? status : ""
-        );
-        broadcastRaw(json);
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("type", "MATCH_SCORE_UPDATED");
+            payload.put("matchId", matchId != null ? matchId : 0L);
+            payload.put("homeTeam", homeTeam != null ? homeTeam : "");
+            payload.put("awayTeam", awayTeam != null ? awayTeam : "");
+            payload.put("homeScore", homeScore);
+            payload.put("awayScore", awayScore);
+            payload.put("status", status != null ? status : "");
+            broadcastRaw(objectMapper.writeValueAsString(payload));
+        } catch (Exception e) {
+            log.warn("Error serializando actualización de partido en WebSocket: {}", e.getMessage());
+        }
     }
 
     private void broadcastRaw(String jsonPayload) {
@@ -73,6 +81,11 @@ public class WebSocketService {
     }
 
     public void broadcastUpdate(String eventType) {
-        broadcastRaw("{\"type\": \"" + eventType + "\"}");
+        try {
+            Map<String, String> payload = Map.of("type", eventType != null ? eventType : "DATA_UPDATED");
+            broadcastRaw(objectMapper.writeValueAsString(payload));
+        } catch (Exception e) {
+            log.warn("Error serializando actualización en WebSocket: {}", e.getMessage());
+        }
     }
 }

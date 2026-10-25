@@ -32,7 +32,11 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+# Crear usuario y grupo sin privilegios para mitigar riesgos de contenedor
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 COPY --from=backend-build /app/target/*.jar app.jar
+RUN chown -R appuser:appgroup /app
 
 EXPOSE 8080 10000
 
@@ -46,5 +50,7 @@ ENV SPRING_PROFILES_ACTIVE=prod
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD wget -qO- http://localhost:${PORT:-8080}/actuator/health > /dev/null || exit 1
+
+USER appuser:appgroup
 
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

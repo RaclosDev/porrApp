@@ -135,9 +135,17 @@ export const useAppStore = create((set) => ({
   changeGroup: (groupId) => {
     localStorage.setItem('activeGroupId', groupId);
     const saved = localStorage.getItem(`draft_bracket_${groupId}`);
+    let parsedBracket = defaultBracketState;
+    if (saved) {
+      try {
+        parsedBracket = JSON.parse(saved);
+      } catch (e) {
+        console.warn('Error parsing bracket from localStorage, using default:', e);
+      }
+    }
     set({
       activeGroupId: groupId,
-      bracketState: saved ? JSON.parse(saved) : defaultBracketState,
+      bracketState: parsedBracket,
     });
   },
 }));
