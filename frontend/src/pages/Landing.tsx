@@ -53,51 +53,45 @@ export default function Landing() {
           </span>
         </h1>
 
-        <ul
+        <div
           style={{
-            listStyle: 'none',
-            padding: '16px 20px',
-            margin: '10px auto 0',
-            maxWidth: '620px',
-            width: 'fit-content',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 270px), 1fr))',
-            gap: '12px 24px',
-            fontSize: 'clamp(0.9rem, 2vw, 0.98rem)',
-            color: '#cbd5e1',
-            lineHeight: 1.45,
-            textAlign: 'left',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '16px',
-            boxSizing: 'border-box',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: '8px 12px',
+            maxWidth: '650px',
+            margin: '8px auto 0',
+            padding: '0 10px',
           }}
         >
-          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ color: '#00d2d3', fontWeight: 800, flexShrink: 0, marginTop: '1px' }}>
-              ✓
-            </span>
-            <span>Todos los formatos: jornadas, liguillas y eliminatorias</span>
-          </li>
-          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ color: '#00d2d3', fontWeight: 800, flexShrink: 0, marginTop: '1px' }}>
-              ✓
-            </span>
-            <span>Puntos y clasificaciones en tiempo real</span>
-          </li>
-          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ color: '#00d2d3', fontWeight: 800, flexShrink: 0, marginTop: '1px' }}>
-              ✓
-            </span>
-            <span>+10 competiciones (Mundial, Champions, LaLiga...)</span>
-          </li>
-          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ color: '#00d2d3', fontWeight: 800, flexShrink: 0, marginTop: '1px' }}>
-              ✓
-            </span>
-            <span>Ligas privadas para tus amigos y cero líos de Excel</span>
-          </li>
-        </ul>
+          {[
+            { icon: '🏆', text: '+10 Competiciones' },
+            { icon: '⚡', text: 'Puntos en tiempo real' },
+            { icon: '👥', text: 'Ligas con amigos' },
+            { icon: '❌', text: 'Cero líos de Excel' },
+          ].map((item) => (
+            <div
+              key={item.text}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '7px 14px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '9999px',
+                fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
+                color: '#e2e8f0',
+                fontWeight: 500,
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
+              }}
+            >
+              <span style={{ fontSize: '1rem', lineHeight: 1 }}>{item.icon}</span>
+              <span>{item.text}</span>
+            </div>
+          ))}
+        </div>
 
         {/* CTA Buttons */}
         <div
