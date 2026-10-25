@@ -1,6 +1,7 @@
 import React, { useEffect, createContext, useContext, useMemo } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
+  getAuthToken,
   fetchStandings,
   fetchMatches,
   fetchMatchRadar,
