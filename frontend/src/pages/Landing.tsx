@@ -53,19 +53,38 @@ export default function Landing() {
           </span>
         </h1>
 
-        <p
+        <ul
           style={{
-            fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-            color: 'var(--text-muted, #94a3b8)',
+            listStyle: 'none',
+            padding: 0,
+            margin: '8px auto 0',
             maxWidth: '680px',
-            lineHeight: 1.6,
-            margin: '0 auto',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: '10px 20px',
+            fontSize: 'clamp(0.95rem, 1.8vw, 1.05rem)',
+            color: '#cbd5e1',
+            lineHeight: 1.5,
           }}
         >
-          Cuadros eliminatorios interactivos, clasificaciones en tiempo real, gestión de peñas con
-          enlace de invitación y cálculo automático de puntuaciones. Olvídate de excels y mensajes
-          de WhatsApp.
-        </p>
+          <li style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Cuadro eliminatorio
+            interactivo
+          </li>
+          <li style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Puntos y clasificación en
+            tiempo real
+          </li>
+          <li style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Invita a tu peña con un
+            enlace
+          </li>
+          <li style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Cero excels ni cuentas a
+            mano
+          </li>
+        </ul>
 
         {/* CTA Buttons */}
         <div
