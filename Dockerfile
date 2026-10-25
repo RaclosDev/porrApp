@@ -12,7 +12,7 @@ RUN npm run build
 # El resultado queda en /app/frontend/dist
 
 # Etapa 2: Build del Backend (Spring Boot + Maven)
-FROM maven:3.9.6-eclipse-temurin-21 AS backend-build
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS backend-build
 WORKDIR /app
 
 # Copiamos el pom.xml y descargamos dependencias (cache)
@@ -53,4 +53,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 
 USER appuser:appgroup
 
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-Xss256k", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
