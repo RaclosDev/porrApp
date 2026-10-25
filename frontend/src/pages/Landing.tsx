@@ -58,7 +58,7 @@ export default function Landing() {
             listStyle: 'none',
             padding: 0,
             margin: '8px auto 0',
-            maxWidth: '680px',
+            maxWidth: '740px',
             display: 'flex',
             flexWrap: 'wrap',
             justifyContent: 'center',
@@ -69,20 +69,20 @@ export default function Landing() {
           }}
         >
           <li style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Cuadro eliminatorio
-            interactivo
+            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Todos los formatos:
+            jornadas, liguillas y eliminatorias
           </li>
           <li style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Puntos y clasificación en
+            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Puntos y clasificaciones en
             tiempo real
           </li>
           <li style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Invita a tu peña con un
-            enlace
+            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> +10 competiciones (Mundial,
+            Champions, LaLiga...)
           </li>
           <li style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Cero excels ni cuentas a
-            mano
+            <span style={{ color: '#00d2d3', fontWeight: 800 }}>✓</span> Ligas privadas para tus
+            amigos y cero líos de Excel
           </li>
         </ul>
 
