@@ -312,12 +312,6 @@ export async function joinGroup(joinCode) {
   throw new Error(error.error || 'Grupo no encontrado o código inválido');
 }
 
-export async function fetchClaimedNames() {
-  const res = await fetch(`${API_BASE}/auth/google/claimed-names`);
-  if (res.ok) return await res.json();
-  return [];
-}
-
 export async function fetchRegisteredUsers() {
   return fetchJson(`${API_BASE}/admin/users`);
 }

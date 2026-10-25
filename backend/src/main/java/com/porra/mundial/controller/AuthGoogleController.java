@@ -72,50 +72,33 @@ public class AuthGoogleController {
                         "lastSelectedGroupId", acc.getLastSelectedGroupId() != null ? acc.getLastSelectedGroupId() : -1
                 ));
             } else {
-                if (requestedParticipantName == null || requestedParticipantName.trim().isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
-                            "status", "requires_name",
-                            "googleEmail", email,
-                            "googleName", name
-                    ));
+                // Registro automatico y directo con datos de Google
+                String initialName = (name != null && !name.trim().isEmpty())
+                        ? name.trim()
+                        : email.split("@")[0];
+
+                String candidateName = initialName;
+                int suffix = 1;
+                while (userAccountRepository.existsByParticipantNameIgnoreCase(candidateName)) {
+                    candidateName = initialName + suffix;
+                    suffix++;
                 }
 
-                String cleanName = requestedParticipantName.trim();
-                
-                boolean isReservedName = appAdmins.stream().anyMatch(a -> a.equalsIgnoreCase(cleanName));
-                if (isReservedName) {
-                    boolean isAllowedEmail = adminEmails.stream().anyMatch(ae -> ae.equalsIgnoreCase(email));
-                    if (!isAllowedEmail) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                                "error", "Ese nombre está reservado por el sistema para el administrador."
-                        ));
-                    }
-                }
-
-                // Vincula cuentas preexistentes creadas de forma legacy sin email
-                java.util.Optional<UserAccount> legacyAccount = userAccountRepository.findByGoogleEmail(cleanName + "@auto.generated");
-                UserAccount finalAccount;
-                if (legacyAccount.isPresent()) {
-                    finalAccount = legacyAccount.get();
-                    finalAccount.setGoogleEmail(email);
-                    finalAccount.setGoogleName(name);
-                    userAccountRepository.save(finalAccount);
-                } else {
-                    finalAccount = UserAccount.builder()
-                            .googleEmail(email)
-                            .googleName(name)
-                            .participantName(cleanName)
-                            .build();
-                    userAccountRepository.save(finalAccount);
-                }
+                UserAccount finalAccount = UserAccount.builder()
+                        .googleEmail(email)
+                        .googleName(name != null ? name : candidateName)
+                        .participantName(candidateName)
+                        .build();
+                userAccountRepository.save(finalAccount);
 
                 String appToken = jwtUtil.generateToken(email, email);
-                Map<String, Object> responseMap = new java.util.HashMap<>();
-                responseMap.put("token", appToken);
-                responseMap.put("userId", finalAccount.getId());
-                responseMap.put("participantName", cleanName);
-                responseMap.put("status", "registered_success");
-                return ResponseEntity.ok(responseMap);
+                return ResponseEntity.ok(Map.of(
+                        "token", appToken,
+                        "userId", finalAccount.getId(),
+                        "participantName", finalAccount.getParticipantName(),
+                        "status", "login_success",
+                        "lastSelectedGroupId", -1
+                ));
             }
 
         } catch (Exception e) {
@@ -126,6 +109,6 @@ public class AuthGoogleController {
 
     @GetMapping("/claimed-names")
     public ResponseEntity<java.util.List<String>> getClaimedNames() {
-        return ResponseEntity.ok(userAccountRepository.findAllClaimedNames());
+        return ResponseEntity.ok(Collections.emptyList());
     }
 }

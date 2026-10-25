@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import React, { useState, useEffect, Suspense } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { getAuthToken, setAuthToken, fetchClaimedNames } from '../services/api';
+import { getAuthToken, setAuthToken } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 import MobileBottomNav from './MobileBottomNav';
@@ -78,10 +78,6 @@ function Layout({ children }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  const [requiresName, setRequiresName] = useState(false);
-  const [claimedNames, setClaimedNames] = useState([]);
-  const [newNameInput, setNewNameInput] = useState('');
-  const [pendingCredential, setPendingCredential] = useState(null);
   const isUserLoggedIn = (Boolean(getAuthToken()) && Boolean(userName)) || isRaclos;
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
@@ -177,43 +173,6 @@ function Layout({ children }) {
         body: JSON.stringify({ credential: credentialResponse.credential }),
       });
       const data = await res.json();
-      if (data.status === 'requires_name') {
-        setPendingCredential(credentialResponse.credential);
-        setRequiresName(true);
-        fetchClaimedNames().then((names) => setClaimedNames(names));
-      } else if (data.token) {
-        // Logueo exitoso.
-        setAuthToken(data.token);
-        setIsAuthenticated?.(true);
-        setUserName(data.participantName);
-        localStorage.setItem('my_prediction_name', data.participantName);
-        localStorage.setItem('my_bet_name', data.participantName);
-        if (data.userId) localStorage.setItem('my_user_id', data.userId);
-        if (data.lastSelectedGroupId) {
-          localStorage.setItem('activeGroupId', data.lastSelectedGroupId.toString());
-        }
-        setShowMyBetModal(false);
-      }
-    } catch (e) {
-      toast.error('Error conectando con Google: ' + e.message);
-    }
-  };
-
-  /**
-   * Envía el nombre escogido por el usuario por primera vez tras vincular Google.
-   */
-  const handleNameSubmit = async () => {
-    if (!newNameInput.trim()) return toast.error('El nombre no puede estar vacío');
-    try {
-      const res = await fetch('/api/auth/google/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          credential: pendingCredential,
-          participantName: newNameInput.trim(),
-        }),
-      });
-      const data = await res.json();
       if (res.ok && data.token) {
         setAuthToken(data.token);
         setIsAuthenticated?.(true);
@@ -221,28 +180,21 @@ function Layout({ children }) {
         localStorage.setItem('my_prediction_name', data.participantName);
         localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
-        if (data.lastSelectedGroupId) {
+        if (data.lastSelectedGroupId && data.lastSelectedGroupId > 0) {
           localStorage.setItem('activeGroupId', data.lastSelectedGroupId.toString());
         }
-        setRequiresName(false);
         setShowMyBetModal(false);
+        toast.success(`¡Bienvenido, ${data.participantName}!`);
         if (!localStorage.getItem('activeGroupId')) {
           navigate('/mis-ligas');
         }
       } else {
-        toast.error(data.error || 'Error al vincular cuenta');
+        toast.error(data.error || 'Error al iniciar sesión con Google');
       }
     } catch (e) {
-      toast.error('Error de red: ' + e.message);
+      toast.error('Error conectando con Google: ' + e.message);
     }
   };
-
-  const decodedParticipants = participantsHashes
-    .map((h) => ({
-      hash: h.hash,
-      name: h.participantName || 'Anónimo',
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <>
@@ -917,143 +869,45 @@ function Layout({ children }) {
               letterSpacing: '1px',
             }}
           >
-            ¿Quién eres?
+            Iniciar sesión
           </h3>
-          {requiresName ? (
-            <div style={{ animation: 'fadeIn 0.5s ease forwards' }}>
-              <p
-                style={{
-                  marginBottom: '25px',
-                  fontSize: '0.95rem',
-                  color: 'var(--text-muted)',
-                  lineHeight: '1.5',
-                }}
-              >
-                ¡Hola! Vemos que es tu primera vez con Google. Si ya habías hecho una porra,{' '}
-                <strong>búscate en la lista</strong>. Si no,{' '}
-                <strong>escribe un nombre nuevo</strong>.
-              </p>
-
-              <select
-                aria-label="Selecciona tu nombre en la lista"
-                className="glass-select"
-                style={{
-                  width: '100%',
-                  marginBottom: '15px',
-                  fontSize: '1rem',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                }}
-                value={decodedParticipants.some((p) => p.name === newNameInput) ? newNameInput : ''}
-                onChange={(e) => setNewNameInput(e.target.value)}
-              >
-                <option value="" disabled hidden>
-                  Elige tu nombre en la lista...
-                </option>
-                {decodedParticipants
-                  .filter((p) => !claimedNames.includes(p.name))
-                  .map((p) => (
-                    <option key={p.hash} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-              </select>
-
-              <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
-                <div
-                  style={{
-                    margin: '0 15px',
-                    color: '#94a3b8',
-                    fontSize: '0.85rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
-                  O crea uno
-                </div>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
-              </div>
-
-              <input
-                type="text"
-                aria-label="Nombre nuevo de participante"
-                placeholder="Nombre nuevo (ej: MiPrimo)"
-                value={newNameInput}
-                onChange={(e) => setNewNameInput(e.target.value)}
-                className="glass-input"
-                style={{
-                  width: '100%',
-                  marginBottom: '25px',
-                  padding: '12px',
-                  fontSize: '1rem',
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                }}
+          <div style={{ animation: 'fadeIn 0.5s ease forwards' }}>
+            <p
+              style={{
+                marginBottom: '30px',
+                fontSize: '1rem',
+                color: 'var(--text-muted)',
+                lineHeight: '1.5',
+              }}
+            >
+              Para ver en qué liga estás o rellenar tu porra, ¡inicia sesión con Google!
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => toast.error('Inicio de sesión cancelado o fallido')}
+                theme="filled_black"
+                shape="pill"
+                text="continue_with"
               />
-              <button
-                className="glass-btn primary-btn"
-                style={{ width: '100%', padding: '12px', fontSize: '1.1rem', letterSpacing: '1px' }}
-                onClick={handleNameSubmit}
-              >
-                Vincular y Entrar
-              </button>
-              <button
-                className="glass-btn"
-                style={{
-                  marginTop: '15px',
-                  fontSize: '0.85rem',
-                  padding: '8px 15px',
-                  opacity: 0.8,
-                  width: '100%',
-                }}
-                onClick={() => {
-                  setShowMyBetModal(false);
-                  navigate('/', { replace: true, state: {} });
-                }}
-              >
-                Volver al inicio
-              </button>
             </div>
-          ) : (
-            <div style={{ animation: 'fadeIn 0.5s ease forwards' }}>
-              <p
-                style={{
-                  marginBottom: '30px',
-                  fontSize: '1rem',
-                  color: 'var(--text-muted)',
-                  lineHeight: '1.5',
-                }}
-              >
-                Para saber en qué liga estás o rellenar tu porra, ¡debes loguearte con Google!
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => toast.error('Inicio de sesión cancelado o fallido')}
-                  theme="filled_black"
-                  shape="pill"
-                  text="continue_with"
-                />
-              </div>
-              <button
-                className="glass-btn"
-                style={{
-                  marginTop: '10px',
-                  fontSize: '0.85rem',
-                  padding: '8px 15px',
-                  opacity: 0.8,
-                }}
-                onClick={() => {
-                  setShowMyBetModal(false);
-                  navigate('/', { replace: true, state: {} });
-                }}
-              >
-                Volver al inicio
-              </button>
-            </div>
-          )}
+            <button
+              className="glass-btn"
+              style={{
+                marginTop: '10px',
+                fontSize: '0.85rem',
+                padding: '8px 15px',
+                opacity: 0.8,
+                width: '100%',
+              }}
+              onClick={() => {
+                setShowMyBetModal(false);
+                navigate('/', { replace: true, state: {} });
+              }}
+            >
+              Volver al inicio
+            </button>
+          </div>
         </div>
       </div>
 
