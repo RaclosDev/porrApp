@@ -35,8 +35,10 @@ public class WebSocketService {
     }
 
     public void invalidateAndNotify() {
-        Cache cache = cacheManager.getCache("leaderboard");
-        if (cache != null) cache.clear();
+        for (String cacheName : cacheManager.getCacheNames()) {
+            Cache cache = cacheManager.getCache(cacheName);
+            if (cache != null) cache.clear();
+        }
         broadcastUpdate("DATA_UPDATED");
     }
 

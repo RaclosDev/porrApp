@@ -6,8 +6,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -19,14 +17,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Filtro de limitación de tasa (Rate Limiting) para proteger endpoints públicos contra ataques de denegación de servicio (DoS) y scraping masivo.
+ * Filtro de limitación de tasa (Rate Limiting) basado en ventana deslizante en memoria.
+ * Protege contra fuerza bruta en login de administración (5 req/min) y DoS en endpoints públicos (120 req/min).
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 50)
 @Slf4j
 public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final Map<String, WindowCounter> requestCounts = new ConcurrentHashMap<>();
+    private final Map<String, WindowCounter> adminLoginCounts = new ConcurrentHashMap<>();
 
     @Value("${app.rate-limiting.enabled:true}")
     private boolean enabled;
@@ -44,6 +43,21 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
 
         String path = request.getRequestURI();
+
+        // 1. Límite estricto anti-fuerza bruta para login administrativo (5 peticiones/minuto)
+        if ("/api/admin/login".equals(path)) {
+            String clientIp = getClientIp(request);
+            if (!isAllowedAdminLogin(clientIp)) {
+                log.warn("Límite de intentos de login administrativo excedido para IP: {}", clientIp);
+                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setHeader("Retry-After", "60");
+                response.getWriter().write("{\"error\": \"Demasiados intentos de acceso administrativo. Espera un minuto.\"}");
+                return;
+            }
+        }
+
+        // 2. Límite general para endpoints expuestos
         if (isRateLimitedPath(path)) {
             String clientIp = getClientIp(request);
             if (!isAllowed(clientIp)) {
@@ -68,6 +82,23 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                path.startsWith("/api/leaderboard") ||
                path.startsWith("/api/admin/login") ||
                path.startsWith("/api/auth/");
+    }
+
+    private boolean isAllowedAdminLogin(String clientIp) {
+        long currentMinute = System.currentTimeMillis() / 60000;
+        WindowCounter counter = adminLoginCounts.compute(clientIp, (ip, existing) -> {
+            if (existing == null || existing.minute != currentMinute) {
+                return new WindowCounter(currentMinute, new AtomicInteger(1));
+            }
+            existing.count.incrementAndGet();
+            return existing;
+        });
+
+        if (adminLoginCounts.size() > 1000) {
+            adminLoginCounts.entrySet().removeIf(entry -> entry.getValue().minute < currentMinute - 1);
+        }
+
+        return counter.count.get() <= 5;
     }
 
     private boolean isAllowed(String clientIp) {
@@ -96,7 +127,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         if (xRealIp != null && !xRealIp.isBlank()) {
             return xRealIp.trim();
         }
-        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
+        return request.getRemoteAddr();
     }
 
     private record WindowCounter(long minute, AtomicInteger count) {}

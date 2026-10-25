@@ -50,7 +50,7 @@ public class TopScorerService {
     private final AtomicReference<List<Map<String, Object>>> cachedScorers = new AtomicReference<>(Collections.emptyList());
 
     // Persistent cache of player name -> image URL (avoids re-fetching every 30 min)
-    private final Map<String, String> imageCache = new HashMap<>();
+    private final Map<String, String> imageCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     // Hardcoded cartoon URLs for known pichichi contenders (from thesportsdb)
     private static final Map<String, String> CARTOON_MAP = new HashMap<>(Map.of(

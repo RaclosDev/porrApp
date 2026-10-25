@@ -10,10 +10,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Configuración de Spring Web MVC.
- * Gestiona el enrutamiento de estáticos (React Frontend) y la política de CORS.
+ * Configuración web de Spring MVC:
+ * - CORS granular para la API REST.
+ * - Enrutamiento y fallback SPA para React.
+ * - Cacheo HTTP inmutable de 1 año para assets estáticos hashed (/assets/**) y noCache para entrypoints dinámicos.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -33,10 +36,17 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Bundles JS/CSS con hash inmutable generados por Vite: Cache por 1 año inmutable
+        registry.addResourceHandler("/assets/**")
+                .addResourceLocations("classpath:/static/assets/")
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable());
+
+        // Archivos dinámicos que no deben cachearse en cliente
         registry.addResourceHandler("/index.html", "/sw.js", "/workbox-*.js")
                 .addResourceLocations("classpath:/static/")
                 .setCacheControl(CacheControl.noCache());
 
+        // SPA Fallback
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
                 .setCacheControl(CacheControl.noCache())

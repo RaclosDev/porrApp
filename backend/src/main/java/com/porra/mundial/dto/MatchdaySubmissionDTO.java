@@ -25,5 +25,5 @@ public class MatchdaySubmissionDTO {
     private Long groupId;
 
     @NotEmpty(message = "Debes proporcionar al menos un pronóstico")
-    private List<MatchPredictionItemDTO> predictions;
+    private List<@Valid MatchPredictionItemDTO> predictions;
 }

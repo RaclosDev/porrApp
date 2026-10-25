@@ -123,7 +123,7 @@ class MatchPredictionControllerTest {
         mockMvc.perform(post("/api/predictions/matchday")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("El partido ya ha comenzado y está bloqueado."));
     }
 

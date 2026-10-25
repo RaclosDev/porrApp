@@ -63,24 +63,13 @@ public class MatchPredictionController {
                     .body(Map.of("error", "Debes iniciar sesión para enviar tus pronósticos."));
         }
 
-        try {
-            int saved = matchPredictionService.saveMatchdayPredictions(email, submission.getGroupId(), submission.getPredictions());
-            webSocketService.invalidateAndNotify();
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "saved", saved,
-                    "message", "Pronósticos guardados correctamente (" + saved + " partidos)"
-            ));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error interno al guardar los pronósticos: " + e.getMessage()));
-        }
+        int saved = matchPredictionService.saveMatchdayPredictions(email, submission.getGroupId(), submission.getPredictions());
+        webSocketService.invalidateAndNotify();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "saved", saved,
+                "message", "Pronósticos guardados correctamente (" + saved + " partidos)"
+        ));
     }
 
     /**

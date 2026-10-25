@@ -41,7 +41,15 @@ export function AppProvider({ children }) {
   useWebSocket(userName, queryClient);
 
   useEffect(() => {
-    localStorage.setItem(`draft_bracket_${activeGroupId}`, JSON.stringify(bracketState));
+    if (!activeGroupId) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(`draft_bracket_${activeGroupId}`, JSON.stringify(bracketState));
+      } catch {
+        /* ignore */
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [bracketState, activeGroupId]);
 
   useEffect(() => {

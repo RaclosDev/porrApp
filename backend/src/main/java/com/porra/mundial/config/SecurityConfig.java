@@ -15,7 +15,7 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
  * Configuración global de Spring Security.
  * Define las reglas de acceso (Rutas públicas vs privadas), desactiva CSRF
  * (por ser una API Stateless con JWT), registra RateLimitingFilter y JwtAuthFilter,
- * e implementa cabeceras de seguridad HTTP endurecidas.
+ * e implementa cabeceras de seguridad HTTP endurecidas (CSP, HSTS, X-Content-Type-Options, etc.).
  */
 @Configuration
 @EnableWebSecurity
@@ -37,7 +37,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/predictions/mine", "/api/bets/mine").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/predictions/**", "/api/bets/**").permitAll()
                 .requestMatchers("/api/matches/**").permitAll()
-                .requestMatchers("/api/standings/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/standings/recalculate", "/api/sync").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/standings/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/scorers/refresh").hasRole("ADMIN")
                 .requestMatchers("/api/scorers/**").permitAll()
                 .requestMatchers("/api/rules/**").permitAll()
@@ -57,7 +58,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/**").authenticated()
 
-                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/h2-console/**").hasRole("ADMIN")
                 .requestMatchers("/**").permitAll()
             )
             .httpBasic(basic -> basic.disable())
@@ -66,6 +67,23 @@ public class SecurityConfig {
                 .frameOptions(frame -> frame.sameOrigin())
                 .contentTypeOptions(content -> {})
                 .referrerPolicy(ref -> ref.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                    .preload(true)
+                )
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; " +
+                            "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://pagead2.googlesyndication.com; " +
+                            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                            "font-src 'self' https://fonts.gstatic.com; " +
+                            "img-src 'self' data: https:; " +
+                            "connect-src 'self' ws: wss: https://accounts.google.com https://site.api.espn.com https://a.espncdn.com; " +
+                            "frame-src 'self' https://accounts.google.com https://googleads.g.doubleclick.net;")
+                )
+                .permissionsPolicy(perm -> perm
+                    .policy("camera=(), microphone=(), geolocation=()")
+                )
             )
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

@@ -541,7 +541,13 @@ export default function MatchdayHomeDashboard() {
                         <img
                           src={t.teamLogo}
                           alt=""
+                          width={20}
+                          height={20}
+                          loading="lazy"
                           style={{ width: '20px', height: '20px', objectFit: 'contain' }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       ) : (
                         <span>🛡️</span>

@@ -138,8 +138,22 @@ function MatchdayPredictor() {
     },
   });
 
+  // Debounce para persistir borradores sin bloquear el hilo principal (INP)
+  useEffect(() => {
+    if (!hasUnsavedChanges || !activeGroupId) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(`draft_matchday_${activeGroupId}`, JSON.stringify(localPredictions));
+      } catch {
+        /* ignore */
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [localPredictions, activeGroupId, hasUnsavedChanges]);
+
   const handleScoreChange = (matchId, side, val) => {
     const cleanVal = val.replace(/[^0-9]/g, '');
+    setHasUnsavedChanges(true);
     setLocalPredictions((prev) => {
       const current = prev[matchId] || { homeScore: '', awayScore: '', sign: '' };
       const updated = {
@@ -154,21 +168,14 @@ function MatchdayPredictor() {
         updated.sign = h > a ? '1' : h === a ? 'X' : '2';
       }
 
-      const nextState = { ...prev, [matchId]: updated };
-      setHasUnsavedChanges(true);
-      try {
-        localStorage.setItem(`draft_matchday_${activeGroupId}`, JSON.stringify(nextState));
-      } catch {
-        /* ignore */
-      }
-      return nextState;
+      return { ...prev, [matchId]: updated };
     });
   };
 
   const handleQuickSign = (matchId, sign) => {
+    setHasUnsavedChanges(true);
     setLocalPredictions((prev) => {
       const current = prev[matchId] || { homeScore: '', awayScore: '', sign: '' };
-      // Asignar marcador por defecto sugerido según el signo
       let h = current.homeScore;
       let a = current.awayScore;
       if (sign === '1' && (h === '' || Number(h) <= Number(a))) {
@@ -698,6 +705,9 @@ function MatchdayPredictor() {
                     <img
                       src={fixture.homeTeamLogo}
                       alt={fixture.homeTeam}
+                      width={28}
+                      height={28}
+                      loading="lazy"
                       style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }}
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -829,6 +839,9 @@ function MatchdayPredictor() {
                     <img
                       src={fixture.awayTeamLogo}
                       alt={fixture.awayTeam}
+                      width={28}
+                      height={28}
+                      loading="lazy"
                       style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }}
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';

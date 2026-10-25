@@ -256,14 +256,23 @@ public class LeaderboardService {
         predictionRepository.invalidateAllScores();
     }
 
+    private String sanitizeCsvField(String value) {
+        if (value == null || value.isBlank()) return "\"\"";
+        String clean = value.replace("\"", "\"\"");
+        if (clean.startsWith("=") || clean.startsWith("+") || clean.startsWith("-") || clean.startsWith("@") || clean.startsWith("\t") || clean.startsWith("\r")) {
+            clean = "'" + clean;
+        }
+        return "\"" + clean + "\"";
+    }
+
     public String exportLeaderboardCsv(Long groupId) {
         List<ParticipantScoreDTO> leaderboard = getLeaderboard(groupId);
         StringBuilder sb = new StringBuilder();
         sb.append("Posicion,Participante,Nombre Porra,Puntos Totales,Jornadas,Fase Grupos,R32,Octavos,Cuartos,Semifinales,Final,Pichichi,Estado Pago\n");
         int pos = 1;
         for (ParticipantScoreDTO score : leaderboard) {
-            String pName = score.getName() != null ? score.getName().replace(",", " ") : "";
-            String bName = score.getBetName() != null ? score.getBetName().replace(",", " ") : "";
+            String pName = sanitizeCsvField(score.getName());
+            String bName = sanitizeCsvField(score.getBetName());
             String status = score.isPending() ? "Pendiente" : "Pagado";
             sb.append(pos++).append(",")
               .append(pName).append(",")
