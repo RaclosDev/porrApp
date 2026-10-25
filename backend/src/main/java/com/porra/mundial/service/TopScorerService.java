@@ -69,7 +69,6 @@ public class TopScorerService {
 
     /** Call this when a match just finished */
     public void refresh() {
-        imageCache.clear(); // Clear the image cache on manual/forced refresh to retry failed images
         try {
             JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);
             if (events == null) return;
@@ -188,7 +187,7 @@ public class TopScorerService {
         if (imageUrl != null) return imageUrl;
         
         imageUrl = imageCache.get(fullName);
-        if (imageUrl != null) return imageUrl;
+        if (imageUrl != null && !imageUrl.isEmpty()) return imageUrl;
 
         imageUrl = "";
         try {
@@ -232,8 +231,10 @@ public class TopScorerService {
         } catch (Exception e) {
             log.warn("TopScorerService: image lookup failed for {}: {}", fullName, e.getMessage());
         }
-        imageCache.put(fullName, imageUrl);
-        return imageUrl;
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            imageCache.put(fullName, imageUrl);
+        }
+        return imageUrl != null ? imageUrl : "";
     }
 
     private List<Map<String, Object>> buildScorersList(Map<String, int[]> playerGoals, Map<String, String> playerShortNames,

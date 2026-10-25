@@ -30,7 +30,7 @@ public class Match {
     private Team awayTeam;
 
     /** Ganador oficial del partido (útil para desempatar penaltis en eliminatorias). */
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winner_team_id")
     private Team winnerTeam;
 

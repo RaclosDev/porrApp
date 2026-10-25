@@ -21,6 +21,12 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 
     List<Prediction> findByEditionLeagueId(Long groupId);
 
+    @Query("SELECT p FROM Prediction p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.edition WHERE p.edition.league.id = :groupId")
+    List<Prediction> findByEditionLeagueIdWithUserAndEdition(@Param("groupId") Long groupId);
+
+    @Query("SELECT p FROM Prediction p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.edition")
+    List<Prediction> findAllWithUserAndEdition();
+
     List<Prediction> findByEditionLeagueIdOrderByTotalPointsDesc(Long groupId);
 
     List<Prediction> findAllByOrderByTotalPointsDesc();

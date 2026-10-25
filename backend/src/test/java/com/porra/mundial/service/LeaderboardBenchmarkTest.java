@@ -111,6 +111,7 @@ class LeaderboardBenchmarkTest {
         }
 
         when(predictionRepository.findAll()).thenReturn(participants);
+        when(predictionRepository.findAllWithUserAndEdition()).thenReturn(participants);
         when(matchPredictionRepository.findByPredictionId(anyLong())).thenReturn(Collections.emptyList());
 
         long startTime = System.currentTimeMillis();

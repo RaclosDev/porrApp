@@ -46,7 +46,9 @@ public class LeaderboardService {
     @Cacheable(value = "leaderboard", key = "#groupId != null ? #groupId : 0L")
     @org.springframework.transaction.annotation.Transactional
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
-        List<Prediction> groupPredictions = groupId != null ? predictionRepository.findByEditionLeagueId(groupId) : predictionRepository.findAll();
+        List<Prediction> groupPredictions = groupId != null
+                ? predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId)
+                : predictionRepository.findAllWithUserAndEdition();
 
         boolean allMaterialized = !groupPredictions.isEmpty() && groupPredictions.stream()
                 .filter(p -> p.getParticipantName() == null || !p.getParticipantName().equalsIgnoreCase("Admin"))
