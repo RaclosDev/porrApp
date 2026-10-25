@@ -41,7 +41,7 @@ export default function Landing() {
             margin: '0 auto',
           }}
         >
-          La emoción de la porra con tu peña,{' '}
+          La porra de toda la vida,{' '}
           <span
             style={{
               background: 'linear-gradient(135deg, #00d2d3 0%, #38bdf8 100%)',
@@ -49,7 +49,7 @@ export default function Landing() {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            elevada al siguiente nivel.
+            pero bien hecha.
           </span>
         </h1>
 
