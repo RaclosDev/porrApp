@@ -27,8 +27,24 @@ export function useWebSocket(userName, queryClient) {
             queryClient.invalidateQueries({ queryKey: ['myPredictions'] });
             queryClient.invalidateQueries({ queryKey: ['standings'] });
             queryClient.invalidateQueries({ queryKey: ['matches'] });
+            queryClient.invalidateQueries({ queryKey: ['radar'] });
           } else if (msg.type === 'MATCH_SCORE_UPDATED') {
-            queryClient.invalidateQueries({ queryKey: ['matches'] });
+            if (msg.matchId) {
+              queryClient.setQueriesData({ queryKey: ['matches'] }, (oldMatches) => {
+                if (!Array.isArray(oldMatches)) return oldMatches;
+                return oldMatches.map((m) =>
+                  m.id === msg.matchId
+                    ? {
+                        ...m,
+                        homeScore: msg.homeScore,
+                        awayScore: msg.awayScore,
+                        status: msg.status,
+                      }
+                    : m,
+                );
+              });
+            }
+            queryClient.invalidateQueries({ queryKey: ['radar'] });
             queryClient.invalidateQueries({ queryKey: ['matchRadar'] });
             queryClient.invalidateQueries({ queryKey: ['standings'] });
             queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
@@ -53,5 +69,5 @@ export function useWebSocket(userName, queryClient) {
       }
       clearInterval(wsPingInterval);
     };
-  }, [userName, queryClient]);
+  }, [queryClient]);
 }

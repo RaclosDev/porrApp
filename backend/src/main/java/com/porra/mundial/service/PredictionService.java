@@ -174,7 +174,7 @@ public class PredictionService {
         return predictionRepository.findById(id);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO betData, Long groupId) {
         if (groupId != null) {
             predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
@@ -216,12 +216,12 @@ public class PredictionService {
         return prediction;
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction createBet(String email, String betName, PredictionDataDTO betData, Long groupId) {
         return createPrediction(email, betName, betData, groupId);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, PredictionDataDTO betData) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
@@ -248,7 +248,7 @@ public class PredictionService {
         return updatePrediction(id, null, participantName, betName, betData);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
     public Prediction markAsPaid(Long id, String requesterEmail) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
@@ -267,7 +267,7 @@ public class PredictionService {
         return markAsPaid(id, null);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
     public void deletePrediction(Long id, String requesterEmail) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
 
@@ -284,7 +284,7 @@ public class PredictionService {
         deletePrediction(id, null);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
     public Prediction restorePrediction(Long backupId) {
         PredictionBackup backup = predictionBackupRepository.findById(backupId)
                 .orElseThrow(() -> new NoSuchElementException("Backup no encontrado: " + backupId));

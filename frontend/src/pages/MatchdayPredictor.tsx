@@ -31,6 +31,17 @@ function MatchdayPredictor() {
     activeGroupAdminId?.toString() === userId?.toString() ||
     (activeGroupAdmin && activeGroupAdmin === userName);
 
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [selectedRound, setSelectedRound] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'FINISHED'
+  const [selectedMatchForFriends, setSelectedMatchForFriends] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [localPredictions, setLocalPredictions] = useState({});
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [saveErrorMsg, setSaveErrorMsg] = useState('');
+
   // Consulta de usuarios que faltan por pronosticar la jornada (Solo visible para el admin)
   const { data: missingData } = useQuery({
     queryKey: ['missingRoundUsers', activeGroupId, selectedRound],
@@ -45,16 +56,6 @@ function MatchdayPredictor() {
     const text = `⚠️ *¡AVISO PORRA - ${activeGroupName ? activeGroupName.toUpperCase() : 'LIGA'}!* ⚠️\n\nQueda poco tiempo para el inicio de *${roundLabel}*.\n\n🚨 *Faltan por pronosticar:* ${names}\n\n👉 ¡Entrad ya antes de que cierren los partidos!\n${window.location.origin}/jornadas`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const [selectedRound, setSelectedRound] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'FINISHED'
-  const [selectedMatchForFriends, setSelectedMatchForFriends] = useState(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [localPredictions, setLocalPredictions] = useState({});
-  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
-  const [saveErrorMsg, setSaveErrorMsg] = useState('');
 
   // Redirigir a mis-ligas si no hay liga seleccionada
   useEffect(() => {

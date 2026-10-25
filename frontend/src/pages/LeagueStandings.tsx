@@ -189,6 +189,8 @@ export default function LeagueStandings() {
                             <img
                               src={row.teamLogo}
                               alt={row.teamName}
+                              width={26}
+                              height={26}
                               style={{ width: '26px', height: '26px', objectFit: 'contain' }}
                               loading="lazy"
                               onError={(e) => {

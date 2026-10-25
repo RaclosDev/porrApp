@@ -11,6 +11,7 @@ export function useLeaderboard() {
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
+    activeGroupPoolFormat,
     activeGroupBetMode,
     activeGroupAdminId,
     userId,

@@ -14,16 +14,30 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom'))
-              return 'react';
-            if (
-              id.includes('zustand') ||
-              id.includes('@tanstack/react-query') ||
-              id.includes('axios')
-            )
-              return 'vendor';
-            if (id.includes('lucide-react')) return 'icons';
+          if (!id.includes('node_modules')) return;
+
+          if (id.includes('lucide-react')) return 'icons';
+          if (id.includes('@tanstack') || id.includes('axios')) return 'data-vendor';
+          if (id.includes('@react-oauth')) return 'auth-vendor';
+          if (
+            id.includes('@radix-ui') ||
+            id.includes('class-variance-authority') ||
+            id.includes('clsx') ||
+            id.includes('tailwind-merge')
+          ) {
+            return 'ui-vendor';
+          }
+          if (id.includes('react-hot-toast')) return 'toast-vendor';
+          if (id.includes('html2canvas')) return 'html2canvas';
+          if (id.includes('zustand')) return 'store-vendor';
+
+          if (
+            id.includes('/node_modules/react/') ||
+            id.includes('/node_modules/react-dom/') ||
+            id.includes('/node_modules/react-router-dom/') ||
+            id.includes('/node_modules/scheduler/')
+          ) {
+            return 'react-core';
           }
         },
       },
@@ -40,25 +54,23 @@ export default defineConfig({
         globIgnores: ['**/updates/**', '**/world-cup-icon.png'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\./,
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
             handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache' },
-          },
-          {
-            urlPattern: /.*\.(?:png|jpg|jpeg|webp|gif)$/,
-            handler: 'CacheFirst',
             options: {
-              cacheName: 'images-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
+              cacheName: 'api-runtime-cache',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
             },
           },
           {
-            urlPattern: /.*\.(?:png|jpg|jpeg|svg|gif|css|js)$/,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'assets-cache' },
+            urlPattern: ({ url }) =>
+              url.hostname.includes('flagcdn.com') || url.hostname.includes('espncdn.com'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'cdn-images-cache',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
           },
         ],
       },

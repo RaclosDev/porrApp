@@ -37,8 +37,7 @@ public class PredictionController {
     }
 
     @GetMapping
-    @Cacheable(value = "allPredictionsDto", key = "#groupId != null ? #groupId : 'ALL'")
-    public List<PredictionResponseDTO> getAllPredictions(@RequestParam(required = false) Long groupId, Principal principal) {
+        public List<PredictionResponseDTO> getAllPredictions(@RequestParam(required = false) Long groupId, Principal principal) {
         String email = getRequesterEmail(principal);
         List<Prediction> predictions;
 

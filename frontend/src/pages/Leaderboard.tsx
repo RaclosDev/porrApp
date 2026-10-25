@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeaderboard } from '../hooks/useLeaderboard';
-import EvolutionChart from '../components/EvolutionChart';
+const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import WhatsAppIcon from '../components/WhatsAppIcon';
 
 /**
@@ -245,11 +245,13 @@ function Leaderboard() {
 
       {activeTab === 'evolution' ? (
         <div style={{ width: '100%', marginTop: '10px' }}>
-          <EvolutionChart
-            validResults={validResults}
-            userName={userName}
-            allGames={state.allGames}
-          />
+          <Suspense fallback={<div className="skeleton-card" style={{ height: 400 }} />}>
+            <EvolutionChart
+              validResults={validResults}
+              userName={userName}
+              allGames={state.allGames}
+            />
+          </Suspense>
         </div>
       ) : (
         <div

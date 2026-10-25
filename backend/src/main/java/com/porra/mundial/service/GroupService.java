@@ -442,7 +442,7 @@ public class GroupService {
      * Cambiar el estado de pago de un pronostico concreto dentro del grupo.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
     public Prediction togglePredictionPaymentStatus(Long groupId, Long predictionId, String email, boolean paid) {
         verifyGroupAdmin(groupId, email);
         Prediction pred = predictionRepository.findById(predictionId)
@@ -455,13 +455,13 @@ public class GroupService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
     public Prediction toggleBetPaymentStatus(Long groupId, Long betId, String email, boolean paid) {
         return togglePredictionPaymentStatus(groupId, betId, email, paid);
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
     public void deletePrediction(Long groupId, Long predictionId, String email) {
         verifyGroupAdmin(groupId, email);
         Prediction pred = predictionRepository.findById(predictionId)
@@ -473,7 +473,7 @@ public class GroupService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto", "rebuiltBetData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData"}, allEntries = true)
     public void deleteBet(Long groupId, Long betId, String email) {
         deletePrediction(groupId, betId, email);
     }
@@ -519,7 +519,7 @@ public class GroupService {
      * Cambia el estado de pago de un miembro en la liga y sincroniza su pronóstico.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto"}, allEntries = true)
     public void toggleMemberPayment(Long groupId, Long targetUserId, String email, String status) {
         verifyGroupAdmin(groupId, email);
 
@@ -546,7 +546,7 @@ public class GroupService {
      * Expulsa a un participante de la liga eliminando sus pronósticos y membresía.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto"}, allEntries = true)
     public void kickMember(Long groupId, Long targetUserId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)

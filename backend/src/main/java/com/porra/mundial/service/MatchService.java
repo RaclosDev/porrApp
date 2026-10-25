@@ -93,7 +93,7 @@ public class MatchService {
     /**
      * Guarda o actualiza un partido en base de datos.
      */
-    @org.springframework.cache.annotation.CacheEvict(value = {"matches", "matchRadar", "standings", "officialPoints", "leaderboard", "rebuiltBetData", "allBetsDto", "myBetsDto"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"matches", "matchRadar", "standings", "officialPoints", "leaderboard", "rebuiltBetData", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto"}, allEntries = true)
     @Transactional
     public Match save(Match match) {
         return matchRepository.save(match);

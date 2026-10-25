@@ -219,7 +219,7 @@ export const useAppContext = () => {
     leaderboardData: leaderboard || EMPTY_ARRAY,
     loading,
     fetchData: adminActions.refreshAll,
-    onlineUsers: onlineUsers || EMPTY_ARRAY,
+    onlineUsers: EMPTY_ARRAY,
     isRaclos,
     deletePrediction: adminActions.deletePrediction || adminActions.deleteBet,
     deleteBet: adminActions.deletePrediction || adminActions.deleteBet,

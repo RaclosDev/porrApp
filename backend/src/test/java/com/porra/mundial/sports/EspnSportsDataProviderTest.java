@@ -131,4 +131,30 @@ class EspnSportsDataProviderTest {
         assertEquals(1, teams.size());
         assertEquals("Alavés", teams.get(0).path("team").path("displayName").asText());
     }
+
+    @Test
+    @DisplayName("Debe manejar timeouts de conexión con ESPN retornando array vacío sin romper la app")
+    void fetchScoreboardEvents_handlesTimeoutGracefully() throws Exception {
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any()))
+                .thenThrow(new java.net.http.HttpConnectTimeoutException("ESPN connection timed out"));
+
+        JsonNode events = provider.fetchScoreboardEvents("esp.1", "20261025");
+
+        assertNotNull(events);
+        assertTrue(events.isArray());
+        assertEquals(0, events.size(), "Debe retornar un ArrayNode vacío ante timeout");
+    }
+
+    @Test
+    @DisplayName("Debe manejar errores HTTP 500 y 503 retornando respuesta segura")
+    void fetchScoreboardEvents_handlesHttp500() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(503);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode events = provider.fetchScoreboardEvents("esp.1", "20261025");
+
+        assertNotNull(events);
+        assertTrue(events.isArray());
+        assertEquals(0, events.size());
+    }
 }

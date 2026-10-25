@@ -40,7 +40,11 @@ public class AdminAuthController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "El acceso administrativo no está configurado en el servidor"));
         }
-        if (password != null && adminPassword.equals(password)) {
+        boolean isValid = password != null && java.security.MessageDigest.isEqual(
+                adminPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                password.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
+        if (isValid) {
             String token = jwtUtil.generateToken("admin");
             return ResponseEntity.ok(Map.of("token", token));
         }

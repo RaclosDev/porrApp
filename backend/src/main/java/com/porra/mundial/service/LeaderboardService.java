@@ -78,7 +78,13 @@ public class LeaderboardService {
                         .build();
                 fastLeaderboard.add(score);
             }
-            fastLeaderboard.sort((a, b) -> Integer.compare(b.getTotal(), a.getTotal()));
+            fastLeaderboard.sort((a, b) -> {
+                if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
+                if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
+                String nameA = a.getName() != null ? a.getName() : "";
+                String nameB = b.getName() != null ? b.getName() : "";
+                return nameA.compareToIgnoreCase(nameB);
+            });
             return fastLeaderboard;
         }
 
@@ -234,7 +240,13 @@ public class LeaderboardService {
             }
         }
 
-        leaderboard.sort((a, b) -> Integer.compare(b.getTotal(), a.getTotal()));
+        leaderboard.sort((a, b) -> {
+            if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
+            if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
+            String nameA = a.getName() != null ? a.getName() : "";
+            String nameB = b.getName() != null ? b.getName() : "";
+            return nameA.compareToIgnoreCase(nameB);
+        });
         return leaderboard;
     }
 

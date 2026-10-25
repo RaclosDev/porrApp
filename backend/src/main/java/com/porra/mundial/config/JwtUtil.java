@@ -33,9 +33,11 @@ public class JwtUtil {
      * 
      * @param secret Clave secreta (mínimo 256 bits recomendados para el algoritmo HS256)
      */
-    public JwtUtil(@Value("${app.jwt.secret:1234567890123456789012345678901234567890}") String secret) {
-        // Aseguramos de que el secret tiene el formato correcto generando una clave HMAC-SHA
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        public JwtUtil(@Value("${app.jwt.secret:}") String secret) {
+        if (secret == null || secret.isBlank() || "1234567890123456789012345678901234567890".equals(secret) || secret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("FATAL: app.jwt.secret DEBE estar configurado y contener al menos 32 caracteres (256 bits). El secreto estático por defecto está prohibido.");
+        }
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     /**
