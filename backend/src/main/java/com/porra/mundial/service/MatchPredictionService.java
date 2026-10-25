@@ -55,10 +55,26 @@ public class MatchPredictionService {
         }
 
         if (round != null && !round.isBlank()) {
+            final String cleanRound = round.trim();
+            final String groupOnly = cleanRound.toLowerCase().startsWith("grupo ")
+                    ? cleanRound.substring(6).trim()
+                    : cleanRound;
             matches = matches.stream()
-                    .filter(m -> round.equalsIgnoreCase(m.getRound()) || round.equalsIgnoreCase(m.getGroupName()))
+                    .filter(m -> cleanRound.equalsIgnoreCase(m.getRound())
+                            || cleanRound.equalsIgnoreCase(m.getGroupName())
+                            || (m.getGroupName() != null && groupOnly.equalsIgnoreCase(m.getGroupName())))
                     .collect(Collectors.toList());
         }
+
+        // Excluir partidos fantasma donde ambos equipos son 'Por definir'
+        matches = matches.stream()
+                .filter(m -> {
+                    if (m.getHomeTeam() == null || m.getAwayTeam() == null) return true;
+                    boolean h = "Por definir".equalsIgnoreCase(m.getHomeTeam().getName()) || "TBD".equalsIgnoreCase(m.getHomeTeam().getNameEn());
+                    boolean a = "Por definir".equalsIgnoreCase(m.getAwayTeam().getName()) || "TBD".equalsIgnoreCase(m.getAwayTeam().getNameEn());
+                    return !(h && a);
+                })
+                .collect(Collectors.toList());
 
         Prediction userPrediction = null;
         if (email != null && !email.isBlank() && groupId != null) {

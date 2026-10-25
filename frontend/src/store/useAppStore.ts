@@ -64,10 +64,14 @@ export const useAppStore = create((set) => ({
   userId: localStorage.getItem('my_user_id') || '',
   setUserId: (userId) => set({ userId }),
 
-  activeGroupId: localStorage.getItem('activeGroupId') || '1',
+  activeGroupId: localStorage.getItem('activeGroupId') || '',
   setActiveGroupId: (activeGroupId) => {
-    localStorage.setItem('activeGroupId', activeGroupId);
-    set({ activeGroupId });
+    if (activeGroupId) {
+      localStorage.setItem('activeGroupId', activeGroupId);
+    } else {
+      localStorage.removeItem('activeGroupId');
+    }
+    set({ activeGroupId: activeGroupId || '' });
   },
 
   activeCompetitionId:

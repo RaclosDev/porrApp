@@ -54,6 +54,44 @@ export default function ActiveLeagueDropdown() {
     };
   }, []);
 
+  if (isAuthenticated && (!userGroups || userGroups.length === 0)) {
+    return (
+      <button
+        type="button"
+        id="btn-active-league-dropdown"
+        onClick={() => navigate('/mis-ligas')}
+        className="glass-btn"
+        title="Crear o unirse a una liga"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '4px 10px',
+          minHeight: '34px',
+          borderRadius: '16px',
+          border: '1px dashed rgba(0, 210, 211, 0.6)',
+          background: 'rgba(0, 210, 211, 0.1)',
+          color: '#00d2d3',
+          cursor: 'pointer',
+          fontSize: '0.82rem',
+          fontWeight: 700,
+        }}
+      >
+        <span>➕</span>
+        <span
+          style={{
+            maxWidth: '130px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Crear o unirse
+        </span>
+      </button>
+    );
+  }
+
   const currentBadge = getCompetitionBadge(activeCompetitionName);
   const displayLeagueName = activeGroupName || 'Porra Global';
   const displayCompName =

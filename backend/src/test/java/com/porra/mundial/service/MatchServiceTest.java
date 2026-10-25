@@ -1,6 +1,8 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
+import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,5 +50,52 @@ class MatchServiceTest {
         // Deberían estar ordenados por fecha descendente (el que empieza en 15 min primero, luego el que empezó hace 10)
         assertEquals(4L, liveMatches.get(0).getId());
         assertEquals(3L, liveMatches.get(1).getId());
+    }
+
+    @Test
+    void testGetLiveMatches_FiltersByCompetitionAndExcludesBogus() {
+        LocalDateTime now = LocalDateTime.now();
+        Competition worldCup = Competition.builder().id(1L).name("World Cup 2026").build();
+        Competition laLiga = Competition.builder().id(2L).name("LaLiga").build();
+
+        Team spain = Team.builder().id(10L).name("España").build();
+        Team france = Team.builder().id(20L).name("Francia").build();
+        Team tbd1 = Team.builder().id(99L).name("Por definir").build();
+        Team tbd2 = Team.builder().id(98L).name("Por definir").build();
+
+        // Partido en vivo del Mundial
+        Match wcMatch = Match.builder()
+                .id(101L)
+                .competition(worldCup)
+                .homeTeam(spain)
+                .awayTeam(france)
+                .finished(false)
+                .matchDate(now.minusMinutes(20))
+                .build();
+
+        // Partido en vivo de LaLiga
+        Match laLigaMatch = Match.builder()
+                .id(102L)
+                .competition(laLiga)
+                .finished(false)
+                .matchDate(now.minusMinutes(15))
+                .build();
+
+        // Partido fantasma con ambos 'Por definir'
+        Match bogusMatch = Match.builder()
+                .id(103L)
+                .competition(worldCup)
+                .homeTeam(tbd1)
+                .awayTeam(tbd2)
+                .finished(false)
+                .matchDate(now.minusMinutes(5))
+                .build();
+
+        when(matchRepository.findAll()).thenReturn(Arrays.asList(wcMatch, laLigaMatch, bogusMatch));
+
+        List<Match> filtered = matchService.getLiveMatches(1L);
+
+        assertEquals(1, filtered.size(), "Solo debe devolver el partido del Mundial y excluir el fantasma y el de LaLiga");
+        assertEquals(101L, filtered.get(0).getId());
     }
 }

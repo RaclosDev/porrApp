@@ -445,6 +445,13 @@ public class SyncService {
 
         if (homeTeam == null || awayTeam == null) return;
 
+        boolean homeIsPlaceholder = "Por definir".equalsIgnoreCase(homeTeam.getName()) || "TBD".equalsIgnoreCase(homeTeam.getNameEn());
+        boolean awayIsPlaceholder = "Por definir".equalsIgnoreCase(awayTeam.getName()) || "TBD".equalsIgnoreCase(awayTeam.getNameEn());
+        if (homeIsPlaceholder && awayIsPlaceholder) {
+            // No registrar partidos fantasma donde ambos equipos son desconocidos o marcadores de posición
+            return;
+        }
+
         MatchScores scores = parseScoresAndWinner(homeComp, awayComp, homeTeam, awayTeam, status);
         MatchMetadata metadata = parseMetadata(competition);
 

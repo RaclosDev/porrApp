@@ -63,6 +63,23 @@ public class DataInitializer implements CommandLineRunner {
                     .build());
         }
 
+        // Purgar partidos fantasma existentes donde ambos equipos son 'Por definir'
+        try {
+            java.util.List<com.porra.mundial.model.Match> bogus = matchRepository.findAll().stream()
+                    .filter(m -> {
+                        boolean h = m.getHomeTeam() == null || "Por definir".equalsIgnoreCase(m.getHomeTeam().getName()) || "TBD".equalsIgnoreCase(m.getHomeTeam().getNameEn());
+                        boolean a = m.getAwayTeam() == null || "Por definir".equalsIgnoreCase(m.getAwayTeam().getName()) || "TBD".equalsIgnoreCase(m.getAwayTeam().getNameEn());
+                        return h && a;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+            if (!bogus.isEmpty()) {
+                log.info("Limpiando {} partidos fantasma 'Por definir vs Por definir' en base de datos...", bogus.size());
+                matchRepository.deleteAll(bogus);
+            }
+        } catch (Exception e) {
+            log.warn("No se pudieron purgar partidos fantasma en arranque: {}", e.getMessage());
+        }
+
         // Ejecuta la sincronización externa y cálculos pesados en segundo plano
         // para que Tomcat levante de inmediato y pase los health checks de Render sin demoras.
         java.util.concurrent.CompletableFuture.runAsync(() -> {

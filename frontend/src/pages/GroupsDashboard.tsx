@@ -13,6 +13,8 @@ import { POOL_FORMATS, PRESET_TEMPLATES, useGroupsDashboard } from '../hooks/use
  */
 export default function GroupsDashboard() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
   const {
     groups,
     competitions,
@@ -318,8 +320,71 @@ export default function GroupsDashboard() {
         </div>
       )}
 
-      <div className="section-header">
-        <h2 style={{ margin: 0 }}>Mis Ligas</h2>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '14px',
+          marginBottom: '24px',
+          paddingBottom: '16px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        }}
+      >
+        <div>
+          <h2 style={{ margin: '0 0 4px 0', fontSize: '1.6rem', color: '#fff', fontWeight: 800 }}>
+            Mis Ligas
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+            Compite con amigos en tus propias porras privadas o únete con un código.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setShowJoinModal((prev) => !prev);
+              setShowCreateModal(false);
+            }}
+            className="glass-btn"
+            style={{
+              padding: '8px 16px',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              borderRadius: '10px',
+              border: showJoinModal ? '1px solid #9b59b6' : '1px solid rgba(255,255,255,0.15)',
+              background: showJoinModal ? 'rgba(155, 89, 182, 0.25)' : 'rgba(255,255,255,0.06)',
+              color: showJoinModal ? '#e056fd' : '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            🎟️ Unirse con Código
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreateModal((prev) => !prev);
+              setShowJoinModal(false);
+            }}
+            className="glass-btn primary-btn"
+            style={{
+              padding: '8px 18px',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              borderRadius: '10px',
+              background: showCreateModal
+                ? 'rgba(255,255,255,0.12)'
+                : 'linear-gradient(135deg, #00d2d3, #00a8ff)',
+              color: showCreateModal ? '#fff' : '#0f172a',
+              border: showCreateModal ? '1px solid rgba(255,255,255,0.2)' : 'none',
+              boxShadow: showCreateModal ? 'none' : '0 4px 15px rgba(0, 210, 211, 0.3)',
+              cursor: 'pointer',
+            }}
+          >
+            {showCreateModal ? '✕ Cancelar Creación' : '➕ Crear Nueva Liga'}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -338,441 +403,545 @@ export default function GroupsDashboard() {
         </div>
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          gap: '20px',
-          flexWrap: 'wrap',
-          marginBottom: '30px',
-          justifyContent: 'center',
-        }}
-      >
-        {/* Asistente de Creación de Liga (Fase 5 UX) */}
+      {/* Asistente de Creación de Liga */}
+      {showCreateModal && (
         <div
-          className="glass-panel"
           style={{
-            flex: '2',
-            minWidth: '320px',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
+            maxWidth: '820px',
+            margin: '0 auto 30px auto',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3
-              style={{
-                margin: 0,
-                color: 'var(--accent-color)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-              }}
-            >
-              🏆 Asistente de Creación de Liga
-            </h3>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={() => setWizardStep(1)}
+          <div
+            className="glass-panel"
+            style={{
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              border: '1px solid #00d2d3',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold',
-                  background: wizardStep === 1 ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)',
-                  color: wizardStep === 1 ? '#0f172a' : 'white',
-                  cursor: 'pointer',
+                  margin: 0,
+                  color: 'var(--accent-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
                 }}
               >
-                1. Configuración
-              </button>
-              <button
-                type="button"
-                onClick={() => setWizardStep(2)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold',
-                  background: wizardStep === 2 ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)',
-                  color: wizardStep === 2 ? '#0f172a' : 'white',
-                  cursor: 'pointer',
-                }}
-              >
-                2. Vista Previa Reglas
-              </button>
-            </div>
-          </div>
-
-          {wizardStep === 1 ? (
-            <div>
-              {/* Plantillas recomendadas */}
-              <div style={{ marginBottom: '14px' }}>
-                <div
-                  style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}
-                >
-                  Elige una plantilla lista para usar:
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                    gap: '10px',
-                  }}
-                >
-                  {PRESET_TEMPLATES.map((tmpl) => {
-                    const isChosen = selectedTemplate === tmpl.id;
-                    return (
-                      <div
-                        key={tmpl.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => selectTemplate(tmpl.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            selectTemplate(tmpl.id);
-                          }
-                        }}
-                        style={{
-                          padding: '12px',
-                          borderRadius: '10px',
-                          border: isChosen
-                            ? '2px solid #00d2d3'
-                            : '1px solid rgba(255,255,255,0.1)',
-                          background: isChosen ? 'rgba(0, 210, 211, 0.12)' : 'rgba(0,0,0,0.2)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <span style={{ fontSize: '1.3rem' }}>{tmpl.icon}</span>
-                          <span
-                            style={{
-                              fontSize: '0.7rem',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background: isChosen ? '#00d2d3' : 'rgba(255,255,255,0.1)',
-                              color: isChosen ? '#0f172a' : 'var(--text-muted)',
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            {tmpl.badge}
-                          </span>
-                        </div>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'white' }}>
-                          {tmpl.name}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '0.75rem',
-                            color: 'var(--text-muted)',
-                            lineHeight: '1.2',
-                          }}
-                        >
-                          {tmpl.tagline}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Formulario de parámetros */}
-              <form
-                onSubmit={handleCreate}
-                style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
-              >
-                <div>
-                  <label
+                🏆 Asistente de Creación de Liga
+              </h3>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(1)}
                     style={{
-                      display: 'block',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
                       fontSize: '0.8rem',
-                      color: 'var(--text-muted)',
-                      marginBottom: '4px',
+                      fontWeight: 'bold',
+                      background:
+                        wizardStep === 1 ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)',
+                      color: wizardStep === 1 ? '#0f172a' : 'white',
+                      cursor: 'pointer',
                     }}
                   >
-                    Nombre de tu Liga:
-                  </label>
-                  <input
-                    type="text"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    placeholder="Ej: Amigos del Barrio, Porra Oficina 2026..."
-                    aria-label="Nombre del nuevo grupo"
-                    className="glass-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <div style={{ flex: '1 1 200px' }}>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.8rem',
-                        color: 'var(--text-muted)',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      Competición Deportiva:
-                    </label>
-                    <select
-                      aria-label="Seleccionar competición deportiva"
-                      value={selectedCompetition}
-                      onChange={(e) => setSelectedCompetition(e.target.value)}
-                      className="glass-input"
-                      style={{ width: '100%' }}
-                    >
-                      {competitions.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div style={{ flex: '1 1 200px' }}>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.8rem',
-                        color: 'var(--text-muted)',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      Modalidad / Formato:
-                    </label>
-                    <select
-                      aria-label="Seleccionar formato de porra"
-                      value={selectedBetMode}
-                      onChange={(e) => setSelectedBetMode(e.target.value)}
-                      className="glass-input"
-                      style={{ width: '100%' }}
-                    >
-                      {POOL_FORMATS.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    color: 'var(--text-muted)',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    padding: '8px 12px',
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={includePichichi}
-                    onChange={(e) => setIncludePichichi(e.target.checked)}
-                  />
-                  <span>Incluir Porra de Máximo Goleador (Pichichi)</span>
-                </label>
-
-                <div
-                  style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}
-                >
+                    1. Configuración
+                  </button>
                   <button
                     type="button"
                     onClick={() => setWizardStep(2)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 'bold',
+                      background:
+                        wizardStep === 2 ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)',
+                      color: wizardStep === 2 ? '#0f172a' : 'white',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    2. Vista Previa Reglas
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    fontSize: '1.2rem',
+                    marginLeft: '6px',
+                  }}
+                  title="Cerrar Asistente"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {wizardStep === 1 ? (
+              <div>
+                {/* Plantillas recomendadas */}
+                <div style={{ marginBottom: '14px' }}>
+                  <div
+                    style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}
+                  >
+                    Elige una plantilla lista para usar:
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: '10px',
+                    }}
+                  >
+                    {PRESET_TEMPLATES.map((tmpl) => {
+                      const isChosen = selectedTemplate === tmpl.id;
+                      return (
+                        <div
+                          key={tmpl.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => selectTemplate(tmpl.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              selectTemplate(tmpl.id);
+                            }
+                          }}
+                          style={{
+                            padding: '12px',
+                            borderRadius: '10px',
+                            border: isChosen
+                              ? '2px solid #00d2d3'
+                              : '1px solid rgba(255,255,255,0.1)',
+                            background: isChosen ? 'rgba(0, 210, 211, 0.12)' : 'rgba(0,0,0,0.2)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span style={{ fontSize: '1.3rem' }}>{tmpl.icon}</span>
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: isChosen ? '#00d2d3' : 'rgba(255,255,255,0.1)',
+                                color: isChosen ? '#0f172a' : 'var(--text-muted)',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              {tmpl.badge}
+                            </span>
+                          </div>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'white' }}>
+                            {tmpl.name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)',
+                              lineHeight: '1.2',
+                            }}
+                          >
+                            {tmpl.tagline}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Formulario de parámetros */}
+                <form
+                  onSubmit={handleCreate}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-muted)',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Nombre de tu Liga:
+                    </label>
+                    <input
+                      type="text"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      placeholder="Ej: Amigos del Barrio, Porra Oficina 2026..."
+                      aria-label="Nombre del nuevo grupo"
+                      className="glass-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.8rem',
+                          color: 'var(--text-muted)',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        Competición Deportiva:
+                      </label>
+                      <select
+                        aria-label="Seleccionar competición deportiva"
+                        value={selectedCompetition}
+                        onChange={(e) => setSelectedCompetition(e.target.value)}
+                        className="glass-input"
+                        style={{ width: '100%' }}
+                      >
+                        {competitions.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ flex: '1 1 200px' }}>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.8rem',
+                          color: 'var(--text-muted)',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        Modalidad / Formato:
+                      </label>
+                      <select
+                        aria-label="Seleccionar formato de porra"
+                        value={selectedBetMode}
+                        onChange={(e) => setSelectedBetMode(e.target.value)}
+                        className="glass-input"
+                        style={{ width: '100%' }}
+                      >
+                        {POOL_FORMATS.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      padding: '8px 12px',
+                      background: 'rgba(0,0,0,0.2)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={includePichichi}
+                      onChange={(e) => setIncludePichichi(e.target.checked)}
+                    />
+                    <span>Incluir Porra de Máximo Goleador (Pichichi)</span>
+                  </label>
+
+                  <div
+                    style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setWizardStep(2)}
+                      className="glass-btn"
+                      style={{ flex: 1, padding: '10px' }}
+                    >
+                      👁️ Ver Reglas y Puntuación
+                    </button>
+                    <button
+                      type="submit"
+                      className="glass-btn primary-btn"
+                      style={{ flex: 1, padding: '10px', fontWeight: 'bold' }}
+                    >
+                      🚀 Crear Liga Ahora
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div>
+                {/* Paso 2: Vista previa explicativa de reglas */}
+                <div
+                  style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 'bold',
+                      color: '#00d2d3',
+                      marginBottom: '8px',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    {activeTemplateObj?.name || 'Formato Seleccionado'}
+                  </div>
+                  <p style={{ color: 'white', fontSize: '0.85rem', margin: '0 0 12px 0' }}>
+                    {activeTemplateObj?.description ||
+                      'Formato configurado según tus preferencias.'}
+                  </p>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <span>⏱️</span>
+                      <span>
+                        <strong>Cierre de pronósticos:</strong> Cada partido bloquea su edición de
+                        forma independiente exactamente a la hora del pitido inicial.
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <span>📊</span>
+                      <span>
+                        <strong>Puntuación explicable:</strong> Clasificación en vivo tras cada
+                        partido con desglose público y 100% lúdico (sin dinero ni apuestas).
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <span>🔗</span>
+                      <span>
+                        <strong>Invitaciones seguras:</strong> Código de 6 letras y enlace directo
+                        con 1-clic para compartir por WhatsApp.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(1)}
                     className="glass-btn"
                     style={{ flex: 1, padding: '10px' }}
                   >
-                    👁️ Ver Reglas y Puntuación
+                    ⬅️ Volver a Editar
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleCreate}
+                    disabled={isCreating}
                     className="glass-btn primary-btn"
                     style={{ flex: 1, padding: '10px', fontWeight: 'bold' }}
                   >
-                    🚀 Crear Liga Ahora
+                    {isCreating ? '⏳ Creando Liga...' : '🚀 Confirmar y Crear Liga'}
                   </button>
                 </div>
-              </form>
-            </div>
-          ) : (
-            <div>
-              {/* Paso 2: Vista previa explicativa de reglas */}
-              <div
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Unirse con Código */}
+      {showJoinModal && (
+        <div
+          style={{
+            maxWidth: '480px',
+            margin: '0 auto 30px auto',
+          }}
+        >
+          <div
+            className="glass-panel"
+            style={{
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '15px',
+              border: '1px solid #9b59b6',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3
                 style={{
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  marginBottom: '16px',
+                  margin: 0,
+                  color: '#9b59b6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
                 }}
               >
-                <div
-                  style={{
-                    fontWeight: 'bold',
-                    color: '#00d2d3',
-                    marginBottom: '8px',
-                    fontSize: '1rem',
-                  }}
-                >
-                  {activeTemplateObj?.name || 'Formato Seleccionado'}
-                </div>
-                <p style={{ color: 'white', fontSize: '0.85rem', margin: '0 0 12px 0' }}>
-                  {activeTemplateObj?.description || 'Formato configurado según tus preferencias.'}
-                </p>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    <span>⏱️</span>
-                    <span>
-                      <strong>Cierre de pronósticos:</strong> Cada partido bloquea su edición de
-                      forma independiente exactamente a la hora del pitido inicial.
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    <span>📊</span>
-                    <span>
-                      <strong>Puntuación explicable:</strong> Clasificación en vivo tras cada
-                      partido con desglose público y 100% lúdico (sin dinero ni apuestas).
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    <span>🔗</span>
-                    <span>
-                      <strong>Invitaciones seguras:</strong> Código de 6 letras y enlace directo con
-                      1-clic para compartir por WhatsApp.
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setWizardStep(1)}
-                  className="glass-btn"
-                  style={{ flex: 1, padding: '10px' }}
-                >
-                  ⬅️ Volver a Editar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreate}
-                  disabled={isCreating}
-                  className="glass-btn primary-btn"
-                  style={{ flex: 1, padding: '10px', fontWeight: 'bold' }}
-                >
-                  {isCreating ? '⏳ Creando Liga...' : '🚀 Confirmar y Crear Liga'}
-                </button>
-              </div>
+                🎟️ Unirse con Código
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowJoinModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                }}
+                title="Cerrar"
+              >
+                ✕
+              </button>
             </div>
-          )}
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0 }}>
+              ¿Tienes un código de invitación de 6 letras? Introdúcelo aquí para acceder
+              directamente a la liga:
+            </p>
+            <form onSubmit={handleJoin} style={{ display: 'flex', gap: '10px' }}>
+              <input
+                type="text"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Ej: X9K2PL"
+                aria-label="Código de invitación de 6 letras"
+                maxLength={6}
+                className="glass-input"
+                style={{
+                  flex: 1,
+                  textTransform: 'uppercase',
+                  letterSpacing: '2px',
+                  fontWeight: 'bold',
+                }}
+              />
+              <button
+                type="submit"
+                className="glass-btn primary-btn"
+                style={{ background: '#9b59b6', borderColor: '#9b59b6', fontWeight: 'bold' }}
+              >
+                Unirse
+              </button>
+            </form>
+          </div>
         </div>
+      )}
 
-        {/* Unirse con Código */}
+      {loading ? (
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0' }}>
+          Cargando tus ligas...
+        </div>
+      ) : groups.length === 0 ? (
         <div
           className="glass-panel"
           style={{
-            flex: '1',
-            minWidth: '280px',
-            maxWidth: '380px',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '15px',
+            textAlign: 'center',
+            padding: '48px 24px',
+            maxWidth: '560px',
+            margin: '20px auto 40px',
+            borderRadius: '16px',
+            border: '1px dashed rgba(0, 210, 211, 0.4)',
+            background: 'rgba(0, 210, 211, 0.04)',
           }}
         >
-          <h3
+          <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🏟️</div>
+          <h3 style={{ color: '#fff', margin: '0 0 8px 0', fontSize: '1.3rem', fontWeight: 800 }}>
+            Aún no te has unido a ninguna liga privada
+          </h3>
+          <p
             style={{
-              margin: 0,
-              color: '#9b59b6',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
+              color: 'var(--text-muted)',
+              fontSize: '0.92rem',
+              maxWidth: '420px',
+              margin: '0 auto 24px',
+              lineHeight: 1.5,
             }}
           >
-            🎟️ Unirse con Código
-          </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
-            ¿Tienes un código de invitación de 6 letras? Introdúcelo aquí para acceder directamente
-            a la porra:
+            Crea tu propia porra personalizada para competir con tus amigos o únete a una ya
+            existente usando un código de invitación.
           </p>
-          <form onSubmit={handleJoin} style={{ display: 'flex', gap: '10px' }}>
-            <input
-              type="text"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="Ej: X9K2PL"
-              aria-label="Código de invitación de 6 letras"
-              maxLength={6}
-              className="glass-input"
-              style={{
-                flex: 1,
-                textTransform: 'uppercase',
-                letterSpacing: '2px',
-                fontWeight: 'bold',
-              }}
-            />
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
-              type="submit"
+              type="button"
+              onClick={() => {
+                setShowCreateModal(true);
+                setShowJoinModal(false);
+              }}
               className="glass-btn primary-btn"
-              style={{ background: '#9b59b6', borderColor: '#9b59b6', fontWeight: 'bold' }}
+              style={{
+                padding: '11px 22px',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                background: 'linear-gradient(135deg, #00d2d3, #00a8ff)',
+                color: '#0f172a',
+                boxShadow: '0 4px 15px rgba(0, 210, 211, 0.3)',
+              }}
             >
-              Unirse
+              ➕ Crear mi primera liga
             </button>
-          </form>
+            <button
+              type="button"
+              onClick={() => {
+                setShowJoinModal(true);
+                setShowCreateModal(false);
+              }}
+              className="glass-btn"
+              style={{ padding: '11px 20px', fontWeight: 700, fontSize: '0.95rem' }}
+            >
+              🎟️ Unirse con código
+            </button>
+          </div>
         </div>
-      </div>
-
-      {loading ? (
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Cargando tus ligas...</div>
       ) : (
         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
           {groups.map((group) => {
@@ -996,20 +1165,6 @@ export default function GroupsDashboard() {
               </div>
             );
           })}
-          {groups.length === 0 && (
-            <div
-              style={{
-                width: '100%',
-                textAlign: 'center',
-                color: 'var(--text-muted)',
-                padding: '40px',
-                border: '1px dashed var(--border-color)',
-                borderRadius: '12px',
-              }}
-            >
-              Aún no estás en ninguna liga. Crea una o únete con un código.
-            </div>
-          )}
         </div>
       )}
       {/* Modal de Gestión de Miembros y Pagos */}

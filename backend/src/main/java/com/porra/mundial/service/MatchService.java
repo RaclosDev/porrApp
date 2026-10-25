@@ -48,15 +48,22 @@ public class MatchService {
 
     /**
      * Devuelve los partidos que se están jugando AHORA MISMO,
-     * o que están a punto de empezar en los próximos 30 minutos.
+     * o que están a punto de empezar en los próximos 20 minutos.
      */
     public List<Match> getLiveMatches() {
+        return getLiveMatches(null);
+    }
+
+    public List<Match> getLiveMatches(Long competitionId) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime soonThreshold = now.plusMinutes(30);
+        LocalDateTime soonThreshold = now.plusMinutes(20);
+        LocalDateTime pastThreshold = now.minusHours(3).minusMinutes(30);
 
         return matchRepository.findAll().stream()
+                .filter(m -> competitionId == null || (m.getCompetition() != null && competitionId.equals(m.getCompetition().getId())))
                 .filter(m -> !Boolean.TRUE.equals(m.getFinished()))
-                .filter(m -> m.getMatchDate() != null && m.getMatchDate().isBefore(soonThreshold))
+                .filter(m -> m.getMatchDate() != null && m.getMatchDate().isBefore(soonThreshold) && m.getMatchDate().isAfter(pastThreshold))
+                .filter(m -> !isBogusMatch(m))
                 .sorted(Comparator.comparing(Match::getMatchDate).reversed())
                 .collect(Collectors.toList());
     }
@@ -66,7 +73,13 @@ public class MatchService {
      * @return Los últimos N partidos finalizados, ideal para mostrar un resumen rápido.
      */
     public List<Match> getLastMatches(int limit) {
+        return getLastMatches(limit, null);
+    }
+
+    public List<Match> getLastMatches(int limit, Long competitionId) {
         return matchRepository.findByFinishedTrueOrderByMatchDateDesc().stream()
+                .filter(m -> competitionId == null || (m.getCompetition() != null && competitionId.equals(m.getCompetition().getId())))
+                .filter(m -> !isBogusMatch(m))
                 .limit(limit)
                 .collect(Collectors.toList());
     }
@@ -76,11 +89,30 @@ public class MatchService {
      * @return Los próximos N partidos que se jugarán en el futuro (la cartelera).
      */
     public List<Match> getNextMatches(int limit) {
+        return getNextMatches(limit, null);
+    }
+
+    public List<Match> getNextMatches(int limit, Long competitionId) {
         LocalDateTime now = LocalDateTime.now();
         return matchRepository.findByFinishedFalseOrderByMatchDateAsc().stream()
+                .filter(m -> competitionId == null || (m.getCompetition() != null && competitionId.equals(m.getCompetition().getId())))
                 .filter(m -> m.getMatchDate() != null && m.getMatchDate().isAfter(now))
+                .filter(m -> !isBogusMatch(m))
                 .limit(limit)
                 .collect(Collectors.toList());
+    }
+
+    private boolean isBogusMatch(Match m) {
+        if (m.getHomeTeam() == null || m.getAwayTeam() == null) {
+            return false;
+        }
+        boolean homeBogus = "Por definir".equalsIgnoreCase(m.getHomeTeam().getName())
+                || "TBD".equalsIgnoreCase(m.getHomeTeam().getName())
+                || "TBD".equalsIgnoreCase(m.getHomeTeam().getNameEn());
+        boolean awayBogus = "Por definir".equalsIgnoreCase(m.getAwayTeam().getName())
+                || "TBD".equalsIgnoreCase(m.getAwayTeam().getName())
+                || "TBD".equalsIgnoreCase(m.getAwayTeam().getNameEn());
+        return homeBogus && awayBogus;
     }
 
     /**
@@ -99,4 +131,3 @@ public class MatchService {
         return matchRepository.save(match);
     }
 }
-

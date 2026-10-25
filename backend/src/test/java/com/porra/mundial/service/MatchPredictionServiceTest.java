@@ -242,4 +242,19 @@ class MatchPredictionServiceTest {
         assertEquals("Resultado exacto 2-1 (3 pts)", mp.getScoringDetails());
         verify(matchPredictionRepository).save(mp);
     }
+
+    @Test
+    @DisplayName("getMatchdayFixtures filtra correctamente por 'Grupo A' cuando el partido tiene groupName 'A'")
+    void getMatchdayFixtures_FiltersByRoundGroup() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        Match groupAMatch = Match.builder().id(201L).groupName("A").finished(false).matchDate(LocalDateTime.now().plusDays(1)).build();
+        Match groupBMatch = Match.builder().id(202L).groupName("B").finished(false).matchDate(LocalDateTime.now().plusDays(1)).build();
+        when(matchRepository.findAll()).thenReturn(List.of(groupAMatch, groupBMatch));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.empty());
+
+        List<MatchdayFixturePredictionDTO> fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, "Grupo A");
+
+        assertEquals(1, fixtures.size());
+        assertEquals(201L, fixtures.get(0).getMatchId());
+    }
 }

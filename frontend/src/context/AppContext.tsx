@@ -20,6 +20,24 @@ const EMPTY_OBJECT = Object.freeze({});
 const EMPTY_ARRAY = Object.freeze([]);
 const EMPTY_RADAR = Object.freeze({ live: [], last: [], next: [] });
 
+const loadCachedJson = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const saveCachedJson = (key, data) => {
+  if (!data) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    /* ignore */
+  }
+};
+
 const GlobalEffectsContext = createContext(null);
 
 export function AppProvider({ children }) {
@@ -93,14 +111,24 @@ export function AppProvider({ children }) {
         const myGroups = await fetchMyGroups();
         if (isCancelled) return;
 
-        const currentLocal = localStorage.getItem('activeGroupId');
-        if (myGroups.length === 1) {
-          const onlyGroupId = myGroups[0].id.toString();
-          if (currentLocal !== onlyGroupId) {
-            changeGroup(onlyGroupId);
+        if (!myGroups || myGroups.length === 0) {
+          localStorage.removeItem('activeGroupId');
+          changeGroup('');
+        } else {
+          const currentLocal = localStorage.getItem('activeGroupId');
+          const belongsToCurrent = myGroups.some((g) => g.id.toString() === currentLocal);
+          if (myGroups.length === 1) {
+            const onlyGroupId = myGroups[0].id.toString();
+            if (currentLocal !== onlyGroupId) {
+              changeGroup(onlyGroupId);
+            }
+          } else if (dbGroupId && myGroups.some((g) => g.id.toString() === dbGroupId)) {
+            if (currentLocal !== dbGroupId) {
+              changeGroup(dbGroupId);
+            }
+          } else if (!belongsToCurrent) {
+            changeGroup(myGroups[0].id.toString());
           }
-        } else if (dbGroupId && currentLocal !== dbGroupId) {
-          changeGroup(dbGroupId);
         }
       } catch {
         /* ignore */
@@ -127,38 +155,6 @@ export const useAppContext = () => {
   const storeCompetitionId = store.activeCompetitionId;
   const setActiveCompetitionId = store.setActiveCompetitionId;
 
-  const { data: standings, isLoading: loadingStandings } = useQuery({
-    queryKey: ['standings'],
-    queryFn: fetchStandings,
-    placeholderData: keepPreviousData,
-  });
-  const { data: radar } = useQuery({
-    queryKey: ['radar'],
-    queryFn: fetchMatchRadar,
-    placeholderData: keepPreviousData,
-  });
-  const { data: predictions } = useQuery({
-    queryKey: ['predictions', activeGroupId],
-    queryFn: () => fetchPredictions(activeGroupId),
-    placeholderData: keepPreviousData,
-  });
-  const { data: odds } = useQuery({
-    queryKey: ['odds'],
-    queryFn: fetchTeamOdds,
-    placeholderData: keepPreviousData,
-  });
-  const { data: leaderboard } = useQuery({
-    queryKey: ['leaderboard', activeGroupId],
-    queryFn: () => fetchLeaderboard(activeGroupId),
-    placeholderData: keepPreviousData,
-  });
-  const { data: userGroups } = useQuery({
-    queryKey: ['myGroups', isUserAuthed],
-    queryFn: () => (isUserAuthed ? fetchMyGroups() : Promise.resolve([])),
-    staleTime: 60_000,
-    placeholderData: keepPreviousData,
-  });
-
   const { data: groupInfo } = useQuery({
     queryKey: ['group', activeGroupId],
     queryFn: () =>
@@ -176,15 +172,64 @@ export const useAppContext = () => {
     }
   }, [groupInfo?.competitionId, storeCompetitionId, setActiveCompetitionId]);
 
+  const { data: standings, isLoading: loadingStandings } = useQuery({
+    queryKey: ['standings'],
+    queryFn: async () => {
+      const data = await fetchStandings();
+      saveCachedJson('cached_official_standings', data);
+      return data;
+    },
+    initialData: () => loadCachedJson('cached_official_standings'),
+    placeholderData: keepPreviousData,
+  });
+
+  const { data: radar } = useQuery({
+    queryKey: ['radar', activeCompetitionId],
+    queryFn: () => fetchMatchRadar(activeCompetitionId),
+    placeholderData: keepPreviousData,
+  });
+
+  const { data: predictions } = useQuery({
+    queryKey: ['predictions', activeGroupId],
+    queryFn: () => fetchPredictions(activeGroupId),
+    placeholderData: keepPreviousData,
+  });
+
+  const { data: odds } = useQuery({
+    queryKey: ['odds'],
+    queryFn: async () => {
+      const data = await fetchTeamOdds();
+      saveCachedJson('cached_official_odds', data);
+      return data;
+    },
+    initialData: () => loadCachedJson('cached_official_odds'),
+    placeholderData: keepPreviousData,
+  });
+
+  const { data: leaderboard } = useQuery({
+    queryKey: ['leaderboard', activeGroupId],
+    queryFn: () => fetchLeaderboard(activeGroupId),
+    placeholderData: keepPreviousData,
+  });
+
+  const { data: userGroups } = useQuery({
+    queryKey: ['myGroups', isUserAuthed],
+    queryFn: () => (isUserAuthed ? fetchMyGroups() : Promise.resolve([])),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
   const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: ['matches', activeCompetitionId],
     queryFn: async () => {
-      const data = await fetchMatches(activeCompetitionId);
+      let data = await fetchMatches(activeCompetitionId);
       if (!data || data.length === 0) {
-        return fetchMatches(null);
+        data = await fetchMatches(null);
       }
+      saveCachedJson(`cached_matches_${activeCompetitionId || 'all'}`, data);
       return data;
     },
+    initialData: () => loadCachedJson(`cached_matches_${activeCompetitionId || 'all'}`),
     placeholderData: keepPreviousData,
   });
   const activeGroupPichichi =

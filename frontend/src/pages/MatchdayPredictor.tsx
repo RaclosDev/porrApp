@@ -106,12 +106,15 @@ function MatchdayPredictor() {
     }
   }, [fixtures]);
 
-  // Extraer rondas disponibles para el filtro
+  // Extraer rondas disponibles para el filtro (evitando duplicados de 'group')
   const availableRounds = useMemo(() => {
     const rounds = new Set();
     fixtures.forEach((f) => {
-      if (f.round) rounds.add(f.round);
-      if (f.groupName) rounds.add(`Grupo ${f.groupName}`);
+      if (f.groupName) {
+        rounds.add(`Grupo ${f.groupName}`);
+      } else if (f.round && f.round !== 'group') {
+        rounds.add(f.round);
+      }
     });
     return Array.from(rounds);
   }, [fixtures]);
@@ -260,18 +263,29 @@ function MatchdayPredictor() {
   }, [fixtures]);
 
   const displayedFixtures = useMemo(() => {
+    let list = fixtures;
+    if (selectedRound) {
+      list = list.filter((f) => {
+        if (f.round === selectedRound) return true;
+        if (f.groupName) {
+          if (f.groupName === selectedRound || `Grupo ${f.groupName}` === selectedRound)
+            return true;
+        }
+        return false;
+      });
+    }
     if (statusFilter === 'PENDING') {
-      return fixtures.filter(
+      return list.filter(
         (f) =>
           !f.locked &&
           (!localPredictions[f.matchId]?.homeScore || !localPredictions[f.matchId]?.sign),
       );
     }
     if (statusFilter === 'FINISHED') {
-      return fixtures.filter((f) => f.finished);
+      return list.filter((f) => f.finished);
     }
-    return fixtures;
-  }, [fixtures, statusFilter, localPredictions]);
+    return list;
+  }, [fixtures, selectedRound, statusFilter, localPredictions]);
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '16px 12px 60px' }}>
@@ -695,20 +709,33 @@ function MatchdayPredictor() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'flex-end',
-                    gap: '8px',
+                    gap: '6px',
+                    minWidth: 0,
+                    overflow: 'hidden',
                   }}
                 >
-                  <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#fff' }}>
+                  <span
+                    title={fixture.homeTeam}
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 'clamp(0.82rem, 2.7vw, 1.05rem)',
+                      color: '#fff',
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {fixture.homeTeam}
                   </span>
                   {fixture.homeTeamLogo ? (
                     <img
                       src={fixture.homeTeamLogo}
                       alt={fixture.homeTeam}
-                      width={28}
-                      height={28}
+                      width={26}
+                      height={26}
                       loading="lazy"
-                      style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }}
+                      style={{ width: '26px', height: '26px', objectFit: 'contain', flexShrink: 0 }}
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                       }}
@@ -724,8 +751,9 @@ function MatchdayPredictor() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '8px',
-                    minWidth: '210px',
+                    gap: '6px',
+                    minWidth: '150px',
+                    flexShrink: 0,
                   }}
                 >
                   {/* Inputs de marcador exacto */}
@@ -832,17 +860,19 @@ function MatchdayPredictor() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'flex-start',
-                    gap: '8px',
+                    gap: '6px',
+                    minWidth: 0,
+                    overflow: 'hidden',
                   }}
                 >
                   {fixture.awayTeamLogo ? (
                     <img
                       src={fixture.awayTeamLogo}
                       alt={fixture.awayTeam}
-                      width={28}
-                      height={28}
+                      width={26}
+                      height={26}
                       loading="lazy"
-                      style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }}
+                      style={{ width: '26px', height: '26px', objectFit: 'contain', flexShrink: 0 }}
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                       }}
@@ -850,7 +880,18 @@ function MatchdayPredictor() {
                   ) : (
                     <Flag team={fixture.awayTeam} />
                   )}
-                  <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#fff' }}>
+                  <span
+                    title={fixture.awayTeam}
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 'clamp(0.82rem, 2.7vw, 1.05rem)',
+                      color: '#fff',
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {fixture.awayTeam}
                   </span>
                 </div>

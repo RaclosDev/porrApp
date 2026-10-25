@@ -661,32 +661,24 @@ function Layout({ children }) {
                 className="glass-btn"
                 style={{
                   height: '36px',
-                  width: 'auto',
-                  padding: '0 12px',
-                  fontSize: '0.95rem',
-                  borderRadius: '8px',
+                  width: '36px',
+                  minWidth: '36px',
+                  maxWidth: '36px',
+                  minHeight: '36px',
+                  maxHeight: '36px',
+                  aspectRatio: '1 / 1',
+                  borderRadius: '50%',
+                  padding: '0',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
                   cursor: 'pointer',
+                  flexShrink: 0,
                 }}
                 title="Menú de Usuario"
                 aria-label="Menú de Usuario"
               >
-                <span style={{ fontSize: '1.1rem' }}>{isRaclos && !userName ? '🛡️' : '👤'}</span>
-                <span
-                  className="header-user-name"
-                  style={{
-                    fontWeight: 'bold',
-                    maxWidth: '120px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {userName || 'Admin'}
-                </span>
+                <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>👤</span>
               </button>
 
               {showProfileMenu && (
@@ -698,56 +690,61 @@ function Layout({ children }) {
                     background: '#151525',
                     boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '8px',
-                    padding: '10px',
+                    borderRadius: '12px',
+                    padding: '12px',
                     marginTop: '10px',
                     zIndex: 100,
-                    minWidth: '180px',
+                    minWidth: '200px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px',
+                    gap: '10px',
                   }}
                 >
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      navigate('/mis-ligas');
-                    }}
-                    className="glass-btn"
+                  <div
                     style={{
-                      textAlign: 'left',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      paddingBottom: '8px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      width: '100%',
-                      border: 'none',
-                      background: 'transparent',
-                      cursor: 'pointer',
                     }}
                   >
-                    🏆 Mis Ligas
-                  </button>
-                  {isRaclos && (
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/admin');
-                      }}
-                      className="glass-btn"
+                    <div
                       style={{
-                        textAlign: 'left',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: 'rgba(0, 210, 211, 0.15)',
+                        color: '#00d2d3',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        width: '100%',
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem',
+                        flexShrink: 0,
                       }}
                     >
-                      ⚙️ Panel Admin
-                    </button>
-                  )}
+                      {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          fontWeight: 'bold',
+                          color: '#fff',
+                          fontSize: '0.9rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {userName || 'Usuario'}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Conectado
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => {
                       setAuthToken(null);
@@ -762,23 +759,23 @@ function Layout({ children }) {
                       window.location.href = '/';
                     }}
                     style={{
-                      background: 'rgba(255, 71, 87, 0.1)',
-                      border: '1px solid rgba(255, 71, 87, 0.5)',
+                      background: 'rgba(255, 71, 87, 0.12)',
+                      border: '1px solid rgba(255, 71, 87, 0.4)',
                       color: '#ff4757',
-                      padding: '8px',
+                      padding: '9px 12px',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      fontSize: '0.9rem',
+                      fontSize: '0.88rem',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      fontWeight: 'bold',
+                      fontWeight: 700,
                       width: '100%',
-                      textAlign: 'left',
-                      marginTop: '5px',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s ease',
                     }}
                   >
-                    🚪 Salir
+                    🚪 Cerrar Sesión
                   </button>
                 </div>
               )}

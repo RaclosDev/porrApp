@@ -70,8 +70,11 @@ export async function fetchMatches(competitionId = null) {
   return fetchJson(url);
 }
 
-export async function fetchMatchRadar() {
-  return fetchJson(`${API_BASE}/matches/radar`);
+export async function fetchMatchRadar(competitionId = null) {
+  const url = competitionId
+    ? `${API_BASE}/matches/radar?competitionId=${competitionId}`
+    : `${API_BASE}/matches/radar`;
+  return fetchJson(url);
 }
 
 export async function fetchOfficialBracket() {
