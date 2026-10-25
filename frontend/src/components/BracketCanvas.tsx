@@ -193,12 +193,12 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
  * @returns {number} Índice de la pestaña activa (0-4).
  */
 function computeActiveTab(leftRounds, rightRounds) {
-  // TABS: 0=R32(16avos), 1=R16(octavos), 2=QF(cuartos), 3=SF(semis), 4=Final
+  const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
   const isRealTeam = (team) => {
     if (!team) return false;
     const name = typeof team === 'object' ? team.name : team;
     if (!name) return false;
-    if (name.includes('º')) return false; // placeholder like "1º Grupo A"
+    if (name.includes('º')) return false;
     if (name === 'Por definir') return false;
     return true;
   };
@@ -216,16 +216,13 @@ function computeActiveTab(leftRounds, rightRounds) {
     return allMatches.every(isMatchComplete);
   };
 
-  // Find the first round that's NOT fully populated with teams.
-  // The round BEFORE it is the one currently being played.
-  // E.g. if QF (i=2) is incomplete → R16 (i=1) is being played → show octavos.
-  for (let i = 0; i < 4; i++) {
+  const startRound = hasR32 ? 0 : 1;
+  for (let i = startRound; i < 4; i++) {
     if (!isRoundComplete(i)) {
-      return Math.max(0, i - 1);
+      return Math.max(startRound, i - 1);
     }
   }
-  // All rounds have teams → show Final tab
-  return 4;
+  return -1;
 }
 
 // BracketCanvas core

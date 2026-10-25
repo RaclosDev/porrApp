@@ -553,18 +553,29 @@ function PredictionViewer() {
               gap: '10px',
             }}
           >
-            <h3 style={{ color: 'var(--accent-color)', margin: 0 }}>Porra de {part.user}</h3>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <h3
+              style={{
+                color: 'var(--accent-cyan, #00d2d3)',
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: '1.25rem',
+                fontWeight: 800,
+                letterSpacing: '-0.3px',
+                margin: 0,
+              }}
+            >
+              Porra de {part.user}
+            </h3>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
               {part.scorer && (
                 <div
                   style={{
                     background: 'rgba(255,159,67,0.15)',
-                    border: '1px solid rgba(255,159,67,0.3)',
+                    border: '1px solid rgba(255,159,67,0.4)',
                     padding: '4px 10px',
                     borderRadius: '8px',
                     color: '#ff9f43',
                     fontWeight: 'bold',
-                    fontSize: '0.9em',
+                    fontSize: '0.85rem',
                   }}
                 >
                   ⚽ Pichichi: {part.scorer}
@@ -572,23 +583,33 @@ function PredictionViewer() {
               )}
               <div
                 style={{
-                  background: 'rgba(0,210,211,0.15)',
-                  border: '1px solid rgba(0,210,211,0.3)',
+                  background: 'rgba(0,210,211,0.12)',
+                  border: '1px solid rgba(0,210,211,0.4)',
                   padding: '4px 10px',
                   borderRadius: '8px',
-                  color: 'var(--accent-color)',
-                  fontWeight: 'bold',
-                  fontSize: '1.1em',
+                  color: 'var(--accent-cyan, #00d2d3)',
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
                 }}
               >
                 🏆 Total: {points.total} pts
               </div>
               <button
+                type="button"
                 onClick={() => setViewerBetId(null)}
-                className="glass-btn primary-btn"
-                style={{ padding: '4px 15px', fontSize: '1rem', borderRadius: '8px' }}
+                className="glass-btn"
+                style={{
+                  padding: '5px 14px',
+                  fontSize: '0.88rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: '#fff',
+                }}
               >
-                Cerrar
+                ✕ Cerrar
               </button>
             </div>
           </div>

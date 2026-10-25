@@ -26,4 +26,12 @@ public interface LeagueRepository extends JpaRepository<League, Long> {
      * @return Lista de ligas que administra.
      */
     List<League> findByAdminUserParticipantName(String adminParticipantName);
+
+    /**
+     * Busca ligas por nombre e id del usuario administrador.
+     * @param name Nombre de la liga.
+     * @param adminUserId ID del administrador.
+     * @return Lista de ligas.
+     */
+    List<League> findByNameAndAdminUserId(String name, Long adminUserId);
 }

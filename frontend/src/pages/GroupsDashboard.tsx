@@ -35,6 +35,7 @@ export default function GroupsDashboard() {
     setJoinCode,
     visibleCodes,
     toggleCodeVisibility,
+    isCreating,
     handleCreate,
     handleJoin,
     handleEditGroup,
@@ -702,10 +703,11 @@ export default function GroupsDashboard() {
                 <button
                   type="button"
                   onClick={handleCreate}
+                  disabled={isCreating}
                   className="glass-btn primary-btn"
                   style={{ flex: 1, padding: '10px', fontWeight: 'bold' }}
                 >
-                  🚀 Confirmar y Crear Liga
+                  {isCreating ? '⏳ Creando Liga...' : '🚀 Confirmar y Crear Liga'}
                 </button>
               </div>
             </div>

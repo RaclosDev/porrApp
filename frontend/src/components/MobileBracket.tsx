@@ -4,7 +4,7 @@ import { MATCH_H } from './BracketCanvas';
 /**
  * Pestañas del bracket móvil, una por cada ronda eliminatoria.
  */
-const TABS = [
+const ALL_TABS = [
   { key: 'r32', label: '1/16', roundIndex: 0 },
   { key: 'r16', label: '1/8', roundIndex: 1 },
   { key: 'qf', label: '1/4', roundIndex: 2 },
@@ -34,17 +34,28 @@ export default function MobileBracket({
   mobileCenter,
   defaultTab = 0,
 }) {
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
+  const tabs = hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32');
+
+  const resolveTabIndex = (target) => {
+    if (typeof target === 'number') {
+      const byRound = tabs.findIndex((t) => t.roundIndex === target);
+      if (byRound !== -1) return byRound;
+      if (target >= 0 && target < tabs.length) return target;
+    }
+    return 0;
+  };
+
+  const [activeTab, setActiveTab] = useState(() => resolveTabIndex(defaultTab));
   const [slideDir, setSlideDir] = useState('right');
   const [animKey, setAnimKey] = useState(0);
   const hasUserNavigated = useRef(false);
 
-  // Sync activeTab when defaultTab changes (async data load) but only if user hasn't manually navigated
   useEffect(() => {
     if (!hasUserNavigated.current) {
-      setActiveTab(defaultTab);
+      setActiveTab(resolveTabIndex(defaultTab));
     }
-  }, [defaultTab]);
+  }, [defaultTab, hasR32]);
 
   /** Cambia de pestaña con animación de deslizamiento */
   const goToTab = (newTab) => {
@@ -97,7 +108,7 @@ export default function MobileBracket({
    * Renderiza el contenido de la pestaña activa.
    */
   const renderTabContent = () => {
-    const tab = TABS[activeTab];
+    const tab = tabs[activeTab] || tabs[0];
 
     // Final
     if (tab.key === 'final') {
@@ -128,10 +139,10 @@ export default function MobileBracket({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  goToTab(4);
+                  goToTab(tabs.findIndex((t) => t.key === 'final'));
                 }
               }}
-              onClick={() => goToTab(4)}
+              onClick={() => goToTab(tabs.findIndex((t) => t.key === 'final'))}
               style={{ cursor: 'pointer' }}
             >
               <div className="mb-sf-label">Semifinal 1</div>
@@ -209,7 +220,7 @@ export default function MobileBracket({
     <div className="mobile-bracket">
       {/* Pestañas */}
       <div className="mb-tabs">
-        {TABS.map((t, i) => (
+        {tabs.map((t, i) => (
           <button
             key={t.key}
             className={`mb-tab ${activeTab === i ? 'mb-tab-active' : ''}`}
@@ -286,39 +297,18 @@ function BracketGroup({ group, roundIndex, renderSlot, onNavigateNext }) {
       </div>
 
       {/* Conector SVG (estilo bracket/árbol) */}
-      <svg className="mb-connector" width="28" height={totalH} viewBox={`0 0 28 ${totalH}`}>
+      <svg className="mb-connector" width="18" height={totalH} viewBox={`0 0 18 ${totalH}`}>
         {/* Línea horizontal desde Match A */}
-        <line
-          x1="0"
-          y1={midA}
-          x2="14"
-          y2={midA}
-          stroke="rgba(255,255,255,0.15)"
-          strokeWidth="1.5"
-        />
+        <line x1="0" y1={midA} x2="9" y2={midA} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
         {/* Línea horizontal desde Match B */}
-        <line
-          x1="0"
-          y1={midB}
-          x2="14"
-          y2={midB}
-          stroke="rgba(255,255,255,0.15)"
-          strokeWidth="1.5"
-        />
+        <line x1="0" y1={midB} x2="9" y2={midB} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
         {/* Línea vertical conectando A y B */}
-        <line
-          x1="14"
-          y1={midA}
-          x2="14"
-          y2={midB}
-          stroke="rgba(255,255,255,0.15)"
-          strokeWidth="1.5"
-        />
+        <line x1="9" y1={midA} x2="9" y2={midB} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
         {/* Línea horizontal desde el punto medio al partido siguiente */}
         <line
-          x1="14"
+          x1="9"
           y1={center}
-          x2="28"
+          x2="18"
           y2={center}
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"

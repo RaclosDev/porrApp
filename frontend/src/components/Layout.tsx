@@ -366,7 +366,7 @@ function Layout({ children }) {
                 {loading ? null : isMatchDayLeague ? (
                   <button
                     id="btn-complete-my-bet-header"
-                    className="glass-btn primary-btn"
+                    className="glass-btn primary-btn header-porra-cta"
                     style={{
                       padding: '6px 14px',
                       minHeight: '38px',
@@ -383,7 +383,7 @@ function Layout({ children }) {
                 ) : userName && participantsHashes.find((h) => h.participantName === userName) ? (
                   <button
                     id="btn-view-my-bet-header"
-                    className="glass-btn primary-btn"
+                    className="glass-btn primary-btn header-porra-cta"
                     style={{
                       padding: '6px 14px',
                       minHeight: '38px',
@@ -405,7 +405,7 @@ function Layout({ children }) {
                 ) : (
                   <button
                     id="btn-complete-my-bet-header"
-                    className="glass-btn primary-btn"
+                    className="glass-btn primary-btn header-porra-cta"
                     style={{
                       padding: '6px 14px',
                       minHeight: '38px',

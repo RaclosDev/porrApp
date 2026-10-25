@@ -208,6 +208,17 @@ public class GroupService {
         UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado por email: " + email));
 
+        // Proteccion contra doble-click / peticiones concurrentes duplicadas
+        List<League> existingLeagues = leagueRepository.findByNameAndAdminUserId(name, adminUser.getId());
+        if (existingLeagues != null && !existingLeagues.isEmpty()) {
+            League latest = existingLeagues.get(existingLeagues.size() - 1);
+            if (latest.getCreatedAt() != null &&
+                    Math.abs(java.time.Duration.between(latest.getCreatedAt(), LocalDateTime.now()).getSeconds()) < 10) {
+                log.info("Doble peticion detectada para crear liga '{}' por usuario {}. Reutilizando liga existente.", name, email);
+                return latest;
+            }
+        }
+
         Competition comp = competitionRepository.findById(competitionId)
                 .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada"));
 

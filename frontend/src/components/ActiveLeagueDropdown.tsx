@@ -145,12 +145,10 @@ export default function ActiveLeagueDropdown() {
       {isOpen && (
         <div
           role="menu"
+          className="active-league-menu"
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',
-            left: 0,
-            minWidth: '260px',
-            maxWidth: '320px',
             background: '#111827',
             border: '1px solid rgba(0, 210, 211, 0.35)',
             borderRadius: '12px',

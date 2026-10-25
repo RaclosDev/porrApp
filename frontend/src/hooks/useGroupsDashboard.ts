@@ -69,6 +69,7 @@ export function useGroupsDashboard() {
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [visibleCodes, setVisibleCodes] = useState(new Set());
+  const [isCreating, setIsCreating] = useState(false);
 
   const { changeGroup, userName, userId, activeGroupId } = useAppContext();
   const navigate = useNavigate();
@@ -177,10 +178,12 @@ export function useGroupsDashboard() {
 
   const handleCreate = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    if (isCreating) return;
     if (!newGroupName.trim() || !selectedCompetition || !selectedBetMode) {
       setError('El nombre del grupo y la competición son obligatorios');
       return;
     }
+    setIsCreating(true);
     try {
       const group = await createGroup(
         newGroupName.trim(),
@@ -194,6 +197,8 @@ export function useGroupsDashboard() {
       loadGroupsAndCompetitions();
     } catch (e) {
       setError(e.message || 'Error al crear el grupo');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -344,6 +349,7 @@ export function useGroupsDashboard() {
     setJoinCode,
     visibleCodes,
     toggleCodeVisibility,
+    isCreating,
     handleCreate,
     handleJoin,
     handleEditGroup,
