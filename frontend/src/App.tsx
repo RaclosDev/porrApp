@@ -48,7 +48,7 @@ const RootPage = () => {
     return <Home defaultMode="bracket" />;
   }
 
-  return <Landing onOpenLogin={() => window.dispatchEvent(new CustomEvent('open-login-modal'))} />;
+  return <Landing />;
 };
 
 const DemoPage = () => {

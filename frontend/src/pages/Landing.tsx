@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
-export default function Landing({ onOpenLogin }) {
+export default function Landing() {
   const navigate = useNavigate();
   const { enterDemoMode } = useAppContext();
 
@@ -29,25 +29,6 @@ export default function Landing({ onOpenLogin }) {
           gap: '20px',
         }}
       >
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '6px 14px',
-            borderRadius: '24px',
-            background: 'rgba(0, 210, 211, 0.1)',
-            border: '1px solid rgba(0, 210, 211, 0.35)',
-            color: 'var(--accent-cyan, #00d2d3)',
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            letterSpacing: '0.5px',
-          }}
-        >
-          <span>🏆</span>
-          <span>Edición Especial Mundial 2026 & Ligas Europeas</span>
-        </div>
-
         <h1
           style={{
             fontFamily: "'Outfit', sans-serif",
@@ -116,118 +97,6 @@ export default function Landing({ onOpenLogin }) {
           >
             <span>🚀</span>
             <span>Explorar Demo del Mundial</span>
-          </button>
-
-          {onOpenLogin && (
-            <button
-              id="btn-hero-login"
-              onClick={onOpenLogin}
-              className="glass-btn"
-              style={{
-                padding: '14px 24px',
-                fontSize: '1rem',
-                minHeight: '52px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-              }}
-            >
-              <span>🔑</span>
-              <span>Iniciar Sesión con Google</span>
-            </button>
-          )}
-        </div>
-
-        <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
-          ✨ Acceso libre e inmediato a la demo · No requiere registrarse ni tarjetas
-        </span>
-      </section>
-
-      {/* Showcase Recruiter Box */}
-      <section
-        style={{
-          margin: '20px auto 40px',
-          maxWidth: '850px',
-          padding: '24px 28px',
-          borderRadius: '16px',
-          background:
-            'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%)',
-          border: '1px solid rgba(0, 210, 211, 0.3)',
-          boxShadow: '0 12px 30px rgba(0, 0, 0, 0.4)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '10px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.5rem' }}>👨‍💻</span>
-            <h3
-              style={{
-                fontSize: '1.15rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
-            >
-              ¿Eres recruiter o estás evaluando este proyecto?
-            </h3>
-          </div>
-          <span
-            style={{
-              padding: '3px 10px',
-              borderRadius: '12px',
-              background: 'rgba(56, 189, 248, 0.15)',
-              color: '#38bdf8',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-            }}
-          >
-            Portfolio Showcase
-          </span>
-        </div>
-        <p
-          style={{
-            margin: 0,
-            color: 'var(--text-muted, #94a3b8)',
-            fontSize: '0.92rem',
-            lineHeight: 1.55,
-          }}
-        >
-          Hemos configurado un <strong>Modo Demostración</strong> interactivo con datos reales de la
-          edición del <strong>Mundial 2026</strong>: 21 participantes con pronósticos guardados,
-          cálculo dinámico de puntuaciones, cuadro eliminatorio oficial y clasificación completa.
-          Navega por todas las vistas como si fueras un usuario más.
-        </p>
-        <div style={{ marginTop: '6px' }}>
-          <button
-            onClick={handleStartDemo}
-            style={{
-              background: 'transparent',
-              color: 'var(--accent-cyan, #00d2d3)',
-              border: 'none',
-              padding: 0,
-              fontSize: '0.92rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <span>Entrar al torneo del Mundial sin registro</span>
-            <span>→</span>
           </button>
         </div>
       </section>
@@ -719,20 +588,6 @@ export default function Landing({ onOpenLogin }) {
           >
             🚀 Abrir Demo del Mundial
           </button>
-          {onOpenLogin && (
-            <button
-              onClick={onOpenLogin}
-              className="glass-btn"
-              style={{
-                padding: '12px 20px',
-                fontSize: '0.95rem',
-                borderRadius: '10px',
-                cursor: 'pointer',
-              }}
-            >
-              🔑 Iniciar Sesión
-            </button>
-          )}
         </div>
       </section>
 
