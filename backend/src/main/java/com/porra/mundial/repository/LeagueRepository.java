@@ -1,6 +1,7 @@
 package com.porra.mundial.repository;
 
 import com.porra.mundial.model.League;
+import com.porra.mundial.model.UserAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -28,10 +29,10 @@ public interface LeagueRepository extends JpaRepository<League, Long> {
     List<League> findByAdminUserParticipantName(String adminParticipantName);
 
     /**
-     * Busca ligas por nombre e id del usuario administrador.
+     * Busca ligas por nombre y usuario administrador.
      * @param name Nombre de la liga.
-     * @param adminUserId ID del administrador.
+     * @param adminUser Usuario administrador.
      * @return Lista de ligas.
      */
-    List<League> findByNameAndAdminUserId(String name, Long adminUserId);
+    List<League> findByNameAndAdminUser(String name, UserAccount adminUser);
 }

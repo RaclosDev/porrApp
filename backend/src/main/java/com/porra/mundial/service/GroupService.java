@@ -209,7 +209,7 @@ public class GroupService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado por email: " + email));
 
         // Proteccion contra doble-click / peticiones concurrentes duplicadas
-        List<League> existingLeagues = leagueRepository.findByNameAndAdminUserId(name, adminUser.getId());
+        List<League> existingLeagues = leagueRepository.findByNameAndAdminUser(name, adminUser);
         if (existingLeagues != null && !existingLeagues.isEmpty()) {
             League latest = existingLeagues.get(existingLeagues.size() - 1);
             if (latest.getCreatedAt() != null &&
