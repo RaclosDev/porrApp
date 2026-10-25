@@ -80,14 +80,14 @@ function Layout({ children }) {
   const [claimedNames, setClaimedNames] = useState([]);
   const [newNameInput, setNewNameInput] = useState('');
   const [pendingCredential, setPendingCredential] = useState(null);
-  const isAuthenticated = !!getAuthToken();
+  const isUserLoggedIn = (Boolean(getAuthToken()) && Boolean(userName)) || isRaclos;
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
   const location = useLocation();
   const isDemo =
     isDemoMode || location.pathname === '/demo' || location.pathname === '/mundial-2026';
-  const isLanding = location.pathname === '/' && !isAuthenticated && !isDemo;
+  const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
 
   const isIos = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -245,7 +245,7 @@ function Layout({ children }) {
   return (
     <>
       {/* Banner flotante de Modo Demo */}
-      {isDemo && !isAuthenticated && (
+      {isDemo && !isUserLoggedIn && (
         <div
           id="demo-mode-banner"
           style={{
@@ -318,7 +318,7 @@ function Layout({ children }) {
           >
             {/* Logo de PorrApp */}
             <NavLink
-              to={isAuthenticated ? '/' : isDemo ? '/demo' : '/'}
+              to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
               className="header-brand-link"
               style={{
                 display: 'flex',
@@ -630,7 +630,7 @@ function Layout({ children }) {
             position: 'relative',
           }}
         >
-          {isDemo && !isAuthenticated && (
+          {isDemo && !isUserLoggedIn && (
             <button
               type="button"
               onClick={() => {
@@ -650,7 +650,7 @@ function Layout({ children }) {
             </button>
           )}
 
-          {!isAuthenticated ? (
+          {!isUserLoggedIn ? (
             <button
               id="btn-login-header"
               type="button"
@@ -669,8 +669,9 @@ function Layout({ children }) {
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
               }}
+              title="Iniciar Sesión"
             >
-              <span>🔑</span>
+              <span style={{ fontSize: '1.05rem' }}>👤</span>
               <span>Iniciar Sesión</span>
             </button>
           ) : (
@@ -694,20 +695,18 @@ function Layout({ children }) {
                 title="Menú de Usuario"
                 aria-label="Menú de Usuario"
               >
-                <span style={{ fontSize: '1.1rem' }}>👤</span>
-                {userName && (
-                  <span
-                    style={{
-                      fontWeight: 'bold',
-                      maxWidth: '120px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {userName}
-                  </span>
-                )}
+                <span style={{ fontSize: '1.1rem' }}>{isRaclos && !userName ? '🛡️' : '👤'}</span>
+                <span
+                  style={{
+                    fontWeight: 'bold',
+                    maxWidth: '120px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {userName || 'Admin'}
+                </span>
               </button>
 
               {showProfileMenu && (
@@ -778,7 +777,9 @@ function Layout({ children }) {
                       localStorage.removeItem('my_prediction_name');
                       localStorage.removeItem('my_bet_name');
                       localStorage.removeItem('my_user_id');
-                      window.location.reload();
+                      localStorage.removeItem('token');
+                      localStorage.removeItem('adminToken');
+                      window.location.href = '/';
                     }}
                     style={{
                       background: 'rgba(255, 71, 87, 0.1)',

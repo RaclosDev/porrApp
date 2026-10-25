@@ -348,7 +348,7 @@ export default function MatchdayHomeDashboard() {
                               cursor: 'pointer',
                             }}
                           >
-                            Apostar
+                            Pronosticar
                           </button>
                         )}
                       </div>

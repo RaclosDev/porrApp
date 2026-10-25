@@ -670,7 +670,7 @@ export default function GroupsDashboard() {
                     <span>📊</span>
                     <span>
                       <strong>Puntuación explicable:</strong> Clasificación en vivo tras cada
-                      partido con desglose público y sin apuestas monetarias.
+                      partido con desglose público y 100% lúdico (sin dinero ni apuestas).
                     </span>
                   </div>
                   <div

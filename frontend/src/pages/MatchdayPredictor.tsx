@@ -868,7 +868,7 @@ function MatchdayPredictor() {
                 }}
               >
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  {isMatchLocked ? '🔒 Apuestas cerradas' : '⏳ Cierre al inicio del partido'}
+                  {isMatchLocked ? '🔒 Pronósticos cerrados' : '⏳ Cierre al inicio del partido'}
                 </div>
                 <button
                   type="button"

@@ -37,8 +37,8 @@ const GUEST_ALLOWED_PATHS = [
 ];
 
 const RootPage = () => {
-  const { isAuthenticated, isAdminAuthenticated, isDemoMode } = useAppContext();
-  const isAuthed = isAuthenticated || isAdminAuthenticated;
+  const { isAuthenticated, isAdminAuthenticated, isDemoMode, userName } = useAppContext();
+  const isAuthed = (isAuthenticated && Boolean(userName)) || isAdminAuthenticated;
 
   if (isAuthed) {
     return <Home />;
@@ -61,8 +61,8 @@ const DemoPage = () => {
 };
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {
-  const { isAuthenticated, isAdminAuthenticated } = useAppContext();
-  const isAuthed = isAuthenticated || isAdminAuthenticated;
+  const { isAuthenticated, isAdminAuthenticated, userName } = useAppContext();
+  const isAuthed = (isAuthenticated && Boolean(userName)) || isAdminAuthenticated;
   const location = useLocation();
 
   // Rutas públicas de lectura accesibles para cualquier visitante sin login

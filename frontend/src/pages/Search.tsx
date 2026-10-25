@@ -628,7 +628,7 @@ function Search() {
                     fontSize: '1.1rem',
                   }}
                 >
-                  Nadie ha apostado por esta combinación.
+                  Nadie ha pronosticado esta combinación.
                 </div>
               )}
 

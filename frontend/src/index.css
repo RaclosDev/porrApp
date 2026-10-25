@@ -903,7 +903,8 @@ option {
     margin-right: auto !important;
   }
 
-  #btn-login-header {
+  #btn-login-header,
+  #btn-profile-menu {
     order: 5 !important;
     margin-left: auto !important;
   }
