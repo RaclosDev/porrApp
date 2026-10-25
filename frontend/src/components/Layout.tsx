@@ -67,6 +67,7 @@ function Layout({ children }) {
     activeCompetitionFormatType,
     loading,
     isDemoMode,
+    enterDemoMode,
     exitDemoMode,
   } = useAppContext();
   const navigate = useNavigate();
@@ -626,33 +627,63 @@ function Layout({ children }) {
           )}
 
           {!isUserLoggedIn ? (
-            <button
-              id="btn-login-header"
-              type="button"
-              onClick={() => setShowMyBetModal(true)}
-              className="glass-btn"
-              style={{
-                height: '38px',
-                padding: '0 16px',
-                fontSize: '0.88rem',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                background: 'rgba(0, 210, 211, 0.12)',
-                border: '1px solid rgba(0, 210, 211, 0.45)',
-                color: '#00d2d3',
-                boxShadow: '0 4px 15px rgba(0, 210, 211, 0.15)',
-              }}
-              title="Iniciar Sesión"
-            >
-              <span style={{ fontSize: '1.05rem' }}>👤</span>
-              <span>Iniciar Sesión</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                id="btn-header-demo"
+                type="button"
+                onClick={() => {
+                  if (enterDemoMode) enterDemoMode();
+                  navigate('/demo');
+                }}
+                className="glass-btn"
+                style={{
+                  height: '38px',
+                  padding: '0 12px',
+                  fontSize: '0.82rem',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#e2e8f0',
+                }}
+                title="Probar Demo del Mundial"
+              >
+                <span>🚀</span>
+                <span>Demo</span>
+              </button>
+              <button
+                id="btn-login-header"
+                type="button"
+                onClick={() => setShowMyBetModal(true)}
+                className="glass-btn"
+                style={{
+                  height: '38px',
+                  padding: '0 16px',
+                  fontSize: '0.88rem',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  background: 'rgba(0, 210, 211, 0.12)',
+                  border: '1px solid rgba(0, 210, 211, 0.45)',
+                  color: '#00d2d3',
+                  boxShadow: '0 4px 15px rgba(0, 210, 211, 0.15)',
+                }}
+                title="Iniciar Sesión"
+              >
+                <span style={{ fontSize: '1.05rem' }}>👤</span>
+                <span>Iniciar Sesión</span>
+              </button>
+            </div>
           ) : (
             <>
               <button

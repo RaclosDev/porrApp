@@ -1,18 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
 
 export default function Landing() {
-  const navigate = useNavigate();
-  const { enterDemoMode } = useAppContext();
-
-  const handleStartDemo = () => {
-    if (enterDemoMode) {
-      enterDemoMode();
-    }
-    navigate('/demo');
-  };
-
   return (
     <div
       className="landing-page"
@@ -105,14 +93,14 @@ export default function Landing() {
           }}
         >
           <button
-            id="btn-hero-demo"
-            onClick={handleStartDemo}
+            id="btn-hero-login"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-login-modal'))}
             className="glass-btn primary-btn"
             style={{
               padding: '14px 28px',
               fontSize: '1.05rem',
               fontWeight: 800,
-              minHeight: '52px',
+              minHeight: '50px',
               borderRadius: '12px',
               cursor: 'pointer',
               display: 'inline-flex',
@@ -121,91 +109,89 @@ export default function Landing() {
               boxShadow: '0 8px 25px rgba(0, 210, 211, 0.3)',
             }}
           >
-            <span>🚀</span>
-            <span>Explorar Demo del Mundial</span>
+            <span>⚽</span>
+            <span>Empezar a Jugar</span>
           </button>
         </div>
       </section>
 
       {/* Feature Grid */}
-      <section style={{ margin: '50px 0 30px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '35px' }}>
+      <section style={{ margin: '45px 0 25px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <h2
             style={{
               fontFamily: "'Outfit', sans-serif",
-              fontSize: 'clamp(1.6rem, 3.5vw, 2.3rem)',
+              fontSize: 'clamp(1.5rem, 3.2vw, 2.1rem)',
               color: '#fff',
-              marginBottom: '10px',
+              marginBottom: '8px',
             }}
           >
-            Todo lo que necesitas para tu porra de amigos
+            Todo lo que necesitas para tu porra
           </h2>
           <p
             style={{
               color: 'var(--text-muted, #94a3b8)',
-              fontSize: '1rem',
-              maxWidth: '600px',
+              fontSize: '0.95rem',
+              maxWidth: '560px',
               margin: '0 auto',
             }}
           >
-            Diseñado para eliminar la fricción manual y ofrecer una experiencia fluida tanto en
-            torneos de eliminación como en ligas regulares.
+            Sin líos de Excel ni hojas de cálculo. Todo automatizado para competir con tus amigos.
           </p>
         </div>
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '16px',
           }}
         >
           {/* Feature 1 */}
           <div
             className="glass-panel"
             style={{
-              padding: '24px',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
-              transition: 'transform 0.2s ease',
+              gap: '8px',
             }}
           >
             <div
               style={{
-                width: '44px',
-                height: '44px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '10px',
                 background: 'rgba(251, 191, 36, 0.15)',
                 color: '#fbbf24',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem',
+                fontSize: '1.3rem',
               }}
             >
               🏆
             </div>
             <h3
               style={{
-                fontSize: '1.15rem',
+                fontSize: '1.08rem',
                 color: '#fff',
                 margin: 0,
                 fontFamily: "'Outfit', sans-serif",
               }}
             >
-              Cuadro Eliminatorio (Brackets)
+              Cuadros Eliminatorios
             </h3>
             <p
               style={{
                 color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.9rem',
-                lineHeight: 1.5,
+                fontSize: '0.86rem',
+                lineHeight: 1.45,
                 margin: 0,
               }}
             >
-              Árbol visual de eliminatorias desde 32avos hasta la Gran Final. Cruces automáticos
-              basados en la fase de grupos, desempate de mejores terceros y pronóstico de Pichichi.
+              Árbol visual interactivo hasta la Gran Final con cruces automáticos, desempates y
+              Pichichi.
             </p>
           </div>
 
@@ -213,30 +199,30 @@ export default function Landing() {
           <div
             className="glass-panel"
             style={{
-              padding: '24px',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '8px',
             }}
           >
             <div
               style={{
-                width: '44px',
-                height: '44px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '10px',
                 background: 'rgba(0, 210, 211, 0.15)',
                 color: '#00d2d3',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem',
+                fontSize: '1.3rem',
               }}
             >
               ⚽
             </div>
             <h3
               style={{
-                fontSize: '1.15rem',
+                fontSize: '1.08rem',
                 color: '#fff',
                 margin: 0,
                 fontFamily: "'Outfit', sans-serif",
@@ -247,13 +233,12 @@ export default function Landing() {
             <p
               style={{
                 color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.9rem',
-                lineHeight: 1.5,
+                fontSize: '0.86rem',
+                lineHeight: 1.45,
                 margin: 0,
               }}
             >
-              Para LaLiga EA Sports, Premier League y Champions League. Pronósticos jornada a
-              jornada con actualización de marcadores y cálculo de puntos por jornada.
+              Para LaLiga, Premier y Champions. Pronósticos fecha a fecha con marcadores al minuto.
             </p>
           </div>
 
@@ -261,47 +246,46 @@ export default function Landing() {
           <div
             className="glass-panel"
             style={{
-              padding: '24px',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '8px',
             }}
           >
             <div
               style={{
-                width: '44px',
-                height: '44px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '10px',
                 background: 'rgba(56, 189, 248, 0.15)',
                 color: '#38bdf8',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem',
+                fontSize: '1.3rem',
               }}
             >
               👥
             </div>
             <h3
               style={{
-                fontSize: '1.15rem',
+                fontSize: '1.08rem',
                 color: '#fff',
                 margin: 0,
                 fontFamily: "'Outfit', sans-serif",
               }}
             >
-              Peñas y Grupos Privados
+              Ligas Privadas
             </h3>
             <p
               style={{
                 color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.9rem',
-                lineHeight: 1.5,
+                fontSize: '0.86rem',
+                lineHeight: 1.45,
                 margin: 0,
               }}
             >
-              Crea tu propia liga privada en 10 segundos. Comparte el enlace de invitación con tus
-              amigos y gestiona los participantes desde tu propio panel de administración.
+              Crea tu liga en 10 segundos e invita a tus amigos por WhatsApp con un simple enlace.
             </p>
           </div>
 
@@ -309,47 +293,47 @@ export default function Landing() {
           <div
             className="glass-panel"
             style={{
-              padding: '24px',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '8px',
             }}
           >
             <div
               style={{
-                width: '44px',
-                height: '44px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '10px',
                 background: 'rgba(168, 85, 247, 0.15)',
                 color: '#a855f7',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem',
+                fontSize: '1.3rem',
               }}
             >
               📊
             </div>
             <h3
               style={{
-                fontSize: '1.15rem',
+                fontSize: '1.08rem',
                 color: '#fff',
                 margin: 0,
                 fontFamily: "'Outfit', sans-serif",
               }}
             >
-              Clasificación y Estadísticas
+              Directo y Clasificación
             </h3>
             <p
               style={{
                 color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.9rem',
-                lineHeight: 1.5,
+                fontSize: '0.86rem',
+                lineHeight: 1.45,
                 margin: 0,
               }}
             >
-              Tabla en tiempo real con desglose detallado de puntos por ronda, aciertos exactos,
-              selecciones más votadas por la comunidad y gráfico de evolución.
+              Tabla de posiciones en tiempo real, desglose detallado de puntos y evolución del
+              ranking.
             </p>
           </div>
 
@@ -357,30 +341,30 @@ export default function Landing() {
           <div
             className="glass-panel"
             style={{
-              padding: '24px',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '8px',
             }}
           >
             <div
               style={{
-                width: '44px',
-                height: '44px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '10px',
                 background: 'rgba(34, 197, 94, 0.15)',
                 color: '#22c55e',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem',
+                fontSize: '1.3rem',
               }}
             >
               📱
             </div>
             <h3
               style={{
-                fontSize: '1.15rem',
+                fontSize: '1.08rem',
                 color: '#fff',
                 margin: 0,
                 fontFamily: "'Outfit', sans-serif",
@@ -391,13 +375,13 @@ export default function Landing() {
             <p
               style={{
                 color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.9rem',
-                lineHeight: 1.5,
+                fontSize: '0.86rem',
+                lineHeight: 1.45,
                 margin: 0,
               }}
             >
-              Instálala en tu móvil iOS o Android con un toque. Interfaz ultra-rápida, diseño
-              adaptativo optimizado para uso en el sofá o en el bar durante los partidos.
+              Instálala en tu móvil iOS o Android con un toque para consultar los partidos en
+              cualquier lugar.
             </p>
           </div>
 
@@ -405,60 +389,60 @@ export default function Landing() {
           <div
             className="glass-panel"
             style={{
-              padding: '24px',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '8px',
             }}
           >
             <div
               style={{
-                width: '44px',
-                height: '44px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '10px',
                 background: 'rgba(239, 68, 68, 0.15)',
                 color: '#ef4444',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem',
+                fontSize: '1.3rem',
               }}
             >
               🔒
             </div>
             <h3
               style={{
-                fontSize: '1.15rem',
+                fontSize: '1.08rem',
                 color: '#fff',
                 margin: 0,
                 fontFamily: "'Outfit', sans-serif",
               }}
             >
-              Cierre Automático y Fair Play
+              Cierre Automático
             </h3>
             <p
               style={{
                 color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.9rem',
-                lineHeight: 1.5,
+                fontSize: '0.86rem',
+                lineHeight: 1.45,
                 margin: 0,
               }}
             >
-              Bloqueo estricto antes del pitido inicial de cada jornada o torneo para evitar
-              modificaciones sospechosas. Total transparencia entre los miembros de tu peña.
+              Bloqueo estricto antes del pitido inicial de cada partido para garantizar total juego
+              limpio.
             </p>
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section style={{ margin: '60px 0 40px', textAlign: 'center' }}>
+      <section style={{ margin: '45px 0 30px', textAlign: 'center' }}>
         <h2
           style={{
             fontFamily: "'Outfit', sans-serif",
-            fontSize: 'clamp(1.5rem, 3vw, 2.1rem)',
+            fontSize: 'clamp(1.4rem, 2.8vw, 1.9rem)',
             color: '#fff',
-            marginBottom: '30px',
+            marginBottom: '20px',
           }}
         >
           ¿Cómo empezar en 3 pasos?
@@ -467,16 +451,16 @@ export default function Landing() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '24px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '16px',
             textAlign: 'center',
           }}
         >
-          <div className="glass-panel" style={{ padding: '24px 20px' }}>
+          <div className="glass-panel" style={{ padding: '18px 14px' }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
+                width: '32px',
+                height: '32px',
                 borderRadius: '50%',
                 background: 'var(--accent-cyan, #00d2d3)',
                 color: '#0f172a',
@@ -484,26 +468,25 @@ export default function Landing() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 15px',
-                fontSize: '1.1rem',
+                margin: '0 auto 10px',
+                fontSize: '0.95rem',
               }}
             >
               1
             </div>
-            <h4 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.05rem' }}>
-              Explora o Inicia Sesión
+            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
+              Inicia Sesión
             </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.88rem', margin: 0 }}>
-              Prueba la demo del Mundial libremente o identifícate con tu cuenta de Google en dos
-              clics.
+            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
+              Identifícate con tu cuenta de Google en un solo clic.
             </p>
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px 20px' }}>
+          <div className="glass-panel" style={{ padding: '18px 14px' }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
+                width: '32px',
+                height: '32px',
                 borderRadius: '50%',
                 background: 'var(--accent-cyan, #00d2d3)',
                 color: '#0f172a',
@@ -511,26 +494,25 @@ export default function Landing() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 15px',
-                fontSize: '1.1rem',
+                margin: '0 auto 10px',
+                fontSize: '0.95rem',
               }}
             >
               2
             </div>
-            <h4 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.05rem' }}>
-              Únete o Crea tu Liga
+            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
+              Crea o Únete
             </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.88rem', margin: 0 }}>
-              Crea una liga para tu peña o introduce el código de invitación que te hayan enviado
-              tus amigos.
+            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
+              Crea una liga para tus amigos o introduce su código de invitación.
             </p>
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px 20px' }}>
+          <div className="glass-panel" style={{ padding: '18px 14px' }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
+                width: '32px',
+                height: '32px',
                 borderRadius: '50%',
                 background: 'var(--accent-cyan, #00d2d3)',
                 color: '#0f172a',
@@ -538,96 +520,31 @@ export default function Landing() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 15px',
-                fontSize: '1.1rem',
+                margin: '0 auto 10px',
+                fontSize: '0.95rem',
               }}
             >
               3
             </div>
-            <h4 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.05rem' }}>
+            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
               Pronostica y Compite
             </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.88rem', margin: 0 }}>
-              Rellena tu cuadro o tus jornadas, sigue los resultados en directo y presume de
-              liderato.
+            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
+              Rellena tus resultados, sigue los partidos en vivo y lidera la clasificación.
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* Bottom CTA Banner */}
-      <section
-        style={{
-          marginTop: '60px',
-          padding: '40px 24px',
-          borderRadius: '20px',
-          background:
-            'linear-gradient(135deg, rgba(0, 210, 211, 0.12) 0%, rgba(37, 99, 235, 0.15) 100%)',
-          border: '1px solid rgba(0, 210, 211, 0.3)',
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '16px',
-        }}
-      >
-        <h3
-          style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: 'clamp(1.5rem, 3vw, 2.2rem)',
-            color: '#fff',
-            margin: 0,
-          }}
-        >
-          ¿Listo para ver la porra en acción?
-        </h3>
-        <p
-          style={{
-            color: 'var(--text-muted, #94a3b8)',
-            fontSize: '1rem',
-            maxWidth: '540px',
-            margin: 0,
-          }}
-        >
-          Descubre el cuadro completo del Mundial 2026, las porras de los participantes y el ranking
-          interactivo.
-        </p>
-        <div
-          style={{
-            display: 'flex',
-            gap: '14px',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            marginTop: '10px',
-          }}
-        >
-          <button
-            onClick={handleStartDemo}
-            className="glass-btn primary-btn"
-            style={{
-              padding: '12px 24px',
-              fontSize: '1rem',
-              fontWeight: 800,
-              borderRadius: '10px',
-              cursor: 'pointer',
-            }}
-          >
-            🚀 Abrir Demo del Mundial
-          </button>
         </div>
       </section>
 
       {/* Footer */}
       <footer
         style={{
-          marginTop: '60px',
-          paddingTop: '25px',
+          marginTop: '45px',
+          paddingTop: '20px',
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '15px',
           color: '#64748b',
           fontSize: '0.85rem',
         }}
@@ -636,32 +553,6 @@ export default function Landing() {
           <span>⚽</span>
           <strong style={{ color: '#fff' }}>PorrApp</strong>
           <span>· Porras Deportivas</span>
-        </div>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <button
-            onClick={handleStartDemo}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#94a3b8',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-            }}
-          >
-            Demo Mundial 2026
-          </button>
-          <button
-            onClick={() => navigate('/reglas')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#94a3b8',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-            }}
-          >
-            Reglas del Juego
-          </button>
         </div>
       </footer>
     </div>
