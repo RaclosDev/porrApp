@@ -265,7 +265,7 @@ function Leaderboard() {
           }}
         >
           <div
-            className="table-container"
+            className="table-container desktop-leaderboard-table"
             style={{ flex: 1, minWidth: '300px', maxWidth: '1400px', margin: '0 auto' }}
           >
             <table className="leaderboard-table">
@@ -527,6 +527,220 @@ function Leaderboard() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Vista móvil en tarjetas verticales (Mobile Leaderboard Cards) */}
+          <div
+            className="mobile-leaderboard-list"
+            style={{ width: '100%', maxWidth: '600px', margin: '0 auto' }}
+          >
+            {results.map((r) => {
+              let rankDisplay = r.rank;
+              if (r.rank === 1) rankDisplay = '🥇';
+              else if (r.rank === 2) rankDisplay = '🥈';
+              else if (r.rank === 3) rankDisplay = '🥉';
+              else if (r.paid && r.rank === lowestPaidRank && lowestPaidRank > 3)
+                rankDisplay = '🐢';
+
+              const isPending = !r.paid;
+              const isMe = r.userId?.toString() === userId?.toString() || r.name === userName;
+
+              return (
+                <div
+                  key={`mobile-${r.key}`}
+                  className="mobile-leaderboard-card glass-panel"
+                  style={{
+                    padding: '14px 16px',
+                    marginBottom: '10px',
+                    borderRadius: '14px',
+                    background: isMe
+                      ? 'rgba(0, 210, 211, 0.12)'
+                      : isPending
+                        ? 'rgba(255, 165, 0, 0.05)'
+                        : 'rgba(255, 255, 255, 0.04)',
+                    border: isMe
+                      ? '1px solid var(--accent-color)'
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                    boxShadow: isMe ? '0 0 15px rgba(0, 210, 211, 0.2)' : 'none',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '1.25rem',
+                          width: '32px',
+                          textAlign: 'center',
+                          flexShrink: 0,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {rankDisplay}
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            fontSize: '1rem',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <span
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {r.name}
+                          </span>
+                          {isMe && (
+                            <span
+                              style={{
+                                color: 'var(--accent-color)',
+                                fontSize: '0.78rem',
+                                fontWeight: 800,
+                              }}
+                            >
+                              (Tú)
+                            </span>
+                          )}
+                          {isPending && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                background: 'orange',
+                                color: 'white',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                              }}
+                            >
+                              ⏳ Pendiente
+                            </span>
+                          )}
+                        </div>
+                        {r.betName && (
+                          <div
+                            style={{
+                              fontSize: '0.8rem',
+                              color: 'var(--text-muted)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {r.betName}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+                      <span
+                        style={{
+                          fontSize: '1.35rem',
+                          fontWeight: 900,
+                          color: 'var(--accent-color)',
+                          fontFamily: "'Outfit', sans-serif",
+                        }}
+                      >
+                        {r.paid ? r.points.total : '-'}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginLeft: '3px',
+                        }}
+                      >
+                        pts
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Desglose de puntuaciones y acción */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: '10px',
+                      paddingTop: '8px',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                      fontSize: '0.78rem',
+                      color: 'var(--text-muted)',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      {isMatchday ? (
+                        <span>
+                          ⚽ Jornadas:{' '}
+                          <strong>{r.paid ? r.points.matchPoints || 0 : '-'} pts</strong>
+                        </span>
+                      ) : (
+                        <>
+                          <span>
+                            ⚡ Grupos: <strong>{r.paid ? r.points.r1 : '-'}</strong>
+                          </span>
+                          <span>
+                            🏆 Finales: <strong>{r.paid ? r.points.finals : '-'}</strong>
+                          </span>
+                          {activeGroupPichichi && r.points.scorer ? (
+                            <span>
+                              🎯 Pichichi: <strong>{r.points.scorer}</strong>
+                            </span>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+
+                    <button
+                      className="glass-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isMatchday) {
+                          navigate('/jornadas');
+                        } else {
+                          state.setViewerBetId(r.id);
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(56, 173, 246, 0.15)',
+                        color: '#38adf6',
+                        border: '1px solid rgba(56, 173, 246, 0.4)',
+                        padding: '4px 10px',
+                        fontSize: '0.78rem',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      👁️ {isMatchday ? 'Ver Jornadas' : 'Ver Porra'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

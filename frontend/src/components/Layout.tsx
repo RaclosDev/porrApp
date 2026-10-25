@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { getAuthToken, setAuthToken, fetchClaimedNames } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
+import MobileBottomNav from './MobileBottomNav';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -784,7 +785,12 @@ function Layout({ children }) {
       </header>
 
       {/* Contenido Principal */}
-      <main className="app-container">{children}</main>
+      <main className={`app-container ${!isLanding ? 'has-mobile-bottom-nav' : ''}`}>
+        {children}
+      </main>
+
+      {/* Barra de navegación inferior fija para móviles */}
+      {!isLanding && <MobileBottomNav />}
 
       {/* Banner PWA */}
       {showInstallBanner && (

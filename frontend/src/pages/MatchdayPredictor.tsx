@@ -941,6 +941,7 @@ function MatchdayPredictor() {
       {/* Botón flotante inferior para guardar en móvil si hay cambios */}
       {hasUnsavedChanges && (
         <div
+          className="floating-bottom-action"
           style={{
             position: 'fixed',
             bottom: '20px',

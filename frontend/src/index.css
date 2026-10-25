@@ -1345,3 +1345,43 @@ option {
   color: #fbbf24 !important;
   border-radius: 8px !important;
 }
+
+/* ==========================================================================
+   Mobile Bottom Navigation & Ergonomics
+   ========================================================================== */
+@media (min-width: 769px) {
+  .mobile-bottom-nav,
+  .mobile-leaderboard-list {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* En pantallas móviles la tabla de clasificación pasa a tarjetas legibles */
+  .desktop-leaderboard-table {
+    display: none !important;
+  }
+  .mobile-leaderboard-list {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* En pantallas móviles la navegación principal pasa al pulgar inferior */
+  .header-center {
+    display: none !important;
+  }
+
+  /* Padding inferior para que el contenido no quede tapado por la barra flotante */
+  .app-container.has-mobile-bottom-nav {
+    padding-bottom: calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Los botones flotantes de acción se elevan por encima de la barra */
+  .floating-bottom-action {
+    bottom: calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .mobile-bottom-nav .mobile-nav-item:active {
+    transform: scale(0.92);
+  }
+}
