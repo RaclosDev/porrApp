@@ -67,7 +67,7 @@ function Bracket() {
         </select>
       );
     }
-    // R32: read-only display with status indicator
+    // R32: display with status indicator and click to advance
     if (roundIndex === 0) {
       let statusIndicator = null;
       const name = team?.name;
@@ -91,7 +91,13 @@ function Bracket() {
           );
         }
       }
-      return <TeamSlot name={name} rightContent={statusIndicator} />;
+      return (
+        <TeamSlot
+          name={name}
+          rightContent={statusIndicator}
+          onClick={() => advanceTeam(team, side, roundIndex, matchIndex)}
+        />
+      );
     }
     // Other rounds: click to advance
     return (

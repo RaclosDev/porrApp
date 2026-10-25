@@ -1,15 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import {
-  Home,
-  Trophy,
-  Users,
-  Calendar,
-  PenTool,
-  GitBranch,
-  LayoutGrid,
-  BookOpen,
-} from 'lucide-react';
+import { Home, Trophy, Users, Calendar, Pencil, Swords, LayoutGrid, BookOpen } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 /**
@@ -29,7 +20,7 @@ export default function MobileBottomNav() {
   const navItems = isDemo
     ? [
         { to: '/demo', label: 'Inicio', icon: Home },
-        { to: '/cuadro', label: 'Cuadro', icon: GitBranch },
+        { to: '/cuadro', label: 'Cuadro', icon: Swords },
         { to: '/grupos', label: 'Grupos', icon: LayoutGrid },
         { to: '/clasificacion', label: 'Ranking', icon: Trophy },
         { to: '/reglas', label: 'Reglas', icon: BookOpen },
@@ -44,8 +35,8 @@ export default function MobileBottomNav() {
         ]
       : [
           { to: '/', label: 'Inicio', icon: Home, end: true },
-          { to: '/bracket', label: 'Mi Porra', icon: PenTool },
-          { to: '/cuadro', label: 'Cuadro', icon: GitBranch },
+          { to: '/bracket', label: 'Mi Porra', icon: Pencil },
+          { to: '/cuadro', label: 'Cuadro', icon: Swords },
           { to: '/clasificacion', label: 'Ranking', icon: Trophy },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
         ];

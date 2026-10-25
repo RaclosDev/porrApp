@@ -778,6 +778,11 @@ export default function GroupsDashboard() {
           {groups.map((group) => {
             const isCodeVisible = visibleCodes.has(group.id);
             const isSelected = activeGroupId && activeGroupId.toString() === group.id.toString();
+            const isCreator =
+              (group.adminUserId && userId && String(group.adminUserId) === String(userId)) ||
+              (group.adminParticipantName &&
+                userName &&
+                group.adminParticipantName.toLowerCase() === userName.toLowerCase());
             return (
               <div
                 key={group.id}
@@ -947,7 +952,7 @@ export default function GroupsDashboard() {
                     👥 Miembros
                   </button>
 
-                  {group.adminUserId?.toString() === userId?.toString() && (
+                  {isCreator ? (
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
                         onClick={() => handleEditGroup(group.id, group.name)}
@@ -973,9 +978,7 @@ export default function GroupsDashboard() {
                         🗑️
                       </button>
                     </div>
-                  )}
-
-                  {group.adminUserId?.toString() !== userId?.toString() && (
+                  ) : (
                     <button
                       onClick={() => handleLeaveGroup(group.id, group.name)}
                       className="glass-btn"

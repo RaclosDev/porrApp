@@ -885,30 +885,73 @@ option {
 /* Mobile & Tablet Responsive */
 @media (max-width: 1024px) {
   .top-bar {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    padding: 12px 8px;
-    gap: 8px;
-    width: 100%;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 8px 12px !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: 56px !important;
   }
 
-  .header-left,
-  .header-title-row,
-  .header-right {
-    display: contents !important;
+  .header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .header-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    width: auto !important;
   }
 
   .header-brand-link {
-    order: 0 !important;
-    margin-right: auto !important;
+    flex-shrink: 0 !important;
+    font-size: 1.18rem !important;
   }
 
-  #btn-login-header,
-  #btn-profile-menu {
-    order: 5 !important;
+  /* Ocultar el icono del balón en pantallas móviles para dejar solo el texto PorrApp */
+  .brand-ball-icon {
+    display: none !important;
+  }
+
+  .header-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
     margin-left: auto !important;
+  }
+
+  /* Ocultar el nombre del usuario logueado en la cabecera móvil (dejar solo el icono avatar) */
+  .header-user-name {
+    display: none !important;
+  }
+
+  #btn-profile-menu {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    min-width: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Ajustar selector de liga activa en cabecera móvil */
+  #btn-active-league-dropdown {
+    max-width: 175px !important;
+    padding: 4px 8px !important;
+    font-size: 0.82rem !important;
+    min-height: 34px !important;
   }
 
   .header-center {

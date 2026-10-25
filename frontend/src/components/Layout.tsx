@@ -333,7 +333,9 @@ function Layout({ children }) {
                 flexShrink: 0,
               }}
             >
-              <span style={{ fontSize: '1.35rem' }}>⚽</span>
+              <span className="brand-ball-icon" style={{ fontSize: '1.35rem' }}>
+                ⚽
+              </span>
               <span>
                 Porr<span style={{ color: 'var(--accent-cyan, #00d2d3)' }}>App</span>
               </span>
@@ -674,6 +676,7 @@ function Layout({ children }) {
               >
                 <span style={{ fontSize: '1.1rem' }}>{isRaclos && !userName ? '🛡️' : '👤'}</span>
                 <span
+                  className="header-user-name"
                   style={{
                     fontWeight: 'bold',
                     maxWidth: '120px',
