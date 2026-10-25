@@ -360,6 +360,81 @@ export async function submitMatchdayPredictions(groupId, predictions) {
   return res.json();
 }
 
+export async function fetchMatchdayFriendBets(groupId, matchId) {
+  const token = getAuthToken();
+  return fetchJson(`${API_BASE}/predictions/matchday/matches/${matchId}/bets?groupId=${groupId}`, {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+}
+
+export async function fetchGroupMembers(groupId) {
+  const token = getAuthToken();
+  return fetchJson(`${API_BASE}/groups/${groupId}/members`, {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+}
+
+export async function toggleGroupMemberPayment(groupId, userId, status) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/groups/${groupId}/members/${userId}/payment`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al actualizar estado de pago');
+  }
+  return res.json();
+}
+
+export async function kickGroupMember(groupId, userId) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/groups/${groupId}/members/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al expulsar al miembro');
+  }
+  return res.json();
+}
+
+export async function regenerateGroupJoinCode(groupId) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/groups/${groupId}/regenerate-code`, {
+    method: 'POST',
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al regenerar código');
+  }
+  return res.json();
+}
+
+export async function fetchMissingRoundUsers(groupId, round = '') {
+  const token = getAuthToken();
+  const query = round ? `?round=${encodeURIComponent(round)}` : '';
+  return fetchJson(`${API_BASE}/groups/${groupId}/missing-users${query}`, {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+}
+
 export async function fetchSyncStatus() {
   return fetchJson(`${API_BASE}/admin/sync/status`);
 }

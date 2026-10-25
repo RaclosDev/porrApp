@@ -2,6 +2,7 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
+import com.porra.mundial.dto.MatchdayFriendBetDTO;
 import com.porra.mundial.model.*;
 import com.porra.mundial.repository.*;
 import com.porra.mundial.scoring.MatchScoreResult;
@@ -298,5 +299,100 @@ public class MatchPredictionService {
             mp.setScoringDetails(result.explanation());
             matchPredictionRepository.save(mp);
         }
+    }
+
+    /**
+     * Devuelve las predicciones de todos los miembros del grupo para un partido específico.
+     * Si el partido está abierto, los resultados de otros usuarios permanecen ocultos para evitar copias.
+     */
+    @Transactional(readOnly = true)
+    public List<MatchdayFriendBetDTO> getFriendBetsForMatch(String email, Long groupId, Long matchId) {
+        if (groupId == null || matchId == null) {
+            throw new IllegalArgumentException("El grupo y el partido son obligatorios");
+        }
+
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Partido no encontrado: " + matchId));
+
+        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
+
+        UserAccount caller = (email != null && !email.isBlank())
+                ? userAccountRepository.findByGoogleEmail(email)
+                    .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
+                    .orElse(null)
+                : null;
+
+        LocalDateTime now = LocalDateTime.now();
+        boolean isMatchLocked = Boolean.TRUE.equals(match.getFinished())
+                || (match.getMatchDate() != null && match.getMatchDate().isBefore(now))
+                || (edition != null && edition.isLocked());
+
+        // Obtener miembros del grupo
+        List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
+        Map<Long, UserAccount> memberMap = new LinkedHashMap<>();
+        for (Membership m : memberships) {
+            if (m.getUser() != null) {
+                memberMap.put(m.getUser().getId(), m.getUser());
+            }
+        }
+
+        // Obtener todas las predicciones del partido en esta liga
+        List<MatchPrediction> matchPreds = matchPredictionRepository.findByMatchId(matchId).stream()
+                .filter(mp -> mp.getPrediction() != null && mp.getPrediction().getEdition() != null
+                        && mp.getPrediction().getEdition().getLeague() != null
+                        && groupId.equals(mp.getPrediction().getEdition().getLeague().getId()))
+                .collect(Collectors.toList());
+
+        Map<Long, MatchPrediction> userPredMap = new HashMap<>();
+        for (MatchPrediction mp : matchPreds) {
+            if (mp.getPrediction().getUser() != null) {
+                userPredMap.put(mp.getPrediction().getUser().getId(), mp);
+                memberMap.putIfAbsent(mp.getPrediction().getUser().getId(), mp.getPrediction().getUser());
+            }
+        }
+
+        List<MatchdayFriendBetDTO> list = new ArrayList<>();
+        for (UserAccount member : memberMap.values()) {
+            boolean isCaller = caller != null && caller.getId().equals(member.getId());
+            MatchPrediction mp = userPredMap.get(member.getId());
+
+            MatchdayFriendBetDTO.MatchdayFriendBetDTOBuilder builder = MatchdayFriendBetDTO.builder()
+                    .userId(member.getId())
+                    .participantName(member.getParticipantName() != null ? member.getParticipantName() : "Anónimo")
+                    // avatarUrl opcional
+                    .isCaller(isCaller);
+
+            if (mp != null) {
+                builder.hasPredicted(true);
+                builder.updatedAt(mp.getUpdatedAt() != null ? mp.getUpdatedAt() : mp.getCreatedAt());
+
+                if (isMatchLocked || isCaller) {
+                    builder.homeScore(mp.getHomeScore())
+                            .awayScore(mp.getAwayScore())
+                            .sign(mp.getPredictionSign())
+                            .pointsAwarded(mp.getPointsAwarded())
+                            .isExactScore(mp.getIsExactScore())
+                            .isCorrectSign(mp.getIsCorrectSign())
+                            .scoringDetails(mp.getScoringDetails());
+                } else {
+                    builder.scoringDetails("🔒 Pronóstico oculto hasta el pitido inicial");
+                }
+            } else {
+                builder.hasPredicted(false)
+                        .scoringDetails(isMatchLocked ? "❌ Sin pronóstico (0 pts)" : "⏳ Pendiente de pronosticar");
+            }
+
+            list.add(builder.build());
+        }
+
+        list.sort((a, b) -> {
+            if (a.isCaller() != b.isCaller()) return a.isCaller() ? -1 : 1;
+            int ptsA = a.getPointsAwarded() != null ? a.getPointsAwarded() : -1;
+            int ptsB = b.getPointsAwarded() != null ? b.getPointsAwarded() : -1;
+            if (ptsA != ptsB) return Integer.compare(ptsB, ptsA);
+            return a.getParticipantName().compareToIgnoreCase(b.getParticipantName());
+        });
+
+        return list;
     }
 }

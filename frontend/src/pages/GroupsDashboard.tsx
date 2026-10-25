@@ -1,3 +1,5 @@
+import GroupMembersModal from '../components/GroupMembersModal';
+import { GoogleLogin } from '@react-oauth/google';
 import { POOL_FORMATS, PRESET_TEMPLATES, useGroupsDashboard } from '../hooks/useGroupsDashboard';
 
 /**
@@ -48,6 +50,45 @@ export default function GroupsDashboard() {
     navigate,
   } = useGroupsDashboard();
 
+  const handleDirectGoogleLogin = async (credentialResponse) => {
+    try {
+      const res = await fetch('/api/auth/google/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+      const data = await res.json();
+      if (data.status === 'requires_name') {
+        const name = prompt('¡Bienvenido! Elige tu apodo para la porra:') || '';
+        if (!name.trim()) return;
+        const res2 = await fetch('/api/auth/google/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            credential: credentialResponse.credential,
+            participantName: name.trim(),
+          }),
+        });
+        const data2 = await res2.json();
+        if (data2.token) {
+          localStorage.setItem('token', data2.token);
+          localStorage.setItem('my_prediction_name', data2.participantName);
+          localStorage.setItem('my_bet_name', data2.participantName);
+          if (data2.userId) localStorage.setItem('my_user_id', data2.userId);
+          window.location.reload();
+        }
+      } else if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('my_prediction_name', data.participantName);
+        localStorage.setItem('my_bet_name', data.participantName);
+        if (data.userId) localStorage.setItem('my_user_id', data.userId);
+        window.location.reload();
+      }
+    } catch (err) {
+      alert('Error al iniciar sesión con Google: ' + err.message);
+    }
+  };
+
   if (!userName) {
     return (
       <div style={{ textAlign: 'center', padding: '40px', color: 'white' }}>
@@ -78,19 +119,36 @@ export default function GroupsDashboard() {
             >
               {pendingJoinCodeNotice}
             </div>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Inicia sesión arriba a la derecha con Google para unirte automáticamente a la liga.
+            <p style={{ margin: '0 0 14px 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              Inicia sesión directamente para unirte automáticamente a la liga:
             </p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin
+                onSuccess={handleDirectGoogleLogin}
+                onError={() => alert('Inicio de sesión fallido')}
+                theme="filled_black"
+                shape="pill"
+                text="continue_with"
+              />
+            </div>
           </div>
         )}
 
         <h2 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>
           Debes iniciar sesión con Google
         </h2>
-        <p style={{ color: 'var(--text-muted)' }}>
-          Para crear o unirte a una liga, necesitas acceder con tu cuenta de Google arriba a la
-          derecha.
+        <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
+          Para crear o unirte a una liga, necesitas acceder con tu cuenta de Google:
         </p>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <GoogleLogin
+            onSuccess={handleDirectGoogleLogin}
+            onError={() => alert('Inicio de sesión fallido')}
+            theme="filled_black"
+            shape="pill"
+            text="continue_with"
+          />
+        </div>
       </div>
     );
   }
@@ -874,6 +932,17 @@ export default function GroupsDashboard() {
                     💬 WhatsApp
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGroupForMembers(group)}
+                    className="glass-btn"
+                    style={{ padding: '8px 12px', fontSize: '0.9rem', color: '#00d2d3' }}
+                    title="Ver y Gestionar Participantes"
+                    aria-label="Ver y Gestionar Participantes"
+                  >
+                    👥 Miembros
+                  </button>
+
                   {group.adminUserId?.toString() === userId?.toString() && (
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
@@ -935,6 +1004,19 @@ export default function GroupsDashboard() {
             </div>
           )}
         </div>
+      )}
+      {/* Modal de Gestión de Miembros y Pagos */}
+      {selectedGroupForMembers && (
+        <GroupMembersModal
+          groupId={selectedGroupForMembers.id}
+          groupName={selectedGroupForMembers.name}
+          currentJoinCode={selectedGroupForMembers.joinCode}
+          isAdmin={selectedGroupForMembers.adminUserId?.toString() === userId?.toString()}
+          onClose={() => setSelectedGroupForMembers(null)}
+          onCodeRegenerated={(newCode) => {
+            selectedGroupForMembers.joinCode = newCode;
+          }}
+        />
       )}
     </section>
   );

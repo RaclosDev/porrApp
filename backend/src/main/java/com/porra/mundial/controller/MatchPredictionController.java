@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
+import com.porra.mundial.dto.MatchdayFriendBetDTO;
 import com.porra.mundial.dto.MatchdaySubmissionDTO;
 import com.porra.mundial.service.MatchPredictionService;
 import com.porra.mundial.service.WebSocketService;
@@ -80,5 +81,20 @@ public class MatchPredictionController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error interno al guardar los pronósticos: " + e.getMessage()));
         }
+    }
+
+    /**
+     * Obtiene los pronósticos de todos los miembros del grupo para un partido específico.
+     * Solo revela resultados de otros usuarios si el partido ya ha comenzado o finalizado.
+     */
+    @GetMapping("/matches/{matchId}/bets")
+    public ResponseEntity<List<MatchdayFriendBetDTO>> getMatchdayFriendBets(
+            @PathVariable Long matchId,
+            @RequestParam Long groupId,
+            Principal principal) {
+
+        String email = getRequesterEmail(principal);
+        List<MatchdayFriendBetDTO> bets = matchPredictionService.getFriendBetsForMatch(email, groupId, matchId);
+        return ResponseEntity.ok(bets);
     }
 }

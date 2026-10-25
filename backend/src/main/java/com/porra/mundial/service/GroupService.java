@@ -1,5 +1,14 @@
 package com.porra.mundial.service;
 
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.Set;
+import com.porra.mundial.dto.GroupMemberDTO;
+import com.porra.mundial.dto.MissingUserNudgeDTO;
+import com.porra.mundial.model.Match;
+import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.LeagueRepository;
@@ -8,7 +17,6 @@ import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MembershipRepository;
-import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
@@ -19,11 +27,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
+import java.util.ArrayList;
+import java.time.LocalDateTime;
+import com.porra.mundial.model.MatchPrediction;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+
+
 
 /**
  *  Servicio de Grupos/Ligas (GroupService).
@@ -42,6 +55,7 @@ public class GroupService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
+    private final MatchPredictionRepository matchPredictionRepository;
     @org.springframework.context.annotation.Lazy
     private final SyncService syncService;
 
@@ -218,6 +232,7 @@ public class GroupService {
                 .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
                 .pichichi(pichichi)
                 .status("ACTIVE")
+                .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
 
         if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
@@ -463,4 +478,170 @@ public class GroupService {
         deletePrediction(groupId, betId, email);
     }
 
+
+    /**
+     * Obtiene los miembros de una liga con su rol y estado de pago.
+     */
+    @Transactional(readOnly = true)
+    public List<GroupMemberDTO> getGroupMembers(Long groupId, String email) {
+        League group = leagueRepository.findById(groupId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+
+        List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
+        List<GroupMemberDTO> list = new ArrayList<>();
+
+        for (Membership m : memberships) {
+            UserAccount u = m.getUser();
+            if (u == null) continue;
+            boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
+                    || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
+
+            list.add(GroupMemberDTO.builder()
+                    .userId(u.getId())
+                    .participantName(u.getParticipantName())
+                    .googleEmail(u.getGoogleEmail())
+                    .role(m.getRole())
+                    .paymentStatus(m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING")
+                    .joinedAt(m.getJoinedAt())
+                    .isAdmin(isAdmin)
+                    .build());
+        }
+
+        list.sort((a, b) -> {
+            if (a.isAdmin() != b.isAdmin()) return a.isAdmin() ? -1 : 1;
+            return a.getParticipantName().compareToIgnoreCase(b.getParticipantName());
+        });
+
+        return list;
+    }
+
+    /**
+     * Cambia el estado de pago de un miembro en la liga y sincroniza su pronóstico.
+     */
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto"}, allEntries = true)
+    public void toggleMemberPayment(Long groupId, Long targetUserId, String email, String status) {
+        verifyGroupAdmin(groupId, email);
+
+        Membership.MembershipId memId = new Membership.MembershipId(targetUserId, groupId);
+        Membership mem = membershipRepository.findById(memId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Membresía no encontrada"));
+
+        String cleanStatus = "PAID".equalsIgnoreCase(status) ? "PAID" : "PENDING";
+        mem.setPaymentStatus(cleanStatus);
+        membershipRepository.save(mem);
+
+        // Sincronizar predicciones del usuario en esta edición
+        List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
+        for (Prediction p : preds) {
+            if (p.getUser() != null && p.getUser().getId().equals(targetUserId)) {
+                p.setPaid("PAID".equals(cleanStatus));
+                p.setPaymentStatus(cleanStatus);
+                predictionRepository.save(p);
+            }
+        }
+    }
+
+    /**
+     * Expulsa a un participante de la liga eliminando sus pronósticos y membresía.
+     */
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "myBetsDto"}, allEntries = true)
+    public void kickMember(Long groupId, Long targetUserId, String email) {
+        verifyGroupAdmin(groupId, email);
+        League group = leagueRepository.findById(groupId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+
+        if (group.getAdminUser() != null && group.getAdminUser().getId().equals(targetUserId)) {
+            throw new IllegalArgumentException("No puedes expulsar al administrador creador de la liga.");
+        }
+
+        // Eliminar predicciones del usuario en la liga
+        List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
+        for (Prediction p : preds) {
+            if (p.getUser() != null && p.getUser().getId().equals(targetUserId)) {
+                predictionRepository.delete(p);
+            }
+        }
+
+        Membership.MembershipId memId = new Membership.MembershipId(targetUserId, groupId);
+        membershipRepository.deleteById(memId);
+    }
+
+    /**
+     * Regenera el código de invitación de la liga si se ha filtrado.
+     */
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse"}, allEntries = true)
+    public String regenerateJoinCode(Long groupId, String email) {
+        verifyGroupAdmin(groupId, email);
+        League group = leagueRepository.findById(groupId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+
+        String newCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        group.setJoinCode(newCode);
+        leagueRepository.save(group);
+        return newCode;
+    }
+
+    /**
+     * Herramienta del Administrador: devuelve la lista de participantes que aún NO han pronosticado la jornada.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getMissingMembersForRound(Long groupId, String email, String round) {
+        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
+        if (edition == null || edition.getCompetition() == null) {
+            return Map.of("round", "", "totalMembers", 0, "missingCount", 0, "missingUsers", List.of());
+        }
+
+        List<Match> matches = matchRepository.findByCompetitionIdOrderByMatchDateAsc(edition.getCompetition().getId());
+        if (matches.isEmpty()) {
+            return Map.of("round", "", "totalMembers", 0, "missingCount", 0, "missingUsers", List.of());
+        }
+
+        String targetRound = round;
+        if (targetRound == null || targetRound.isBlank()) {
+            LocalDateTime now = LocalDateTime.now();
+            targetRound = matches.stream()
+                    .filter(m -> !Boolean.TRUE.equals(m.getFinished()) && (m.getMatchDate() == null || m.getMatchDate().isAfter(now)))
+                    .map(Match::getRound)
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(matches.get(0).getRound());
+        }
+
+        final String finalRound = targetRound;
+        List<Match> roundMatches = matches.stream()
+                .filter(m -> finalRound != null && finalRound.equalsIgnoreCase(m.getRound()))
+                .collect(Collectors.toList());
+
+        Set<Long> matchIds = roundMatches.stream().map(Match::getId).collect(Collectors.toSet());
+
+        List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
+        List<MissingUserNudgeDTO> missingList = new ArrayList<>();
+
+        for (Membership m : memberships) {
+            UserAccount u = m.getUser();
+            if (u == null) continue;
+
+            // Comprobar si el usuario tiene predicción para algún partido de esta jornada
+            List<MatchPrediction> userPreds = matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(u.getId(), groupId);
+            boolean hasPredForRound = userPreds.stream()
+                    .anyMatch(mp -> mp.getMatch() != null && matchIds.contains(mp.getMatch().getId()) && (mp.getHomeScore() != null || mp.getPredictionSign() != null));
+
+            if (!hasPredForRound) {
+                missingList.add(MissingUserNudgeDTO.builder()
+                        .userId(u.getId())
+                        .participantName(u.getParticipantName())
+                        .build());
+            }
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("round", finalRound);
+        response.put("totalMembers", memberships.size());
+        response.put("missingCount", missingList.size());
+        response.put("missingUsers", missingList);
+        return response;
+    }
 }

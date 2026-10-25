@@ -2,8 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
+import {
+  fetchMatchdayFixtures,
+  submitMatchdayPredictions,
+  fetchMissingRoundUsers,
+} from '../services/api';
 import Flag from '../components/Flag';
+import MatchFriendsBetsModal from '../components/MatchFriendsBetsModal';
 
 /**
  * Vista de Pronósticos por Jornada (1X2 y Marcador Exacto) - Fase 3
@@ -11,12 +16,42 @@ import Flag from '../components/Flag';
  * con bloqueo individual por fecha de inicio y visualización de puntos obtenidos.
  */
 function MatchdayPredictor() {
-  const { activeGroupId, activeGroupName, activeGroupIsLocked, isAuthenticated } = useAppContext();
+  const {
+    activeGroupId,
+    activeGroupName,
+    activeGroupIsLocked,
+    activeGroupAdminId,
+    activeGroupAdmin,
+    userId,
+    userName,
+    isAuthenticated,
+  } = useAppContext();
 
+  const isGroupAdmin =
+    activeGroupAdminId?.toString() === userId?.toString() ||
+    (activeGroupAdmin && activeGroupAdmin === userName);
+
+  // Consulta de usuarios que faltan por pronosticar la jornada (Solo visible para el admin)
+  const { data: missingData } = useQuery({
+    queryKey: ['missingRoundUsers', activeGroupId, selectedRound],
+    queryFn: () => fetchMissingRoundUsers(activeGroupId, selectedRound),
+    enabled: Boolean(activeGroupId && isGroupAdmin),
+  });
+
+  const handleWhatsAppNudge = () => {
+    if (!missingData?.missingUsers || missingData.missingUsers.length === 0) return;
+    const names = missingData.missingUsers.map((u) => `@${u.participantName}`).join(', ');
+    const roundLabel = missingData.round || selectedRound || 'la jornada';
+    const text = `⚠️ *¡AVISO PORRA - ${activeGroupName ? activeGroupName.toUpperCase() : 'LIGA'}!* ⚠️\n\nQueda poco tiempo para el inicio de *${roundLabel}*.\n\n🚨 *Faltan por pronosticar:* ${names}\n\n👉 ¡Entrad ya antes de que cierren los partidos!\n${window.location.origin}/jornadas`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [selectedRound, setSelectedRound] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'FINISHED'
+  const [selectedMatchForFriends, setSelectedMatchForFriends] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localPredictions, setLocalPredictions] = useState({});
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
@@ -39,17 +74,31 @@ function MatchdayPredictor() {
   useEffect(() => {
     if (fixtures.length > 0) {
       const initial = {};
+      // Cargar borrador previo si existe en LocalStorage para esta liga
+      let draft = {};
+      try {
+        const storedDraft = localStorage.getItem(`draft_matchday_${activeGroupId}`);
+        if (storedDraft) draft = JSON.parse(storedDraft);
+      } catch (e) {
+        console.warn('Error reading matchday draft', e);
+      }
+
       fixtures.forEach((f) => {
+        const d = draft[f.matchId];
+        // Solo usar borrador si el partido sigue abierto y no tiene predicción ya guardada en servidor
+        const useDraft = !f.locked && d && (d.homeScore !== '' || d.sign !== '');
         initial[f.matchId] = {
-          homeScore:
-            f.predHomeScore !== null && f.predHomeScore !== undefined
+          homeScore: useDraft
+            ? d.homeScore
+            : f.predHomeScore !== null && f.predHomeScore !== undefined
               ? String(f.predHomeScore)
               : '',
-          awayScore:
-            f.predAwayScore !== null && f.predAwayScore !== undefined
+          awayScore: useDraft
+            ? d.awayScore
+            : f.predAwayScore !== null && f.predAwayScore !== undefined
               ? String(f.predAwayScore)
               : '',
-          sign: f.predSign || '',
+          sign: useDraft ? d.sign : f.predSign || '',
         };
       });
       setLocalPredictions(initial);
@@ -71,6 +120,12 @@ function MatchdayPredictor() {
     mutationFn: (items) => submitMatchdayPredictions(activeGroupId, items),
     onSuccess: (data) => {
       setSaveSuccessMsg(data.message || '¡Pronósticos guardados correctamente!');
+      setHasUnsavedChanges(false);
+      try {
+        localStorage.removeItem(`draft_matchday_${activeGroupId}`);
+      } catch {
+        /* ignore */
+      }
       setSaveErrorMsg('');
       queryClient.invalidateQueries({ queryKey: ['matchdayFixtures'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
@@ -98,7 +153,14 @@ function MatchdayPredictor() {
         updated.sign = h > a ? '1' : h === a ? 'X' : '2';
       }
 
-      return { ...prev, [matchId]: updated };
+      const nextState = { ...prev, [matchId]: updated };
+      setHasUnsavedChanges(true);
+      try {
+        localStorage.setItem(`draft_matchday_${activeGroupId}`, JSON.stringify(nextState));
+      } catch {
+        /* ignore */
+      }
+      return nextState;
     });
   };
 
@@ -175,6 +237,33 @@ function MatchdayPredictor() {
     return Object.values(localPredictions).filter((p) => p.homeScore !== '' || p.sign !== '')
       .length;
   }, [localPredictions]);
+
+  // Filtrado por estado (Todos / Pendientes / Finalizados)
+  const pendingCount = useMemo(() => {
+    return fixtures.filter(
+      (f) =>
+        !f.locked &&
+        (!localPredictions[f.matchId]?.homeScore || !localPredictions[f.matchId]?.sign),
+    ).length;
+  }, [fixtures, localPredictions]);
+
+  const finishedCount = useMemo(() => {
+    return fixtures.filter((f) => f.finished).length;
+  }, [fixtures]);
+
+  const displayedFixtures = useMemo(() => {
+    if (statusFilter === 'PENDING') {
+      return fixtures.filter(
+        (f) =>
+          !f.locked &&
+          (!localPredictions[f.matchId]?.homeScore || !localPredictions[f.matchId]?.sign),
+      );
+    }
+    if (statusFilter === 'FINISHED') {
+      return fixtures.filter((f) => f.finished);
+    }
+    return fixtures;
+  }, [fixtures, statusFilter, localPredictions]);
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '16px 12px 60px' }}>
@@ -297,6 +386,69 @@ function MatchdayPredictor() {
         </div>
       )}
 
+      {/* Nudge Banner para el Administrador de la Porra */}
+      {isGroupAdmin && missingData && missingData.missingCount > 0 && (
+        <div
+          className="glass-panel"
+          style={{
+            padding: '14px 18px',
+            marginBottom: '16px',
+            borderRadius: '12px',
+            background: 'rgba(243, 156, 18, 0.12)',
+            border: '1px solid rgba(243, 156, 18, 0.35)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontWeight: 800,
+                color: '#f39c12',
+                fontSize: '0.92rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>📢</span>
+              <span>
+                Aviso de Organizador: Faltan {missingData.missingCount} por pronosticar{' '}
+                {missingData.round || 'la jornada'}
+              </span>
+            </div>
+            <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Rezagados: {missingData.missingUsers.map((u) => u.participantName).join(', ')}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleWhatsAppNudge}
+            className="glass-btn"
+            style={{
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              borderRadius: '8px',
+              background: '#25D366',
+              color: '#000',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)',
+            }}
+          >
+            <span>📲</span>
+            <span>Avisar por WhatsApp</span>
+          </button>
+        </div>
+      )}
+
       {/* Selector de ronda o jornada */}
       {availableRounds.length > 1 && (
         <div
@@ -342,6 +494,79 @@ function MatchdayPredictor() {
         </div>
       )}
 
+      {/* Pestañas de filtro rápido: Todos / Pendientes / Finalizados */}
+      {fixtures.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '16px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            paddingBottom: '8px',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setStatusFilter('ALL')}
+            className={`glass-btn ${statusFilter === 'ALL' ? 'active' : ''}`}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.85rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              background: statusFilter === 'ALL' ? '#00d2d3' : 'transparent',
+              color: statusFilter === 'ALL' ? '#000' : 'var(--text-muted)',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Todos ({fixtures.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('PENDING')}
+            className={`glass-btn ${statusFilter === 'PENDING' ? 'active' : ''}`}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.85rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              background: statusFilter === 'PENDING' ? '#f39c12' : 'transparent',
+              color:
+                statusFilter === 'PENDING'
+                  ? '#000'
+                  : pendingCount > 0
+                    ? '#f39c12'
+                    : 'var(--text-muted)',
+              border:
+                pendingCount > 0 && statusFilter !== 'PENDING'
+                  ? '1px solid rgba(243, 156, 18, 0.4)'
+                  : 'none',
+              cursor: 'pointer',
+            }}
+          >
+            ⚠️ Por Pronosticar ({pendingCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('FINISHED')}
+            className={`glass-btn ${statusFilter === 'FINISHED' ? 'active' : ''}`}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.85rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              background: statusFilter === 'FINISHED' ? '#2ecc71' : 'transparent',
+              color: statusFilter === 'FINISHED' ? '#000' : 'var(--text-muted)',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            🏁 Finalizados ({finishedCount})
+          </button>
+        </div>
+      )}
+
       {/* Estado de carga */}
       {isLoading && (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
@@ -365,7 +590,7 @@ function MatchdayPredictor() {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {fixtures.map((fixture) => {
+        {displayedFixtures.map((fixture) => {
           const pred = localPredictions[fixture.matchId] || {
             homeScore: '',
             awayScore: '',
@@ -617,6 +842,44 @@ function MatchdayPredictor() {
                 </div>
               </div>
 
+              {/* Barra de acción: Ver porras del grupo en este partido */}
+              <div
+                style={{
+                  marginTop: '12px',
+                  paddingTop: '8px',
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {isMatchLocked ? '🔒 Apuestas cerradas' : '⏳ Cierre al inicio del partido'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMatchForFriends(fixture)}
+                  className="glass-btn"
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 210, 211, 0.1)',
+                    border: '1px solid rgba(0, 210, 211, 0.25)',
+                    color: '#00d2d3',
+                    cursor: 'pointer',
+                  }}
+                  aria-label={`Ver porras de amigos para ${fixture.homeTeam} vs ${fixture.awayTeam}`}
+                >
+                  <span>👥</span>
+                  <span>{isMatchLocked ? 'Ver porras del grupo' : 'Ver pronósticos'}</span>
+                </button>
+              </div>
+
               {/* Desglose explicable de puntos si el partido ya ha finalizado */}
               {fixture.finished &&
                 fixture.pointsAwarded !== null &&
@@ -661,6 +924,54 @@ function MatchdayPredictor() {
           );
         })}
       </div>
+      {/* Botón flotante inferior para guardar en móvil si hay cambios */}
+      {hasUnsavedChanges && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9000,
+            animation: 'fadeIn 0.2s ease-out',
+            boxShadow: '0 10px 25px rgba(0, 210, 211, 0.4)',
+            borderRadius: '30px',
+          }}
+        >
+          <button
+            onClick={handleSaveAll}
+            disabled={saveMutation.isPending}
+            className="glass-btn primary-btn"
+            style={{
+              padding: '12px 24px',
+              fontWeight: 800,
+              fontSize: '1rem',
+              borderRadius: '30px',
+              background: 'linear-gradient(135deg, #00d2d3, #00a8ff)',
+              color: '#000',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            <span>💾</span>
+            <span>
+              {saveMutation.isPending
+                ? 'Guardando...'
+                : `Guardar Cambios (${predictedCount}/${fixtures.length})`}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Modal para ver pronósticos de amigos en un partido */}
+      <MatchFriendsBetsModal
+        groupId={activeGroupId}
+        match={selectedMatchForFriends}
+        onClose={() => setSelectedMatchForFriends(null)}
+      />
     </div>
   );
 }

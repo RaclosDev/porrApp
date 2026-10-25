@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import EvolutionChart from '../components/EvolutionChart';
 import WhatsAppIcon from '../components/WhatsAppIcon';
@@ -19,6 +20,7 @@ function Leaderboard() {
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
+    activeGroupPoolFormat,
     userId,
     userName,
     isLeagueAdmin,
@@ -34,6 +36,7 @@ function Leaderboard() {
     handleSort,
   } = useLeaderboard();
 
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('table'); // 'table' | 'evolution'
 
   if (loading)
@@ -75,17 +78,25 @@ function Leaderboard() {
 
   const mid = Math.ceil(validResults.length / 2);
 
-  const columns = [
-    { key: 'total', label: 'TOTAL' },
-    { key: 'matchPoints', label: 'Jornadas' },
-    { key: 'r1', label: 'F.Grupos' },
-    { key: 'r32', label: 'Dieciseisavos' },
-    { key: 'r16', label: 'Octavos' },
-    { key: 'qf', label: 'Cuartos' },
-    { key: 'sf', label: 'Semis' },
-    { key: 'finals', label: 'Finales' },
-    ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi' }] : []),
-  ];
+  const isMatchday = activeGroupPoolFormat === 'MATCH_DAY';
+
+  const columns = isMatchday
+    ? [
+        { key: 'total', label: 'TOTAL' },
+        { key: 'matchPoints', label: 'Puntos Jornadas' },
+        ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi' }] : []),
+      ]
+    : [
+        { key: 'total', label: 'TOTAL' },
+        { key: 'matchPoints', label: 'Jornadas' },
+        { key: 'r1', label: 'F.Grupos' },
+        { key: 'r32', label: 'Dieciseisavos' },
+        { key: 'r16', label: 'Octavos' },
+        { key: 'qf', label: 'Cuartos' },
+        { key: 'sf', label: 'Semis' },
+        { key: 'finals', label: 'Finales' },
+        ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi' }] : []),
+      ];
 
   const sortIndicator = (colKey) => {
     if (sortColumn !== colKey) return '';
@@ -355,7 +366,11 @@ function Leaderboard() {
                             className="glass-btn"
                             onClick={(e) => {
                               e.stopPropagation();
-                              state.setViewerBetId(r.id);
+                              if (isMatchday) {
+                                navigate('/jornadas');
+                              } else {
+                                state.setViewerBetId(r.id);
+                              }
                             }}
                             style={{
                               background: 'rgba(56, 173, 246, 0.2)',
@@ -365,9 +380,9 @@ function Leaderboard() {
                               fontSize: '0.8rem',
                               whiteSpace: 'nowrap',
                             }}
-                            title="Ver Porra"
+                            title={isMatchday ? 'Ver partidos de la jornada' : 'Ver Porra'}
                           >
-                            👁️ Ver Porra
+                            👁️ {isMatchday ? 'Ver Jornadas' : 'Ver Porra'}
                           </button>
                         </div>
 

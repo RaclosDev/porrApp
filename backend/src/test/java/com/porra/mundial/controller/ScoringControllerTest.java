@@ -36,7 +36,7 @@ class ScoringControllerTest {
         mockMvc.perform(get("/api/rules"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.championPoints").value(200))
-                .andExpect(jsonPath("$.exactScorePoints").value(3))
+                .andExpect(jsonPath("$.exactScorePoints").value(5))
                 .andExpect(jsonPath("$.groupQualifierPoints").value(10));
     }
 

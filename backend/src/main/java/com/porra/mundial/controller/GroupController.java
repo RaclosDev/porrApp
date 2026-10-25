@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.dto.GroupMemberDTO;
+import java.util.Map;
 import com.porra.mundial.model.League;
 import com.porra.mundial.dto.GroupCreateDTO;
 import com.porra.mundial.dto.GroupUpdateDTO;
@@ -12,11 +14,12 @@ import com.porra.mundial.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.security.Principal;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+
+
+
 
 /**
  * Controlador REST para la gestión de Grupos (Ligas Privadas).
@@ -212,5 +215,68 @@ public class GroupController {
         groupService.deleteBet(id, betId, principal.getName());
         webSocketService.invalidateAndNotify();
         return ResponseEntity.ok(Map.of("status", "success"));
+    }
+
+    /**
+     * Obtiene los miembros de la liga con su rol y estado de pago.
+     */
+    @GetMapping("/{id}/members")
+    public ResponseEntity<?> getMembers(@PathVariable Long id, Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        List<GroupMemberDTO> members = groupService.getGroupMembers(id, principal.getName());
+        return ResponseEntity.ok(members);
+    }
+
+    /**
+     * El administrador del grupo marca o desmarca el pago de un miembro.
+     */
+    @PutMapping("/{id}/members/{userId}/payment")
+    public ResponseEntity<?> toggleMemberPayment(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> body,
+            Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        String status = body != null ? body.getOrDefault("status", "PAID") : "PAID";
+        groupService.toggleMemberPayment(id, userId, principal.getName(), status);
+        webSocketService.invalidateAndNotify();
+        return ResponseEntity.ok(Map.of("status", "success", "paymentStatus", status));
+    }
+
+    /**
+     * El administrador del grupo expulsa a un participante.
+     */
+    @DeleteMapping("/{id}/members/{userId}")
+    public ResponseEntity<?> kickMember(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        groupService.kickMember(id, userId, principal.getName());
+        webSocketService.invalidateAndNotify();
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Miembro expulsado"));
+    }
+
+    /**
+     * Regenera el código de invitación de la liga.
+     */
+    @PostMapping("/{id}/regenerate-code")
+    public ResponseEntity<?> regenerateCode(@PathVariable Long id, Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        String newCode = groupService.regenerateJoinCode(id, principal.getName());
+        return ResponseEntity.ok(Map.of("joinCode", newCode));
+    }
+
+    /**
+     * Obtiene los participantes que aún no han pronosticado la jornada.
+     */
+    @GetMapping({"/{id}/missing-users", "/{id}/jornadas/{round}/missing-users"})
+    public ResponseEntity<?> getMissingMembers(
+            @PathVariable Long id,
+            @PathVariable(required = false) String round,
+            Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        Map<String, Object> result = groupService.getMissingMembersForRound(id, principal.getName(), round);
+        return ResponseEntity.ok(result);
     }
 }

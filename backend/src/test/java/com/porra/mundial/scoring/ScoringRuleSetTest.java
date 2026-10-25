@@ -23,8 +23,8 @@ class ScoringRuleSetTest {
         assertEquals(100, rules.getThirdPlacePoints());
         assertEquals(75, rules.getFourthPlacePoints());
         assertEquals(200, rules.getTopScorerPoints());
-        assertEquals(3, rules.getExactScorePoints());
-        assertEquals(1, rules.getCorrectSignPoints());
+        assertEquals(5, rules.getExactScorePoints());
+        assertEquals(3, rules.getCorrectSignPoints());
         assertEquals(1, rules.getGoalDiffBonusPoints());
     }
 

@@ -49,9 +49,9 @@ public class ScoringRuleSet {
 
     // Puntuacion de partidos directos (1X2 y marcador exacto)
     @Builder.Default
-    private int exactScorePoints = 3;
+    private int exactScorePoints = 5;
     @Builder.Default
-    private int correctSignPoints = 1;
+    private int correctSignPoints = 3;
     @Builder.Default
     private int goalDiffBonusPoints = 1;
 

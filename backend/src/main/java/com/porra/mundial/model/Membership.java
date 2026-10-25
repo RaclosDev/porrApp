@@ -36,6 +36,11 @@ public class Membership {
     @Builder.Default
     private String role = "MEMBER";
 
+    /** Estado del pago de la cuota en el grupo (PENDING, PAID). */
+    @Column(name = "payment_status", length = 20)
+    @Builder.Default
+    private String paymentStatus = "PENDING";
+
     /** Fecha en la que el usuario se unió al grupo mediante el código. */
     @Builder.Default
     private LocalDateTime joinedAt = LocalDateTime.now();
