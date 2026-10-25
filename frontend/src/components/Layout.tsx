@@ -7,6 +7,41 @@ import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
+const prefetchRoute = (path) => {
+  switch (path) {
+    case '/clasificacion':
+      import('../pages/Leaderboard');
+      break;
+    case '/jornadas':
+      import('../pages/MatchdayPredictor');
+      break;
+    case '/tabla':
+      import('../pages/LeagueStandings');
+      break;
+    case '/radar':
+      import('../pages/Radar');
+      break;
+    case '/cuadro':
+      import('../pages/OfficialBracket');
+      break;
+    case '/grupos':
+      import('../pages/Home');
+      break;
+    case '/search':
+      import('../pages/Search');
+      break;
+    case '/stats':
+      import('../pages/Stats');
+      break;
+    case '/reglas':
+      import('../pages/Rules');
+      break;
+    case '/mis-ligas':
+      import('../pages/GroupsDashboard');
+      break;
+  }
+};
+
 /**
  * Componente Layout principal que envuelve a todas las rutas.
  * Contiene la barra de navegación superior (Header), el manejo de autenticación global (Google Login),
@@ -285,30 +320,40 @@ function Layout({ children }) {
               <>
                 <NavLink
                   to="/jornadas"
+                  onMouseEnter={() => prefetchRoute('/jornadas')}
+                  onFocus={() => prefetchRoute('/jornadas')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   ⚽ Jornadas
                 </NavLink>
                 <NavLink
                   to="/clasificacion"
+                  onMouseEnter={() => prefetchRoute('/clasificacion')}
+                  onFocus={() => prefetchRoute('/clasificacion')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   🏆 Clasificación Porra
                 </NavLink>
                 <NavLink
                   to="/tabla"
+                  onMouseEnter={() => prefetchRoute('/tabla')}
+                  onFocus={() => prefetchRoute('/tabla')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   📊 Tabla Oficial
                 </NavLink>
                 <NavLink
                   to="/radar"
+                  onMouseEnter={() => prefetchRoute('/radar')}
+                  onFocus={() => prefetchRoute('/radar')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   📅 Partidos
                 </NavLink>
                 <NavLink
                   to="/reglas"
+                  onMouseEnter={() => prefetchRoute('/reglas')}
+                  onFocus={() => prefetchRoute('/reglas')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   📜 Reglas
@@ -324,12 +369,16 @@ function Layout({ children }) {
                 </NavLink>
                 <NavLink
                   to="/cuadro"
+                  onMouseEnter={() => prefetchRoute('/cuadro')}
+                  onFocus={() => prefetchRoute('/cuadro')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   Cuadro
                 </NavLink>
                 <NavLink
                   to="/grupos"
+                  onMouseEnter={() => prefetchRoute('/grupos')}
+                  onFocus={() => prefetchRoute('/grupos')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   Grupos
@@ -342,12 +391,16 @@ function Layout({ children }) {
                 </NavLink>
                 <NavLink
                   to="/search"
+                  onMouseEnter={() => prefetchRoute('/search')}
+                  onFocus={() => prefetchRoute('/search')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   🔍 Buscador
                 </NavLink>
                 <NavLink
                   to="/stats"
+                  onMouseEnter={() => prefetchRoute('/stats')}
+                  onFocus={() => prefetchRoute('/stats')}
                   className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                 >
                   Más Elegidos

@@ -26,6 +26,19 @@
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     </noscript>
 
+    <!-- Modern Speculation Rules for Instant Client Route Prefetching -->
+    <script type="speculationrules">
+    {
+      "prefetch": [
+        {
+          "source": "list",
+          "urls": ["/clasificacion", "/jornadas", "/radar", "/stats", "/tabla", "/mis-ligas", "/reglas"],
+          "eagerness": "moderate"
+        }
+      ]
+    }
+    </script>
+
     <!-- AdSense -->
     <meta name="google-adsense-account" content="ca-pub-7312966368630315">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7312966368630315" crossorigin="anonymous"></script>
