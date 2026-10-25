@@ -66,7 +66,6 @@ function Layout({ children }) {
     activeCompetitionFormatType,
     loading,
     isDemoMode,
-    enterDemoMode,
     exitDemoMode,
   } = useAppContext();
   const navigate = useNavigate();
@@ -425,200 +424,173 @@ function Layout({ children }) {
           </div>
         </div>
 
-        <div className="header-center">
-          {/* Navegación */}
-          <nav className="nav-links">
-            {isLanding ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    enterDemoMode?.();
-                    navigate('/demo');
-                  }}
-                  className="glass-btn"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    color: 'var(--accent-cyan, #00d2d3)',
-                    fontWeight: 700,
-                  }}
-                >
-                  <span>🚀</span>
-                  <span>Demo Mundial 2026</span>
-                </button>
-                <NavLink
-                  to="/reglas"
-                  onMouseEnter={() => prefetchRoute('/reglas')}
-                  onFocus={() => prefetchRoute('/reglas')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  📜 Reglas
-                </NavLink>
-              </>
-            ) : isDemo ? (
-              <>
-                <NavLink
-                  to="/cuadro"
-                  onMouseEnter={() => prefetchRoute('/cuadro')}
-                  onFocus={() => prefetchRoute('/cuadro')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Cuadro
-                </NavLink>
-                <NavLink
-                  to="/grupos"
-                  onMouseEnter={() => prefetchRoute('/grupos')}
-                  onFocus={() => prefetchRoute('/grupos')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Grupos
-                </NavLink>
-                <NavLink
-                  to="/clasificacion"
-                  onMouseEnter={() => prefetchRoute('/clasificacion')}
-                  onFocus={() => prefetchRoute('/clasificacion')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  🏆 Clasificación
-                </NavLink>
-                <NavLink
-                  to="/radar"
-                  onMouseEnter={() => prefetchRoute('/radar')}
-                  onFocus={() => prefetchRoute('/radar')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Partidos
-                </NavLink>
-                <NavLink
-                  to="/stats"
-                  onMouseEnter={() => prefetchRoute('/stats')}
-                  onFocus={() => prefetchRoute('/stats')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Más Elegidos
-                </NavLink>
-                <NavLink
-                  to="/reglas"
-                  onMouseEnter={() => prefetchRoute('/reglas')}
-                  onFocus={() => prefetchRoute('/reglas')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Reglas
-                </NavLink>
-              </>
-            ) : isMatchDayLeague ? (
-              <>
-                <NavLink
-                  to="/"
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Inicio
-                </NavLink>
-                <NavLink
-                  to="/jornadas"
-                  onMouseEnter={() => prefetchRoute('/jornadas')}
-                  onFocus={() => prefetchRoute('/jornadas')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  ⚽ Jornadas
-                </NavLink>
-                <NavLink
-                  to="/clasificacion"
-                  onMouseEnter={() => prefetchRoute('/clasificacion')}
-                  onFocus={() => prefetchRoute('/clasificacion')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  🏆 Clasificación Porra
-                </NavLink>
-                <NavLink
-                  to="/tabla"
-                  onMouseEnter={() => prefetchRoute('/tabla')}
-                  onFocus={() => prefetchRoute('/tabla')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  📊 Tabla Oficial
-                </NavLink>
-                <NavLink
-                  to="/radar"
-                  onMouseEnter={() => prefetchRoute('/radar')}
-                  onFocus={() => prefetchRoute('/radar')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  📅 Partidos
-                </NavLink>
-                <NavLink
-                  to="/reglas"
-                  onMouseEnter={() => prefetchRoute('/reglas')}
-                  onFocus={() => prefetchRoute('/reglas')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  📜 Reglas
-                </NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink
-                  to="/"
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Inicio
-                </NavLink>
-                <NavLink
-                  to="/clasificacion"
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Clasificación
-                </NavLink>
-                <NavLink
-                  to="/cuadro"
-                  onMouseEnter={() => prefetchRoute('/cuadro')}
-                  onFocus={() => prefetchRoute('/cuadro')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Cuadro
-                </NavLink>
-                <NavLink
-                  to="/grupos"
-                  onMouseEnter={() => prefetchRoute('/grupos')}
-                  onFocus={() => prefetchRoute('/grupos')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Grupos
-                </NavLink>
-                <NavLink
-                  to="/radar"
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Partidos
-                </NavLink>
-                <NavLink
-                  to="/search"
-                  onMouseEnter={() => prefetchRoute('/search')}
-                  onFocus={() => prefetchRoute('/search')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  🔍 Buscador
-                </NavLink>
-                <NavLink
-                  to="/stats"
-                  onMouseEnter={() => prefetchRoute('/stats')}
-                  onFocus={() => prefetchRoute('/stats')}
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Más Elegidos
-                </NavLink>
-                <NavLink
-                  to="/reglas"
-                  className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                >
-                  Reglas
-                </NavLink>
-              </>
-            )}
-          </nav>
-        </div>
+        {!isLanding && (
+          <div className="header-center">
+            {/* Navegación */}
+            <nav className="nav-links">
+              {isDemo ? (
+                <>
+                  <NavLink
+                    to="/cuadro"
+                    onMouseEnter={() => prefetchRoute('/cuadro')}
+                    onFocus={() => prefetchRoute('/cuadro')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Cuadro
+                  </NavLink>
+                  <NavLink
+                    to="/grupos"
+                    onMouseEnter={() => prefetchRoute('/grupos')}
+                    onFocus={() => prefetchRoute('/grupos')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Grupos
+                  </NavLink>
+                  <NavLink
+                    to="/clasificacion"
+                    onMouseEnter={() => prefetchRoute('/clasificacion')}
+                    onFocus={() => prefetchRoute('/clasificacion')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    🏆 Clasificación
+                  </NavLink>
+                  <NavLink
+                    to="/radar"
+                    onMouseEnter={() => prefetchRoute('/radar')}
+                    onFocus={() => prefetchRoute('/radar')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Partidos
+                  </NavLink>
+                  <NavLink
+                    to="/stats"
+                    onMouseEnter={() => prefetchRoute('/stats')}
+                    onFocus={() => prefetchRoute('/stats')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Más Elegidos
+                  </NavLink>
+                  <NavLink
+                    to="/reglas"
+                    onMouseEnter={() => prefetchRoute('/reglas')}
+                    onFocus={() => prefetchRoute('/reglas')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Reglas
+                  </NavLink>
+                </>
+              ) : isMatchDayLeague ? (
+                <>
+                  <NavLink
+                    to="/"
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Inicio
+                  </NavLink>
+                  <NavLink
+                    to="/jornadas"
+                    onMouseEnter={() => prefetchRoute('/jornadas')}
+                    onFocus={() => prefetchRoute('/jornadas')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    ⚽ Jornadas
+                  </NavLink>
+                  <NavLink
+                    to="/clasificacion"
+                    onMouseEnter={() => prefetchRoute('/clasificacion')}
+                    onFocus={() => prefetchRoute('/clasificacion')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    🏆 Clasificación Porra
+                  </NavLink>
+                  <NavLink
+                    to="/tabla"
+                    onMouseEnter={() => prefetchRoute('/tabla')}
+                    onFocus={() => prefetchRoute('/tabla')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    📊 Tabla Oficial
+                  </NavLink>
+                  <NavLink
+                    to="/radar"
+                    onMouseEnter={() => prefetchRoute('/radar')}
+                    onFocus={() => prefetchRoute('/radar')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    📅 Partidos
+                  </NavLink>
+                  <NavLink
+                    to="/reglas"
+                    onMouseEnter={() => prefetchRoute('/reglas')}
+                    onFocus={() => prefetchRoute('/reglas')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    📜 Reglas
+                  </NavLink>
+                </>
+              ) : (
+                <>
+                  <NavLink
+                    to="/"
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Inicio
+                  </NavLink>
+                  <NavLink
+                    to="/clasificacion"
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Clasificación
+                  </NavLink>
+                  <NavLink
+                    to="/cuadro"
+                    onMouseEnter={() => prefetchRoute('/cuadro')}
+                    onFocus={() => prefetchRoute('/cuadro')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Cuadro
+                  </NavLink>
+                  <NavLink
+                    to="/grupos"
+                    onMouseEnter={() => prefetchRoute('/grupos')}
+                    onFocus={() => prefetchRoute('/grupos')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Grupos
+                  </NavLink>
+                  <NavLink
+                    to="/radar"
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Partidos
+                  </NavLink>
+                  <NavLink
+                    to="/search"
+                    onMouseEnter={() => prefetchRoute('/search')}
+                    onFocus={() => prefetchRoute('/search')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    🔍 Buscador
+                  </NavLink>
+                  <NavLink
+                    to="/stats"
+                    onMouseEnter={() => prefetchRoute('/stats')}
+                    onFocus={() => prefetchRoute('/stats')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Más Elegidos
+                  </NavLink>
+                  <NavLink
+                    to="/reglas"
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Reglas
+                  </NavLink>
+                </>
+              )}
+            </nav>
+          </div>
+        )}
 
         <div
           className="header-right"
@@ -655,19 +627,23 @@ function Layout({ children }) {
               id="btn-login-header"
               type="button"
               onClick={() => setShowMyBetModal(true)}
-              className="glass-btn primary-btn"
+              className="glass-btn"
               style={{
-                height: '36px',
-                padding: '0 14px',
+                height: '38px',
+                padding: '0 16px',
                 fontSize: '0.88rem',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
+                gap: '8px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                background: 'rgba(0, 210, 211, 0.12)',
+                border: '1px solid rgba(0, 210, 211, 0.45)',
+                color: '#00d2d3',
+                boxShadow: '0 4px 15px rgba(0, 210, 211, 0.15)',
               }}
               title="Iniciar Sesión"
             >
