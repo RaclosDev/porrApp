@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SyncService {
 
+    private final java.util.concurrent.locks.ReentrantLock syncLock = new java.util.concurrent.locks.ReentrantLock();
+
     private final TeamRepository teamRepository;
     private final MatchRepository matchRepository;
     private final StandingsService standingsService;
@@ -68,7 +70,7 @@ public class SyncService {
     /**
      * Tarea programada cíclica en background.
      */
-    @Scheduled(initialDelay = 5000, fixedDelayString = "${app.sync.interval-ms}")
+    @Scheduled(initialDelay = 60000, fixedDelayString = "${app.sync.interval-ms}")
     public void scheduledSync() {
         try {
             syncAll();
@@ -82,6 +84,18 @@ public class SyncService {
      */
     @CircuitBreaker(name = "sportsApi", fallbackMethod = "syncFallback")
     public Map<String, Object> syncAll() {
+        if (!syncLock.tryLock()) {
+            log.info("Sincronización omitida: ya hay una sincronización en curso.");
+            return Map.of("status", "skipped", "message", "Sincronización omitida por tarea concurrente");
+        }
+        try {
+            return doSyncAll();
+        } finally {
+            syncLock.unlock();
+        }
+    }
+
+    private Map<String, Object> doSyncAll() {
         List<Competition> comps = competitionRepository.findAll().stream()
                 .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
                 .collect(Collectors.toList());

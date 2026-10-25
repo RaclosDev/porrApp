@@ -7,6 +7,7 @@ import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -19,7 +20,10 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StandingsService {
+
+    private final java.util.concurrent.locks.ReentrantLock recalculateLock = new java.util.concurrent.locks.ReentrantLock();
 
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
@@ -274,6 +278,18 @@ public class StandingsService {
     @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard"}, allEntries = true)
     @org.springframework.transaction.annotation.Transactional
     public void recalculateStandingsFromMatches() {
+        if (!recalculateLock.tryLock()) {
+            log.info("Recálculo de clasificaciones omitido: ya hay otra ejecución en curso.");
+            return;
+        }
+        try {
+            doRecalculateStandings();
+        } finally {
+            recalculateLock.unlock();
+        }
+    }
+
+    private void doRecalculateStandings() {
         List<Match> groupMatches = matchRepository.findAll().stream()
                 .filter(m -> "group".equalsIgnoreCase(m.getRound()) && Boolean.TRUE.equals(m.getFinished())
                         && m.getHomeTeam() != null && m.getAwayTeam() != null
@@ -314,7 +330,10 @@ public class StandingsService {
             }
         }
 
-        clearAll();
+        // Actualización in-place sin borrar la tabla para evitar StaleObjectStateException concurrente
+        Map<Long, GroupStanding> existingByTeam = standingRepository.findAll().stream()
+                .filter(gs -> gs.getTeam() != null && gs.getTeam().getId() != null)
+                .collect(Collectors.toMap(gs -> gs.getTeam().getId(), gs -> gs, (a, b) -> a));
 
         List<Team> allTeams = teamRepository.findAll();
         Map<String, List<GroupStanding>> standingsByGroup = new TreeMap<>();
@@ -325,17 +344,22 @@ public class StandingsService {
             }
             String groupName = team.getGroupName().toUpperCase().trim();
             int[] stats = teamStats.getOrDefault(team.getId(), new int[5]);
-            GroupStanding standing = GroupStanding.builder()
-                    .team(team)
-                    .groupName(groupName)
-                    .points(stats[0])
-                    .goalDiff(stats[1])
-                    .goalsFor(stats[2])
-                    .matchesPlayed(stats[3])
-                    .fairPlayPoints(stats[4])
-                    .position(0)
-                    .status(0)
-                    .build();
+            GroupStanding standing = existingByTeam.get(team.getId());
+            if (standing == null) {
+                standing = GroupStanding.builder()
+                        .team(team)
+                        .groupName(groupName)
+                        .build();
+            }
+            standing.setGroupName(groupName);
+            standing.setPoints(stats[0]);
+            standing.setGoalDiff(stats[1]);
+            standing.setGoalsFor(stats[2]);
+            standing.setMatchesPlayed(stats[3]);
+            standing.setFairPlayPoints(stats[4]);
+            standing.setPosition(0);
+            standing.setStatus(0);
+
             standingsByGroup.computeIfAbsent(groupName, k -> new ArrayList<>()).add(standing);
         }
 
