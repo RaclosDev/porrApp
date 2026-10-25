@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
+import Flag from '../components/Flag';
 
 /**
  * Vista de Pronósticos por Jornada (1X2 y Marcador Exacto) - Fase 3
@@ -467,6 +468,18 @@ function MatchdayPredictor() {
                   <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#fff' }}>
                     {fixture.homeTeam}
                   </span>
+                  {fixture.homeTeamLogo ? (
+                    <img
+                      src={fixture.homeTeamLogo}
+                      alt={fixture.homeTeam}
+                      style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Flag team={fixture.homeTeam} />
+                  )}
                 </div>
 
                 {/* Zona central de Marcador y 1X2 */}
@@ -586,6 +599,18 @@ function MatchdayPredictor() {
                     gap: '8px',
                   }}
                 >
+                  {fixture.awayTeamLogo ? (
+                    <img
+                      src={fixture.awayTeamLogo}
+                      alt={fixture.awayTeam}
+                      style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Flag team={fixture.awayTeam} />
+                  )}
                   <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#fff' }}>
                     {fixture.awayTeam}
                   </span>

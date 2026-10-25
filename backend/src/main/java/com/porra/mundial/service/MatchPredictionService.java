@@ -131,6 +131,8 @@ public class MatchPredictionService {
                     .awayTeam(match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Por definir")
                     .homeTeamId(match.getHomeTeam() != null ? match.getHomeTeam().getId() : null)
                     .awayTeamId(match.getAwayTeam() != null ? match.getAwayTeam().getId() : null)
+                    .homeTeamLogo(match.getHomeTeam() != null ? match.getHomeTeam().getLogoUrl() : null)
+                    .awayTeamLogo(match.getAwayTeam() != null ? match.getAwayTeam().getLogoUrl() : null)
                     .matchDate(match.getMatchDate())
                     .round(match.getRound())
                     .groupName(match.getGroupName())

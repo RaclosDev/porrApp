@@ -21,6 +21,8 @@ public class MatchdayFixturePredictionDTO {
     private String awayTeam;
     private Long homeTeamId;
     private Long awayTeamId;
+    private String homeTeamLogo;
+    private String awayTeamLogo;
     private LocalDateTime matchDate;
     private String round;
     private String groupName;

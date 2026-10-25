@@ -24,7 +24,6 @@ function Layout({ children }) {
     setUserName,
     viewerBetId,
     setViewerBetId,
-    onlineUsers,
     isRaclos,
     setIsAuthenticated,
     setIsAdminAuthenticated,
@@ -34,7 +33,6 @@ function Layout({ children }) {
   } = useAppContext();
   const navigate = useNavigate();
   const [showMyBetModal, setShowMyBetModal] = useState(false);
-  const [showOnline, setShowOnline] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -71,7 +69,6 @@ function Layout({ children }) {
       if (e.key === 'Escape') {
         setShowMyBetModal(false);
         setShowProfileMenu(false);
-        setShowOnline(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -212,81 +209,6 @@ function Layout({ children }) {
             className="header-title-row"
             style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'nowrap' }}
           >
-            {/* Indicador de Usuarios Online (Hover -> Lista) */}
-            <div
-              id="online-counter"
-              className="tooltip-container"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setShowOnline(!showOnline);
-                }
-              }}
-              onClick={() => setShowOnline(!showOnline)}
-              onMouseEnter={() => setShowOnline(true)}
-              onMouseLeave={() => setShowOnline(false)}
-              style={{
-                fontSize: '0.9rem',
-                fontWeight: 'bold',
-                background: 'rgba(0, 210, 211, 0.1)',
-                color: '#00d2d3',
-                padding: '5px 12px',
-                borderRadius: '10px',
-                border: '1px solid rgba(0, 210, 211, 0.3)',
-                textShadow: 'none',
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                position: 'relative',
-              }}
-            >
-              <span id="online-counter-text">👁️ {onlineUsers?.length || 0} online</span>
-              {showOnline && (
-                <div
-                  className="tooltip-content"
-                  style={{
-                    display: 'block',
-                    position: 'absolute',
-                    top: '100%',
-                    left: '0',
-                    background: '#151525',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-                    border: '1px solid rgba(0, 210, 211, 0.5)',
-                    borderRadius: '8px',
-                    padding: '10px',
-                    marginTop: '10px',
-                    zIndex: 100,
-                    minWidth: '150px',
-                  }}
-                >
-                  <ul
-                    id="online-users-list"
-                    style={{
-                      listStyle: 'none',
-                      padding: 0,
-                      margin: 0,
-                      textAlign: 'left',
-                      maxHeight: '200px',
-                      overflowY: 'auto',
-                    }}
-                  >
-                    {onlineUsers?.map((n, i) => (
-                      <li
-                        key={i}
-                        style={{
-                          padding: '4px 0',
-                          borderBottom: '1px solid rgba(255,255,255,0.05)',
-                          color: 'white',
-                        }}
-                      >
-                        {n}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
             {/* Selector Global de Liga Activa */}
             <ActiveLeagueDropdown />
 

@@ -7,45 +7,24 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * ️ Repositorio de Partidos.
- * Aquí le pedimos datos a la Base de Datos sin necesidad de escribir código SQL.
- * Spring Boot adivina qué queremos hacer simplemente leyendo el nombre del método en inglés. ¡Magia!
+ * Repositorio de Partidos.
  */
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
     
-    /**
-     * "Búscame los partidos del Grupo A, ordenados por fecha"
-     */
     List<Match> findByGroupNameOrderByMatchDateAsc(String groupName);
     
-    /**
-     * "Búscame los partidos que ya han terminado (Finished=True), ordenados de más recientes a más antiguos"
-     */
     List<Match> findByFinishedTrueOrderByMatchDateDesc();
     
-    /**
-     * "Búscame los partidos que aún no han terminado, ordenados por los más próximos a jugarse"
-     */
     List<Match> findByFinishedFalseOrderByMatchDateAsc();
     
-    /**
-     * "Búscame los partidos de una ronda en concreto (ej. 'r16' para Octavos)"
-     */
     List<Match> findByRoundOrderByMatchDateAsc(String round);
     
-    /**
-     * "Búscame un partido usando el ID raro de la API externa (ESPN) para no crear duplicados"
-     */
     Optional<Match> findByExternalId(String externalId);
 
-    /**
-     * "Búscame todos los partidos pertenecientes a una competición específica"
-     */
     List<Match> findByCompetitionId(Long competitionId);
 
-    /**
-     * "Búscame todos los partidos de una competición específica ordenados por fecha"
-     */
     List<Match> findByCompetitionIdOrderByMatchDateAsc(Long competitionId);
+
+    long countByCompetitionId(Long competitionId);
 }

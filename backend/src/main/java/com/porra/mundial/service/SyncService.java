@@ -82,7 +82,23 @@ public class SyncService {
      */
     @CircuitBreaker(name = "sportsApi", fallbackMethod = "syncFallback")
     public Map<String, Object> syncAll() {
-        return syncCompetition(null);
+        List<Competition> comps = competitionRepository.findAll().stream()
+                .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
+                .collect(Collectors.toList());
+
+        if (comps.isEmpty()) {
+            return syncCompetition(null);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Competition comp : comps) {
+            try {
+                result.put(comp.getName(), syncCompetition(comp.getId()));
+            } catch (Exception e) {
+                log.warn("Error en sync automático de {}: {}", comp.getName(), e.getMessage());
+            }
+        }
+        return result;
     }
 
     /**
@@ -119,16 +135,36 @@ public class SyncService {
 
         try {
             String slug = targetComp != null && targetComp.getExternalId() != null ? targetComp.getExternalId() : "fifa.world";
-            String dateParam = "fifa.world".equalsIgnoreCase(slug) ? WC_DATE_RANGE : LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-            JsonNode events = provider.fetchScoreboardEvents(slug, dateParam);
             Map<String, Team> nameToTeamCache = buildTeamCache();
-
             SyncContext context = new SyncContext();
             context.competition = targetComp;
 
-            if (events != null && events.isArray()) {
-                for (JsonNode event : events) {
-                    processEvent(event, nameToTeamCache, context);
+            if ("fifa.world".equalsIgnoreCase(slug)) {
+                JsonNode events = provider.fetchScoreboardEvents(slug, WC_DATE_RANGE);
+                if (events != null && events.isArray()) {
+                    for (JsonNode event : events) {
+                        processEvent(event, nameToTeamCache, context);
+                    }
+                }
+            } else {
+                LocalDate today = LocalDate.now();
+                List<String> dates = new ArrayList<>();
+                dates.add(today.minusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+                dates.add(today.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+                for (int i = 1; i <= 7; i++) {
+                    dates.add(today.plusDays(i).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+                }
+                for (String d : dates) {
+                    try {
+                        JsonNode events = provider.fetchScoreboardEvents(slug, d);
+                        if (events != null && events.isArray()) {
+                            for (JsonNode event : events) {
+                                processEvent(event, nameToTeamCache, context);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        log.debug("Sin eventos en fecha {} para {}: {}", d, slug, ex.getMessage());
+                    }
                 }
             }
 

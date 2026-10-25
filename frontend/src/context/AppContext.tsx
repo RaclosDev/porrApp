@@ -8,7 +8,6 @@ import {
   fetchTeamOdds,
   fetchLeaderboard,
   fetchGroup,
-  fetchPresence,
   fetchTopScorers,
   fetchMe,
   fetchMyGroups,
@@ -169,11 +168,6 @@ export const useAppContext = () => {
   });
   const activeGroupPichichi =
     groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : true;
-  const { data: onlineUsers } = useQuery({
-    queryKey: ['presence'],
-    queryFn: fetchPresence,
-    placeholderData: keepPreviousData,
-  });
   const { data: topScorers } = useQuery({
     queryKey: ['topScorers'],
     queryFn: fetchTopScorers,

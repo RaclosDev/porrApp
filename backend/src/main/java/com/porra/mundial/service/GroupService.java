@@ -8,6 +8,7 @@ import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
@@ -40,6 +41,9 @@ public class GroupService {
     private final CompetitionRepository competitionRepository;
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
+    private final MatchRepository matchRepository;
+    @org.springframework.context.annotation.Lazy
+    private final SyncService syncService;
 
     @Value("${app.admins:Admin}")
     private List<String> appAdmins;
@@ -215,6 +219,16 @@ public class GroupService {
                 .pichichi(pichichi)
                 .status("ACTIVE")
                 .build());
+
+        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
+            if (matchRepository.countByCompetitionId(comp.getId()) == 0) {
+                try {
+                    syncService.importCompetitionData(comp.getId());
+                } catch (Exception e) {
+                    log.warn("Auto-importación de datos para {} falló: {}", comp.getName(), e.getMessage());
+                }
+            }
+        }
 
         return group;
     }

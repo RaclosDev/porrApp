@@ -11,13 +11,6 @@ export function useWebSocket(userName, queryClient) {
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        const name =
-          userName ||
-          localStorage.getItem('my_prediction_name') ||
-          localStorage.getItem('my_bet_name') ||
-          'Anónimo';
-        ws.send(JSON.stringify({ type: 'HEARTBEAT', name }));
-
         wsPingInterval = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'PING' }));
@@ -39,8 +32,6 @@ export function useWebSocket(userName, queryClient) {
             queryClient.invalidateQueries({ queryKey: ['matchRadar'] });
             queryClient.invalidateQueries({ queryKey: ['standings'] });
             queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-          } else if (msg.type === 'PRESENCE_UPDATED') {
-            queryClient.invalidateQueries({ queryKey: ['presence'] });
           }
         } catch {
           // Ignore malformed payloads
