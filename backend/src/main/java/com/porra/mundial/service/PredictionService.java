@@ -177,7 +177,10 @@ public class PredictionService {
     @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO betData, Long groupId) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
-        Edition edition = groupId != null ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null) : null;
+        Long effectiveGroupId = groupId != null ? groupId : 1L;
+        Edition edition = editionRepository.findByLeagueIdAndStatus(effectiveGroupId, "ACTIVE")
+                .or(() -> editionRepository.findByLeagueIdAndStatus(1L, "ACTIVE"))
+                .orElse(null);
 
         if (edition != null && edition.isLocked() && !isSuperAdmin(email)) {
             throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");

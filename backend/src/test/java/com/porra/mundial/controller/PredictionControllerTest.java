@@ -42,6 +42,9 @@ class PredictionControllerTest {
     private PredictionService predictionService;
 
     @MockBean
+    private com.porra.mundial.service.GroupService groupService;
+
+    @MockBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
     @MockBean

@@ -151,7 +151,6 @@ export const useAppContext = () => {
   const adminActions = useContext(GlobalEffectsContext) || useAdminActions();
 
   const activeGroupId = store.activeGroupId;
-  const userName = store.userName;
   const storeCompetitionId = store.activeCompetitionId;
   const setActiveCompetitionId = store.setActiveCompetitionId;
 
@@ -261,17 +260,27 @@ export const useAppContext = () => {
 
   const loading = (loadingStandings && !standings) || (loadingMatches && !matches);
 
-  const checkAdmin = (str) => {
-    if (!str) return false;
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash = hash & hash;
+  const isRaclos = useMemo(() => {
+    if (store.isAdminAuthenticated) return true;
+    const token = getAuthToken();
+    if (!token) return false;
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      const payload = JSON.parse(atob(parts[1]));
+      if (payload.sub === 'admin') return true;
+      if (Array.isArray(payload.roles) && payload.roles.includes('ROLE_ADMIN')) return true;
+      if (
+        payload.email &&
+        ['raclosdev@gmail.com', 'raclosnegocios@gmail.com'].includes(payload.email.toLowerCase())
+      ) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
     }
-    return hash === 576654803 || hash === -1061661165;
-  };
-
-  const isRaclos = useMemo(() => checkAdmin(userName?.trim()), [userName]);
+  }, [store.isAdminAuthenticated, store.isAuthenticated]);
 
   return {
     ...store,

@@ -109,6 +109,7 @@ class MatchPredictionServiceTest {
                 .round("Jornada 1")
                 .build();
     
+        lenient().when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
         lenient().when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(true);
     }
 

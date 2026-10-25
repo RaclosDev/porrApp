@@ -114,10 +114,22 @@ public class LeaderboardService {
         List<GroupStanding> allThirds = allStandings.stream()
                 .filter(gs -> Integer.valueOf(3).equals(gs.getPosition()) && gs.getTeam() != null)
                 .sorted((a, b) -> {
-                    if (!Objects.equals(a.getPoints(), b.getPoints())) return Integer.compare(b.getPoints(), a.getPoints());
-                    if (!Objects.equals(a.getGoalDiff(), b.getGoalDiff())) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
-                    if (!Objects.equals(a.getGoalsFor(), b.getGoalsFor())) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
-                    if (!Objects.equals(a.getFairPlayPoints(), b.getFairPlayPoints())) return Integer.compare(b.getFairPlayPoints(), a.getFairPlayPoints());
+                    int ptsA = a.getPoints() != null ? a.getPoints() : 0;
+                    int ptsB = b.getPoints() != null ? b.getPoints() : 0;
+                    if (ptsA != ptsB) return Integer.compare(ptsB, ptsA);
+
+                    int gdA = a.getGoalDiff() != null ? a.getGoalDiff() : 0;
+                    int gdB = b.getGoalDiff() != null ? b.getGoalDiff() : 0;
+                    if (gdA != gdB) return Integer.compare(gdB, gdA);
+
+                    int gfA = a.getGoalsFor() != null ? a.getGoalsFor() : 0;
+                    int gfB = b.getGoalsFor() != null ? b.getGoalsFor() : 0;
+                    if (gfA != gfB) return Integer.compare(gfB, gfA);
+
+                    int fpA = a.getFairPlayPoints() != null ? a.getFairPlayPoints() : 0;
+                    int fpB = b.getFairPlayPoints() != null ? b.getFairPlayPoints() : 0;
+                    if (fpA != fpB) return Integer.compare(fpB, fpA);
+
                     return a.getTeam().getName().compareTo(b.getTeam().getName());
                 })
                 .collect(Collectors.toList());

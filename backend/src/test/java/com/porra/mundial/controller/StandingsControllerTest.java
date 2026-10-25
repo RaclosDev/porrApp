@@ -44,6 +44,9 @@ class StandingsControllerTest {
     @MockBean
     private LeaderboardService leaderboardService;
 
+    @MockBean
+    private com.porra.mundial.service.GroupService groupService;
+
     @Test
     void getStandings_ReturnsGroupedStandingsMap() throws Exception {
         Map<String, Map<String, Map<String, Integer>>> responseMap = new HashMap<>();

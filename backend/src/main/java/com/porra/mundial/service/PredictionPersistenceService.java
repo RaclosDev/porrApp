@@ -85,7 +85,8 @@ public class PredictionPersistenceService {
             }
 
         } catch (Exception e) {
-            log.error("Error al guardar predicciones para prediction_id=" + prediction.getId(), e);
+            log.error("Fallo crítico persistiendo tablas relacionales para prediction_id={}: {}", prediction.getId(), e.getMessage(), e);
+            throw new IllegalStateException("No se pudo persistir el desglose del pronóstico relacional: " + e.getMessage(), e);
         }
     }
 

@@ -41,6 +41,25 @@ public class MatchPredictionService {
      */
     @Transactional(readOnly = true)
     public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(String email, Long groupId, String round) {
+        if (groupId != null && !Long.valueOf(1L).equals(groupId)) {
+            boolean isMember = false;
+            if (email != null && !email.isBlank()) {
+                UserAccount user = userAccountRepository.findByGoogleEmail(email)
+                        .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
+                        .orElse(null);
+                if (user != null) {
+                    if (user.isSuperadmin()) {
+                        isMember = true;
+                    } else {
+                        Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
+                        isMember = membershipRepository.existsById(memId);
+                    }
+                }
+            }
+            if (!isMember) {
+                throw new SecurityException("No perteneces a esta liga privada.");
+            }
+        }
         Edition edition = groupId != null
                 ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null)
                 : null;
@@ -336,6 +355,21 @@ public class MatchPredictionService {
                     .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
                     .orElse(null)
                 : null;
+
+        if (!Long.valueOf(1L).equals(groupId)) {
+            boolean isMember = false;
+            if (caller != null) {
+                if (caller.isSuperadmin()) {
+                    isMember = true;
+                } else {
+                    Membership.MembershipId memId = new Membership.MembershipId(caller.getId(), groupId);
+                    isMember = membershipRepository.existsById(memId);
+                }
+            }
+            if (!isMember) {
+                throw new SecurityException("No perteneces a esta liga privada.");
+            }
+        }
 
         LocalDateTime now = LocalDateTime.now();
         boolean isMatchLocked = Boolean.TRUE.equals(match.getFinished())

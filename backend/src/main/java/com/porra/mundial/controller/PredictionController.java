@@ -26,6 +26,7 @@ import java.util.Map;
 public class PredictionController {
 
     private final PredictionService predictionService;
+    private final com.porra.mundial.service.GroupService groupService;
     private final WebSocketService webSocketService;
 
     private String getRequesterEmail(Principal principal) {
@@ -42,6 +43,9 @@ public class PredictionController {
         List<Prediction> predictions;
 
         if (groupId != null) {
+            if (!Long.valueOf(1L).equals(groupId) && (email == null || !groupService.isUserMemberOrAdmin(groupId, email))) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "No perteneces a esta liga privada");
+            }
             predictions = predictionService.getPredictionsByGroupId(groupId);
         } else {
             if (predictionService.isSuperAdmin(email)) {
@@ -66,9 +70,13 @@ public class PredictionController {
                                                                  @RequestParam(required = false) Long groupId,
                                                                  Principal principal) {
         String email = getRequesterEmail(principal);
+        Long effectiveGroupId = groupId != null ? groupId : 1L;
+        if (!Long.valueOf(1L).equals(effectiveGroupId) && (email == null || !groupService.isUserMemberOrAdmin(effectiveGroupId, email))) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "No perteneces a esta liga privada");
+        }
         String name = body.getPrediction() != null ? body.getPrediction() : body.getUser();
 
-        Prediction prediction = predictionService.createPrediction(email, name, body, groupId);
+        Prediction prediction = predictionService.createPrediction(email, name, body, effectiveGroupId);
         webSocketService.invalidateAndNotify();
 
         return ResponseEntity.ok(Map.of(

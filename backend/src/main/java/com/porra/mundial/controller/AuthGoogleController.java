@@ -52,6 +52,10 @@ public class AuthGoogleController {
             }
 
             GoogleIdToken.Payload googlePayload = idToken.getPayload();
+            if (!Boolean.TRUE.equals(googlePayload.getEmailVerified())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "La dirección de correo de Google no está verificada."));
+            }
             String email = googlePayload.getEmail();
             String name = (String) googlePayload.get("name");
 

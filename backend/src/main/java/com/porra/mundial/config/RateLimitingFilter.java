@@ -119,15 +119,21 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
+        // En Render / Cloudflare, CF-Connecting-IP es inyectada por el proxy de borde y no puede ser falsificada
+        String cfConnectingIp = request.getHeader("CF-Connecting-IP");
+        if (cfConnectingIp != null && !cfConnectingIp.isBlank()) {
+            return cfConnectingIp.trim();
+        }
+        // Spring Boot con ForwardedHeaderFilter resuelve la IP del cliente de forma segura en getRemoteAddr()
+        String remoteAddr = request.getRemoteAddr();
+        if (remoteAddr != null && !remoteAddr.isBlank()) {
+            return remoteAddr.trim();
         }
         String xRealIp = request.getHeader("X-Real-IP");
         if (xRealIp != null && !xRealIp.isBlank()) {
             return xRealIp.trim();
         }
-        return request.getRemoteAddr();
+        return "127.0.0.1";
     }
 
     private record WindowCounter(long minute, AtomicInteger count) {}
