@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { createBet, fetchMyBets, getAdminToken } from '../services/api';
@@ -78,7 +79,7 @@ export function useBracket() {
 
   useEffect(() => {
     if (!activeGroupId && !isAuthenticated) {
-      alert('Debes seleccionar o crear una liga antes de rellenar tu porra.');
+      toast.error('Debes seleccionar o crear una liga antes de rellenar tu porra.');
       navigate('/mis-ligas');
     }
   }, [activeGroupId, navigate, isAuthenticated]);
@@ -97,7 +98,7 @@ export function useBracket() {
 
   const handleCopyBet = async (betId) => {
     if (activeGroupIsLocked) {
-      alert('El plazo para enviar o modificar porras en esta liga ha finalizado.');
+      toast.error('El plazo para enviar o modificar porras en esta liga ha finalizado.');
       return;
     }
     if (!window.confirm('¿Quieres copiar esta porra y enviarla a la liga actual?')) return;
@@ -109,10 +110,10 @@ export function useBracket() {
       const betData = await res.json();
       betData.user = userName;
       await createBet(betData, activeGroupId);
-      alert('¡Porra copiada con éxito a esta liga!');
+      toast.success('¡Porra copiada con éxito a esta liga!');
       fetchData();
     } catch (e) {
-      alert(e.message || 'Error copiando porra');
+      toast.error(e.message || 'Error copiando porra');
     }
   };
 
@@ -211,15 +212,15 @@ export function useBracket() {
 
   const generateBetData = async () => {
     if (!betName.trim()) {
-      alert('Por favor introduce un nombre para tu porra.');
+      toast.error('Por favor introduce un nombre para tu porra.');
       return;
     }
     if (!isAuthenticated && (!userName || !bracketState.champion)) {
-      alert('Por favor rellena tu nombre y completa el bracket hasta el campeón.');
+      toast.error('Por favor rellena tu nombre y completa el bracket hasta el campeón.');
       return;
     }
     if (activeGroupPichichi && !topScorer) {
-      alert('Por favor introduce el pichichi.');
+      toast.error('Por favor introduce el pichichi.');
       return;
     }
     if (isKnockoutsOnly) {
@@ -233,7 +234,7 @@ export function useBracket() {
             m.away.name.includes('º'),
         )
       ) {
-        alert('Por favor rellena todos los equipos de los Dieciseisavos antes de enviar.');
+        toast.error('Por favor rellena todos los equipos de los Dieciseisavos antes de enviar.');
         return;
       }
     }
@@ -277,7 +278,7 @@ export function useBracket() {
       thirds: isKnockoutsOnly ? [] : advancingThirds,
     };
     if (activeGroupIsLocked && !(isAdminAuthenticated && betName === 'official')) {
-      alert('El plazo para enviar o modificar porras en esta liga ha finalizado.');
+      toast.error('El plazo para enviar o modificar porras en esta liga ha finalizado.');
       return;
     }
     try {
@@ -287,18 +288,18 @@ export function useBracket() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(betData),
         });
-        alert(
-          res.ok
-            ? '¡Resultados OFICIALES actualizados!'
-            : 'Error al actualizar resultados oficiales',
-        );
+        if (res.ok) {
+          toast.success('¡Resultados oficiales actualizados!');
+        } else {
+          toast.error('Error al actualizar resultados oficiales');
+        }
       } else {
         await createBet(betData, activeGroupId);
-        alert('¡Porra guardada correctamente en la liga!');
+        toast.success('¡Porra guardada correctamente en la liga!');
         fetchData();
       }
     } catch (e) {
-      alert(e.message || 'Hubo un error al guardar la porra.');
+      toast.error(e.message || 'Hubo un error al guardar la porra.');
     }
   };
 

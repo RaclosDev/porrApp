@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AppProvider, useAppContext } from './context/AppContext';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
+import { Toaster } from 'react-hot-toast';
 
 const Rules = React.lazy(() => import('./pages/Rules'));
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
@@ -79,6 +80,19 @@ const ProtectedRoute = ({ children, guestAllowed = false }) => {
 function App() {
   return (
     <AppProvider>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: '#1e293b',
+            color: '#f8fafc',
+            border: '1px solid #334155',
+            borderRadius: '12px',
+            fontSize: '0.95rem',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+          },
+        }}
+      />
       <Router>
         <PwaUpdater />
         <Layout>

@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchMyGroups,
@@ -171,7 +172,7 @@ export function useGroupsDashboard() {
             knownGroups.push(group.id.toString());
             localStorage.setItem('knownGroups', JSON.stringify(knownGroups));
           }
-          alert(`¡Te has unido correctamente a la liga "${group.name}" a través de la invitación!`);
+          toast.success(`¡Te has unido a "${group.name}"!`);
           changeGroup(group.id.toString());
           if (group.poolFormat === 'MATCH_DAY') {
             navigate('/jornadas');
@@ -273,7 +274,7 @@ export function useGroupsDashboard() {
       }
 
       loadGroupsAndCompetitions();
-      alert(`La liga "${groupName}" ha sido eliminada permanentemente.`);
+      toast.success(`La liga "${groupName}" ha sido eliminada.`);
     } catch (e) {
       setError(e.message);
     }
@@ -291,7 +292,7 @@ export function useGroupsDashboard() {
         localStorage.setItem('knownGroups', JSON.stringify(knownGroups));
       }
 
-      alert(`¡Te has unido correctamente a la liga "${group.name}"!`);
+      toast.success(`¡Te has unido a "${group.name}"!`);
       setJoinCode('');
       changeGroup(group.id.toString());
       loadGroupsAndCompetitions();
@@ -329,7 +330,7 @@ export function useGroupsDashboard() {
       localStorage.setItem('knownGroups', JSON.stringify(updatedKnownGroups));
 
       loadGroupsAndCompetitions();
-      alert(`Has abandonado la liga "${groupName}".`);
+      toast.success(`Has abandonado la liga "${groupName}".`);
     } catch (e) {
       setError(e.message);
     }
@@ -349,13 +350,13 @@ export function useGroupsDashboard() {
 
   const handleCopyCode = (code) => {
     navigator.clipboard.writeText(code);
-    alert(`Código "${code}" copiado al portapapeles.`);
+    toast.success(`Código "${code}" copiado al portapapeles`);
   };
 
   const handleCopyLink = (code) => {
     const link = `${window.location.origin}/join/${code}`;
     navigator.clipboard.writeText(link);
-    alert(`Enlace de invitación copiado al portapapeles.`);
+    toast.success('Enlace de invitación copiado al portapapeles');
   };
 
   return {

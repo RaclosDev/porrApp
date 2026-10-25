@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useState } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import { GoogleLogin } from '@react-oauth/google';
@@ -15,6 +16,19 @@ export default function GroupsDashboard() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowCreateModal(false);
+        setShowJoinModal(false);
+        setSelectedGroupForMembers(null);
+        setNewlyCreatedGroup(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const {
     groups,
     competitions,
@@ -90,7 +104,7 @@ export default function GroupsDashboard() {
         window.location.reload();
       }
     } catch (err) {
-      alert('Error al iniciar sesión con Google: ' + err.message);
+      toast.error('Error al iniciar sesión con Google: ' + err.message);
     }
   };
 
@@ -130,7 +144,7 @@ export default function GroupsDashboard() {
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <GoogleLogin
                 onSuccess={handleDirectGoogleLogin}
-                onError={() => alert('Inicio de sesión fallido')}
+                onError={() => toast.error('Inicio de sesión cancelado')}
                 theme="filled_black"
                 shape="pill"
                 text="continue_with"
@@ -148,7 +162,7 @@ export default function GroupsDashboard() {
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <GoogleLogin
             onSuccess={handleDirectGoogleLogin}
-            onError={() => alert('Inicio de sesión fallido')}
+            onError={() => toast.error('Inicio de sesión cancelado')}
             theme="filled_black"
             shape="pill"
             text="continue_with"
@@ -473,6 +487,7 @@ export default function GroupsDashboard() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
+                  aria-label="Cerrar Asistente"
                   style={{
                     background: 'none',
                     border: 'none',
@@ -480,6 +495,11 @@ export default function GroupsDashboard() {
                     cursor: 'pointer',
                     fontSize: '1.2rem',
                     marginLeft: '6px',
+                    minWidth: '44px',
+                    minHeight: '44px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                   title="Cerrar Asistente"
                 >
@@ -833,12 +853,18 @@ export default function GroupsDashboard() {
               <button
                 type="button"
                 onClick={() => setShowJoinModal(false)}
+                aria-label="Cerrar"
                 style={{
                   background: 'none',
                   border: 'none',
                   color: 'var(--text-muted)',
                   cursor: 'pointer',
                   fontSize: '1.2rem',
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
                 title="Cerrar"
               >

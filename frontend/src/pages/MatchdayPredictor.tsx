@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -200,7 +201,7 @@ function MatchdayPredictor() {
 
   const handleSaveAll = () => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión con tu cuenta de Google para guardar tus pronósticos.');
+      toast.error('Inicia sesión con Google para guardar tus pronósticos.');
       return;
     }
 
@@ -220,7 +221,7 @@ function MatchdayPredictor() {
     });
 
     if (payload.length === 0) {
-      alert('No hay pronósticos nuevos o modificados para guardar en partidos abiertos.');
+      toast('No hay pronósticos nuevos o modificados para guardar en partidos abiertos.');
       return;
     }
 

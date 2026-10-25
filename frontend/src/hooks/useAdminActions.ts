@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { getAdminToken, updateBet } from '../services/api';
 
@@ -15,13 +16,13 @@ export function useAdminActions() {
           headers: { ...(token && { Authorization: `Bearer ${token}`, 'X-Admin-Token': token }) },
         });
         if (response.ok) {
-          alert('Porra eliminada con éxito.');
+          toast.success('Porra eliminada con éxito.');
           refreshAll();
         } else {
-          alert('Error al borrar la porra.');
+          toast.error('Error al borrar la porra.');
         }
       } catch (e) {
-        alert('Error al borrar: ' + e.message);
+        toast.error('Error al borrar: ' + e.message);
       }
     }
   };
@@ -40,13 +41,13 @@ export function useAdminActions() {
 
       const response = await updateBet(key, part);
       if (response.ok) {
-        alert('Tercer puesto fijado correctamente.');
+        toast.success('Tercer puesto fijado correctamente.');
         refreshAll();
       } else {
-        alert('Error al fijar el tercer puesto.');
+        toast.error('Error al fijar el tercer puesto.');
       }
     } catch (e) {
-      alert('Error de red: ' + e.message);
+      toast.error('Error de red: ' + e.message);
     }
   };
 
@@ -58,13 +59,13 @@ export function useAdminActions() {
         headers: { ...(token && { Authorization: `Bearer ${token}`, 'X-Admin-Token': token }) },
       });
       if (response.ok) {
-        alert('¡Porra confirmada! Ahora contará en la clasificación.');
+        toast.success('¡Porra confirmada!');
         refreshAll();
       } else {
-        alert('Error al confirmar la porra.');
+        toast.error('Error al confirmar la porra.');
       }
     } catch (e) {
-      alert('Error al confirmar: ' + e.message);
+      toast.error('Error al confirmar: ' + e.message);
     }
   };
 
@@ -83,13 +84,13 @@ export function useAdminActions() {
 
       const response = await updateBet(key, decoded);
       if (response.ok) {
-        alert('Nombre y porra actualizados.');
+        toast.success('Nombre y porra actualizados.');
         refreshAll();
       } else {
-        alert('Error al guardar en el servidor.');
+        toast.error('Error al guardar en el servidor.');
       }
     } catch (e) {
-      alert('Error de red: ' + e.message);
+      toast.error('Error de red: ' + e.message);
     }
   };
 

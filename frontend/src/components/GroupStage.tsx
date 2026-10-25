@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { getCountryCode } from '../utils/constants';
 import CustomSelect from './CustomSelect';
@@ -113,13 +114,13 @@ export default function GroupStage({ groupOdds, onComplete, activeGroupId }) {
     });
 
     if (missingFirstsOrSeconds.length > 0) {
-      alert(`Falta seleccionar 1º o 2º en los grupos: ${missingFirstsOrSeconds.join(', ')}`);
+      toast.error(`Falta seleccionar 1º o 2º en los grupos: ${missingFirstsOrSeconds.join(', ')}`);
       return;
     }
 
     if (advancingThirds.length !== 8) {
-      alert(
-        `Debes seleccionar exactamente 8 mejores terceros para avanzar (tienes ${advancingThirds.length}).`,
+      toast.error(
+        `Debes seleccionar exactamente 8 mejores terceros (llevas ${advancingThirds.length}).`,
       );
       return;
     }

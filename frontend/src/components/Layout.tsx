@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect, Suspense } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -194,7 +195,7 @@ function Layout({ children }) {
         setShowMyBetModal(false);
       }
     } catch (e) {
-      alert('Error conectando con Google: ' + e.message);
+      toast.error('Error conectando con Google: ' + e.message);
     }
   };
 
@@ -202,7 +203,7 @@ function Layout({ children }) {
    * Envía el nombre escogido por el usuario por primera vez tras vincular Google.
    */
   const handleNameSubmit = async () => {
-    if (!newNameInput.trim()) return alert('El nombre no puede estar vacío');
+    if (!newNameInput.trim()) return toast.error('El nombre no puede estar vacío');
     try {
       const res = await fetch('/api/auth/google/login', {
         method: 'POST',
@@ -229,10 +230,10 @@ function Layout({ children }) {
           navigate('/mis-ligas');
         }
       } else {
-        alert(data.error || 'Error al vincular cuenta');
+        toast.error(data.error || 'Error al vincular cuenta');
       }
     } catch (e) {
-      alert('Error de red: ' + e.message);
+      toast.error('Error de red: ' + e.message);
     }
   };
 
@@ -1030,7 +1031,7 @@ function Layout({ children }) {
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
-                  onError={() => alert('Login Fallido')}
+                  onError={() => toast.error('Inicio de sesión cancelado o fallido')}
                   theme="filled_black"
                   shape="pill"
                   text="continue_with"

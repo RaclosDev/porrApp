@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
@@ -115,7 +116,7 @@ export function useLeaderboard() {
       }
     } catch (e) {
       console.error(e);
-      alert('Error al generar la imagen para compartir');
+      toast.error('Error al generar la imagen para compartir');
     } finally {
       setSharing(false);
     }
@@ -128,7 +129,7 @@ export function useLeaderboard() {
       await acceptGroupPrediction(activeGroupId, predictionId);
       state.fetchData();
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(false);
     }
@@ -143,7 +144,7 @@ export function useLeaderboard() {
       await deleteGroupPrediction(activeGroupId, predictionId);
       state.fetchData();
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(false);
     }

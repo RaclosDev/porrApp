@@ -545,7 +545,7 @@ export default function Landing() {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          color: '#64748b',
+          color: '#94a3b8',
           fontSize: '0.85rem',
         }}
       >
