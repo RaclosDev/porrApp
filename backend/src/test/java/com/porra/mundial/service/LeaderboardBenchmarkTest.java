@@ -36,12 +36,7 @@ class LeaderboardBenchmarkTest {
     private StandingsService standingsService;
 
     @Mock
-    private TopScorerService topScorerService;
-
-    @Mock
-    private PredictionPersistenceService predictionPersistenceService;
-
-    @Mock
+    private TopScorerService topScorerService;@Mock
     private MatchRepository matchRepository;
 
     @Mock
@@ -75,7 +70,7 @@ class LeaderboardBenchmarkTest {
         officialData.setSf(List.of(List.of("España", "Alemania")));
         officialData.setFinalMatch(List.of("España", "Alemania"));
 
-        when(predictionPersistenceService.rebuildPredictionDataDtoFromTables(1L)).thenReturn(officialData);
+        official.setBracketData(officialData);
         when(standingsService.getOfficialPoints()).thenReturn(Collections.emptyMap());
         when(standingsService.getAllStandings()).thenReturn(Collections.emptyList());
         when(topScorerService.getTopScorers()).thenReturn(Collections.emptyList());
@@ -107,7 +102,7 @@ class LeaderboardBenchmarkTest {
             pData.setSf(List.of(List.of("España", "Alemania")));
             pData.setFinalMatch(List.of("España", "Alemania"));
 
-            when(predictionPersistenceService.rebuildPredictionDataDtoFromTables((long) i)).thenReturn(pData);
+            pred.setBracketData(pData);
         }
 
         when(predictionRepository.findAll()).thenReturn(participants);

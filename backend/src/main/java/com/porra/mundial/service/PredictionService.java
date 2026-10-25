@@ -5,16 +5,13 @@ import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.Prediction;
-import com.porra.mundial.model.PredictionBackup;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MembershipRepository;
-import com.porra.mundial.repository.PredictionBackupRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +23,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Servicio principal de gestion de pronosticos y porras (Prediction).
+ * Servicio principal de gestión de pronósticos (Prediction).
+ * Almacena y sirve el árbol del cuadro directamente como documento estructurado.
  */
 @Slf4j
 @Service
@@ -35,20 +33,14 @@ import java.util.stream.Collectors;
 public class PredictionService {
 
     private final PredictionRepository predictionRepository;
-    private final PredictionBackupRepository predictionBackupRepository;
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
-    private final PredictionPersistenceService predictionPersistenceService;
     private final MembershipRepository membershipRepository;
-
-    
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
             throw new SecurityException("Usuario no autenticado");
         }
-
-        
 
         if (prediction.getUser() != null && prediction.getUser().getGoogleEmail() != null
                 && prediction.getUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
@@ -70,8 +62,6 @@ public class PredictionService {
             throw new SecurityException("Usuario no autenticado");
         }
 
-        
-
         if (prediction.getEdition() != null && prediction.getEdition().getLeague() != null
                 && prediction.getEdition().getLeague().getAdminUser() != null
                 && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail() != null
@@ -80,29 +70,6 @@ public class PredictionService {
         }
 
         throw new SecurityException("Solo el administrador del grupo puede marcar el pronostico como pagado.");
-    }
-
-    private void saveBackup(Prediction prediction, String action) {
-        if (prediction == null) return;
-
-        PredictionBackup backup = PredictionBackup.builder()
-                .originalBetId(prediction.getId())
-                .participantName(prediction.getParticipantName())
-                .betName(prediction.getBetName())
-                .paid(prediction.getPaid())
-                .action(action)
-                .backupTimestamp(LocalDateTime.now())
-                .build();
-
-        predictionBackupRepository.save(backup);
-    }
-
-    public void createOneTimeSnapshot() {
-        predictionRepository.findAll().forEach(prediction -> {
-            if (predictionBackupRepository.findByOriginalBetIdOrderByBackupTimestampDesc(prediction.getId()).isEmpty()) {
-                saveBackup(prediction, "SNAPSHOT");
-            }
-        });
     }
 
     @Transactional(readOnly = true)
@@ -177,18 +144,17 @@ public class PredictionService {
 
         boolean isOfficial = "official".equalsIgnoreCase(predictionName) || "Admin".equalsIgnoreCase(email);
 
-        Prediction prediction = predictionRepository.save(Prediction.builder()
+        Prediction prediction = Prediction.builder()
                 .user(user)
                 .edition(edition)
                 .name(predictionName)
                 .isOfficial(isOfficial)
+                .bracketData(betData)
                 .paymentStatus("PENDING")
                 .createdAt(LocalDateTime.now())
-                .build());
+                .build();
 
-        predictionPersistenceService.saveRelationalPredictions(prediction, betData);
-
-        return prediction;
+        return predictionRepository.save(prediction);
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
@@ -208,11 +174,9 @@ public class PredictionService {
 
         if (participantName != null) prediction.setParticipantName(participantName);
         if (predictionName != null) prediction.setName(predictionName);
+        if (betData != null) prediction.setBracketData(betData);
 
-        prediction = predictionRepository.save(prediction);
-        if (betData != null) predictionPersistenceService.saveRelationalPredictions(prediction, betData);
-
-        return prediction;
+        return predictionRepository.save(prediction);
     }
 
     public Prediction updateBet(Long id, String requesterEmail, String participantName, String betName, PredictionDataDTO betData) {
@@ -259,35 +223,6 @@ public class PredictionService {
         deletePrediction(id, null);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public Prediction restorePrediction(Long backupId) {
-        PredictionBackup backup = predictionBackupRepository.findById(backupId)
-                .orElseThrow(() -> new NoSuchElementException("Backup no encontrado: " + backupId));
-
-        Prediction prediction = predictionRepository.findById(backup.getOriginalBetId()).orElseGet(Prediction::new);
-        prediction.setId(backup.getOriginalBetId());
-        prediction.setParticipantName(backup.getParticipantName());
-        prediction.setName(backup.getBetName());
-        prediction.setPaid(backup.getPaid());
-
-        prediction = predictionRepository.save(prediction);
-        saveBackup(prediction, "RESTORED_FROM_" + backupId);
-
-        return prediction;
-    }
-
-    public Prediction restoreBet(Long backupId) {
-        return restorePrediction(backupId);
-    }
-
-    public List<PredictionResponseDTO> toPredictionDtoList(List<Prediction> predictions) {
-        return toPredictionDtoList(predictions, null);
-    }
-
-    public List<PredictionResponseDTO> toBetDtoList(List<Prediction> predictions) {
-        return toPredictionDtoList(predictions, null);
-    }
-
     public List<PredictionResponseDTO> toBetDtoList(List<Prediction> predictions, String requesterEmail) {
         return toPredictionDtoList(predictions, requesterEmail);
     }
@@ -295,17 +230,16 @@ public class PredictionService {
     public List<PredictionResponseDTO> toPredictionDtoList(List<Prediction> predictions, String requesterEmail) {
         return predictions.stream().map(pred -> {
             boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-            
             boolean isOfficial = pred.isOfficial();
             boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
             boolean canViewDetails = isLocked || isOwner || isOfficial;
 
             PredictionDataDTO dataDto = null;
             if (canViewDetails) {
-                try {
-                    dataDto = getPredictionData(pred.getId());
-                } catch (Exception e) {
-                    log.warn("Failed to retrieve prediction data for prediction ID {}: {}", pred.getId(), e.getMessage());
+                dataDto = pred.getBracketData();
+                if (dataDto != null) {
+                    dataDto.setUser(pred.getParticipantName());
+                    dataDto.setPrediction(pred.getBetName());
                 }
             }
 
@@ -344,8 +278,11 @@ public class PredictionService {
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found"));
-        PredictionDataDTO dto = predictionPersistenceService.rebuildPredictionDataDtoFromTables(id);
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
+        PredictionDataDTO dto = pred.getBracketData();
+        if (dto == null) {
+            dto = new PredictionDataDTO();
+        }
         dto.setUser(pred.getParticipantName());
         dto.setPrediction(pred.getBetName());
         return dto;

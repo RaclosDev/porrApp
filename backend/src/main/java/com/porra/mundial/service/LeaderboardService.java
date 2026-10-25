@@ -33,7 +33,6 @@ public class LeaderboardService {
     private final PredictionRepository predictionRepository;
     private final StandingsService standingsService;
     private final TopScorerService topScorerService;
-    private final PredictionPersistenceService predictionPersistenceService;
     private final MatchRepository matchRepository;
     private final SyncService syncService;
     private final ScoringStrategy scoringStrategy;
@@ -97,7 +96,7 @@ public class LeaderboardService {
                                 || (b.getParticipantName() != null && b.getParticipantName().equalsIgnoreCase("Admin")))
                         .findFirst())
                 .orElse(null);
-        PredictionDataDTO officialData = adminPrediction != null ? predictionPersistenceService.rebuildPredictionDataDtoFromTables(adminPrediction.getId()) : new PredictionDataDTO();
+        PredictionDataDTO officialData = (adminPrediction != null && adminPrediction.getBracketData() != null) ? adminPrediction.getBracketData() : new PredictionDataDTO();
         syncService.enrichBetDataWithMatches(officialData);
 
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
@@ -188,7 +187,7 @@ public class LeaderboardService {
         for (Prediction pred : groupPredictions) {
             if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
 
-            PredictionDataDTO participant = predictionPersistenceService.rebuildPredictionDataDtoFromTables(pred.getId());
+            PredictionDataDTO participant = pred.getBracketData();
             List<MatchPrediction> matchPreds = matchPredictionRepository.findByPredictionId(pred.getId());
 
             if (participant == null && (matchPreds == null || matchPreds.isEmpty())) {

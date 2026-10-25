@@ -1,5 +1,6 @@
 package com.porra.mundial.model;
 
+import com.porra.mundial.dto.PredictionDataDTO;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -57,6 +58,11 @@ public class Prediction {
     @Column(name = "is_official", nullable = false)
     @Builder.Default
     private Boolean isOfficial = false;
+
+    /** Datos estructurados del pronóstico completo del cuadro (fase de grupos, eliminatorias, campeón, pichichi). */
+    @Convert(converter = PredictionDataConverter.class)
+    @Column(name = "bracket_data", columnDefinition = "TEXT")
+    private PredictionDataDTO bracketData;
 
     /* --- PUNTUACIONES MATERIALIZADAS (Evita N+1 y recálculo en cada GET /api/leaderboard) --- */
 

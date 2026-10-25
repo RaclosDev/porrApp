@@ -13,7 +13,6 @@ import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.repository.UserAccountRepository;
-import com.porra.mundial.service.PredictionPersistenceService;
 import com.porra.mundial.service.SyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +37,6 @@ public class DataInitializer implements CommandLineRunner {
     private final PredictionRepository predictionRepository;
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
-    private final PredictionPersistenceService predictionPersistenceService;
     private final SyncService syncService;
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
@@ -277,7 +275,7 @@ public class DataInitializer implements CommandLineRunner {
                 String decoded = new String(Base64.getDecoder().decode(hashes[i]), StandardCharsets.UTF_8);
                 ObjectMapper mapper = new ObjectMapper();
                 PredictionDataDTO dto = mapper.readValue(decoded, PredictionDataDTO.class);
-                predictionPersistenceService.saveRelationalPredictions(pred, dto);
+                pred.setBracketData(dto); pred = predictionRepository.save(pred);
             } catch (Exception e) {
                 log.error("Failed to parse initial prediction data", e);
             }

@@ -9,7 +9,6 @@ import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MembershipRepository;
-import com.porra.mundial.repository.PredictionBackupRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,21 +32,11 @@ import static org.mockito.Mockito.*;
 class PredictionServiceTest {
 
     @Mock
-    private PredictionRepository predictionRepository;
-
-    @Mock
-    private PredictionBackupRepository predictionBackupRepository;
-
-    @Mock
+    private PredictionRepository predictionRepository;@Mock
     private UserAccountRepository userAccountRepository;
 
     @Mock
-    private EditionRepository editionRepository;
-
-    @Mock
-    private PredictionPersistenceService predictionPersistenceService;
-
-    @Mock
+    private EditionRepository editionRepository;@Mock
     private MembershipRepository membershipRepository;
 
     @InjectMocks
@@ -99,6 +88,7 @@ class PredictionServiceTest {
                 .user(owner)
                 .edition(edition)
                 .name("Porra Ganadora")
+                .bracketData(new PredictionDataDTO())
                 .paymentStatus("PENDING")
                 .build();
     }
@@ -273,9 +263,6 @@ class PredictionServiceTest {
     @DisplayName("El dueno de la porra si puede ver sus propios pronosticos antes del cierre")
     void ownerCanSeePredictionsBeforeLock() {
         edition.setStatus("ACTIVE");
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionPersistenceService.rebuildPredictionDataDtoFromTables(1L)).thenReturn(new PredictionDataDTO());
-
         List<PredictionResponseDTO> result = predictionService.toPredictionDtoList(List.of(prediction), "owner@test.com");
 
         assertNotNull(result);
@@ -287,9 +274,6 @@ class PredictionServiceTest {
     @DisplayName("Todos los usuarios pueden ver todas las porras una vez alcanzado el cierre")
     void allUsersCanSeePredictionsAfterLock() {
         edition.setStatus("LOCKED");
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionPersistenceService.rebuildPredictionDataDtoFromTables(1L)).thenReturn(new PredictionDataDTO());
-
         List<PredictionResponseDTO> result = predictionService.toPredictionDtoList(List.of(prediction), "stranger@test.com");
 
         assertNotNull(result);
