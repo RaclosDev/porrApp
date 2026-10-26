@@ -1,86 +1,105 @@
-import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
-import html2canvas from 'html2canvas';
-import { acceptGroupBet, deleteGroupBet } from '../services/api';
+import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
 
 export function useLeaderboard() {
   const state = useAppContext();
-  const { leaderboardData, loading, isRaclos, activeGroupName, activeGroupId, activeGroupAdminId, userId, userName } = state;
+  const {
+    leaderboardData,
+    loading,
+    isRaclos,
+    activeGroupName,
+    activeGroupId,
+    activeGroupPichichi,
+    activeGroupPoolFormat,
+    activeGroupBetMode,
+    activeGroupAdminId,
+    userId,
+    userName,
+  } = state;
   const [sharing, setSharing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [sortColumn, setSortColumn] = useState('total');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  const isLeagueAdmin = activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
+  const isLeagueAdmin =
+    activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
 
-  const results = leaderboardData.map(backendScore => ({
-    key: backendScore.id,
-    id: backendScore.id,
-    userId: backendScore.userId,
-    name: backendScore.name || 'Anónimo',
-    betName: backendScore.betName || '',
-    points: backendScore,
-    paid: !backendScore.pending,
-    thirdPlaceMatch: backendScore.thirdPlaceMatch,
-    thirdPlaceWinner: backendScore.thirdPlaceWinner
-  }));
+  const { results, lowestPaidRank } = useMemo(() => {
+    const list = (leaderboardData || []).map((backendScore) => ({
+      key: backendScore.id,
+      id: backendScore.id,
+      userId: backendScore.userId,
+      name: backendScore.name || 'Anónimo',
+      betName: backendScore.betName || '',
+      points: backendScore,
+      paid: !backendScore.pending,
+      thirdPlaceMatch: backendScore.thirdPlaceMatch,
+      thirdPlaceWinner: backendScore.thirdPlaceWinner,
+    }));
 
-  const col = sortColumn || 'total';
+    const col = sortColumn || 'total';
 
-  // 1. Siempre ordenamos primero de mayor a menor (descendente) para calcular rangos y medallas correctamente
-  results.sort((a, b) => {
-    if (a.paid !== b.paid) return a.paid ? -1 : 1;
-    const valA = Number(a.points[col]) || 0;
-    const valB = Number(b.points[col]) || 0;
-    if (valB !== valA) return valB - valA;
-    if (col !== 'total') return b.points.total - a.points.total;
-    return 0;
-  });
-
-  let currentRank = 1;
-  let previousVal = null;
-
-  results.forEach((r) => {
-    if (r.paid) {
-      const val = Number(r.points[col]) || 0;
-      if (previousVal !== null && val !== previousVal) {
-        currentRank++;
-      }
-      r.rank = currentRank;
-      previousVal = val;
-    } else {
-      r.rank = '-';
-    }
-  });
-
-  let lowestPaidRank = 1;
-  results.forEach(r => {
-    if (r.paid && typeof r.rank === 'number' && r.rank > lowestPaidRank) {
-      lowestPaidRank = r.rank;
-    }
-  });
-
-  // 2. Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
-  if (sortDirection === 'asc') {
-    results.sort((a, b) => {
+    // Siempre ordenamos primero de mayor a menor (descendente) para calcular rangos y medallas correctamente
+    list.sort((a, b) => {
       if (a.paid !== b.paid) return a.paid ? -1 : 1;
       const valA = Number(a.points[col]) || 0;
       const valB = Number(b.points[col]) || 0;
-      if (valB !== valA) return valA - valB;
-      if (col !== 'total') return a.points.total - b.points.total;
+      if (valB !== valA) return valB - valA;
+      if (col !== 'total') return b.points.total - a.points.total;
       return 0;
     });
-  }
+
+    let currentRank = 1;
+    let previousVal = null;
+
+    list.forEach((r) => {
+      if (r.paid) {
+        const val = Number(r.points[col]) || 0;
+        if (previousVal !== null && val !== previousVal) {
+          currentRank++;
+        }
+        r.rank = currentRank;
+        previousVal = val;
+      } else {
+        r.rank = '-';
+      }
+    });
+
+    let lowestRank = 1;
+    list.forEach((r) => {
+      if (r.paid && typeof r.rank === 'number' && r.rank > lowestRank) {
+        lowestRank = r.rank;
+      }
+    });
+
+    // Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
+    if (sortDirection === 'asc') {
+      list.sort((a, b) => {
+        if (a.paid !== b.paid) return a.paid ? -1 : 1;
+        const valA = Number(a.points[col]) || 0;
+        const valB = Number(b.points[col]) || 0;
+        if (valB !== valA) return valA - valB;
+        if (col !== 'total') return a.points.total - b.points.total;
+        return 0;
+      });
+    }
+
+    return { results: list, lowestPaidRank: lowestRank };
+  }, [leaderboardData, sortColumn, sortDirection]);
 
   const handleShare = async () => {
     setSharing(true);
     try {
+      const html2canvasModule = await import('html2canvas');
+      const html2canvas = html2canvasModule.default;
       const template = document.getElementById('share-image-template');
       const canvas = await html2canvas(template, {
         backgroundColor: '#0f0f1a',
         scale: 2,
         logging: false,
-        useCORS: true
+        useCORS: true,
       });
       const imgData = canvas.toDataURL('image/png');
       const fetchRes = await fetch(imgData);
@@ -97,41 +116,44 @@ export function useLeaderboard() {
       }
     } catch (e) {
       console.error(e);
-      alert("Error al generar la imagen para compartir");
+      toast.error('Error al generar la imagen para compartir');
     } finally {
       setSharing(false);
     }
   };
 
-  const handleAcceptBet = async (betId) => {
-    if (!window.confirm("¿Confirmar que este jugador ha pagado / es aceptado en la liga?")) return;
+  const handleAcceptPrediction = async (predictionId) => {
+    if (!window.confirm('¿Confirmar que este jugador ha pagado / es aceptado en la liga?')) return;
     setActionLoading(true);
     try {
-      await acceptGroupBet(activeGroupId, betId);
+      await acceptGroupPrediction(activeGroupId, predictionId);
       state.fetchData();
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(false);
     }
   };
+  const handleAcceptBet = handleAcceptPrediction;
 
-  const handleDeleteBet = async (betId) => {
-    if (!window.confirm("¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.")) return;
+  const handleDeletePrediction = async (predictionId) => {
+    if (!window.confirm('¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.'))
+      return;
     setActionLoading(true);
     try {
-      await deleteGroupBet(activeGroupId, betId);
+      await deleteGroupPrediction(activeGroupId, predictionId);
       state.fetchData();
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(false);
     }
   };
+  const handleDeleteBet = handleDeletePrediction;
 
   const handleSort = (column) => {
     if (sortColumn === column) {
-      setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+      setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
     } else {
       setSortColumn(column);
       setSortDirection('desc');
@@ -144,6 +166,10 @@ export function useLeaderboard() {
     loading,
     isRaclos,
     activeGroupName,
+    activeGroupId,
+    activeGroupPichichi,
+    activeGroupPoolFormat: activeGroupPoolFormat || activeGroupBetMode,
+    activeGroupBetMode,
     userId,
     userName,
     isLeagueAdmin,
@@ -153,9 +179,11 @@ export function useLeaderboard() {
     handleShare,
     handleAcceptBet,
     handleDeleteBet,
-    validResults: results.filter(r => r.paid),
+    handleAcceptPrediction,
+    handleDeletePrediction,
+    validResults: results.filter((r) => r.paid),
     sortColumn,
     sortDirection,
-    handleSort
+    handleSort,
   };
 }

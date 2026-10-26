@@ -26,11 +26,20 @@ public class GroupResponseDTO {
     /** Fecha de creación del grupo. */
     private LocalDateTime createdAt;
     
-    // Campos específicos de la Edición Activa (Edition) en este grupo
-    /** Nombre de la competición actual en curso (Ej: Euro 2024). */
+    /** Identificador de la competición asociada a la edición activa. */
+    private Long competitionId;
+    /** Nombre de la competición actual en curso (Ej: Euro 2024, LaLiga). */
     private String competitionName;
-    /** Modo de apuesta elegido para esta edición (TRADITIONAL, ADVANCED). */
+    /** Formato de competición física: "LEAGUE" o "TOURNAMENT". */
+    private String formatType;
+    /** Formato de porra (legacy). */
     private String betMode;
+    /** Formato de porra / modalidad (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY). */
+    private String poolFormat;
     /** Si esta edición cuenta con un premio/ranking al pichichi. */
     private Boolean pichichi;
+    /** Fecha y hora límite para enviar pronósticos en esta edición. */
+    private LocalDateTime lockDate;
+    /** Si la edición se encuentra cerrada para nuevos pronósticos o cambios. */
+    private Boolean isLocked;
 }

@@ -1,6 +1,8 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.model.BetGroup;
+import com.porra.mundial.dto.GroupMemberDTO;
+import java.util.Map;
+import com.porra.mundial.model.League;
 import com.porra.mundial.dto.GroupCreateDTO;
 import com.porra.mundial.dto.GroupUpdateDTO;
 import com.porra.mundial.dto.GroupJoinDTO;
@@ -12,11 +14,12 @@ import com.porra.mundial.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.security.Principal;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+
+
+
 
 /**
  * Controlador REST para la gestión de Grupos (Ligas Privadas).
@@ -60,8 +63,8 @@ public class GroupController {
     public ResponseEntity<?> createGroup(@Valid @RequestBody GroupCreateDTO payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         
-        com.porra.mundial.model.BetMode betMode = com.porra.mundial.model.BetMode.valueOf(payload.getBetMode());
-        BetGroup group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(), betMode, payload.getPichichi());
+        com.porra.mundial.model.PoolFormat poolFormat = com.porra.mundial.model.PoolFormat.fromString(payload.resolveFormat());
+        League group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(), poolFormat, payload.getPichichi());
         return ResponseEntity.ok(group);
     }
 
@@ -77,7 +80,7 @@ public class GroupController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateGroup(@PathVariable Long id, @Valid @RequestBody GroupUpdateDTO payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        BetGroup group = groupService.updateGroupName(id, payload.getName(), principal.getName());
+        League group = groupService.updateGroupName(id, payload.getName(), principal.getName());
         return ResponseEntity.ok(group);
     }
 
@@ -105,7 +108,7 @@ public class GroupController {
      */
     @PostMapping("/join")
     public ResponseEntity<?> joinGroup(@Valid @RequestBody GroupJoinDTO payload, Principal principal) {
-        Optional<BetGroup> group = groupService.getGroupByJoinCode(payload.getJoinCode().trim().toUpperCase());
+        Optional<League> group = groupService.getGroupByJoinCode(payload.getJoinCode().trim().toUpperCase());
         if (group.isPresent()) {
             if (principal != null) {
                 groupService.joinGroupMembership(group.get().getId(), principal.getName());
@@ -123,24 +126,31 @@ public class GroupController {
      * @return GroupResponseDTO con la información detallada.
      */
     @GetMapping("/{id}")
-    @org.springframework.cache.annotation.Cacheable(value = "groupResponse", key = "#id")
-    public ResponseEntity<?> getGroup(@PathVariable Long id) {
-        Optional<BetGroup> group = groupService.getGroupById(id);
+    public ResponseEntity<?> getGroup(@PathVariable Long id, Principal principal) {
+        Optional<League> group = groupService.getGroupById(id);
         if (group.isPresent()) {
-            BetGroup g = group.get();
+            League g = group.get();
+            String email = principal != null ? principal.getName() : null;
+            boolean isMember = email != null && groupService.isUserMemberOrAdmin(id, email);
+
             GroupResponseDTO.GroupResponseDTOBuilder builder = GroupResponseDTO.builder()
                     .id(g.getId())
                     .name(g.getName())
-                    .joinCode(g.getJoinCode())
+                    .joinCode(isMember ? g.getJoinCode() : null)
                     .adminParticipantName(g.getAdminParticipantName())
                     .adminUserId(g.getAdminUserId())
                     .createdAt(g.getCreatedAt());
                     
             // Busca la edición activa vinculada a este grupo para extraer metadatos
             editionRepository.findByLeagueIdAndStatus(g.getId(), "ACTIVE").ifPresent(e -> {
-                builder.competitionName(e.getCompetition().getName())
-                       .betMode(e.getBetMode().name())
-                       .pichichi(e.isPichichi());
+                builder.competitionId(e.getCompetition() != null ? e.getCompetition().getId() : null)
+                       .competitionName(e.getCompetition() != null ? e.getCompetition().getName() : null)
+                       .formatType(e.getCompetition() != null ? e.getCompetition().getFormatType() : null)
+                       .betMode(e.getBetMode() != null ? e.getBetMode().name() : null)
+                       .poolFormat(e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
+                       .pichichi(e.isPichichi())
+                       .lockDate(e.getLockDate())
+                       .isLocked(e.isLocked());
             });
             
             return ResponseEntity.ok(builder.build());
@@ -169,7 +179,7 @@ public class GroupController {
      * @param principal Identidad del usuario (debe coincidir con el administrador del grupo).
      * @return Lista de apuestas con datos adicionales de gestión.
      */
-    @GetMapping("/{id}/bets")
+    @GetMapping({"/{id}/bets", "/{id}/predictions"})
     public ResponseEntity<?> getGroupBetsAdmin(@PathVariable Long id, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.getGroupBetsForAdmin(id, principal.getName()));
@@ -179,7 +189,7 @@ public class GroupController {
      * El administrador del grupo marca una apuesta como "Aceptada" o "Pagada" (PAID).
      * Esto normalmente la hace visible en el leaderboard.
      */
-    @PutMapping("/{id}/bets/{betId}/accept")
+    @PutMapping({"/{id}/bets/{betId}/accept", "/{id}/predictions/{betId}/accept"})
     public ResponseEntity<?> acceptBetAdmin(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         Object result = groupService.toggleBetPaymentStatus(id, betId, principal.getName(), true);
@@ -190,7 +200,7 @@ public class GroupController {
     /**
      * El administrador del grupo revoca el estado de "Pagado" de una apuesta.
      */
-    @PutMapping("/{id}/bets/{betId}/reject")
+    @PutMapping({"/{id}/bets/{betId}/reject", "/{id}/predictions/{betId}/reject"})
     public ResponseEntity<?> rejectBet(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.toggleBetPaymentStatus(id, betId, principal.getName(), false));
@@ -199,11 +209,76 @@ public class GroupController {
     /**
      * El administrador del grupo elimina una apuesta del grupo por ser inválida, morosa, etc.
      */
-    @DeleteMapping("/{id}/bets/{betId}")
+    @DeleteMapping({"/{id}/bets/{betId}", "/{id}/predictions/{betId}"})
     public ResponseEntity<?> deleteBetAdmin(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         groupService.deleteBet(id, betId, principal.getName());
         webSocketService.invalidateAndNotify();
         return ResponseEntity.ok(Map.of("status", "success"));
+    }
+
+    /**
+     * Obtiene los miembros de la liga con su rol y estado de pago.
+     */
+    @GetMapping("/{id}/members")
+    public ResponseEntity<?> getMembers(@PathVariable Long id, Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        List<GroupMemberDTO> members = groupService.getGroupMembers(id, principal.getName());
+        return ResponseEntity.ok(members);
+    }
+
+    /**
+     * El administrador del grupo marca o desmarca el pago de un miembro.
+     */
+    @PutMapping("/{id}/members/{userId}/payment")
+    public ResponseEntity<?> toggleMemberPayment(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> body,
+            Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        String status = body != null ? body.getOrDefault("status", "PAID") : "PAID";
+        groupService.toggleMemberPayment(id, userId, principal.getName(), status);
+        webSocketService.invalidateAndNotify();
+        return ResponseEntity.ok(Map.of("status", "success", "paymentStatus", status));
+    }
+
+    /**
+     * El administrador del grupo expulsa a un participante.
+     */
+    @DeleteMapping("/{id}/members/{userId}")
+    public ResponseEntity<?> kickMember(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        groupService.kickMember(id, userId, principal.getName());
+        webSocketService.invalidateAndNotify();
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Miembro expulsado"));
+    }
+
+    /**
+     * Regenera el código de invitación de la liga.
+     */
+    @PostMapping("/{id}/regenerate-code")
+    public ResponseEntity<?> regenerateCode(@PathVariable Long id, Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        String newCode = groupService.regenerateJoinCode(id, principal.getName());
+        return ResponseEntity.ok(Map.of("joinCode", newCode));
+    }
+
+    /**
+     * Obtiene los participantes que aún no han pronosticado la jornada.
+     */
+    @GetMapping({"/{id}/missing-users", "/{id}/jornadas/{round}/missing-users"})
+    public ResponseEntity<?> getMissingMembers(
+            @PathVariable Long id,
+            @PathVariable(required = false) String round,
+            @RequestParam(name = "round", required = false) String queryRound,
+            Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        Map<String, Object> result = groupService.getMissingMembersForRound(id, principal.getName(),
+                round != null ? round : queryRound);
+        return ResponseEntity.ok(result);
     }
 }

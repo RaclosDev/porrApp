@@ -5,9 +5,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * ⚽ Entidad 'Match' (Partido Real).
+ * Entidad 'Match' (Partido Real).
  * Representa un partido de fútbol real del torneo oficial.
- * Se sincroniza continuamente con la API de ESPN para obtener resultados en vivo.
+ * Se sincroniza continuamente con proveedores deportivos para obtener resultados en vivo.
  */
 @Entity
 @Table(name = "matches")
@@ -30,9 +30,14 @@ public class Match {
     private Team awayTeam;
 
     /** Ganador oficial del partido (útil para desempatar penaltis en eliminatorias). */
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winner_team_id")
     private Team winnerTeam;
+
+    /** Competición a la que pertenece este partido (ej. Mundial 2026, Euro 2024). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "competition_id")
+    private Competition competition;
 
     /** Goles que ha marcado el local. Si es 'null', el partido aún no se ha jugado. */
     private Integer homeScore;
@@ -55,9 +60,25 @@ public class Match {
     @Builder.Default
     private String round = "group"; 
 
-    /** El ID que usa la API externa oficial (ESPN) para no crear duplicados al sincronizar. */
+    /** El ID que usa la API externa oficial para no crear duplicados al sincronizar. */
     private String externalId;
 
     /** El minuto actual del partido si está en directo (ej. "45'", "HT", "FT"). */
     private String displayClock;
+
+    /** Estado canónico normalizado del partido (ej. SCHEDULED, LIVE, FINISHED, POSTPONED). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 30)
+    @Builder.Default
+    private MatchStatusNormalized status = MatchStatusNormalized.SCHEDULED;
+
+    /** Puntos Fair Play del equipo local en este partido (tarjetas). */
+    @Column(name = "home_fair_play")
+    @Builder.Default
+    private Integer homeFairPlay = 0;
+
+    /** Puntos Fair Play del equipo visitante en este partido (tarjetas). */
+    @Column(name = "away_fair_play")
+    @Builder.Default
+    private Integer awayFairPlay = 0;
 }

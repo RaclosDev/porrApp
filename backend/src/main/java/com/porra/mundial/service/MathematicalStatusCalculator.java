@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 🧮 Calculadora de Estatus Matemático para la Fase de Grupos.
+ *  Calculadora de Estatus Matemático para la Fase de Grupos.
  * Esta clase NO es un @Service de Spring, es una utilidad estática.
  * 
  * ¿Qué hace?
@@ -86,8 +86,8 @@ public class MathematicalStatusCalculator {
 
             int status = 0; // Abierto
             if (best == worst) status = best; // Aseguró exactamente un puesto (ej: 1º seguro)
-            else if (worst <= 2) status = 5;  // 5 = Matemáticamente Clasificado (peor caso es 2º)
-            else if (best >= 3) status = -1;  // -1 = Matemáticamente Eliminado (mejor caso es 3º)
+            else if (worst <= 2) status = 5;  // 5 = Matemáticamente Clasificado directo (peor caso es 2º)
+            else if (best >= 4) status = -1;  // -1 = Matemáticamente Eliminado (peor caso posible es 4º, sin repesca de mejores 3ºs)
             
             statusMap.put(tid, status);
         }

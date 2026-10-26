@@ -1,0 +1,59 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient (Dark Blue/Slate) -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    
+    <!-- Primary Logo Gradient (Cyan/Teal) -->
+    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="50%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Accent Gradient (Gold/Yellow for the ball/trophy) -->
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- App Icon Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  
+  <!-- Subtle Inner Border -->
+  <rect x="24" y="24" width="464" height="464" rx="90" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3" />
+
+  <!-- Logo Group -->
+  <g transform="translate(106, 116)" filter="url(#glow)">
+    
+    <!-- Stylized Bracket Lines (Left to Right) -->
+    <!-- Top bracket -->
+    <path d="M 40 40 L 100 40 L 100 120 L 160 120" fill="none" stroke="url(#logoGrad)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 40 120 L 100 120" fill="none" stroke="url(#logoGrad)" stroke-width="28" stroke-linecap="round" />
+
+    <!-- Bottom bracket -->
+    <path d="M 40 240 L 100 240 L 100 160 L 160 160" fill="none" stroke="url(#logoGrad)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 40 160 L 100 160" fill="none" stroke="url(#logoGrad)" stroke-width="28" stroke-linecap="round" />
+
+    <!-- Connector to final -->
+    <path d="M 160 120 L 220 120 L 220 160 L 160 160" fill="none" stroke="url(#logoGrad)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 220 140 L 260 140" fill="none" stroke="url(#logoGrad)" stroke-width="28" stroke-linecap="round" />
+
+  </g>
+
+  <!-- The "Ball/Cup" at the end of the bracket -->
+  <g transform="translate(370, 256)" filter="url(#glow)">
+    <!-- Classic soccer hexagon/pentagon simplified to a modern sphere -->
+    <circle cx="0" cy="0" r="48" fill="url(#accentGrad)" />
+    <!-- Inner cutouts for soccer ball feel -->
+    <path d="M 0 -24 L 20 -8 L 12 16 L -12 16 L -20 -8 Z" fill="#0f172a" opacity="0.8" />
+  </g>
+</svg>

@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,10 +16,31 @@ import java.util.NoSuchElementException;
  * Gestor Global de Excepciones para la API REST.
  * Actúa como una red de seguridad (@ControllerAdvice) que intercepta los errores lanzados 
  * en cualquier punto de los Controladores y los transforma en respuestas JSON estructuradas, 
- * evitando que el Backend devuelva stacktraces feos de Tomcat al Frontend de React.
+ * evitando la fuga de trazas internas o datos sensibles hacia el cliente.
  */
 @ControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
+
+    /**
+     * Maneja excepciones de estado HTTP explícitas lanzadas por controladores Spring.
+     */
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getReason() != null ? ex.getReason() : "Error en la solicitud");
+        return ResponseEntity.status(ex.getStatusCode()).body(error);
+    }
+
+    /**
+     * Maneja errores de acceso denegado por seguridad Spring.
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage() != null ? ex.getMessage() : "Acceso denegado");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
 
     /**
      * Maneja errores de validación de negocio (ej. "El grupo no permite más apuestas").
@@ -50,13 +73,32 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Maneja errores de estado o plazos vencidos (ej. porra bloqueada tras el cierre).
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalStateException(IllegalStateException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Maneja violaciones de integridad relacional o restricciones de unicidad concurrentes.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        log.warn("Violación de integridad de datos en base de datos: {}", ex.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Conflicto con los datos existentes o registro duplicado.");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
      * Maneja errores de validación de JSON en entrada de Spring (@Valid en los DTOs).
-     * Por ejemplo: enviar un nombre vacío o un JSON con formato incorrecto.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        // Extrae el primer mensaje de validación fallido (anotaciones como @NotBlank o @NotNull)
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()
                 .map(org.springframework.validation.FieldError::getDefaultMessage)
                 .findFirst()
@@ -66,14 +108,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Manejador de fallback o comodín. 
-     * Atrapa cualquier otra excepción no contemplada (NullPointers, errores de BD graves)
-     * para que nunca le llegue un chorro HTML al Frontend.
+     * Manejador de fallback o comodín sanitizado.
+     * Atrapa cualquier otra excepción no contemplada evitando exponer detalles internos de BD o Tomcat.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
+        log.error("Excepción no controlada en el servidor: ", ex);
         Map<String, String> error = new HashMap<>();
-        error.put("error", "Ha ocurrido un error inesperado: " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error); // Devuelve HTTP 500
+        error.put("error", "Ha ocurrido un error inesperado en el servidor.");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
