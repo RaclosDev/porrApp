@@ -39,6 +39,10 @@ public class League {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** Reglas personalizadas de la liga (texto libre definido por el admin). */
+    @Column(columnDefinition = "TEXT")
+    private String rules;
+
     @Transient
     public String getAdminParticipantName() {
         return adminUser != null ? adminUser.getParticipantName() : null;

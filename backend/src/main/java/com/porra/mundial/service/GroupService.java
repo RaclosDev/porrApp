@@ -286,14 +286,30 @@ public class GroupService {
      */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public League updateGroupName(Long groupId, String newName, String email) {
+    public League updateGroup(Long groupId, String newName, String newRules, String email) {
         verifyGroupAdmin(groupId, email);
-        if (newName == null || newName.trim().isEmpty()) {
-            throw new IllegalArgumentException("El nombre no puede estar vacío");
-        }
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
-        group.setName(newName.trim());
+
+        boolean changed = false;
+
+        if (newName != null) {
+            if (newName.trim().isEmpty()) {
+                throw new IllegalArgumentException("El nombre no puede estar vacío");
+            }
+            group.setName(newName.trim());
+            changed = true;
+        }
+
+        if (newRules != null) {
+            group.setRules(newRules.trim());
+            changed = true;
+        }
+
+        if (!changed) {
+            throw new IllegalArgumentException("No hay cambios que guardar");
+        }
+
         return leagueRepository.save(group);
     }
 
@@ -373,6 +389,7 @@ public class GroupService {
                     .pichichi(e != null ? e.isPichichi() : null)
                     .lockDate(e != null ? e.getLockDate() : null)
                     .isLocked(e != null && e.isLocked())
+                    .rules(g.getRules())
                     .build();
         }).collect(Collectors.toList());
     }

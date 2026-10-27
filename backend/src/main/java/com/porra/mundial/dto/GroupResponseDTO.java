@@ -42,4 +42,6 @@ public class GroupResponseDTO {
     private LocalDateTime lockDate;
     /** Si la edición se encuentra cerrada para nuevos pronósticos o cambios. */
     private Boolean isLocked;
+    /** Reglas personalizadas de la liga. */
+    private String rules;
 }

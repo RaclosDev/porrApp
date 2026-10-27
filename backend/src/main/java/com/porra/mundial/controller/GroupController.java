@@ -80,7 +80,7 @@ public class GroupController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateGroup(@PathVariable Long id, @Valid @RequestBody GroupUpdateDTO payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        League group = groupService.updateGroupName(id, payload.getName(), principal.getName());
+        League group = groupService.updateGroup(id, payload.getName(), payload.getRules(), principal.getName());
         return ResponseEntity.ok(group);
     }
 
@@ -139,7 +139,8 @@ public class GroupController {
                     .joinCode(isMember ? g.getJoinCode() : null)
                     .adminParticipantName(g.getAdminParticipantName())
                     .adminUserId(g.getAdminUserId())
-                    .createdAt(g.getCreatedAt());
+                    .createdAt(g.getCreatedAt())
+                    .rules(g.getRules());
                     
             // Busca la edición activa vinculada a este grupo para extraer metadatos
             editionRepository.findByLeagueIdAndStatus(g.getId(), "ACTIVE").ifPresent(e -> {

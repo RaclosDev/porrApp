@@ -117,21 +117,21 @@ class GroupServiceTest {
     }
 
     @Test
-    @DisplayName("updateGroupName rechaza si el nombre está vacío")
-    void updateGroupName_ThrowsIfEmpty() {
+    @DisplayName("updateGroup rechaza si el nombre está vacío")
+    void updateGroup_ThrowsIfEmpty() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(IllegalArgumentException.class, () ->
-                groupService.updateGroupName(10L, "   ", "admin@test.com"));
+                groupService.updateGroup(10L, "   ", null, "admin@test.com"));
     }
 
     @Test
-    @DisplayName("updateGroupName rechaza si el solicitante no es el admin de la liga")
-    void updateGroupName_ThrowsIfNotAdmin() {
+    @DisplayName("updateGroup rechaza si el solicitante no es el admin de la liga")
+    void updateGroup_ThrowsIfNotAdmin() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(SecurityException.class, () ->
-                groupService.updateGroupName(10L, "Nuevo Nombre", "member@test.com"));
+                groupService.updateGroup(10L, "Nuevo Nombre", null, "member@test.com"));
 
         verify(leagueRepository, never()).save(any());
     }
