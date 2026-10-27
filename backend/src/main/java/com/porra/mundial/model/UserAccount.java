@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 👤 Entidad 'UserAccount'.
+ * Entidad 'UserAccount'.
  * Guarda la relación entre una cuenta de Google (email) y el nombre de participante en la porra.
  * Esto evita suplantaciones de identidad y permite el SSO seguro.
  */
@@ -31,10 +31,6 @@ public class UserAccount {
     @Column(nullable = false)
     private String participantName;
 
-    /** Flag de seguridad para detectar si el usuario tiene privilegios de superadministrador global. */
-    @Builder.Default
-    private boolean isSuperadmin = false;
-
     /** Fecha y hora en la que se registró por primera vez en la aplicación. */
     @Builder.Default
     private LocalDateTime linkedAt = LocalDateTime.now();
@@ -45,4 +41,15 @@ public class UserAccount {
      */
     @Column(name = "last_selected_group_id")
     private Long lastSelectedGroupId;
+
+    /** Momento de la última subida de foto de perfil. Null si no tiene foto. Sirve para versionar la URL. */
+    @Column(name = "avatar_updated_at")
+    private LocalDateTime avatarUpdatedAt;
+
+    /** URL pública (versionada) de la foto de perfil, o null si no tiene. */
+    @Transient
+    public String getAvatarUrl() {
+        if (id == null || avatarUpdatedAt == null) return null;
+        return "/api/users/" + id + "/avatar?v=" + avatarUpdatedAt.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+    }
 }

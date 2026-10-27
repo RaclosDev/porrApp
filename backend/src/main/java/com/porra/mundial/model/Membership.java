@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 🤝 Entidad 'Membership' (Membresía).
+ *  Entidad 'Membership' (Membresía).
  * Tabla intermedia que representa la relación Muchos-a-Muchos entre Usuarios y Grupos.
  * Indica que un usuario pertenece a un grupo específico.
  */
@@ -29,12 +29,17 @@ public class Membership {
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("leagueId")
     @JoinColumn(name = "league_id")
-    private BetGroup league;
+    private League league;
 
     /** Rol del usuario dentro del grupo (Ej. MEMBER, ADMIN). */
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String role = "MEMBER";
+
+    /** Estado del pago de la cuota en el grupo (PENDING, PAID). */
+    @Column(name = "payment_status", length = 20)
+    @Builder.Default
+    private String paymentStatus = "PENDING";
 
     /** Fecha en la que el usuario se unió al grupo mediante el código. */
     @Builder.Default

@@ -32,7 +32,7 @@ public class UserController {
     @PutMapping("/me/preferences")
     public ResponseEntity<?> updatePreferences(@RequestBody Map<String, Object> payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        Optional<UserAccount> userOpt = userAccountRepository.findByParticipantNameIgnoreCase(principal.getName());
+        Optional<UserAccount> userOpt = userAccountRepository.findByGoogleEmail(principal.getName()).or(() -> userAccountRepository.findByParticipantNameIgnoreCase(principal.getName()));
         if (userOpt.isPresent()) {
             UserAccount user = userOpt.get();
             if (payload.containsKey("lastSelectedGroupId")) {
@@ -56,13 +56,14 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<?> getMe(Principal principal) {
          if (principal == null) return ResponseEntity.status(401).build();
-         Optional<UserAccount> userOpt = userAccountRepository.findByParticipantNameIgnoreCase(principal.getName());
+         Optional<UserAccount> userOpt = userAccountRepository.findByGoogleEmail(principal.getName()).or(() -> userAccountRepository.findByParticipantNameIgnoreCase(principal.getName()));
          if (userOpt.isPresent()) {
               UserAccount user = userOpt.get();
-              return ResponseEntity.ok(Map.of(
-                  "participantName", user.getParticipantName(),
-                  "lastSelectedGroupId", user.getLastSelectedGroupId()
-              ));
+              Map<String, Object> body = new java.util.LinkedHashMap<>();
+              body.put("participantName", com.porra.mundial.util.TextSanitizer.fixParticipantName(user.getParticipantName()));
+              body.put("lastSelectedGroupId", user.getLastSelectedGroupId());
+              body.put("avatarUrl", user.getAvatarUrl());
+              return ResponseEntity.ok(body);
          }
          return ResponseEntity.notFound().build();
     }

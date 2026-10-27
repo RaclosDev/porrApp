@@ -12,7 +12,7 @@ RUN npm run build
 # El resultado queda en /app/frontend/dist
 
 # Etapa 2: Build del Backend (Spring Boot + Maven)
-FROM maven:3.9.6-eclipse-temurin-21 AS backend-build
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS backend-build
 WORKDIR /app
 
 # Copiamos el pom.xml y descargamos dependencias (cache)
@@ -32,9 +32,13 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-COPY --from=backend-build /app/target/*.jar app.jar
+# Crear usuario y grupo sin privilegios para mitigar riesgos de contenedor
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-EXPOSE 8080
+COPY --from=backend-build /app/target/*.jar app.jar
+RUN chown -R appuser:appgroup /app
+
+EXPOSE 8080 10000
 
 ENV TZ=Europe/Madrid
 RUN apk add --no-cache tzdata && \
@@ -43,5 +47,12 @@ RUN apk add --no-cache tzdata && \
     apk del tzdata
 
 ENV SPRING_PROFILES_ACTIVE=prod
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD wget -qO- http://localhost:${PORT:-8080}/actuator/health > /dev/null || exit 1
+
+USER appuser:appgroup
+
+ENTRYPOINT ["java", "-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-Xss256k", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

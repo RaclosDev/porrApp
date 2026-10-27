@@ -17,9 +17,12 @@ export default function PwaUpdater() {
       console.log('SW Registered. Will check for updates.');
       if (r) {
         // Comprobar si hay nueva versión cada 15 minutos en background
-        setInterval(() => {
-          r.update().catch(() => {});
-        }, 15 * 60 * 1000);
+        setInterval(
+          () => {
+            r.update().catch(() => {});
+          },
+          15 * 60 * 1000,
+        );
       }
     },
     onRegisterError(error) {
@@ -27,7 +30,7 @@ export default function PwaUpdater() {
     },
   });
 
-  // 1. Comprobar actualización automáticamente al volver a abrir/enfocar la app en el móvil
+  // Comprobar actualización automáticamente al volver a abrir/enfocar la app en el móvil
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && 'serviceWorker' in navigator) {
@@ -38,7 +41,7 @@ export default function PwaUpdater() {
     return () => window.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // 2. Si hay actualización pendiente, forzar su activación
+  // Si hay actualización pendiente, forzar su activación
   useEffect(() => {
     if (needRefresh) {
       console.log('Nueva versión detectada. Forzando actualización de la PWA...');
@@ -46,7 +49,7 @@ export default function PwaUpdater() {
     }
   }, [needRefresh, updateServiceWorker]);
 
-  // 3. Cuando el nuevo Service Worker toma el control de la página, recargar inmediatamente
+  // Cuando el nuevo Service Worker toma el control de la página, recargar inmediatamente
   useEffect(() => {
     let refreshing = false;
     const onControllerChange = () => {

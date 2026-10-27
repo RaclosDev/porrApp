@@ -15,6 +15,10 @@ public record MatchResponseDTO(
         String away,
         Long home_team_id,
         Long away_team_id,
+        String homeLogo,
+        String awayLogo,
+        String homeTeamLogo,
+        String awayTeamLogo,
         Integer homeScore,
         Integer awayScore,
         Integer home_score,
@@ -25,7 +29,8 @@ public record MatchResponseDTO(
         String groupName,
         String winner,
         String displayClock,
-        boolean isStartingSoon
+        boolean isStartingSoon,
+        String status
 ) {
     /**
      * Convierte una entidad de base de datos Match a este DTO optimizado para JSON.
@@ -43,12 +48,19 @@ public record MatchResponseDTO(
             isStartingSoon = diffMs > 0 && diffMs <= 30 * 60 * 1000;
         }
 
+        String homeLogo = m.getHomeTeam() != null ? m.getHomeTeam().getLogoUrl() : null;
+        String awayLogo = m.getAwayTeam() != null ? m.getAwayTeam().getLogoUrl() : null;
+
         return new MatchResponseDTO(
                 m.getId(),
                 m.getHomeTeam() != null ? m.getHomeTeam().getName() : "Por definir",
                 m.getAwayTeam() != null ? m.getAwayTeam().getName() : "Por definir",
                 m.getHomeTeam() != null ? m.getHomeTeam().getId() : null,
                 m.getAwayTeam() != null ? m.getAwayTeam().getId() : null,
+                homeLogo,
+                awayLogo,
+                homeLogo,
+                awayLogo,
                 m.getHomeScore(),
                 m.getAwayScore(),
                 m.getHomeScore(), // Duplicado para retrocompatibilidad
@@ -59,7 +71,8 @@ public record MatchResponseDTO(
                 m.getGroupName(),
                 m.getWinnerTeam() != null ? m.getWinnerTeam().getName() : null,
                 m.getDisplayClock(),
-                isStartingSoon
+                isStartingSoon,
+                Boolean.TRUE.equals(m.getFinished()) ? "FINISHED" : m.getStatus() != null ? m.getStatus().name() : "SCHEDULED"
         );
     }
 }

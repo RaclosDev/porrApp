@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 🥅 Controlador de Pichichi (Goleadores).
+ *  Controlador de Pichichi (Goleadores).
  * Expone la tabla de máximos goleadores del campeonato.
  */
 @RestController
