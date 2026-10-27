@@ -76,17 +76,11 @@ function Bracket() {
 
   if (effectiveBetId && !isEditing) {
     return (
-      <section
-        id="view-bracket"
-        className="view-section"
-        style={{ display: 'block', padding: '10px 0' }}
-      >
-        <PredictionViewer
-          inline={true}
-          betId={effectiveBetId}
-          onEdit={!activeGroupIsLocked ? () => setIsEditing(true) : undefined}
-        />
-      </section>
+      <PredictionViewer
+        inline={true}
+        betId={effectiveBetId}
+        onEdit={!activeGroupIsLocked ? () => setIsEditing(true) : undefined}
+      />
     );
   }
 

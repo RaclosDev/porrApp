@@ -796,7 +796,11 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
         >
           <div
             style={{
-              display: 'inline-flex',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              width: '100%',
+              maxWidth: '520px',
+              boxSizing: 'border-box',
               background: 'rgba(15, 23, 42, 0.8)',
               padding: '4px',
               borderRadius: '16px',
@@ -804,17 +808,17 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
               boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(12px)',
               gap: '4px',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
             }}
           >
             <button
               type="button"
               onClick={() => setActiveTab('groups')}
               style={{
-                padding: '8px 18px',
+                padding: '8px 6px',
                 fontWeight: 800,
-                fontSize: '0.95rem',
+                fontSize: 'clamp(0.7rem, 3vw, 0.95rem)',
+                minWidth: 0,
+                justifyContent: 'center',
                 background:
                   activeTab === 'groups'
                     ? 'linear-gradient(135deg, #00d2d3, #01a3a4)'
@@ -838,9 +842,11 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
               type="button"
               onClick={() => setActiveTab('thirds')}
               style={{
-                padding: '8px 18px',
+                padding: '8px 6px',
                 fontWeight: 800,
-                fontSize: '0.95rem',
+                fontSize: 'clamp(0.7rem, 3vw, 0.95rem)',
+                minWidth: 0,
+                justifyContent: 'center',
                 background:
                   activeTab === 'thirds'
                     ? 'linear-gradient(135deg, #a29bfe, #6c5ce7)'
@@ -858,15 +864,17 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
                 whiteSpace: 'nowrap',
               }}
             >
-              Mejores Terceros
+              Terceros
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('bracket')}
               style={{
-                padding: '8px 18px',
+                padding: '8px 6px',
                 fontWeight: 800,
-                fontSize: '0.95rem',
+                fontSize: 'clamp(0.7rem, 3vw, 0.95rem)',
+                minWidth: 0,
+                justifyContent: 'center',
                 background:
                   activeTab === 'bracket'
                     ? 'linear-gradient(135deg, #ff9f43, #ffaf60)'
