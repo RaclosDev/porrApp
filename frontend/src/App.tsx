@@ -8,6 +8,7 @@ import { Toaster } from 'react-hot-toast';
 
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const Home = React.lazy(() => import('./pages/Home'));
+const PredictionViewer = React.lazy(() => import('./components/PredictionViewer'));
 const Landing = React.lazy(() => import('./pages/Landing'));
 const Radar = React.lazy(() => import('./pages/Radar'));
 const Bracket = React.lazy(() => import('./pages/Bracket'));
@@ -45,6 +46,29 @@ const RootPage = () => {
   return <Landing />;
 };
 
+const DemoPredictionPage = () => {
+  const { participantsHashes = [] } = useAppContext();
+
+  // La demo muestra la porra pública de Raclos en modo estrictamente de solo lectura.
+  const raclosPrediction = participantsHashes.find((participant) =>
+    /raclos/i.test(
+      String(participant?.participantName || participant?.name || participant?.data?.participantName || ''),
+    ),
+  );
+  const predictionId = raclosPrediction?.key ?? raclosPrediction?.id;
+
+  if (!predictionId) {
+    return (
+      <section className="view-section" style={{ display: 'block', padding: '24px' }}>
+        <h2>Mi Porra · Demo</h2>
+        <p role="status">No se ha encontrado la porra pública de Raclos en esta liga.</p>
+      </section>
+    );
+  }
+
+  return <PredictionViewer inline betId={predictionId} />;
+};
+
 const DemoPage = () => {
   const { enterDemoMode } = useAppContext();
 
@@ -57,9 +81,14 @@ const DemoPage = () => {
 };
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {
-  const { isAuthenticated, userName } = useAppContext();
+  const { isAuthenticated, userName, isDemoMode } = useAppContext();
   const isAuthed = isAuthenticated && Boolean(userName);
   const location = useLocation();
+
+  // En demo, Mi Porra abre la porra real de Raclos en modo de solo lectura.
+  if (isDemoMode && location.pathname === '/prediction') {
+    return <DemoPredictionPage />;
+  }
 
   // Rutas públicas de lectura accesibles para cualquier visitante sin login
   if (guestAllowed || GUEST_ALLOWED_PATHS.includes(location.pathname)) {
