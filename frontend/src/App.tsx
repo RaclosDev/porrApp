@@ -35,15 +35,11 @@ const GUEST_ALLOWED_PATHS = [
 ];
 
 const RootPage = () => {
-  const { isAuthenticated, isDemoMode, userName } = useAppContext();
+  const { isAuthenticated, userName } = useAppContext();
   const isAuthed = isAuthenticated && Boolean(userName);
 
   if (isAuthed) {
     return <Home />;
-  }
-
-  if (isDemoMode) {
-    return <Home defaultMode="bracket" />;
   }
 
   return <Landing />;
