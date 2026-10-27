@@ -148,7 +148,6 @@ function App() {
                 }
               />
               <Route path="/bracket" element={<OfficialBracket />} />
-              <Route path="/cuadro" element={<Navigate to="/bracket" replace />} />
               <Route path="/resultados" element={<OfficialBracket />} />
               <Route
                 path="/tabla"
@@ -168,7 +167,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/mi-porra" element={<Navigate to="/prediction" replace />} />
+
               <Route
                 path="/jornadas"
                 element={
