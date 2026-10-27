@@ -46,15 +46,14 @@ const RootPage = () => {
 };
 
 const DemoPage = () => {
-  const { enterDemoMode, setIsAuthenticated, setUserName, setUserId } = useAppContext();
+  const { enterDemoMode } = useAppContext();
+
   React.useEffect(() => {
     enterDemoMode?.();
-    setIsAuthenticated?.(true);
-    setUserName?.('raclos');
-    setUserId?.('raclos');
-  }, [enterDemoMode, setIsAuthenticated, setUserName, setUserId]);
+  }, [enterDemoMode]);
 
-  return <Bracket />;
+  // Reuse the same dashboard as a real session without impersonating raclos.
+  return <Home />;
 };
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {
