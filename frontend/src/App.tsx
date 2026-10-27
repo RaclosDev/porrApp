@@ -50,12 +50,15 @@ const RootPage = () => {
 };
 
 const DemoPage = () => {
-  const { enterDemoMode } = useAppContext();
+  const { enterDemoMode, setIsAuthenticated, setUserName, setUserId } = useAppContext();
   React.useEffect(() => {
     enterDemoMode?.();
-  }, [enterDemoMode]);
+    setIsAuthenticated?.(true);
+    setUserName?.('DemoUser');
+    setUserId?.('demo-1');
+  }, [enterDemoMode, setIsAuthenticated, setUserName, setUserId]);
 
-  return <Home defaultMode="bracket" />;
+  return <Bracket />;
 };
 
 const ProtectedRoute = ({ children, guestAllowed = false }) => {

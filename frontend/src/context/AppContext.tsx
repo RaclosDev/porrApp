@@ -260,11 +260,40 @@ export const useAppContext = () => {
     enabled: competitionReady,
   });
 
+  const isDemo = store.isDemoMode;
+
   const { data: predictions, error: predictionsError } = useQuery({
     queryKey: ['predictions', activeGroupId],
     queryFn: () => fetchPredictions(activeGroupId),
-    enabled: Boolean(activeGroupId),
+    enabled: Boolean(activeGroupId) && !(isDemo && Boolean(activeGroupId)),
     retry: 1,
+    placeholderData: isDemo
+      ? [
+          {
+            key: 'demo-bet-1',
+            id: 'demo-bet-1',
+            hash: 'demo-bet-1',
+            paid: true,
+            participantName: 'DemoUser',
+            userId: 'demo-1',
+            predictionName: 'Mi Porra Demo',
+            groupId: Number(activeGroupId) || 1,
+            data: {
+              user: 'DemoUser',
+              prediction: 'Mi Porra Demo',
+              groups: {},
+              r32: [],
+              r16: [],
+              qf: [],
+              sf: [],
+              final: [null, null],
+              champion: null,
+              thirdPlaceMatch: [null, null],
+              thirdPlaceWinner: null,
+            },
+          },
+        ]
+      : undefined,
   });
 
   useEffect(() => {
