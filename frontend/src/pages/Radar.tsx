@@ -211,7 +211,9 @@ function Radar() {
                     fontStyle: 'italic',
                   }}
                 >
-                  No hay próximos partidos programados.
+                  {lastMatches.length > 0
+                    ? 'No hay próximos partidos programados. Si ya se han disputado todos los encuentros, la competición ha terminado.'
+                    : 'No hay próximos partidos programados. Es posible que el calendario aún no esté disponible.'}
                 </div>
               ) : (
                 nextMatches.map((m) => renderMatchCard(m, 'next'))
