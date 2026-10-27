@@ -24,9 +24,7 @@ const LeagueStandings = React.lazy(() => import('./pages/LeagueStandings'));
 const GUEST_ALLOWED_PATHS = [
   '/',
   '/demo',
-  '/mundial-2026',
   '/bracket',
-  '/resultados',
   '/grupos',
   '/reglas',
   '/clasificacion',
@@ -100,7 +98,6 @@ function App() {
             <Routes>
               <Route path="/" element={<RootPage />} />
               <Route path="/demo" element={<DemoPage />} />
-              <Route path="/mundial-2026" element={<DemoPage />} />
               <Route path="/reglas" element={<Rules />} />
               <Route path="/join/:code" element={<JoinRedirect />} />
               <Route path="/linkedin" element={<LinkedInEntry />} />
@@ -148,7 +145,6 @@ function App() {
                 }
               />
               <Route path="/bracket" element={<OfficialBracket />} />
-              <Route path="/resultados" element={<OfficialBracket />} />
               <Route
                 path="/tabla"
                 element={

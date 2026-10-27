@@ -12,8 +12,7 @@ export default function MobileBottomNav() {
   const { activeGroupPoolFormat, activeCompetitionFormatType, isDemoMode } = useAppContext();
 
   const location = useLocation();
-  const isDemo =
-    isDemoMode || location.pathname === '/demo' || location.pathname === '/mundial-2026';
+  const isDemo = isDemoMode || location.pathname === '/demo';
   const isMatchDay =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 

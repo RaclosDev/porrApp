@@ -81,8 +81,7 @@ function Layout({ children }) {
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
   const location = useLocation();
-  const isDemo =
-    isDemoMode || location.pathname === '/demo' || location.pathname === '/mundial-2026';
+  const isDemo = isDemoMode || location.pathname === '/demo';
   const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
 
   const isIos = () => {
