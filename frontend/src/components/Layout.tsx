@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import React, { useState, useEffect, Suspense } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { getAuthToken, setAuthToken } from '../services/api';
+import { getAuthToken, setAuthToken, updateMyProfile } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 import MobileBottomNav from './MobileBottomNav';
@@ -72,6 +72,10 @@ function Layout({ children }) {
   const navigate = useNavigate();
   const [showMyBetModal, setShowMyBetModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileImage, setProfileImage] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -165,6 +169,18 @@ function Layout({ children }) {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const updated = await updateMyProfile({ participantName: profileName.trim(), profileImageData: profileImage });
+      setUserName(updated.participantName);
+      localStorage.setItem('my_prediction_name', updated.participantName);
+      localStorage.setItem('my_bet_name', updated.participantName);
+      toast.success('Perfil actualizado'); setShowProfileEditor(false); setShowProfileMenu(false);
+    } catch (error) { toast.error(error.message || 'No se pudo actualizar el perfil'); }
+    finally { setSavingProfile(false); }
+  };
 
   const handleInstallClick = () => {
     if (deferredPrompt) {
@@ -687,6 +703,7 @@ function Layout({ children }) {
                     </div>
                   </div>
 
+                  <button onClick={() => { setProfileName(userName || ''); setProfileImage(''); setShowProfileEditor(true); setShowProfileMenu(false); }} style={{ background: 'rgba(0,210,211,.1)', border: '1px solid rgba(0,210,211,.35)', color: '#00d2d3', padding: '9px 12px', borderRadius: 8, cursor: 'pointer' }}>Editar perfil</button>
                   <button
                     onClick={() => {
                       setAuthToken(null);

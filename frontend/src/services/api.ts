@@ -462,3 +462,12 @@ export async function fetchMissingRoundUsers(groupId, round = '') {
     },
   });
 }
+
+
+export async function updateMyProfile(payload) {
+  return fetchJson(`${API_BASE}/users/me/profile`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+}
+
+export async function updateLeagueImage(groupId, imageData) {
+  return fetchJson(`${API_BASE}/groups/${groupId}/image`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData }) });
+}

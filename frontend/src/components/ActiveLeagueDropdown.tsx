@@ -132,7 +132,7 @@ export default function ActiveLeagueDropdown() {
           transition: 'all 0.2s ease',
         }}
       >
-        <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{currentBadge}</span>
+        {userGroups?.find(g => String(g.id) === String(activeGroupId))?.imageData ? <img src={userGroups.find(g => String(g.id) === String(activeGroupId)).imageData} alt="" style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 7 }} /> : <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{currentBadge}</span>}
         <div
           style={{
             display: 'flex',

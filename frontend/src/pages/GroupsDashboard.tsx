@@ -4,6 +4,7 @@ import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
 import { GoogleLogin } from '@react-oauth/google';
 import { POOL_FORMATS, useGroupsDashboard } from '../hooks/useGroupsDashboard';
+import { updateLeagueImage } from '../services/api';
 
 /**
  * Vista del listado y gestión de grupos/ligas disponibles.
@@ -18,6 +19,7 @@ export default function GroupsDashboard() {
   const [selectedGroupForRules, setSelectedGroupForRules] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [imageBusyGroup, setImageBusyGroup] = useState(null);
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -846,6 +848,8 @@ export default function GroupsDashboard() {
                   )}
                 </div>
 
+                {group.imageData && <img src={group.imageData} alt={`Imagen de ${group.name}`} style={{ width: '100%', height: 116, objectFit: 'cover', borderRadius: 10, marginBottom: 8 }} />}
+                {isCreator && <label style={{ display: 'inline-flex', color: '#00d2d3', fontSize: '.8rem', cursor: 'pointer', marginBottom: 8 }}>{imageBusyGroup === group.id ? 'Guardando imagen…' : group.imageData ? 'Cambiar imagen de liga' : 'Añadir imagen de liga'}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={imageBusyGroup === group.id} style={{ display: 'none' }} onChange={e => { const file=e.target.files?.[0]; if(!file)return; if(file.size>750000){toast.error('La imagen debe pesar menos de 750 KB');e.target.value='';return;}const reader=new FileReader();reader.onload=async()=>{setImageBusyGroup(group.id);try{const result=await updateLeagueImage(group.id,String(reader.result||''));group.imageData=result.imageData;toast.success('Imagen de liga actualizada');}catch(err){toast.error(err.message||'No se pudo guardar la imagen');}finally{setImageBusyGroup(null);}};reader.readAsDataURL(file); }} /></label>}
                 <h3 style={{ fontSize: '1.2rem', margin: '0 0 6px 0', paddingRight: '120px' }}>
                   {group.name}
                 </h3>
