@@ -1269,17 +1269,7 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     return (
       <div
         className="prediction-viewer-inline"
-        style={{
-          width: '100%',
-          maxWidth: '1800px',
-          margin: '0 auto',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '24px 20px',
-          backdropFilter: 'blur(16px)',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
-        }}
+        style={{ width: '100%', maxWidth: '1800px', margin: '0 auto' }}
       >
         {content}
       </div>
