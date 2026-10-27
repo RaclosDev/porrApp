@@ -66,8 +66,60 @@ export async function fetchMatchRadar(competitionId = null) {
   return fetchJson(url);
 }
 
-export async function fetchOfficialBracket() {
-  return fetchJson(`${API_BASE}/standings/official-bracket`);
+const OFFICIAL_BRACKET_TTL = 60_000;
+let officialBracketCache = null;
+let officialBracketCachedAt = 0;
+let officialBracketRequest = null;
+
+/**
+ * Devuelve el cuadro oficial reutilizando la última respuesta durante 60 s.
+ * Evita repetir la petición cada vez que se abre una porra.
+ *
+ * @param {Object} [options]
+ * @param {boolean} [options.force] - Ignora la caché y vuelve a pedir los datos.
+ * @returns {Promise<Object>} Cuadro oficial de eliminatorias.
+ */
+export async function fetchOfficialBracket({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && officialBracketCache && now - officialBracketCachedAt < OFFICIAL_BRACKET_TTL) {
+    return officialBracketCache;
+  }
+  if (!force && officialBracketRequest) {
+    return officialBracketRequest;
+  }
+  officialBracketRequest = fetchJson(`${API_BASE}/standings/official-bracket`)
+    .then((data) => {
+      officialBracketCache = data;
+      officialBracketCachedAt = Date.now();
+      return data;
+    })
+    .finally(() => {
+      officialBracketRequest = null;
+    });
+  return officialBracketRequest;
+}
+
+const PREDICTION_SCORE_TTL = 60_000;
+const predictionScoreCache = new Map();
+
+/**
+ * Desglose detallado de puntos de una porra. Se cachea 60 s porque el cálculo es costoso
+ * y el visor puede abrirse varias veces seguidas.
+ *
+ * @param {string|number} id - ID de la porra.
+ * @returns {Promise<Object|null>} Puntuación detallada o null.
+ */
+export async function fetchPredictionScore(id) {
+  if (id == null) return null;
+  const key = String(id);
+  const cached = predictionScoreCache.get(key);
+  if (cached && Date.now() - cached.at < PREDICTION_SCORE_TTL) {
+    return cached.data;
+  }
+  const data = await fetchJson(`${API_BASE}/predictions/${key}/score`);
+  if (predictionScoreCache.size > 100) predictionScoreCache.clear();
+  predictionScoreCache.set(key, { data, at: Date.now() });
+  return data;
 }
 
 export async function fetchPredictions(groupId = null) {

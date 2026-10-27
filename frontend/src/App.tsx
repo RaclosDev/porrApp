@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AppProvider, useAppContext } from './context/AppContext';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
+import { PageSkeleton } from './components/Skeleton';
 import { Toaster } from 'react-hot-toast';
 
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
@@ -92,7 +93,7 @@ function App() {
       <Router>
         <PwaUpdater />
         <Layout>
-          <Suspense fallback={<div className="flex justify-center p-8">Cargando...</div>}>
+          <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/" element={<RootPage />} />
               <Route path="/demo" element={<DemoPage />} />

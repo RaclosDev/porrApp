@@ -2011,3 +2011,100 @@ option {
     display: none;
   }
 }
+
+/* Carga sin texto visible: bloques con brillo y aviso solo para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  line-height: 0;
+  background: rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(226, 232, 240, 0.16), transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.prediction-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  padding: 4px 0 24px;
+}
+
+.prediction-skeleton.is-compact {
+  gap: 14px;
+  padding-bottom: 0;
+}
+
+.prediction-skeleton-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.prediction-skeleton-tags {
+  display: flex;
+  gap: 8px;
+}
+
+.prediction-skeleton-pills {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.prediction-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.page-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+@media (min-width: 700px) {
+  .prediction-skeleton-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}

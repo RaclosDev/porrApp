@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import Flag from './Flag';
 import { useBetViewerData } from '../hooks/useBetViewerData';
+import { PredictionSkeleton } from './Skeleton';
 import { extractGroupsFromR32 } from '../hooks/useBracket';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCanvas';
 
@@ -16,8 +17,17 @@ import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCa
 function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose = null }) {
   const state = useAppContext();
   const { viewerBetId, setViewerBetId, officialPoints, groupOdds, allGames, nameToIdMap } = state;
+  const { participantsHashes } = state;
   const effectiveBetId = betId || viewerBetId;
   const handleClose = onClose || (() => setViewerBetId(null));
+
+  const initialPart = useMemo(() => {
+    if (!effectiveBetId) return null;
+    const match = (participantsHashes || []).find(
+      (h) => String(h?.key ?? h?.id ?? '') === String(effectiveBetId),
+    );
+    return match?.data || null;
+  }, [effectiveBetId, participantsHashes]);
 
   const {
     part,
@@ -38,6 +48,7 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     groupOdds,
     allGames,
     nameToIdMap,
+    initialPart,
   );
 
   const [activeTab, setActiveTab] = useState(() =>
@@ -609,13 +620,7 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
 
   if (loading) {
     if (inline) {
-      return (
-        <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-          <h2 style={{ color: 'var(--accent-color)', marginBottom: '16px' }}>
-            Cargando pronóstico...
-          </h2>
-        </div>
-      );
+      return <PredictionSkeleton />;
     }
     return (
       <div
@@ -629,12 +634,16 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
       >
         <div
           className="modal-content"
-          style={{ width: '95vw', maxWidth: '600px', textAlign: 'center', padding: '50px' }}
+          style={{ width: '95vw', maxWidth: '600px', padding: '28px 24px' }}
           role="presentation"
           onClick={(e) => e.stopPropagation()}
         >
-          <h2 style={{ color: 'var(--accent-color)', marginBottom: '16px' }}>Cargando porra...</h2>
-          <button onClick={handleClose} className="glass-btn" style={{ marginTop: '10px' }}>
+          <PredictionSkeleton compact />
+          <button
+            onClick={handleClose}
+            className="glass-btn"
+            style={{ marginTop: '8px', width: '100%' }}
+          >
             Cancelar
           </button>
         </div>

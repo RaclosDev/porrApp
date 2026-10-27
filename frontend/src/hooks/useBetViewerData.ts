@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchOfficialBracket, getAuthToken } from '../services/api';
+import { fetchOfficialBracket, fetchPredictionScore, getAuthToken } from '../services/api';
 import { compareTeams } from '../utils/points';
 import { extractGroupsFromR32, hasValidGroupSelections, buildR32FromGroups } from './useBracket';
 
@@ -13,6 +13,7 @@ import { extractGroupsFromR32, hasValidGroupSelections, buildR32FromGroups } fro
  * @param {Object} groupOdds - Datos de los grupos y equipos que los conforman.
  * @param {Array} allGames - Todos los partidos para resolver desempates.
  * @param {Object} nameToIdMap - Mapa de resolución de nombres a IDs.
+ * @param {Object} [initialPart] - Datos ya disponibles de la porra (lista de participantes) para pintarla al instante.
  * @returns {Object} Objeto con la información lista para el visor: { part, loading, error, points, initialSection, leftRounds, rightRounds, getSlotDetails, getRoundFooterTotal, getCenterPointsTotal, getGroupTeamData }
  */
 const checkIsKnockoutPhase = (games, officialData) => {
@@ -65,15 +66,13 @@ export function useBetViewerData(
   groupOdds,
   allGames,
   nameToIdMap,
+  initialPart = null,
 ) {
-  const [part, setPart] = useState(null);
+  const [rawPart, setRawPart] = useState(() => initialPart || null);
+  const [rawOfficialBracket, setRawOfficialBracket] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [officialBracket, setOfficialBracket] = useState(null);
-  const [fetchedScore, setFetchedScore] = useState(null);
-  const [initialSection, setInitialSection] = useState(() =>
-    checkIsKnockoutPhase(allGames, null) ? 'knockout' : 'groups',
-  );
+  const [detailedScore, setDetailedScore] = useState(null);
 
   const injectQualifiedTeams = (partData, ptsData) => {
     if (!partData?.r32 || !ptsData) return partData;
@@ -109,209 +108,221 @@ export function useBetViewerData(
     return newPart;
   };
 
-  useEffect(() => {
-    if (!viewerBetId) {
-      setTimeout(() => {
-        setPart(null);
-        setError(null);
-      }, 0);
-      return;
+  /**
+   * Normaliza el JSON de una porra sin mutar el objeto original (puede venir de la caché de React Query).
+   */
+  const normalizePart = (partData, odds) => {
+    if (!partData) return null;
+    const normalized = JSON.parse(JSON.stringify(partData));
+
+    // Normalizar final y tercer puesto
+    if (!normalized.final && normalized.finalMatch) {
+      normalized.final = normalized.finalMatch;
     }
-    setTimeout(() => {
+    if (
+      normalized.final &&
+      typeof normalized.final === 'object' &&
+      !Array.isArray(normalized.final)
+    ) {
+      const h = normalized.final.home;
+      const a = normalized.final.away;
+      normalized.final = [
+        typeof h === 'object' && h ? h.name : h,
+        typeof a === 'object' && a ? a.name : a,
+      ];
+    } else if (Array.isArray(normalized.final)) {
+      normalized.final = normalized.final.map((t) => (typeof t === 'object' && t ? t.name : t));
+    }
+
+    if (!normalized.thirdPlaceMatch && (normalized.thirdMatch || normalized.third)) {
+      normalized.thirdPlaceMatch = normalized.thirdMatch || normalized.third;
+    }
+    if (
+      normalized.thirdPlaceMatch &&
+      typeof normalized.thirdPlaceMatch === 'object' &&
+      !Array.isArray(normalized.thirdPlaceMatch)
+    ) {
+      const h = normalized.thirdPlaceMatch.home;
+      const a = normalized.thirdPlaceMatch.away;
+      normalized.thirdPlaceMatch = [
+        typeof h === 'object' && h ? h.name : h,
+        typeof a === 'object' && a ? a.name : a,
+      ];
+    } else if (Array.isArray(normalized.thirdPlaceMatch)) {
+      normalized.thirdPlaceMatch = normalized.thirdPlaceMatch.map((t) =>
+        typeof t === 'object' && t ? t.name : t,
+      );
+    }
+
+    // Rescate de la final si está vacía pero hay semifinales y campeón
+    if (
+      (!normalized.final || !normalized.final[0] || !normalized.final[1]) &&
+      Array.isArray(normalized.sf) &&
+      normalized.sf.length >= 2 &&
+      normalized.champion
+    ) {
+      const sf1 = (normalized.sf[0] || []).map((t) => (typeof t === 'object' && t ? t.name : t));
+      const sf2 = (normalized.sf[1] || []).map((t) => (typeof t === 'object' && t ? t.name : t));
+      const champ =
+        typeof normalized.champion === 'object' && normalized.champion
+          ? normalized.champion.name
+          : normalized.champion;
+      const inSf1 = sf1.includes(champ);
+      const inSf2 = sf2.includes(champ);
+      let finalist1 = inSf1 ? champ : null;
+      let finalist2 = inSf2 ? champ : null;
+      const thirds = Array.isArray(normalized.thirdPlaceMatch) ? normalized.thirdPlaceMatch : [];
+
+      if (inSf1) {
+        finalist2 = sf2.find((t) => t && !thirds.includes(t)) || sf2[0] || null;
+      } else if (inSf2) {
+        finalist1 = sf1.find((t) => t && !thirds.includes(t)) || sf1[0] || null;
+      }
+      if (finalist1 && finalist2) {
+        normalized.final = [finalist1, finalist2];
+      }
+    }
+
+    // Rescate del 3er puesto si está vacío pero hay semifinales y final
+    if (
+      (!normalized.thirdPlaceMatch ||
+        !normalized.thirdPlaceMatch[0] ||
+        !normalized.thirdPlaceMatch[1]) &&
+      Array.isArray(normalized.sf) &&
+      normalized.sf.length >= 2 &&
+      Array.isArray(normalized.final) &&
+      normalized.final[0] &&
+      normalized.final[1]
+    ) {
+      const sf1 = (normalized.sf[0] || []).map((t) => (typeof t === 'object' && t ? t.name : t));
+      const sf2 = (normalized.sf[1] || []).map((t) => (typeof t === 'object' && t ? t.name : t));
+      const t1 = sf1.find((t) => t && !normalized.final.includes(t));
+      const t2 = sf2.find((t) => t && !normalized.final.includes(t));
+      if (t1 && t2) {
+        normalized.thirdPlaceMatch = [t1, t2];
+      }
+    }
+
+    if (!hasValidGroupSelections(normalized.groups) && (normalized.r32 || normalized.r1)) {
+      const extracted = extractGroupsFromR32(normalized.r32 || normalized.r1, odds);
+      if (hasValidGroupSelections(extracted.groups)) {
+        normalized.groups = extracted.groups;
+        if (!normalized.thirds || normalized.thirds.length === 0) {
+          normalized.thirds = extracted.thirds;
+        }
+      }
+    }
+
+    if (!Array.isArray(normalized.r32) || normalized.r32.length < 16) {
+      if (Array.isArray(normalized.r1) && normalized.r1.length >= 16) {
+        normalized.r32 = normalized.r1;
+      } else if (normalized.groups && hasValidGroupSelections(normalized.groups)) {
+        normalized.r32 = buildR32FromGroups(normalized.groups, normalized.thirds);
+      }
+    }
+
+    return normalized;
+  };
+
+  const part = useMemo(() => normalizePart(rawPart, groupOdds), [rawPart, groupOdds]);
+
+  const officialBracket = useMemo(
+    () => injectQualifiedTeams(rawOfficialBracket, officialPoints),
+    [rawOfficialBracket, officialPoints],
+  );
+
+  const initialSection = useMemo(
+    () => (checkIsKnockoutPhase(allGames, officialBracket) ? 'knockout' : 'groups'),
+    [allGames, officialBracket],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!viewerBetId) {
+      setRawPart(null);
       setError(null);
+      setLoading(false);
+      return undefined;
+    }
+
+    const hasInitialPart = Boolean(initialPart);
+    setError(null);
+    if (hasInitialPart) {
+      setRawPart(initialPart);
+      setLoading(false);
+    } else {
       setLoading(true);
-    }, 0);
-    Promise.all([
-      fetch(`/api/predictions/${viewerBetId}`, {
-        headers: {
-          ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}),
-        },
-      }).then((res) => {
-        if (!res.ok)
-          return res.json().then((e) => {
-            throw new Error(e.error || e.message || 'Error al cargar la porra');
-          });
-        return res.json();
-      }),
-      fetchOfficialBracket()
-        .then((data) => injectQualifiedTeams(data, officialPoints))
-        .catch(() => {
-          const fallback = {
-            r32: [
-              ['1º Grupo E', '3º A/B/C/D/F'],
-              ['1º Grupo I', '3º C/D/F/G/H'],
-              ['2º Grupo A', '2º Grupo B'],
-              ['1º Grupo F', '2º Grupo C'],
-              ['2º Grupo K', '2º Grupo L'],
-              ['1º Grupo H', '2º Grupo J'],
-              ['1º Grupo D', '3º B/E/F/I/J'],
-              ['1º Grupo G', '3º A/E/H/I/J'],
-              ['1º Grupo C', '2º Grupo F'],
-              ['2º Grupo E', '2º Grupo I'],
-              ['1º Grupo A', '3º C/E/F/H/I'],
-              ['1º Grupo L', '3º E/H/I/J/K'],
-              ['1º Grupo J', '2º Grupo H'],
-              ['2º Grupo D', '2º Grupo G'],
-              ['1º Grupo B', '3º E/F/G/I/J'],
-              ['1º Grupo K', '3º D/E/I/J/L'],
-            ],
-            r16: Array(8).fill([null, null]),
-            qf: Array(4).fill([null, null]),
-            sf: Array(2).fill([null, null]),
-            final: [null, null],
-            thirdPlaceMatch: [null, null],
-          };
-          return injectQualifiedTeams(fallback, officialPoints);
-        }),
-      fetch(`/api/predictions/${viewerBetId}/score`, {
-        headers: {
-          ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}),
-        },
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .catch(() => null),
-    ])
-      .then(([partData, officialData, scoreData]) => {
-        if (partData) {
-          // Normalizar final y tercer puesto
-          if (!partData.final && partData.finalMatch) {
-            partData.final = partData.finalMatch;
-          }
-          if (
-            partData.final &&
-            typeof partData.final === 'object' &&
-            !Array.isArray(partData.final)
-          ) {
-            const h = partData.final.home;
-            const a = partData.final.away;
-            partData.final = [
-              typeof h === 'object' && h ? h.name : h,
-              typeof a === 'object' && a ? a.name : a,
-            ];
-          } else if (Array.isArray(partData.final)) {
-            partData.final = partData.final.map((t) => (typeof t === 'object' && t ? t.name : t));
-          }
+    }
 
-          if (!partData.thirdPlaceMatch && (partData.thirdMatch || partData.third)) {
-            partData.thirdPlaceMatch = partData.thirdMatch || partData.third;
-          }
-          if (
-            partData.thirdPlaceMatch &&
-            typeof partData.thirdPlaceMatch === 'object' &&
-            !Array.isArray(partData.thirdPlaceMatch)
-          ) {
-            const h = partData.thirdPlaceMatch.home;
-            const a = partData.thirdPlaceMatch.away;
-            partData.thirdPlaceMatch = [
-              typeof h === 'object' && h ? h.name : h,
-              typeof a === 'object' && a ? a.name : a,
-            ];
-          } else if (Array.isArray(partData.thirdPlaceMatch)) {
-            partData.thirdPlaceMatch = partData.thirdPlaceMatch.map((t) =>
-              typeof t === 'object' && t ? t.name : t,
-            );
-          }
+    const partPromise = hasInitialPart
+      ? Promise.resolve(null)
+      : fetch(`/api/predictions/${viewerBetId}`, {
+          headers: {
+            ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}),
+          },
+        }).then((res) => {
+          if (!res.ok)
+            return res.json().then((e) => {
+              throw new Error(e.error || e.message || 'Error al cargar la porra');
+            });
+          return res.json();
+        });
 
-          // Rescate de la final si está vacía pero hay semifinales y campeón
-          if (
-            (!partData.final || !partData.final[0] || !partData.final[1]) &&
-            Array.isArray(partData.sf) &&
-            partData.sf.length >= 2 &&
-            partData.champion
-          ) {
-            const sf1 = (partData.sf[0] || []).map((t) =>
-              typeof t === 'object' && t ? t.name : t,
-            );
-            const sf2 = (partData.sf[1] || []).map((t) =>
-              typeof t === 'object' && t ? t.name : t,
-            );
-            const champ =
-              typeof partData.champion === 'object' && partData.champion
-                ? partData.champion.name
-                : partData.champion;
-            const inSf1 = sf1.includes(champ);
-            const inSf2 = sf2.includes(champ);
-            let finalist1 = inSf1 ? champ : null;
-            let finalist2 = inSf2 ? champ : null;
-            const thirds = Array.isArray(partData.thirdPlaceMatch) ? partData.thirdPlaceMatch : [];
+    const officialPromise = fetchOfficialBracket().catch(() => ({
+      r32: [
+        ['1º Grupo E', '3º A/B/C/D/F'],
+        ['1º Grupo I', '3º C/D/F/G/H'],
+        ['2º Grupo A', '2º Grupo B'],
+        ['1º Grupo F', '2º Grupo C'],
+        ['2º Grupo K', '2º Grupo L'],
+        ['1º Grupo H', '2º Grupo J'],
+        ['1º Grupo D', '3º B/E/F/I/J'],
+        ['1º Grupo G', '3º A/E/H/I/J'],
+        ['1º Grupo C', '2º Grupo F'],
+        ['2º Grupo E', '2º Grupo I'],
+        ['1º Grupo A', '3º C/E/F/H/I'],
+        ['1º Grupo L', '3º E/H/I/J/K'],
+        ['1º Grupo J', '2º Grupo H'],
+        ['2º Grupo D', '2º Grupo G'],
+        ['1º Grupo B', '3º E/F/G/I/J'],
+        ['1º Grupo K', '3º D/E/I/J/L'],
+      ],
+      r16: Array(8).fill([null, null]),
+      qf: Array(4).fill([null, null]),
+      sf: Array(2).fill([null, null]),
+      final: [null, null],
+      thirdPlaceMatch: [null, null],
+    }));
 
-            if (inSf1) {
-              finalist2 = sf2.find((t) => t && !thirds.includes(t)) || sf2[0] || null;
-            } else if (inSf2) {
-              finalist1 = sf1.find((t) => t && !thirds.includes(t)) || sf1[0] || null;
-            }
-            if (finalist1 && finalist2) {
-              partData.final = [finalist1, finalist2];
-            }
-          }
-
-          // Rescate del 3er puesto si está vacío pero hay semifinales y final
-          if (
-            (!partData.thirdPlaceMatch ||
-              !partData.thirdPlaceMatch[0] ||
-              !partData.thirdPlaceMatch[1]) &&
-            Array.isArray(partData.sf) &&
-            partData.sf.length >= 2 &&
-            Array.isArray(partData.final) &&
-            partData.final[0] &&
-            partData.final[1]
-          ) {
-            const sf1 = (partData.sf[0] || []).map((t) =>
-              typeof t === 'object' && t ? t.name : t,
-            );
-            const sf2 = (partData.sf[1] || []).map((t) =>
-              typeof t === 'object' && t ? t.name : t,
-            );
-            const t1 = sf1.find((t) => t && !partData.final.includes(t));
-            const t2 = sf2.find((t) => t && !partData.final.includes(t));
-            if (t1 && t2) {
-              partData.thirdPlaceMatch = [t1, t2];
-            }
-          }
-
-          if (!hasValidGroupSelections(partData.groups) && (partData.r32 || partData.r1)) {
-            const extracted = extractGroupsFromR32(partData.r32 || partData.r1, groupOdds);
-            if (hasValidGroupSelections(extracted.groups)) {
-              partData.groups = extracted.groups;
-              if (!partData.thirds || partData.thirds.length === 0) {
-                partData.thirds = extracted.thirds;
-              }
-            }
-          }
-
-          if (!Array.isArray(partData.r32) || partData.r32.length < 16) {
-            if (Array.isArray(partData.r1) && partData.r1.length >= 16) {
-              partData.r32 = partData.r1;
-            } else if (partData.groups && hasValidGroupSelections(partData.groups)) {
-              partData.r32 = buildR32FromGroups(partData.groups, partData.thirds);
-            }
-          }
-        }
-        setPart(partData);
-        setOfficialBracket(officialData);
-        if (scoreData) {
-          setFetchedScore(scoreData);
-        }
-
-        const isKo = checkIsKnockoutPhase(allGames, officialData);
-        if (isKo) {
-          setInitialSection('knockout');
-        } else {
-          setInitialSection('groups');
-        }
-
+    Promise.all([partPromise, officialPromise])
+      .then(([partData, officialData]) => {
+        if (cancelled) return;
+        if (partData) setRawPart(partData);
+        setRawOfficialBracket(officialData);
         setLoading(false);
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error(err);
         setError(err.message);
         setLoading(false);
       });
-  }, [viewerBetId, officialPoints, allGames]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerBetId, initialPart]);
+
+  const scoreForBet = useMemo(
+    () =>
+      detailedScore && String(detailedScore.id) === String(viewerBetId) ? detailedScore : null,
+    [detailedScore, viewerBetId],
+  );
 
   const points = useMemo(() => {
-    if (fetchedScore && Array.isArray(fetchedScore.log)) {
-      return fetchedScore;
+    if (scoreForBet && Array.isArray(scoreForBet.log)) {
+      return scoreForBet;
     }
     const found = (leaderboardData || []).find((lb) => {
       if (!lb) return false;
@@ -322,8 +333,7 @@ export function useBetViewerData(
       return false;
     });
     return (
-      found ||
-      fetchedScore || {
+      found || {
         total: 0,
         r1: 0,
         r32: 0,
@@ -337,7 +347,24 @@ export function useBetViewerData(
         passedTeams: {},
       }
     );
-  }, [fetchedScore, leaderboardData, viewerBetId, part?.user, part?.betName]);
+  }, [scoreForBet, leaderboardData, viewerBetId, part?.user, part?.betName]);
+
+  const isPending = loading || (!part && !error && Boolean(viewerBetId));
+  const partReady = Boolean(part);
+
+  // El desglose completo (log, aciertos exactos) se pide en segundo plano: el visor ya está pintado.
+  useEffect(() => {
+    if (!viewerBetId || !partReady) return undefined;
+    let cancelled = false;
+    fetchPredictionScore(viewerBetId)
+      .then((score) => {
+        if (!cancelled && score) setDetailedScore(score);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerBetId, partReady]);
 
   const getFlat = (arr) => (arr ? arr.flat().filter(Boolean) : []);
   const winR16 = getFlat(part?.r16);
@@ -790,7 +817,7 @@ export function useBetViewerData(
 
   return {
     part,
-    loading,
+    loading: isPending,
     error,
     points,
     initialSection,

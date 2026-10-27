@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
 import PredictionViewer from '../components/PredictionViewer';
+import { PredictionSkeleton } from '../components/Skeleton';
 import { useBracket } from '../hooks/useBracket';
 import { useAppContext } from '../context/AppContext';
 
@@ -60,9 +61,9 @@ function Bracket() {
 
   if (loadingGroup)
     return (
-      <p role="status" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-        Cargando liga...
-      </p>
+      <div style={{ padding: '8px 0' }}>
+        <PredictionSkeleton />
+      </div>
     );
   if (groupError)
     return (
