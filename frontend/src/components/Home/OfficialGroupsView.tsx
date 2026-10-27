@@ -93,7 +93,19 @@ export default function OfficialGroupsView() {
             marginBottom: '10px',
           }}
         >
-          <h3 style={{ margin: 0 }}>Grupo {groupName}</h3>
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: 'inherit',
+              fontSize: '1rem',
+              lineHeight: 1.25,
+              fontWeight: 800,
+              letterSpacing: '-0.01em',
+              textAlign: 'left',
+            }}
+          >
+            Grupo {groupName}
+          </h3>
           <div
             style={{
               display: 'flex',
@@ -112,19 +124,6 @@ export default function OfficialGroupsView() {
         </div>
 
         {teamsWithStats.map((team, idx) => {
-          let posColor = 'inherit';
-          let borderLeftStyle = 'none';
-          if (idx === 0) {
-            posColor = 'var(--champion-gold)';
-            borderLeftStyle = '3px solid var(--champion-gold)';
-          } else if (idx === 1) {
-            posColor = '#e0e0e0';
-            borderLeftStyle = '3px solid #e0e0e0';
-          } else if (idx === 2) {
-            posColor = '#cd7f32';
-            borderLeftStyle = '3px solid #cd7f32';
-          }
-
           let statusDot = null;
           if (team.stats.status === 5) {
             statusDot = (
@@ -167,9 +166,8 @@ export default function OfficialGroupsView() {
                 display: 'flex',
                 alignItems: 'center',
                 padding: '6px 8px',
-                borderLeft: borderLeftStyle,
                 marginBottom: '4px',
-                borderRadius: '0 6px 6px 0',
+                borderRadius: '6px',
                 background: idx < 2 ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
               }}
             >
@@ -177,14 +175,16 @@ export default function OfficialGroupsView() {
                 style={{
                   width: '18px',
                   fontWeight: 'bold',
-                  color: posColor,
+                  color: 'var(--text-muted)',
                   fontSize: '0.85em',
                   flexShrink: 0,
                 }}
               >
                 {idx + 1}
               </span>
-              <Flag team={team.name} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', flexShrink: 0 }}>
+                <Flag team={team.name} />
+              </span>
               <span
                 style={{
                   flexGrow: 1,
