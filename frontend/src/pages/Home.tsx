@@ -28,6 +28,9 @@ function Home({ defaultMode = 'bracket' }) {
     loading,
     matchRadar,
     topScorers,
+    topScorersLoading,
+    topScorersError,
+    refreshTopScorers,
     activeGroupPichichi,
     activeGroupPoolFormat,
     activeCompetitionFormatType,
@@ -391,7 +394,12 @@ function Home({ defaultMode = 'bracket' }) {
         </div>
         {activeGroupPichichi && (
           <div className={activeMobilePanel === 'scorers' ? '' : 'mobile-step-hidden'}>
-            <TopScorersPanel topScorers={topScorers} />
+            <TopScorersPanel
+              topScorers={topScorers}
+              loading={topScorersLoading}
+              error={topScorersError}
+              onRetry={refreshTopScorers}
+            />
           </div>
         )}
       </div>
