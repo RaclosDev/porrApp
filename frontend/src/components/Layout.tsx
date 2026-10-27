@@ -68,6 +68,9 @@ function Layout({ children }) {
     isDemoMode,
     enterDemoMode,
     exitDemoMode,
+    isAuthenticated,
+    userGroups,
+    userGroupsLoaded,
   } = useAppContext();
   const navigate = useNavigate();
   const [showMyBetModal, setShowMyBetModal] = useState(false);
@@ -83,6 +86,20 @@ function Layout({ children }) {
   const location = useLocation();
   const isDemo = isDemoMode || location.pathname === '/demo';
   const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
+
+  // Un usuario autenticado sin ninguna liga solo puede crear o unirse a una.
+  useEffect(() => {
+    if (!isAuthenticated || !userGroupsLoaded || userGroups.length > 0) return;
+    if (
+      location.pathname === '/mis-ligas' ||
+      location.pathname === '/reglas' ||
+      location.pathname.startsWith('/join/') ||
+      location.pathname.startsWith('/linkedin')
+    ) {
+      return;
+    }
+    navigate('/mis-ligas', { replace: true });
+  }, [isAuthenticated, userGroupsLoaded, userGroups.length, location.pathname, navigate]);
 
   const isIos = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();

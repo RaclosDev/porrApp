@@ -151,8 +151,11 @@ export function AppProvider({ children }) {
             // No hay selección local válida en este navegador, usar la preferencia de BD
             changeGroup(dbGroupId);
           } else {
-            // Fallback a la primera liga disponible
-            changeGroup(myGroups[0].id.toString());
+            // Sin preferencia local ni en BD: usar la liga más reciente
+            const mostRecent = [...myGroups].sort(
+              (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+            )[0];
+            changeGroup(mostRecent.id.toString());
           }
         }
       } catch {
@@ -178,7 +181,7 @@ export const useAppContext = () => {
   const setActiveCompetitionId = store.setActiveCompetitionId;
   const changeGroup = store.changeGroup;
 
-  const { data: userGroups } = useQuery({
+  const { data: userGroups, isFetched: userGroupsFetched } = useQuery({
     queryKey: ['myGroups', isUserAuthed],
     queryFn: () => (isUserAuthed ? fetchMyGroups() : Promise.resolve([])),
     staleTime: 60_000,
@@ -396,6 +399,7 @@ export const useAppContext = () => {
       groupInfo?.formatType ||
       (activeGroupBetMode ? (activeGroupBetMode === 'MATCH_DAY' ? 'LEAGUE' : 'TOURNAMENT') : null),
     userGroups: Array.isArray(userGroups) ? userGroups : EMPTY_ARRAY,
+    userGroupsLoaded: !isUserAuthed || userGroupsFetched,
     topScorers: Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,
   };
 };
