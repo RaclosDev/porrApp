@@ -20,7 +20,7 @@ export default function MobileBottomNav() {
   const navItems = isDemo
     ? [
         { to: '/demo', label: 'Inicio', icon: Home },
-        { to: '/cuadro', label: 'Resultados', icon: Swords },
+        { to: '/bracket', label: 'Resultados', icon: Swords },
         { to: '/grupos', label: 'Grupos', icon: LayoutGrid },
         { to: '/clasificacion', label: 'Ranking', icon: Trophy },
         { to: '/reglas', label: 'Reglas', icon: BookOpen },
@@ -35,8 +35,8 @@ export default function MobileBottomNav() {
         ]
       : [
           { to: '/', label: 'Inicio', icon: Home, end: true },
-          { to: '/mi-porra', label: 'Mi Porra', icon: Pencil },
-          { to: '/cuadro', label: 'Resultados', icon: Swords },
+          { to: '/prediction', label: 'Mi Porra', icon: Pencil },
+          { to: '/bracket', label: 'Resultados', icon: Swords },
           { to: '/clasificacion', label: 'Ranking', icon: Trophy },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
         ];

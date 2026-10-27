@@ -48,7 +48,7 @@ export default function LeagueStandings() {
   if (loadingGroup) return <p role="status">Cargando liga...</p>;
   if (groupError) return <p role="alert">No se pudo cargar la liga. Inténtalo de nuevo.</p>;
   if (activeCompetitionFormatType && !isMatchDay) {
-    return <Navigate to="/cuadro" replace />;
+    return <Navigate to="/bracket" replace />;
   }
 
   const compBadge = getCompetitionBadge(activeCompetitionName);

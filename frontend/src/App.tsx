@@ -25,7 +25,7 @@ const GUEST_ALLOWED_PATHS = [
   '/',
   '/demo',
   '/mundial-2026',
-  '/cuadro',
+  '/bracket',
   '/resultados',
   '/grupos',
   '/reglas',
@@ -147,7 +147,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/cuadro" element={<OfficialBracket />} />
+              <Route path="/bracket" element={<OfficialBracket />} />
+              <Route path="/cuadro" element={<Navigate to="/bracket" replace />} />
               <Route path="/resultados" element={<OfficialBracket />} />
               <Route
                 path="/tabla"
@@ -160,15 +161,14 @@ function App() {
 
               {/* Rutas privadas - siempre requieren login real */}
               <Route
-                path="/mi-porra"
+                path="/prediction"
                 element={
                   <ProtectedRoute>
                     <Bracket />
                   </ProtectedRoute>
                 }
               />
-              <Route path="/bracket" element={<Navigate to="/mi-porra" replace />} />
-              <Route path="/prediction" element={<Navigate to="/mi-porra" replace />} />
+              <Route path="/mi-porra" element={<Navigate to="/prediction" replace />} />
               <Route
                 path="/jornadas"
                 element={

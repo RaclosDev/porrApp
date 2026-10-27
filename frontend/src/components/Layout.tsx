@@ -23,7 +23,7 @@ const prefetchRoute = (path) => {
     case '/radar':
       import('../pages/Radar');
       break;
-    case '/cuadro':
+    case '/bracket':
       import('../pages/OfficialBracket');
       break;
     case '/grupos':
@@ -358,7 +358,7 @@ function Layout({ children }) {
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}
-                    onClick={() => navigate('/mi-porra')}
+                    onClick={() => navigate('/prediction')}
                   >
                     ✍️ Completar Mi Porra
                   </button>
@@ -381,9 +381,9 @@ function Layout({ children }) {
                     Inicio
                   </NavLink>
                   <NavLink
-                    to="/cuadro"
-                    onMouseEnter={() => prefetchRoute('/cuadro')}
-                    onFocus={() => prefetchRoute('/cuadro')}
+                    to="/bracket"
+                    onMouseEnter={() => prefetchRoute('/bracket')}
+                    onFocus={() => prefetchRoute('/bracket')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Resultados
@@ -465,15 +465,15 @@ function Layout({ children }) {
                     Inicio
                   </NavLink>
                   <NavLink
-                    to="/mi-porra"
+                    to="/prediction"
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Mi Porra
                   </NavLink>
                   <NavLink
-                    to="/cuadro"
-                    onMouseEnter={() => prefetchRoute('/cuadro')}
-                    onFocus={() => prefetchRoute('/cuadro')}
+                    to="/bracket"
+                    onMouseEnter={() => prefetchRoute('/bracket')}
+                    onFocus={() => prefetchRoute('/bracket')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Resultados
