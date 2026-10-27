@@ -268,7 +268,7 @@ export default function ActiveLeagueDropdown() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                      <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{gBadge}</span>
+                      {g.imageData ? <img src={g.imageData} alt="" style={{ width: 30, height: 30, objectFit: 'cover', borderRadius: 7, flexShrink: 0 }} /> : <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{gBadge}</span>}
                       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                         <span
                           style={{
