@@ -1,0 +1,2 @@
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS profile_image_data TEXT;
+ALTER TABLE leagues ADD COLUMN IF NOT EXISTS image_data TEXT;

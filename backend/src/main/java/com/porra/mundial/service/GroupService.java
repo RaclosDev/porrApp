@@ -347,6 +347,15 @@ public class GroupService {
      */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @Transactional
+    public League updateGroupImage(Long groupId, String imageData, String email) {
+        verifyGroupAdmin(groupId, email);
+        if (imageData != null && !imageData.isBlank() && (!imageData.matches("^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$") || imageData.length() > 1000000)) throw new IllegalArgumentException("La imagen debe ser PNG, JPG o WebP y pesar menos de 750 KB");
+        League group = leagueRepository.findById(groupId).orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+        group.setImageData(imageData == null || imageData.isBlank() ? null : imageData);
+        return leagueRepository.save(group);
+    }
+
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         
@@ -419,6 +428,7 @@ public class GroupService {
                     .lockDate(e != null ? e.getLockDate() : null)
                     .isLocked(e != null && e.isLocked())
                     .rules(g.getRules())
+                    .imageData(g.getImageData())
                     .build();
         }).collect(Collectors.toList());
     }

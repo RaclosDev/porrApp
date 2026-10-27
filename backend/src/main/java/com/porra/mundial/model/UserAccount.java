@@ -31,6 +31,10 @@ public class UserAccount {
     @Column(nullable = false)
     private String participantName;
 
+    /** Foto pública del perfil, independiente de las credenciales de Google. */
+    @Column(name = "profile_image_data", columnDefinition = "TEXT")
+    private String profileImageData;
+
     /** Fecha y hora en la que se registró por primera vez en la aplicación. */
     @Builder.Default
     private LocalDateTime linkedAt = LocalDateTime.now();

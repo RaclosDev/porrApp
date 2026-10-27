@@ -39,6 +39,10 @@ public class League {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** Imagen de portada persistida como data URL. */
+    @Column(name = "image_data", columnDefinition = "TEXT")
+    private String imageData;
+
     /** Reglas personalizadas de la liga (texto libre definido por el admin). */
     @Column(columnDefinition = "TEXT")
     private String rules;

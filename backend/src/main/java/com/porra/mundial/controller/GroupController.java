@@ -92,6 +92,13 @@ public class GroupController {
      * @param principal Identidad del usuario (para verificar que es el admin).
      * @return Estado de la operación.
      */
+    @PutMapping("/{id}/image")
+    public ResponseEntity<?> updateGroupImage(@PathVariable Long id, @RequestBody Map<String, String> payload, Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        League group = groupService.updateGroupImage(id, payload.get("imageData"), principal.getName());
+        return ResponseEntity.ok(Map.of("imageData", group.getImageData() == null ? "" : group.getImageData()));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteGroup(@PathVariable Long id, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
@@ -140,7 +147,8 @@ public class GroupController {
                     .adminParticipantName(g.getAdminParticipantName())
                     .adminUserId(g.getAdminUserId())
                     .createdAt(g.getCreatedAt())
-                    .rules(g.getRules());
+                    .rules(g.getRules())
+                    .imageData(g.getImageData());
                     
             // Busca la edición activa vinculada a este grupo para extraer metadatos
             editionRepository.findByLeagueIdAndStatus(g.getId(), "ACTIVE").ifPresent(e -> {
