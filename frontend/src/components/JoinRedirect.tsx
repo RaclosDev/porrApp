@@ -1,31 +1,74 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useAppContext } from '../context/AppContext';
+import { fetchGroupInvitationPreview, fetchMyGroups } from '../services/api';
 
 /**
- * Componente que gestiona el enrutamiento y guardado de un código de invitación 
- * a una liga cuando el usuario entra a través de un enlace directo (/join/:code).
- *
- * @component
- * @returns {JSX.Element} Mensaje temporal mientras redirige.
+ * Resuelve enlaces de invitación:
+ * - Si el usuario ya pertenece a la liga, la selecciona y la abre directamente.
+ * - En caso contrario, conserva el código para mostrar la invitación en Mis Ligas.
  */
 export default function JoinRedirect() {
   const { code } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated, userName, changeGroup } = useAppContext();
 
-  /**
-   * Si existe un código en la URL, lo guarda en LocalStorage y redirige
-   * a la vista de "Mis Ligas" donde será procesado (se autocompletará en el input de unirse).
-   */
   useEffect(() => {
-    if (code) {
-      localStorage.setItem('pendingJoinCode', code.toUpperCase());
-    }
-    navigate('/mis-ligas');
-  }, [code, navigate]);
+    let cancelled = false;
+
+    const resolveInvitation = async () => {
+      if (!code) {
+        navigate('/mis-ligas', { replace: true });
+        return;
+      }
+
+      const normalizedCode = code.trim().toUpperCase();
+      localStorage.setItem('pendingJoinCode', normalizedCode);
+
+      try {
+        // La previsualización pública permite resolver el código a un ID sin unirse.
+        const invitation = await fetchGroupInvitationPreview(normalizedCode);
+        if (cancelled) return;
+
+        if (isAuthenticated && userName) {
+          const myGroups = await fetchMyGroups();
+          if (cancelled) return;
+
+          const existingGroup = myGroups.find(
+            (group) => String(group.id) === String(invitation.id),
+          );
+
+          if (existingGroup) {
+            localStorage.removeItem('pendingJoinCode');
+            changeGroup(String(existingGroup.id));
+            toast.success(`Ya perteneces a "${existingGroup.name || invitation.name}". Te hemos abierto la liga.`);
+            navigate(
+              (invitation.poolFormat || existingGroup.poolFormat) === 'MATCH_DAY'
+                ? '/jornadas'
+                : '/',
+              { replace: true },
+            );
+            return;
+          }
+        }
+
+        navigate('/mis-ligas', { replace: true });
+      } catch {
+        // Mantener el flujo de invitación existente para mostrar el error en Mis Ligas.
+        if (!cancelled) navigate('/mis-ligas', { replace: true });
+      }
+    };
+
+    resolveInvitation();
+    return () => {
+      cancelled = true;
+    };
+  }, [code, navigate, isAuthenticated, userName, changeGroup]);
 
   return (
     <div style={{ textAlign: 'center', padding: '40px', color: 'white' }}>
-      <p>Procesando invitación...</p>
+      <p>Comprobando invitación...</p>
     </div>
   );
 }
