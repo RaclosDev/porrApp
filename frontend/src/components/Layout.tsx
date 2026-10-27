@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import React, { useState, useEffect, Suspense } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { getAuthToken, setAuthToken, updateMyProfile } from '../services/api';
+import { getAuthToken, setAuthToken, getMyProfile, updateMyProfile } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 import MobileBottomNav from './MobileBottomNav';
@@ -173,7 +173,7 @@ function Layout({ children }) {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      const updated = await updateMyProfile({ participantName: profileName.trim(), profileImageData: profileImage });
+      const updated = await updateMyProfile({ participantName: profileName.trim(), ...(profileImage ? { profileImageData: profileImage } : {}) });
       setUserName(updated.participantName);
       localStorage.setItem('my_prediction_name', updated.participantName);
       localStorage.setItem('my_bet_name', updated.participantName);
@@ -703,7 +703,7 @@ function Layout({ children }) {
                     </div>
                   </div>
 
-                  <button onClick={() => { setProfileName(userName || ''); setProfileImage(''); setShowProfileEditor(true); setShowProfileMenu(false); }} style={{ background: 'rgba(0,210,211,.1)', border: '1px solid rgba(0,210,211,.35)', color: '#00d2d3', padding: '9px 12px', borderRadius: 8, cursor: 'pointer' }}>Editar perfil</button>
+                  <button onClick={async () => { setProfileName(userName || ''); try { const profile = await getMyProfile(); setProfileName(profile.participantName || userName || ''); setProfileImage(profile.profileImageData || ''); } catch { setProfileImage(''); } setShowProfileEditor(true); setShowProfileMenu(false); }} style={{ background: 'rgba(0,210,211,.1)', border: '1px solid rgba(0,210,211,.35)', color: '#00d2d3', padding: '9px 12px', borderRadius: 8, cursor: 'pointer' }}>Editar perfil</button>
                   <button
                     onClick={() => {
                       setAuthToken(null);
