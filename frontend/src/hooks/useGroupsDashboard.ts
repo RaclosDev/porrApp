@@ -261,6 +261,12 @@ export function useGroupsDashboard() {
 
     const link = `https://porra.raclos.es/join/${group.joinCode}`;
     const text = `Únete: ${link}`;
+    const competition = group.competitionName || 'Fútbol';
+    const format = group.poolFormat === 'MATCH_DAY'
+      ? 'Por jornadas'
+      : group.poolFormat === 'KNOCKOUTS_ONLY'
+        ? 'Eliminatorias'
+        : 'Cuadro completo';
 
     const drawInviteImage = async () => {
       const canvas = document.createElement('canvas');
@@ -343,9 +349,8 @@ export function useGroupsDashboard() {
         return;
       }
 
-      // En WhatsApp Web de escritorio no se pueden enviar archivos automáticamente.
-      // Abrimos un chat vacío y copiamos el texto para enviarlo como segundo mensaje,
-      // después de adjuntar y enviar la imagen.
+      // En PC se descarga la imagen y WhatsApp abre el selector de conversación
+      // con únicamente el texto solicitado. Adjunta/envía la imagen primero y luego el texto.
       const objectUrl = URL.createObjectURL(blob);
       const download = document.createElement('a');
       download.href = objectUrl;
@@ -354,14 +359,12 @@ export function useGroupsDashboard() {
       download.click();
       download.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-      await navigator.clipboard.writeText(text);
-      window.open('https://web.whatsapp.com/', '_blank', 'noopener,noreferrer');
-      toast.success('Imagen descargada y enlace copiado. Envía primero la foto; después pega y envía el texto.');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+      toast.success('Imagen descargada. Elige el chat en WhatsApp; envía primero la foto y después el texto.');
     } catch (e) {
       if (e?.name === 'AbortError') return;
-      await navigator.clipboard.writeText(text).catch(() => {});
-      window.open('https://web.whatsapp.com/', '_blank', 'noopener,noreferrer');
-      toast.error('No se pudo generar la imagen. El texto de invitación está copiado si el navegador lo permite.');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+      toast.error('No se pudo generar la imagen; WhatsApp se abrirá con el texto de invitación.');
     }
   };
 
