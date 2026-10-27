@@ -294,7 +294,7 @@ function Layout({ children }) {
         </div>
       )}
 
-      <header className="top-bar">
+      <header className={`top-bar${isLanding ? ' top-bar--landing' : ''}`}>
         <div className="header-left">
           <div
             className="header-title-row"
