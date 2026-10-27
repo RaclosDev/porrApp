@@ -27,6 +27,14 @@ public interface EditionRepository extends JpaRepository<Edition, Long> {
     List<Edition> findByLeagueId(Long leagueId);
     
     /**
+     * Devuelve los IDs de las competiciones canónicas (con external_id) que tienen
+     * al menos una edición activa. Se usa para rellenar calendarios sin cargar
+     * relaciones LAZY fuera de transacción.
+     */
+    @Query("SELECT DISTINCT e.competition.id FROM Edition e WHERE e.status = 'ACTIVE' AND e.competition.externalId IS NOT NULL AND e.competition.externalId <> ''")
+    List<Long> findActiveCanonicalCompetitionIds();
+
+    /**
      * Devuelve las ediciones activas para un conjunto de grupos (usado en vistas combinadas).
      */
     @Query("SELECT e FROM Edition e LEFT JOIN FETCH e.league LEFT JOIN FETCH e.competition WHERE e.league.id IN :leagueIds AND e.status = :status")

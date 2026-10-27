@@ -34,7 +34,13 @@ public class CompetitionController {
     @GetMapping
     @Cacheable("competitions")
     public ResponseEntity<List<Competition>> getAllCompetitions() {
-        return ResponseEntity.ok(competitionRepository.findAll());
+        // Solo competiciones canónicas: las legacy sin externalId no se pueden
+        // sincronizar con ESPN y dejaban a las ligas sin equipos ni partidos.
+        List<Competition> competitions = competitionRepository.findAll().stream()
+                .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
+                .sorted(Comparator.comparing(Competition::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        return ResponseEntity.ok(competitions);
     }
 
     /**

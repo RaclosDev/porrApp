@@ -91,6 +91,41 @@ class GroupServiceTest {
     }
 
     @Test
+    @DisplayName("createGroup traduce competiciones legacy a la canónica con externalId")
+    void createGroup_ResolvesLegacyCompetitionToCanonical() {
+        when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
+
+        Competition legacy = Competition.builder()
+                .id(1L)
+                .name("Champions League")
+                .build();
+        Competition canonical = Competition.builder()
+                .id(5L)
+                .name("UEFA Champions League")
+                .externalId("uefa.champions")
+                .build();
+
+        when(competitionRepository.findById(1L)).thenReturn(Optional.of(legacy));
+        when(competitionRepository.findByExternalId("uefa.champions")).thenReturn(Optional.of(canonical));
+        when(matchRepository.countByCompetitionId(5L)).thenReturn(0L);
+        when(syncService.importCompetitionData(5L)).thenReturn(java.util.Map.of());
+        when(leagueRepository.save(any(League.class))).thenAnswer(invocation -> {
+            League saved = invocation.getArgument(0);
+            saved.setId(99L);
+            return saved;
+        });
+
+        groupService.createGroup("Prueba Champions", "admin@test.com", 1L,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY);
+
+        verify(editionRepository).save(argThat(edition ->
+                edition.getCompetition() != null && edition.getCompetition().getId().equals(5L)));
+        verify(syncService).importCompetitionData(5L);
+    }
+
+    @Test
     void missingMembersRequiresAllMatchesAndRecognizesGroupLabels() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         var edition = Edition.builder().competition(Competition.builder().id(2L).build()).build();

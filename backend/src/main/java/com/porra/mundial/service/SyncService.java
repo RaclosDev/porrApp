@@ -371,39 +371,39 @@ public class SyncService {
                 }
             }
 
-            // 2. Descargar partidos del calendario de la temporada
+            // 2. Descargar el calendario completo de la temporada.
+            //    ESPN acepta un año natural en `dates` (ej. 2026) y devuelve todos sus
+            //    eventos. Consultamos desde el año de inicio de temporada hasta el
+            //    siguiente para cubrir temporadas que cruzan de año (ago 2026 - may 2027).
             SyncContext context = new SyncContext();
             context.competition = comp;
 
             LocalDate today = LocalDate.now();
-            List<String> datesToQuery = new ArrayList<>();
-            datesToQuery.add(today.minusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
-            datesToQuery.add(today.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
-            for (int i = 1; i <= 7; i++) {
-                datesToQuery.add(today.plusDays(i).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
-            }
+            int startYear = today.getMonthValue() >= 7 ? today.getYear() : today.getYear() - 1;
+            LocalDateTime windowStart = today.minusMonths(3).atStartOfDay();
+            LocalDateTime windowEnd = today.plusMonths(12).atStartOfDay();
+            Set<String> seenEventIds = new HashSet<>();
 
-            List<String> calendarDates = provider.fetchSeasonCalendarDates(slug);
-            for (String iso : calendarDates) {
+            for (int year = startYear; year <= today.getYear() + 1; year++) {
                 try {
-                    LocalDate d = ZonedDateTime.parse(iso).toLocalDate();
-                    if (!d.isBefore(today.minusDays(7)) && !d.isAfter(today.plusDays(30))) {
-                        String ymd = d.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-                        if (!datesToQuery.contains(ymd)) datesToQuery.add(ymd);
+                    JsonNode events = provider.fetchScoreboardEvents(slug, String.valueOf(year));
+                    if (events == null || !events.isArray()) {
+                        continue;
                     }
-                } catch (Exception ignored) {}
-            }
-
-            for (String dateStr : datesToQuery) {
-                try {
-                    JsonNode events = provider.fetchScoreboardEvents(slug, dateStr);
-                    if (events != null && events.isArray()) {
-                        for (JsonNode event : events) {
-                            processEvent(event, teamCache, context);
+                    for (JsonNode event : events) {
+                        String eventId = event.path("id").asText(null);
+                        if (eventId == null || !seenEventIds.add(eventId)) {
+                            continue;
                         }
+                        LocalDateTime eventDate = parseDate(event.path("date").asText(null));
+                        if (eventDate != null
+                                && (eventDate.isBefore(windowStart) || eventDate.isAfter(windowEnd))) {
+                            continue;
+                        }
+                        processEvent(event, teamCache, context);
                     }
                 } catch (Exception e) {
-                    log.debug("No events for {}: {}", dateStr, e.getMessage());
+                    log.debug("No events for {} in year {}: {}", slug, year, e.getMessage());
                 }
             }
 

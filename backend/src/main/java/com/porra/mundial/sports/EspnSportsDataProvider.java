@@ -66,11 +66,11 @@ public class EspnSportsDataProvider implements SportsDataProvider {
 
         if ("fifa.world".equalsIgnoreCase(slug)) {
             String dateParam = (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) ? dateRange : "2026";
-            url += "?dates=" + dateParam + "&limit=300";
+            url += "?dates=" + dateParam + "&limit=1000";
         } else if (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) {
-            url += "?dates=" + dateRange + "&limit=200";
+            url += "?dates=" + dateRange + "&limit=1000";
         } else {
-            url += "?limit=200";
+            url += "?limit=1000";
         }
 
         JsonNode root = executeGet(url);

@@ -116,10 +116,13 @@ public class GroupService {
 
         final League finalGlobalGroup = globalGroup;
 
-        // Ensure Competition exists
-        Competition comp = competitionRepository.findByName("Mundial 2026")
+        // Ensure competition exists (siempre la canónica con proveedor externo)
+        Competition comp = competitionRepository.findByExternalId("fifa.world")
+            .or(() -> competitionRepository.findByName("FIFA World Cup 2026"))
             .orElseGet(() -> competitionRepository.save(Competition.builder()
-                    .name("Mundial 2026")
+                    .name("FIFA World Cup 2026")
+                    .externalId("fifa.world")
+                    .formatType("TOURNAMENT")
                     .build()));
 
         // Ensure Edition exists
@@ -220,6 +223,7 @@ public class GroupService {
 
         Competition comp = competitionRepository.findById(competitionId)
                 .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada"));
+        comp = resolveCanonicalCompetition(comp);
 
         League group = League.builder()
                 .name(name)
@@ -256,6 +260,31 @@ public class GroupService {
         }
 
         return group;
+    }
+
+    /**
+     * Traduce competiciones legacy (sin externalId) a su equivalente canónica con
+     * proveedor de datos, para que la importación automática siempre funcione.
+     */
+    private Competition resolveCanonicalCompetition(Competition comp) {
+        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
+            return comp;
+        }
+        String name = comp.getName() != null ? comp.getName().toLowerCase(java.util.Locale.ROOT) : "";
+        String slug = null;
+        if (name.contains("champions")) {
+            slug = "uefa.champions";
+        } else if (name.contains("premier")) {
+            slug = "eng.1";
+        } else if (name.contains("laliga") || name.contains("la liga")) {
+            slug = "esp.1";
+        } else if (name.contains("mundial") || name.contains("world cup")) {
+            slug = "fifa.world";
+        }
+        if (slug == null) {
+            return comp;
+        }
+        return competitionRepository.findByExternalId(slug).orElse(comp);
     }
     
     /**

@@ -83,6 +83,13 @@ public class DataInitializer implements CommandLineRunner {
         // para que Tomcat levante de inmediato y pase los health checks de Render sin demoras.
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {
+                log.info("Rellenando calendarios de competiciones con ligas activas y sin partidos...");
+                backfillEmptyCompetitionFixtures();
+            } catch (Exception e) {
+                log.warn("Could not backfill empty competitions on startup: {}", e.getMessage());
+            }
+
+            try {
                 log.info("Iniciando sincronización externa asíncrona de arranque...");
                 syncService.syncAll();
             } catch (Exception e) {
@@ -243,6 +250,29 @@ public class DataInitializer implements CommandLineRunner {
         if (predictionRepository.count() == 0) {
             seedExistingPredictions();
         }
+    }
+
+    /**
+     * Importa el calendario completo de toda competición canónica que tenga alguna
+     * liga activa pero cero partidos guardados. Esto repara ligas creadas antes de
+     * que existiera la importación automática o sobre competiciones legacy.
+     */
+    private void backfillEmptyCompetitionFixtures() {
+        editionRepository.findActiveCanonicalCompetitionIds().stream()
+                .distinct()
+                .forEach(competitionId -> {
+                    if (matchRepository.countByCompetitionId(competitionId) > 0) {
+                        return;
+                    }
+                    competitionRepository.findById(competitionId).ifPresent(competition -> {
+                        try {
+                            log.info("Importando calendario completo de {} (sin partidos)...", competition.getName());
+                            syncService.importCompetitionData(competition.getId());
+                        } catch (Exception e) {
+                            log.warn("No se pudo importar el calendario de {}: {}", competition.getName(), e.getMessage());
+                        }
+                    });
+                });
     }
 
     private void seedCompetitionIfMissing(String name, String externalId, String formatType) {
