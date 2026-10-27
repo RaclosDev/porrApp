@@ -24,6 +24,9 @@ function OfficialBracket() {
     allGames,
     matchRadar,
     topScorers,
+    topScorersLoading,
+    topScorersError,
+    refreshTopScorers,
     activeGroupPichichi,
     activeGroupPoolFormat,
     activeCompetitionFormatType,
@@ -741,7 +744,12 @@ function OfficialBracket() {
                           maxNext={3}
                         />
                       )}
-                      {activePanel === 'scorers' && <TopScorersPanel topScorers={topScorers} />}
+                      {activePanel === 'scorers' && <TopScorersPanel
+                        topScorers={topScorers}
+                        loading={topScorersLoading}
+                        error={topScorersError}
+                        onRetry={refreshTopScorers}
+                      />}
                     </div>
                   </div>
                 </div>
