@@ -265,6 +265,21 @@ export const useAppContext = () => {
     queryFn: () => fetchPredictions(activeGroupId),
     enabled: Boolean(activeGroupId),
     retry: 1,
+    placeholderData: store.isDemoMode
+      ? [
+          {
+            key: 'demo-bet-1',
+            id: 'demo-bet-1',
+            hash: 'demo-bet-1',
+            paid: true,
+            participantName: 'raclos',
+            userId: 'raclos',
+            predictionName: 'Mi Porra',
+            groupId: Number(activeGroupId) || 1,
+            data: null,
+          },
+        ]
+      : undefined,
   });
 
   useEffect(() => {
