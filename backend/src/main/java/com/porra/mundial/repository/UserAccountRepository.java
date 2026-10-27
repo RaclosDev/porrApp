@@ -33,6 +33,11 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
     boolean existsByParticipantNameIgnoreCase(String participantName);
 
     /**
+     * Comprueba si otro usuario distinto del indicado ya usa ese nombre (sin distinguir mayúsculas).
+     */
+    boolean existsByParticipantNameIgnoreCaseAndIdNot(String participantName, Long id);
+
+    /**
      * Obtener todos los nombres reclamados.
      * Se filtran las cuentas "autogeneradas" que se crean temporalmente antes de que
      * un usuario haga login por primera vez.

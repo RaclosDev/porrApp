@@ -2,8 +2,9 @@ package com.porra.mundial.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import com.porra.mundial.sports.SportsDataProvider;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -17,31 +18,39 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * ⚽ Servicio de Pichichi — Extracts top scorers from ESPN match details
+ * Servicio de Pichichi : Extracts top scorers from ESPN match details
  * - Refreshes every 30 minutes via @Scheduled
  * - Also refreshable on demand (e.g., when a match finishes)
  * - Uses ESPN's free public API (no API key needed)
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class TopScorerService {
 
     private final ObjectMapper objectMapper;
     private final WebSocketService webSocketService;
     private final HttpClient httpClient;
+    private final SportsDataProvider sportsDataProvider;
 
-    @Value("${app.espn.scoreboard-url}")
-    private String espnScoreboardUrl;
+    public TopScorerService(
+            ObjectMapper objectMapper,
+            WebSocketService webSocketService,
+            HttpClient httpClient,
+            @Qualifier("espnSportsDataProvider") SportsDataProvider sportsDataProvider) {
+        this.objectMapper = objectMapper;
+        this.webSocketService = webSocketService;
+        this.httpClient = httpClient;
+        this.sportsDataProvider = sportsDataProvider;
+    }
 
     // Date range covering the entire World Cup
-    private static final String WC_DATE_RANGE = "20260611-20260722";
+    private static final String WC_DATE_RANGE = "2026";
 
     // Cached list of top scorers (thread-safe)
     private final AtomicReference<List<Map<String, Object>>> cachedScorers = new AtomicReference<>(Collections.emptyList());
 
     // Persistent cache of player name -> image URL (avoids re-fetching every 30 min)
-    private final Map<String, String> imageCache = new HashMap<>();
+    private final Map<String, String> imageCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     // Hardcoded cartoon URLs for known pichichi contenders (from thesportsdb)
     private static final Map<String, String> CARTOON_MAP = new HashMap<>(Map.of(
@@ -53,16 +62,15 @@ public class TopScorerService {
     ));
 
     /** Called every 30 minutes */
-    @Scheduled(fixedDelay = 1_800_000)
+    @Scheduled(initialDelay = 5_000, fixedDelay = 1_800_000)
     public void scheduledRefresh() {
         refresh();
     }
 
     /** Call this when a match just finished */
     public void refresh() {
-        imageCache.clear(); // Clear the image cache on manual/forced refresh to retry failed images
         try {
-            JsonNode events = fetchEspnEvents();
+            JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);
             if (events == null) return;
 
             Map<String, int[]> playerGoals = new LinkedHashMap<>();
@@ -89,31 +97,7 @@ public class TopScorerService {
         }
     }
 
-    private JsonNode fetchEspnEvents() throws Exception {
-        String url = espnScoreboardUrl + "?dates=" + WC_DATE_RANGE + "&limit=200";
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(15))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            log.warn("TopScorerService: ESPN API returned status {}", response.statusCode());
-            return null;
-        }
-
-        JsonNode root = objectMapper.readTree(response.body());
-        JsonNode events = root.path("events");
-
-        if (!events.isArray()) {
-            log.warn("TopScorerService: No events array found in ESPN response");
-            return null;
-        }
-        return events;
-    }
 
     private void processEvents(JsonNode events, Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                Map<String, String> playerPositions, Map<String, String> playerIds,
@@ -203,7 +187,7 @@ public class TopScorerService {
         if (imageUrl != null) return imageUrl;
         
         imageUrl = imageCache.get(fullName);
-        if (imageUrl != null) return imageUrl;
+        if (imageUrl != null && !imageUrl.isEmpty()) return imageUrl;
 
         imageUrl = "";
         try {
@@ -247,8 +231,10 @@ public class TopScorerService {
         } catch (Exception e) {
             log.warn("TopScorerService: image lookup failed for {}: {}", fullName, e.getMessage());
         }
-        imageCache.put(fullName, imageUrl);
-        return imageUrl;
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            imageCache.put(fullName, imageUrl);
+        }
+        return imageUrl != null ? imageUrl : "";
     }
 
     private List<Map<String, Object>> buildScorersList(Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
