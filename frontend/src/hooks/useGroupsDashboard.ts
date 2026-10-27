@@ -343,14 +343,15 @@ export function useGroupsDashboard() {
       const blob = await drawInviteImage();
       const file = new File([blob], 'invitacion-porrapp.png', { type: 'image/png' });
 
-      // Compartir archivo y texto juntos solo cuando el navegador admite archivos.
+      // Compartir la imagen en una operación independiente para que no se envíe texto antes.
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ title: `Invitación a ${group.name}`, text, files: [file] });
+        await navigator.share({ files: [file] });
+        // Solo después de cerrar/completar el selector de compartir la foto, preparar el texto.
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
         return;
       }
 
-      // En PC se descarga la imagen y WhatsApp abre el selector de conversación
-      // con únicamente el texto solicitado. Adjunta/envía la imagen primero y luego el texto.
+      // Fallback en PC: descargar la imagen y abrir el selector de chat con solo el texto.
       const objectUrl = URL.createObjectURL(blob);
       const download = document.createElement('a');
       download.href = objectUrl;
@@ -360,7 +361,7 @@ export function useGroupsDashboard() {
       download.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.success('Imagen descargada. Elige el chat en WhatsApp; envía primero la foto y después el texto.');
+      toast.success('Imagen descargada. Envía primero la foto; después envía el texto preparado en WhatsApp.');
     } catch (e) {
       if (e?.name === 'AbortError') return;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
