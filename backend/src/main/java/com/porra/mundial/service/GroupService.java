@@ -346,8 +346,6 @@ public class GroupService {
      * Permite a un Admin eliminar toda la liga, incluyendo usuarios, membresías y apuestas dentro.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    @Transactional
     public League updateGroupImage(Long groupId, String imageData, String email) {
         verifyGroupAdmin(groupId, email);
         if (imageData != null && !imageData.isBlank() && (!imageData.matches("^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$") || imageData.length() > 1000000)) throw new IllegalArgumentException("La imagen debe ser PNG, JPG o WebP y pesar menos de 750 KB");
@@ -356,6 +354,8 @@ public class GroupService {
         return leagueRepository.save(group);
     }
 
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         

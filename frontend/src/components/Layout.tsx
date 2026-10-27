@@ -639,6 +639,7 @@ function Layout({ children }) {
                 <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>👤</span>
               </button>
 
+              {showProfileEditor && <div role="dialog" aria-modal="true" aria-label="Editar perfil" style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,.78)', display: 'grid', placeItems: 'center', padding: 16 }}><form onSubmit={e => { e.preventDefault(); void handleSaveProfile(); }} style={{ width: 'min(100%, 420px)', background: '#151525', border: '1px solid rgba(0,210,211,.35)', borderRadius: 16, padding: 22, display: 'grid', gap: 14, color: 'white' }}><h2>Editar perfil</h2><label>Nombre público<input value={profileName} onChange={e => setProfileName(e.target.value)} minLength={2} maxLength={40} required /></label><label>Foto de perfil<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => { const file=e.target.files?.[0]; if(!file)return; if(file.size>750000){toast.error('La imagen debe pesar menos de 750 KB');e.target.value='';return;} const reader=new FileReader();reader.onload=()=>setProfileImage(String(reader.result||''));reader.readAsDataURL(file); }} /></label>{profileImage && <img src={profileImage} alt="Vista previa" style={{ width: 88, height: 88, objectFit: 'cover', borderRadius: '50%' }} />}<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" onClick={() => setShowProfileEditor(false)}>Cancelar</button><button type="submit" disabled={savingProfile || profileName.trim().length<2}>{savingProfile?'Guardando…':'Guardar cambios'}</button></div></form></div>}
               {showProfileMenu && (
                 <div
                   style={{
@@ -703,6 +704,7 @@ function Layout({ children }) {
                     </div>
                   </div>
 
+                  <button onClick={async () => { setProfileName(userName || ''); try { const profile = await getMyProfile(); setProfileName(profile.participantName || userName || ''); setProfileImage(profile.profileImageData || ''); } catch { setProfileImage(''); } setShowProfileEditor(true); setShowProfileMenu(false); }} style={{ background: 'rgba(0,210,211,.1)', border: '1px solid rgba(0,210,211,.35)', color: '#00d2d3', padding: '9px 12px', borderRadius: 8, cursor: 'pointer' }}>Editar perfil</button>
                   <button onClick={async () => { setProfileName(userName || ''); try { const profile = await getMyProfile(); setProfileName(profile.participantName || userName || ''); setProfileImage(profile.profileImageData || ''); } catch { setProfileImage(''); } setShowProfileEditor(true); setShowProfileMenu(false); }} style={{ background: 'rgba(0,210,211,.1)', border: '1px solid rgba(0,210,211,.35)', color: '#00d2d3', padding: '9px 12px', borderRadius: 8, cursor: 'pointer' }}>Editar perfil</button>
                   <button
                     onClick={() => {
