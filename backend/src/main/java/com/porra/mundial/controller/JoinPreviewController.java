@@ -36,7 +36,7 @@ public class JoinPreviewController {
     private static final String DEFAULT_TITLE = "Invitación a una porra | PorrApp";
     private static final String DEFAULT_DESCRIPTION = "Únete a esta porra y compite con tus amigos.";
     private static final int IMAGE_WIDTH = 1200;
-    private static final int IMAGE_HEIGHT = 630;
+    private static final int IMAGE_HEIGHT = 360;
 
     private final LeagueRepository leagueRepository;
     private final EditionRepository editionRepository;
@@ -114,34 +114,22 @@ public class JoinPreviewController {
         try {
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            // Mantener las dimensiones, colores y composición de la tarjeta original del frontend.
             graphics.setPaint(new GradientPaint(0, 0, new Color(16, 24, 39),
                     IMAGE_WIDTH, IMAGE_HEIGHT, new Color(7, 16, 20)));
             graphics.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 
-            graphics.setColor(new Color(0, 210, 211, 30));
-            graphics.fill(new RoundRectangle2D.Float(790, -130, 520, 520, 260, 260));
-            graphics.setColor(new Color(162, 155, 254, 24));
-            graphics.fill(new RoundRectangle2D.Float(-180, 390, 520, 420, 210, 210));
-
-            graphics.setColor(new Color(0, 210, 211));
-            graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 28));
-            graphics.drawString("PORRAPP · INVITACIÓN", 72, 100);
-
             graphics.setColor(Color.WHITE);
-            graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 66));
-            drawFittedText(graphics, name, 72, 245, 1050, 66);
+            graphics.setFont(new Font("Arial", Font.BOLD, 54));
+            drawFittedText(graphics, name, 40, 112, 1120, 54);
 
-            drawPill(graphics, competition, 72, 305, new Color(162, 155, 254),
-                    new Color(196, 181, 253), 30);
-            drawPill(graphics, format, 72, 385, new Color(0, 210, 211),
-                    new Color(0, 210, 211), 30);
-
-            graphics.setColor(new Color(210, 220, 230));
-            graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 25));
-            graphics.drawString("Únete y compite con tus amigos", 72, 555);
-            graphics.setColor(new Color(255, 255, 255, 75));
-            graphics.setStroke(new BasicStroke(2));
-            graphics.drawLine(72, 585, 1128, 585);
+            drawPill(graphics, competition, 40, 150,
+                    new Color(162, 155, 254, 41), new Color(162, 155, 254, 166),
+                    new Color(196, 181, 253), 26, 1120);
+            drawPill(graphics, format, 40, 214,
+                    new Color(0, 210, 211, 31), new Color(0, 210, 211, 166),
+                    new Color(0, 210, 211), 26, 1120);
         } finally {
             graphics.dispose();
         }
@@ -156,17 +144,19 @@ public class JoinPreviewController {
         return leagueRepository.findByJoinCode(code.trim().toUpperCase());
     }
 
-    private void drawPill(Graphics2D graphics, String text, int x, int y, Color fill,
-                          Color foreground, int fontSize) {
-        graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, fontSize));
-        int width = Math.min(graphics.getFontMetrics().stringWidth(text) + 44, 1056);
-        graphics.setColor(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 32));
-        graphics.fillRoundRect(x, y, width, 58, 29, 29);
-        graphics.setColor(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 175));
+    private void drawPill(Graphics2D graphics, String text, int x, int y,
+                          Color fill, Color stroke, Color foreground, int fontSize, int maxWidth) {
+        graphics.setFont(new Font("Arial", Font.BOLD, fontSize));
+        int width = Math.min(graphics.getFontMetrics().stringWidth(text) + 34, maxWidth);
+        int height = 48;
+        graphics.setColor(fill);
+        graphics.fillRoundRect(x, y, width, height, 24, 24);
+        graphics.setColor(stroke);
         graphics.setStroke(new BasicStroke(2));
-        graphics.drawRoundRect(x, y, width, 58, 29, 29);
+        graphics.drawRoundRect(x, y, width, height, 24, 24);
         graphics.setColor(foreground);
-        graphics.drawString(text, x + 22, y + 38);
+        graphics.setFont(new Font("Arial", Font.BOLD, fontSize));
+        graphics.drawString(text, x + 17, y + 31);
     }
 
     private void drawFittedText(Graphics2D graphics, String value, int x, int y, int maxWidth, int initialSize) {
