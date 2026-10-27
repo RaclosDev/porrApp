@@ -316,7 +316,32 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
             🏆 Campeón
           </div>
           <div className="champion-display">
-            {renderSlot(champName, { roundIndex: 'champion' })}
+            <div
+              className="team-slot"
+              style={{
+                height: 50,
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                justifyContent: 'center',
+                pointerEvents: 'none',
+                borderColor: '#fbbf24',
+                background: 'rgba(251,191,36,0.15)',
+                color: '#fbbf24',
+              }}
+            >
+              <Flag
+                team={champName || ''}
+                size="w40"
+                style={{
+                  width: 24,
+                  height: 18,
+                  borderRadius: 2,
+                  marginRight: 8,
+                  verticalAlign: 'middle',
+                }}
+              />
+              {champName || '???'}
+            </div>
           </div>
         </div>
 
@@ -367,7 +392,32 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
                 Ganador 3er Puesto:
               </div>
               <div className="champion-display" style={{ display: 'inline-block', width: '100%' }}>
-                {renderSlot(thirdWinnerName, { roundIndex: 'thirdPlaceMatch' })}
+                <div
+                  className="team-slot"
+                  style={{
+                    height: 38,
+                    fontSize: '0.95rem',
+                    fontWeight: 'bold',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    borderColor: '#cd7f32',
+                    background: 'rgba(205, 127, 50, 0.15)',
+                    color: '#e0a96d',
+                  }}
+                >
+                  <Flag
+                    team={thirdWinnerName || ''}
+                    size="w40"
+                    style={{
+                      width: 20,
+                      height: 15,
+                      borderRadius: 2,
+                      marginRight: 6,
+                      verticalAlign: 'middle',
+                    }}
+                  />
+                  {thirdWinnerName || '???'}
+                </div>
               </div>
             </div>
           )}
