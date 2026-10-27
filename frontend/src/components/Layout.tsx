@@ -416,6 +416,12 @@ function Layout({ children }) {
                     Inicio
                   </NavLink>
                   <NavLink
+                    to="/prediction"
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Mi Porra
+                  </NavLink>
+                  <NavLink
                     to="/bracket"
                     onMouseEnter={() => prefetchRoute('/bracket')}
                     onFocus={() => prefetchRoute('/bracket')}
