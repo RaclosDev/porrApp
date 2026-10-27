@@ -308,7 +308,7 @@ export default function GroupsDashboard() {
                   if (format === 'MATCH_DAY') {
                     navigate('/jornadas');
                   } else {
-                    navigate('/bracket');
+                    navigate('/mi-porra');
                   }
                 }}
                 className="glass-btn primary-btn"

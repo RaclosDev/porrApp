@@ -187,7 +187,7 @@ export function useGroupsDashboard() {
           if (group.poolFormat === 'MATCH_DAY') {
             navigate('/jornadas');
           } else {
-            navigate('/bracket');
+            navigate('/mi-porra');
           }
         } catch (e) {
           setError(e.message);
@@ -309,7 +309,7 @@ export function useGroupsDashboard() {
       if (group.poolFormat === 'MATCH_DAY') {
         navigate('/jornadas');
       } else {
-        navigate('/bracket');
+        navigate('/mi-porra');
       }
     } catch (e) {
       setError(e.message);

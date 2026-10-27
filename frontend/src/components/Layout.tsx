@@ -358,7 +358,7 @@ function Layout({ children }) {
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}
-                    onClick={() => navigate('/bracket')}
+                    onClick={() => navigate('/mi-porra')}
                   >
                     ✍️ Completar Mi Porra
                   </button>
@@ -465,7 +465,7 @@ function Layout({ children }) {
                     Inicio
                   </NavLink>
                   <NavLink
-                    to="/bracket"
+                    to="/mi-porra"
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Mi Porra

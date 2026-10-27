@@ -35,7 +35,7 @@ export default function MobileBottomNav() {
         ]
       : [
           { to: '/', label: 'Inicio', icon: Home, end: true },
-          { to: '/bracket', label: 'Mi Porra', icon: Pencil },
+          { to: '/mi-porra', label: 'Mi Porra', icon: Pencil },
           { to: '/cuadro', label: 'Resultados', icon: Swords },
           { to: '/clasificacion', label: 'Ranking', icon: Trophy },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },

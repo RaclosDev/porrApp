@@ -160,21 +160,15 @@ function App() {
 
               {/* Rutas privadas - siempre requieren login real */}
               <Route
-                path="/bracket"
+                path="/mi-porra"
                 element={
                   <ProtectedRoute>
                     <Bracket />
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/prediction"
-                element={
-                  <ProtectedRoute>
-                    <Bracket />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/bracket" element={<Navigate to="/mi-porra" replace />} />
+              <Route path="/prediction" element={<Navigate to="/mi-porra" replace />} />
               <Route
                 path="/jornadas"
                 element={
