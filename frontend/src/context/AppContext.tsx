@@ -47,6 +47,7 @@ export function AppProvider({ children }) {
   const userName = useAppStore((state) => state.userName);
   const activeGroupId = useAppStore((state) => state.activeGroupId);
   const bracketState = useAppStore((state) => state.bracketState);
+  const isDemoMode = useAppStore((state) => state.isDemoMode);
 
   const setUserName = useAppStore((state) => state.setUserName);
   const setUserId = useAppStore((state) => state.setUserId);
@@ -67,7 +68,8 @@ export function AppProvider({ children }) {
   }, [setIsAuthenticated, setUserName, setUserId]);
 
   useEffect(() => {
-    if (!activeGroupId) return;
+    // La demo pública es de solo lectura: no persistir borradores locales.
+    if (isDemoMode || !activeGroupId) return;
     // Evitar sobreescribir un draft guardado si bracketState coincide con defaultBracketState vacío
     if (bracketState === defaultBracketState) {
       try {
@@ -90,7 +92,7 @@ export function AppProvider({ children }) {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [bracketState, activeGroupId]);
+  }, [bracketState, activeGroupId, isDemoMode]);
 
   useEffect(() => {
     if (!isUserAuthed) {
@@ -107,7 +109,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     let isCancelled = false;
     const autoSelectGroup = async () => {
-      if (!userName || !isUserAuthed) return;
+      if (isDemoMode || !userName || !isUserAuthed) return;
       try {
         let dbGroupId = null;
         try {
@@ -166,7 +168,7 @@ export function AppProvider({ children }) {
     return () => {
       isCancelled = true;
     };
-  }, [userName, isUserAuthed, changeGroup]);
+  }, [userName, isUserAuthed, changeGroup, isDemoMode]);
 
   return children;
 }
@@ -265,32 +267,19 @@ export const useAppContext = () => {
     queryFn: () => fetchPredictions(activeGroupId),
     enabled: Boolean(activeGroupId),
     retry: 1,
-    placeholderData: store.isDemoMode
-      ? [
-          {
-            key: 'demo-bet-1',
-            id: 'demo-bet-1',
-            hash: 'demo-bet-1',
-            paid: true,
-            participantName: 'raclos',
-            userId: 'raclos',
-            predictionName: 'Mi Porra',
-            groupId: Number(activeGroupId) || 1,
-            data: null,
-          },
-        ]
-      : undefined,
+    // No mostrar una porra ficticia como si fueran datos reales.
+    placeholderData: undefined,
   });
 
   useEffect(() => {
-    if (predictionsError && activeGroupId && String(activeGroupId) !== '1') {
+    if (!isDemoMode && predictionsError && activeGroupId && String(activeGroupId) !== '1') {
       const msg = predictionsError.message || '';
       if (msg.includes('403') || msg.includes('No perteneces')) {
         console.warn('Acceso denegado a la liga privada, regresando a la liga global');
         changeGroup('1');
       }
     }
-  }, [predictionsError, activeGroupId, changeGroup]);
+  }, [predictionsError, activeGroupId, changeGroup, store.isDemoMode]);
 
   const { data: odds } = useQuery({
     queryKey: ['odds'],

@@ -16,9 +16,10 @@ export default function MobileBottomNav() {
     userGroups,
     userGroupsLoaded,
     isRaclos,
+    isDemoMode,
   } = useAppContext();
 
-  const isDemo = false;
+  const isDemo = isDemoMode;
   const isNavLocked =
     isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo && !isRaclos;
   const isMatchDay =
