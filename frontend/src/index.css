@@ -274,6 +274,7 @@ option {
   max-width: 1920px;
   margin: 0 auto;
   width: 100%;
+  overflow: hidden;
 }
 
 .view-section {
