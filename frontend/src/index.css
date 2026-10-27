@@ -1245,30 +1245,42 @@ option {
 
 .mb-tabs {
   display: flex;
-  gap: 6px;
-  padding: 8px;
+  gap: 4px;
+  padding: 6px;
   background: rgba(0, 0, 0, 0.35);
   border-radius: 12px;
   margin-bottom: 16px;
-  justify-content: center;
+  justify-content: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  scrollbar-width: none;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.mb-tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .mb-tab {
-  padding: 10px 14px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 4px;
   min-height: 44px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: clamp(0.62rem, 2.6vw, 0.85rem);
   font-family: 'Outfit', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .mb-tab-active {
