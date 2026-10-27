@@ -914,9 +914,12 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
             className="modal-groups-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: '10px',
-              marginTop: '10px',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gap: '14px',
+              marginTop: '16px',
+              width: '100%',
+              maxWidth: '1500px',
+              alignSelf: 'center',
             }}
           >
             {Object.keys(part.groups).map((g) => {
@@ -939,11 +942,13 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
                 <div
                   key={g}
                   style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    padding: '10px',
-                    borderRadius: '8px',
+                    background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.88))',
+                    border: '1px solid rgba(148, 163, 184, 0.18)',
+                    padding: '14px',
+                    borderRadius: '12px',
                     textAlign: 'left',
+                    minWidth: 0,
+                    boxShadow: '0 6px 18px rgba(0, 0, 0, 0.12)',
                   }}
                 >
                   <div
