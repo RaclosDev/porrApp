@@ -883,6 +883,36 @@ option {
   pointer-events: none;
 }
 
+/* Desktop header: keep the navigation centered on the viewport, not in the leftover space. */
+@media (min-width: 1200px) {
+  .top-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    column-gap: 16px;
+  }
+
+  .header-left {
+    min-width: 0;
+    justify-self: start;
+  }
+
+  .header-center {
+    min-width: 0;
+    max-width: 100%;
+    justify-self: center;
+  }
+
+  .header-right {
+    min-width: 0;
+    justify-self: end;
+  }
+
+  .nav-links {
+    justify-content: center;
+    max-width: 100%;
+  }
+}
+
 /* Mobile & Tablet Responsive */
 @media (max-width: 1024px) {
   .top-bar {
