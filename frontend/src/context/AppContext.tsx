@@ -272,7 +272,7 @@ export const useAppContext = () => {
   });
 
   useEffect(() => {
-    if (!isDemoMode && predictionsError && activeGroupId && String(activeGroupId) !== '1') {
+    if (!store.isDemoMode && predictionsError && activeGroupId && String(activeGroupId) !== '1') {
       const msg = predictionsError.message || '';
       if (msg.includes('403') || msg.includes('No perteneces')) {
         console.warn('Acceso denegado a la liga privada, regresando a la liga global');
