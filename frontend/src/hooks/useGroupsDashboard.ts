@@ -259,11 +259,9 @@ export function useGroupsDashboard() {
   const handleShareWhatsApp = (group) => {
     if (!group?.joinCode) return;
 
-    // WhatsApp obtiene la imagen de la invitación desde los metadatos Open Graph
-    // de /join/{code}; no se adjunta ni se descarga un archivo desde el navegador.
+    // La tarjeta se sirve como og:image desde el backend; WhatsApp solo recibe el enlace.
     const text = `Únete: https://porra.raclos.es/join/${encodeURIComponent(group.joinCode)}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleEditGroup = async (groupId, currentName, explicitName) => {
