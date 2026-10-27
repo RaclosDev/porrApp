@@ -83,11 +83,7 @@ function Layout({ children }) {
   const location = useLocation();
   const isDemo = isDemoMode;
 
-  useEffect(() => {
-    if (!isDemoMode && location.pathname === '/demo') {
-      navigate('/', { replace: true });
-    }
-  }, [isDemoMode, navigate, location.pathname]);
+  // /demo activates its mode in DemoPage; do not race that activation with a redirect.
   const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
 
   // Con sesión iniciada pero sin ninguna liga, la navegación queda bloqueada:
