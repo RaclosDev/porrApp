@@ -20,6 +20,9 @@ export default function OfficialGroupsView() {
     loading,
     matchRadar,
     topScorers,
+    topScorersLoading,
+    topScorersError,
+    refreshTopScorers,
     activeGroupPichichi,
   } = useAppContext();
 
@@ -317,7 +320,12 @@ export default function OfficialGroupsView() {
             }}
             className="pichichi-mobile-center"
           >
-            <TopScorersPanel topScorers={topScorers} />
+            <TopScorersPanel
+            topScorers={topScorers}
+            loading={topScorersLoading}
+            error={topScorersError}
+            onRetry={refreshTopScorers}
+          />
           </div>
         )}
       </div>

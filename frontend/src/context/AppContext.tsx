@@ -321,11 +321,17 @@ export const useAppContext = () => {
   });
   const activeGroupPichichi =
     groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : true;
-  const { data: topScorers } = useQuery({
+  const {
+    data: topScorers,
+    isLoading: topScorersLoading,
+    isError: topScorersError,
+    refetch: refreshTopScorers,
+  } = useQuery({
     queryKey: ['topScorers'],
     queryFn: fetchTopScorers,
     enabled: activeGroupPichichi,
     staleTime: 300_000,
+    retry: 1,
     placeholderData: keepPreviousData,
   });
 
@@ -409,5 +415,8 @@ export const useAppContext = () => {
     userGroups: Array.isArray(userGroups) ? userGroups : EMPTY_ARRAY,
     userGroupsLoaded: !isUserAuthed || (userGroupsFetched && !userGroupsError),
     topScorers: Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,
+    topScorersLoading: activeGroupPichichi && topScorersLoading,
+    topScorersError: activeGroupPichichi && topScorersError,
+    refreshTopScorers,
   };
 };

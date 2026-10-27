@@ -275,7 +275,7 @@ function Layout({ children }) {
               type="button"
               onClick={() => {
                 exitDemoMode?.();
-                navigate('/');
+                navigate('/', { replace: true });
               }}
               style={{
                 background: 'transparent',
@@ -535,26 +535,6 @@ function Layout({ children }) {
             position: 'relative',
           }}
         >
-          {isDemo && !isUserLoggedIn && (
-            <button
-              type="button"
-              onClick={() => {
-                exitDemoMode?.();
-                navigate('/');
-              }}
-              className="glass-btn hidden sm:inline-flex"
-              style={{
-                fontSize: '0.84rem',
-                padding: '6px 12px',
-                minHeight: '36px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              Volver al inicio
-            </button>
-          )}
-
           {!isUserLoggedIn ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {!isDemo && (
@@ -866,10 +846,13 @@ function Layout({ children }) {
               }}
               onClick={() => {
                 setShowMyBetModal(false);
+                if (isDemo) {
+                  exitDemoMode?.();
+                }
                 navigate('/', { replace: true, state: {} });
               }}
             >
-              Volver al inicio
+              {isDemo ? 'Salir de la demo' : 'Volver al inicio'}
             </button>
           </div>
         </div>

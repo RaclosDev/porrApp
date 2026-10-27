@@ -9,10 +9,16 @@ import Flag from '../Flag';
  * @param {Array} props.topScorers - Lista de los máximos goleadores.
  * @returns {JSX.Element} Panel renderizado.
  */
-function TopScorersPanel({ topScorers, hideTitle = false }) {
+function TopScorersPanel({
+  topScorers,
+  hideTitle = false,
+  loading = false,
+  error = false,
+  onRetry,
+}) {
   const [imgErrors, setImgErrors] = useState({});
 
-  if (!topScorers || topScorers.length === 0) {
+  if (loading || error || !topScorers || topScorers.length === 0) {
     return (
       <div
         style={{
@@ -48,7 +54,30 @@ function TopScorersPanel({ topScorers, hideTitle = false }) {
             fontSize: '0.9rem',
           }}
         >
-          Esperando datos de goleadores...
+          {loading
+            ? 'Cargando goleadores…'
+            : error
+              ? 'No se han podido cargar los goleadores.'
+              : 'Todavía no hay datos de goleadores disponibles.'}
+          {error && onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              style={{
+                display: 'block',
+                margin: '12px auto 0',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: '1px solid var(--accent-cyan, #00d2d3)',
+                background: 'rgba(0, 210, 211, 0.12)',
+                color: 'var(--text-main, #fff)',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Reintentar
+            </button>
+          )}
         </div>
       </div>
     );
