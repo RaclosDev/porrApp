@@ -81,7 +81,7 @@ function Layout({ children }) {
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
   const location = useLocation();
-  const isDemo = isDemoMode || location.pathname === '/demo';
+  const isDemo = false;
 
   useEffect(() => {
     if (!isDemoMode && location.pathname === '/demo') {

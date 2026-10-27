@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Home, Trophy, Users, Calendar, Pencil, Swords, LayoutGrid } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
@@ -12,15 +12,13 @@ export default function MobileBottomNav() {
   const {
     activeGroupPoolFormat,
     activeCompetitionFormatType,
-    isDemoMode,
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
     isRaclos,
   } = useAppContext();
 
-  const location = useLocation();
-  const isDemo = isDemoMode || location.pathname === '/demo';
+  const isDemo = false;
   const isNavLocked =
     isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo && !isRaclos;
   const isMatchDay =
