@@ -9,7 +9,7 @@ import jakarta.annotation.PostConstruct;
 import java.util.TimeZone;
 
 /**
- * 🚀 Clase principal (Entry Point) de la aplicación Spring Boot "Porra Mundial".
+ *  Clase principal (Entry Point) de la aplicación Spring Boot "Porra Mundial".
  * 
  * Anotaciones importantes:
  * - @SpringBootApplication: Autoconfiguración y escaneo de componentes.
