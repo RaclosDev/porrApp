@@ -54,8 +54,8 @@ const DemoPage = () => {
   React.useEffect(() => {
     enterDemoMode?.();
     setIsAuthenticated?.(true);
-    setUserName?.('DemoUser');
-    setUserId?.('demo-1');
+    setUserName?.('raclos');
+    setUserId?.('raclos');
   }, [enterDemoMode, setIsAuthenticated, setUserName, setUserId]);
 
   return <Bracket />;
