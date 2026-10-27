@@ -120,7 +120,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
                     }}
                   >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.home}</span>
-                    <Flag team={m.home} />
+                    <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
                   </div>
                   <div
                     style={{
@@ -142,7 +142,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
                       gap: '6px',
                     }}
                   >
-                    <Flag team={m.away} />
+                    <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.away}</span>
                   </div>
                 </div>

@@ -97,7 +97,7 @@ describe('matchday editing and navigation', () => {
       ),
     );
     await waitFor(() => expect(screen.getByLabelText('Goles de Equipo A')).toHaveValue(3));
-    fireEvent.click(screen.getByRole('button', { name: /💾 Guardar \(/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() =>
       expect(api.submitMatchdayPredictions).toHaveBeenCalledWith('10', [
         { matchId: 101, homeScore: 3, awayScore: 1, sign: '1' },
@@ -108,7 +108,7 @@ describe('matchday editing and navigation', () => {
   it('rejects a partial score instead of sending a stale sign', async () => {
     render(tree());
     fireEvent.change(await screen.findByLabelText('Goles de Equipo A'), { target: { value: '1' } });
-    fireEvent.click(screen.getByRole('button', { name: /💾 Guardar \(/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Completa los dos marcadores');
     expect(api.submitMatchdayPredictions).not.toHaveBeenCalled();
   });
@@ -119,8 +119,9 @@ describe('matchday editing and navigation', () => {
       fixture(102, 'group', 'Sin ronda'),
     ]);
     render(tree());
-    expect(await screen.findByRole('button', { name: 'final' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Fecha 2099-01-01' }));
+    const roundSelect = await screen.findByLabelText('Seleccionar jornada');
+    expect(await screen.findByRole('option', { name: 'final' })).toBeInTheDocument();
+    fireEvent.change(roundSelect, { target: { value: 'Fecha 2099-01-01' } });
     expect(screen.getByLabelText('Goles de Sin ronda')).toBeInTheDocument();
     expect(screen.queryByLabelText('Goles de Finalista')).not.toBeInTheDocument();
   });
@@ -135,7 +136,7 @@ describe('matchday editing and navigation', () => {
     );
     const view = render(tree());
     fireEvent.click(await screen.findByRole('button', { name: 'Pronosticar signo 1' }));
-    fireEvent.click(screen.getByRole('button', { name: /💾 Guardar \(/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(api.submitMatchdayPredictions).toHaveBeenCalled());
     context = { ...context, activeGroupId: '20' };
     view.rerender(tree());
@@ -146,7 +147,7 @@ describe('matchday editing and navigation', () => {
     expect(screen.queryByText('Guardado A')).not.toBeInTheDocument();
   });
 
-  it('does not render "Todas las Jornadas" and formats rounds with independent buttons and past dropdown', async () => {
+  it('lists every round in one selector and navigates with previous/next controls', async () => {
     api.fetchMatchdayFixtures.mockResolvedValue([
       { ...fixture(1, 'Jornada 1', 'Equipo 1'), finished: true },
       { ...fixture(2, 'Jornada 2', 'Equipo 2'), finished: true },
@@ -160,29 +161,27 @@ describe('matchday editing and navigation', () => {
     // "Todas las Jornadas" button must not exist
     expect(screen.queryByRole('button', { name: 'Todas las Jornadas' })).not.toBeInTheDocument();
 
-    // With J1, J2, J3 finished and J4 active:
-    // - earlierPastRounds = [J1, J2] (in select)
-    // - lastRound = J3 (button)
-    // - currentRound = J4 (button)
-    // - nextRound = J5 (button)
-    // - futureRounds = [J6] (in select)
-    expect(await screen.findByRole('button', { name: 'Jornada 3' })).toHaveTextContent(
-      'Última: Jornada 3',
-    );
-    expect(screen.getByRole('button', { name: 'Jornada 4' })).toHaveTextContent(
-      'Actual: Jornada 4',
-    );
-    expect(screen.getByRole('button', { name: 'Jornada 5' })).toHaveTextContent(
-      'Próxima: Jornada 5',
-    );
+    const roundSelect = await screen.findByLabelText('Seleccionar jornada');
+    // The current round (first with pending matches) is selected by default
+    expect(roundSelect).toHaveValue('Jornada 4');
+    expect(Array.from(roundSelect.querySelectorAll('option')).map((o) => o.value)).toEqual([
+      'Jornada 1',
+      'Jornada 2',
+      'Jornada 3',
+      'Jornada 4',
+      'Jornada 5',
+      'Jornada 6',
+    ]);
+    expect(screen.queryByLabelText('Jornadas anteriores')).not.toBeInTheDocument();
 
-    const pastSelect = screen.getByLabelText('Jornadas anteriores');
-    expect(pastSelect).toBeInTheDocument();
-    expect(pastSelect).toHaveTextContent('Jornada 1');
-    expect(pastSelect).toHaveTextContent('Jornada 2');
-    expect(pastSelect).not.toHaveTextContent('Jornada 3'); // J3 is independent button!
+    fireEvent.click(screen.getByRole('button', { name: 'Jornada siguiente' }));
+    expect(roundSelect).toHaveValue('Jornada 5');
 
-    // Counter scopes to selected round (J4 has 1 match, 0 predicted -> (0/1), not (0/6))
-    expect(screen.getByRole('button', { name: /💾 Guardar \(/ })).toHaveTextContent('(0/1)');
+    fireEvent.change(roundSelect, { target: { value: 'Jornada 1' } });
+    expect(roundSelect).toHaveValue('Jornada 1');
+    expect(screen.getByRole('button', { name: 'Jornada anterior' })).toBeDisabled();
+
+    // Counter scopes to the selected round (J1 has 1 match, 0 predicted -> 0/1, not 0/6)
+    expect(screen.getByText('0/1 pronosticados')).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendBets } from '../services/api';
+import Flag from './Flag';
 
 export default function MatchFriendsBetsModal({ groupId, match, onClose }) {
   if (!match) return null;
@@ -99,16 +100,32 @@ export default function MatchFriendsBetsModal({ groupId, match, onClose }) {
                 fontWeight: 800,
                 display: 'flex',
                 alignItems: 'center',
+                flexWrap: 'wrap',
+                rowGap: '4px',
                 gap: '8px',
               }}
             >
-              <span>{match.homeTeam}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <Flag
+                  team={match.homeTeam}
+                  logo={match.homeTeamLogo}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span>{match.homeTeam}</span>
+              </span>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 {match.finished && match.actualHomeScore !== null
                   ? `${match.actualHomeScore} - ${match.actualAwayScore}`
                   : 'vs'}
               </span>
-              <span>{match.awayTeam}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <Flag
+                  team={match.awayTeam}
+                  logo={match.awayTeamLogo}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span>{match.awayTeam}</span>
+              </span>
             </h2>
           </div>
           <button

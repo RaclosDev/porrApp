@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -143,55 +143,31 @@ function MatchdayLeague({ context }) {
     }
   }, [fixtures]);
 
-  // Extraer rondas disponibles y estructurarlas en:
-  // - earlierPastRounds: jornadas anteriores (excluyendo la última jornada)
-  // - lastRound: la última jornada finalizada justo antes de la actual
-  // - currentRound: la jornada actual (en juego o próxima a empezar)
-  // - nextRound: la jornada inmediatamente posterior a la actual
-  // - futureRounds: jornadas futuras más allá de la próxima
-  const { availableRounds, earlierPastRounds, lastRound, currentRound, nextRound, futureRounds } =
-    useMemo(() => {
-      const rounds = new Set();
-      fixtures.forEach((f) => {
-        rounds.add(roundLabelFor(f));
-      });
-      const sorted = Array.from(rounds);
-
-      if (sorted.length === 0) {
-        return {
-          availableRounds: [],
-          earlierPastRounds: [],
-          lastRound: null,
-          currentRound: null,
-          nextRound: null,
-          futureRounds: [],
-        };
+  // Jornadas disponibles en orden y jornada actual (la primera con partidos sin finalizar).
+  const { availableRounds, currentRound } = useMemo(() => {
+    const rounds = [];
+    const seen = new Set();
+    fixtures.forEach((f) => {
+      const label = roundLabelFor(f);
+      if (!seen.has(label)) {
+        seen.add(label);
+        rounds.push(label);
       }
+    });
 
-      let activeIndex = sorted.findIndex((r) => {
-        const matchesInR = fixtures.filter((f) => roundLabelFor(f) === r);
-        return matchesInR.some((m) => !m.finished);
-      });
+    if (rounds.length === 0) {
+      return { availableRounds: [], currentRound: null };
+    }
 
-      if (activeIndex === -1) {
-        activeIndex = sorted.length - 1;
-      }
+    let activeIndex = rounds.findIndex((r) =>
+      fixtures.some((f) => roundLabelFor(f) === r && !f.finished),
+    );
+    if (activeIndex === -1) activeIndex = rounds.length - 1;
 
-      const cur = sorted[activeIndex] || null;
-      const last = activeIndex > 0 ? sorted[activeIndex - 1] : null;
-      const nxt = activeIndex + 1 < sorted.length ? sorted[activeIndex + 1] : null;
-      const earlierPast = activeIndex > 1 ? sorted.slice(0, activeIndex - 1) : [];
-      const future = activeIndex + 2 < sorted.length ? sorted.slice(activeIndex + 2) : [];
+    return { availableRounds: rounds, currentRound: rounds[activeIndex] };
+  }, [fixtures]);
 
-      return {
-        availableRounds: sorted,
-        earlierPastRounds: earlierPast,
-        lastRound: last,
-        currentRound: cur,
-        nextRound: nxt,
-        futureRounds: future,
-      };
-    }, [fixtures]);
+  const roundIndex = availableRounds.indexOf(selectedRound);
 
   // Seleccionar la jornada actual por defecto al cargar los partidos
   useEffect(() => {
@@ -396,65 +372,26 @@ function MatchdayLeague({ context }) {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '16px 12px 60px' }}>
+    <div className="md-page">
       {/* Cabecera de la jornada */}
-      <div
-        className="glass-panel"
-        style={{
-          padding: '20px',
-          marginBottom: '20px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '15px',
-          borderRadius: '16px',
-        }}
-      >
-        <div>
-          {activeGroupIsLocked && (
-            <div style={{ marginBottom: '6px' }}>
-              <span
-                style={{
-                  background: 'rgba(231, 76, 60, 0.2)',
-                  color: '#e74c3c',
-                  padding: '3px 8px',
-                  borderRadius: '12px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                }}
-              >
-                🔒 Porra Cerrada
-              </span>
-            </div>
-          )}
-          <h1 style={{ margin: 0, fontSize: '1.6rem', color: '#fff', fontWeight: 800 }}>
-            {activeGroupName || 'Liga de Pronósticos'}
-          </h1>
+      <div className="md-page-header">
+        <div style={{ minWidth: 0 }}>
+          <h1>{activeGroupName || 'Jornadas'}</h1>
+          <p className="md-page-sub">
+            {activeGroupIsLocked
+              ? '🔒 Porra cerrada'
+              : `${roundPredictedCount}/${roundFixtures.length} pronosticados`}
+          </p>
         </div>
 
-        {/* Acciones principales */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button
-            onClick={handleSaveAll}
-            disabled={saveMutation.isPending || activeGroupIsLocked}
-            className="glass-btn primary-btn"
-            style={{
-              padding: '10px 20px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.95rem',
-              cursor: activeGroupIsLocked ? 'not-allowed' : 'pointer',
-              opacity: activeGroupIsLocked ? 0.6 : 1,
-            }}
-          >
-            {saveMutation.isPending
-              ? '💾 Guardando...'
-              : `💾 Guardar (${roundPredictedCount}/${roundFixtures.length})`}
-          </button>
-        </div>
+        <button
+          onClick={handleSaveAll}
+          disabled={saveMutation.isPending || activeGroupIsLocked}
+          className="glass-btn primary-btn md-save-btn"
+          style={{ cursor: activeGroupIsLocked ? 'not-allowed' : 'pointer' }}
+        >
+          {saveMutation.isPending ? 'Guardando…' : 'Guardar'}
+        </button>
       </div>
 
       {/* Alertas de éxito o error */}
@@ -501,247 +438,71 @@ function MatchdayLeague({ context }) {
 
       {/* Selector de ronda o jornada */}
       {availableRounds.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            overflowX: 'auto',
-            paddingBottom: '10px',
-            marginBottom: '16px',
-            flexWrap: 'wrap',
-          }}
-        >
-          {/* Desplegable para jornadas anteriores (excluyendo la última jornada) */}
-          {earlierPastRounds.length > 0 && (
-            <div style={{ position: 'relative' }}>
-              <select
-                value={earlierPastRounds.includes(selectedRound) ? selectedRound : ''}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setSelectedRound(e.target.value);
-                  }
-                }}
-                className="glass-input"
-                style={{
-                  padding: '6px 14px',
-                  fontSize: '0.85rem',
-                  borderRadius: '20px',
-                  background: earlierPastRounds.includes(selectedRound)
-                    ? '#00d2d3'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  color: earlierPastRounds.includes(selectedRound) ? '#000' : 'var(--text-light)',
-                  border: earlierPastRounds.includes(selectedRound)
-                    ? '1px solid #00d2d3'
-                    : '1px solid rgba(255, 255, 255, 0.15)',
-                  cursor: 'pointer',
-                  fontWeight: earlierPastRounds.includes(selectedRound) ? 700 : 500,
-                  outline: 'none',
-                }}
-                aria-label="Jornadas anteriores"
-              >
-                <option
-                  value=""
-                  disabled={!earlierPastRounds.includes(selectedRound)}
-                  style={{ background: '#0f172a', color: '#fff' }}
-                >
-                  {earlierPastRounds.includes(selectedRound)
-                    ? `⏮️ ${selectedRound} (Finalizada)`
-                    : '⏮️ Jornadas anteriores...'}
-                </option>
-                {earlierPastRounds.map((r) => (
-                  <option key={r} value={r} style={{ background: '#0f172a', color: '#fff' }}>
-                    {r} (Finalizada)
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+        <div className="md-round-bar">
+          <button
+            type="button"
+            className="glass-btn md-round-step"
+            onClick={() => setSelectedRound(availableRounds[roundIndex - 1])}
+            disabled={roundIndex <= 0}
+            aria-label="Jornada anterior"
+          >
+            ‹
+          </button>
 
-          {/* Botón para la última jornada por separado */}
-          {lastRound && (
-            <button
-              key={lastRound}
-              type="button"
-              aria-label={lastRound}
-              onClick={() => setSelectedRound(lastRound)}
-              className={`glass-btn ${selectedRound === lastRound ? 'active' : ''}`}
-              title={`Última jornada: ${lastRound}`}
-              style={{
-                padding: '6px 14px',
-                fontSize: '0.85rem',
-                borderRadius: '20px',
-                whiteSpace: 'nowrap',
-                background: selectedRound === lastRound ? '#00d2d3' : 'rgba(255,255,255,0.05)',
-                color: selectedRound === lastRound ? '#000' : 'var(--text-light)',
-                fontWeight: selectedRound === lastRound ? 700 : 500,
-              }}
-            >
-              ⏮️ Última: {lastRound}
-            </button>
-          )}
+          <select
+            className="md-round-select"
+            value={selectedRound || ''}
+            onChange={(e) => setSelectedRound(e.target.value)}
+            aria-label="Seleccionar jornada"
+          >
+            {availableRounds.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
 
-          {/* Botón para la jornada actual por separado */}
-          {currentRound && (
-            <button
-              key={currentRound}
-              type="button"
-              aria-label={currentRound}
-              onClick={() => setSelectedRound(currentRound)}
-              className={`glass-btn ${selectedRound === currentRound ? 'active' : ''}`}
-              title={`Jornada actual: ${currentRound}`}
-              style={{
-                padding: '6px 14px',
-                fontSize: '0.85rem',
-                borderRadius: '20px',
-                whiteSpace: 'nowrap',
-                background: selectedRound === currentRound ? '#00d2d3' : 'rgba(255,255,255,0.05)',
-                color: selectedRound === currentRound ? '#000' : 'var(--text-light)',
-                fontWeight: selectedRound === currentRound ? 700 : 500,
-              }}
-            >
-              ⚽ Actual: {currentRound}
-            </button>
-          )}
-
-          {/* Botón para la próxima jornada por separado */}
-          {nextRound && (
-            <button
-              key={nextRound}
-              type="button"
-              aria-label={nextRound}
-              onClick={() => setSelectedRound(nextRound)}
-              className={`glass-btn ${selectedRound === nextRound ? 'active' : ''}`}
-              title={`Próxima jornada: ${nextRound}`}
-              style={{
-                padding: '6px 14px',
-                fontSize: '0.85rem',
-                borderRadius: '20px',
-                whiteSpace: 'nowrap',
-                background: selectedRound === nextRound ? '#00d2d3' : 'rgba(255,255,255,0.05)',
-                color: selectedRound === nextRound ? '#000' : 'var(--text-light)',
-                fontWeight: selectedRound === nextRound ? 700 : 500,
-              }}
-            >
-              ⏭️ Próxima: {nextRound}
-            </button>
-          )}
-
-          {/* Desplegable para jornadas futuras posteriores a la próxima */}
-          {futureRounds.length > 0 && (
-            <div style={{ position: 'relative' }}>
-              <select
-                value={futureRounds.includes(selectedRound) ? selectedRound : ''}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setSelectedRound(e.target.value);
-                  }
-                }}
-                className="glass-input"
-                style={{
-                  padding: '6px 14px',
-                  fontSize: '0.85rem',
-                  borderRadius: '20px',
-                  background: futureRounds.includes(selectedRound)
-                    ? '#00d2d3'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  color: futureRounds.includes(selectedRound) ? '#000' : 'var(--text-light)',
-                  border: futureRounds.includes(selectedRound)
-                    ? '1px solid #00d2d3'
-                    : '1px solid rgba(255, 255, 255, 0.15)',
-                  cursor: 'pointer',
-                  fontWeight: futureRounds.includes(selectedRound) ? 700 : 500,
-                  outline: 'none',
-                }}
-                aria-label="Más jornadas"
-              >
-                <option
-                  value=""
-                  disabled={!futureRounds.includes(selectedRound)}
-                  style={{ background: '#0f172a', color: '#fff' }}
-                >
-                  {futureRounds.includes(selectedRound) ? `⏭️ ${selectedRound}` : 'Más jornadas...'}
-                </option>
-                {futureRounds.map((r) => (
-                  <option key={r} value={r} style={{ background: '#0f172a', color: '#fff' }}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <button
+            type="button"
+            className="glass-btn md-round-step"
+            onClick={() => setSelectedRound(availableRounds[roundIndex + 1])}
+            disabled={roundIndex === -1 || roundIndex >= availableRounds.length - 1}
+            aria-label="Jornada siguiente"
+          >
+            ›
+          </button>
         </div>
       )}
 
       {/* Pestañas de filtro rápido: Todos / Pendientes / Finalizados */}
       {fixtures.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            marginBottom: '16px',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-            paddingBottom: '8px',
-          }}
-        >
+        <div className="md-filters" role="tablist" aria-label="Filtro de partidos">
           <button
             type="button"
+            role="tab"
+            aria-selected={statusFilter === 'ALL'}
             onClick={() => setStatusFilter('ALL')}
-            className={`glass-btn ${statusFilter === 'ALL' ? 'active' : ''}`}
-            style={{
-              padding: '6px 14px',
-              fontSize: '0.85rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              background: statusFilter === 'ALL' ? '#00d2d3' : 'transparent',
-              color: statusFilter === 'ALL' ? '#000' : 'var(--text-muted)',
-              border: 'none',
-              cursor: 'pointer',
-            }}
+            className={`md-filter${statusFilter === 'ALL' ? ' is-active' : ''}`}
           >
-            Todos ({roundFixtures.length})
+            Todos <b>{roundFixtures.length}</b>
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={statusFilter === 'PENDING'}
             onClick={() => setStatusFilter('PENDING')}
-            className={`glass-btn ${statusFilter === 'PENDING' ? 'active' : ''}`}
-            style={{
-              padding: '6px 14px',
-              fontSize: '0.85rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              background: statusFilter === 'PENDING' ? '#f39c12' : 'transparent',
-              color:
-                statusFilter === 'PENDING'
-                  ? '#000'
-                  : pendingCount > 0
-                    ? '#f39c12'
-                    : 'var(--text-muted)',
-              border:
-                pendingCount > 0 && statusFilter !== 'PENDING'
-                  ? '1px solid rgba(243, 156, 18, 0.4)'
-                  : 'none',
-              cursor: 'pointer',
-            }}
+            className={`md-filter is-pending${statusFilter === 'PENDING' ? ' is-active' : ''}`}
           >
-            ⚠️ Por Pronosticar ({pendingCount})
+            Pendientes <b>{pendingCount}</b>
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={statusFilter === 'FINISHED'}
             onClick={() => setStatusFilter('FINISHED')}
-            className={`glass-btn ${statusFilter === 'FINISHED' ? 'active' : ''}`}
-            style={{
-              padding: '6px 14px',
-              fontSize: '0.85rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              background: statusFilter === 'FINISHED' ? '#2ecc71' : 'transparent',
-              color: statusFilter === 'FINISHED' ? '#000' : 'var(--text-muted)',
-              border: 'none',
-              cursor: 'pointer',
-            }}
+            className={`md-filter is-finished${statusFilter === 'FINISHED' ? ' is-active' : ''}`}
           >
-            🏁 Finalizados ({finishedCount})
+            Finalizados <b>{finishedCount}</b>
           </button>
         </div>
       )}
@@ -774,13 +535,7 @@ function MatchdayLeague({ context }) {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {displayedFixtures.map((fixture, idx) => {
-          const prev = idx > 0 ? displayedFixtures[idx - 1] : null;
-          const currentLabel = roundLabelFor(fixture);
-          const showGroupHeader =
-            !selectedRound &&
-            currentLabel !== 'Sin jornada' &&
-            (!prev || roundLabelFor(prev) !== currentLabel);
+        {displayedFixtures.map((fixture) => {
           const pred = localPredictions[fixture.matchId] || {
             homeScore: '',
             awayScore: '',
@@ -789,390 +544,146 @@ function MatchdayLeague({ context }) {
           const isMatchLocked = fixture.locked || activeGroupIsLocked;
 
           return (
-            <Fragment key={fixture.matchId}>
-              {showGroupHeader && (
-                <h3
-                  style={{
-                    color: '#a29bfe',
-                    fontSize: '1rem',
-                    fontWeight: 800,
-                    margin: idx === 0 ? '0 0 10px' : '20px 0 10px',
-                    paddingBottom: '6px',
-                    borderBottom: '1px solid rgba(162, 155, 254, 0.3)',
-                  }}
-                >
-                  📅 {currentLabel}
-                </h3>
-              )}
-              <div
-                className="glass-panel"
-                style={{
-                  padding: '16px 20px',
-                  borderRadius: '14px',
-                  border: isMatchLocked
-                    ? '1px solid rgba(255,255,255,0.08)'
-                    : '1px solid var(--border-color)',
-                  opacity: isMatchLocked ? 0.85 : 1,
-                  position: 'relative',
-                }}
-              >
-                {/* Barra superior de información del partido */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                    fontSize: '0.8rem',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <div>
-                    <span>📅 {formatDate(fixture.matchDate)}</span>
-                    {fixture.round && (
-                      <span style={{ marginLeft: '10px', color: '#a29bfe' }}>
-                        • {fixture.round}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Badge de estado del partido */}
-                  <div>
-                    {fixture.finished ? (
-                      <span
-                        style={{
-                          background: 'rgba(46, 204, 113, 0.2)',
-                          color: '#2ecc71',
-                          padding: '2px 8px',
-                          borderRadius: '8px',
-                          fontWeight: 600,
-                        }}
-                      >
-                        🏁 Finalizado ({fixture.actualHomeScore} - {fixture.actualAwayScore})
-                      </span>
-                    ) : isMatchLocked ? (
-                      <span
-                        style={{
-                          background: 'rgba(231, 76, 60, 0.15)',
-                          color: '#ff7675',
-                          padding: '2px 8px',
-                          borderRadius: '8px',
-                        }}
-                        title={fixture.lockReason}
-                      >
-                        🔒 Bloqueado
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          background: 'rgba(0, 210, 211, 0.15)',
-                          color: '#00d2d3',
-                          padding: '2px 8px',
-                          borderRadius: '8px',
-                        }}
-                      >
-                        ⏱️ Abierto
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Contenido principal: Equipos y controles de pronóstico */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
-                    alignItems: 'center',
-                    gap: '12px',
-                  }}
-                >
-                  {/* Equipo Local */}
-                  <div
-                    style={{
-                      textAlign: 'right',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '6px',
-                      minWidth: 0,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <span
-                      title={fixture.homeTeam}
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 'clamp(0.82rem, 2.7vw, 1.05rem)',
-                        color: '#fff',
-                        minWidth: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {fixture.homeTeam}
-                    </span>
-                    {fixture.homeTeamLogo ? (
-                      <img
-                        src={fixture.homeTeamLogo}
-                        alt={fixture.homeTeam}
-                        width={26}
-                        height={26}
-                        loading="lazy"
-                        style={{
-                          width: '26px',
-                          height: '26px',
-                          objectFit: 'contain',
-                          flexShrink: 0,
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <Flag team={fixture.homeTeam} />
-                    )}
-                  </div>
-
-                  {/* Zona central de Marcador y 1X2 */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '6px',
-                      minWidth: '150px',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {/* Inputs de marcador exacto */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <input
-                        type="number"
-                        min="0"
-                        max="99"
-                        inputMode="numeric"
-                        aria-label={`Goles de ${fixture.homeTeam}`}
-                        disabled={isMatchLocked || saveMutation.isPending}
-                        value={pred.homeScore}
-                        onChange={(e) => handleScoreChange(fixture.matchId, 'home', e.target.value)}
-                        placeholder="-"
-                        className="glass-input"
-                        style={{
-                          width: '46px',
-                          height: '42px',
-                          textAlign: 'center',
-                          fontSize: '1.2rem',
-                          fontWeight: 800,
-                          padding: 0,
-                          borderRadius: '8px',
-                          background: isMatchLocked ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.6)',
-                          border: isMatchLocked
-                            ? '1px solid rgba(255,255,255,0.1)'
-                            : '1px solid #00d2d3',
-                          color: isMatchLocked ? 'var(--text-muted)' : '#00d2d3',
-                        }}
-                      />
-
-                      <span
-                        style={{ fontWeight: 800, color: 'var(--text-muted)', fontSize: '1.1rem' }}
-                      >
-                        :
-                      </span>
-
-                      <input
-                        type="number"
-                        min="0"
-                        max="99"
-                        inputMode="numeric"
-                        aria-label={`Goles de ${fixture.awayTeam}`}
-                        disabled={isMatchLocked || saveMutation.isPending}
-                        value={pred.awayScore}
-                        onChange={(e) => handleScoreChange(fixture.matchId, 'away', e.target.value)}
-                        placeholder="-"
-                        className="glass-input"
-                        style={{
-                          width: '46px',
-                          height: '42px',
-                          textAlign: 'center',
-                          fontSize: '1.2rem',
-                          fontWeight: 800,
-                          padding: 0,
-                          borderRadius: '8px',
-                          background: isMatchLocked ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.6)',
-                          border: isMatchLocked
-                            ? '1px solid rgba(255,255,255,0.1)'
-                            : '1px solid #00d2d3',
-                          color: isMatchLocked ? 'var(--text-muted)' : '#00d2d3',
-                        }}
-                      />
-                    </div>
-
-                    {/* Selector rápido 1X2 */}
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {['1', 'X', '2'].map((s) => {
-                        const isSelected = pred.sign === s;
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            disabled={isMatchLocked || saveMutation.isPending}
-                            onClick={() => handleQuickSign(fixture.matchId, s)}
-                            className="glass-btn"
-                            style={{
-                              padding: '3px 12px',
-                              fontSize: '0.8rem',
-                              fontWeight: 800,
-                              borderRadius: '6px',
-                              background: isSelected
-                                ? 'linear-gradient(135deg, #00d2d3, #00a8ff)'
-                                : 'rgba(255,255,255,0.04)',
-                              color: isSelected ? '#000' : 'var(--text-muted)',
-                              border: isSelected
-                                ? '1px solid #00d2d3'
-                                : '1px solid rgba(255,255,255,0.1)',
-                              cursor: isMatchLocked ? 'not-allowed' : 'pointer',
-                            }}
-                            aria-label={`Pronosticar signo ${s}`}
-                          >
-                            {s}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Equipo Visitante */}
-                  <div
-                    style={{
-                      textAlign: 'left',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-start',
-                      gap: '6px',
-                      minWidth: 0,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {fixture.awayTeamLogo ? (
-                      <img
-                        src={fixture.awayTeamLogo}
-                        alt={fixture.awayTeam}
-                        width={26}
-                        height={26}
-                        loading="lazy"
-                        style={{
-                          width: '26px',
-                          height: '26px',
-                          objectFit: 'contain',
-                          flexShrink: 0,
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <Flag team={fixture.awayTeam} />
-                    )}
-                    <span
-                      title={fixture.awayTeam}
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 'clamp(0.82rem, 2.7vw, 1.05rem)',
-                        color: '#fff',
-                        minWidth: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {fixture.awayTeam}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Barra de acción: Ver porras del grupo en este partido */}
-                <div
-                  style={{
-                    marginTop: '12px',
-                    paddingTop: '8px',
-                    borderTop: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {isMatchLocked ? '🔒 Pronósticos cerrados' : '⏳ Cierre al inicio del partido'}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMatchForFriends(fixture)}
-                    className="glass-btn"
-                    style={{
-                      padding: '4px 10px',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      borderRadius: '8px',
-                      background: 'rgba(0, 210, 211, 0.1)',
-                      border: '1px solid rgba(0, 210, 211, 0.25)',
-                      color: '#00d2d3',
-                      cursor: 'pointer',
-                    }}
-                    aria-label={`Ver porras de amigos para ${fixture.homeTeam} vs ${fixture.awayTeam}`}
-                  >
-                    <span>👥</span>
-                    <span>{isMatchLocked ? 'Ver porras del grupo' : 'Ver pronósticos'}</span>
-                  </button>
-                </div>
-
-                {/* Desglose explicable de puntos si el partido ya ha finalizado */}
-                {fixture.finished &&
-                  fixture.pointsAwarded !== null &&
-                  fixture.pointsAwarded !== undefined && (
-                    <div
-                      style={{
-                        marginTop: '12px',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        background:
-                          fixture.pointsAwarded > 0
-                            ? 'rgba(46, 204, 113, 0.12)'
-                            : 'rgba(255,255,255,0.03)',
-                        border:
-                          fixture.pointsAwarded > 0
-                            ? '1px solid rgba(46, 204, 113, 0.3)'
-                            : '1px solid rgba(255,255,255,0.06)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: fixture.pointsAwarded > 0 ? '#2ecc71' : 'var(--text-muted)',
-                        }}
-                      >
-                        {fixture.scoringDetails ||
-                          (fixture.pointsAwarded > 0 ? 'Acierto en pronóstico' : 'Sin puntos')}
-                      </span>
-                      <span
-                        style={{
-                          fontWeight: 800,
-                          color: fixture.pointsAwarded > 0 ? '#2ecc71' : 'var(--text-muted)',
-                          fontSize: '0.95rem',
-                        }}
-                      >
-                        +{fixture.pointsAwarded} pts
-                      </span>
-                    </div>
-                  )}
+            <div key={fixture.matchId} className={`md-match${isMatchLocked ? ' is-locked' : ''}`}>
+              <div className="md-match-top">
+                <span>📅 {formatDate(fixture.matchDate)}</span>
+                {fixture.finished ? (
+                  <span className="md-badge is-finished">
+                    Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
+                  </span>
+                ) : isMatchLocked ? (
+                  <span className="md-badge is-locked" title={fixture.lockReason}>
+                    🔒 Bloqueado
+                  </span>
+                ) : (
+                  <span className="md-badge is-open">⏱️ Abierto</span>
+                )}
               </div>
-            </Fragment>
+
+              <div className="md-team-rows">
+                <div className="md-team-row">
+                  <span className="md-crest">
+                    <Flag
+                      team={fixture.homeTeam}
+                      logo={fixture.homeTeamLogo}
+                      style={{ width: '24px', height: '24px' }}
+                    />
+                  </span>
+                  <span className="md-team-name">{fixture.homeTeam}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    inputMode="numeric"
+                    aria-label={`Goles de ${fixture.homeTeam}`}
+                    disabled={isMatchLocked || saveMutation.isPending}
+                    value={pred.homeScore}
+                    onChange={(e) => handleScoreChange(fixture.matchId, 'home', e.target.value)}
+                    placeholder="-"
+                    className="md-score-input"
+                  />
+                </div>
+
+                <div className="md-team-row">
+                  <span className="md-crest">
+                    <Flag
+                      team={fixture.awayTeam}
+                      logo={fixture.awayTeamLogo}
+                      style={{ width: '24px', height: '24px' }}
+                    />
+                  </span>
+                  <span className="md-team-name">{fixture.awayTeam}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    inputMode="numeric"
+                    aria-label={`Goles de ${fixture.awayTeam}`}
+                    disabled={isMatchLocked || saveMutation.isPending}
+                    value={pred.awayScore}
+                    onChange={(e) => handleScoreChange(fixture.matchId, 'away', e.target.value)}
+                    placeholder="-"
+                    className="md-score-input"
+                  />
+                </div>
+              </div>
+
+              <div className="md-signs">
+                {['1', 'X', '2'].map((s) => {
+                  const isSelected = pred.sign === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={isMatchLocked || saveMutation.isPending}
+                      onClick={() => handleQuickSign(fixture.matchId, s)}
+                      className={`md-sign-btn${isSelected ? ' is-active' : ''}`}
+                      aria-label={`Pronosticar signo ${s}`}
+                      aria-pressed={isSelected}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="md-match-footer">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMatchForFriends(fixture)}
+                  className="md-bets-btn"
+                  aria-label={`Ver porras de amigos para ${fixture.homeTeam} vs ${fixture.awayTeam}`}
+                >
+                  <span aria-hidden="true">👥</span>
+                  <span>Ver pronósticos</span>
+                </button>
+              </div>
+
+              {/* Desglose de puntos si el partido ya ha finalizado */}
+              {fixture.finished &&
+                fixture.pointsAwarded !== null &&
+                fixture.pointsAwarded !== undefined && (
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background:
+                        fixture.pointsAwarded > 0
+                          ? 'rgba(46, 204, 113, 0.12)'
+                          : 'rgba(255,255,255,0.03)',
+                      border:
+                        fixture.pointsAwarded > 0
+                          ? '1px solid rgba(46, 204, 113, 0.3)'
+                          : '1px solid rgba(255,255,255,0.06)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: fixture.pointsAwarded > 0 ? '#2ecc71' : 'var(--text-muted)',
+                      }}
+                    >
+                      {fixture.scoringDetails ||
+                        (fixture.pointsAwarded > 0 ? 'Acierto en pronóstico' : 'Sin puntos')}
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 800,
+                        color: fixture.pointsAwarded > 0 ? '#2ecc71' : 'var(--text-muted)',
+                        fontSize: '0.95rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      +{fixture.pointsAwarded} pts
+                    </span>
+                  </div>
+                )}
+            </div>
           );
         })}
       </div>
