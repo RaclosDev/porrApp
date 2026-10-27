@@ -259,14 +259,8 @@ export function useGroupsDashboard() {
   const handleShareWhatsApp = async (group) => {
     if (!group || !group.joinCode) return;
 
-    const link = `${window.location.origin}/join/${group.joinCode}`;
-    const competition = group.competitionName || 'Fútbol';
-    const format = group.poolFormat === 'MATCH_DAY'
-      ? 'Por jornadas'
-      : group.poolFormat === 'KNOCKOUTS_ONLY'
-        ? 'Eliminatorias'
-        : 'Cuadro completo';
-    const text = `⚽ *${group.name}*\n${competition} · ${format}\nÚnete: ${link}`;
+    const link = `https://porra.raclos.es/join/${group.joinCode}`;
+    const text = `Únete: ${link}`;
 
     const drawInviteImage = async () => {
       const canvas = document.createElement('canvas');
@@ -349,8 +343,9 @@ export function useGroupsDashboard() {
         return;
       }
 
-      // WhatsApp Web no permite adjuntar archivos desde un enlace wa.me.
-      // Se descarga la imagen y se abre WhatsApp con el enlace en el texto para adjuntarla manualmente.
+      // En WhatsApp Web de escritorio no se pueden enviar archivos automáticamente.
+      // Abrimos un chat vacío y copiamos el texto para enviarlo como segundo mensaje,
+      // después de adjuntar y enviar la imagen.
       const objectUrl = URL.createObjectURL(blob);
       const download = document.createElement('a');
       download.href = objectUrl;
@@ -359,12 +354,14 @@ export function useGroupsDashboard() {
       download.click();
       download.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.success('Imagen descargada. En WhatsApp, adjúntala al mensaje que ya incluye el enlace.');
+      await navigator.clipboard.writeText(text);
+      window.open('https://web.whatsapp.com/', '_blank', 'noopener,noreferrer');
+      toast.success('Imagen descargada y enlace copiado. Envía primero la foto; después pega y envía el texto.');
     } catch (e) {
       if (e?.name === 'AbortError') return;
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.error('No se pudo generar la imagen; hemos preparado el mensaje con el enlace.');
+      await navigator.clipboard.writeText(text).catch(() => {});
+      window.open('https://web.whatsapp.com/', '_blank', 'noopener,noreferrer');
+      toast.error('No se pudo generar la imagen. El texto de invitación está copiado si el navegador lo permite.');
     }
   };
 
