@@ -188,7 +188,8 @@ export async function fetchTeamOdds() {
 }
 
 export async function fetchTopScorers() {
-  return fetchJson(`${API_BASE}/scorers`);
+  // Evita que el panel Pichichi permanezca cargando indefinidamente si el backend no responde.
+  return fetchJson(`${API_BASE}/scorers`, { signal: AbortSignal.timeout(12_000) });
 }
 
 export async function fetchLeaderboard(groupId = null) {
