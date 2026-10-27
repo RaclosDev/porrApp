@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
+import Flag from '../components/Flag';
 import { buildBracketData } from '../utils/bracketBuilder';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
@@ -344,6 +345,17 @@ function OfficialBracket() {
               animation: getIsProv(part.champion) ? 'provisional-pulse 1.5s infinite' : 'none',
             }}
           >
+            <Flag
+              team={getName(part.champion) || ''}
+              size="w40"
+              style={{
+                width: 24,
+                height: 18,
+                borderRadius: 2,
+                marginRight: 8,
+                verticalAlign: 'middle',
+              }}
+            />
             {getName(part.champion) || '???'}
           </div>
         </div>
@@ -414,6 +426,17 @@ function OfficialBracket() {
                   : 'none',
               }}
             >
+              <Flag
+                team={getName(part.thirdPlaceWinner) || ''}
+                size="w40"
+                style={{
+                  width: 20,
+                  height: 15,
+                  borderRadius: 2,
+                  marginRight: 6,
+                  verticalAlign: 'middle',
+                }}
+              />
               {getName(part.thirdPlaceWinner) || '???'}
             </div>
           </div>
