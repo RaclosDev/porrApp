@@ -82,7 +82,31 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
   const hasLive = liveMatches && liveMatches.length > 0;
   const isActuallyLive = hasLive && liveMatches.some((m) => new Date(m.date) <= new Date());
 
-  if (!hasLive && nextMatches.length === 0) return null;
+  if (!hasLive && nextMatches.length === 0) {
+    return (
+      <div
+        className="glass-panel"
+        role="status"
+        style={{
+          width: '100%',
+          maxWidth: '480px',
+          margin: '0 auto 20px auto',
+          padding: '24px',
+          textAlign: 'center',
+          color: 'var(--text-muted)',
+          borderRadius: '12px',
+        }}
+      >
+        <div style={{ fontSize: '1.6rem', marginBottom: '8px' }} aria-hidden="true">📅</div>
+        <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary, #fff)' }}>
+          No hay próximos partidos
+        </p>
+        <p style={{ margin: '8px 0 0', fontSize: '0.9rem' }}>
+          La competición puede haber terminado o el calendario todavía no estar disponible.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
