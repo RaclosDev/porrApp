@@ -28,6 +28,7 @@ export default function MobileBottomNav() {
   const navItems = isDemo
     ? [
         { to: '/demo', label: 'Inicio', icon: Home },
+        { to: '/prediction', label: 'Mi Porra', icon: Pencil },
         { to: '/bracket', label: 'Resultados', icon: Swords },
         { to: '/grupos', label: 'Grupos', icon: LayoutGrid },
         { to: '/clasificacion', label: 'Ranking', icon: Trophy },
