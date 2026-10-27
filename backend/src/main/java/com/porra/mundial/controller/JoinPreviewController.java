@@ -23,6 +23,8 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -92,11 +94,13 @@ public class JoinPreviewController {
         String name = "Invitación a una porra";
         String competition = "Fútbol";
         String format = "Cuadro completo";
+        String leagueImageUrl = null;
 
         Optional<League> leagueOptional = findLeague(code);
         if (leagueOptional.isPresent()) {
             League league = leagueOptional.get();
             name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
+            leagueImageUrl = league.getImageUrl();
             Optional<Edition> activeEdition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE");
             if (activeEdition.isPresent()) {
                 Edition edition = activeEdition.get();
@@ -120,16 +124,21 @@ public class JoinPreviewController {
                     IMAGE_WIDTH, IMAGE_HEIGHT, new Color(7, 16, 20)));
             graphics.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 
+            // Reproduce la tarjeta original: foto de la liga a la izquierda y título + pills a la derecha.
+            boolean photoLoaded = drawLeaguePhoto(graphics, leagueImageUrl);
+            int textX = photoLoaded ? 356 : 40;
+            int maxTextWidth = photoLoaded ? 800 : 1120;
+
             graphics.setColor(Color.WHITE);
             graphics.setFont(new Font("Arial", Font.BOLD, 54));
-            drawFittedText(graphics, name, 40, 112, 1120, 54);
+            drawFittedText(graphics, name, textX, 112, maxTextWidth, 54);
 
-            drawPill(graphics, competition, 40, 150,
+            drawPill(graphics, competition, textX, 150,
                     new Color(162, 155, 254, 41), new Color(162, 155, 254, 166),
-                    new Color(196, 181, 253), 26, 1120);
-            drawPill(graphics, format, 40, 214,
+                    new Color(196, 181, 253), 26, maxTextWidth);
+            drawPill(graphics, format, textX, 214,
                     new Color(0, 210, 211, 31), new Color(0, 210, 211, 166),
-                    new Color(0, 210, 211), 26, 1120);
+                    new Color(0, 210, 211), 26, maxTextWidth);
         } finally {
             graphics.dispose();
         }
@@ -137,6 +146,65 @@ public class JoinPreviewController {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             ImageIO.write(image, "png", output);
             return output.toByteArray();
+        }
+    }
+
+    private boolean drawLeaguePhoto(Graphics2D graphics, String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return false;
+        }
+
+        HttpURLConnection connection = null;
+        try {
+            String resolvedUrl = imageUrl.startsWith("https://") || imageUrl.startsWith("http://")
+                    ? imageUrl
+                    : BASE_URL + (imageUrl.startsWith("/") ? imageUrl : "/" + imageUrl);
+            connection = (HttpURLConnection) new URL(resolvedUrl).openConnection();
+            connection.setConnectTimeout(2000);
+            connection.setReadTimeout(3000);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestProperty("Accept", "image/*");
+            connection.connect();
+
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                return false;
+            }
+
+            BufferedImage photo = ImageIO.read(connection.getInputStream());
+            if (photo == null) {
+                return false;
+            }
+
+            int x = 36;
+            int y = 36;
+            int size = 288;
+            double scale = Math.max((double) size / photo.getWidth(), (double) size / photo.getHeight());
+            int width = (int) Math.round(photo.getWidth() * scale);
+            int height = (int) Math.round(photo.getHeight() * scale);
+            int cropX = (width - size) / 2;
+            int cropY = (height - size) / 2;
+
+            BufferedImage square = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+            Graphics2D photoGraphics = square.createGraphics();
+            try {
+                photoGraphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                photoGraphics.drawImage(photo, -cropX, -cropY, width, height, null);
+            } finally {
+                photoGraphics.dispose();
+            }
+
+            graphics.setClip(new RoundRectangle2D.Float(x, y, size, size, 22, 22));
+            graphics.drawImage(square, x, y, null);
+            graphics.setClip(null);
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            // Si la foto no está disponible, conservar la tarjeta con el título y las pills.
+            return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
