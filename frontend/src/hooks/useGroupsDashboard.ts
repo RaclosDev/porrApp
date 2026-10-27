@@ -261,16 +261,9 @@ export function useGroupsDashboard() {
 
     const link = `https://porra.raclos.es/join/${group.joinCode}`;
     const text = `Únete: ${link}`;
-    const competition = group.competitionName || 'Fútbol';
-    const format = group.poolFormat === 'MATCH_DAY'
-      ? 'Por jornadas'
-      : group.poolFormat === 'KNOCKOUTS_ONLY'
-        ? 'Eliminatorias'
-        : 'Cuadro completo';
 
     try {
-      // Usar exactamente el PNG público que declara og:image en /join/{code}.
-      // Así la imagen adjunta y la previsualización del enlace proceden de la misma fuente.
+      // Reutilizar el PNG público que el backend declara como og:image.
       const imageResponse = await fetch(`${link}/image.png`, { cache: 'no-store' });
       if (!imageResponse.ok) {
         throw new Error(`No se pudo obtener la imagen de invitación (HTTP ${imageResponse.status})`);
@@ -281,13 +274,13 @@ export function useGroupsDashboard() {
       }
       const file = new File([blob], 'invitacion-porrapp.png', { type: blob.type || 'image/png' });
 
-      // Compartir el PNG servido por el backend y el texto en una sola operación.
+      // Adjuntar el mismo archivo que recibe WhatsApp al leer los metadatos Open Graph.
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ title: `Invitación a ${group.name}`, text, files: [file] });
         return;
       }
 
-      // Fallback en PC: descargar el mismo PNG que usa og:image y preparar el texto.
+      // Fallback en PC: descargar el mismo PNG y abrir WhatsApp con el texto preparado.
       const objectUrl = URL.createObjectURL(blob);
       const download = document.createElement('a');
       download.href = objectUrl;
@@ -302,33 +295,6 @@ export function useGroupsDashboard() {
       if (e?.name === 'AbortError') return;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
       toast.error('No se pudo obtener la imagen de la previsualización; WhatsApp se abrirá con el texto de invitación.');
-    }
-  };
-
-
-      const file = new File([blob], 'invitacion-porrapp.png', { type: 'image/png' });
-
-      // Compartir la imagen adjunta y el texto de invitación en una sola operación.
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ title: `Invitación a ${group.name}`, text, files: [file] });
-        return;
-      }
-
-      // Fallback en PC: descargar la imagen y abrir el selector de chat con solo el texto.
-      const objectUrl = URL.createObjectURL(blob);
-      const download = document.createElement('a');
-      download.href = objectUrl;
-      download.download = 'invitacion-porrapp.png';
-      document.body.appendChild(download);
-      download.click();
-      download.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.success('Imagen descargada. Adjunta la foto en WhatsApp y envía el mensaje con el texto preparado.');
-    } catch (e) {
-      if (e?.name === 'AbortError') return;
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.error('No se pudo generar la imagen; WhatsApp se abrirá con el texto de invitación.');
     }
   };
 
