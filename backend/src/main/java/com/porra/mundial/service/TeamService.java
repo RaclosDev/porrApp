@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 🛡️ Servicio de Equipos (TeamService).
+ * ️ Servicio de Equipos (TeamService).
  * Gestiona a las selecciones del Torneo. Proporciona métodos para 
  * obtener sus datos básicos y las probabilidades calculadas (cuotas).
  */
@@ -68,7 +68,7 @@ public class TeamService {
     }
 
     /**
-     * 🎲 Traductor de Cuotas de Apuestas.
+     *  Traductor de Cuotas de Apuestas.
      * Este método sustituye a tu antiguo archivo estático `data.js`.
      * Convierte los datos almacenados en BD al mismo formato JSON que antes leías
      * por HTTP para que el frontend siga funcionando sin tener que reescribirlo.

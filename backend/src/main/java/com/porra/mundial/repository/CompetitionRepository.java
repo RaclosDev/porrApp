@@ -16,4 +16,10 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
      * @return La competición que coincide exactamente con ese nombre.
      */
     Optional<Competition> findByName(String name);
+
+    /**
+     * @param externalId Código slug de la competición en ESPN (ej. "esp.1", "uefa.champions").
+     * @return La competición asociada.
+     */
+    Optional<Competition> findByExternalId(String externalId);
 }

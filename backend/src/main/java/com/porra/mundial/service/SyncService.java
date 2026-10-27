@@ -2,24 +2,28 @@ package com.porra.mundial.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
+import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.model.SyncAuditLog;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.repository.SyncAuditLogRepository;
 import com.porra.mundial.repository.TeamRepository;
-import com.porra.mundial.dto.BetDataDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.config.Constants;
+import com.porra.mundial.sports.SportsDataProvider;
+import com.porra.mundial.sports.SportsDataProviderRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
@@ -27,14 +31,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 📡 Servicio de Sincronización Automática con API Externa (ESPN).
- * Mantiene la base de datos de la Porra actualizada con resultados y horarios reales.
- * Se ejecuta automáticamente (Cron job en background).
+ * Servicio de Sincronización Automática con Proveedores Deportivos (Fase 4).
+ * Soporta múltiples competiciones y adaptadores (ESPN, API-Football),
+ * con trazabilidad en auditoría, estados canónicos normalizados y recálculo automático.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class SyncService {
+
+    private final java.util.concurrent.locks.ReentrantLock syncLock = new java.util.concurrent.locks.ReentrantLock();
 
     private final TeamRepository teamRepository;
     private final MatchRepository matchRepository;
@@ -42,19 +48,29 @@ public class SyncService {
     private final TopScorerService topScorerService;
     private final ObjectMapper objectMapper;
     private final WebSocketService webSocketService;
-    private final HttpClient httpClient;
+    private final com.porra.mundial.repository.CompetitionRepository competitionRepository;
+    private final SportsDataProviderRegistry sportsDataProviderRegistry;
+    private final SyncAuditLogRepository syncAuditLogRepository;
+    private final MatchPredictionService matchPredictionService;
 
-    @Value("${app.espn.scoreboard-url}")
-    private String espnScoreboardUrl;
-
-    private static final String WC_DATE_RANGE = "20260611-20260722";
+    private static final String WC_DATE_RANGE = "2026";
     private static final ZoneId SPAIN_ZONE = ZoneId.of("Europe/Madrid");
+    private volatile LocalDateTime lastSyncTime;
+    private volatile String lastSyncStatus = "INITIALIZING";
+    private volatile int lastMatchesUpdated = 0;
+    private volatile int lastTeamsUpdated = 0;
+    private volatile String lastErrorMessage;
+
+    public LocalDateTime getLastSyncTime() { return lastSyncTime; }
+    public String getLastSyncStatus() { return lastSyncStatus; }
+    public int getLastMatchesUpdated() { return lastMatchesUpdated; }
+    public int getLastTeamsUpdated() { return lastTeamsUpdated; }
+    public String getLastErrorMessage() { return lastErrorMessage; }
 
     /**
-     * Tarea programada que se dispara cíclicamente según app.sync.interval-ms.
-     * Cero impacto al usuario (completamente en background).
+     * Tarea programada cíclica en background.
      */
-    @Scheduled(fixedDelayString = "${app.sync.interval-ms}")
+    @Scheduled(initialDelay = 60000, fixedDelayString = "${app.sync.interval-ms}")
     public void scheduledSync() {
         try {
             syncAll();
@@ -64,41 +80,344 @@ public class SyncService {
     }
 
     /**
-     * Hace el Fetch a la API de ESPN. Está protegido por un Circuit Breaker
-     * para que si ESPN se cae o bannea nuestra IP, el servidor no colapse.
+     * Sincroniza todas las competiciones activas o la competición por defecto.
      */
     @CircuitBreaker(name = "sportsApi", fallbackMethod = "syncFallback")
     public Map<String, Object> syncAll() {
+        if (!syncLock.tryLock()) {
+            log.info("Sincronización omitida: ya hay una sincronización en curso.");
+            return Map.of("status", "skipped", "message", "Sincronización omitida por tarea concurrente");
+        }
+        try {
+            return doSyncAll();
+        } finally {
+            syncLock.unlock();
+        }
+    }
+
+    private Map<String, Object> doSyncAll() {
+        List<Competition> comps = competitionRepository.findAll().stream()
+                .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
+                .collect(Collectors.toList());
+
+        if (comps.isEmpty()) {
+            return syncCompetition(null);
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
+        for (Competition comp : comps) {
+            try {
+                result.put(comp.getName(), syncCompetition(comp.getId()));
+            } catch (Exception e) {
+                log.warn("Error en sync automático de {}: {}", comp.getName(), e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Sincroniza una competición específica seleccionando el proveedor deportivo adecuado.
+     */
+    public Map<String, Object> syncCompetition(Long competitionId) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        Competition targetComp = null;
+        if (competitionId != null) {
+            targetComp = competitionRepository.findById(competitionId).orElse(null);
+        }
+        if (targetComp == null) {
+            targetComp = competitionRepository.findByExternalId("fifa.world")
+                    .or(() -> competitionRepository.findByName("FIFA World Cup 2026"))
+                    .or(() -> competitionRepository.findByName("FIFA_WORLD_CUP_2026"))
+                    .or(() -> competitionRepository.findAll().stream()
+                            .filter(c -> "fifa.world".equalsIgnoreCase(c.getExternalId())
+                                    || (c.getName() != null && (c.getName().toLowerCase().contains("world") || c.getName().toLowerCase().contains("mundial"))))
+                            .findFirst())
+                    .or(() -> competitionRepository.findAll().stream().findFirst())
+                    .orElse(null);
+        }
+
+        if (targetComp != null && (targetComp.getExternalId() == null || targetComp.getExternalId().isBlank())) {
+            targetComp.setExternalId("fifa.world");
+            targetComp.setFormatType("TOURNAMENT");
+            competitionRepository.save(targetComp);
+        }
+
+        String compName = targetComp != null ? targetComp.getName() : "FIFA World Cup 2026";
+        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(compName);
 
         try {
-            JsonNode events = fetchEspnEvents();
+            String slug = targetComp != null && targetComp.getExternalId() != null ? targetComp.getExternalId() : "fifa.world";
             Map<String, Team> nameToTeamCache = buildTeamCache();
-            
             SyncContext context = new SyncContext();
+            context.competition = targetComp;
 
-            for (JsonNode event : events) {
-                processEvent(event, nameToTeamCache, context);
+            if ("fifa.world".equalsIgnoreCase(slug)) {
+                JsonNode events = provider.fetchScoreboardEvents(slug, WC_DATE_RANGE);
+                if (events != null && events.isArray()) {
+                    for (JsonNode event : events) {
+                        processEvent(event, nameToTeamCache, context);
+                    }
+                }
+            } else {
+                LocalDate today = LocalDate.now();
+                List<String> dates = new ArrayList<>();
+                dates.add(today.minusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+                dates.add(today.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+                dates.add(today.plusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+                for (String d : dates) {
+                    try {
+                        JsonNode events = provider.fetchScoreboardEvents(slug, d);
+                        if (events != null && events.isArray()) {
+                            for (JsonNode event : events) {
+                                processEvent(event, nameToTeamCache, context);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        log.debug("Sin eventos en fecha {} para {}: {}", d, slug, ex.getMessage());
+                    }
+                }
             }
 
             propagateKnockoutWinners(context);
-
-            // Una vez parseados todos los partidos, reconstruye la clasificación entera.
             updateStandings(context.teamStats);
 
+            long duration = System.currentTimeMillis() - startTime;
             result.put("teamsUpdated", context.teamsUpdated);
             result.put("matchesUpdated", context.matchesUpdated);
             result.put("standingsUpdated", context.teamStats.size());
+            result.put("provider", provider.getProviderName());
             result.put("status", "success");
-            
-            log.info("ESPN sync completed: {} teams, {} matches updated", context.teamsUpdated, context.matchesUpdated);
+            result.put("durationMs", duration);
 
-            // Si ha habido algún cambio real en base de datos, grita al frontend.
+            lastSyncTime = LocalDateTime.now();
+            lastSyncStatus = "success";
+            lastMatchesUpdated = context.matchesUpdated;
+            lastTeamsUpdated = context.teamsUpdated;
+            lastErrorMessage = null;
+            log.info("{} sync completed: {} teams, {} matches updated in {} ms",
+                    provider.getProviderName(), context.teamsUpdated, context.matchesUpdated, duration);
+
+            // Solo persistimos registro de auditoría en BD si hubo actualizaciones reales (ahorro masivo de egress)
             if (context.matchesUpdated > 0 || context.teamsUpdated > 0) {
+                syncAuditLogRepository.save(SyncAuditLog.builder()
+                        .provider(provider.getProviderName())
+                        .competition(targetComp)
+                        .status("SUCCESS")
+                        .matchesUpdated(context.matchesUpdated)
+                        .teamsUpdated(context.teamsUpdated)
+                        .durationMs(duration)
+                        .syncedAt(lastSyncTime)
+                        .build());
                 webSocketService.invalidateAndNotify();
             }
         } catch (Exception e) {
-            log.error("Sync failed: {}", e.getMessage(), e);
+            long duration = System.currentTimeMillis() - startTime;
+            lastSyncTime = LocalDateTime.now();
+            lastSyncStatus = "error";
+            lastErrorMessage = e.getMessage();
+            log.error("Sync failed for {}: {}", provider.getProviderName(), e.getMessage(), e);
+            result.put("status", "error");
+            result.put("provider", provider.getProviderName());
+            result.put("message", e.getMessage());
+            result.put("durationMs", duration);
+
+            try {
+                syncAuditLogRepository.save(SyncAuditLog.builder()
+                        .provider(provider.getProviderName())
+                        .competition(targetComp)
+                        .status("ERROR")
+                        .durationMs(duration)
+                        .errorMessage(e.getMessage())
+                        .syncedAt(lastSyncTime)
+                        .build());
+            } catch (Exception auditEx) {
+                log.warn("Could not save sync audit log", auditEx);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Resumen de salud y trazabilidad de sincronización para el panel de administración.
+     */
+    public Map<String, Object> getSyncOverview() {
+        Map<String, Object> overview = new LinkedHashMap<>();
+        overview.put("status", lastSyncStatus);
+        overview.put("lastSyncTime", lastSyncTime);
+        overview.put("matchesUpdated", lastMatchesUpdated);
+        overview.put("teamsUpdated", lastTeamsUpdated);
+        overview.put("lastError", lastErrorMessage);
+        overview.put("defaultProvider", sportsDataProviderRegistry.getProviderForCompetition("fifa").getProviderName());
+        overview.put("availableProviders", sportsDataProviderRegistry.getAllProviders().stream()
+                .map(SportsDataProvider::getProviderName)
+                .collect(Collectors.toList()));
+        overview.put("recentLogs", syncAuditLogRepository.findTop20ByOrderBySyncedAtDesc());
+        return overview;
+    }
+
+    /**
+     * Corrección manual auditada de un partido por un administrador.
+     */
+    @Transactional
+    public Match overrideMatchResult(Long matchId, Integer homeScore, Integer awayScore, MatchStatusNormalized status, String adminUser) {
+        return overrideMatchResult(matchId, homeScore, awayScore, null, null, status, adminUser);
+    }
+
+    @Transactional
+    public Match overrideMatchResult(Long matchId, Integer homeScore, Integer awayScore, Integer homeFairPlay, Integer awayFairPlay, MatchStatusNormalized status, String adminUser) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Partido no encontrado con ID: " + matchId));
+
+        match.setHomeScore(homeScore);
+        match.setAwayScore(awayScore);
+        if (homeFairPlay != null) match.setHomeFairPlay(homeFairPlay);
+        if (awayFairPlay != null) match.setAwayFairPlay(awayFairPlay);
+        MatchStatusNormalized finalStatus = status != null ? status : MatchStatusNormalized.FINISHED;
+        match.setStatus(finalStatus);
+        match.setFinished(finalStatus.isFinished());
+
+        if (homeScore != null && awayScore != null) {
+            if (homeScore > awayScore) match.setWinnerTeam(match.getHomeTeam());
+            else if (awayScore > homeScore) match.setWinnerTeam(match.getAwayTeam());
+            else match.setWinnerTeam(null);
+        }
+
+        Match saved = matchRepository.save(match);
+        try {
+            matchPredictionService.evaluatePredictionsForMatch(saved);
+        } catch (Exception e) {
+            log.warn("Evaluation failed during manual override", e);
+        }
+
+        if ("group".equalsIgnoreCase(saved.getRound()) || saved.getGroupName() != null) {
+            try {
+                standingsService.recalculateStandingsFromMatches();
+            } catch (Exception e) {
+                log.warn("Standings recalculation failed during manual override", e);
+            }
+        }
+
+        webSocketService.broadcastMatchScore(
+                saved.getId(),
+                saved.getHomeTeam() != null ? saved.getHomeTeam().getName() : "Local",
+                saved.getAwayTeam() != null ? saved.getAwayTeam().getName() : "Visitante",
+                saved.getHomeScore(),
+                saved.getAwayScore(),
+                saved.getStatus().name()
+        );
+        webSocketService.invalidateAndNotify();
+
+        log.info("Admin {} manually overrode result for match {} ({} {} - {} {}) with status {}",
+                adminUser, matchId,
+                saved.getHomeTeam() != null ? saved.getHomeTeam().getName() : "",
+                homeScore, awayScore,
+                saved.getAwayTeam() != null ? saved.getAwayTeam().getName() : "",
+                finalStatus);
+
+        return saved;
+    }
+
+    /**
+     * Importa el catálogo completo de equipos (con escudos oficiales) y los partidos próximos de una competición vía ESPN.
+     */
+    @Transactional
+    public Map<String, Object> importCompetitionData(Long competitionId) {
+        Competition comp = competitionRepository.findById(competitionId)
+                .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada con ID: " + competitionId));
+
+        String slug = comp.getExternalId();
+        if (slug == null || slug.isBlank()) {
+            throw new IllegalArgumentException("La competición '" + comp.getName() + "' no tiene externalId (slug) configurado");
+        }
+
+        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(comp.getName());
+        Map<String, Object> result = new LinkedHashMap<>();
+        int importedTeams = 0;
+
+        try {
+            // 1. Descargar equipos y sus escudos oficiales
+            JsonNode teamsNode = provider.fetchTeams(slug);
+            Map<String, Team> teamCache = buildTeamCache();
+
+            if (teamsNode != null && teamsNode.isArray()) {
+                for (JsonNode item : teamsNode) {
+                    JsonNode t = item.path("team");
+                    if (t.isMissingNode()) t = item;
+
+                    String id = t.path("id").asText(null);
+                    String displayName = t.path("displayName").asText(t.path("name").asText(null));
+                    String abbr = t.path("abbreviation").asText(null);
+                    String logo = t.path("logos").path(0).path("href").asText(t.path("logo").asText(null));
+
+                    if (displayName != null && !displayName.isBlank()) {
+                        final String fName = displayName;
+                        Team team = teamRepository.findByName(fName)
+                                .or(() -> id != null ? teamRepository.findByExternalId(id) : Optional.empty())
+                                .orElseGet(() -> Team.builder().name(fName).groupName("-").build());
+
+                        team.setName(displayName);
+                        if (abbr != null) team.setNameEn(abbr);
+                        if (id != null) team.setExternalId(id);
+                        if (logo != null && !logo.isBlank()) team.setLogoUrl(logo);
+
+                        teamRepository.save(team);
+                        teamCache.put(displayName, team);
+                        if (id != null) teamCache.put(id, team);
+                        importedTeams++;
+                    }
+                }
+            }
+
+            // 2. Descargar el calendario completo de la temporada.
+            //    ESPN acepta un año natural en `dates` (ej. 2026) y devuelve todos sus
+            //    eventos. Consultamos desde el año de inicio de temporada hasta el
+            //    siguiente para cubrir temporadas que cruzan de año (ago 2026 - may 2027).
+            SyncContext context = new SyncContext();
+            context.competition = comp;
+
+            LocalDate today = LocalDate.now();
+            int startYear = today.getMonthValue() >= 7 ? today.getYear() : today.getYear() - 1;
+            LocalDateTime windowStart = today.minusMonths(3).atStartOfDay();
+            LocalDateTime windowEnd = today.plusMonths(12).atStartOfDay();
+            Set<String> seenEventIds = new HashSet<>();
+
+            for (int year = startYear; year <= today.getYear() + 1; year++) {
+                try {
+                    JsonNode events = provider.fetchScoreboardEvents(slug, String.valueOf(year));
+                    if (events == null || !events.isArray()) {
+                        continue;
+                    }
+                    for (JsonNode event : events) {
+                        String eventId = event.path("id").asText(null);
+                        if (eventId == null || !seenEventIds.add(eventId)) {
+                            continue;
+                        }
+                        LocalDateTime eventDate = parseDate(event.path("date").asText(null));
+                        if (eventDate != null
+                                && (eventDate.isBefore(windowStart) || eventDate.isAfter(windowEnd))) {
+                            continue;
+                        }
+                        processEvent(event, teamCache, context);
+                    }
+                } catch (Exception e) {
+                    log.debug("No events for {} in year {}: {}", slug, year, e.getMessage());
+                }
+            }
+
+            propagateKnockoutWinners(context);
+            updateStandings(context.teamStats);
+
+            result.put("status", "success");
+            result.put("competition", comp.getName());
+            result.put("slug", slug);
+            result.put("importedTeams", importedTeams);
+            result.put("importedMatches", context.matchesUpdated);
+            log.info("Imported {} teams and {} matches for {}", importedTeams, context.matchesUpdated, comp.getName());
+        } catch (Exception e) {
+            log.error("Error al importar datos para {}: {}", comp.getName(), e.getMessage(), e);
             result.put("status", "error");
             result.put("message", e.getMessage());
         }
@@ -106,39 +425,25 @@ public class SyncService {
         return result;
     }
 
-    private JsonNode fetchEspnEvents() throws Exception {
-        String url = espnScoreboardUrl + "?dates=" + WC_DATE_RANGE + "&limit=200";
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(15))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        String json = response.body();
-
-        if (json == null || !json.trim().startsWith("{")) {
-            throw new IllegalStateException("ESPN API returned non-JSON response");
-        }
-
-        JsonNode root = objectMapper.readTree(json);
-        JsonNode events = root.path("events");
-
-        if (!events.isArray()) {
-            throw new IllegalStateException("ESPN API: no events array found");
-        }
-        return events;
-    }
+    private final Map<String, Team> inMemoryTeamCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile long lastTeamCacheRefresh = 0;
+    private static final long TEAM_CACHE_TTL_MS = 3600000; // 1 hora de cache en RAM
 
     private Map<String, Team> buildTeamCache() {
-        Map<String, Team> cache = new HashMap<>();
-        teamRepository.findAll().forEach(team -> {
-            if (team.getName() != null) cache.put(team.getName(), team);
-            if (team.getNameEn() != null) cache.put(team.getNameEn(), team);
-            if (team.getExternalId() != null) cache.put(team.getExternalId(), team);
-        });
-        return cache;
+        long now = System.currentTimeMillis();
+        if (inMemoryTeamCache.isEmpty() || (now - lastTeamCacheRefresh > TEAM_CACHE_TTL_MS)) {
+            Map<String, Team> cache = new HashMap<>();
+            teamRepository.findAll().forEach(team -> {
+                if (team.getName() != null) cache.put(team.getName(), team);
+                if (team.getNameEn() != null) cache.put(team.getNameEn(), team);
+                if (team.getExternalId() != null) cache.put(team.getExternalId(), team);
+            });
+            inMemoryTeamCache.clear();
+            inMemoryTeamCache.putAll(cache);
+            lastTeamCacheRefresh = now;
+        }
+        return inMemoryTeamCache;
     }
 
     private void processEvent(JsonNode event, Map<String, Team> nameToTeamCache, SyncContext context) {
@@ -162,13 +467,21 @@ public class SyncService {
 
         if (homeTeam == null || awayTeam == null) return;
 
-        MatchScores scores = parseScoresAndWinner(homeComp, awayComp, homeTeam, awayTeam, status);
-        MatchMetadata metadata = parseMetadata(competition);
+        boolean homeIsPlaceholder = "Por definir".equalsIgnoreCase(homeTeam.getName()) || "TBD".equalsIgnoreCase(homeTeam.getNameEn());
+        boolean awayIsPlaceholder = "Por definir".equalsIgnoreCase(awayTeam.getName()) || "TBD".equalsIgnoreCase(awayTeam.getNameEn());
+        if (homeIsPlaceholder && awayIsPlaceholder) {
+            // No registrar partidos fantasma donde ambos equipos son desconocidos o marcadores de posición
+            return;
+        }
 
-        upsertMatch(espnEventId, homeTeam, awayTeam, scores, matchDate, status, metadata, context);
+        MatchScores scores = parseScoresAndWinner(homeComp, awayComp, homeTeam, awayTeam, status);
+        MatchMetadata metadata = parseMetadata(competition, context.competition);
+
+        int[] cards = calculateMatchCards(competition, homeComp != null ? homeComp.espnId : null, awayComp != null ? awayComp.espnId : null, homeTeam, awayTeam);
+        upsertMatch(espnEventId, homeTeam, awayTeam, scores, cards, matchDate, status, metadata, context);
 
         if (scores.hasScores && "group".equals(metadata.round) && (status.finished || (status.isLive && !isStartingSoon(matchDate)))) {
-            updateMatchStats(competition, homeTeam, awayTeam, scores, context.teamStats);
+            updateMatchStats(cards, homeTeam, awayTeam, scores, context.teamStats);
         }
     }
 
@@ -282,27 +595,49 @@ public class SyncService {
         return scores;
     }
 
-    private MatchMetadata parseMetadata(JsonNode competition) {
+    private boolean isKnockoutMatch(Match m) {
+        if (m == null) return false;
+        if (m.getGroupName() != null && !"-".equals(m.getGroupName()) && !m.getGroupName().trim().isEmpty()) return false;
+        return !isRound(m.getRound(), "group", "jornada");
+    }
+
+    private MatchMetadata parseMetadata(JsonNode competition, Competition comp) {
         String altNote = competition.path("altGameNote").asText("");
         String notes = competition.path("notes").toString();
-        String headline = competition.path("headlines").toString();
-        String combined = (altNote + " " + notes + " " + headline).toLowerCase();
-        String group = null, round = "group";
+        String roundNote = (altNote + " " + notes).toLowerCase();
+        String group = null, round = null;
+        boolean isLeague = comp != null && "LEAGUE".equalsIgnoreCase(comp.getFormatType());
         
         if (altNote.contains("Group ")) {
             group = altNote.substring(altNote.indexOf("Group ") + 6).trim();
             if (group.length() > 2) group = group.substring(0, 1);
             if (group != null) group = group.toUpperCase().trim();
-        } else if (combined.contains("round of 32") || combined.contains("round of 16") || combined.contains("octav")) round = "r16";
-        else if (combined.contains("quarter") || combined.contains("cuart") || combined.contains("qf")) round = "qf";
-        else if (combined.contains("semi") || combined.contains("sf")) round = "sf";
-        else if (combined.contains("third") || combined.contains("3rd") || combined.contains("tercer") || combined.contains("3er")) round = "third";
-        else if (combined.contains("final")) round = "final";
+        }
+
+        if (!isLeague) {
+            if (group != null || roundNote.contains("group ") || roundNote.contains("grupo ")) {
+                round = "group";
+            } else if (roundNote.contains("round of 32") || roundNote.contains("16avo") || roundNote.contains("dieciseis")) {
+                round = "r32";
+            } else if (roundNote.contains("round of 16") || roundNote.contains("octav")) {
+                round = "r16";
+            } else if (roundNote.contains("quarter") || roundNote.contains("cuart") || roundNote.contains("qf")) {
+                round = "qf";
+            } else if (roundNote.contains("semi") || roundNote.contains("sf")) {
+                round = "sf";
+            } else if (roundNote.contains("third place") || roundNote.contains("3rd place") || roundNote.contains("tercer puesto") || roundNote.contains("3er puesto")) {
+                round = "third";
+            } else if (roundNote.contains("final") && !roundNote.contains("semi") && !roundNote.contains("quarter") && !roundNote.contains("octav") && !roundNote.contains("third") && !roundNote.contains("tercer")) {
+                round = "final";
+            } else {
+                round = "group";
+            }
+        }
         
         return new MatchMetadata(group, round);
     }
 
-    private void upsertMatch(String espnEventId, Team home, Team away, MatchScores scores, 
+    private void upsertMatch(String espnEventId, Team home, Team away, MatchScores scores, int[] cards,
                              LocalDateTime date, MatchStatus status, MatchMetadata meta, SyncContext context) {
         Match match = matchRepository.findByExternalId(espnEventId)
                 .orElseGet(() -> Match.builder().externalId(espnEventId).build());
@@ -310,8 +645,13 @@ public class SyncService {
         boolean wasFinished = Boolean.TRUE.equals(match.getFinished());
         boolean updated = match.getId() == null;
 
+        if (match.getCompetition() == null && context.competition != null) {
+            match.setCompetition(context.competition);
+            updated = true;
+        }
         if (updateIfChanged(match.getHomeTeam(), home, match::setHomeTeam)) updated = true;
         if (updateIfChanged(match.getAwayTeam(), away, match::setAwayTeam)) updated = true;
+        boolean scoreChanged = !Objects.equals(match.getHomeScore(), scores.home) || !Objects.equals(match.getAwayScore(), scores.away);
         if (updateIfChanged(match.getWinnerTeam(), scores.winner, match::setWinnerTeam)) updated = true;
         if (updateIfChanged(match.getHomeScore(), scores.home, match::setHomeScore)) updated = true;
         if (updateIfChanged(match.getAwayScore(), scores.away, match::setAwayScore)) updated = true;
@@ -319,18 +659,40 @@ public class SyncService {
         if (updateIfChanged(match.getFinished(), status.finished, match::setFinished)) updated = true;
         if (updateIfChanged(match.getDisplayClock(), status.displayClock, match::setDisplayClock)) updated = true;
         String cleanGroup = meta.groupName != null && !"-".equals(meta.groupName) ? meta.groupName.toUpperCase().trim() : meta.groupName;
-        if (updateIfChanged(match.getGroupName(), cleanGroup, match::setGroupName)) updated = true;
-        if (updateIfChanged(match.getRound(), meta.round, match::setRound)) updated = true;
+        if (cleanGroup != null && updateIfChanged(match.getGroupName(), cleanGroup, match::setGroupName)) updated = true;
+        if (meta.round != null && !"group".equalsIgnoreCase(meta.round)
+                && updateIfChanged(match.getRound(), meta.round, match::setRound)) updated = true;
+        if (cards != null && cards.length >= 2) {
+            if (updateIfChanged(match.getHomeFairPlay(), cards[0], match::setHomeFairPlay)) updated = true;
+            if (updateIfChanged(match.getAwayFairPlay(), cards[1], match::setAwayFairPlay)) updated = true;
+        }
 
-        // Trigger manual Pichichi refresh when a match finishes (don't wait 30 minutes)
+        MatchStatusNormalized normStatus = MatchStatusNormalized.fromExternal(
+                status.isLive ? "in" : (status.finished ? "completed" : "scheduled"),
+                status.finished
+        );
+        if (updateIfChanged(match.getStatus(), normStatus, match::setStatus)) updated = true;
+
+        // Trigger evaluation and Pichichi refresh when a match finishes
         if (!wasFinished && status.finished) {
-            log.info("Match just finished: {} - {}, triggering scorer refresh", home.getName(), away.getName());
+            log.info("Match just finished: {} - {}, evaluating predictions & scorer refresh", home.getName(), away.getName());
+            try { matchPredictionService.evaluatePredictionsForMatch(match); } catch (Exception ex) { log.warn("Match prediction evaluation failed", ex); }
             try { topScorerService.refresh(); } catch (Exception ex) { log.warn("Scorer refresh failed", ex); }
         }
 
         if (updated) {
             matchRepository.save(match);
             context.matchesUpdated++;
+            if (scoreChanged) {
+                webSocketService.broadcastMatchScore(
+                        match.getId(),
+                        match.getHomeTeam() != null ? match.getHomeTeam().getName() : null,
+                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
+                        match.getHomeScore(),
+                        match.getAwayScore(),
+                        status.finished() ? "FINISHED" : (status.isLive() ? "IN_PLAY" : "SCHEDULED")
+                );
+            }
         }
     }
 
@@ -342,7 +704,7 @@ public class SyncService {
         return false;
     }
 
-    private void updateMatchStats(JsonNode competition, Team home, Team away, MatchScores scores, Map<Long, int[]> teamStats) {
+    private void updateMatchStats(int[] cards, Team home, Team away, MatchScores scores, Map<Long, int[]> teamStats) {
         int[] homeStats = teamStats.computeIfAbsent(home.getId(), k -> new int[5]);
         int[] awayStats = teamStats.computeIfAbsent(away.getId(), k -> new int[5]);
 
@@ -354,16 +716,25 @@ public class SyncService {
         else if (scores.away > scores.home) awayStats[0] += 3;
         else { homeStats[0] += 1; awayStats[0] += 1; }
 
-        calculateFairPlay(competition, home, away, homeStats, awayStats);
+        if (cards != null && cards.length >= 2) {
+            homeStats[4] += cards[0];
+            awayStats[4] += cards[1];
+        }
     }
 
     /**
      * Calcula los puntos de Fair Play (tarjetas) desde el JSON de la API.
      * Tarjeta Amarilla = -1. Roja Directa = -4. Doble Amarilla = -3.
      */
-    private void calculateFairPlay(JsonNode competition, Team home, Team away, int[] homeStats, int[] awayStats) {
+    /**
+     * Calcula los puntos de Fair Play (tarjetas) desde el JSON de la API para este partido.
+     * Tarjeta Amarilla = -1. Roja Directa = -4. Doble Amarilla = -3.
+     */
+    private int[] calculateMatchCards(JsonNode competition, String homeEspnId, String awayEspnId, Team home, Team away) {
+        int homeFp = 0;
+        int awayFp = 0;
         JsonNode details = competition.path("details");
-        if (details == null || !details.isArray()) return;
+        if (details == null || !details.isArray()) return new int[] { 0, 0 };
 
         Set<String> yellowPlayers = new HashSet<>();
         for (JsonNode detail : details) {
@@ -377,9 +748,15 @@ public class SyncService {
             
             int penalty = calculateCardPenalty(isYellow, isRed, playerId, yellowPlayers);
             
-            if (Objects.equals(home.getExternalId(), espnTeamId)) homeStats[4] += penalty;
-            else if (Objects.equals(away.getExternalId(), espnTeamId)) awayStats[4] += penalty;
+            boolean isHome = (espnTeamId != null && espnTeamId.equals(homeEspnId))
+                    || (home != null && Objects.equals(home.getExternalId(), espnTeamId));
+            boolean isAway = (espnTeamId != null && espnTeamId.equals(awayEspnId))
+                    || (away != null && Objects.equals(away.getExternalId(), espnTeamId));
+
+            if (isHome) homeFp += penalty;
+            else if (isAway) awayFp += penalty;
         }
+        return new int[] { homeFp, awayFp };
     }
 
     private String extractPlayerId(JsonNode athletes) {
@@ -413,7 +790,7 @@ public class SyncService {
         try {
             List<Match> allMatches = matchRepository.findAll();
             List<Match> sfMatches = allMatches.stream()
-                    .filter(m -> isRound(m.getRound(), "sf", "semi"))
+                    .filter(m -> isKnockoutMatch(m) && isRound(m.getRound(), "sf", "semi"))
                     .filter(m -> Boolean.TRUE.equals(m.getFinished()) || m.getWinnerTeam() != null || (m.getHomeScore() != null && m.getAwayScore() != null && !Objects.equals(m.getHomeScore(), m.getAwayScore())))
                     .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
                     .collect(Collectors.toList());
@@ -421,10 +798,10 @@ public class SyncService {
             if (sfMatches.isEmpty()) return;
 
             List<Match> finals = allMatches.stream()
-                    .filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "octav"))
+                    .filter(m -> isKnockoutMatch(m) && isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "octav", "third", "tercer", "3rd", "3er"))
                     .collect(Collectors.toList());
             List<Match> thirds = allMatches.stream()
-                    .filter(m -> isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
+                    .filter(m -> isKnockoutMatch(m) && isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
                     .collect(Collectors.toList());
 
             Match finalMatch = finals.isEmpty() ? null : finals.get(0);
@@ -450,18 +827,18 @@ public class SyncService {
         }
     }
 
-    public void enrichBetDataWithMatches(BetDataDTO dto) {
+    public void enrichPredictionDataWithMatches(PredictionDataDTO dto) {
         if (dto == null) return;
         try {
             List<Match> allMatches = matchRepository.findAll();
             List<Match> finals = allMatches.stream()
-                    .filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "octav"))
+                    .filter(m -> isKnockoutMatch(m) && isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "octav", "third", "tercer", "3rd", "3er"))
                     .collect(Collectors.toList());
             List<Match> thirds = allMatches.stream()
-                    .filter(m -> isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
+                    .filter(m -> isKnockoutMatch(m) && isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
                     .collect(Collectors.toList());
             List<Match> sfMatches = allMatches.stream()
-                    .filter(m -> isRound(m.getRound(), "sf", "semi"))
+                    .filter(m -> isKnockoutMatch(m) && isRound(m.getRound(), "sf", "semi"))
                     .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
                     .collect(Collectors.toList());
 
@@ -540,8 +917,12 @@ public class SyncService {
                 }
             }
         } catch (Exception e) {
-            log.warn("Could not enrich BetDataDTO with matches: {}", e.getMessage());
+            log.warn("Could not enrich PredictionDataDTO with matches: {}", e.getMessage());
         }
+    }
+
+    public void enrichBetDataWithMatches(PredictionDataDTO dto) {
+        enrichPredictionDataWithMatches(dto);
     }
 
     private Team getLoserTeam(Match m) {
@@ -589,27 +970,16 @@ public class SyncService {
     }
 
     private void updateStandings(Map<Long, int[]> teamStats) {
-        standingsService.clearAll();
-        for (Map.Entry<Long, int[]> entry : teamStats.entrySet()) {
-            teamRepository.findById(entry.getKey()).ifPresent(team -> {
-                if (team.getGroupName() != null && !"-".equals(team.getGroupName()) && !"Por definir".equalsIgnoreCase(team.getName())) {
-                    standingsService.updateStanding(team, team.getGroupName().toUpperCase().trim(),
-                            entry.getValue()[0], entry.getValue()[1], entry.getValue()[2], entry.getValue()[3], entry.getValue()[4]);
-                }
-            });
-        }
-
-        teamRepository.findAll().forEach(team -> {
-            if (team.getGroupName() != null && !"-".equals(team.getGroupName()) && !"Por definir".equalsIgnoreCase(team.getName()) && !teamStats.containsKey(team.getId())) {
-                standingsService.updateStanding(team, team.getGroupName().toUpperCase().trim(), 0, 0, 0, 0, 0);
-            }
-        });
+        standingsService.recalculateStandingsFromMatches();
     }
 
     /**
-     * Fallback method llamado si ESPN falla repetidas veces.
+     * Fallback method llamado si el proveedor falla repetidas veces.
      */
     public Map<String, Object> syncFallback(Exception e) {
+        lastSyncTime = LocalDateTime.now();
+        lastSyncStatus = "circuit_breaker_open";
+        lastErrorMessage = e.getMessage();
         log.warn("Circuit Breaker OPEN or API call failed. Fallback activated. Error: {}", e.getMessage());
         return Map.of("status", "error", "message", "Circuit Breaker activado por fallos reiterados en la API. Reintentando más tarde.");
     }
@@ -620,11 +990,11 @@ public class SyncService {
         return diffMs > 0 && diffMs <= 30 * 60 * 1000;
     }
 
-    // Helper classes
     private static class SyncContext {
         int teamsUpdated = 0;
         int matchesUpdated = 0;
         Map<Long, int[]> teamStats = new HashMap<>();
+        com.porra.mundial.model.Competition competition;
     }
 
     private record MatchStatus(boolean isLive, boolean finished, String displayClock) {}

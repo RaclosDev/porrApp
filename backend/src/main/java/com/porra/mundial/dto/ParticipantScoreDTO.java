@@ -42,6 +42,8 @@ public class ParticipantScoreDTO {
     private int finals;
     /** Puntos por acertar el Pichichi. */
     private int scorer;
+    /** Puntos obtenidos en pronósticos de partidos directos y jornadas (1X2 y marcador). */
+    private int matchPoints;
     /** Suma total de puntos acumulados. */
     private int total;
     
@@ -63,7 +65,7 @@ public class ParticipantScoreDTO {
     @Data
     @Builder
     public static class LogEntry {
-        /** Fase a la que pertenece el punto (ej: "r16", "qf"). */
+        /** Fase a la que pertenece el punto (ej: "r16", "qf", "matchday"). */
         private String stage;
         /** Cantidad de puntos (ej: 1, 2, 5). */
         private int amount;

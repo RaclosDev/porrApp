@@ -3,39 +3,85 @@ package com.porra.mundial.config;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
  * Componente utilitario encargado de todo el ciclo de vida de los tokens JWT (JSON Web Tokens).
  * <p>
  * Responsabilidades:
- * 1. Generar nuevos tokens al hacer login.
- * 2. Extraer información (Claims) de tokens recibidos en las peticiones.
- * 3. Validar firmas y caducidades para garantizar la seguridad.
+ * Generar nuevos tokens al hacer login.
+ * Extraer información (Claims) de tokens recibidos en las peticiones.
+ * Validar firmas y caducidades para garantizar la seguridad.
  * </p>
  */
 @Component
 public class JwtUtil {
 
-    // Extrae la clave secreta desde application.properties o usa una fuerte por defecto si no existe.
-    // En producción (Railway) siempre se debe inyectar a través de la variable de entorno JWT_SECRET.
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
+
+    // Clave criptográfica para firma y verificación HMAC-SHA256
     private final SecretKey key;
+
+    // Lista de claves por defecto de ejemplo o inseguras que jamás deben aceptarse
+    private static final java.util.Set<String> INSECURE_DEFAULT_SECRETS = java.util.Set.of(
+            "1234567890123456789012345678901234567890",
+            "super-secret-jwt-key-change-me-in-production",
+            "your-256-bit-secret-your-256-bit-secret-here"
+    );
 
     // Tiempo de expiración: 7 días (ajustable) en milisegundos
     private static final long EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000L;
 
     /**
      * Constructor que inyecta el secreto JWT.
+     * Si no se provee en el entorno, es débil o es un valor de ejemplo:
+     * - En producción: aborta el arranque lanzando IllegalStateException.
+     * - En desarrollo/test: genera una clave criptográfica segura de 256 bits efímera en memoria.
      * 
-     * @param secret Clave secreta (mínimo 256 bits recomendados para el algoritmo HS256)
+     * @param secret Clave secreta (mínimo 256 bits recomendados para HS256)
      */
-    public JwtUtil(@Value("${app.jwt.secret:1234567890123456789012345678901234567890}") String secret) {
-        // Aseguramos de que el secret tiene el formato correcto generando una clave HMAC-SHA
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    public JwtUtil(@Value("${app.jwt.secret:}") String secret) {
+        boolean isInsecure = isSecretInsecure(secret);
+        boolean isProd = isProductionProfile();
+
+        if (isInsecure) {
+            if (isProd) {
+                throw new IllegalStateException(
+                        "ERROR CRÍTICO DE SEGURIDAD: En perfil de producción es obligatorio configurar una variable " +
+                        "JWT_SECRET robusta de al menos 32 bytes (256 bits) y que no sea una clave de ejemplo o plantilla.");
+            }
+            this.key = Jwts.SIG.HS256.key().build();
+            log.warn("AVISO DE SEGURIDAD: La variable JWT_SECRET no está configurada o usa una clave de plantilla débil. " +
+                     "Se ha generado una clave segura de 256 bits efímera en memoria para no interrumpir desarrollo/tests. " +
+                     "Configura JWT_SECRET con un valor secreto robusto en producción.");
+        } else {
+            this.key = Keys.hmacShaKeyFor(secret.trim().getBytes(StandardCharsets.UTF_8));
+            log.info("JwtUtil inicializado con éxito usando JWT_SECRET inyectado.");
+        }
+    }
+
+    private static boolean isSecretInsecure(String secret) {
+        if (secret == null || secret.isBlank()) return true;
+        String trimmed = secret.trim();
+        if (trimmed.getBytes(StandardCharsets.UTF_8).length < 32) return true;
+        if (INSECURE_DEFAULT_SECRETS.contains(trimmed)) return true;
+        String lower = trimmed.toLowerCase();
+        return lower.contains("change-me") || lower.contains("example");
+    }
+
+    private static boolean isProductionProfile() {
+        String activeProfile = System.getProperty("spring.profiles.active");
+        if (activeProfile == null || activeProfile.isBlank()) {
+            activeProfile = System.getenv("SPRING_PROFILES_ACTIVE");
+        }
+        return activeProfile != null && activeProfile.toLowerCase().contains("prod");
     }
 
     /**

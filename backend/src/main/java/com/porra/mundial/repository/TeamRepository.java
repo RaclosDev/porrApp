@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 🗄️ Repositorio de Equipos.
+ * ️ Repositorio de Equipos.
  * Aquí pedimos a la Base de Datos cosas sobre las selecciones.
  */
 @Repository

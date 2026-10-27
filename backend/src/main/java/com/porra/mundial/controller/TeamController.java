@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 🛡️ Controlador de Equipos (Selecciones Nacionales).
+ * ️ Controlador de Equipos (Selecciones Nacionales).
  * La web llama aquí cuando necesita cargar las banderitas, nombres y cuotas de las selecciones.
  */
 @RestController
@@ -19,7 +19,7 @@ public class TeamController {
     private final TeamService teamService;
 
     /**
-     * 📋 GET /api/teams
+     *  GET /api/teams
      * Devuelve la lista plana de todas las selecciones registradas en el sistema.
      * Sirve para rellenar los desplegables de búsqueda o configuración en React.
      * 
@@ -32,6 +32,7 @@ public class TeamController {
             dto.put("id", t.getId());
             dto.put("name", t.getName());
             dto.put("nameEn", t.getNameEn());
+            dto.put("logoUrl", t.getLogoUrl());
             dto.put("groupName", t.getGroupName());
             dto.put("winOdds", t.getWinOdds());
             dto.put("qualifyOdds", t.getQualifyOdds());
@@ -41,7 +42,7 @@ public class TeamController {
     }
 
     /**
-     * 🎲 GET /api/teams/odds
+     *  GET /api/teams/odds
      * Este endpoint sustituye al antiguo archivo hardcodeado `data.js`.
      * Devuelve las cuotas de apuestas organizadas por Grupos (A, B, C...) para armar
      * la pantalla interactiva de hacer la porra en el Frontend.

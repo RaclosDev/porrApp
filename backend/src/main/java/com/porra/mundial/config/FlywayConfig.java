@@ -22,8 +22,13 @@ public class FlywayConfig {
     @Bean
     public FlywayMigrationStrategy flywayMigrationStrategy() {
         return flyway -> {
-            flyway.repair(); // Limpia la tabla interna de historial si encuentra inconsistencias
-            flyway.migrate(); // Aplica los scripts V1__, V2__ de db/migration/
+            try {
+                flyway.migrate(); // Aplica migraciones directamente
+            } catch (Exception e) {
+                // Si hay fallo o checksum inconsistente, repara y reintenta
+                flyway.repair();
+                flyway.migrate();
+            }
         };
     }
 }

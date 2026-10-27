@@ -9,7 +9,7 @@
 
     <!-- Open Graph (WhatsApp, Twitter, Facebook previews) -->
     <meta property="og:title" content="Porra Mundial 2026 🏆" />
-    <meta property="og:description" content="¿Quién ganará el Mundial? Crea tu pronóstico con fase de grupos, bracket completo y Pichichi. ¡Compite con tus amigos!" />
+    <meta property="og:description" content="¿Quién ganará el Mundial? Crea tu pronóstico con fase de grupos y bracket completo. ¡Compite con tus amigos!" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://porra.raclos.es" />
     <meta property="og:image" content="https://porra.raclos.es/world-cup-icon.png" />
@@ -18,7 +18,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://flagcdn.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://a.espncdn.com" crossorigin>
+    <link rel="dns-prefetch" href="https://a.espncdn.com">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    </noscript>
+
+    <!-- Modern Speculation Rules for Instant Client Route Prefetching -->
+    <script type="speculationrules">
+    {
+      "prefetch": [
+        {
+          "source": "list",
+          "urls": ["/clasificacion", "/jornadas", "/radar", "/stats", "/tabla", "/mis-ligas"],
+          "eagerness": "moderate"
+        }
+      ]
+    }
+    </script>
 
     <!-- AdSense -->
     <meta name="google-adsense-account" content="ca-pub-7312966368630315">

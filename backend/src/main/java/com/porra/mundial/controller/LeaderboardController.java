@@ -21,6 +21,7 @@ import java.util.List;
 public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
+    private final com.porra.mundial.service.GroupService groupService;
 
     /**
      * Calcula y devuelve la clasificación general o específica de un grupo.
@@ -32,7 +33,20 @@ public class LeaderboardController {
      * @return Lista de participantes ordenada de mayor a menor puntuación.
      */
     @GetMapping
-    public ResponseEntity<List<ParticipantScoreDTO>> getLeaderboard(@RequestParam(required = false, defaultValue = "1") Long groupId) {
+    public ResponseEntity<List<ParticipantScoreDTO>> getLeaderboard(
+            @RequestParam(required = false, defaultValue = "1") Long groupId,
+            java.security.Principal principal) {
+        if (groupId != null && !Long.valueOf(1L).equals(groupId)) {
+            String email = principal != null && principal.getName() != null ? principal.getName() : null;
+            if (email == null) {
+                var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                email = (auth != null) ? auth.getName() : null;
+            }
+            if (email == null || !groupService.isUserMemberOrAdmin(groupId, email)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.FORBIDDEN, "No tienes acceso a la clasificación de esta liga privada");
+            }
+        }
         return ResponseEntity.ok(leaderboardService.getLeaderboard(groupId));
     }
 }
