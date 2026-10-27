@@ -1100,23 +1100,31 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
                         )}
                       </div>
                       <span
+                        role="img"
+                        title={isAdvancing ? 'Seleccionado para avanzar a R32' : 'No seleccionado para avanzar a R32'}
+                        aria-label={isAdvancing ? 'Seleccionado para avanzar a R32' : 'No seleccionado para avanzar a R32'}
                         style={{
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          width: '26px',
+                          height: '26px',
                           marginLeft: '8px',
+                          borderRadius: '50%',
+                          fontSize: '0.95rem',
+                          fontWeight: 800,
+                          lineHeight: 1,
                           background: isAdvancing
-                            ? 'rgba(0, 210, 211, 0.2)'
-                            : 'rgba(255, 255, 255, 0.06)',
+                            ? 'rgba(0, 210, 211, 0.16)'
+                            : 'rgba(255, 255, 255, 0.05)',
                           color: isAdvancing ? '#00d2d3' : 'var(--text-muted)',
                           border: isAdvancing
                             ? '1px solid rgba(0, 210, 211, 0.4)'
-                            : '1px solid rgba(255, 255, 255, 0.1)',
+                            : '1px solid rgba(255, 255, 255, 0.12)',
                         }}
                       >
-                        {isAdvancing ? 'Avanza a R32' : 'Eliminado'}
+                        {isAdvancing ? '✓' : '×'}
                       </span>
                     </div>
                   );
