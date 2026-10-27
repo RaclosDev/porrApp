@@ -1101,8 +1101,16 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
                       </div>
                       <span
                         role="img"
-                        title={isAdvancing ? 'Seleccionado para avanzar a R32' : 'No seleccionado para avanzar a R32'}
-                        aria-label={isAdvancing ? 'Seleccionado para avanzar a R32' : 'No seleccionado para avanzar a R32'}
+                        title={
+                          isAdvancing
+                            ? 'Seleccionado para avanzar a R32'
+                            : 'No seleccionado para avanzar a R32'
+                        }
+                        aria-label={
+                          isAdvancing
+                            ? 'Seleccionado para avanzar a R32'
+                            : 'No seleccionado para avanzar a R32'
+                        }
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
