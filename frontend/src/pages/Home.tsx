@@ -459,7 +459,12 @@ function Home({ defaultMode = 'bracket' }) {
             }}
             className="pichichi-mobile-center"
           >
-            <TopScorersPanel topScorers={topScorers} />
+            <TopScorersPanel
+              topScorers={topScorers}
+              loading={topScorersLoading}
+              error={topScorersError}
+              onRetry={refreshTopScorers}
+            />
           </div>
         )}
       </div>
