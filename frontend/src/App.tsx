@@ -5,7 +5,6 @@ import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import { Toaster } from 'react-hot-toast';
 
-const Rules = React.lazy(() => import('./pages/Rules'));
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const Home = React.lazy(() => import('./pages/Home'));
 const Landing = React.lazy(() => import('./pages/Landing'));
@@ -26,7 +25,6 @@ const GUEST_ALLOWED_PATHS = [
   '/demo',
   '/bracket',
   '/grupos',
-  '/reglas',
   '/clasificacion',
   '/search',
   '/stats',
@@ -98,7 +96,6 @@ function App() {
             <Routes>
               <Route path="/" element={<RootPage />} />
               <Route path="/demo" element={<DemoPage />} />
-              <Route path="/reglas" element={<Rules />} />
               <Route path="/join/:code" element={<JoinRedirect />} />
               <Route path="/linkedin" element={<LinkedInEntry />} />
 

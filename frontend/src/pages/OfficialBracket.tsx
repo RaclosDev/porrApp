@@ -473,7 +473,7 @@ function OfficialBracket() {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: '8px',
+            gap: 'clamp(2px, 0.7vw, 8px)',
             marginBottom: '20px',
             marginTop: '5px',
             flexWrap: 'nowrap',
@@ -484,19 +484,21 @@ function OfficialBracket() {
               className="glass-btn"
               onClick={() => setActivePanel((p) => (p === 'live' ? null : 'live'))}
               style={{
-                padding: '6px 10px',
-                fontSize: 'clamp(0.68rem, 2.8vw, 0.85rem)',
+                padding: 'clamp(4px, 1.1vw, 6px) clamp(5px, 1.5vw, 10px)',
+                fontSize: 'clamp(0.6rem, 2.4vw, 0.8rem)',
                 fontWeight: 'bold',
+                minHeight: 'auto',
+                alignSelf: 'stretch',
                 background: activePanel === 'live' ? 'rgba(255, 71, 87, 0.18)' : 'transparent',
                 borderColor: activePanel === 'live' ? '#ff4757' : 'var(--border-color)',
                 color: activePanel === 'live' ? '#ff4757' : 'var(--text-muted)',
-                borderRadius: '8px',
+                borderRadius: '12px',
                 transition: 'all 0.2s',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
               }}
             >
-              🔴 Partidos
+              <span className="results-toggle-icon">🔴</span> Partidos
             </button>
           )}
           <div
@@ -515,9 +517,9 @@ function OfficialBracket() {
               type="button"
               onClick={() => setActiveTab('cuadro')}
               style={{
-                padding: '8px 22px',
+                padding: 'clamp(7px, 1.6vw, 8px) clamp(9px, 2.6vw, 22px)',
                 fontWeight: 800,
-                fontSize: '0.95rem',
+                fontSize: 'clamp(0.76rem, 3vw, 0.95rem)',
                 background:
                   activeTab === 'cuadro'
                     ? 'linear-gradient(135deg, #00d2d3, #01a3a4)'
@@ -541,9 +543,9 @@ function OfficialBracket() {
               type="button"
               onClick={() => setActiveTab('grupos')}
               style={{
-                padding: '8px 22px',
+                padding: 'clamp(7px, 1.6vw, 8px) clamp(9px, 2.6vw, 22px)',
                 fontWeight: 800,
-                fontSize: '0.95rem',
+                fontSize: 'clamp(0.76rem, 3vw, 0.95rem)',
                 background:
                   activeTab === 'grupos'
                     ? 'linear-gradient(135deg, #00d2d3, #01a3a4)'
@@ -569,19 +571,21 @@ function OfficialBracket() {
               className="glass-btn"
               onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
               style={{
-                padding: '6px 10px',
-                fontSize: 'clamp(0.68rem, 2.8vw, 0.85rem)',
+                padding: 'clamp(4px, 1.1vw, 6px) clamp(5px, 1.5vw, 10px)',
+                fontSize: 'clamp(0.6rem, 2.4vw, 0.8rem)',
                 fontWeight: 'bold',
+                minHeight: 'auto',
+                alignSelf: 'stretch',
                 background: activePanel === 'scorers' ? 'rgba(255, 211, 42, 0.18)' : 'transparent',
                 borderColor: activePanel === 'scorers' ? '#ffd32a' : 'var(--border-color)',
                 color: activePanel === 'scorers' ? '#ffd32a' : 'var(--text-muted)',
-                borderRadius: '8px',
+                borderRadius: '12px',
                 transition: 'all 0.2s',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
               }}
             >
-              🏆 Pichichi
+              <span className="results-toggle-icon">🏆</span> Pichichi
             </button>
           )}
         </div>

@@ -16,19 +16,14 @@ function Leaderboard() {
     state,
     results,
     loading,
-    isRaclos,
     activeGroupName,
     activeGroupPichichi,
     activeGroupPoolFormat,
     userId,
     userName,
-    isLeagueAdmin,
     lowestPaidRank,
     sharing,
-    actionLoading,
     handleShare,
-    handleAcceptBet,
-    handleDeleteBet,
     validResults,
     sortColumn,
     sortDirection,
@@ -359,122 +354,6 @@ function Leaderboard() {
                             👁️ {isMatchday ? 'Ver Jornadas' : 'Ver Porra'}
                           </button>
                         </div>
-
-                        {/* Admin Action Buttons Container */}
-                        {(isLeagueAdmin || isRaclos) && (
-                          <div
-                            style={{
-                              marginTop: '8px',
-                              display: 'flex',
-                              gap: '8px',
-                              flexWrap: 'wrap',
-                              alignItems: 'center',
-                            }}
-                          >
-                            {isPending && (
-                              <button
-                                className="glass-btn"
-                                disabled={actionLoading}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAcceptBet(r.key);
-                                }}
-                                style={{
-                                  background: 'rgba(46, 204, 113, 0.2)',
-                                  color: '#2ecc71',
-                                  border: '1px solid #2ecc71',
-                                  padding: '4px 8px',
-                                  fontSize: '0.8rem',
-                                  cursor: actionLoading ? 'wait' : 'pointer',
-                                }}
-                                title="Confirmar Porra (Pagada)"
-                              >
-                                ✔️ Aceptar
-                              </button>
-                            )}
-
-                            <button
-                              className="glass-btn"
-                              disabled={actionLoading}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteBet(r.key);
-                              }}
-                              style={{
-                                background: 'rgba(255, 71, 87, 0.2)',
-                                color: '#ff4757',
-                                border: '1px solid #ff4757',
-                                padding: '4px 8px',
-                                fontSize: '0.8rem',
-                                cursor: actionLoading ? 'wait' : 'pointer',
-                              }}
-                              title="Borrar Porra"
-                            >
-                              🗑️ Borrar
-                            </button>
-
-                            {isRaclos && (
-                              <button
-                                className="glass-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  state.editBetName(r.key, r.id);
-                                }}
-                                style={{
-                                  background: 'rgba(251, 191, 36, 0.2)',
-                                  color: '#fbbf24',
-                                  border: '1px solid #fbbf24',
-                                  padding: '4px 8px',
-                                  fontSize: '0.8rem',
-                                }}
-                                title="Editar Nombre"
-                              >
-                                ✏️ Editar
-                              </button>
-                            )}
-
-                            {isRaclos &&
-                              r.paid &&
-                              r.thirdPlaceMatch &&
-                              r.thirdPlaceMatch.length === 2 &&
-                              !r.thirdPlaceWinner && (
-                                <>
-                                  <button
-                                    className="glass-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      state.fixThird(r.key, r.id, r.thirdPlaceMatch[0]);
-                                    }}
-                                    style={{
-                                      background: 'rgba(0, 210, 211, 0.2)',
-                                      color: '#00d2d3',
-                                      border: '1px solid #00d2d3',
-                                      padding: '4px 8px',
-                                      fontSize: '0.8rem',
-                                    }}
-                                  >
-                                    3º: {r.thirdPlaceMatch[0]}
-                                  </button>
-                                  <button
-                                    className="glass-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      state.fixThird(r.key, r.id, r.thirdPlaceMatch[1]);
-                                    }}
-                                    style={{
-                                      background: 'rgba(0, 210, 211, 0.2)',
-                                      color: '#00d2d3',
-                                      border: '1px solid #00d2d3',
-                                      padding: '4px 8px',
-                                      fontSize: '0.8rem',
-                                    }}
-                                  >
-                                    3º: {r.thirdPlaceMatch[1]}
-                                  </button>
-                                </>
-                              )}
-                          </div>
-                        )}
                       </td>
                       <td
                         style={{

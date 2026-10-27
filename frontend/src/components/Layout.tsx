@@ -35,9 +35,6 @@ const prefetchRoute = (path) => {
     case '/stats':
       import('../pages/Stats');
       break;
-    case '/reglas':
-      import('../pages/Rules');
-      break;
     case '/mis-ligas':
       import('../pages/GroupsDashboard');
       break;
@@ -87,19 +84,26 @@ function Layout({ children }) {
   const isDemo = isDemoMode || location.pathname === '/demo';
   const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
 
+  // Con sesión iniciada pero sin ninguna liga, la navegación queda bloqueada:
+  // solo se puede crear o unirse a una liga desde Mis Ligas.
+  const isNavLocked =
+    isAuthenticated &&
+    userGroupsLoaded &&
+    userGroups.length === 0 &&
+    !isLanding &&
+    !isDemo &&
+    !isRaclos;
+
   // Un usuario autenticado sin ninguna liga solo puede crear o unirse a una.
+  const isNoLeagueAllowedPath =
+    location.pathname === '/mis-ligas' ||
+    location.pathname.startsWith('/join/') ||
+    location.pathname.startsWith('/linkedin');
+
   useEffect(() => {
-    if (!isAuthenticated || !userGroupsLoaded || userGroups.length > 0) return;
-    if (
-      location.pathname === '/mis-ligas' ||
-      location.pathname === '/reglas' ||
-      location.pathname.startsWith('/join/') ||
-      location.pathname.startsWith('/linkedin')
-    ) {
-      return;
-    }
+    if (!isNavLocked || isNoLeagueAllowedPath) return;
     navigate('/mis-ligas', { replace: true });
-  }, [isAuthenticated, userGroupsLoaded, userGroups.length, location.pathname, navigate]);
+  }, [isNavLocked, isNoLeagueAllowedPath, navigate]);
 
   const isIos = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -298,6 +302,10 @@ function Layout({ children }) {
             <NavLink
               to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
               className="header-brand-link"
+              onClick={(e) => {
+                if (isNavLocked) e.preventDefault();
+              }}
+              aria-disabled={isNavLocked || undefined}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -353,10 +361,12 @@ function Layout({ children }) {
                       borderRadius: '10px',
                       fontWeight: 'bold',
                       fontSize: '0.85rem',
-                      cursor: 'pointer',
+                      cursor: isNavLocked ? 'not-allowed' : 'pointer',
                       whiteSpace: 'nowrap',
+                      opacity: isNavLocked ? 0.4 : 1,
                     }}
                     onClick={() => navigate('/jornadas')}
+                    disabled={isNavLocked}
                   >
                     ⚽ Pronosticar Jornada
                   </button>
@@ -371,10 +381,12 @@ function Layout({ children }) {
                       borderRadius: '10px',
                       fontWeight: 'bold',
                       fontSize: '0.85rem',
-                      cursor: 'pointer',
+                      cursor: isNavLocked ? 'not-allowed' : 'pointer',
                       whiteSpace: 'nowrap',
+                      opacity: isNavLocked ? 0.4 : 1,
                     }}
                     onClick={() => navigate('/prediction')}
+                    disabled={isNavLocked}
                   >
                     ✍️ Completar Mi Porra
                   </button>
@@ -387,7 +399,12 @@ function Layout({ children }) {
         {!isLanding && (
           <div className="header-center">
             {/* Navegación */}
-            <nav className="nav-links">
+            <nav
+              className="nav-links"
+              inert={isNavLocked}
+              aria-disabled={isNavLocked || undefined}
+              style={isNavLocked ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
+            >
               {isDemo ? (
                 <>
                   <NavLink
@@ -419,14 +436,6 @@ function Layout({ children }) {
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Ranking
-                  </NavLink>
-                  <NavLink
-                    to="/reglas"
-                    onMouseEnter={() => prefetchRoute('/reglas')}
-                    onFocus={() => prefetchRoute('/reglas')}
-                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                  >
-                    Reglas
                   </NavLink>
                 </>
               ) : isMatchDayLeague ? (
@@ -461,14 +470,6 @@ function Layout({ children }) {
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Mis Ligas
-                  </NavLink>
-                  <NavLink
-                    to="/reglas"
-                    onMouseEnter={() => prefetchRoute('/reglas')}
-                    onFocus={() => prefetchRoute('/reglas')}
-                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-                  >
-                    Reglas
                   </NavLink>
                 </>
               ) : (
@@ -737,7 +738,7 @@ function Layout({ children }) {
 
       {/* Contenido Principal */}
       <main className={`app-container ${!isLanding ? 'has-mobile-bottom-nav' : ''}`}>
-        {children}
+        {isNavLocked && !isNoLeagueAllowedPath ? null : children}
       </main>
 
       {/* Barra de navegación inferior fija para móviles */}

@@ -253,15 +253,28 @@ export function useGroupsDashboard() {
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const handleEditGroup = async (groupId, currentName) => {
-    const newName = prompt('Introduce el nuevo nombre para la liga:', currentName);
-    if (!newName || newName.trim() === '' || newName === currentName) return;
+  const handleEditGroup = async (groupId, currentName, explicitName) => {
+    const newName = explicitName ?? prompt('Introduce el nuevo nombre para la liga:', currentName);
+    if (!newName || newName.trim() === '' || newName === currentName) return false;
 
     try {
-      await updateGroup(groupId, newName);
+      await updateGroup(groupId, newName.trim(), undefined);
       loadGroupsAndCompetitions();
+      return true;
     } catch (e) {
       setError(e.message);
+      return false;
+    }
+  };
+
+  const handleUpdateRules = async (groupId, rules) => {
+    try {
+      await updateGroup(groupId, undefined, rules);
+      loadGroupsAndCompetitions();
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
     }
   };
 
@@ -271,7 +284,7 @@ export function useGroupsDashboard() {
         `⚠️ ADVERTENCIA ⚠️\n¿Estás seguro de que quieres BORRAR POR COMPLETO la liga "${groupName}"?\n\nEsta acción eliminará todos los pronósticos de todos los participantes y no se puede deshacer.`,
       )
     )
-      return;
+      return false;
 
     try {
       await deleteGroup(groupId);
@@ -285,8 +298,10 @@ export function useGroupsDashboard() {
 
       loadGroupsAndCompetitions();
       toast.success(`La liga "${groupName}" ha sido eliminada.`);
+      return true;
     } catch (e) {
       setError(e.message);
+      return false;
     }
   };
 
@@ -398,6 +413,7 @@ export function useGroupsDashboard() {
     handleCreate,
     handleJoin,
     handleEditGroup,
+    handleUpdateRules,
     handleDeleteGroup,
     handleEnterGroup,
     handleLeaveGroup,

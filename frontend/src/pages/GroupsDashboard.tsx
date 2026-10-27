@@ -1,6 +1,7 @@
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
+import LeagueRulesModal from '../components/LeagueRulesModal';
 import { GoogleLogin } from '@react-oauth/google';
 import { POOL_FORMATS, useGroupsDashboard } from '../hooks/useGroupsDashboard';
 
@@ -14,6 +15,7 @@ import { POOL_FORMATS, useGroupsDashboard } from '../hooks/useGroupsDashboard';
  */
 export default function GroupsDashboard() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState(null);
+  const [selectedGroupForRules, setSelectedGroupForRules] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   useEffect(() => {
@@ -22,6 +24,7 @@ export default function GroupsDashboard() {
         setShowCreateModal(false);
         setShowJoinModal(false);
         setSelectedGroupForMembers(null);
+        setSelectedGroupForRules(null);
         setNewlyCreatedGroup(null);
       }
     };
@@ -53,6 +56,7 @@ export default function GroupsDashboard() {
     handleCreate,
     handleJoin,
     handleEditGroup,
+    handleUpdateRules,
     handleDeleteGroup,
     handleEnterGroup,
     handleLeaveGroup,
@@ -911,6 +915,27 @@ export default function GroupsDashboard() {
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button
                       type="button"
+                      onClick={() => setSelectedGroupForRules(group)}
+                      className="glass-btn"
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title="Ver las reglas de esta liga"
+                      aria-label="Ver las reglas de esta liga"
+                    >
+                      <span>📖</span>
+                      <span>Reglas</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => setSelectedGroupForMembers(group)}
                       className="glass-btn"
                       style={{
@@ -924,61 +949,33 @@ export default function GroupsDashboard() {
                         gap: '6px',
                         whiteSpace: 'nowrap',
                       }}
-                      title="Ver y Gestionar Participantes"
-                      aria-label="Ver y Gestionar Participantes"
+                      title={isCreator ? 'Administrar liga' : 'Ver participantes'}
+                      aria-label={isCreator ? 'Administrar liga' : 'Ver participantes'}
                     >
-                      <span>👥</span>
-                      <span>Miembros</span>
+                      <span>{isCreator ? '⚙️' : '👥'}</span>
+                      <span>{isCreator ? 'Administrar' : 'Miembros'}</span>
                     </button>
-
-                    {isCreator ? (
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleEditGroup(group.id, group.name)}
-                          className="glass-btn"
-                          style={{ padding: '8px 12px', fontSize: '0.85rem' }}
-                          title="Editar Nombre"
-                          aria-label="Editar Nombre de la liga"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteGroup(group.id, group.name)}
-                          className="glass-btn"
-                          style={{
-                            padding: '8px 12px',
-                            fontSize: '0.85rem',
-                            background: 'rgba(231, 76, 60, 0.2)',
-                            border: '1px solid #e74c3c',
-                            color: '#ff6b6b',
-                          }}
-                          title="Borrar Liga"
-                          aria-label="Borrar Liga"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleLeaveGroup(group.id, group.name)}
-                        className="glass-btn"
-                        style={{
-                          padding: '8px 14px',
-                          fontSize: '0.85rem',
-                          background: 'rgba(231, 76, 60, 0.2)',
-                          border: '1px solid #e74c3c',
-                          color: '#ffcccc',
-                          whiteSpace: 'nowrap',
-                        }}
-                        title="Abandonar Liga"
-                      >
-                        Salir
-                      </button>
-                    )}
                   </div>
+
+                  {!isCreator && (
+                    <button
+                      type="button"
+                      onClick={() => handleLeaveGroup(group.id, group.name)}
+                      className="glass-btn"
+                      style={{
+                        width: '100%',
+                        padding: '8px 14px',
+                        fontSize: '0.85rem',
+                        background: 'rgba(231, 76, 60, 0.15)',
+                        border: '1px solid rgba(231, 76, 60, 0.6)',
+                        color: '#ffcccc',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title="Abandonar Liga"
+                    >
+                      Salir de la liga
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -991,11 +988,52 @@ export default function GroupsDashboard() {
           groupId={selectedGroupForMembers.id}
           groupName={selectedGroupForMembers.name}
           currentJoinCode={selectedGroupForMembers.joinCode}
-          isAdmin={selectedGroupForMembers.adminUserId?.toString() === userId?.toString()}
+          initialRules={selectedGroupForMembers.rules || ''}
+          isAdmin={
+            (selectedGroupForMembers.adminUserId &&
+              userId &&
+              String(selectedGroupForMembers.adminUserId) === String(userId)) ||
+            (selectedGroupForMembers.adminParticipantName &&
+              userName &&
+              selectedGroupForMembers.adminParticipantName.toLowerCase() === userName.toLowerCase())
+          }
           onClose={() => setSelectedGroupForMembers(null)}
           onCodeRegenerated={(newCode) => {
-            selectedGroupForMembers.joinCode = newCode;
+            setSelectedGroupForMembers((prev) => (prev ? { ...prev, joinCode: newCode } : prev));
           }}
+          onRename={async (newName) => {
+            const ok = await handleEditGroup(
+              selectedGroupForMembers.id,
+              selectedGroupForMembers.name,
+              newName,
+            );
+            if (ok) {
+              setSelectedGroupForMembers((prev) => (prev ? { ...prev, name: newName } : prev));
+            }
+            return ok;
+          }}
+          onSaveRules={async (rules) => {
+            const ok = await handleUpdateRules(selectedGroupForMembers.id, rules);
+            if (ok) {
+              setSelectedGroupForMembers((prev) => (prev ? { ...prev, rules } : prev));
+            }
+            return ok;
+          }}
+          onDelete={async () => {
+            const ok = await handleDeleteGroup(
+              selectedGroupForMembers.id,
+              selectedGroupForMembers.name,
+            );
+            if (ok) setSelectedGroupForMembers(null);
+            return ok;
+          }}
+        />
+      )}
+
+      {selectedGroupForRules && (
+        <LeagueRulesModal
+          group={selectedGroupForRules}
+          onClose={() => setSelectedGroupForRules(null)}
         />
       )}
     </section>

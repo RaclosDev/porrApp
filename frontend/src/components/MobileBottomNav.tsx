@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Trophy, Users, Calendar, Pencil, Swords, LayoutGrid, BookOpen } from 'lucide-react';
+import { Home, Trophy, Users, Calendar, Pencil, Swords, LayoutGrid } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 /**
@@ -9,10 +9,20 @@ import { useAppContext } from '../context/AppContext';
  * Proporciona acceso ergonómico sin sensación de pie de página tosco.
  */
 export default function MobileBottomNav() {
-  const { activeGroupPoolFormat, activeCompetitionFormatType, isDemoMode } = useAppContext();
+  const {
+    activeGroupPoolFormat,
+    activeCompetitionFormatType,
+    isDemoMode,
+    isAuthenticated,
+    userGroups,
+    userGroupsLoaded,
+    isRaclos,
+  } = useAppContext();
 
   const location = useLocation();
   const isDemo = isDemoMode || location.pathname === '/demo';
+  const isNavLocked =
+    isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo && !isRaclos;
   const isMatchDay =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
@@ -22,7 +32,6 @@ export default function MobileBottomNav() {
         { to: '/bracket', label: 'Resultados', icon: Swords },
         { to: '/grupos', label: 'Grupos', icon: LayoutGrid },
         { to: '/clasificacion', label: 'Ranking', icon: Trophy },
-        { to: '/reglas', label: 'Reglas', icon: BookOpen },
       ]
     : isMatchDay
       ? [
@@ -30,7 +39,6 @@ export default function MobileBottomNav() {
           { to: '/jornadas', label: 'Jornadas', icon: Calendar },
           { to: '/clasificacion', label: 'Puntos', icon: Trophy },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
-          { to: '/reglas', label: 'Reglas', icon: BookOpen },
         ]
       : [
           { to: '/', label: 'Inicio', icon: Home, end: true },
@@ -44,6 +52,8 @@ export default function MobileBottomNav() {
     <nav
       className="mobile-bottom-nav floating-capsule-nav"
       aria-label="Navegación principal móvil"
+      inert={isNavLocked}
+      aria-disabled={isNavLocked || undefined}
       style={{
         position: 'fixed',
         bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
@@ -62,6 +72,8 @@ export default function MobileBottomNav() {
         justifyContent: 'space-around',
         padding: '0 6px',
         zIndex: 1000,
+        opacity: isNavLocked ? 0.45 : 1,
+        pointerEvents: isNavLocked ? 'none' : 'auto',
         boxShadow:
           '0 16px 36px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
       }}

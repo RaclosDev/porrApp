@@ -233,7 +233,7 @@ export async function createGroup(name, competitionId, poolFormat, pichichi = tr
   return res.json();
 }
 
-export async function updateGroup(id, name) {
+export async function updateGroup(id, name, rules) {
   const token = getAuthToken();
   const res = await fetch(`${API_BASE}/groups/${id}`, {
     method: 'PUT',
@@ -241,7 +241,7 @@ export async function updateGroup(id, name) {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, rules }),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));

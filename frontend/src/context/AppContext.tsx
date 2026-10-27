@@ -181,7 +181,11 @@ export const useAppContext = () => {
   const setActiveCompetitionId = store.setActiveCompetitionId;
   const changeGroup = store.changeGroup;
 
-  const { data: userGroups, isFetched: userGroupsFetched } = useQuery({
+  const {
+    data: userGroups,
+    isFetched: userGroupsFetched,
+    isError: userGroupsError,
+  } = useQuery({
     queryKey: ['myGroups', isUserAuthed],
     queryFn: () => (isUserAuthed ? fetchMyGroups() : Promise.resolve([])),
     staleTime: 60_000,
@@ -399,7 +403,7 @@ export const useAppContext = () => {
       groupInfo?.formatType ||
       (activeGroupBetMode ? (activeGroupBetMode === 'MATCH_DAY' ? 'LEAGUE' : 'TOURNAMENT') : null),
     userGroups: Array.isArray(userGroups) ? userGroups : EMPTY_ARRAY,
-    userGroupsLoaded: !isUserAuthed || userGroupsFetched,
+    userGroupsLoaded: !isUserAuthed || (userGroupsFetched && !userGroupsError),
     topScorers: Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,
   };
 };

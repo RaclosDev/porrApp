@@ -12,13 +12,40 @@ export default function GroupMembersModal({
   groupName,
   currentJoinCode,
   isAdmin,
+  initialRules = '',
   onClose,
   onCodeRegenerated,
+  onRename,
+  onSaveRules,
+  onDelete,
 }) {
   const queryClient = useQueryClient();
   const [activeCode, setActiveCode] = useState(currentJoinCode || '');
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [name, setName] = useState(groupName || '');
+  const [rulesText, setRulesText] = useState(initialRules || '');
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configNotice, setConfigNotice] = useState('');
+
+  const saveConfig = async ({ nextName, nextRules }) => {
+    setSavingConfig(true);
+    setActionError('');
+    setConfigNotice('');
+    try {
+      const okName = nextName === undefined ? true : await onRename?.(nextName);
+      const okRules = nextRules === undefined ? true : await onSaveRules?.(nextRules);
+      if (okName === false || okRules === false) {
+        setActionError('No se pudieron guardar los cambios');
+      } else {
+        setConfigNotice('Guardado ✓');
+      }
+    } catch (err) {
+      setActionError(err.message || 'No se pudieron guardar los cambios');
+    } finally {
+      setSavingConfig(false);
+    }
+  };
 
   const {
     data: members = [],
@@ -135,13 +162,13 @@ export default function GroupMembersModal({
                 letterSpacing: '1px',
               }}
             >
-              👥 Gestión de Participantes
+              {isAdmin ? '⚙️ Administrar liga' : '👥 Participantes'}
             </div>
             <h2
               id="group-members-title"
               style={{ margin: 0, fontSize: '1.2rem', color: '#fff', fontWeight: 800 }}
             >
-              {groupName}
+              {name}
             </h2>
           </div>
           <button
@@ -164,6 +191,111 @@ export default function GroupMembersModal({
             ✕
           </button>
         </div>
+
+        {/* Configuración de la liga (solo admin) */}
+        {isAdmin && (
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <label
+              htmlFor="league-name-input"
+              style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}
+            >
+              Nombre de la liga
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                id="league-name-input"
+                className="glass-input"
+                value={name}
+                maxLength={120}
+                onChange={(e) => setName(e.target.value)}
+                style={{ flex: 1, minWidth: 0 }}
+              />
+              <button
+                type="button"
+                className="glass-btn"
+                onClick={() => saveConfig({ nextName: name.trim() })}
+                disabled={savingConfig || !name.trim() || name.trim() === groupName}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  background: 'rgba(0, 210, 211, 0.15)',
+                  border: '1px solid rgba(0, 210, 211, 0.45)',
+                  color: '#00d2d3',
+                  cursor: 'pointer',
+                }}
+              >
+                Guardar
+              </button>
+            </div>
+
+            <label
+              htmlFor="league-rules-input"
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--text-muted)',
+                marginTop: '6px',
+              }}
+            >
+              Reglas de la liga
+            </label>
+            <textarea
+              id="league-rules-input"
+              className="glass-input"
+              value={rulesText}
+              maxLength={8000}
+              rows={5}
+              onChange={(e) => setRulesText(e.target.value)}
+              placeholder="Cuota, plazos de pago, criterios de desempate, premios…"
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                resize: 'vertical',
+                lineHeight: 1.5,
+              }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {configNotice || `${rulesText.length}/8000`}
+              </span>
+              <button
+                type="button"
+                className="glass-btn"
+                onClick={() => saveConfig({ nextRules: rulesText })}
+                disabled={savingConfig || rulesText === (initialRules || '')}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  background: 'rgba(0, 210, 211, 0.15)',
+                  border: '1px solid rgba(0, 210, 211, 0.45)',
+                  color: '#00d2d3',
+                  cursor: 'pointer',
+                }}
+              >
+                Guardar reglas
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Resumen de invitación y pagos */}
         <div
@@ -430,6 +562,39 @@ export default function GroupMembersModal({
               );
             })}
         </div>
+
+        {isAdmin && (
+          <div
+            style={{
+              padding: '12px 20px',
+              borderTop: '1px solid rgba(231, 76, 60, 0.25)',
+              background: 'rgba(231, 76, 60, 0.06)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Zona de peligro</span>
+            <button
+              type="button"
+              className="glass-btn"
+              onClick={onDelete}
+              disabled={savingConfig}
+              style={{
+                padding: '8px 12px',
+                fontSize: '0.82rem',
+                borderRadius: '8px',
+                background: 'rgba(231, 76, 60, 0.2)',
+                border: '1px solid #e74c3c',
+                color: '#ff6b6b',
+                cursor: 'pointer',
+              }}
+            >
+              🗑️ Borrar liga
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
