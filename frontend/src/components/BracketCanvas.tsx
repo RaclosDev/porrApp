@@ -408,7 +408,6 @@ export default function BracketCanvas({
         style={{
           width: '100%',
           paddingBottom: 10,
-          overflowX: 'hidden',
           display: 'flex',
           justifyContent: isOverflowX ? 'flex-start' : 'center',
         }}
