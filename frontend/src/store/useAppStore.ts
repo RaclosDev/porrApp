@@ -147,7 +147,7 @@ export const useAppStore = create((set, get) => ({
 
   exitDemoMode: () => {
     localStorage.removeItem('isDemoMode');
-    localStorage.removeItem('activeGroupId');
+    localStorage.setItem('activeGroupId', '1');
     localStorage.removeItem('activeCompetitionId');
     localStorage.removeItem('my_prediction_name');
     localStorage.removeItem('my_bet_name');
@@ -157,7 +157,7 @@ export const useAppStore = create((set, get) => ({
       isAuthenticated: false,
       userName: '',
       userId: '',
-      activeGroupId: '',
+      activeGroupId: '1',
       activeCompetitionId: null,
       viewerBetId: null,
       viewerPredictionId: null,
