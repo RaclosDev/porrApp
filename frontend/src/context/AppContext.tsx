@@ -279,7 +279,7 @@ export const useAppContext = () => {
         changeGroup('1');
       }
     }
-  }, [predictionsError, activeGroupId, changeGroup, isDemoMode]);
+  }, [predictionsError, activeGroupId, changeGroup, store.isDemoMode]);
 
   const { data: odds } = useQuery({
     queryKey: ['odds'],
