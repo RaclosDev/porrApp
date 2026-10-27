@@ -1122,9 +1122,6 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
           <div
             style={{
               paddingBottom: '20px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              borderRadius: '8px',
-              background: 'rgba(0,0,0,0.15)',
               marginTop: '10px',
             }}
           >

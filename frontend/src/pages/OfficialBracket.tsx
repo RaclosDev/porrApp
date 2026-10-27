@@ -473,10 +473,32 @@ function OfficialBracket() {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
+            gap: '8px',
             marginBottom: '20px',
             marginTop: '5px',
+            flexWrap: 'nowrap',
           }}
         >
+          {activeTab === 'cuadro' && (
+            <button
+              className="glass-btn"
+              onClick={() => setActivePanel((p) => (p === 'live' ? null : 'live'))}
+              style={{
+                padding: '6px 10px',
+                fontSize: 'clamp(0.68rem, 2.8vw, 0.85rem)',
+                fontWeight: 'bold',
+                background: activePanel === 'live' ? 'rgba(255, 71, 87, 0.18)' : 'transparent',
+                borderColor: activePanel === 'live' ? '#ff4757' : 'var(--border-color)',
+                color: activePanel === 'live' ? '#ff4757' : 'var(--text-muted)',
+                borderRadius: '8px',
+                transition: 'all 0.2s',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🔴 Partidos
+            </button>
+          )}
           <div
             style={{
               display: 'inline-flex',
@@ -542,6 +564,26 @@ function OfficialBracket() {
               📋 Grupos
             </button>
           </div>
+          {activeTab === 'cuadro' && activeGroupPichichi && (
+            <button
+              className="glass-btn"
+              onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
+              style={{
+                padding: '6px 10px',
+                fontSize: 'clamp(0.68rem, 2.8vw, 0.85rem)',
+                fontWeight: 'bold',
+                background: activePanel === 'scorers' ? 'rgba(255, 211, 42, 0.18)' : 'transparent',
+                borderColor: activePanel === 'scorers' ? '#ffd32a' : 'var(--border-color)',
+                color: activePanel === 'scorers' ? '#ffd32a' : 'var(--text-muted)',
+                borderRadius: '8px',
+                transition: 'all 0.2s',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🏆 Pichichi
+            </button>
+          )}
         </div>
 
         {activeTab === 'grupos' ? (
@@ -606,47 +648,6 @@ function OfficialBracket() {
                 zIndex: 50,
               }}
             >
-              {/* Botones de Toggle en el Top */}
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  className="glass-btn"
-                  onClick={() => setActivePanel((p) => (p === 'live' ? null : 'live'))}
-                  style={{
-                    padding: '6px 14px',
-                    fontSize: '0.85rem',
-                    fontWeight: 'bold',
-                    background: activePanel === 'live' ? 'rgba(255, 71, 87, 0.18)' : 'transparent',
-                    borderColor: activePanel === 'live' ? '#ff4757' : 'var(--border-color)',
-                    color: activePanel === 'live' ? '#ff4757' : 'var(--text-muted)',
-                    borderRadius: '8px',
-                    transition: 'all 0.2s',
-                    cursor: 'pointer',
-                  }}
-                >
-                  🔴 Partidos
-                </button>
-                {activeGroupPichichi && (
-                  <button
-                    className="glass-btn"
-                    onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
-                    style={{
-                      padding: '6px 14px',
-                      fontSize: '0.85rem',
-                      fontWeight: 'bold',
-                      background:
-                        activePanel === 'scorers' ? 'rgba(255, 211, 42, 0.18)' : 'transparent',
-                      borderColor: activePanel === 'scorers' ? '#ffd32a' : 'var(--border-color)',
-                      color: activePanel === 'scorers' ? '#ffd32a' : 'var(--text-muted)',
-                      borderRadius: '8px',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    🏆 Pichichi
-                  </button>
-                )}
-              </div>
-
               {/* HUD Modal Centrado debajo de los botones - Cierra al hacer clic en cualquier parte fuera */}
               {activePanel && (
                 <div
