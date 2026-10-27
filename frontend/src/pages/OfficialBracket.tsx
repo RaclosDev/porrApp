@@ -811,6 +811,17 @@ function OfficialBracket() {
                             : 'none',
                         }}
                       >
+                        <Flag
+                          team={getName(part.champion) || ''}
+                          size="w40"
+                          style={{
+                            width: 24,
+                            height: 18,
+                            borderRadius: 2,
+                            marginRight: 8,
+                            verticalAlign: 'middle',
+                          }}
+                        />
                         {getName(part.champion) || '???'}
                       </div>
                     </div>
@@ -873,6 +884,17 @@ function OfficialBracket() {
                               : 'none',
                           }}
                         >
+                          <Flag
+                            team={getName(part.thirdPlaceWinner) || ''}
+                            size="w40"
+                            style={{
+                              width: 20,
+                              height: 15,
+                              borderRadius: 2,
+                              marginRight: 6,
+                              verticalAlign: 'middle',
+                            }}
+                          />
                           {getName(part.thirdPlaceWinner) || '???'}
                         </div>
                       </div>
