@@ -53,10 +53,13 @@ export default function MatchdayHomeDashboard() {
     staleTime: 120_000,
   });
 
+  // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
   const showCompetition =
     Boolean(activeCompetitionName) &&
     activeCompetitionName.trim().toLowerCase() !== (activeGroupName || '').trim().toLowerCase();
 
+  // Jornada actual: la primera ronda con partidos sin finalizar (o la última si ya acabó todo).
+  // Se muestran todos los partidos de esa jornada, también los ya finalizados.
   const { currentRound, matchdayMatches } = useMemo(() => {
     if (!allGames || allGames.length === 0) return { currentRound: null, matchdayMatches: [] };
 
@@ -112,6 +115,7 @@ export default function MatchdayHomeDashboard() {
       className="view-section active"
       style={{ maxWidth: '1080px', margin: '0 auto', padding: '4px 0 24px' }}
     >
+      {/* Cabecera de la liga */}
       <header className="home-hero">
         <div className="home-hero-info">
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
@@ -126,6 +130,7 @@ export default function MatchdayHomeDashboard() {
             </span>
           </div>
         </div>
+
       </header>
 
       <div
@@ -135,6 +140,7 @@ export default function MatchdayHomeDashboard() {
           gap: '18px',
         }}
       >
+        {/* Partidos */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
           <div className="home-list-header">
             <h2>
@@ -176,13 +182,19 @@ export default function MatchdayHomeDashboard() {
                           style={{ width: '22px', height: '22px' }}
                         />
                       </span>
-                      <span className="home-match-name">{m.home}</span>
+                      <span className="home-match-name">{m.home || 'Local'}</span>
                     </div>
-                    <span className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}>
+
+                    <div
+                      className={`home-match-score${isLive ? ' is-live' : ''}${
+                        hasScore ? '' : ' is-pending'
+                      }`}
+                    >
                       {hasScore ? `${m.home_score} - ${m.away_score}` : formatKickOff(m.date)}
-                    </span>
+                    </div>
+
                     <div className="home-match-team away">
-                      <span className="home-match-name">{m.away}</span>
+                      <span className="home-match-name">{m.away || 'Visitante'}</span>
                       <span className="home-match-crest">
                         <Flag
                           team={m.away}
@@ -196,56 +208,193 @@ export default function MatchdayHomeDashboard() {
               );
             })
           ) : (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-              No hay partidos para mostrar en esta jornada.
-            </p>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
-          <div className="home-list-header">
-            <h2>Clasificación</h2>
-            <button type="button" className="home-link-btn" onClick={() => navigate('/tabla')}>
-              Ver completa →
-            </button>
-          </div>
-          {topTeams.length > 0 ? (
-            <div className="glass-panel" style={{ padding: '8px 12px' }}>
-              {topTeams.map((team, index) => (
-                <div key={team.teamId || team.teamName || index} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: index === topTeams.length - 1 ? 'none' : '1px solid var(--border-color)' }}>
-                  <span style={{ width: 20, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{index + 1}</span>
-                  <Flag team={team.teamName || team.name} />
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.85rem' }}>{team.teamName || team.name}</span>
-                  <strong>{team.points ?? team.pts ?? 0}</strong>
-                </div>
-              ))}
+            <div
+              className="glass-panel"
+              style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}
+            >
+              No hay partidos programados para esta jornada.
             </div>
-          ) : (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-              Clasificación no disponible.
-            </p>
           )}
         </div>
 
-        {topParticipants.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
-            <div className="home-list-header">
-              <h2>Ranking de la liga</h2>
-              <button type="button" className="home-link-btn" onClick={() => navigate('/ranking')}>
-                Ver completo →
+        {/* Ranking y tabla */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minWidth: 0 }}>
+          <div className="glass-panel" style={{ padding: '16px', borderRadius: '14px' }}>
+            <div className="home-list-header" style={{ marginBottom: '10px' }}>
+              <h2>
+                <span aria-hidden="true">🏆</span>
+                <span>Ranking</span>
+              </h2>
+              <button
+                type="button"
+                className="home-link-btn"
+                onClick={() => navigate('/ranking')}
+              >
+                Ver todo →
               </button>
             </div>
-            <div className="glass-panel" style={{ padding: '8px 12px' }}>
-              {topParticipants.map((participant, index) => (
-                <div key={participant.id || participant.userId || index} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: index === topParticipants.length - 1 ? 'none' : '1px solid var(--border-color)' }}>
-                  <span style={{ width: 20, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{index + 1}</span>
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.85rem' }}>{participant.name || participant.participantName || 'Participante'}</span>
-                  <strong>{participant.totalPoints ?? participant.total ?? participant.points ?? 0} pts</strong>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {topParticipants.length > 0 ? (
+                topParticipants.map((p, index) => {
+                  const isMe = p.userId?.toString() === userId?.toString() || p.name === userName;
+                  let medal = `${index + 1}º`;
+                  if (index === 0) medal = '🥇';
+                  else if (index === 1) medal = '🥈';
+                  else if (index === 2) medal = '🥉';
+
+                  return (
+                    <div
+                      key={p.id || index}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        background: isMe ? 'rgba(0, 210, 211, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                        border: isMe
+                          ? '1px solid rgba(0, 210, 211, 0.35)'
+                          : '1px solid transparent',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          minWidth: 0,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '1rem',
+                            width: '22px',
+                            textAlign: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {medal}
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: isMe ? 700 : 500,
+                            fontSize: '0.88rem',
+                            color: '#fff',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {p.name}
+                          {isMe ? ' (Tú)' : ''}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontWeight: 800,
+                          color: 'var(--accent-color, #00d2d3)',
+                          fontSize: '0.88rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {p.total || 0} pts
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.85rem',
+                    padding: '12px',
+                  }}
+                >
+                  Aún no hay puntuaciones en esta peña.
                 </div>
-              ))}
+              )}
             </div>
           </div>
-        )}
+
+          {topTeams.length > 0 && (
+            <div className="glass-panel" style={{ padding: '16px', borderRadius: '14px' }}>
+              <div className="home-list-header" style={{ marginBottom: '10px' }}>
+                <h2>
+                  <span aria-hidden="true">📊</span>
+                  <span>Tabla</span>
+                </h2>
+                <button type="button" className="home-link-btn" onClick={() => navigate('/tabla')}>
+                  Ver todo →
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {topTeams.map((t) => (
+                  <div
+                    key={t.rank + t.teamName}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <span
+                        style={{
+                          width: '16px',
+                          textAlign: 'center',
+                          fontSize: '0.78rem',
+                          color: 'var(--text-muted)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {t.rank}
+                      </span>
+                      <Flag
+                        team={t.teamName}
+                        logo={t.teamLogo}
+                        style={{ width: '20px', height: '20px' }}
+                      />
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          color: '#fff',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {t.teamName}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '10px',
+                        fontSize: '0.85rem',
+                        alignItems: 'baseline',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                        {t.gamesPlayed} PJ
+                      </span>
+                      <span style={{ fontWeight: 800, color: '#fff' }}>{t.points} pts</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
