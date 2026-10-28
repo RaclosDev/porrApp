@@ -256,100 +256,13 @@ export function useGroupsDashboard() {
     }
   };
 
-  const handleShareWhatsApp = async (group) => {
+  // Compartir solo el enlace: WhatsApp genera la vista previa con los metadatos OG,
+  // exactamente igual que al pegar la URL a mano.
+  const handleShareWhatsApp = (group) => {
     if (!group?.joinCode) return;
 
-    const joinCode = encodeURIComponent(group.joinCode);
-    const canonicalLink = `https://porra.raclos.es/join/${joinCode}`;
-    const text = canonicalLink;
-    const imageUrls = [
-      // En local (Vite con proxy o Spring en :8080) usa el backend local.
-      `${window.location.origin}/join/${joinCode}/image.png`,
-      // En producción, o si el backend local no responde, usa el canónico.
-      `${canonicalLink}/image.png`,
-    ].filter((url, index, array) => array.indexOf(url) === index);
-    let blob;
-    let lastError;
-
-    // Separar el fallo al descargar la imagen del fallo al abrir el selector de compartir.
-    for (const imageUrl of imageUrls) {
-      try {
-        const imageResponse = await fetch(imageUrl, { cache: 'no-store' });
-        if (!imageResponse.ok) {
-          throw new Error(`HTTP ${imageResponse.status} ${imageResponse.statusText}`.trim());
-        }
-
-        const contentType = imageResponse.headers.get('content-type') || '(sin Content-Type)';
-        const candidate = await imageResponse.blob();
-        const signature = new Uint8Array(await candidate.slice(0, 8).arrayBuffer());
-        const isPng = signature.length === 8
-          && signature[0] === 0x89
-          && signature[1] === 0x50
-          && signature[2] === 0x4e
-          && signature[3] === 0x47
-          && signature[4] === 0x0d
-          && signature[5] === 0x0a
-          && signature[6] === 0x1a
-          && signature[7] === 0x0a;
-
-        if (!isPng) {
-          throw new Error(`la ruta respondió ${contentType}, pero no devolvió un PNG válido`);
-        }
-        if (candidate.size === 0) {
-          throw new Error('el PNG recibido está vacío');
-        }
-        blob = candidate;
-        break;
-      } catch (e) {
-        lastError = e;
-      }
-    }
-
-    if (!blob) {
-      console.error('Error descargando la imagen de invitación', lastError);
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.error(`No se pudo descargar la imagen de invitación: ${lastError?.message || 'error desconocido'}`);
-      return;
-    }
-
-    const file = new File([blob], 'invitacion-porrapp.png', { type: 'image/png' });
-
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        // Adjunta exactamente los bytes del PNG publicado como og:image.
-        await navigator.share({ title: `Invitación a ${group.name}`, text, files: [file] });
-        return;
-      } catch (e) {
-        if (e?.name === 'AbortError') return;
-        // Si el selector nativo falla, continuar con el flujo compatible con escritorio.
-        console.warn('No se pudo usar el selector nativo para compartir la invitación', e);
-      }
-    }
-
-    // En escritorio WhatsApp no permite adjuntar una imagen desde un enlace. Copiamos
-    // el PNG al portapapeles para pegarlo en el mismo mensaje que el texto y enviar uno solo.
-    try {
-      if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-        toast.success('Imagen copiada. Pégala con Ctrl+V en el mensaje de WhatsApp y envíalo una sola vez.');
-        return;
-      }
-    } catch (e) {
-      console.warn('No se pudo copiar la imagen de invitación al portapapeles', e);
-    }
-
-    // Último recurso: descargar el PNG y abrir WhatsApp con el texto preparado.
-    const objectUrl = URL.createObjectURL(blob);
-    const download = document.createElement('a');
-    download.href = objectUrl;
-    download.download = 'invitacion-porrapp.png';
-    document.body.appendChild(download);
-    download.click();
-    download.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-    toast.success('Imagen descargada. Adjúntala en el mismo mensaje de WhatsApp antes de enviar.');
+    const link = `https://porra.raclos.es/join/${encodeURIComponent(group.joinCode)}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleEditGroup = async (groupId, currentName, explicitName) => {
