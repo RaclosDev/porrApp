@@ -244,6 +244,7 @@ function Leaderboard() {
                   {columns.map((col) => (
                     <th
                       key={col.key}
+                      className={col.key === 'total' ? '' : 'leaderboard-mobile-detail'}
                       style={thStyle(col.key)}
                       onClick={() => handleSort(col.key)}
                       title={`Ordenar por ${col.label}`}
@@ -286,10 +287,10 @@ function Leaderboard() {
                         <div
                           style={{
                             display: 'flex',
-                            justifyContent: 'space-between',
+                            justifyContent: 'flex-start',
                             alignItems: 'center',
-                            flexWrap: 'wrap',
-                            gap: '10px',
+                            flexWrap: 'nowrap',
+                            gap: '6px',
                           }}
                         >
                           <div
@@ -350,7 +351,7 @@ function Leaderboard() {
                             </div>
                           </div>
 
-                          <button
+                          {r.id != null && <button
                             className="glass-btn"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -367,6 +368,8 @@ function Leaderboard() {
                               padding: '5px 7px',
                               minWidth: '34px',
                               minHeight: '34px',
+                              marginLeft: 'auto',
+                              flexShrink: 0,
                               fontSize: '0.95rem',
                               lineHeight: 1,
                               display: 'inline-flex',
@@ -377,7 +380,7 @@ function Leaderboard() {
                           >
                             <span aria-hidden="true">👁️</span>
                             <span className="sr-only">{isMatchday ? 'Ver jornadas' : 'Ver porra'}</span>
-                          </button>
+                          </button>}
                         </div>
                       </td>
                       <td
@@ -390,18 +393,18 @@ function Leaderboard() {
                       >
                         {r.paid ? r.points.total + ' pts' : '-'}
                       </td>
-                      <td>{r.paid ? r.points.matchPoints || 0 : '-'}</td>
+                      <td className="leaderboard-mobile-detail">{r.paid ? r.points.matchPoints || 0 : '-'}</td>
                       {!isMatchday && (
                         <>
-                          <td>{r.paid ? r.points.r1 : '-'}</td>
-                          <td>{r.paid ? r.points.r32 : '-'}</td>
-                          <td>{r.paid ? r.points.r16 : '-'}</td>
-                          <td>{r.paid ? r.points.qf : '-'}</td>
-                          <td>{r.paid ? r.points.sf : '-'}</td>
-                          <td>{r.paid ? r.points.finals : '-'}</td>
+                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.r1 : '-'}</td>
+                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.r32 : '-'}</td>
+                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.r16 : '-'}</td>
+                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.qf : '-'}</td>
+                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.sf : '-'}</td>
+                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.finals : '-'}</td>
                         </>
                       )}
-                      {activeGroupPichichi && <td>{r.paid ? r.points.scorer : '-'}</td>}
+                      {activeGroupPichichi && <td className="leaderboard-mobile-detail">{r.paid ? r.points.scorer : '-'}</td>}
                     </tr>
                   );
                 })}

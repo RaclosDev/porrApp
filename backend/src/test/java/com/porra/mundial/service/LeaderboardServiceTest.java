@@ -2,9 +2,11 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.model.MatchPrediction;
+import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.MatchPredictionRepository;
+import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
@@ -47,6 +49,9 @@ class LeaderboardServiceTest {
 
     @Mock
     private MatchPredictionRepository matchPredictionRepository;
+
+    @Mock
+    private MembershipRepository membershipRepository;
 
     @Spy
     private WorldCup2026ScoringStrategy scoringStrategy = new WorldCup2026ScoringStrategy();
@@ -107,4 +112,38 @@ class LeaderboardServiceTest {
         assertEquals(6, leaderboard.get(0).getTotal());
         verifyNoInteractions(matchPredictionRepository);
     }
+
+    @Test
+    @DisplayName("getLeaderboard incluye miembros de la liga aunque todavía no tengan una porra")
+    void getLeaderboard_IncludesMembersWithoutPredictions() {
+        UserAccount existingUser = UserAccount.builder().id(10L).participantName("Jugador 1").build();
+        Prediction pred = Prediction.builder()
+                .id(100L)
+                .user(existingUser)
+                .name("Porra 1")
+                .paymentStatus("PAID")
+                .matchPoints(6)
+                .totalPoints(6)
+                .scoreCalculatedAt(LocalDateTime.now())
+                .build();
+        UserAccount joinedUser = UserAccount.builder().id(20L).participantName("Jugador Unido").build();
+        Membership membership = Membership.builder().user(joinedUser).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(membership));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertEquals(2, leaderboard.size());
+        ParticipantScoreDTO joinedScore = leaderboard.stream()
+                .filter(score -> Long.valueOf(20L).equals(score.getUserId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Jugador Unido", joinedScore.getName());
+        assertEquals(0, joinedScore.getTotal());
+        assertEquals(0, joinedScore.getMatchPoints());
+        assertEquals(null, joinedScore.getId());
+        assertFalse(joinedScore.isPending());
+    }
+
 }
