@@ -20,7 +20,6 @@ function Img({ src, size, radius, fallback, label = '' }) {
         <img
           src={src}
           alt={label || ''}
-          loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
