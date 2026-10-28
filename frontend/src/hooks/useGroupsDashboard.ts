@@ -172,9 +172,15 @@ export function useGroupsDashboard() {
     setPendingJoinCodeNotice(normalizedCode);
     let cancelled = false;
     fetchGroupInvitationPreview(normalizedCode)
-      .then((preview) => { if (!cancelled) setPendingInvite(preview); })
-      .catch((e) => { if (!cancelled) setError(e.message || 'No se ha encontrado esta invitación'); });
-    return () => { cancelled = true; };
+      .then((preview) => {
+        if (!cancelled) setPendingInvite(preview);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message || 'No se ha encontrado esta invitación');
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -271,23 +277,10 @@ export function useGroupsDashboard() {
     window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, '_blank', 'noopener,noreferrer');
   };
 
-  const handleEditGroup = async (groupId, currentName, explicitName) => {
-    const newName = explicitName ?? prompt('Introduce el nuevo nombre para la liga:', currentName);
-    if (!newName || newName.trim() === '' || newName === currentName) return false;
-
+  /** Guarda nombre y reglas en una sola petición para evitar estados parciales. */
+  const handleSaveGroupConfig = async (groupId, name, rules) => {
     try {
-      await updateGroup(groupId, newName.trim(), undefined);
-      loadGroupsAndCompetitions();
-      return true;
-    } catch (e) {
-      setError(e.message);
-      return false;
-    }
-  };
-
-  const handleUpdateRules = async (groupId, rules) => {
-    try {
-      await updateGroup(groupId, undefined, rules);
+      await updateGroup(groupId, name?.trim(), rules);
       loadGroupsAndCompetitions();
       return true;
     } catch (e) {
@@ -312,8 +305,13 @@ export function useGroupsDashboard() {
     toast.success('Imagen de la liga eliminada');
   };
 
-  const handleDeleteGroup = async (groupId, groupName) => {
+  /**
+   * Elimina una liga. `skipConfirm` se usa cuando la confirmación ya se pidió
+   * dentro de la interfaz (por ejemplo, escribiendo el nombre de la liga).
+   */
+  const handleDeleteGroup = async (groupId, groupName, { skipConfirm = false } = {}) => {
     if (
+      !skipConfirm &&
       !window.confirm(
         `⚠️ ADVERTENCIA ⚠️\n¿Estás seguro de que quieres BORRAR POR COMPLETO la liga "${groupName}"?\n\nEsta acción eliminará todos los pronósticos de todos los participantes y no se puede deshacer.`,
       )
@@ -456,8 +454,7 @@ export function useGroupsDashboard() {
     isCreating,
     handleCreate,
     handleJoin,
-    handleEditGroup,
-    handleUpdateRules,
+    handleSaveGroupConfig,
     handleUploadGroupImage,
     handleRemoveGroupImage,
     handleDeleteGroup,
