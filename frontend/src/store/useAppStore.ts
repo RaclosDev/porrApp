@@ -66,6 +66,18 @@ export const getInitialBracketState = (groupId) => {
   return defaultBracketState;
 };
 
+/** Mapa local liga -> timestamp de la última vez que se abrió, para ordenar "Mis Ligas". */
+export const readGroupVisits = () => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('group_last_visited');
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
 const initialGroupId =
   typeof window !== 'undefined' ? localStorage.getItem('activeGroupId') || '' : '';
 
@@ -191,6 +203,13 @@ export const useAppStore = create((set, get) => ({
     localStorage.removeItem('activeCompetitionId');
     if (groupId) {
       localStorage.setItem('activeGroupId', groupId.toString());
+      try {
+        const visits = readGroupVisits();
+        visits[groupId.toString()] = Date.now();
+        localStorage.setItem('group_last_visited', JSON.stringify(visits));
+      } catch {
+        /* ignore */
+      }
       try {
         const num = Number(groupId);
         if (!isNaN(num) && num > 0) {

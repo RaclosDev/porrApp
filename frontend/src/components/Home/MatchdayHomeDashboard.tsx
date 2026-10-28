@@ -43,6 +43,14 @@ function formatMatchDate(date) {
   });
 }
 
+function roundLabelFor(match) {
+  if (!match) return '';
+  if (match.groupName) return `Grupo ${match.groupName}`;
+  if (match.round && match.round.toLowerCase() !== 'group') return match.round;
+  if (match.date) return `Fecha ${match.date.slice(0, 10)}`;
+  return '';
+}
+
 export default function MatchdayHomeDashboard() {
   const {
     activeGroupName,
@@ -69,28 +77,44 @@ export default function MatchdayHomeDashboard() {
     Boolean(activeCompetitionName) &&
     activeCompetitionName.trim().toLowerCase() !== (activeGroupName || '').trim().toLowerCase();
 
-  // Filtramos y ordenamos los próximos partidos o en vivo
-  const relevantMatches = useMemo(() => {
-    if (!allGames || allGames.length === 0) return [];
+  // Jornada actual: la primera ronda con partidos sin finalizar (o la última si ya acabó todo).
+  // Se muestran todos los partidos de esa jornada, también los ya finalizados.
+  const { currentRound, matchdayMatches } = useMemo(() => {
+    if (!allGames || allGames.length === 0) return { currentRound: null, matchdayMatches: [] };
 
-    const now = new Date();
     const sorted = [...allGames].sort((a, b) => {
       const dateA = a.date ? new Date(a.date) : new Date(0);
       const dateB = b.date ? new Date(b.date) : new Date(0);
       return dateA - dateB;
     });
 
-    const upcomingOrLive = sorted.filter((m) => {
-      if (['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS'].includes(m.status?.toUpperCase()))
-        return true;
-      if (m.finished || ['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED'].includes(m.status))
-        return false;
-      if (!m.date) return false;
-      const d = new Date(m.date);
-      return d.getTime() >= now.getTime();
+    const rounds = [];
+    const byRound = new Map();
+    sorted.forEach((match) => {
+      const label = roundLabelFor(match);
+      if (!label) return;
+      if (!byRound.has(label)) {
+        byRound.set(label, []);
+        rounds.push(label);
+      }
+      byRound.get(label).push(match);
     });
 
-    return upcomingOrLive.slice(0, 6);
+    if (rounds.length === 0) return { currentRound: null, matchdayMatches: [] };
+
+    let currentIndex = rounds.findIndex((label) =>
+      byRound.get(label).some(
+        (match) =>
+          !match.finished &&
+          !['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED'].includes(
+            (match.status || '').toUpperCase(),
+          ),
+      ),
+    );
+    if (currentIndex === -1) currentIndex = rounds.length - 1;
+
+    const round = rounds[currentIndex];
+    return { currentRound: round, matchdayMatches: byRound.get(round) || [] };
   }, [allGames]);
 
   const topParticipants = useMemo(() => {
@@ -155,16 +179,15 @@ export default function MatchdayHomeDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
           <div className="home-list-header">
             <h2>
-              <span aria-hidden="true">📅</span>
-              <span>Partidos</span>
+              <span>Partidos{currentRound ? ` ${currentRound}` : ''}</span>
             </h2>
             <button type="button" className="home-link-btn" onClick={() => navigate('/radar')}>
               Ver todos →
             </button>
           </div>
 
-          {relevantMatches.length > 0 ? (
-            relevantMatches.map((m) => {
+          {matchdayMatches.length > 0 ? (
+            matchdayMatches.map((m) => {
               const isLive = ['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS'].includes(
                 m.status?.toUpperCase(),
               );
@@ -224,7 +247,7 @@ export default function MatchdayHomeDashboard() {
               className="glass-panel"
               style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}
             >
-              No hay partidos programados para los próximos días.
+              No hay partidos programados para esta jornada.
             </div>
           )}
         </div>

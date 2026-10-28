@@ -33,6 +33,7 @@ export function useLeaderboard() {
       userId: backendScore.userId,
       name: backendScore.name || 'Anónimo',
       betName: backendScore.betName || '',
+      avatarUrl: backendScore.avatarUrl || '',
       points: backendScore,
       paid: !backendScore.pending,
       thirdPlaceMatch: backendScore.thirdPlaceMatch,

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import WhatsAppIcon from '../components/WhatsAppIcon';
+import { UserAvatar } from '../components/Avatar';
 
 /**
  * Componente que muestra la tabla de clasificación (Leaderboard) de una liga.
@@ -291,13 +292,35 @@ function Leaderboard() {
                             gap: '10px',
                           }}
                         >
-                          <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              minWidth: 0,
+                              flex: 1,
+                            }}
+                          >
+                            <UserAvatar
+                              url={
+                                r.avatarUrl ||
+                                (r.userId ? `/api/users/${r.userId}/avatar` : '')
+                              }
+                              name={r.name}
+                              size={28}
+                            />
                             <div
-                              style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: '6px',
+                                minWidth: 0,
+                              }}
                             >
                               <span title={`Ver Porra de ${r.name}`} style={{ fontSize: '1.1em' }}>
                                 <strong>
-                                  {r.name}{' '}
+                                  {r.name}
                                   {isMe && (
                                     <span
                                       style={{
@@ -319,15 +342,11 @@ function Leaderboard() {
                                     color: 'white',
                                     padding: '2px 4px',
                                     borderRadius: '4px',
-                                    marginLeft: '8px',
                                   }}
                                 >
                                   ⏳ Pendiente
                                 </span>
                               )}
-                            </div>
-                            <div style={{ fontSize: '0.85em', color: 'var(--text-muted)' }}>
-                              {r.betName}
                             </div>
                           </div>
 

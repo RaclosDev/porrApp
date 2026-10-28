@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { readGroupVisits } from '../store/useAppStore';
 import { LeagueAvatar } from './Avatar';
 
 function getCompetitionBadge(competitionName) {
@@ -35,6 +36,22 @@ export default function ActiveLeagueDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  // La liga activa primero y, después, las visitadas más recientemente.
+  const sortedGroups = useMemo(() => {
+    const visits = readGroupVisits();
+    return [...(userGroups || [])].sort((a, b) => {
+      const aSelected = String(a.id) === String(activeGroupId);
+      const bSelected = String(b.id) === String(activeGroupId);
+      if (aSelected !== bSelected) return aSelected ? -1 : 1;
+
+      const aVisited = Number(visits[a.id]) || 0;
+      const bVisited = Number(visits[b.id]) || 0;
+      if (aVisited !== bVisited) return bVisited - aVisited;
+
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    });
+  }, [userGroups, activeGroupId]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -232,8 +249,8 @@ export default function ActiveLeagueDropdown() {
               gap: '3px',
             }}
           >
-            {userGroups && userGroups.length > 0 ? (
-              userGroups.map((g) => {
+            {sortedGroups.length > 0 ? (
+              sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
                 const gBadge = getCompetitionBadge(g.competitionName);
                 return (

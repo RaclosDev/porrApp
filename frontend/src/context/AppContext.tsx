@@ -16,7 +16,7 @@ import {
   updateUserPreferences,
 } from '../services/api';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useAppStore, defaultBracketState } from '../store/useAppStore';
+import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
 
 const EMPTY_OBJECT = Object.freeze({});
 const EMPTY_ARRAY = Object.freeze([]);
@@ -131,14 +131,17 @@ export function AppProvider({ children }) {
           localStorage.removeItem('activeGroupId');
           changeGroup('');
         } else {
-          const currentLocal = localStorage.getItem('activeGroupId');
-          const belongsToCurrent = myGroups.some((g) => g.id.toString() === currentLocal);
+          // La fuente de verdad es el store (no localStorage): handleGoogleSuccess
+          // puede haber escrito la preferencia del servidor sin actualizar el estado.
+          const currentStoreGroup = useAppStore.getState().activeGroupId;
+          const belongsToCurrent =
+            currentStoreGroup && myGroups.some((g) => g.id.toString() === currentStoreGroup);
 
-          if (belongsToCurrent && currentLocal) {
-            // El usuario ya tiene una liga válida seleccionada en este navegador (respetar en F5)
+          if (belongsToCurrent) {
+            // El usuario ya tiene una liga válida seleccionada en esta sesión (respetar en F5)
             const currentBracket = useAppStore.getState().bracketState;
             if (currentBracket === defaultBracketState) {
-              const savedDraft = localStorage.getItem(`draft_bracket_${currentLocal}`);
+              const savedDraft = localStorage.getItem(`draft_bracket_${currentStoreGroup}`);
               if (savedDraft) {
                 try {
                   const parsed = JSON.parse(savedDraft);
@@ -151,18 +154,31 @@ export function AppProvider({ children }) {
               }
             }
             // Si difiere de la preferencia en BD, sincronizamos la BD sin cambiar la selección local
-            if (dbGroupId !== currentLocal) {
-              updateUserPreferences({ lastSelectedGroupId: Number(currentLocal) }).catch(() => {});
+            if (dbGroupId !== currentStoreGroup) {
+              updateUserPreferences({ lastSelectedGroupId: Number(currentStoreGroup) }).catch(
+                () => {},
+              );
             }
           } else if (dbGroupId && myGroups.some((g) => g.id.toString() === dbGroupId)) {
-            // No hay selección local válida en este navegador, usar la preferencia de BD
+            // No hay selección local válida en esta sesión, usar la preferencia de BD
             changeGroup(dbGroupId);
           } else {
-            // Sin preferencia local ni en BD: usar la liga más reciente
-            const mostRecent = [...myGroups].sort(
-              (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
-            )[0];
-            changeGroup(mostRecent.id.toString());
+            // Sin preferencia en BD: la última liga visitada en este dispositivo y,
+            // si no hay historial, la más reciente por fecha de creación.
+            const visits = readGroupVisits();
+            const lastVisitedId = Object.entries(visits)
+              .sort(([, a], [, b]) => Number(b) - Number(a))
+              .map(([id]) => id)
+              .find((id) => myGroups.some((g) => g.id.toString() === id));
+
+            if (lastVisitedId) {
+              changeGroup(lastVisitedId);
+            } else {
+              const mostRecent = [...myGroups].sort(
+                (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+              )[0];
+              changeGroup(mostRecent.id.toString());
+            }
           }
         }
       } catch {
