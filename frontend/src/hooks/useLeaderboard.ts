@@ -3,10 +3,13 @@ import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
 
+const EMPTY_MATCHDAYS = [];
+
 export function useLeaderboard() {
   const state = useAppContext();
   const {
     leaderboardData,
+    leaderboardMatchdays,
     loading,
     isRaclos,
     activeGroupName,
@@ -22,23 +25,57 @@ export function useLeaderboard() {
   const [actionLoading, setActionLoading] = useState(false);
   const [sortColumn, setSortColumn] = useState('total');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [selectedMatchdayState, setSelectedMatchdayState] = useState(null);
 
   const isLeagueAdmin =
     activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
 
-  const { results, lowestPaidRank } = useMemo(() => {
-    const list = (leaderboardData || []).map((backendScore) => ({
-      key: backendScore.id ?? `member-${backendScore.userId}`,
-      id: backendScore.id,
-      userId: backendScore.userId,
-      name: backendScore.name || 'Anónimo',
-      betName: backendScore.betName || '',
-      avatarUrl: backendScore.avatarUrl || '',
-      points: backendScore,
-      paid: !backendScore.pending,
-      thirdPlaceMatch: backendScore.thirdPlaceMatch,
-      thirdPlaceWinner: backendScore.thirdPlaceWinner,
-    }));
+  const matchdays = Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_MATCHDAYS;
+
+  const currentMatchday = useMemo(
+    () => matchdays.find((matchday) => matchday.current) || matchdays[matchdays.length - 1] || null,
+    [matchdays],
+  );
+
+  // Sin elección explícita se muestra la jornada actual.
+  const selectedMatchdayInfo = useMemo(() => {
+    if (selectedMatchdayState === null) return currentMatchday;
+    return (
+      matchdays.find((matchday) => matchday.label === selectedMatchdayState) || currentMatchday
+    );
+  }, [selectedMatchdayState, matchdays, currentMatchday]);
+
+  const selectedMatchday = selectedMatchdayInfo?.label || null;
+  const matchdayIndex = selectedMatchdayInfo
+    ? matchdays.findIndex((matchday) => matchday.label === selectedMatchdayInfo.label)
+    : -1;
+
+  const { results, lowestPaidRank, matchdayStats } = useMemo(() => {
+    const getMatchdayPoints = (backendScore) => {
+      if (!selectedMatchdayInfo || backendScore.id == null) return 0;
+      const pointsByPrediction = selectedMatchdayInfo.pointsByPrediction;
+      if (!pointsByPrediction) return 0;
+      const value =
+        pointsByPrediction[backendScore.id] ?? pointsByPrediction[String(backendScore.id)];
+      return Number(value) || 0;
+    };
+
+    const list = (leaderboardData || []).map((backendScore) => {
+      const matchdayPoints = getMatchdayPoints(backendScore);
+      return {
+        key: backendScore.id ?? `member-${backendScore.userId}`,
+        id: backendScore.id,
+        userId: backendScore.userId,
+        name: backendScore.name || 'Anónimo',
+        betName: backendScore.betName || '',
+        avatarUrl: backendScore.avatarUrl || '',
+        points: { ...backendScore, matchday: matchdayPoints },
+        matchdayPoints,
+        paid: !backendScore.pending,
+        thirdPlaceMatch: backendScore.thirdPlaceMatch,
+        thirdPlaceWinner: backendScore.thirdPlaceWinner,
+      };
+    });
 
     const col = sortColumn || 'total';
 
@@ -87,8 +124,29 @@ export function useLeaderboard() {
       });
     }
 
-    return { results: list, lowestPaidRank: lowestRank };
-  }, [leaderboardData, sortColumn, sortDirection]);
+    let stats = null;
+    if (selectedMatchdayInfo) {
+      const paidList = list.filter((r) => r.paid);
+      const me = paidList.find(
+        (r) => r.userId?.toString() === userId?.toString() || r.name === userName,
+      );
+      const leader =
+        [...paidList]
+          .filter((r) => Number(r.points.matchday) > 0)
+          .sort(
+            (a, b) =>
+              Number(b.points.matchday) - Number(a.points.matchday) ||
+              Number(b.points.total) - Number(a.points.total),
+          )[0] || null;
+
+      stats = {
+        myPoints: Number(me?.points.matchday) || 0,
+        leader,
+      };
+    }
+
+    return { results: list, lowestPaidRank: lowestRank, matchdayStats: stats };
+  }, [leaderboardData, sortColumn, sortDirection, selectedMatchdayInfo, userId, userName]);
 
   const handleShare = async () => {
     setSharing(true);
@@ -161,6 +219,17 @@ export function useLeaderboard() {
     }
   };
 
+  const handleSelectMatchday = (label) => {
+    if (label) setSelectedMatchdayState(label);
+  };
+
+  const handleStepMatchday = (direction) => {
+    const nextIndex = matchdayIndex + direction;
+    if (nextIndex >= 0 && nextIndex < matchdays.length) {
+      setSelectedMatchdayState(matchdays[nextIndex].label);
+    }
+  };
+
   return {
     state,
     results,
@@ -186,5 +255,16 @@ export function useLeaderboard() {
     sortColumn,
     sortDirection,
     handleSort,
+    matchdays,
+    currentMatchday,
+    selectedMatchday,
+    selectedMatchdayInfo,
+    matchdayStats,
+    matchdayIndex,
+    canGoPrevMatchday: matchdayIndex > 0,
+    canGoNextMatchday:
+      matchdays.length > 0 && (matchdayIndex === -1 || matchdayIndex < matchdays.length - 1),
+    handleSelectMatchday,
+    handleStepMatchday,
   };
 }

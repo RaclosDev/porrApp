@@ -1,5 +1,6 @@
 import React, { useState, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import WhatsAppIcon from '../components/WhatsAppIcon';
@@ -29,6 +30,15 @@ function Leaderboard() {
     sortColumn,
     sortDirection,
     handleSort,
+    matchdays,
+    currentMatchday,
+    selectedMatchday,
+    selectedMatchdayInfo,
+    matchdayStats,
+    canGoPrevMatchday,
+    canGoNextMatchday,
+    handleSelectMatchday,
+    handleStepMatchday,
   } = useLeaderboard();
 
   const navigate = useNavigate();
@@ -73,24 +83,27 @@ function Leaderboard() {
 
   const mid = Math.ceil(validResults.length / 2);
 
-  const isMatchday = activeGroupPoolFormat === 'MATCH_DAY';
+  const isMatchday =
+    activeGroupPoolFormat === 'MATCH_DAY' || state.activeCompetitionFormatType === 'LEAGUE';
 
   const columns = isMatchday
     ? [
-        { key: 'total', label: 'TOTAL' },
-        { key: 'matchPoints', label: 'Puntos Jornadas' },
-        ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi' }] : []),
+        { key: 'total', label: 'TOTAL', kind: 'total' },
+        selectedMatchday
+          ? { key: 'matchday', label: selectedMatchday, kind: 'matchday' }
+          : { key: 'matchPoints', label: 'Puntos Jornadas', kind: 'detail' },
+        ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }] : []),
       ]
     : [
-        { key: 'total', label: 'TOTAL' },
-        { key: 'matchPoints', label: 'Jornadas' },
-        { key: 'r1', label: 'F.Grupos' },
-        { key: 'r32', label: 'Dieciseisavos' },
-        { key: 'r16', label: 'Octavos' },
-        { key: 'qf', label: 'Cuartos' },
-        { key: 'sf', label: 'Semis' },
-        { key: 'finals', label: 'Finales' },
-        ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi' }] : []),
+        { key: 'total', label: 'TOTAL', kind: 'total' },
+        { key: 'matchPoints', label: 'Jornadas', kind: 'detail' },
+        { key: 'r1', label: 'F.Grupos', kind: 'detail' },
+        { key: 'r32', label: 'Dieciseisavos', kind: 'detail' },
+        { key: 'r16', label: 'Octavos', kind: 'detail' },
+        { key: 'qf', label: 'Cuartos', kind: 'detail' },
+        { key: 'sf', label: 'Semis', kind: 'detail' },
+        { key: 'finals', label: 'Finales', kind: 'detail' },
+        ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }] : []),
       ];
 
   const sortIndicator = (colKey) => {
@@ -107,6 +120,14 @@ function Leaderboard() {
     color: sortColumn === colKey ? '#00d2d3' : 'inherit',
     borderBottom: sortColumn === colKey ? '2px solid #00d2d3' : undefined,
   });
+
+  const columnClass = (col) => {
+    if (col.kind === 'matchday') return 'lb-matchday-cell';
+    if (col.kind === 'detail') return 'leaderboard-mobile-detail';
+    return '';
+  };
+
+  const summaryMatchday = selectedMatchdayInfo || currentMatchday;
 
   return (
     <section id="view-leaderboard" className="view-section" style={{ display: 'block' }}>
@@ -222,196 +243,282 @@ function Leaderboard() {
           </Suspense>
         </div>
       ) : (
-        <div
-          style={{
-            display: 'flex',
-            gap: '20px',
-            alignItems: 'flex-start',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            width: '100%',
-          }}
-        >
-          <div
-            className="table-container"
-            style={{ flex: 1, minWidth: '300px', maxWidth: '1400px', margin: '0 auto' }}
-          >
-            <table className="leaderboard-table">
-              <thead>
-                <tr>
-                  <th>Pos</th>
-                  <th>Participante</th>
-                  {columns.map((col) => (
-                    <th
-                      key={col.key}
-                      className={col.key === 'total' ? '' : 'leaderboard-mobile-detail'}
-                      style={thStyle(col.key)}
-                      onClick={() => handleSort(col.key)}
-                      title={`Ordenar por ${col.label}`}
+        <>
+          {isMatchday && summaryMatchday && (
+            <div className="lb-matchday-panel">
+              <div className="lb-matchday-summary">
+                <div className="lb-matchday-heading">
+                  <span className="lb-matchday-eyebrow">
+                    <CalendarDays size={14} aria-hidden="true" />
+                    {selectedMatchdayInfo?.current ? 'Jornada actual' : 'Jornada seleccionada'}
+                  </span>
+                  <div className="lb-matchday-title-row">
+                    <strong className="lb-matchday-title">{summaryMatchday.label}</strong>
+                    <span
+                      className={`lb-matchday-status ${
+                        summaryMatchday.finished ? 'is-finished' : 'is-live'
+                      }`}
                     >
-                      {col.label}
-                      {sortIndicator(col.key)}
-                    </th>
+                      {summaryMatchday.finished ? 'Finalizada' : 'En juego'}
+                    </span>
+                  </div>
+                  {summaryMatchday.matchCount > 0 && (
+                    <span className="lb-matchday-meta">
+                      {summaryMatchday.matchCount}{' '}
+                      {summaryMatchday.matchCount === 1 ? 'partido' : 'partidos'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="lb-matchday-kpis">
+                  <div className="lb-matchday-kpi">
+                    <span>Tus puntos</span>
+                    <strong>{matchdayStats?.myPoints ?? 0}</strong>
+                  </div>
+                  <div className="lb-matchday-kpi">
+                    <span>Líder de la jornada</span>
+                    <strong>
+                      {matchdayStats?.leader
+                        ? `${matchdayStats.leader.name} · ${matchdayStats.leader.points.matchday} pts`
+                        : 'Sin puntos todavía'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lb-matchday-nav">
+                <button
+                  type="button"
+                  className="lb-matchday-step"
+                  onClick={() => handleStepMatchday(-1)}
+                  disabled={!canGoPrevMatchday}
+                  aria-label="Jornada anterior"
+                >
+                  <ChevronLeft size={18} aria-hidden="true" />
+                </button>
+
+                <select
+                  className="lb-matchday-select"
+                  value={selectedMatchday || ''}
+                  onChange={(event) => handleSelectMatchday(event.target.value)}
+                  aria-label="Seleccionar jornada"
+                >
+                  {matchdays.map((matchday) => (
+                    <option key={matchday.label} value={matchday.label}>
+                      {matchday.label}
+                      {matchday.current ? ' · actual' : ''}
+                    </option>
                   ))}
-                </tr>
-              </thead>
-              <tbody id="leaderboard-body-tab">
-                {results.map((r) => {
-                  let rankDisplay = r.rank;
-                  if (r.rank === 1) rankDisplay = '🥇';
-                  else if (r.rank === 2) rankDisplay = '🥈';
-                  else if (r.rank === 3) rankDisplay = '🥉';
-                  else if (r.paid && r.rank === lowestPaidRank && lowestPaidRank > 3)
-                    rankDisplay = '🐢';
+                </select>
 
-                  const isPending = !r.paid;
-                  const isMe = r.userId?.toString() === userId?.toString() || r.name === userName;
-                  const bgStyle = isMe
-                    ? 'rgba(0, 210, 211, 0.15)'
-                    : isPending
-                      ? 'rgba(255, 165, 0, 0.05)'
-                      : 'transparent';
+                <button
+                  type="button"
+                  className="lb-matchday-step"
+                  onClick={() => handleStepMatchday(1)}
+                  disabled={!canGoNextMatchday}
+                  aria-label="Jornada siguiente"
+                >
+                  <ChevronRight size={18} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          )}
 
-                  const rowStyle = {
-                    background: bgStyle,
-                    boxShadow: isMe
-                      ? 'inset 0 0 0 1px var(--accent-color), 0 0 15px rgba(0, 210, 211, 0.2)'
-                      : 'none',
-                    cursor: 'pointer',
-                  };
+          <div
+            style={{
+              display: 'flex',
+              gap: '20px',
+              alignItems: 'flex-start',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              width: '100%',
+            }}
+          >
+            <div
+              className="table-container"
+              style={{ flex: 1, minWidth: '300px', maxWidth: '1400px', margin: '0 auto' }}
+            >
+              <table className="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th>Pos</th>
+                    <th>Participante</th>
+                    {columns.map((col) => (
+                      <th
+                        key={col.key}
+                        className={columnClass(col)}
+                        style={thStyle(col.key)}
+                        onClick={() => handleSort(col.key)}
+                        title={`Ordenar por ${col.label}`}
+                      >
+                        {col.label}
+                        {sortIndicator(col.key)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-body-tab">
+                  {results.map((r) => {
+                    let rankDisplay = r.rank;
+                    if (r.rank === 1) rankDisplay = '🥇';
+                    else if (r.rank === 2) rankDisplay = '🥈';
+                    else if (r.rank === 3) rankDisplay = '🥉';
+                    else if (r.paid && r.rank === lowestPaidRank && lowestPaidRank > 3)
+                      rankDisplay = '🐢';
 
-                  return (
-                    <tr key={r.key} style={rowStyle}>
-                      <td style={{ fontSize: '1.2em', textAlign: 'center' }}>{rankDisplay}</td>
-                      <td>
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'flex-start',
-                            alignItems: 'center',
-                            flexWrap: 'nowrap',
-                            gap: '6px',
-                          }}
-                        >
+                    const isPending = !r.paid;
+                    const isMe = r.userId?.toString() === userId?.toString() || r.name === userName;
+                    const bgStyle = isMe
+                      ? 'rgba(0, 210, 211, 0.15)'
+                      : isPending
+                        ? 'rgba(255, 165, 0, 0.05)'
+                        : 'transparent';
+
+                    const rowStyle = {
+                      background: bgStyle,
+                      boxShadow: isMe
+                        ? 'inset 0 0 0 1px var(--accent-color), 0 0 15px rgba(0, 210, 211, 0.2)'
+                        : 'none',
+                      cursor: 'pointer',
+                    };
+
+                    return (
+                      <tr key={r.key} style={rowStyle}>
+                        <td style={{ fontSize: '1.2em', textAlign: 'center' }}>{rankDisplay}</td>
+                        <td>
                           <div
                             style={{
                               display: 'flex',
+                              justifyContent: 'flex-start',
                               alignItems: 'center',
-                              gap: '8px',
-                              minWidth: 0,
-                              flex: 1,
+                              flexWrap: 'nowrap',
+                              gap: '6px',
                             }}
                           >
-                            <UserAvatar
-                              url={
-                                r.avatarUrl ||
-                                (r.userId ? `/api/users/${r.userId}/avatar` : '')
-                              }
-                              name={r.name}
-                              size={28}
-                            />
                             <div
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                flexWrap: 'wrap',
-                                gap: '6px',
+                                gap: '8px',
                                 minWidth: 0,
+                                flex: 1,
                               }}
                             >
-                              <span title={`Ver Porra de ${r.name}`} style={{ fontSize: '1.1em' }}>
-                                <strong>
-                                  {r.name}
-                                  {isMe && (
-                                    <span
-                                      style={{
-                                        color: 'var(--accent-color)',
-                                        marginLeft: '5px',
-                                        fontSize: '0.8em',
-                                      }}
-                                    >
-                                      (Tú)
-                                    </span>
-                                  )}
-                                </strong>
-                              </span>
-                              {isPending && (
+                              <UserAvatar
+                                url={
+                                  r.avatarUrl || (r.userId ? `/api/users/${r.userId}/avatar` : '')
+                                }
+                                name={r.name}
+                                size={28}
+                              />
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  flexWrap: 'wrap',
+                                  gap: '6px',
+                                  minWidth: 0,
+                                }}
+                              >
                                 <span
-                                  style={{
-                                    fontSize: '10px',
-                                    background: 'orange',
-                                    color: 'white',
-                                    padding: '2px 4px',
-                                    borderRadius: '4px',
-                                  }}
+                                  title={`Ver Porra de ${r.name}`}
+                                  style={{ fontSize: '1.1em' }}
                                 >
-                                  ⏳ Pendiente
+                                  <strong>
+                                    {r.name}
+                                    {isMe && (
+                                      <span
+                                        style={{
+                                          color: 'var(--accent-color)',
+                                          marginLeft: '5px',
+                                          fontSize: '0.8em',
+                                        }}
+                                      >
+                                        (Tú)
+                                      </span>
+                                    )}
+                                  </strong>
                                 </span>
-                              )}
+                                {isPending && (
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      background: 'orange',
+                                      color: 'white',
+                                      padding: '2px 4px',
+                                      borderRadius: '4px',
+                                    }}
+                                  >
+                                    ⏳ Pendiente
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
 
-                          {r.id != null && <button
-                            className="glass-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isMatchday) {
-                                navigate('/jornadas');
-                              } else {
-                                state.setViewerBetId(r.id);
-                              }
-                            }}
-                            style={{
-                              background: 'rgba(56, 173, 246, 0.2)',
-                              color: '#38adf6',
-                              border: '1px solid #38adf6',
-                              padding: '5px 7px',
-                              minWidth: '34px',
-                              minHeight: '34px',
-                              marginLeft: 'auto',
-                              flexShrink: 0,
-                              fontSize: '0.95rem',
-                              lineHeight: 1,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                            title={isMatchday ? 'Ver partidos de la jornada' : 'Ver Porra'}
+                            {r.id != null && (
+                              <button
+                                className="glass-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isMatchday) {
+                                    navigate('/jornadas');
+                                  } else {
+                                    state.setViewerBetId(r.id);
+                                  }
+                                }}
+                                style={{
+                                  background: 'rgba(56, 173, 246, 0.2)',
+                                  color: '#38adf6',
+                                  border: '1px solid #38adf6',
+                                  padding: '5px 7px',
+                                  minWidth: '34px',
+                                  minHeight: '34px',
+                                  marginLeft: 'auto',
+                                  flexShrink: 0,
+                                  fontSize: '0.95rem',
+                                  lineHeight: 1,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                                title={isMatchday ? 'Ver partidos de la jornada' : 'Ver Porra'}
+                              >
+                                <span aria-hidden="true">👁️</span>
+                                <span className="sr-only">
+                                  {isMatchday ? 'Ver jornadas' : 'Ver porra'}
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        {columns.map((col) => (
+                          <td
+                            key={col.key}
+                            className={columnClass(col)}
+                            style={
+                              col.kind === 'total'
+                                ? {
+                                    color: 'var(--accent-color)',
+                                    fontWeight: 'bold',
+                                    fontSize: '1.1em',
+                                    textAlign: 'center',
+                                  }
+                                : undefined
+                            }
                           >
-                            <span aria-hidden="true">👁️</span>
-                            <span className="sr-only">{isMatchday ? 'Ver jornadas' : 'Ver porra'}</span>
-                          </button>}
-                        </div>
-                      </td>
-                      <td
-                        style={{
-                          color: 'var(--accent-color)',
-                          fontWeight: 'bold',
-                          fontSize: '1.1em',
-                          textAlign: 'center',
-                        }}
-                      >
-                        {r.paid ? r.points.total + ' pts' : '-'}
-                      </td>
-                      <td className="leaderboard-mobile-detail">{r.paid ? r.points.matchPoints || 0 : '-'}</td>
-                      {!isMatchday && (
-                        <>
-                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.r1 : '-'}</td>
-                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.r32 : '-'}</td>
-                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.r16 : '-'}</td>
-                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.qf : '-'}</td>
-                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.sf : '-'}</td>
-                          <td className="leaderboard-mobile-detail">{r.paid ? r.points.finals : '-'}</td>
-                        </>
-                      )}
-                      {activeGroupPichichi && <td className="leaderboard-mobile-detail">{r.paid ? r.points.scorer : '-'}</td>}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            {r.paid
+                              ? `${r.points[col.key] ?? 0}${col.kind === 'total' ? ' pts' : ''}`
+                              : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* SHARE IMAGE TEMPLATE (Hidden) */}

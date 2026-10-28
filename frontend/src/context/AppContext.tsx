@@ -9,6 +9,7 @@ import {
   fetchPredictions,
   fetchTeamOdds,
   fetchLeaderboard,
+  fetchLeaderboardMatchdays,
   fetchGroup,
   fetchTopScorers,
   fetchMe,
@@ -175,7 +176,8 @@ export function AppProvider({ children }) {
               changeGroup(lastVisitedId);
             } else {
               const mostRecent = [...myGroups].sort(
-                (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+                (a, b) =>
+                  new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
               )[0];
               changeGroup(mostRecent.id.toString());
             }
@@ -327,6 +329,16 @@ export const useAppContext = () => {
     enabled: Boolean(activeGroupId),
   });
 
+  const isMatchdayPool =
+    groupInfo?.poolFormat === 'MATCH_DAY' || groupInfo?.formatType === 'LEAGUE';
+
+  const { data: leaderboardMatchdays } = useQuery({
+    queryKey: ['leaderboardMatchdays', activeGroupId],
+    queryFn: () => fetchLeaderboardMatchdays(activeGroupId),
+    enabled: Boolean(activeGroupId && isMatchdayPool),
+    staleTime: 60_000,
+  });
+
   const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: ['matches', activeCompetitionId],
     enabled: competitionReady,
@@ -418,6 +430,7 @@ export const useAppContext = () => {
     groupOdds: odds && typeof odds === 'object' && typeof odds !== 'function' ? odds : EMPTY_OBJECT,
     nameToIdMap,
     leaderboardData: Array.isArray(leaderboard) ? leaderboard : EMPTY_ARRAY,
+    leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
     loading,
     loadingGroup,
     groupError,

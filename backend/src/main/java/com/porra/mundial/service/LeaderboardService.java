@@ -1,16 +1,21 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.dto.PredictionDataDTO;
+import com.porra.mundial.dto.MatchdayPointsDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
+import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchPrediction;
+import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.model.Membership;
+import com.porra.mundial.util.MatchRound;
 import com.porra.mundial.scoring.CalculationContext;
 import com.porra.mundial.scoring.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,6 +46,7 @@ public class LeaderboardService {
     private final ScoringStrategy scoringStrategy;
     private final MatchPredictionRepository matchPredictionRepository;
     private final MembershipRepository membershipRepository;
+    private final EditionRepository editionRepository;
 
     /**
      * @param groupId ID del grupo a consultar.
@@ -330,6 +337,138 @@ public class LeaderboardService {
             String nameB = b.getName() != null ? b.getName() : "";
             return nameA.compareToIgnoreCase(nameB);
         });
+    }
+
+    /**
+     * Devuelve el desglose de puntos por jornada de todos los participantes de una liga.
+     * Solo incluye puntos positivos; el frontend muestra 0 cuando no hay aciertos.
+     *
+     * @param groupId ID de la liga. Si es null se calcula sobre todas las porras.
+     * @return Jornadas ordenadas cronológicamente con sus puntos por pronóstico.
+     */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MatchdayPointsDTO> getMatchdayBreakdown(Long groupId) {
+        List<Prediction> groupPredictions = groupId != null
+                ? predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId)
+                : predictionRepository.findAllWithUserAndEdition();
+
+        Set<Long> participantPredictionIds = groupPredictions.stream()
+                .filter(p -> p.getParticipantName() == null || !p.getParticipantName().equalsIgnoreCase("Admin"))
+                .map(Prediction::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Edition edition = groupId != null
+                ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null)
+                : null;
+
+        List<Match> competitionMatches = edition != null && edition.getCompetition() != null
+                ? matchRepository.findByCompetitionId(edition.getCompetition().getId())
+                : matchRepository.findAll();
+
+        Map<String, MatchdayAccumulator> matchdays = new LinkedHashMap<>();
+        competitionMatches.stream()
+                .filter(Objects::nonNull)
+                .filter(m -> m.getMatchDate() != null)
+                .sorted(Comparator.comparing(Match::getMatchDate))
+                .forEach(match -> {
+                    String label = MatchRound.label(match);
+                    if (isUsableMatchdayLabel(label)) {
+                        matchdays.computeIfAbsent(label, key -> new MatchdayAccumulator(label, match.getMatchDate()))
+                                .addMatch(match);
+                    }
+                });
+
+        List<MatchPrediction> matchPredictions = groupId != null
+                ? matchPredictionRepository.findByPredictionEditionLeagueId(groupId)
+                : matchPredictionRepository.findAll();
+
+        for (MatchPrediction matchPrediction : matchPredictions) {
+            if (matchPrediction == null
+                    || matchPrediction.getPointsAwarded() == null
+                    || matchPrediction.getPointsAwarded() <= 0
+                    || matchPrediction.getPrediction() == null
+                    || matchPrediction.getPrediction().getId() == null
+                    || matchPrediction.getMatch() == null
+                    || !participantPredictionIds.contains(matchPrediction.getPrediction().getId())) {
+                continue;
+            }
+
+            String label = MatchRound.label(matchPrediction.getMatch());
+            if (!isUsableMatchdayLabel(label)) continue;
+
+            matchdays.computeIfAbsent(label,
+                            key -> new MatchdayAccumulator(label, matchPrediction.getMatch().getMatchDate()))
+                    .addPoints(matchPrediction.getPrediction().getId(), matchPrediction.getPointsAwarded());
+        }
+
+        int currentIndex = -1;
+        int index = 0;
+        for (MatchdayAccumulator accumulator : matchdays.values()) {
+            if (!accumulator.finished) {
+                currentIndex = index;
+                break;
+            }
+            index++;
+        }
+        if (currentIndex < 0 && !matchdays.isEmpty()) {
+            currentIndex = matchdays.size() - 1;
+        }
+
+        List<MatchdayPointsDTO> result = new ArrayList<>(matchdays.size());
+        index = 0;
+        for (MatchdayAccumulator accumulator : matchdays.values()) {
+            result.add(MatchdayPointsDTO.builder()
+                    .label(accumulator.label)
+                    .date(accumulator.date)
+                    .finished(accumulator.finished)
+                    .current(index == currentIndex)
+                    .matchCount(accumulator.matchCount)
+                    .pointsByPrediction(accumulator.points)
+                    .build());
+            index++;
+        }
+        return result;
+    }
+
+    private boolean isUsableMatchdayLabel(String label) {
+        return label != null && !label.isBlank() && !"Sin jornada".equalsIgnoreCase(label);
+    }
+
+    private static final class MatchdayAccumulator {
+        private final String label;
+        private final Map<Long, Integer> points = new HashMap<>();
+        private LocalDateTime date;
+        private int matchCount;
+        private boolean finished = true;
+
+        private MatchdayAccumulator(String label, LocalDateTime date) {
+            this.label = label;
+            this.date = date;
+        }
+
+        private void addMatch(Match match) {
+            matchCount++;
+            if (match.getMatchDate() != null && (date == null || match.getMatchDate().isBefore(date))) {
+                date = match.getMatchDate();
+            }
+            if (isPlayablePending(match)) {
+                finished = false;
+            }
+        }
+
+        private void addPoints(Long predictionId, int pointsAwarded) {
+            points.merge(predictionId, pointsAwarded, Integer::sum);
+        }
+
+        private boolean isPlayablePending(Match match) {
+            if (Boolean.TRUE.equals(match.getFinished())) return false;
+            MatchStatusNormalized status = match.getStatus();
+            return status != MatchStatusNormalized.CANCELLED
+                    && status != MatchStatusNormalized.POSTPONED
+                    && status != MatchStatusNormalized.ABANDONED
+                    && status != MatchStatusNormalized.SUSPENDED;
+        }
     }
 
     @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", allEntries = true)

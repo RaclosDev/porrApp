@@ -1,10 +1,16 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.dto.MatchdayPointsDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
+import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Edition;
+import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchPrediction;
+import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.MatchRepository;
@@ -23,9 +29,11 @@ import org.mockito.quality.Strictness;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +60,9 @@ class LeaderboardServiceTest {
 
     @Mock
     private MembershipRepository membershipRepository;
+
+    @Mock
+    private EditionRepository editionRepository;
 
     @Spy
     private WorldCup2026ScoringStrategy scoringStrategy = new WorldCup2026ScoringStrategy();
@@ -144,6 +155,73 @@ class LeaderboardServiceTest {
         assertEquals(0, joinedScore.getMatchPoints());
         assertEquals(null, joinedScore.getId());
         assertFalse(joinedScore.isPending());
+    }
+
+    @Test
+    @DisplayName("getMatchdayBreakdown agrupa los puntos por jornada y marca la jornada actual")
+    void getMatchdayBreakdown_GroupsPointsByRoundAndMarksCurrentMatchday() {
+        UserAccount user = UserAccount.builder().id(10L).participantName("Jugador 1").build();
+        Prediction pred = Prediction.builder()
+                .id(100L)
+                .user(user)
+                .name("Porra 1")
+                .paymentStatus("PAID")
+                .build();
+
+        Match jornada1 = Match.builder()
+                .round("Jornada 1")
+                .matchDate(LocalDateTime.of(2026, 8, 15, 17, 30))
+                .finished(true)
+                .status(MatchStatusNormalized.FINISHED)
+                .build();
+        Match jornada2 = Match.builder()
+                .round("Jornada 2")
+                .matchDate(LocalDateTime.of(2026, 8, 22, 17, 30))
+                .finished(true)
+                .status(MatchStatusNormalized.FINISHED)
+                .build();
+        Match jornada3 = Match.builder()
+                .round("Jornada 3")
+                .matchDate(LocalDateTime.of(2026, 8, 29, 17, 30))
+                .finished(false)
+                .status(MatchStatusNormalized.SCHEDULED)
+                .build();
+
+        MatchPrediction jornada1Exact = MatchPrediction.builder()
+                .id(1L).prediction(pred).match(jornada1).pointsAwarded(3).build();
+        MatchPrediction jornada2Sign = MatchPrediction.builder()
+                .id(2L).prediction(pred).match(jornada2).pointsAwarded(1).build();
+        MatchPrediction jornada2Exact = MatchPrediction.builder()
+                .id(3L).prediction(pred).match(jornada2).pointsAwarded(2).build();
+        MatchPrediction jornada3Sign = MatchPrediction.builder()
+                .id(4L).prediction(pred).match(jornada3).pointsAwarded(4).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE"))
+                .thenReturn(Optional.of(Edition.builder()
+                        .competition(Competition.builder().id(4L).build())
+                        .build()));
+        when(matchRepository.findByCompetitionId(4L))
+                .thenReturn(List.of(jornada3, jornada1, jornada2));
+        when(matchPredictionRepository.findByPredictionEditionLeagueId(10L))
+                .thenReturn(List.of(jornada1Exact, jornada2Sign, jornada2Exact, jornada3Sign));
+
+        List<MatchdayPointsDTO> breakdown = leaderboardService.getMatchdayBreakdown(10L);
+
+        assertEquals(3, breakdown.size());
+        assertEquals("Jornada 1", breakdown.get(0).getLabel());
+        assertEquals(3, breakdown.get(0).getPointsByPrediction().get(100L));
+        assertTrue(breakdown.get(0).isFinished());
+        assertFalse(breakdown.get(0).isCurrent());
+
+        assertEquals("Jornada 2", breakdown.get(1).getLabel());
+        assertEquals(3, breakdown.get(1).getPointsByPrediction().get(100L));
+        assertTrue(breakdown.get(1).isFinished());
+
+        assertEquals("Jornada 3", breakdown.get(2).getLabel());
+        assertEquals(4, breakdown.get(2).getPointsByPrediction().get(100L));
+        assertFalse(breakdown.get(2).isFinished());
+        assertTrue(breakdown.get(2).isCurrent());
     }
 
 }
