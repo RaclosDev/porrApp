@@ -107,7 +107,7 @@ public class GroupService {
                 try {
                     // Avoid a unique-code conflict if another league currently uses GLOBAL.
                     leagueRepository.findByJoinCode("GLOBAL").ifPresent(other -> {
-                        if (!other.getId().equals(globalGroup.getId())) {
+                        if (!other.getId().equals(1L)) {
                             log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
                             other.setJoinCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
                             leagueRepository.saveAndFlush(other);
