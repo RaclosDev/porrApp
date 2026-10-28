@@ -64,6 +64,7 @@ public class LeaderboardService {
                 .allMatch(p -> p.getScoreCalculatedAt() != null);
 
         if (allMaterialized) {
+            Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
             List<ParticipantScoreDTO> fastLeaderboard = new ArrayList<>(groupPredictions.size());
             for (Prediction pred : groupPredictions) {
                 if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
@@ -74,7 +75,7 @@ public class LeaderboardService {
                         .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()))
                         .betName(pred.getBetName())
                         .avatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null)
-                        .pending(!Boolean.TRUE.equals(pred.getPaid()))
+                        .pending(isPaymentPending(pred, membershipPayment))
                         .total(pred.getTotalPoints() != null ? pred.getTotalPoints() : 0)
                         .r1(pred.getR1Points() != null ? pred.getR1Points() : 0)
                         .r32(pred.getR32Points() != null ? pred.getR32Points() : 0)
@@ -113,10 +114,10 @@ public class LeaderboardService {
 
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();
+        Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
 
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
         Map<String, List<String>> orderedTeamsPerGroup = new HashMap<>();
-
         for (GroupStanding gs : allStandings) {
             if (gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && gs.getTeam() != null) {
                 orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName().toUpperCase().trim(), k -> new ArrayList<>())
@@ -260,7 +261,7 @@ public class LeaderboardService {
             score.setUserId(pred.getUser() != null ? pred.getUser().getId() : null);
             score.setName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
             score.setBetName(pred.getBetName());
-            score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
+            score.setPending(isPaymentPending(pred, membershipPayment));
             leaderboard.add(score);
 
             pred.setTotalPoints(score.getTotal());
@@ -300,6 +301,26 @@ public class LeaderboardService {
             return nameA.compareToIgnoreCase(nameB);
         });
         return leaderboard;
+    }
+
+    private Map<Long, String> getMembershipPaymentStatus(Long groupId) {
+        if (groupId == null) return Collections.emptyMap();
+        Map<Long, String> statuses = new HashMap<>();
+        for (Membership membership : membershipRepository.findByLeagueId(groupId)) {
+            if (membership.getUser() == null || membership.getUser().getId() == null) continue;
+            statuses.put(membership.getUser().getId(),
+                    membership.getPaymentStatus() != null ? membership.getPaymentStatus() : "PENDING");
+        }
+        return statuses;
+    }
+
+    private boolean isPaymentPending(Prediction pred, Map<Long, String> membershipPayment) {
+        Long userId = pred.getUser() != null ? pred.getUser().getId() : null;
+        if (userId != null) {
+            String status = membershipPayment.get(userId);
+            if (status != null) return !"PAID".equalsIgnoreCase(status);
+        }
+        return !Boolean.TRUE.equals(pred.getPaid());
     }
 
     private void addLeagueMembersWithoutPredictions(Long groupId, List<ParticipantScoreDTO> leaderboard) {

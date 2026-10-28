@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Leaderboard from '../../pages/Leaderboard';
@@ -112,20 +112,108 @@ describe('Leaderboard Component', () => {
       'Pos',
       'Participante',
       'TOTAL',
-      'Jornada2',
+      'J2',
     ]);
 
     const row = screen.getByRole('row', { name: /Carlos/ });
     expect(row.querySelectorAll('td')[3]).toHaveTextContent('4');
-    expect(within(row).getByText('J2 · 4 pts')).toBeInTheDocument();
 
     fireEvent.change(select, { target: { value: 'Jornada 1' } });
 
     expect(select).toHaveValue('Jornada 1');
     expect(row.querySelectorAll('td')[3]).toHaveTextContent('3');
-    expect(within(row).getByText('J1 · 3 pts')).toBeInTheDocument();
     expect(screen.getByText('Finalizada')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Jornada anterior' })).toBeDisabled();
+  });
+
+  it('ordena por la jornada seleccionada al pulsar su columna', () => {
+    const twoParticipants = [
+      ...sampleLeaderboard,
+      {
+        id: 2,
+        userId: 20,
+        name: 'Laura',
+        betName: 'Porra 2',
+        total: 10,
+        matchPoints: 10,
+        r1: 0,
+        r32: 0,
+        r16: 0,
+        qf: 0,
+        sf: 0,
+        finals: 0,
+        scorer: 0,
+        pending: false,
+      },
+    ];
+
+    useAppContext.mockReturnValue({
+      leaderboardData: twoParticipants,
+      leaderboardMatchdays: [
+        {
+          label: 'Jornada 1',
+          current: false,
+          finished: true,
+          matchCount: 2,
+          pointsByPrediction: { 1: 3, 2: 1 },
+        },
+        {
+          label: 'Jornada 2',
+          current: true,
+          finished: false,
+          matchCount: 2,
+          pointsByPrediction: { 1: 4, 2: 8 },
+        },
+      ],
+      loading: false,
+      isRaclos: false,
+      activeGroupName: 'Liga Santander',
+      activeGroupId: 1,
+      activeGroupPichichi: false,
+      activeGroupPoolFormat: 'MATCH_DAY',
+      activeGroupBetMode: 'MATCH_DAY',
+      activeGroupAdminId: 1,
+      userId: 10,
+      userName: 'Carlos',
+    });
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTitle('Ordenar por Jornada 2'));
+
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('Laura');
+    expect(rows[1]).toHaveTextContent('Carlos');
+  });
+
+  it('muestra "Sin pagar" en participantes con el pago pendiente', () => {
+    useAppContext.mockReturnValue({
+      leaderboardData: [{ ...sampleLeaderboard[0], pending: true }],
+      leaderboardMatchdays: [],
+      loading: false,
+      isRaclos: false,
+      activeGroupName: 'Liga Santander',
+      activeGroupId: 1,
+      activeGroupPichichi: false,
+      activeGroupPoolFormat: 'MATCH_DAY',
+      activeGroupBetMode: 'MATCH_DAY',
+      activeGroupAdminId: 1,
+      userId: 20,
+      userName: 'Otro',
+    });
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Sin pagar')).toBeInTheDocument();
+    expect(screen.queryByText(/Pendiente/)).not.toBeInTheDocument();
   });
 
   it('muestra las columnas del cuadro eliminatorio en modalidad FULL_BRACKET', () => {

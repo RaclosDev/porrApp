@@ -225,12 +225,16 @@ public class MatchPredictionService {
         Prediction prediction = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
                 .orElseGet(() -> {
                     String predName = "Pronósticos de " + user.getParticipantName();
+                    Membership membership = membershipRepository.findById(memId).orElse(null);
+                    String paymentStatus = membership != null && membership.getPaymentStatus() != null
+                            ? membership.getPaymentStatus()
+                            : "PENDING";
                     return predictionRepository.save(Prediction.builder()
                             .user(user)
                             .edition(edition)
                             .name(predName)
                             .isOfficial(false)
-                            .paymentStatus("PENDING")
+                            .paymentStatus(paymentStatus)
                             .createdAt(LocalDateTime.now())
                             .build());
                 });
@@ -421,7 +425,7 @@ public class MatchPredictionService {
             MatchdayFriendBetDTO.MatchdayFriendBetDTOBuilder builder = MatchdayFriendBetDTO.builder()
                     .userId(member.getId())
                     .participantName(member.getParticipantName() != null ? member.getParticipantName() : "Anónimo")
-                    // avatarUrl opcional
+                    .avatarUrl(member.getAvatarUrl())
                     .isCaller(isCaller);
 
             if (mp != null) {
