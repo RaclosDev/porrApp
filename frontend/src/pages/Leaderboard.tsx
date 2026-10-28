@@ -99,7 +99,12 @@ function Leaderboard() {
     ? [
         { key: 'total', label: 'TOTAL', kind: 'total' },
         selectedMatchday
-          ? { key: 'matchday', label: selectedMatchday, kind: 'matchday' }
+          ? {
+              key: 'matchday',
+              label: selectedMatchday,
+              shortLabel: compactMatchdayLabel(selectedMatchday),
+              kind: 'matchday',
+            }
           : { key: 'matchPoints', label: 'Puntos Jornadas', kind: 'detail' },
         ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }] : []),
       ]
@@ -359,8 +364,9 @@ function Leaderboard() {
                         style={thStyle(col.key)}
                         onClick={() => handleSort(col.key)}
                         title={`Ordenar por ${col.label}`}
+                        aria-label={col.shortLabel ? `Ordenar por ${col.label}` : undefined}
                       >
-                        {col.label}
+                        {col.shortLabel || col.label}
                         {sortIndicator(col.key)}
                       </th>
                     ))}
@@ -450,15 +456,10 @@ function Leaderboard() {
                                 </span>
                                 {isPending && (
                                   <span
-                                    style={{
-                                      fontSize: '10px',
-                                      background: 'orange',
-                                      color: 'white',
-                                      padding: '2px 4px',
-                                      borderRadius: '4px',
-                                    }}
+                                    className="lb-unpaid-badge"
+                                    title="Pago pendiente. El administrador debe marcarlo como pagado para mostrar sus puntos."
                                   >
-                                    ⏳ Pendiente
+                                    Sin pagar
                                   </span>
                                 )}
                               </div>
@@ -516,20 +517,9 @@ function Leaderboard() {
                             }
                           >
                             {col.kind === 'total' ? (
-                              <>
-                                <span className="lb-total-value">
-                                  {r.paid ? `${r.points.total ?? 0} pts` : '-'}
-                                </span>
-                                {r.paid && isMatchday && selectedMatchday && (
-                                  <span
-                                    className="lb-total-matchday"
-                                    title={`${selectedMatchday}: ${r.points.matchday ?? 0} puntos`}
-                                  >
-                                    {compactMatchdayLabel(selectedMatchday)} ·{' '}
-                                    {r.points.matchday ?? 0} pts
-                                  </span>
-                                )}
-                              </>
+                              <span className="lb-total-value">
+                                {r.paid ? `${r.points.total ?? 0} pts` : '-'}
+                              </span>
                             ) : r.paid ? (
                               `${r.points[col.key] ?? 0}`
                             ) : (

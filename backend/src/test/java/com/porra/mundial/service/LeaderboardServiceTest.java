@@ -158,6 +158,42 @@ class LeaderboardServiceTest {
     }
 
     @Test
+    @DisplayName("getLeaderboard prioriza el estado de pago de la membresía sobre el de la predicción")
+    void getLeaderboard_PrefersMembershipPaymentStatus() {
+        UserAccount unpaidUser = UserAccount.builder().id(10L).participantName("Sin Pagar").build();
+        Prediction paidPrediction = Prediction.builder()
+                .id(100L)
+                .user(unpaidUser)
+                .name("Porra 1")
+                .paymentStatus("PAID")
+                .scoreCalculatedAt(LocalDateTime.now())
+                .build();
+        UserAccount paidUser = UserAccount.builder().id(20L).participantName("Pagado").build();
+        Prediction unpaidPrediction = Prediction.builder()
+                .id(200L)
+                .user(paidUser)
+                .name("Porra 2")
+                .paymentStatus("PENDING")
+                .scoreCalculatedAt(LocalDateTime.now())
+                .build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L))
+                .thenReturn(List.of(paidPrediction, unpaidPrediction));
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().user(unpaidUser).paymentStatus("PENDING").build(),
+                Membership.builder().user(paidUser).paymentStatus("PAID").build()));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertTrue(leaderboard.stream()
+                .filter(score -> Long.valueOf(10L).equals(score.getUserId()))
+                .findFirst().orElseThrow().isPending());
+        assertFalse(leaderboard.stream()
+                .filter(score -> Long.valueOf(20L).equals(score.getUserId()))
+                .findFirst().orElseThrow().isPending());
+    }
+
+    @Test
     @DisplayName("getMatchdayBreakdown agrupa los puntos por jornada y marca la jornada actual")
     void getMatchdayBreakdown_GroupsPointsByRoundAndMarksCurrentMatchday() {
         UserAccount user = UserAccount.builder().id(10L).participantName("Jugador 1").build();
