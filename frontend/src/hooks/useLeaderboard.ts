@@ -28,7 +28,7 @@ export function useLeaderboard() {
 
   const { results, lowestPaidRank } = useMemo(() => {
     const list = (leaderboardData || []).map((backendScore) => ({
-      key: backendScore.id,
+      key: backendScore.id ?? `member-${backendScore.userId}`,
       id: backendScore.id,
       userId: backendScore.userId,
       name: backendScore.name || 'Anónimo',

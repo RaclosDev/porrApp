@@ -9,6 +9,8 @@ import com.porra.mundial.model.MatchPrediction;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
+import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.model.Membership;
 import com.porra.mundial.scoring.CalculationContext;
 import com.porra.mundial.scoring.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class LeaderboardService {
     private final SyncService syncService;
     private final ScoringStrategy scoringStrategy;
     private final MatchPredictionRepository matchPredictionRepository;
+    private final MembershipRepository membershipRepository;
 
     /**
      * @param groupId ID del grupo a consultar.
@@ -87,6 +90,7 @@ public class LeaderboardService {
                 String nameB = b.getName() != null ? b.getName() : "";
                 return nameA.compareToIgnoreCase(nameB);
             });
+            addLeagueMembersWithoutPredictions(groupId, fastLeaderboard);
             return fastLeaderboard;
         }
 
@@ -280,7 +284,52 @@ public class LeaderboardService {
             String nameB = b.getName() != null ? b.getName() : "";
             return nameA.compareToIgnoreCase(nameB);
         });
+        addLeagueMembersWithoutPredictions(groupId, leaderboard);
+        leaderboard.sort((a, b) -> {
+            if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
+            if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
+            String nameA = a.getName() != null ? a.getName() : "";
+            String nameB = b.getName() != null ? b.getName() : "";
+            return nameA.compareToIgnoreCase(nameB);
+        });
         return leaderboard;
+    }
+
+    private void addLeagueMembersWithoutPredictions(Long groupId, List<ParticipantScoreDTO> leaderboard) {
+        if (groupId == null) return;
+
+        Set<Long> representedUserIds = new HashSet<>();
+        for (ParticipantScoreDTO score : leaderboard) {
+            if (score.getUserId() != null) representedUserIds.add(score.getUserId());
+        }
+
+        for (Membership membership : membershipRepository.findByLeagueId(groupId)) {
+            if (membership.getUser() == null || membership.getUser().getId() == null) continue;
+            var user = membership.getUser();
+            if (user.getParticipantName() == null || user.getParticipantName().equalsIgnoreCase("Admin")) continue;
+            if (!representedUserIds.add(user.getId())) continue;
+
+            leaderboard.add(ParticipantScoreDTO.builder()
+                    .id(null)
+                    .userId(user.getId())
+                    .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(user.getParticipantName()))
+                    .avatarUrl(user.getAvatarUrl())
+                    .betName("")
+                    .pending(false)
+                    .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
+                    .log(new ArrayList<>())
+                    .exactMatches(new HashMap<>())
+                    .passedTeams(new HashMap<>())
+                    .build());
+        }
+
+        leaderboard.sort((a, b) -> {
+            if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
+            if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
+            String nameA = a.getName() != null ? a.getName() : "";
+            String nameB = b.getName() != null ? b.getName() : "";
+            return nameA.compareToIgnoreCase(nameB);
+        });
     }
 
     @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", allEntries = true)
