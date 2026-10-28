@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Leaderboard from '../../pages/Leaderboard';
@@ -117,11 +117,13 @@ describe('Leaderboard Component', () => {
 
     const row = screen.getByRole('row', { name: /Carlos/ });
     expect(row.querySelectorAll('td')[3]).toHaveTextContent('4');
+    expect(within(row).getByText('J2 · 4 pts')).toBeInTheDocument();
 
     fireEvent.change(select, { target: { value: 'Jornada 1' } });
 
     expect(select).toHaveValue('Jornada 1');
     expect(row.querySelectorAll('td')[3]).toHaveTextContent('3');
+    expect(within(row).getByText('J1 · 3 pts')).toBeInTheDocument();
     expect(screen.getByText('Finalizada')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Jornada anterior' })).toBeDisabled();
   });
