@@ -5,6 +5,7 @@ import com.porra.mundial.model.MatchPrediction;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.MatchPredictionRepository;
+import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
@@ -47,6 +48,9 @@ class LeaderboardServiceTest {
 
     @Mock
     private MatchPredictionRepository matchPredictionRepository;
+
+    @Mock
+    private MembershipRepository membershipRepository;
 
     @Spy
     private WorldCup2026ScoringStrategy scoringStrategy = new WorldCup2026ScoringStrategy();
