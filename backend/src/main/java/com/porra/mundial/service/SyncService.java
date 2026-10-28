@@ -5,10 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
-import com.porra.mundial.model.SyncAuditLog;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.SyncAuditLogRepository;
 import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.config.Constants;
@@ -50,7 +48,6 @@ public class SyncService {
     private final WebSocketService webSocketService;
     private final com.porra.mundial.repository.CompetitionRepository competitionRepository;
     private final SportsDataProviderRegistry sportsDataProviderRegistry;
-    private final SyncAuditLogRepository syncAuditLogRepository;
     private final MatchPredictionService matchPredictionService;
 
     private static final String WC_DATE_RANGE = "2026";
@@ -199,17 +196,7 @@ public class SyncService {
             log.info("{} sync completed: {} teams, {} matches updated in {} ms",
                     provider.getProviderName(), context.teamsUpdated, context.matchesUpdated, duration);
 
-            // Solo persistimos registro de auditoría en BD si hubo actualizaciones reales (ahorro masivo de egress)
             if (context.matchesUpdated > 0 || context.teamsUpdated > 0) {
-                syncAuditLogRepository.save(SyncAuditLog.builder()
-                        .provider(provider.getProviderName())
-                        .competition(targetComp)
-                        .status("SUCCESS")
-                        .matchesUpdated(context.matchesUpdated)
-                        .teamsUpdated(context.teamsUpdated)
-                        .durationMs(duration)
-                        .syncedAt(lastSyncTime)
-                        .build());
                 webSocketService.invalidateAndNotify();
             }
         } catch (Exception e) {
@@ -223,40 +210,11 @@ public class SyncService {
             result.put("message", e.getMessage());
             result.put("durationMs", duration);
 
-            try {
-                syncAuditLogRepository.save(SyncAuditLog.builder()
-                        .provider(provider.getProviderName())
-                        .competition(targetComp)
-                        .status("ERROR")
-                        .durationMs(duration)
-                        .errorMessage(e.getMessage())
-                        .syncedAt(lastSyncTime)
-                        .build());
-            } catch (Exception auditEx) {
-                log.warn("Could not save sync audit log", auditEx);
-            }
         }
 
         return result;
     }
 
-    /**
-     * Resumen de salud y trazabilidad de sincronización para el panel de administración.
-     */
-    public Map<String, Object> getSyncOverview() {
-        Map<String, Object> overview = new LinkedHashMap<>();
-        overview.put("status", lastSyncStatus);
-        overview.put("lastSyncTime", lastSyncTime);
-        overview.put("matchesUpdated", lastMatchesUpdated);
-        overview.put("teamsUpdated", lastTeamsUpdated);
-        overview.put("lastError", lastErrorMessage);
-        overview.put("defaultProvider", sportsDataProviderRegistry.getProviderForCompetition("fifa").getProviderName());
-        overview.put("availableProviders", sportsDataProviderRegistry.getAllProviders().stream()
-                .map(SportsDataProvider::getProviderName)
-                .collect(Collectors.toList()));
-        overview.put("recentLogs", syncAuditLogRepository.findTop20ByOrderBySyncedAtDesc());
-        return overview;
-    }
 
     /**
      * Corrección manual auditada de un partido por un administrador.
