@@ -90,11 +90,6 @@ export default function LeagueStandings() {
         </div>
       ) : (
         <div className="standings-card">
-          {showComplete && (
-            <p className="standings-scroll-hint">
-              Desliza la tabla para ver todas las estadísticas →
-            </p>
-          )}
           <div className="standings-table-wrap">
             <table className={`standings-table${showComplete ? ' is-complete' : ''}`}>
               <caption className="sr-only">
@@ -148,13 +143,13 @@ export default function LeagueStandings() {
                         </span>
                       </td>
 
-                      <td className="standings-team-cell">
-                        <div className="standings-team">
+                      <td className="standings-team-cell" aria-label={`Equipo: ${row.teamName}`}>
+                        <div className={`standings-team${showComplete ? ' is-crest-only' : ''}`}>
                           {row.teamLogo ? (
                             <>
                               <img
                                 src={row.teamLogo}
-                                alt=""
+                                alt={showComplete ? row.teamName : ''}
                                 width={28}
                                 height={28}
                                 className="standings-team-logo"
@@ -178,7 +173,9 @@ export default function LeagueStandings() {
                               🛡️
                             </span>
                           )}
-                          <span className="standings-team-name">{row.teamName}</span>
+                          {!showComplete && (
+                            <span className="standings-team-name">{row.teamName}</span>
+                          )}
                         </div>
                       </td>
 
