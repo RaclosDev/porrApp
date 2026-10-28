@@ -261,7 +261,7 @@ export function useGroupsDashboard() {
 
     const joinCode = encodeURIComponent(group.joinCode);
     const canonicalLink = `https://porra.raclos.es/join/${joinCode}`;
-    const text = `Únete: ${canonicalLink}`;
+    const text = `Únete:\n${canonicalLink}`;
     const imageUrls = [
       // En local (Vite con proxy o Spring en :8080) usa el backend local.
       `${window.location.origin}/join/${joinCode}/image.png`,
