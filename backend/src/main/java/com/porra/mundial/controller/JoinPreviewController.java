@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -35,8 +36,9 @@ import java.util.regex.Pattern;
 public class JoinPreviewController {
 
     private static final String BASE_URL = "https://porra.raclos.es";
-    private static final String DEFAULT_TITLE = "Invitación a una porra · PorrApp";
-    private static final String DEFAULT_DESCRIPTION = "Únete a esta porra y compite con tus amigos en PorrApp.";
+    private static final String DEFAULT_TITLE = "Invitación a una porra";
+    private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
+    private static final String IMAGE_VERSION = "2";
     private static final int IMAGE_WIDTH = 1200;
     private static final int IMAGE_HEIGHT = 360;
 
@@ -52,30 +54,35 @@ public class JoinPreviewController {
         String title = DEFAULT_TITLE;
         String description = DEFAULT_DESCRIPTION;
         String imageAlt = "Invitación a una porra de PorrApp";
-        String imageUrl = BASE_URL + "/join/" + encodePathSegment(code) + "/image.png";
+        String imageVersion = IMAGE_VERSION;
 
         Optional<League> leagueOptional = findLeague(code);
         if (leagueOptional.isPresent()) {
             League league = leagueOptional.get();
             String leagueName = league.getName() == null || league.getName().isBlank()
-                    ? "una porra"
+                    ? "Mi liga"
                     : league.getName();
-            title = "Únete a \"" + leagueName + "\" · PorrApp";
-            imageAlt = "Invitación a \"" + leagueName + "\" en PorrApp";
+            // El nombre de la liga arriba; competición y formato debajo.
+            title = leagueName;
+            imageAlt = leagueName;
+            description = "Porra de fútbol";
 
             Optional<Edition> activeEdition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE");
             if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
                 String competitionName = activeEdition.get().getCompetition().getName();
                 String format = activeEdition.get().getPoolFormat() != null
-                        ? activeEdition.get().getPoolFormat().name()
+                        ? formatLabel(activeEdition.get().getPoolFormat().name())
                         : null;
-                description = competitionName
-                        + (format != null ? " · " + formatLabel(format) : "")
-                        + " · Únete a la porra \"" + leagueName + "\" y compite con tus amigos.";
-            } else {
-                description = "Únete a la porra \"" + leagueName + "\" y compite con tus amigos en PorrApp.";
+                description = competitionName + (format != null ? " · " + format : "");
+            }
+            if (league.getImageUpdatedAt() != null) {
+                imageVersion += "-" + league.getImageUpdatedAt().toEpochSecond(ZoneOffset.UTC);
             }
         }
+
+        // Mismo PNG que se adjunta al compartir por WhatsApp, con versión para
+        // evitar que WhatsApp reutilice una vista previa antigua en caché.
+        String imageUrl = BASE_URL + "/join/" + encodePathSegment(code) + "/image.png?v=" + imageVersion;
 
         html = replaceTitle(html, title);
         html = replaceMeta(html, "property", "og:title", title);
