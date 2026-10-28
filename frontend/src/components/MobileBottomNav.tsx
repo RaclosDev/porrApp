@@ -31,13 +31,13 @@ export default function MobileBottomNav() {
         { to: '/prediction', label: 'Mi Porra', icon: Pencil },
         { to: '/bracket', label: 'Resultados', icon: Swords },
         { to: '/grupos', label: 'Grupos', icon: LayoutGrid },
-        { to: '/clasificacion', label: 'Ranking', icon: Trophy },
+        { to: '/ranking', label: 'Ranking', icon: Trophy },
       ]
     : isMatchDay
       ? [
           { to: '/', label: 'Inicio', icon: Home, end: true },
           { to: '/jornadas', label: 'Jornadas', icon: Calendar },
-          { to: '/clasificacion', label: 'Puntos', icon: Trophy },
+          { to: '/ranking', label: 'Ranking', icon: Trophy },
           { to: '/tabla', label: 'Tabla', icon: ListOrdered },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
         ]
@@ -45,7 +45,7 @@ export default function MobileBottomNav() {
           { to: '/', label: 'Inicio', icon: Home, end: true },
           { to: '/prediction', label: 'Mi Porra', icon: Pencil },
           { to: '/bracket', label: 'Resultados', icon: Swords },
-          { to: '/clasificacion', label: 'Ranking', icon: Trophy },
+          { to: '/ranking', label: 'Ranking', icon: Trophy },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
         ];
 

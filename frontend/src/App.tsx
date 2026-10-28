@@ -27,6 +27,7 @@ const GUEST_ALLOWED_PATHS = [
   '/demo',
   '/bracket',
   '/grupos',
+  '/ranking',
   '/clasificacion',
   '/search',
   '/stats',
@@ -137,13 +138,15 @@ function App() {
                 }
               />
               <Route
-                path="/clasificacion"
+                path="/ranking"
                 element={
                   <ProtectedRoute guestAllowed>
                     <Leaderboard />
                   </ProtectedRoute>
                 }
               />
+              {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
+              <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
               <Route path="/grupos" element={<Home defaultMode="groups" hideToggle={true} />} />
               <Route
                 path="/stats"

@@ -14,7 +14,7 @@ const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
 const prefetchRoute = (path) => {
   switch (path) {
-    case '/clasificacion':
+    case '/ranking':
       import('../pages/Leaderboard');
       break;
     case '/jornadas':
@@ -450,9 +450,9 @@ function Layout({ children }) {
                     Grupos
                   </NavLink>
                   <NavLink
-                    to="/clasificacion"
-                    onMouseEnter={() => prefetchRoute('/clasificacion')}
-                    onFocus={() => prefetchRoute('/clasificacion')}
+                    to="/ranking"
+                    onMouseEnter={() => prefetchRoute('/ranking')}
+                    onFocus={() => prefetchRoute('/ranking')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Ranking
@@ -476,12 +476,12 @@ function Layout({ children }) {
                     Jornadas
                   </NavLink>
                   <NavLink
-                    to="/clasificacion"
-                    onMouseEnter={() => prefetchRoute('/clasificacion')}
-                    onFocus={() => prefetchRoute('/clasificacion')}
+                    to="/ranking"
+                    onMouseEnter={() => prefetchRoute('/ranking')}
+                    onFocus={() => prefetchRoute('/ranking')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
-                    Puntos
+                    Ranking
                   </NavLink>
                   <NavLink
                     to="/tabla"
@@ -489,7 +489,7 @@ function Layout({ children }) {
                     onFocus={() => prefetchRoute('/tabla')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
-                    Clasificación
+                    Tabla
                   </NavLink>
                   <NavLink
                     to="/mis-ligas"
@@ -524,9 +524,9 @@ function Layout({ children }) {
                     Resultados
                   </NavLink>
                   <NavLink
-                    to="/clasificacion"
-                    onMouseEnter={() => prefetchRoute('/clasificacion')}
-                    onFocus={() => prefetchRoute('/clasificacion')}
+                    to="/ranking"
+                    onMouseEnter={() => prefetchRoute('/ranking')}
+                    onFocus={() => prefetchRoute('/ranking')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Ranking
