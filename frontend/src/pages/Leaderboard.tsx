@@ -364,13 +364,19 @@ function Leaderboard() {
                               background: 'rgba(56, 173, 246, 0.2)',
                               color: '#38adf6',
                               border: '1px solid #38adf6',
-                              padding: '4px 8px',
-                              fontSize: '0.8rem',
-                              whiteSpace: 'nowrap',
+                              padding: '5px 7px',
+                              minWidth: '34px',
+                              minHeight: '34px',
+                              fontSize: '0.95rem',
+                              lineHeight: 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                             }}
                             title={isMatchday ? 'Ver partidos de la jornada' : 'Ver Porra'}
                           >
-                            👁️ {isMatchday ? 'Ver Jornadas' : 'Ver Porra'}
+                            <span aria-hidden="true">👁️</span>
+                            <span className="sr-only">{isMatchday ? 'Ver jornadas' : 'Ver porra'}</span>
                           </button>
                         </div>
                       </td>
