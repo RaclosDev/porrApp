@@ -244,6 +244,7 @@ function Leaderboard() {
                   {columns.map((col) => (
                     <th
                       key={col.key}
+                      className={col.key === 'total' ? '' : 'leaderboard-mobile-detail'}
                       style={thStyle(col.key)}
                       onClick={() => handleSort(col.key)}
                       title={`Ordenar por ${col.label}`}
