@@ -257,45 +257,70 @@ export function useGroupsDashboard() {
   };
 
   const handleShareWhatsApp = async (group) => {
-    if (!group || !group.joinCode) return;
+    if (!group?.joinCode) return;
 
-    const link = `https://porra.raclos.es/join/${group.joinCode}`;
+    const link = `https://porra.raclos.es/join/${encodeURIComponent(group.joinCode)}`;
     const text = `Únete: ${link}`;
+    let blob;
 
+    // Separar el fallo al descargar la imagen del fallo al abrir el selector de compartir.
     try {
-      // Reutilizar el PNG público que el backend declara como og:image.
       const imageResponse = await fetch(`${link}/image.png`, { cache: 'no-store' });
       if (!imageResponse.ok) {
-        throw new Error(`No se pudo obtener la imagen de invitación (HTTP ${imageResponse.status})`);
+        throw new Error(`HTTP ${imageResponse.status} ${imageResponse.statusText}`.trim());
       }
-      const blob = await imageResponse.blob();
-      if (!blob.type.startsWith('image/')) {
-        throw new Error('El endpoint de invitación no ha devuelto una imagen');
-      }
-      const file = new File([blob], 'invitacion-porrapp.png', { type: blob.type || 'image/png' });
 
-      // Adjuntar el mismo archivo que recibe WhatsApp al leer los metadatos Open Graph.
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      const contentType = imageResponse.headers.get('content-type') || '(sin Content-Type)';
+      blob = await imageResponse.blob();
+      const signature = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
+      const isPng = signature.length === 8
+        && signature[0] === 0x89
+        && signature[1] === 0x50
+        && signature[2] === 0x4e
+        && signature[3] === 0x47
+        && signature[4] === 0x0d
+        && signature[5] === 0x0a
+        && signature[6] === 0x1a
+        && signature[7] === 0x0a;
+
+      if (!isPng) {
+        throw new Error(`la ruta respondió ${contentType}, pero no devolvió un PNG válido`);
+      }
+      if (blob.size === 0) {
+        throw new Error('el PNG recibido está vacío');
+      }
+    } catch (e) {
+      console.error('Error descargando la imagen de invitación', e);
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+      toast.error(`No se pudo descargar la imagen de invitación: ${e?.message || 'error desconocido'}`);
+      return;
+    }
+
+    const file = new File([blob], 'invitacion-porrapp.png', { type: 'image/png' });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        // Adjunta exactamente los bytes del PNG publicado como og:image.
         await navigator.share({ title: `Invitación a ${group.name}`, text, files: [file] });
         return;
+      } catch (e) {
+        if (e?.name === 'AbortError') return;
+        // Si el selector nativo falla, continuar con el flujo compatible con escritorio.
+        console.warn('No se pudo usar el selector nativo para compartir la invitación', e);
       }
-
-      // Fallback en PC: descargar el mismo PNG y abrir WhatsApp con el texto preparado.
-      const objectUrl = URL.createObjectURL(blob);
-      const download = document.createElement('a');
-      download.href = objectUrl;
-      download.download = 'invitacion-porrapp.png';
-      document.body.appendChild(download);
-      download.click();
-      download.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.success('Imagen descargada. Es la misma imagen de la previsualización; adjúntala en WhatsApp.');
-    } catch (e) {
-      if (e?.name === 'AbortError') return;
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.error('No se pudo obtener la imagen de la previsualización; WhatsApp se abrirá con el texto de invitación.');
     }
+
+    // En navegadores de escritorio: descargar el mismo PNG y abrir WhatsApp con el enlace.
+    const objectUrl = URL.createObjectURL(blob);
+    const download = document.createElement('a');
+    download.href = objectUrl;
+    download.download = 'invitacion-porrapp.png';
+    document.body.appendChild(download);
+    download.click();
+    download.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    toast.success('Imagen descargada. Es la misma imagen de la previsualización; adjúntala en WhatsApp.');
   };
 
   const handleEditGroup = async (groupId, currentName, explicitName) => {
