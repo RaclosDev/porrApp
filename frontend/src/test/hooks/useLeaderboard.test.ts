@@ -92,4 +92,56 @@ describe('useLeaderboard hook', () => {
     // activeGroupAdminId = 10, userId = 10 -> isLeagueAdmin = true
     expect(result.current.isLeagueAdmin).toBe(true);
   });
+
+  it('carga los puntos de la jornada actual y permite navegar entre jornadas', () => {
+    AppContextModule.useAppContext.mockReturnValue({
+      leaderboardData: mockLeaderboardData,
+      leaderboardMatchdays: [
+        {
+          label: 'Jornada 1',
+          current: false,
+          finished: true,
+          matchCount: 2,
+          pointsByPrediction: { 1: 1, 2: 2 },
+        },
+        {
+          label: 'Jornada 2',
+          current: true,
+          finished: false,
+          matchCount: 2,
+          pointsByPrediction: { 1: 3, 2: 5 },
+        },
+      ],
+      loading: false,
+      isRaclos: false,
+      activeGroupName: 'Liga Amigos',
+      activeGroupId: 10,
+      activeGroupPichichi: true,
+      activeGroupPoolFormat: 'MATCH_DAY',
+      activeGroupBetMode: 'MATCH_DAY',
+      activeGroupAdminId: 10,
+      userId: 10,
+      userName: 'Carlos',
+    });
+
+    const { result } = renderHook(() => useLeaderboard());
+
+    expect(result.current.selectedMatchday).toBe('Jornada 2');
+    expect(result.current.matchdayStats.myPoints).toBe(3);
+    expect(result.current.matchdayStats.leader.name).toBe('Elena');
+
+    const carlos = result.current.results.find((row) => row.name === 'Carlos');
+    expect(carlos.points.matchday).toBe(3);
+
+    act(() => {
+      result.current.handleStepMatchday(-1);
+    });
+
+    expect(result.current.selectedMatchday).toBe('Jornada 1');
+
+    const carlosJornada1 = result.current.results.find((row) => row.name === 'Carlos');
+    expect(carlosJornada1.points.matchday).toBe(1);
+    const elenaJornada1 = result.current.results.find((row) => row.name === 'Elena');
+    expect(elenaJornada1.points.matchday).toBe(2);
+  });
 });
