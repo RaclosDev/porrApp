@@ -751,6 +751,34 @@ option {
   font-weight: bold;
 }
 
+@media (max-width: 600px) {
+  .leaderboard-table {
+    min-width: 0;
+    table-layout: auto;
+    font-size: 0.82rem;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 8px 6px;
+  }
+
+  .leaderboard-table th {
+    font-size: 0.7rem;
+    letter-spacing: 0;
+  }
+
+  .leaderboard-table th:nth-child(2),
+  .leaderboard-table td:nth-child(2) {
+    min-width: 92px;
+    overflow-wrap: anywhere;
+  }
+
+  .leaderboard-table td button {
+    margin: 0;
+  }
+}
+
 /* Last Matches Widget */
 .radar-container {
   display: flex;
