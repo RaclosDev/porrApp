@@ -63,6 +63,7 @@ public class LeaderboardService {
                         .userId(pred.getUser() != null ? pred.getUser().getId() : null)
                         .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()))
                         .betName(pred.getBetName())
+                        .avatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null)
                         .pending(!Boolean.TRUE.equals(pred.getPaid()))
                         .total(pred.getTotalPoints() != null ? pred.getTotalPoints() : 0)
                         .r1(pred.getR1Points() != null ? pred.getR1Points() : 0)
@@ -475,6 +476,7 @@ public class LeaderboardService {
         score.setUserId(pred.getUser() != null ? pred.getUser().getId() : null);
         score.setName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
         score.setBetName(pred.getBetName());
+        score.setAvatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null);
         score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
 
         return score;
