@@ -256,116 +256,13 @@ export function useGroupsDashboard() {
     }
   };
 
-  const handleShareWhatsApp = async (group) => {
-    if (!group || !group.joinCode) return;
+  // Compartir solo el enlace: WhatsApp genera la vista previa con los metadatos OG,
+  // exactamente igual que al pegar la URL a mano.
+  const handleShareWhatsApp = (group) => {
+    if (!group?.joinCode) return;
 
-    const link = `${window.location.origin}/join/${group.joinCode}`;
-    const competition = group.competitionName || 'Fútbol';
-    const format = group.poolFormat === 'MATCH_DAY'
-      ? 'Por jornadas'
-      : group.poolFormat === 'KNOCKOUTS_ONLY'
-        ? 'Eliminatorias'
-        : 'Cuadro completo';
-    const text = `⚽ *${group.name}*\n${competition} · ${format}\nÚnete: ${link}`;
-
-    const drawInviteImage = async () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 1200;
-      canvas.height = 360;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('No se pudo crear la imagen de invitación');
-
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, '#101827');
-      gradient.addColorStop(1, '#071014');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      let avatarLoaded = false;
-      if (group.imageUrl) {
-        try {
-          const avatar = new Image();
-          avatar.crossOrigin = 'anonymous';
-          await new Promise((resolve, reject) => {
-            avatar.onload = resolve;
-            avatar.onerror = reject;
-            avatar.src = group.imageUrl;
-          });
-          ctx.save();
-          ctx.beginPath();
-          ctx.roundRect(36, 36, 288, 288, 22);
-          ctx.clip();
-          ctx.drawImage(avatar, 36, 36, 288, 288);
-          ctx.restore();
-          avatarLoaded = true;
-        } catch {
-          // La tarjeta mantiene el diseño aunque la imagen no sea accesible.
-        }
-      }
-
-      const textX = avatarLoaded ? 356 : 40;
-      const maxWidth = avatarLoaded ? 800 : 1120;
-      const drawPill = (label, x, y, fill, stroke, color) => {
-        ctx.font = 'bold 26px Arial, sans-serif';
-        const width = Math.min(ctx.measureText(label).width + 34, maxWidth);
-        const height = 48;
-        ctx.fillStyle = fill;
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(x, y, width, height, 24);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = color;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, x + width / 2, y + height / 2, width - 20);
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        return width;
-      };
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 54px Arial, sans-serif';
-      let name = group.name || 'Mi liga';
-      while (ctx.measureText(name).width > maxWidth && name.length > 4) name = `${name.slice(0, -4)}…`;
-      ctx.fillText(name, textX, 112, maxWidth);
-
-      drawPill(competition, textX, 150, 'rgba(162,155,254,0.16)', 'rgba(162,155,254,0.65)', '#c4b5fd');
-      drawPill(format, textX, 214, 'rgba(0,210,211,0.12)', 'rgba(0,210,211,0.65)', '#00d2d3');
-
-      return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('No se pudo generar la imagen')), 'image/png');
-      });
-    };
-
-    try {
-      const blob = await drawInviteImage();
-      const file = new File([blob], 'invitacion-porrapp.png', { type: 'image/png' });
-
-      // Compartir archivo y texto juntos solo cuando el navegador admite archivos.
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ title: `Invitación a ${group.name}`, text, files: [file] });
-        return;
-      }
-
-      // WhatsApp Web no permite adjuntar archivos desde un enlace wa.me.
-      // Se descarga la imagen y se abre WhatsApp con el enlace en el texto para adjuntarla manualmente.
-      const objectUrl = URL.createObjectURL(blob);
-      const download = document.createElement('a');
-      download.href = objectUrl;
-      download.download = 'invitacion-porrapp.png';
-      document.body.appendChild(download);
-      download.click();
-      download.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.success('Imagen descargada. En WhatsApp, adjúntala al mensaje que ya incluye el enlace.');
-    } catch (e) {
-      if (e?.name === 'AbortError') return;
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      toast.error('No se pudo generar la imagen; hemos preparado el mensaje con el enlace.');
-    }
+    const link = `https://porra.raclos.es/join/${encodeURIComponent(group.joinCode)}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleEditGroup = async (groupId, currentName, explicitName) => {
