@@ -3,24 +3,6 @@ import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings } from '../services/api';
 
-function getCompetitionBadge(competitionName) {
-  if (!competitionName) return '🏆';
-  const lower = competitionName.toLowerCase();
-  if (lower.includes('laliga') || lower.includes('copa del rey') || lower.includes('españa'))
-    return '🇪🇸';
-  if (lower.includes('premier') || lower.includes('inglaterra')) return '🏴󠁧󠁢󠁥󠁮󠁧󠁿';
-  if (lower.includes('champions') || lower.includes('europa') || lower.includes('conference'))
-    return '🇪🇺';
-  if (lower.includes('serie a') || lower.includes('italia')) return '🇮🇹';
-  if (lower.includes('bundesliga') || lower.includes('alemania')) return '🇩🇪';
-  if (lower.includes('ligue 1') || lower.includes('francia')) return '🇫🇷';
-  if (lower.includes('mex') || lower.includes('bbva')) return '🇲🇽';
-  if (lower.includes('mls') || lower.includes('usa')) return '🇺🇸';
-  if (lower.includes('mundial') || lower.includes('world cup') || lower.includes('fifa'))
-    return '🌍';
-  return '🏆';
-}
-
 export default function LeagueStandings() {
   const {
     activeCompetitionId,
@@ -51,7 +33,6 @@ export default function LeagueStandings() {
     return <Navigate to="/bracket" replace />;
   }
 
-  const compBadge = getCompetitionBadge(activeCompetitionName);
   const compTitle = activeCompetitionName || 'Competición Regular';
 
   return (
@@ -60,14 +41,12 @@ export default function LeagueStandings() {
       style={{ maxWidth: '960px', margin: '0 auto', padding: '16px' }}
     >
       <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-        <div
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}
-        >
-          <span style={{ fontSize: '2rem' }}>{compBadge}</span>
-          <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>{compTitle}</h1>
-        </div>
-        <p style={{ margin: 0, color: 'var(--text-muted, #94a3b8)', fontSize: '0.9rem' }}>
-          Tabla de posiciones oficial del torneo real actualizada desde ESPN.
+        <span className="home-hero-pill">{compTitle}</span>
+        <h1 style={{ margin: '10px 0 0', fontSize: '1.75rem', fontWeight: 800 }}>
+          Tabla de equipos
+        </h1>
+        <p style={{ margin: '6px 0 0', color: 'var(--text-muted, #94a3b8)', fontSize: '0.9rem' }}>
+          Clasificación real de la competición, actualizada desde ESPN.
         </p>
       </div>
 
