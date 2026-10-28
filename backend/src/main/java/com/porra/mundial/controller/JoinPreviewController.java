@@ -90,6 +90,7 @@ public class JoinPreviewController {
         html = replaceMeta(html, "property", "og:type", "website");
         html = replaceMeta(html, "property", "og:url", canonicalUrl);
         html = replaceMeta(html, "property", "og:image", imageUrl);
+        html = replaceMeta(html, "property", "og:image:type", "image/png");
         html = replaceMeta(html, "property", "og:image:width", Integer.toString(IMAGE_WIDTH));
         html = replaceMeta(html, "property", "og:image:height", Integer.toString(IMAGE_HEIGHT));
         html = replaceMeta(html, "property", "og:image:alt", imageAlt);
