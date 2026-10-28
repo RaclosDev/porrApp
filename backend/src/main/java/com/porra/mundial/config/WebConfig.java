@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Configuración web de Spring MVC:
- * - CORS granular para la API REST.
+ * - CORS granular para la API REST y las vistas/imágenes públicas de invitación.
  * - Enrutamiento y fallback SPA para React.
  * - Cacheo HTTP inmutable de 1 año para assets estáticos hashed (/assets/**) y noCache para entrypoints dinámicos.
  */
@@ -35,6 +35,14 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOriginPatterns(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .maxAge(3600);
+
+        // La imagen Open Graph también se descarga desde el navegador para adjuntarla
+        // como archivo en WhatsApp. Permitir GET desde los orígenes configurados.
+        registry.addMapping("/join/**")
+                .allowedOriginPatterns(origins)
+                .allowedMethods("GET", "OPTIONS")
                 .allowedHeaders("*")
                 .maxAge(3600);
     }
