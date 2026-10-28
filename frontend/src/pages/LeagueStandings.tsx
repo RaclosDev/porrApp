@@ -5,9 +5,10 @@ import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings } from '../services/api';
 
 export default function LeagueStandings() {
+  const [showComplete, setShowComplete] = useState(false);
+
   const {
     activeCompetitionId,
-    activeCompetitionName,
     activeCompetitionFormatType,
     activeGroupPoolFormat,
     loadingGroup,
@@ -34,8 +35,6 @@ export default function LeagueStandings() {
     return <Navigate to="/bracket" replace />;
   }
 
-  const [showComplete, setShowComplete] = useState(false);
-
   return (
     <section
       className="view-section active"
@@ -46,8 +45,11 @@ export default function LeagueStandings() {
           type="button"
           onClick={() => setShowComplete((current) => !current)}
           aria-expanded={showComplete}
-          className="secondary-button"
           style={{
+            background: 'var(--panel-bg, #111827)',
+            color: 'var(--accent-color, #00d2d3)',
+            border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
+            cursor: 'pointer',
             minHeight: '36px',
             padding: '7px 12px',
             borderRadius: '9px',
