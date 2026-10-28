@@ -39,7 +39,7 @@ describe('ImagePicker', () => {
   });
 
   it('muestra la foto inmediatamente mientras se prepara y solo sube al guardar', async () => {
-    let finishPreparation;
+    let finishPreparation: (blob: Blob) => void = () => {};
     const blob = new Blob(['x'], { type: 'image/jpeg' });
     prepare.mockImplementation(() => new Promise((resolve) => { finishPreparation = resolve; }));
     const { container, onUpload } = setup();
