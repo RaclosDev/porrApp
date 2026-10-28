@@ -1,353 +1,238 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendBets } from '../services/api';
-import Flag from './Flag';
+import { UserAvatar } from './Avatar';
+
+function TeamCrest({ team, logo }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [logo]);
+
+  if (logo && !failed) {
+    return (
+      <img
+        className="friends-bets-crest"
+        src={logo}
+        alt=""
+        width={30}
+        height={30}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <span className="friends-bets-crest friends-bets-crest-fallback" aria-hidden="true">
+      ⚽
+    </span>
+  );
+}
+
+const formatTimestamp = (dateStr) => {
+  if (!dateStr) return null;
+  try {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return null;
+  }
+};
 
 export default function MatchFriendsBetsModal({ groupId, match, onClose }) {
-  if (!match) return null;
-
+  const matchId = match?.matchId;
   const {
     data: bets = [],
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['matchFriendBets', groupId, match.matchId],
-    queryFn: () => fetchMatchdayFriendBets(groupId, match.matchId),
-    enabled: Boolean(groupId && match.matchId),
+    queryKey: ['matchFriendBets', groupId, matchId],
+    queryFn: () => fetchMatchdayFriendBets(groupId, matchId),
+    enabled: Boolean(groupId && matchId),
   });
 
-  const formatTimestamp = (dateStr) => {
-    if (!dateStr) return null;
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('es-ES', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return null;
-    }
-  };
+  useEffect(() => {
+    if (!match) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [match, onClose]);
+
+  if (!match) return null;
+
+  const isMatchLocked = Boolean(match.finished || match.locked);
+  const predictedCount = bets.filter((bet) => bet.hasPredicted).length;
+  const progress = bets.length ? Math.round((predictedCount / bets.length) * 100) : 0;
+  const matchDate = formatTimestamp(match.matchDate);
+  const roundLabel = match.round && match.round !== 'group' ? match.round : '';
+  const hasFinalScore =
+    match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '16px',
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      className="friends-bets-overlay"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <div
-        className="glass-panel"
-        style={{
-          width: '100%',
-          maxWidth: '560px',
-          maxHeight: '85vh',
-          background: '#0f172a',
-          border: '1px solid rgba(0, 210, 211, 0.3)',
-          borderRadius: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
-          overflow: 'hidden',
-          animation: 'fadeIn 0.2s ease-out',
-        }}
+        className="friends-bets-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="friends-bets-title"
       >
-        {/* Cabecera del partido */}
-        <div
-          style={{
-            padding: '18px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            background: 'rgba(255, 255, 255, 0.02)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
+        <div className="friends-bets-head">
           <div>
-            <div
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#00d2d3',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                marginBottom: '4px',
-              }}
-            >
-              👥 Porras del Grupo en este Partido
+            <div className="friends-bets-kicker">
+              <span aria-hidden="true">👥</span>
+              <span>Porras del grupo</span>
             </div>
-            <h2
-              id="modal-title"
-              style={{
-                margin: 0,
-                fontSize: '1.15rem',
-                color: '#fff',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                rowGap: '4px',
-                gap: '8px',
-              }}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <Flag
-                  team={match.homeTeam}
-                  logo={match.homeTeamLogo}
-                  style={{ width: '18px', height: '18px' }}
-                />
-                <span>{match.homeTeam}</span>
-              </span>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                {match.finished && match.actualHomeScore !== null
-                  ? `${match.actualHomeScore} - ${match.actualAwayScore}`
-                  : 'vs'}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <Flag
-                  team={match.awayTeam}
-                  logo={match.awayTeamLogo}
-                  style={{ width: '18px', height: '18px' }}
-                />
-                <span>{match.awayTeam}</span>
-              </span>
+            <h2 id="friends-bets-title" className="friends-bets-title">
+              Pronósticos del partido
             </h2>
           </div>
           <button
+            type="button"
+            className="friends-bets-close"
             onClick={onClose}
             aria-label="Cerrar modal"
-            style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: 'none',
-              color: '#fff',
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
           >
             ✕
           </button>
         </div>
 
-        {/* Lista de pronósticos de los miembros */}
-        <div
-          style={{
-            padding: '16px 20px',
-            overflowY: 'auto',
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-          }}
-        >
+        <div className="friends-bets-match">
+          <div className="friends-bets-team">
+            <TeamCrest team={match.homeTeam} logo={match.homeTeamLogo} />
+            <span>{match.homeTeam}</span>
+          </div>
+          <div className="friends-bets-center">
+            <span className={`friends-bets-vs${hasFinalScore ? ' is-finished' : ''}`}>
+              {hasFinalScore ? `${match.actualHomeScore} - ${match.actualAwayScore}` : 'vs'}
+            </span>
+            {roundLabel && <span className="friends-bets-round">{roundLabel}</span>}
+          </div>
+          <div className="friends-bets-team is-away">
+            <span>{match.awayTeam}</span>
+            <TeamCrest team={match.awayTeam} logo={match.awayTeamLogo} />
+          </div>
+        </div>
+
+        <div className="friends-bets-meta">
+          {matchDate && <span>📅 {matchDate}</span>}
+          {!isLoading && !error && (
+            <span className="friends-bets-count">
+              {predictedCount}/{bets.length} con pronóstico
+            </span>
+          )}
+        </div>
+        <div className="friends-bets-progress" aria-hidden="true">
+          <i style={{ width: `${progress}%` }} />
+        </div>
+
+        <div className="friends-bets-list">
           {isLoading && (
-            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>⚽</div>
-              Cargando pronósticos de los miembros...
+            <div className="friends-bets-skeletons" role="status">
+              <span className="sr-only">Cargando pronósticos…</span>
+              {[0, 1, 2].map((row) => (
+                <div key={row} className="friends-bets-skeleton" />
+              ))}
             </div>
           )}
 
           {error && (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#ff7675' }}>
-              Error al cargar los pronósticos del grupo.
-            </div>
+            <p className="friends-bets-message is-error">
+              No se pudieron cargar los pronósticos del grupo.
+            </p>
           )}
 
           {!isLoading && !error && bets.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-              No se encontraron pronósticos registrados para este partido.
-            </div>
+            <p className="friends-bets-message">
+              Todavía no hay miembros con pronósticos en este partido.
+            </p>
           )}
 
           {!isLoading &&
             !error &&
-            bets.map((b) => {
-              const formattedTime = formatTimestamp(b.updatedAt);
+            bets.map((bet) => {
+              const formattedTime = formatTimestamp(bet.updatedAt);
+              const visible =
+                bet.hasPredicted &&
+                bet.homeScore !== null &&
+                bet.homeScore !== undefined &&
+                bet.awayScore !== null &&
+                bet.awayScore !== undefined;
+              const hidden = bet.hasPredicted && !visible;
+              const hasPoints = bet.pointsAwarded !== null && bet.pointsAwarded !== undefined;
+
               return (
-                <div
-                  key={b.userId}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    background: b.isCaller
-                      ? 'rgba(0, 210, 211, 0.08)'
-                      : 'rgba(255, 255, 255, 0.03)',
-                    border: b.isCaller
-                      ? '1px solid rgba(0, 210, 211, 0.3)'
-                      : '1px solid rgba(255, 255, 255, 0.06)',
-                  }}
-                >
-                  {/* Usuario */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        background: b.isCaller ? '#00d2d3' : 'rgba(255, 255, 255, 0.1)',
-                        color: b.isCaller ? '#000' : '#fff',
-                        fontWeight: 800,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.9rem',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {b.participantName?.charAt(0).toUpperCase() || 'U'}
+                <div key={bet.userId} className={`friends-bet${bet.isCaller ? ' is-caller' : ''}`}>
+                  <UserAvatar
+                    url={bet.avatarUrl || (bet.userId ? `/api/users/${bet.userId}/avatar` : '')}
+                    name={bet.participantName}
+                    size={40}
+                  />
+
+                  <div className="friends-bet-main">
+                    <div className="friends-bet-name">
+                      <span>{bet.participantName}</span>
+                      {bet.isCaller && <span className="friends-bet-you">Tú</span>}
                     </div>
-                    <div>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          color: '#fff',
-                          fontSize: '0.95rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                        }}
-                      >
-                        <span>{b.participantName}</span>
-                        {b.isCaller && (
-                          <span
-                            style={{
-                              fontSize: '0.65rem',
-                              background: '#00d2d3',
-                              color: '#000',
-                              padding: '1px 6px',
-                              borderRadius: '6px',
-                              fontWeight: 800,
-                            }}
-                          >
-                            TÚ
-                          </span>
-                        )}
-                      </div>
-                      {formattedTime && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          🕒 {formattedTime}
-                        </div>
-                      )}
+                    <div className="friends-bet-time">
+                      {formattedTime ? `🕒 ${formattedTime}` : 'Sin fecha de envío'}
                     </div>
                   </div>
 
-                  {/* Pronóstico y Puntos */}
-                  <div
-                    style={{
-                      textAlign: 'right',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '4px',
-                    }}
-                  >
-                    {b.hasPredicted && b.homeScore !== null && b.awayScore !== null ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span
-                          style={{
-                            fontSize: '1.05rem',
-                            fontWeight: 900,
-                            letterSpacing: '1px',
-                            background: 'rgba(0, 0, 0, 0.4)',
-                            padding: '3px 10px',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                          }}
-                        >
-                          {b.homeScore} - {b.awayScore}
-                        </span>
-                        {b.sign && (
+                  <div className="friends-bet-result">
+                    {visible ? (
+                      <>
+                        <div className="friends-bet-score-row">
+                          <span className="friends-bet-score">
+                            {bet.homeScore} - {bet.awayScore}
+                          </span>
+                          {bet.sign && <span className="friends-bet-sign">{bet.sign}</span>}
+                        </div>
+                        {hasPoints && (
                           <span
-                            style={{
-                              fontSize: '0.75rem',
-                              fontWeight: 800,
-                              color: '#00d2d3',
-                              background: 'rgba(0, 210, 211, 0.15)',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                            }}
+                            className={`friends-bet-points${bet.pointsAwarded > 0 ? '' : ' is-zero'}`}
                           >
-                            {b.sign}
+                            {bet.isExactScore ? '🎯 ' : bet.isCorrectSign ? '✅ ' : ''}
+                            {bet.pointsAwarded > 0 ? `+${bet.pointsAwarded} pts` : '0 pts'}
                           </span>
                         )}
-                      </div>
+                      </>
+                    ) : hidden ? (
+                      <span className="friends-bet-status is-hidden">🔒 Oculto</span>
                     ) : (
                       <span
-                        style={{
-                          fontSize: '0.8rem',
-                          color: 'var(--text-muted)',
-                          fontStyle: 'italic',
-                        }}
+                        className={`friends-bet-status ${isMatchLocked ? 'is-missed' : 'is-pending'}`}
                       >
-                        {b.scoringDetails || 'Sin pronóstico'}
+                        {isMatchLocked ? 'Sin pronóstico' : 'Sin pronosticar'}
                       </span>
-                    )}
-
-                    {/* Badge de puntos si el partido ya está evaluado */}
-                    {b.pointsAwarded !== null && b.pointsAwarded !== undefined && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {b.isExactScore ? (
-                          <span
-                            style={{
-                              fontSize: '0.75rem',
-                              fontWeight: 800,
-                              color: '#2ecc71',
-                              background: 'rgba(46, 204, 113, 0.15)',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              border: '1px solid rgba(46, 204, 113, 0.3)',
-                            }}
-                          >
-                            🎯 Pleno +{b.pointsAwarded} pts
-                          </span>
-                        ) : b.isCorrectSign ? (
-                          <span
-                            style={{
-                              fontSize: '0.75rem',
-                              fontWeight: 800,
-                              color: '#00d2d3',
-                              background: 'rgba(0, 210, 211, 0.15)',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                            }}
-                          >
-                            ✅ Signo +{b.pointsAwarded} pts
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            0 pts
-                          </span>
-                        )}
-                      </div>
                     )}
                   </div>
                 </div>
               );
             })}
+        </div>
+
+        <div className="friends-bets-foot">
+          <span aria-hidden="true">🔒</span>
+          <span>Los pronósticos se revelan al empezar el partido.</span>
         </div>
       </div>
     </div>

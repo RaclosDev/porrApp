@@ -38,18 +38,23 @@ describe('ImagePicker', () => {
     expect(input).toHaveAttribute('accept', 'image/*');
   });
 
-  it('muestra vista previa al elegir archivo y solo sube al guardar', async () => {
+  it('muestra la foto inmediatamente mientras se prepara y solo sube al guardar', async () => {
+    let finishPreparation: (blob: Blob) => void = () => {};
     const blob = new Blob(['x'], { type: 'image/jpeg' });
-    prepare.mockResolvedValue(blob);
+    prepare.mockImplementation(() => new Promise((resolve) => { finishPreparation = resolve; }));
     const { container, onUpload } = setup();
 
     fireEvent.change(container.querySelector('input[type="file"]'), {
       target: { files: [pngFile()] },
     });
-    await waitFor(() => expect(screen.getByTestId('shown')).toHaveTextContent('blob:preview'));
+
+    // La vista previa no debe esperar al recorte/compresión asíncronos.
+    expect(screen.getByTestId('shown')).toHaveTextContent('blob:preview');
+    expect(screen.getByRole('button', { name: /Preparando imagen/i })).toBeDisabled();
     expect(onUpload).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: /Guardar imagen/i }));
+    finishPreparation(blob);
+    fireEvent.click(await screen.findByRole('button', { name: /Guardar imagen/i }));
     await waitFor(() => expect(onUpload).toHaveBeenCalledWith(blob));
   });
 

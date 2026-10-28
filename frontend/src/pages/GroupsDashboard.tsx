@@ -24,7 +24,7 @@ export default function GroupsDashboard() {
       if (e.key === 'Escape') {
         setShowCreateModal(false);
         setShowJoinModal(false);
-        setSelectedGroupForMembers(null);
+        // El modal de administración gestiona su propio Escape para proteger cambios sin guardar.
         setSelectedGroupForRules(null);
         setNewlyCreatedGroup(null);
       }
@@ -57,8 +57,7 @@ export default function GroupsDashboard() {
     isCreating,
     handleCreate,
     handleJoin,
-    handleEditGroup,
-    handleUpdateRules,
+    handleSaveGroupConfig,
     handleUploadGroupImage,
     handleRemoveGroupImage,
     handleDeleteGroup,
@@ -1074,25 +1073,15 @@ export default function GroupsDashboard() {
               userName &&
               selectedGroupForMembers.adminParticipantName.toLowerCase() === userName.toLowerCase())
           }
+          currentUserId={userId}
           onClose={() => setSelectedGroupForMembers(null)}
           onCodeRegenerated={(newCode) => {
             setSelectedGroupForMembers((prev) => (prev ? { ...prev, joinCode: newCode } : prev));
           }}
-          onRename={async (newName) => {
-            const ok = await handleEditGroup(
-              selectedGroupForMembers.id,
-              selectedGroupForMembers.name,
-              newName,
-            );
+          onSaveSettings={async ({ name, rules }) => {
+            const ok = await handleSaveGroupConfig(selectedGroupForMembers.id, name, rules);
             if (ok) {
-              setSelectedGroupForMembers((prev) => (prev ? { ...prev, name: newName } : prev));
-            }
-            return ok;
-          }}
-          onSaveRules={async (rules) => {
-            const ok = await handleUpdateRules(selectedGroupForMembers.id, rules);
-            if (ok) {
-              setSelectedGroupForMembers((prev) => (prev ? { ...prev, rules } : prev));
+              setSelectedGroupForMembers((prev) => (prev ? { ...prev, name, rules } : prev));
             }
             return ok;
           }}
@@ -1100,6 +1089,7 @@ export default function GroupsDashboard() {
             const ok = await handleDeleteGroup(
               selectedGroupForMembers.id,
               selectedGroupForMembers.name,
+              { skipConfirm: true },
             );
             if (ok) setSelectedGroupForMembers(null);
             return ok;

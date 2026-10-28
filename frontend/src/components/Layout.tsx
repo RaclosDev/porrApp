@@ -14,7 +14,7 @@ const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
 const prefetchRoute = (path) => {
   switch (path) {
-    case '/clasificacion':
+    case '/ranking':
       import('../pages/Leaderboard');
       break;
     case '/jornadas':
@@ -208,9 +208,12 @@ function Layout({ children }) {
         localStorage.setItem('my_prediction_name', data.participantName);
         localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
-        useAppStore.getState().setUserAvatarUrl(data.avatarUrl || '');
+        const store = useAppStore.getState();
+        if (data.userId) store.setUserId(String(data.userId));
+        store.setUserAvatarUrl(data.avatarUrl || '');
         if (data.lastSelectedGroupId && data.lastSelectedGroupId > 0) {
-          localStorage.setItem('activeGroupId', data.lastSelectedGroupId.toString());
+          // Pasar por changeGroup para que el store quede sincronizado con localStorage.
+          store.changeGroup(data.lastSelectedGroupId);
         }
         setShowMyBetModal(false);
         toast.success(`¡Bienvenido, ${data.participantName}!`);
@@ -447,9 +450,9 @@ function Layout({ children }) {
                     Grupos
                   </NavLink>
                   <NavLink
-                    to="/clasificacion"
-                    onMouseEnter={() => prefetchRoute('/clasificacion')}
-                    onFocus={() => prefetchRoute('/clasificacion')}
+                    to="/ranking"
+                    onMouseEnter={() => prefetchRoute('/ranking')}
+                    onFocus={() => prefetchRoute('/ranking')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Ranking
@@ -473,12 +476,20 @@ function Layout({ children }) {
                     Jornadas
                   </NavLink>
                   <NavLink
-                    to="/clasificacion"
-                    onMouseEnter={() => prefetchRoute('/clasificacion')}
-                    onFocus={() => prefetchRoute('/clasificacion')}
+                    to="/ranking"
+                    onMouseEnter={() => prefetchRoute('/ranking')}
+                    onFocus={() => prefetchRoute('/ranking')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
-                    Puntos
+                    Ranking
+                  </NavLink>
+                  <NavLink
+                    to="/tabla"
+                    onMouseEnter={() => prefetchRoute('/tabla')}
+                    onFocus={() => prefetchRoute('/tabla')}
+                    className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+                  >
+                    Tabla
                   </NavLink>
                   <NavLink
                     to="/mis-ligas"
@@ -513,9 +524,9 @@ function Layout({ children }) {
                     Resultados
                   </NavLink>
                   <NavLink
-                    to="/clasificacion"
-                    onMouseEnter={() => prefetchRoute('/clasificacion')}
-                    onFocus={() => prefetchRoute('/clasificacion')}
+                    to="/ranking"
+                    onMouseEnter={() => prefetchRoute('/ranking')}
+                    onFocus={() => prefetchRoute('/ranking')}
                     className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
                   >
                     Ranking

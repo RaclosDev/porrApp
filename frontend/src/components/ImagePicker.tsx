@@ -2,14 +2,8 @@ import { useRef, useState, useEffect } from 'react';
 import { prepareImageForUpload, validateImageFile } from '../utils/image';
 
 /**
- * Selector de imagen con archivo real (galería del móvil o explorador de Windows), vista previa,
- * sustitución y eliminación. La subida solo ocurre al pulsar "Guardar".
- *
- * Props:
- *  - currentUrl: imagen guardada actualmente (o null)
- *  - renderPreview(url): dibuja la vista previa (avatar de usuario o de liga)
- *  - onUpload(blob): sube la imagen; debe lanzar un Error con mensaje si falla
- *  - onRemove(): elimina la imagen guardada
+ * Selector de imagen con vista previa local inmediata.
+ * La selección y la previsualización son locales; la subida solo ocurre al guardar.
  */
 export default function ImagePicker({
   currentUrl,
@@ -20,36 +14,55 @@ export default function ImagePicker({
   idPrefix = 'image-picker',
 }) {
   const inputRef = useRef(null);
-  const [pending, setPending] = useState(null); // { blob, url }
+  const selectionId = useRef(0);
+  const [pending, setPending] = useState(null); // { blob, url, processing }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  // La URL solo se revoca cuando cambia la selección, se descarta o se desmonta.
+  // No depender del objeto pending completo: actualizar el blob tras procesar
+  // la imagen no debe invalidar la URL que está usando el <img>.
   useEffect(() => {
+    const url = pending?.url;
     return () => {
-      if (pending?.url) URL.revokeObjectURL(pending.url);
+      if (url) URL.revokeObjectURL(url);
     };
-  }, [pending]);
+  }, [pending?.url]);
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // permite volver a elegir el mismo archivo
     if (!file) return;
+
+    const currentSelection = ++selectionId.current;
     setError('');
     const problem = validateImageFile(file);
     if (problem) {
+      setPending(null);
       setError(problem);
       return;
     }
+
+    // Mostrar el archivo original inmediatamente, sin esperar al recorte/compresión.
+    const previewUrl = URL.createObjectURL(file);
+    setPending({ blob: null, url: previewUrl, processing: true });
+
     try {
       const blob = await prepareImageForUpload(file);
-      setPending({ blob, url: URL.createObjectURL(blob) });
+      // Si se ha elegido otra imagen mientras se procesaba esta, ignorar el resultado antiguo.
+      if (selectionId.current !== currentSelection) return;
+      setPending((previous) =>
+        previous?.url === previewUrl ? { ...previous, blob, processing: false } : previous,
+      );
     } catch (err) {
+      if (selectionId.current !== currentSelection) return;
+      setPending((previous) => (previous?.url === previewUrl ? null : previous));
       setError(err.message || 'No se pudo leer la imagen.');
     }
   };
 
   const save = async () => {
-    if (!pending) return;
+    if (!pending?.blob || pending.processing || busy) return;
     setBusy(true);
     setError('');
     try {
@@ -75,6 +88,12 @@ export default function ImagePicker({
     }
   };
 
+  const discard = () => {
+    selectionId.current += 1;
+    setPending(null);
+    setError('');
+  };
+
   const shownUrl = pending ? pending.url : currentUrl;
   const inputId = `${idPrefix}-input`;
   const btn = {
@@ -87,7 +106,17 @@ export default function ImagePicker({
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-      <div data-testid={`${idPrefix}-preview`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>{renderPreview(shownUrl)}{pending && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#00d2d3', textAlign: 'center' }}>Vista previa</span>}</div>
+      <div
+        data-testid={`${idPrefix}-preview`}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+      >
+        {renderPreview(shownUrl)}
+        {pending && (
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#00d2d3', textAlign: 'center' }}>
+            Vista previa
+          </span>
+        )}
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
         <input
@@ -115,7 +144,7 @@ export default function ImagePicker({
                 type="button"
                 className="glass-btn"
                 onClick={save}
-                disabled={busy}
+                disabled={disabled || busy || pending.processing || !pending.blob}
                 style={{
                   ...btn,
                   background: 'rgba(0, 210, 211, 0.15)',
@@ -123,15 +152,12 @@ export default function ImagePicker({
                   color: '#00d2d3',
                 }}
               >
-                {busy ? 'Subiendo…' : 'Guardar imagen'}
+                {busy ? 'Subiendo…' : pending.processing ? 'Preparando imagen…' : 'Guardar imagen'}
               </button>
               <button
                 type="button"
                 className="glass-btn"
-                onClick={() => {
-                  setPending(null);
-                  setError('');
-                }}
+                onClick={discard}
                 disabled={busy}
                 style={btn}
               >

@@ -269,13 +269,13 @@ function Search() {
 
   const handleShareTeam = () => {
     const url = `https://porra.raclos.es/search?mode=team&team=${encodeURIComponent(selectedTeam)}&condition=${encodeURIComponent(selectedCondition)}`;
-    const text = `¡Mira lo que la gente ha votado sobre ${selectedTeam} en la Porra del Mundial!\n\n${url}`;
+    const text = `¡Mira lo que la gente ha votado sobre ${selectedTeam} en PorrApp!\n\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleShareUser = () => {
     const url = `https://porra.raclos.es/search?mode=user&user=${encodeURIComponent(selectedUser)}`;
-    const text = `¡Mira el perfil psicológico de ${selectedUser} en la Porra del Mundial!\n\n${url}`;
+    const text = `¡Mira el perfil psicológico de ${selectedUser} en PorrApp!\n\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 

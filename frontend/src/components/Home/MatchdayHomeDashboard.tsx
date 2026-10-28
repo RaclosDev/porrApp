@@ -5,24 +5,6 @@ import { useAppContext } from '../../context/AppContext';
 import { fetchCompetitionStandings } from '../../services/api';
 import Flag from '../Flag';
 
-function getCompetitionBadge(competitionName) {
-  if (!competitionName) return '🏆';
-  const lower = competitionName.toLowerCase();
-  if (lower.includes('laliga') || lower.includes('copa del rey') || lower.includes('españa'))
-    return '🇪🇸';
-  if (lower.includes('premier') || lower.includes('inglaterra')) return '🏴󠁧󠁢󠁥󠁮󠁧󠁿';
-  if (lower.includes('champions') || lower.includes('europa') || lower.includes('conference'))
-    return '🇪🇺';
-  if (lower.includes('serie a') || lower.includes('italia')) return '🇮🇹';
-  if (lower.includes('bundesliga') || lower.includes('alemania')) return '🇩🇪';
-  if (lower.includes('ligue 1') || lower.includes('francia')) return '🇫🇷';
-  if (lower.includes('mex') || lower.includes('bbva')) return '🇲🇽';
-  if (lower.includes('mls') || lower.includes('usa')) return '🇺🇸';
-  if (lower.includes('mundial') || lower.includes('world cup') || lower.includes('fifa'))
-    return '🌍';
-  return '🏆';
-}
-
 function formatKickOff(date) {
   if (!date) return 'VS';
   const d = new Date(date);
@@ -41,6 +23,14 @@ function formatMatchDate(date) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function roundLabelFor(match) {
+  if (!match) return '';
+  if (match.groupName) return `Grupo ${match.groupName}`;
+  if (match.round && match.round.toLowerCase() !== 'group') return match.round;
+  if (match.date) return `Fecha ${match.date.slice(0, 10)}`;
+  return '';
 }
 
 export default function MatchdayHomeDashboard() {
@@ -63,34 +53,49 @@ export default function MatchdayHomeDashboard() {
     staleTime: 120_000,
   });
 
-  const compBadge = getCompetitionBadge(activeCompetitionName);
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
   const showCompetition =
     Boolean(activeCompetitionName) &&
     activeCompetitionName.trim().toLowerCase() !== (activeGroupName || '').trim().toLowerCase();
 
-  // Filtramos y ordenamos los próximos partidos o en vivo
-  const relevantMatches = useMemo(() => {
-    if (!allGames || allGames.length === 0) return [];
+  // Jornada actual: la primera ronda con partidos sin finalizar (o la última si ya acabó todo).
+  // Se muestran todos los partidos de esa jornada, también los ya finalizados.
+  const { currentRound, matchdayMatches } = useMemo(() => {
+    if (!allGames || allGames.length === 0) return { currentRound: null, matchdayMatches: [] };
 
-    const now = new Date();
     const sorted = [...allGames].sort((a, b) => {
       const dateA = a.date ? new Date(a.date) : new Date(0);
       const dateB = b.date ? new Date(b.date) : new Date(0);
       return dateA - dateB;
     });
 
-    const upcomingOrLive = sorted.filter((m) => {
-      if (['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS'].includes(m.status?.toUpperCase()))
-        return true;
-      if (m.finished || ['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED'].includes(m.status))
-        return false;
-      if (!m.date) return false;
-      const d = new Date(m.date);
-      return d.getTime() >= now.getTime();
+    const rounds = [];
+    const byRound = new Map();
+    sorted.forEach((match) => {
+      const label = roundLabelFor(match);
+      if (!label) return;
+      if (!byRound.has(label)) {
+        byRound.set(label, []);
+        rounds.push(label);
+      }
+      byRound.get(label).push(match);
     });
 
-    return upcomingOrLive.slice(0, 6);
+    if (rounds.length === 0) return { currentRound: null, matchdayMatches: [] };
+
+    let currentIndex = rounds.findIndex((label) =>
+      byRound.get(label).some(
+        (match) =>
+          !match.finished &&
+          !['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED'].includes(
+            (match.status || '').toUpperCase(),
+          ),
+      ),
+    );
+    if (currentIndex === -1) currentIndex = rounds.length - 1;
+
+    const round = rounds[currentIndex];
+    return { currentRound: round, matchdayMatches: byRound.get(round) || [] };
   }, [allGames]);
 
   const topParticipants = useMemo(() => {
@@ -103,6 +108,8 @@ export default function MatchdayHomeDashboard() {
     return leagueStandings.slice(0, 5);
   }, [leagueStandings]);
 
+  const participantCount = leaderboardData?.length || 0;
+
   return (
     <section
       className="view-section active"
@@ -111,37 +118,19 @@ export default function MatchdayHomeDashboard() {
       {/* Cabecera de la liga */}
       <header className="home-hero">
         <div className="home-hero-info">
-          {showCompetition && (
-            <div className="home-hero-sub">
-              <span aria-hidden="true">{compBadge}</span>
-              <span>{activeCompetitionName}</span>
-            </div>
-          )}
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
-          <p className="home-hero-sub" style={{ color: 'var(--text-muted)' }}>
-            <span>
-              {topParticipants.length > 0
-                ? `${topParticipants.length} participantes`
+          <div className="home-hero-pills">
+            {showCompetition && (
+              <span className="home-hero-pill">{activeCompetitionName}</span>
+            )}
+            <span className="home-hero-pill muted">
+              {participantCount > 0
+                ? `${participantCount} ${participantCount === 1 ? 'participante' : 'participantes'}`
                 : 'Pronósticos por jornada'}
             </span>
-          </p>
+          </div>
         </div>
 
-        <div className="home-hero-actions">
-          <button
-            type="button"
-            className="glass-btn primary-btn"
-            onClick={() => navigate('/jornadas')}
-          >
-            <span aria-hidden="true" style={{ marginRight: '6px' }}>
-              ⚽
-            </span>
-            Pronosticar
-          </button>
-          <button type="button" className="glass-btn" onClick={() => navigate('/clasificacion')}>
-            Ranking
-          </button>
-        </div>
       </header>
 
       <div
@@ -155,16 +144,15 @@ export default function MatchdayHomeDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
           <div className="home-list-header">
             <h2>
-              <span aria-hidden="true">📅</span>
-              <span>Partidos</span>
+              <span>Partidos{currentRound ? ` ${currentRound}` : ''}</span>
             </h2>
             <button type="button" className="home-link-btn" onClick={() => navigate('/radar')}>
               Ver todos →
             </button>
           </div>
 
-          {relevantMatches.length > 0 ? (
-            relevantMatches.map((m) => {
+          {matchdayMatches.length > 0 ? (
+            matchdayMatches.map((m) => {
               const isLive = ['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS'].includes(
                 m.status?.toUpperCase(),
               );
@@ -224,12 +212,12 @@ export default function MatchdayHomeDashboard() {
               className="glass-panel"
               style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}
             >
-              No hay partidos programados para los próximos días.
+              No hay partidos programados para esta jornada.
             </div>
           )}
         </div>
 
-        {/* Ranking y clasificación */}
+        {/* Ranking y tabla */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minWidth: 0 }}>
           <div className="glass-panel" style={{ padding: '16px', borderRadius: '14px' }}>
             <div className="home-list-header" style={{ marginBottom: '10px' }}>
@@ -240,7 +228,7 @@ export default function MatchdayHomeDashboard() {
               <button
                 type="button"
                 className="home-link-btn"
-                onClick={() => navigate('/clasificacion')}
+                onClick={() => navigate('/ranking')}
               >
                 Ver todo →
               </button>
@@ -336,7 +324,7 @@ export default function MatchdayHomeDashboard() {
               <div className="home-list-header" style={{ marginBottom: '10px' }}>
                 <h2>
                   <span aria-hidden="true">📊</span>
-                  <span>Clasificación</span>
+                  <span>Tabla</span>
                 </h2>
                 <button type="button" className="home-link-btn" onClick={() => navigate('/tabla')}>
                   Ver todo →
