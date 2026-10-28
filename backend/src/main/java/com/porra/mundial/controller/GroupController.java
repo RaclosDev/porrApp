@@ -112,6 +112,8 @@ public class GroupController {
         if (group.isPresent()) {
             if (principal != null) {
                 groupService.joinGroupMembership(group.get().getId(), principal.getName());
+                // Refresca rankings, miembros y contadores en las sesiones de todos los participantes.
+                webSocketService.invalidateAndNotify();
             }
             return ResponseEntity.ok(group.get());
         }
@@ -194,6 +196,7 @@ public class GroupController {
     public ResponseEntity<?> leaveGroup(@PathVariable Long id, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         groupService.leaveGroup(id, principal.getName());
+        webSocketService.invalidateAndNotify();
         return ResponseEntity.ok(Map.of("status", "success"));
     }
 

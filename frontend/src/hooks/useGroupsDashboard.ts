@@ -200,7 +200,13 @@ export function useGroupsDashboard() {
       const groupId = group.id.toString();
       const fullGroup = await fetchGroup(groupId).catch(() => group);
       queryClient.setQueryData(['group', groupId], fullGroup);
-      await queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+      // El alta afecta a la tarjeta, al listado de miembros y al ranking de esta liga.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['myGroups'] }),
+        queryClient.invalidateQueries({ queryKey: ['group', groupId] }),
+        queryClient.invalidateQueries({ queryKey: ['groupMembers', groupId] }),
+        queryClient.invalidateQueries({ queryKey: ['leaderboard', groupId] }),
+      ]);
       localStorage.removeItem('pendingJoinCode');
       setPendingJoinCodeNotice('');
       setPendingInvite(null);
@@ -348,7 +354,13 @@ export function useGroupsDashboard() {
       const groupId = group.id.toString();
       const fullGroup = await fetchGroup(groupId).catch(() => group);
       queryClient.setQueryData(['group', groupId], fullGroup);
-      await queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+      // El alta afecta a la tarjeta, al listado de miembros y al ranking de esta liga.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['myGroups'] }),
+        queryClient.invalidateQueries({ queryKey: ['group', groupId] }),
+        queryClient.invalidateQueries({ queryKey: ['groupMembers', groupId] }),
+        queryClient.invalidateQueries({ queryKey: ['leaderboard', groupId] }),
+      ]);
       setJoinCode('');
       changeGroup(groupId);
       await loadGroupsAndCompetitions();
