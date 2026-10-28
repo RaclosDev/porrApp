@@ -16,6 +16,7 @@ import javax.imageio.ImageIO;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
@@ -34,8 +35,8 @@ import java.util.regex.Pattern;
 public class JoinPreviewController {
 
     private static final String BASE_URL = "https://porra.raclos.es";
-    private static final String DEFAULT_TITLE = "Invitación a una porra | PorrApp";
-    private static final String DEFAULT_DESCRIPTION = "Únete a esta porra y compite con tus amigos.";
+    private static final String DEFAULT_TITLE = "Invitación a una porra · PorrApp";
+    private static final String DEFAULT_DESCRIPTION = "Únete a esta porra y compite con tus amigos en PorrApp.";
     private static final int IMAGE_WIDTH = 1200;
     private static final int IMAGE_HEIGHT = 360;
 
@@ -50,12 +51,17 @@ public class JoinPreviewController {
         String canonicalUrl = BASE_URL + "/join/" + encodePathSegment(code);
         String title = DEFAULT_TITLE;
         String description = DEFAULT_DESCRIPTION;
+        String imageAlt = "Invitación a una porra de PorrApp";
         String imageUrl = BASE_URL + "/join/" + encodePathSegment(code) + "/image.png";
 
         Optional<League> leagueOptional = findLeague(code);
         if (leagueOptional.isPresent()) {
             League league = leagueOptional.get();
-            title = league.getName();
+            String leagueName = league.getName() == null || league.getName().isBlank()
+                    ? "una porra"
+                    : league.getName();
+            title = "Únete a \"" + leagueName + "\" · PorrApp";
+            imageAlt = "Invitación a \"" + leagueName + "\" en PorrApp";
 
             Optional<Edition> activeEdition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE");
             if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
@@ -65,9 +71,9 @@ public class JoinPreviewController {
                         : null;
                 description = competitionName
                         + (format != null ? " · " + formatLabel(format) : "")
-                        + " · Únete a la porra en PorrApp.";
+                        + " · Únete a la porra \"" + leagueName + "\" y compite con tus amigos.";
             } else {
-                description = "Únete a la porra \"" + league.getName() + "\" en PorrApp.";
+                description = "Únete a la porra \"" + leagueName + "\" y compite con tus amigos en PorrApp.";
             }
         }
 
@@ -79,11 +85,15 @@ public class JoinPreviewController {
         html = replaceMeta(html, "property", "og:image", imageUrl);
         html = replaceMeta(html, "property", "og:image:width", Integer.toString(IMAGE_WIDTH));
         html = replaceMeta(html, "property", "og:image:height", Integer.toString(IMAGE_HEIGHT));
+        html = replaceMeta(html, "property", "og:image:alt", imageAlt);
+        html = replaceMeta(html, "property", "og:site_name", "PorrApp");
+        html = replaceMeta(html, "property", "og:locale", "es_ES");
         html = replaceMeta(html, "name", "description", description);
         html = replaceMeta(html, "name", "twitter:card", "summary_large_image");
         html = replaceMeta(html, "name", "twitter:title", title);
         html = replaceMeta(html, "name", "twitter:description", description);
         html = replaceMeta(html, "name", "twitter:image", imageUrl);
+        html = replaceMeta(html, "name", "twitter:image:alt", imageAlt);
         return html;
     }
 
@@ -119,7 +129,11 @@ public class JoinPreviewController {
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-            // No pintar un fondo opaco: el lienzo debe seguir siendo transparente.
+            // Fondo opaco de la tarjeta: evita que WhatsApp muestre un fondo blanco
+            // cuando la imagen se comparte desde escritorio.
+            graphics.setPaint(new GradientPaint(0, 0, new Color(16, 24, 39),
+                    IMAGE_WIDTH, IMAGE_HEIGHT, new Color(7, 16, 20)));
+            graphics.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 
             // Reproduce la tarjeta original: foto de la liga a la izquierda y título + pills a la derecha.
             boolean photoLoaded = drawLeaguePhoto(graphics, leagueImageUrl);
