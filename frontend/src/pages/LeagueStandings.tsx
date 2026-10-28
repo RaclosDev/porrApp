@@ -48,7 +48,6 @@ export default function LeagueStandings() {
         <div className="standings-head-copy">
           <span className="standings-eyebrow">Clasificación</span>
           <h1 className="standings-title">{activeCompetitionName || 'Tabla de equipos'}</h1>
-          <p className="standings-subtitle">Puntos, partidos jugados y diferencia de goles.</p>
         </div>
 
         <div className="standings-toggle" role="group" aria-label="Nivel de detalle de la tabla">
@@ -91,6 +90,11 @@ export default function LeagueStandings() {
         </div>
       ) : (
         <div className="standings-card">
+          {showComplete && (
+            <p className="standings-scroll-hint">
+              Desliza la tabla para ver todas las estadísticas →
+            </p>
+          )}
           <div className="standings-table-wrap">
             <table className={`standings-table${showComplete ? ' is-complete' : ''}`}>
               <caption className="sr-only">

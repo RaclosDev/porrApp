@@ -6,6 +6,15 @@ const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import WhatsAppIcon from '../components/WhatsAppIcon';
 import { UserAvatar } from '../components/Avatar';
 
+const compactMatchdayLabel = (label) => {
+  if (!label) return '';
+  const jornada = /^jornada\s+(\d+)$/i.exec(label);
+  if (jornada) return `J${jornada[1]}`;
+  const fecha = /^fecha\s+(\d{4})-(\d{2})-(\d{2})$/i.exec(label);
+  if (fecha) return `${fecha[3]}/${fecha[2]}`;
+  return label;
+};
+
 /**
  * Componente que muestra la tabla de clasificación (Leaderboard) de una liga.
  * Renderiza los participantes, sus puntos y proporciona acciones de administrador si corresponde.
@@ -506,9 +515,26 @@ function Leaderboard() {
                                 : undefined
                             }
                           >
-                            {r.paid
-                              ? `${r.points[col.key] ?? 0}${col.kind === 'total' ? ' pts' : ''}`
-                              : '-'}
+                            {col.kind === 'total' ? (
+                              <>
+                                <span className="lb-total-value">
+                                  {r.paid ? `${r.points.total ?? 0} pts` : '-'}
+                                </span>
+                                {r.paid && isMatchday && selectedMatchday && (
+                                  <span
+                                    className="lb-total-matchday"
+                                    title={`${selectedMatchday}: ${r.points.matchday ?? 0} puntos`}
+                                  >
+                                    {compactMatchdayLabel(selectedMatchday)} ·{' '}
+                                    {r.points.matchday ?? 0} pts
+                                  </span>
+                                )}
+                              </>
+                            ) : r.paid ? (
+                              `${r.points[col.key] ?? 0}`
+                            ) : (
+                              '-'
+                            )}
                           </td>
                         ))}
                       </tr>

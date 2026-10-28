@@ -940,6 +940,15 @@ option {
   color: var(--accent-cyan);
 }
 
+.lb-total-value {
+  display: inline;
+  white-space: nowrap;
+}
+
+.lb-total-matchday {
+  display: none;
+}
+
 @media (max-width: 700px) {
   .lb-matchday-panel {
     padding: 14px;
@@ -983,14 +992,25 @@ option {
 
 @media (max-width: 600px) {
   #view-leaderboard .leaderboard-table .lb-matchday-cell {
-    display: table-cell;
-    width: 68px;
-    max-width: 68px;
-    padding-left: 4px;
-    padding-right: 4px;
-    white-space: nowrap;
+    display: none;
+  }
+
+  #view-leaderboard .leaderboard-table .lb-total-value {
+    display: block;
+  }
+
+  #view-leaderboard .leaderboard-table .lb-total-matchday {
+    display: block;
+    max-width: 100%;
+    margin-top: 1px;
     overflow: hidden;
+    color: var(--accent-cyan);
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1.2;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.9;
   }
 }
 
@@ -3736,10 +3756,13 @@ option {
   color: #fff;
 }
 
-.standings-subtitle {
-  margin-top: 4px;
-  font-size: 0.82rem;
-  color: var(--text-muted);
+.standings-scroll-hint {
+  display: none;
+  margin: 0;
+  padding: 10px 16px 0;
+  color: var(--accent-cyan);
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .standings-toggle {
@@ -4070,6 +4093,32 @@ option {
   height: 46px;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 760px) {
+  .standings-scroll-hint {
+    display: block;
+  }
+
+  .standings-table.is-complete th:nth-child(2),
+  .standings-table.is-complete td:nth-child(2) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #121d31;
+    box-shadow:
+      1px 0 0 rgba(255, 255, 255, 0.07),
+      8px 0 14px rgba(0, 0, 0, 0.22);
+  }
+
+  .standings-table.is-complete thead th:nth-child(2) {
+    z-index: 3;
+    background: #0d1728;
+  }
+
+  .standings-table.is-complete .standings-row:hover td:nth-child(2) {
+    background: #1a2740;
+  }
 }
 
 @media (max-width: 600px) {
