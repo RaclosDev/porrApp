@@ -49,6 +49,26 @@ export default defineConfig({
     VitePWA({
       strategies: 'generateSW',
       registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
+      manifest: {
+        name: 'PorrApp · Porras de fútbol',
+        short_name: 'PorrApp',
+        description:
+          'La porra de toda la vida, pero bien hecha: crea porras de tus competiciones y compite con tus amigos.',
+        lang: 'es',
+        dir: 'ltr',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        background_color: '#0f172a',
+        theme_color: '#0f172a',
+        categories: ['sports', 'entertainment'],
+        icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,svg}'],
         globIgnores: ['**/updates/**', '**/world-cup-icon.png'],
