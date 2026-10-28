@@ -4173,15 +4173,6 @@ option {
   color: #fff;
 }
 
-.standings-scroll-hint {
-  display: none;
-  margin: 0;
-  padding: 10px 16px 0;
-  color: var(--accent-cyan);
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
 .standings-toggle {
   display: inline-flex;
   gap: 4px;
@@ -4369,6 +4360,17 @@ option {
   white-space: nowrap;
 }
 
+.standings-team.is-crest-only {
+  justify-content: center;
+  min-width: 36px;
+}
+
+.standings-table.is-complete .standings-team-cell {
+  width: 64px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
 .standings-points-cell {
   padding: 10px 12px;
   text-align: center;
@@ -4513,10 +4515,6 @@ option {
 }
 
 @media (max-width: 760px) {
-  .standings-scroll-hint {
-    display: block;
-  }
-
   .standings-table.is-complete th:nth-child(2),
   .standings-table.is-complete td:nth-child(2) {
     position: sticky;
