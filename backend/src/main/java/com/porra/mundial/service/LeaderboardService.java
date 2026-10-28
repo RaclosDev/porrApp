@@ -322,6 +322,14 @@ public class LeaderboardService {
                     .passedTeams(new HashMap<>())
                     .build());
         }
+
+        leaderboard.sort((a, b) -> {
+            if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
+            if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
+            String nameA = a.getName() != null ? a.getName() : "";
+            String nameB = b.getName() != null ? b.getName() : "";
+            return nameA.compareToIgnoreCase(nameB);
+        });
     }
 
     @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", allEntries = true)
