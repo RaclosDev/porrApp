@@ -1921,6 +1921,31 @@ option {
   color: var(--text-muted);
 }
 
+.md-match-status-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.md-bets-icon-btn {
+  width: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.md-bets-icon-btn:focus-visible {
+  outline: 2px solid #00d2d3;
+  outline-offset: 2px;
+}
+
 .md-match-top > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2065,6 +2090,44 @@ option {
   border: 1px solid rgba(0, 210, 211, 0.25);
   color: #00d2d3;
   cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .md-match {
+    padding: 12px;
+  }
+
+  .md-match-top {
+    gap: 6px;
+    font-size: 0.7rem;
+  }
+
+  .md-match-status-actions {
+    gap: 5px;
+  }
+
+  .md-badge {
+    padding: 3px 6px;
+    font-size: 0.68rem;
+  }
+
+  .md-team-row {
+    gap: 6px;
+  }
+
+  .md-team-name {
+    font-size: 0.88rem;
+  }
+
+  .md-score-input {
+    width: 44px;
+    height: 40px;
+    font-size: 1.05rem;
+  }
+
+  .md-sign-btn {
+    min-height: 38px;
+  }
 }
 
 @media (min-width: 700px) {
