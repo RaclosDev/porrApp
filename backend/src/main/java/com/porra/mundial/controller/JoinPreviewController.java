@@ -16,7 +16,6 @@ import javax.imageio.ImageIO;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
@@ -113,16 +112,14 @@ public class JoinPreviewController {
             }
         }
 
-        BufferedImage image = new BufferedImage(IMAGE_WIDTH, IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        // ARGB conserva la transparencia del lienzo y de logotipos PNG con fondo transparente.
+        BufferedImage image = new BufferedImage(IMAGE_WIDTH, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = image.createGraphics();
         try {
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-            // Mantener las dimensiones, colores y composición de la tarjeta original del frontend.
-            graphics.setPaint(new GradientPaint(0, 0, new Color(16, 24, 39),
-                    IMAGE_WIDTH, IMAGE_HEIGHT, new Color(7, 16, 20)));
-            graphics.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+            // No pintar un fondo opaco: el lienzo debe seguir siendo transparente.
 
             // Reproduce la tarjeta original: foto de la liga a la izquierda y título + pills a la derecha.
             boolean photoLoaded = drawLeaguePhoto(graphics, leagueImageUrl);
@@ -184,7 +181,7 @@ public class JoinPreviewController {
             int cropX = (width - size) / 2;
             int cropY = (height - size) / 2;
 
-            BufferedImage square = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+            BufferedImage square = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
             Graphics2D photoGraphics = square.createGraphics();
             try {
                 photoGraphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
