@@ -1,12 +1,14 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings } from '../services/api';
 
 export default function LeagueStandings() {
+  const [showComplete, setShowComplete] = useState(false);
+
   const {
     activeCompetitionId,
-    activeCompetitionName,
     activeCompetitionFormatType,
     activeGroupPoolFormat,
     loadingGroup,
@@ -33,21 +35,30 @@ export default function LeagueStandings() {
     return <Navigate to="/bracket" replace />;
   }
 
-  const compTitle = activeCompetitionName || 'Competición Regular';
-
   return (
     <section
       className="view-section active"
       style={{ maxWidth: '960px', margin: '0 auto', padding: '16px' }}
     >
-      <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-        <span className="home-hero-pill">{compTitle}</span>
-        <h1 style={{ margin: '10px 0 0', fontSize: '1.75rem', fontWeight: 800 }}>
-          Tabla de equipos
-        </h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--text-muted, #94a3b8)', fontSize: '0.9rem' }}>
-          Clasificación real de la competición, actualizada desde ESPN.
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+        <button
+          type="button"
+          onClick={() => setShowComplete((current) => !current)}
+          aria-expanded={showComplete}
+          style={{
+            background: 'var(--panel-bg, #111827)',
+            color: 'var(--accent-color, #00d2d3)',
+            border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
+            cursor: 'pointer',
+            minHeight: '36px',
+            padding: '7px 12px',
+            borderRadius: '9px',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+          }}
+        >
+          {showComplete ? 'Vista básica' : 'Tabla completa'}
+        </button>
       </div>
 
       {isLoading ? (
@@ -123,13 +134,17 @@ export default function LeagueStandings() {
                   >
                     PTS
                   </th>
-                  <th style={{ padding: '12px 12px', textAlign: 'center' }}>PJ</th>
-                  <th style={{ padding: '12px 12px', textAlign: 'center' }}>V</th>
-                  <th style={{ padding: '12px 12px', textAlign: 'center' }}>E</th>
-                  <th style={{ padding: '12px 12px', textAlign: 'center' }}>D</th>
-                  <th style={{ padding: '12px 12px', textAlign: 'center' }}>DG</th>
-                  <th style={{ padding: '12px 12px', textAlign: 'center' }}>GF</th>
-                  <th style={{ padding: '12px 12px', textAlign: 'center' }}>GC</th>
+                  <th style={{ padding: '12px 8px', textAlign: 'center' }}>PJ</th>
+                  {showComplete && (
+                    <>
+                      <th style={{ padding: '12px 8px', textAlign: 'center' }}>V</th>
+                      <th style={{ padding: '12px 8px', textAlign: 'center' }}>E</th>
+                      <th style={{ padding: '12px 8px', textAlign: 'center' }}>D</th>
+                      <th style={{ padding: '12px 8px', textAlign: 'center' }}>DG</th>
+                      <th style={{ padding: '12px 8px', textAlign: 'center' }}>GF</th>
+                      <th style={{ padding: '12px 8px', textAlign: 'center' }}>GC</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -222,54 +237,33 @@ export default function LeagueStandings() {
                       >
                         {row.gamesPlayed}
                       </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', color: '#10b981' }}>
-                        {row.wins}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 12px',
-                          textAlign: 'center',
-                          color: 'var(--text-muted, #94a3b8)',
-                        }}
-                      >
-                        {row.ties}
-                      </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', color: '#ff6b6b' }}>
-                        {row.losses}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 12px',
-                          textAlign: 'center',
-                          fontWeight: 600,
-                          color:
-                            row.goalDiff > 0
-                              ? '#10b981'
-                              : row.goalDiff < 0
-                                ? '#ff6b6b'
-                                : 'var(--text-muted, #94a3b8)',
-                        }}
-                      >
-                        {row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 12px',
-                          textAlign: 'center',
-                          color: 'var(--text-muted, #94a3b8)',
-                        }}
-                      >
-                        {row.goalsFor}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 12px',
-                          textAlign: 'center',
-                          color: 'var(--text-muted, #94a3b8)',
-                        }}
-                      >
-                        {row.goalsAgainst}
-                      </td>
+                      {showComplete && (
+                        <>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', color: '#10b981' }}>
+                            {row.wins}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted, #94a3b8)' }}>
+                            {row.ties}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', color: '#ff6b6b' }}>
+                            {row.losses}
+                          </td>
+                          <td style={{
+                            padding: '10px 8px',
+                            textAlign: 'center',
+                            fontWeight: 600,
+                            color: row.goalDiff > 0 ? '#10b981' : row.goalDiff < 0 ? '#ff6b6b' : 'var(--text-muted, #94a3b8)',
+                          }}>
+                            {row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted, #94a3b8)' }}>
+                            {row.goalsFor}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted, #94a3b8)' }}>
+                            {row.goalsAgainst}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}
@@ -277,6 +271,7 @@ export default function LeagueStandings() {
             </table>
           </div>
 
+          {showComplete && (
           <div
             style={{
               padding: '12px 16px',
@@ -323,6 +318,7 @@ export default function LeagueStandings() {
               <span>Descenso</span>
             </div>
           </div>
+          )}
         </div>
       )}
     </section>
