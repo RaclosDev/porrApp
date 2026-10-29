@@ -17,26 +17,36 @@ const searchConditions = [
   { val: 'eliminated_groups', label: 'Cae en Grupos', icon: '❌' },
 ];
 
-/**
- * Componente de menú desplegable personalizado con buscador integrado.
- *
- * @param {Object} props
- * @param {string} props.value - Valor seleccionado actualmente.
- * @param {Function} props.onChange - Función a llamar cuando el valor cambia.
- * @param {Array} props.options - Opciones disponibles a seleccionar.
- * @param {string} props.placeholder - Texto a mostrar cuando no hay nada seleccionado.
- * @param {boolean} [props.withFlags=false] - Indica si mostrar banderas (si las opciones son países).
- * @returns {JSX.Element} Un dropdown con buscador interno.
- */
-function CustomDropdown({ value, onChange, options, placeholder, withFlags = false }) {
+/** Opción del desplegable: un texto o un valor con etiqueta e icono. */
+type DropdownOption = string | { val: string; label: string; icon?: string };
+
+const optionValue = (o: DropdownOption) => (typeof o === 'string' ? o : o.val);
+const optionLabel = (o: DropdownOption) => (typeof o === 'string' ? o : o.label);
+const optionIcon = (o: DropdownOption | undefined) =>
+  o && typeof o !== 'string' ? o.icon : undefined;
+
+/** Menú desplegable con buscador integrado; `withFlags` muestra banderas para países. */
+function CustomDropdown({
+  value,
+  onChange,
+  options,
+  placeholder,
+  withFlags = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: DropdownOption[];
+  placeholder: string;
+  withFlags?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef(null);
-  const inputRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         setSearchTerm('');
       }
@@ -45,14 +55,13 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedOption = options.find((o) => (o.val || o) === value);
-  const displayLabel = selectedOption ? selectedOption.label || selectedOption : '';
-  const displayIcon = !searchTerm && selectedOption?.icon;
+  const selectedOption = options.find((o) => optionValue(o) === value);
+  const displayLabel = selectedOption ? optionLabel(selectedOption) : '';
+  const displayIcon = !searchTerm && optionIcon(selectedOption);
 
-  const filteredOptions = options.filter((opt) => {
-    const label = (opt.label || opt).toLowerCase();
-    return label.includes(searchTerm.toLowerCase());
-  });
+  const filteredOptions = options.filter((opt) =>
+    optionLabel(opt).toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
@@ -157,9 +166,9 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
         >
           {filteredOptions.length > 0 ? (
             filteredOptions.map((opt) => {
-              const val = opt.val || opt;
-              const label = opt.label || opt;
-              const icon = opt.icon;
+              const val = optionValue(opt);
+              const label = optionLabel(opt);
+              const icon = optionIcon(opt);
               return (
                 <div
                   key={val}

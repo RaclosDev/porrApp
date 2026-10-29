@@ -1,5 +1,13 @@
 import { useMemo } from 'react';
 import { countryCodeMap } from '../utils/constants';
+import type { GroupOdds, PredictionSummary, TeamPair } from '../types/api';
+
+/** Participante que cumple (o no) la condición buscada. */
+export interface SearchMatch {
+  name: string;
+  /** Clave del pronóstico, para abrirlo en el visor. */
+  id: string;
+}
 
 const topTeams = [
   'Brasil',
@@ -14,15 +22,15 @@ const topTeams = [
 ];
 
 export function useSearchStats(
-  participantsHashes,
-  groupOdds,
-  userName,
-  selectedTeam,
-  selectedCondition,
-  selectedUser,
+  participantsHashes: PredictionSummary[],
+  groupOdds: GroupOdds,
+  userName: string,
+  selectedTeam: string,
+  selectedCondition: string,
+  selectedUser: string,
 ) {
   const allTeams = useMemo(() => {
-    const teams = [];
+    const teams: string[] = [];
     if (groupOdds) {
       Object.keys(groupOdds).forEach((g) => {
         groupOdds[g].forEach((t) => teams.push(t.name));
@@ -43,8 +51,8 @@ export function useSearchStats(
     if (!selectedTeam) return { teamResults: null, teamNegativeResults: null };
 
     const lowerTeam = selectedTeam.toLowerCase();
-    const matches = [];
-    const nonMatches = [];
+    const matches: SearchMatch[] = [];
+    const nonMatches: SearchMatch[] = [];
 
     participantsHashes.forEach((p) => {
       const part = p.data;
@@ -54,11 +62,17 @@ export function useSearchStats(
       const cond = selectedCondition;
 
       if (cond === 'first_group' && part.groups) {
-        match = Object.values(part.groups).some((g) => g[0].toLowerCase() === lowerTeam);
+        match = Object.values(part.groups as Record<string, string[]>).some(
+          (g) => g[0].toLowerCase() === lowerTeam,
+        );
       } else if (cond === 'second_group' && part.groups) {
-        match = Object.values(part.groups).some((g) => g[1].toLowerCase() === lowerTeam);
+        match = Object.values(part.groups as Record<string, string[]>).some(
+          (g) => g[1].toLowerCase() === lowerTeam,
+        );
       } else if (cond === 'third_group' && part.groups) {
-        match = Object.values(part.groups).some((g) => g[2].toLowerCase() === lowerTeam);
+        match = Object.values(part.groups as Record<string, string[]>).some(
+          (g) => g[2].toLowerCase() === lowerTeam,
+        );
       } else if (cond === 'eliminated_groups' && part.r32) {
         match = !part.r32
           .flat()
@@ -75,7 +89,9 @@ export function useSearchStats(
             .flat()
             .map((t) => t?.toLowerCase())
             .includes(lowerTeam) &&
-          Object.values(part.groups).some((g) => g[2] && g[2].toLowerCase() === lowerTeam);
+          Object.values(part.groups as Record<string, string[]>).some(
+            (g) => g[2] && g[2].toLowerCase() === lowerTeam,
+          );
       } else if (cond === 'reaches_r16' && part.r16) {
         match = part.r16
           .flat()
@@ -102,9 +118,9 @@ export function useSearchStats(
       }
 
       if (match) {
-        matches.push({ name: uName, id: p.key || part.id || p.hash });
+        matches.push({ name: uName, id: p.key });
       } else {
-        nonMatches.push({ name: uName, id: p.key || part.id || p.hash });
+        nonMatches.push({ name: uName, id: p.key });
       }
     });
 
@@ -112,9 +128,9 @@ export function useSearchStats(
   }, [selectedTeam, selectedCondition, participantsHashes]);
 
   const globalFrequencies = useMemo(() => {
-    const freqs = {};
+    const freqs: Record<string, number> = {};
 
-    const increment = (type, team) => {
+    const increment = (type: string, team: string | null | undefined) => {
       if (!team || team.includes('º')) return;
       const key = `${type}:${team}`;
       freqs[key] = (freqs[key] || 0) + 1;
@@ -125,7 +141,7 @@ export function useSearchStats(
       if (!part) return;
 
       if (part.groups) {
-        Object.values(part.groups).forEach((g) => {
+        Object.values(part.groups as Record<string, string[]>).forEach((g) => {
           increment('1st_group', g[0]);
           increment('2nd_group', g[1]);
           increment('3rd_group', g[2]);
@@ -163,8 +179,9 @@ export function useSearchStats(
     if (!targetHashObj) return null;
 
     const targetPart = targetHashObj.data;
+    if (!targetPart) return null;
 
-    const madness = [];
+    const madness: string[] = [];
     if (targetPart.qf) {
       targetPart.qf.flat().forEach((t) => {
         if (t && !t.includes('º') && !topTeams.includes(t)) {
@@ -173,7 +190,7 @@ export function useSearchStats(
       });
     }
 
-    const haters = [];
+    const haters: string[] = [];
     if (targetPart.r32) {
       const qualified = targetPart.r32.flat();
       topTeams.forEach((t) => {
@@ -181,8 +198,8 @@ export function useSearchStats(
       });
     }
 
-    const asylumMap = {};
-    const checkUnique = (type, team, label) => {
+    const asylumMap: Record<string, string[]> = {};
+    const checkUnique = (type: string, team: string | null | undefined, label: string) => {
       if (!team || team.includes('º')) return;
       if (globalFrequencies[`${type}:${team}`] === 1) {
         if (!asylumMap[team]) asylumMap[team] = [];
@@ -230,15 +247,18 @@ export function useSearchStats(
         const part = p.data;
         return part && (part.user || p.participantName) === userName;
       });
-      if (myHashObj) {
+      if (myHashObj?.data) {
         const myPart = myHashObj.data;
         let totalMatches = 0;
         let possibleMatches = 0;
 
-        const compareRound = (arr1, arr2) => {
+        const compareRound = (
+          arr1: (TeamPair | string)[] | undefined,
+          arr2: (TeamPair | string)[] | undefined,
+        ) => {
           if (!arr1 || !arr2) return;
-          const flat1 = arr1.flat().filter((t) => t && !t.includes('º'));
-          const flat2 = arr2.flat().filter((t) => t && !t.includes('º'));
+          const flat1 = arr1.flat().filter((t): t is string => Boolean(t) && !t!.includes('º'));
+          const flat2 = arr2.flat().filter((t): t is string => Boolean(t) && !t!.includes('º'));
           possibleMatches += flat2.length;
           flat1.forEach((t) => {
             if (flat2.includes(t)) totalMatches++;
@@ -263,6 +283,8 @@ export function useSearchStats(
 
     return {
       ...targetPart,
+      /** Clave del pronóstico, para abrirlo en el visor. */
+      id: targetHashObj.key,
       madness,
       haters,
       asylum,

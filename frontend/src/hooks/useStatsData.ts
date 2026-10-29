@@ -2,6 +2,13 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { fetchOfficialBracket } from '../services/api';
+import type { PredictionData, TeamPair } from '../types/api';
+
+/** Fila de estadística: nombre, quién lo eligió y, para los gemelos, el % de coincidencia. */
+export type StatEntry = [name: string, users: string[], overridePercentage?: number];
+
+/** Hueco con un equipo real (no vacío ni "1º Grupo X"). */
+const isRealSlot = (t: string | null | undefined): boolean => Boolean(t) && !t!.includes('º');
 
 export function useStatsData() {
   const { participantsHashes, loading: contextLoading, allGames } = useAppContext();
@@ -13,23 +20,23 @@ export function useStatsData() {
   const loading = contextLoading || officialLoading;
 
   const stats = useMemo(() => {
-    const scorersMap = {};
-    const championsMap = {};
-    const finalsMap = {};
-    const semisMap = {};
-    const runnerupMap = {};
-    const disappointmentsMap = {};
-    const thirdsMap = {};
-    const darkHorsesMap = {};
-    const kingsMap = {};
+    const scorersMap: Record<string, string[]> = {};
+    const championsMap: Record<string, string[]> = {};
+    const finalsMap: Record<string, string[]> = {};
+    const semisMap: Record<string, string[]> = {};
+    const runnerupMap: Record<string, string[]> = {};
+    const disappointmentsMap: Record<string, string[]> = {};
+    const thirdsMap: Record<string, string[]> = {};
+    const darkHorsesMap: Record<string, string[]> = {};
+    const kingsMap: Record<string, string[]> = {};
 
     let totalVotes = 0;
-    const passCountMap = {};
+    const passCountMap: Record<string, number> = {};
 
     participantsHashes.forEach((p) => {
       const part = p.data;
       if (!part || !part.r32) return;
-      const qualified = part.r32.flat().filter((t) => t && !t.includes('º'));
+      const qualified = part.r32.flat().filter((t): t is string => isRealSlot(t));
       qualified.forEach((t) => {
         passCountMap[t] = (passCountMap[t] || 0) + 1;
       });
@@ -92,7 +99,7 @@ export function useStatsData() {
       }
     });
 
-    const officialR32 = [];
+    const officialR32: string[] = [];
     if (allGames) {
       allGames.forEach((m) => {
         if (m.round === 'r16') {
@@ -112,7 +119,7 @@ export function useStatsData() {
         if (!part) return null;
         return { part, userName: part.user || p.key || 'Anónimo' };
       })
-      .filter((p) => p !== null);
+      .filter((p): p is { part: PredictionData; userName: string } => p !== null);
 
     Object.keys(passCountMap).forEach((team) => {
       const passCount = passCountMap[team];
@@ -136,14 +143,17 @@ export function useStatsData() {
       }
     });
 
-    const getSimilarity = (partA, partB) => {
+    const getSimilarity = (partA: PredictionData, partB: PredictionData) => {
       let totalMatches = 0;
       let possibleMatches = 0;
 
-      const compareRound = (arr1, arr2) => {
+      const compareRound = (
+        arr1: (TeamPair | string)[] | undefined,
+        arr2: (TeamPair | string)[] | undefined,
+      ) => {
         if (!arr1 || !arr2) return;
-        const flat1 = arr1.flat().filter((t) => t && !t.includes('º'));
-        const flat2 = arr2.flat().filter((t) => t && !t.includes('º'));
+        const flat1 = arr1.flat().filter((t): t is string => isRealSlot(t));
+        const flat2 = arr2.flat().filter((t): t is string => isRealSlot(t));
         possibleMatches += flat2.length;
         flat1.forEach((t) => {
           if (flat2.includes(t)) totalMatches++;
@@ -165,7 +175,7 @@ export function useStatsData() {
       return 0;
     };
 
-    const twinsListRaw = [];
+    const twinsListRaw: { name: string; usersArray: string[]; overridePercentage: number }[] = [];
     for (let i = 0; i < validParticipants.length; i++) {
       for (let j = i + 1; j < validParticipants.length; j++) {
         const pA = validParticipants[i];
@@ -180,9 +190,13 @@ export function useStatsData() {
     }
     twinsListRaw.sort((a, b) => b.overridePercentage - a.overridePercentage);
 
-    const twinsList = twinsListRaw.map((t) => [t.name, t.usersArray, t.overridePercentage]);
+    const twinsList = twinsListRaw.map((t): StatEntry => [
+      t.name,
+      t.usersArray,
+      t.overridePercentage,
+    ]);
 
-    const getTop = (map: Record<string, string[]>, limit = 999) => {
+    const getTop = (map: Record<string, string[]>, limit = 999): StatEntry[] => {
       return Object.entries(map)
         .sort((a, b) => b[1].length - a[1].length)
         .slice(0, limit);

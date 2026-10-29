@@ -1,4 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
+import type { StatEntry } from '../hooks/useStatsData';
+
+/** Detalle de una barra: quién eligió esa opción. */
+interface StatModal {
+  title: string;
+  users: string[];
+  percentage: number;
+  count: number;
+  isTwins: boolean;
+}
+
+/** Tarjeta abierta con la lista completa. */
+interface ExpandedCard {
+  title: string;
+  icon: ReactNode;
+  dataList: StatEntry[];
+  color: string;
+  isFinals: boolean;
+}
 import Flag from '../components/Flag';
 import { useStatsData } from '../hooks/useStatsData';
 import { useAppContext } from '../context/AppContext';
@@ -10,11 +29,11 @@ import { useAppContext } from '../context/AppContext';
 function Stats() {
   const { stats, loading } = useStatsData();
   const { activeGroupPichichi } = useAppContext();
-  const [modalData, setModalData] = useState(null);
-  const [expandedCard, setExpandedCard] = useState(null);
+  const [modalData, setModalData] = useState<StatModal | null>(null);
+  const [expandedCard, setExpandedCard] = useState<ExpandedCard | null>(null);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setExpandedCard(null);
         setModalData(null);
@@ -66,10 +85,18 @@ function Stats() {
     isFinals = false,
     color = 'var(--accent-color)',
     overridePercentage,
+  }: {
+    name: string;
+    usersArray: string[];
+    total: number;
+    icon?: ReactNode;
+    isFinals?: boolean;
+    color?: string;
+    overridePercentage?: number;
   }) => {
     let flagHtml = null;
-    let cleanName = name;
-    const isTwins = name && typeof name === 'string' && name.includes(' 🤝 ');
+    let cleanName: ReactNode = name;
+    const isTwins = Boolean(name) && name.includes(' 🤝 ');
 
     if (isTwins) {
       cleanName = <span>{name}</span>;
@@ -168,7 +195,13 @@ function Stats() {
     );
   };
 
-  const renderCard = (title, icon, dataList, color, isFinals = false) => {
+  const renderCard = (
+    title: string,
+    icon: ReactNode,
+    dataList: StatEntry[],
+    color: string,
+    isFinals = false,
+  ) => {
     const top5 = dataList.slice(0, 5);
     const hasMore = dataList.length > 5;
 
