@@ -335,35 +335,52 @@ public class MatchEventProcessor {
                 status.live() ? "in" : (status.finished() ? "completed" : "scheduled"), status.finished());
         updated |= setIfChanged(match.getStatus(), normalized, match::setStatus);
 
-        if (!wasFinished && status.finished()) {
-            log.info("Partido finalizado: {} - {}. Evaluando pronósticos y goleadores", home.getName(), away.getName());
-            try {
-                matchPredictionService.evaluatePredictionsForMatch(match);
-            } catch (Exception e) {
-                log.warn("Falló la evaluación de pronósticos del partido", e);
+        if (updated) {
+            matchRepository.save(match);
+            batch.matchesUpdated++;
+            if (homeChanged || awayChanged || winnerChanged || finishedChanged || (status.finished() && scoreChanged)) {
+                batch.resultsChanged = true;
             }
-            try {
-                topScorerService.refresh();
-            } catch (Exception e) {
-                log.warn("Falló el refresco de goleadores", e);
+            if (scoreChanged) {
+                webSocketService.broadcastMatchScore(
+                        match.getId(),
+                        match.getHomeTeam() != null ? match.getHomeTeam().getName() : null,
+                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
+                        match.getHomeScore(),
+                        match.getAwayScore(),
+                        status.finished() ? "FINISHED" : (status.live() ? "IN_PLAY" : "SCHEDULED"));
             }
         }
 
-        if (!updated) return;
-        matchRepository.save(match);
-        batch.matchesUpdated++;
-        if (homeChanged || awayChanged || winnerChanged || finishedChanged || (status.finished() && scoreChanged)) {
-            batch.resultsChanged = true;
+        if (status.finished()) {
+            evaluateFinishedMatch(match, !wasFinished || scoreChanged);
         }
-        if (scoreChanged) {
-            webSocketService.broadcastMatchScore(
-                    match.getId(),
-                    match.getHomeTeam() != null ? match.getHomeTeam().getName() : null,
-                    match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
-                    match.getHomeScore(),
-                    match.getAwayScore(),
-                    status.finished() ? "FINISHED" : (status.live() ? "IN_PLAY" : "SCHEDULED"));
+    }
+
+    /**
+     * Puntúa los pronósticos de un partido terminado: al acabar, cuando ESPN corrige el marcador final
+     * o cuando queda alguno sin puntuar (por ejemplo, porque falló una evaluación anterior).
+     */
+    private void evaluateFinishedMatch(Match match, boolean resultChanged) {
+        try {
+            if (resultChanged || matchPredictionService.hasUnscoredPredictions(match.getId())) {
+                log.info("Evaluando pronósticos de {} - {} ({}-{})", teamName(match.getHomeTeam()),
+                        teamName(match.getAwayTeam()), match.getHomeScore(), match.getAwayScore());
+                matchPredictionService.evaluatePredictionsForMatch(match);
+            }
+        } catch (Exception e) {
+            log.warn("Falló la evaluación de pronósticos del partido", e);
         }
+        if (!resultChanged) return;
+        try {
+            topScorerService.refresh();
+        } catch (Exception e) {
+            log.warn("Falló el refresco de goleadores", e);
+        }
+    }
+
+    private static String teamName(Team team) {
+        return team != null ? team.getName() : null;
     }
 
     private static <T> boolean setIfChanged(T current, T value, Consumer<T> setter) {
