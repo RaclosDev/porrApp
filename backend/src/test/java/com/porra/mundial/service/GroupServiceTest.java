@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +53,7 @@ class GroupServiceTest {
     private MatchPredictionRepository matchPredictionRepository;
 
     @Mock
-    private SyncService syncService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private GroupService groupService;
@@ -110,7 +111,6 @@ class GroupServiceTest {
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(legacy));
         when(competitionRepository.findByExternalId("uefa.champions")).thenReturn(Optional.of(canonical));
         when(matchRepository.countByCompetitionId(5L)).thenReturn(0L);
-        when(syncService.importCompetitionData(5L)).thenReturn(new SyncService.ImportResult("LaLiga", 0, 0));
         when(leagueRepository.save(any(League.class))).thenAnswer(invocation -> {
             League saved = invocation.getArgument(0);
             saved.setId(99L);
@@ -122,7 +122,8 @@ class GroupServiceTest {
 
         verify(editionRepository).save(argThat(edition ->
                 edition.getCompetition() != null && edition.getCompetition().getId().equals(5L)));
-        verify(syncService).importCompetitionData(5L);
+        // La importación se pide para después de confirmar la liga, no dentro de su transacción.
+        verify(eventPublisher).publishEvent(new CompetitionImportRequestedEvent(5L));
     }
 
     @Test

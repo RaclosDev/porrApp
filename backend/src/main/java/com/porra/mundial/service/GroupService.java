@@ -28,6 +28,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -59,8 +60,7 @@ public class GroupService {
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
     private final MatchPredictionRepository matchPredictionRepository;
-    @org.springframework.context.annotation.Lazy
-    private final SyncService syncService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.admins:Admin}")
     private List<String> appAdmins;
@@ -251,14 +251,10 @@ public class GroupService {
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
 
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
-            if (matchRepository.countByCompetitionId(comp.getId()) == 0) {
-                try {
-                    syncService.importCompetitionData(comp.getId());
-                } catch (Exception e) {
-                    log.warn("Auto-importación de datos para {} falló: {}", comp.getName(), e.getMessage());
-                }
-            }
+        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()
+                && matchRepository.countByCompetitionId(comp.getId()) == 0) {
+            // Se importa tras confirmar la liga: si ESPN falla, la liga ya está creada.
+            eventPublisher.publishEvent(new CompetitionImportRequestedEvent(comp.getId()));
         }
 
         return group;
