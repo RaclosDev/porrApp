@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
@@ -53,6 +54,81 @@ class FlywayFreshDatabaseTest {
             assertThat(rs.getString(1)).isEqualTo("esp.1");
             assertThat(rs.getInt(2)).isEqualTo(90);
             assertThat(rs.next()).isFalse();
+        }
+    }
+
+    /** Base vacía propia, para no compartir el esquema con el resto de tests de la clase. */
+    private static String createDatabase(String name) throws Exception {
+        try (Connection c = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())) {
+            c.createStatement().execute("CREATE DATABASE " + name);
+        }
+        String url = POSTGRES.getJdbcUrl();
+        int query = url.indexOf('?');
+        String params = query >= 0 ? url.substring(query) : "";
+        String base = query >= 0 ? url.substring(0, query) : url;
+        return base.substring(0, base.lastIndexOf('/') + 1) + name + params;
+    }
+
+    private static Flyway flyway(String url, String target) {
+        var config = Flyway.configure()
+                .dataSource(url, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration")
+                .outOfOrder(true);
+        return (target != null ? config.target(target) : config).load();
+    }
+
+    private static long queryLong(Statement st, String sql) throws Exception {
+        try (ResultSet rs = st.executeQuery(sql)) {
+            rs.next();
+            return rs.getLong(1);
+        }
+    }
+
+    @Test
+    void v44MergesDuplicatedMatchesWithoutLosingPredictions() throws Exception {
+        String url = createDatabase("v44_duplicates");
+        flyway(url, "43").migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("INSERT INTO app_users (id, google_email, google_name, participant_name) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9001, 'ana@test.com', 'Ana', 'Ana'), (9002, 'luis@test.com', 'Luis', 'Luis')");
+            st.execute("INSERT INTO leagues (id, name, join_code, admin_user_id) OVERRIDING SYSTEM VALUE VALUES (9001, 'Liga', 'DUPL44', 9001)");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, status) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9001, 9001, (SELECT id FROM competitions WHERE external_id = 'fifa.world'), 'MATCH_DAY', 'ACTIVE')");
+            st.execute("INSERT INTO predictions (id, user_id, edition_id, prediction_name, score_calculated_at) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9001, 9001, 9001, 'Porra Ana', now()), (9002, 9002, 9001, 'Porra Luis', now())");
+            // Copia vieja sin terminar y copia terminada del mismo partido de ESPN, más un partido sin repetir.
+            st.execute("INSERT INTO matches (id, external_id, finished, home_score, away_score) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9001, 'dup-1', false, null, null), (9002, 'dup-1', true, 2, 1), (9003, 'solo-1', false, null, null),"
+                    + " (9004, '', false, null, null), (9005, '', false, null, null)");
+            // Ana pronosticó en las dos copias (gana el último guardado); Luis solo en la que se borra.
+            st.execute("INSERT INTO pronosticos_partido (id, prediction_id, match_id, home_score, away_score, updated_at) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9001, 9001, 9001, 1, 0, '2026-06-10 10:00'), (9002, 9001, 9002, 3, 3, '2026-06-09 10:00'),"
+                    + " (9003, 9002, 9001, 2, 1, '2026-06-09 10:00')");
+        }
+
+        flyway(url, null).migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM matches WHERE external_id = 'dup-1'")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT id FROM matches WHERE external_id = 'dup-1'")).isEqualTo(9002);
+            assertThat(queryLong(st, "SELECT count(*) FROM matches WHERE id IN (9003, 9004, 9005)")).isEqualTo(3);
+            assertThat(queryLong(st, "SELECT count(*) FROM pronosticos_partido WHERE id >= 9001")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT home_score FROM pronosticos_partido WHERE prediction_id = 9001")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT match_id FROM pronosticos_partido WHERE prediction_id = 9001")).isEqualTo(9002);
+            assertThat(queryLong(st, "SELECT match_id FROM pronosticos_partido WHERE prediction_id = 9002")).isEqualTo(9002);
+            assertThat(queryLong(st, "SELECT count(*) FROM predictions WHERE id IN (9001, 9002)"
+                    + " AND score_calculated_at IS NULL")).isEqualTo(2);
+
+            try {
+                st.execute("INSERT INTO matches (external_id) VALUES ('dup-1')");
+                org.junit.jupiter.api.Assertions.fail("external_id tiene que ser único");
+            } catch (java.sql.SQLException e) {
+                assertThat(e.getSQLState()).isEqualTo("23505");
+            }
         }
     }
 }

@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -37,6 +39,8 @@ public class SyncService {
 
     private static final String WORLD_CUP_DATE_RANGE = "2026";
     private static final DateTimeFormatter ESPN_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
+    /** Lo que espera una importación a que termine la sincronización en curso. */
+    private static final long IMPORT_LOCK_TIMEOUT_MINUTES = 5;
 
     private final CompetitionRepository competitionRepository;
     private final SportsDataProviderRegistry sportsDataProviderRegistry;
@@ -45,6 +49,7 @@ public class SyncService {
     private final StandingsService standingsService;
     private final WebSocketService webSocketService;
     private final ScoreInvalidationService scoreInvalidationService;
+    private final PlatformTransactionManager transactionManager;
 
     private final ReentrantLock syncLock = new ReentrantLock();
 
@@ -145,9 +150,27 @@ public class SyncService {
     /**
      * Importa el catálogo de equipos (con escudos) y el calendario de la temporada de una competición.
      * Se usa al crear la primera liga de una competición sin partidos.
+     * <p>
+     * Comparte el cerrojo de la sincronización programada, para que las dos no creen el mismo partido a
+     * la vez, y lo mantiene hasta confirmar la transacción.
      */
-    @Transactional
     public ImportResult importCompetitionData(Long competitionId) {
+        try {
+            if (!syncLock.tryLock(IMPORT_LOCK_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
+                throw new IllegalStateException("Hay una sincronización en curso; no se ha podido importar la competición " + competitionId);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Importación interrumpida de la competición " + competitionId, e);
+        }
+        try {
+            return new TransactionTemplate(transactionManager).execute(status -> doImportCompetitionData(competitionId));
+        } finally {
+            syncLock.unlock();
+        }
+    }
+
+    private ImportResult doImportCompetitionData(Long competitionId) {
         Competition competition = competitionRepository.findById(competitionId)
                 .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada con ID: " + competitionId));
         String slug = competition.getExternalId();
@@ -182,7 +205,7 @@ public class SyncService {
                     if (eventId == null || !seenEventIds.add(eventId)) continue;
                     LocalDateTime date = matchEventProcessor.parseDate(event.path("date").asText(null));
                     if (date != null && (date.isBefore(windowStart) || date.isAfter(windowEnd))) continue;
-                    matchEventProcessor.process(event, teams, batch);
+                    processEvent(event, teams, batch);
                 }
             } catch (Exception e) {
                 log.debug("Sin eventos de {} en {}: {}", slug, year, e.getMessage());
@@ -201,7 +224,17 @@ public class SyncService {
     private void processEvents(JsonNode events, Map<String, Team> teams, MatchEventProcessor.Batch batch) {
         if (events == null || !events.isArray()) return;
         for (JsonNode event : events) {
+            processEvent(event, teams, batch);
+        }
+    }
+
+    /** Un evento que no se puede procesar se salta: no tiene que abortar la pasada entera. */
+    private void processEvent(JsonNode event, Map<String, Team> teams, MatchEventProcessor.Batch batch) {
+        try {
             matchEventProcessor.process(event, teams, batch);
+        } catch (Exception e) {
+            log.warn("Evento {} de {} omitido: {}", event.path("id").asText("?"),
+                    batch.competitionName(), e.getMessage(), e);
         }
     }
 

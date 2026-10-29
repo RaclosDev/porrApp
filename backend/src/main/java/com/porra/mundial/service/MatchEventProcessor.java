@@ -65,6 +65,10 @@ public class MatchEventProcessor {
             return matchesUpdated;
         }
 
+        public String competitionName() {
+            return competition != null ? competition.getName() : null;
+        }
+
         /** Si ha cambiado algún resultado (equipos, marcador final, ganador o fin del partido). */
         public boolean resultsChanged() {
             return resultsChanged;
