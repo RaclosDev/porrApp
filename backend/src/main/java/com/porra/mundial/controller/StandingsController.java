@@ -36,13 +36,6 @@ public class StandingsController {
         return standingsService.getOfficialPoints();
     }
 
-    @PostMapping("/sync")
-    public Map<String, Object> syncNow() {
-        Map<String, Object> res = syncService.syncAll();
-        standingsService.recalculateStandingsFromMatches();
-        return res;
-    }
-
     @GetMapping(value = "/standings/export/csv", produces = "text/csv; charset=UTF-8")
     public ResponseEntity<String> exportStandingsCsv(@RequestParam(required = false) Long groupId, java.security.Principal principal) {
         if (groupId != null && !Long.valueOf(1L).equals(groupId)) {
@@ -82,11 +75,4 @@ public class StandingsController {
         syncService.enrichPredictionDataWithMatches(fallbackDto);
         return ResponseEntity.ok(fallbackDto);
     }
-
-    @PostMapping("/standings/recalculate")
-    public ResponseEntity<?> recalculateStandings() {
-        standingsService.recalculateStandingsFromMatches();
-        return ResponseEntity.ok(Map.of("status", "success", "message", "Standings recalculated from matches"));
-    }
-
 }

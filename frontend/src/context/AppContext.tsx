@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { normalizeCountryName } from '../utils/constants';
 import {
-  getAuthToken,
   fetchStandings,
   fetchMatches,
   fetchMatchRadar,
@@ -395,25 +394,6 @@ export const useAppContext = () => {
 
   const loading = loadingGroup || (loadingStandings && !standings) || (loadingMatches && !matches);
 
-  const isRaclos = useMemo(() => {
-    const token = getAuthToken();
-    if (!token) return false;
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return false;
-      const payload = JSON.parse(atob(parts[1]));
-      if (
-        payload.email &&
-        ['raclosdev@gmail.com', 'raclosnegocios@gmail.com'].includes(payload.email.toLowerCase())
-      ) {
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }, [store.isAuthenticated]);
-
   return {
     ...store,
     isAuthenticated: isUserAuthed,
@@ -436,7 +416,6 @@ export const useAppContext = () => {
     groupError,
     fetchData: () => queryClient.invalidateQueries(),
     onlineUsers: EMPTY_ARRAY,
-    isRaclos,
     activeGroupName,
     activeGroupAdmin,
     activeGroupAdminId,

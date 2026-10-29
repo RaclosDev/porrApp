@@ -36,7 +36,6 @@ describe('Leaderboard Component', () => {
     useAppContext.mockReturnValue({
       leaderboardData: sampleLeaderboard,
       loading: false,
-      isRaclos: false,
       activeGroupName: 'Liga Santander',
       activeGroupId: 1,
       activeGroupPichichi: false,
@@ -220,7 +219,6 @@ describe('Leaderboard Component', () => {
     useAppContext.mockReturnValue({
       leaderboardData: sampleLeaderboard,
       loading: false,
-      isRaclos: false,
       activeGroupName: 'Mundial 2026',
       activeGroupId: 2,
       activeGroupPichichi: true,

@@ -43,7 +43,6 @@ describe('useLeaderboard hook', () => {
     AppContextModule.useAppContext.mockReturnValue({
       leaderboardData: mockLeaderboardData,
       loading: false,
-      isRaclos: false,
       activeGroupName: 'Liga Amigos',
       activeGroupId: 10,
       activeGroupPichichi: true,

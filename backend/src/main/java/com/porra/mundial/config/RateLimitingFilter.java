@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Filtro de limitación de tasa (Rate Limiting) basado en ventana deslizante en memoria.
- * Protege contra fuerza bruta en login de administración (5 req/min) y DoS en endpoints públicos (120 req/min).
+ * Protege contra fuerza bruta en el login con Google (15 req/min) y DoS en endpoints públicos (120 req/min).
  */
 @Component
 @Slf4j
@@ -45,7 +45,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         // 1. Límite estricto anti-abuso para endpoints de login y autenticación (15 peticiones/minuto)
-        if (path != null && (path.startsWith("/api/auth/google/login") || "/api/admin/login".equals(path))) {
+        if (path != null && path.startsWith("/api/auth/google/login")) {
             String clientIp = getClientIp(request);
             if (!isAllowedAuthLogin(clientIp)) {
                 log.warn("Límite de intentos de login excedido para IP: {}", clientIp);
@@ -80,7 +80,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                path.startsWith("/api/predictions") ||
                path.startsWith("/api/bets") ||
                path.startsWith("/api/leaderboard") ||
-               path.startsWith("/api/admin/login") ||
                path.startsWith("/api/auth/") ||
                path.startsWith("/api/users/me") ||
                (path.startsWith("/api/groups/") && path.endsWith("/image")) ||

@@ -35,26 +35,22 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/google/**").permitAll()
-                .requestMatchers("/api/predictions/mine", "/api/bets/mine").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/predictions/**", "/api/bets/**").permitAll()
-                .requestMatchers("/api/matches/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/standings/**").permitAll()
-                .requestMatchers("/api/scorers/**").permitAll()
-                .requestMatchers("/api/rules/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                .requestMatchers("/api/teams/odds").permitAll()
-                .requestMatchers("/api/leaderboard", "/api/leaderboard/**").permitAll()
-                .requestMatchers("/api/ws").permitAll()
-                .requestMatchers("/api/groups/mine").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/groups/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/users/*/avatar").permitAll()
-                .requestMatchers("/api/competitions/**").permitAll()
-
-                .requestMatchers(HttpMethod.POST, "/api/predictions", "/api/bets").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/api/predictions/**", "/api/bets/**").authenticated()
-                .requestMatchers(HttpMethod.DELETE, "/api/predictions/**", "/api/bets/**").authenticated()
-
+                .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
+                .requestMatchers("/api/predictions/mine", "/api/bets/mine", "/api/groups/mine").authenticated()
+                // Lecturas públicas: cada controlador filtra los datos de ligas privadas.
+                .requestMatchers(HttpMethod.GET,
+                        "/api/predictions/**", "/api/bets/**",
+                        "/api/matches/**",
+                        "/api/standings/**",
+                        "/api/scorers/**",
+                        "/api/rules/**",
+                        "/api/teams/odds",
+                        "/api/leaderboard", "/api/leaderboard/**",
+                        "/api/groups/**",
+                        "/api/users/*/avatar",
+                        "/api/competitions/**").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/**").permitAll()
             )
