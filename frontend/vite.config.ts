@@ -77,8 +77,18 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,svg}'],
-        globIgnores: ['**/updates/**', '**/og-image.jpg'],
+        // html2canvas solo se carga con import() al compartir la clasificación: se baja al usarlo.
+        globIgnores: ['**/updates/**', '**/og-image.jpg', '**/assets/html2canvas-*.js'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /^\/assets\/html2canvas-[\w-]+\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'lazy-chunks-cache',
+              expiration: { maxEntries: 2 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
             handler: 'NetworkFirst',
