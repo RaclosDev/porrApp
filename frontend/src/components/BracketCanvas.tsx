@@ -83,6 +83,7 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsPr
  * @param {Function} [props.onClick] - Acción al hacer click en la casilla.
  * @param {Object} [props.slotStyle] - Estilos adicionales de renderizado (para aciertos/fallos).
  * @param {ReactNode} [props.rightContent] - Elemento a renderizar en la derecha (puntos).
+ * @param {boolean} [props.pressed] - Si el equipo ya está elegido para pasar de ronda.
  * @returns {JSX.Element} La casilla del bracket.
  */
 interface TeamSlotProps {
@@ -90,9 +91,16 @@ interface TeamSlotProps {
   onClick?: () => void;
   slotStyle?: React.CSSProperties;
   rightContent?: React.ReactNode;
+  pressed?: boolean;
 }
 
-export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }: TeamSlotProps) {
+export function TeamSlot({
+  name,
+  onClick,
+  slotStyle = {},
+  rightContent = null,
+  pressed = false,
+}: TeamSlotProps) {
   const isEmpty = !name;
   const lower = name?.toLowerCase() || '';
   const isCombined = !isEmpty && name.includes(' / ');
@@ -109,20 +117,18 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }:
       getCountryCode(name) === 'xx');
   const clickable = !!onClick && !isEmpty && !isPlaceholder;
 
-  return (
-    <div
-      className={`team-slot${isEmpty || isPlaceholder ? ' empty' : ''}`}
-      onClick={clickable ? onClick : undefined}
-      style={{
-        cursor: clickable ? 'pointer' : 'default',
-        height: SLOT_H,
-        padding: '0 8px',
-        fontSize: '0.78rem',
-        display: 'flex',
-        alignItems: 'center',
-        ...slotStyle,
-      }}
-    >
+  const style: React.CSSProperties = {
+    cursor: clickable ? 'pointer' : 'default',
+    height: SLOT_H,
+    padding: '0 8px',
+    fontSize: '0.78rem',
+    display: 'flex',
+    alignItems: 'center',
+    ...slotStyle,
+  };
+
+  const content = (
+    <>
       {!isEmpty && !isPlaceholder && !isCombined && (
         <Flag
           team={name}
@@ -160,6 +166,27 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }:
         {name ?? 'Por definir'}
       </span>
       {rightContent}
+    </>
+  );
+
+  if (clickable) {
+    return (
+      <button
+        type="button"
+        className="team-slot team-slot-btn"
+        onClick={onClick}
+        aria-label={`Pasar a ${name}`}
+        aria-pressed={pressed}
+        style={style}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={`team-slot${isEmpty || isPlaceholder ? ' empty' : ''}`} style={style}>
+      {content}
     </div>
   );
 }

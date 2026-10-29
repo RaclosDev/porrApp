@@ -91,6 +91,28 @@ function Bracket() {
     );
   }
 
+  /** Si el equipo ya está elegido para pasar de ronda desde esa casilla. */
+  const isPicked = (
+    team: BracketTeam | null | undefined,
+    side: SlotContext['side'] | 'center',
+    roundIndex: number,
+    matchIndex: number,
+  ) => {
+    if (!team?.name) return false;
+    let picked: BracketTeam | null | undefined;
+    if (side === 'center') {
+      picked = roundIndex === 4 ? bracketState.champion : bracketState.thirdPlaceWinner;
+    } else if (roundIndex < 3) {
+      const next = [bracketState.r16, bracketState.qf, bracketState.sf][roundIndex][side][
+        Math.floor(matchIndex / 2)
+      ];
+      picked = matchIndex % 2 === 0 ? next?.home : next?.away;
+    } else {
+      picked = side === 'left' ? bracketState.final?.home : bracketState.final?.away;
+    }
+    return picked?.name === team.name;
+  };
+
   /** Slot renderer for BracketCanvas */
   const renderSlot = (
     team: BracketTeam | null | undefined,
@@ -136,13 +158,18 @@ function Bracket() {
         <TeamSlot
           name={name}
           rightContent={statusIndicator}
+          pressed={isPicked(team, side, roundIndex, matchIndex)}
           onClick={() => advanceTeam(team, side, roundIndex, matchIndex)}
         />
       );
     }
     // Other rounds: click to advance
     return (
-      <TeamSlot name={team?.name} onClick={() => advanceTeam(team, side, roundIndex, matchIndex)} />
+      <TeamSlot
+        name={team?.name}
+        pressed={isPicked(team, side, roundIndex, matchIndex)}
+        onClick={() => advanceTeam(team, side, roundIndex, matchIndex)}
+      />
     );
   };
 
@@ -163,12 +190,14 @@ function Bracket() {
       >
         <TeamSlot
           name={bracketState.final?.home?.name}
+          pressed={isPicked(bracketState.final?.home, 'center', 4, 0)}
           onClick={() =>
             bracketState.final?.home && advanceTeam(bracketState.final.home, 'center', 4, 0)
           }
         />
         <TeamSlot
           name={bracketState.final?.away?.name}
+          pressed={isPicked(bracketState.final?.away, 'center', 4, 0)}
           onClick={() =>
             bracketState.final?.away && advanceTeam(bracketState.final.away, 'center', 4, 0)
           }
@@ -199,6 +228,7 @@ function Bracket() {
         <div className="match third-place">
           <TeamSlot
             name={bracketState.thirdPlaceMatch?.home?.name}
+            pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
             onClick={() =>
               bracketState.thirdPlaceMatch?.home &&
               advanceTeam(bracketState.thirdPlaceMatch.home, 'center', 5, 0)
@@ -206,6 +236,7 @@ function Bracket() {
           />
           <TeamSlot
             name={bracketState.thirdPlaceMatch?.away?.name}
+            pressed={isPicked(bracketState.thirdPlaceMatch?.away, 'center', 5, 0)}
             onClick={() =>
               bracketState.thirdPlaceMatch?.away &&
               advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
@@ -303,6 +334,7 @@ function Bracket() {
                     <div className="mb-match-card">
                       <TeamSlot
                         name={bracketState.final?.home?.name}
+                        pressed={isPicked(bracketState.final?.home, 'center', 4, 0)}
                         onClick={() =>
                           bracketState.final?.home &&
                           advanceTeam(bracketState.final.home, 'center', 4, 0)
@@ -310,6 +342,7 @@ function Bracket() {
                       />
                       <TeamSlot
                         name={bracketState.final?.away?.name}
+                        pressed={isPicked(bracketState.final?.away, 'center', 4, 0)}
                         onClick={() =>
                           bracketState.final?.away &&
                           advanceTeam(bracketState.final.away, 'center', 4, 0)
@@ -334,6 +367,7 @@ function Bracket() {
                     <div className="mb-match-card">
                       <TeamSlot
                         name={bracketState.thirdPlaceMatch?.home?.name}
+                        pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
                         onClick={() =>
                           bracketState.thirdPlaceMatch?.home &&
                           advanceTeam(bracketState.thirdPlaceMatch.home, 'center', 5, 0)
@@ -341,6 +375,7 @@ function Bracket() {
                       />
                       <TeamSlot
                         name={bracketState.thirdPlaceMatch?.away?.name}
+                        pressed={isPicked(bracketState.thirdPlaceMatch?.away, 'center', 5, 0)}
                         onClick={() =>
                           bracketState.thirdPlaceMatch?.away &&
                           advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)

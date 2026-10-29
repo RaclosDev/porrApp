@@ -647,6 +647,21 @@
     cursor: not-allowed;
   }
 
+  /* Casilla pulsable: botón con el mismo aspecto que la casilla div */
+  .team-slot-btn {
+    appearance: none;
+    width: 100%;
+    margin: 0;
+    font-family: inherit;
+    line-height: inherit;
+    color: inherit;
+    text-align: left;
+  }
+
+  .team-slot-btn:focus-visible {
+    outline-offset: -2px;
+  }
+
   /* Center Finals */
   .center-side {
     display: flex;
@@ -1732,6 +1747,24 @@
     text-transform: uppercase;
     margin-bottom: 6px;
     padding-left: 4px;
+  }
+
+  .mb-next-btn {
+    align-self: flex-end;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-cyan);
+    background: rgba(0, 210, 211, 0.12);
+    color: var(--accent-cyan);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .mb-next-btn:active {
+    background: rgba(0, 210, 211, 0.22);
   }
 
   .mb-final-content {
