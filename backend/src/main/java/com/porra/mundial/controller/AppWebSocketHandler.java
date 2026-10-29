@@ -38,9 +38,8 @@ public class AppWebSocketHandler extends TextWebSocketHandler {
         try {
             JsonNode json = objectMapper.readTree(message.getPayload());
             if (json.has("type") && "PING".equals(json.get("type").asText())) {
-                if (session.isOpen()) {
-                    session.sendMessage(new TextMessage("{\"type\":\"PONG\"}"));
-                }
+                // A través del servicio: la sesión no admite este envío a la vez que una difusión.
+                webSocketService.sendTo(session, "{\"type\":\"PONG\"}");
             }
         } catch (Exception e) {
             // Ignorar payloads malformados
