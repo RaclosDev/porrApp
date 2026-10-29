@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchOfficialBracket, fetchPrediction, fetchPredictionScore } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { fetchPrediction } from '../services/api';
+import { officialBracketQuery, predictionScoreQuery } from '../services/queries';
 import { compareTeams } from '../utils/points';
 import { matchWinner } from '../utils/bracketBuilder';
 import type { CanvasMatch } from '../components/BracketCanvas';
@@ -15,6 +17,33 @@ import type {
   TeamPair,
 } from '../types/api';
 import { errorMessage } from '../utils/errors';
+
+/** Cuadro vacío que se muestra si no se puede obtener el oficial. */
+const EMPTY_OFFICIAL_BRACKET: PredictionData = {
+  r32: [
+    ['1º Grupo E', '3º A/B/C/D/F'],
+    ['1º Grupo I', '3º C/D/F/G/H'],
+    ['2º Grupo A', '2º Grupo B'],
+    ['1º Grupo F', '2º Grupo C'],
+    ['2º Grupo K', '2º Grupo L'],
+    ['1º Grupo H', '2º Grupo J'],
+    ['1º Grupo D', '3º B/E/F/I/J'],
+    ['1º Grupo G', '3º A/E/H/I/J'],
+    ['1º Grupo C', '2º Grupo F'],
+    ['2º Grupo E', '2º Grupo I'],
+    ['1º Grupo A', '3º C/E/F/H/I'],
+    ['1º Grupo L', '3º E/H/I/J/K'],
+    ['1º Grupo J', '2º Grupo H'],
+    ['2º Grupo D', '2º Grupo G'],
+    ['1º Grupo B', '3º E/F/G/I/J'],
+    ['1º Grupo K', '3º D/E/I/J/L'],
+  ],
+  r16: Array(8).fill([null, null]),
+  qf: Array(4).fill([null, null]),
+  sf: Array(2).fill([null, null]),
+  final: [],
+  thirdPlaceMatch: [],
+};
 
 /**
  * Hook personalizado que carga y procesa los datos necesarios para visualizar la porra de un usuario.
@@ -58,10 +87,17 @@ export function usePredictionViewerData(
   initialPart: PredictionData | null = null,
 ) {
   const [rawPart, setRawPart] = useState<PredictionData | null>(() => initialPart || null);
-  const [rawOfficialBracket, setRawOfficialBracket] = useState<PredictionData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [partLoading, setPartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [detailedScore, setDetailedScore] = useState<ParticipantScore | null>(null);
+
+  // Cuadro oficial compartido con el resto de la app; el WebSocket lo invalida.
+  const officialQuery = useQuery({
+    ...officialBracketQuery(),
+    enabled: Boolean(viewerPredictionId),
+  });
+  const rawOfficialBracket =
+    officialQuery.data ?? (officialQuery.isError ? EMPTY_OFFICIAL_BRACKET : null);
+  const loading = partLoading || (Boolean(viewerPredictionId) && officialQuery.isPending);
 
   const part = useMemo(() => normalizePart(rawPart, groupOdds), [rawPart, groupOdds]);
 
@@ -81,7 +117,7 @@ export function usePredictionViewerData(
     if (!viewerPredictionId) {
       setRawPart(null);
       setError(null);
-      setLoading(false);
+      setPartLoading(false);
       return undefined;
     }
 
@@ -89,59 +125,41 @@ export function usePredictionViewerData(
     setError(null);
     if (hasInitialPart) {
       setRawPart(initialPart);
-      setLoading(false);
+      setPartLoading(false);
     } else {
-      setLoading(true);
+      setPartLoading(true);
     }
 
     const partPromise = hasInitialPart
       ? Promise.resolve(null)
       : fetchPrediction(viewerPredictionId);
 
-    const officialPromise = fetchOfficialBracket().catch((): PredictionData => ({
-      r32: [
-        ['1º Grupo E', '3º A/B/C/D/F'],
-        ['1º Grupo I', '3º C/D/F/G/H'],
-        ['2º Grupo A', '2º Grupo B'],
-        ['1º Grupo F', '2º Grupo C'],
-        ['2º Grupo K', '2º Grupo L'],
-        ['1º Grupo H', '2º Grupo J'],
-        ['1º Grupo D', '3º B/E/F/I/J'],
-        ['1º Grupo G', '3º A/E/H/I/J'],
-        ['1º Grupo C', '2º Grupo F'],
-        ['2º Grupo E', '2º Grupo I'],
-        ['1º Grupo A', '3º C/E/F/H/I'],
-        ['1º Grupo L', '3º E/H/I/J/K'],
-        ['1º Grupo J', '2º Grupo H'],
-        ['2º Grupo D', '2º Grupo G'],
-        ['1º Grupo B', '3º E/F/G/I/J'],
-        ['1º Grupo K', '3º D/E/I/J/L'],
-      ],
-      r16: Array(8).fill([null, null]),
-      qf: Array(4).fill([null, null]),
-      sf: Array(2).fill([null, null]),
-      final: [],
-      thirdPlaceMatch: [],
-    }));
-
-    Promise.all([partPromise, officialPromise])
-      .then(([partData, officialData]) => {
+    partPromise
+      .then((partData) => {
         if (cancelled) return;
         if (partData) setRawPart(partData);
-        setRawOfficialBracket(officialData);
-        setLoading(false);
+        setPartLoading(false);
       })
       .catch((err) => {
         if (cancelled) return;
         console.error(err);
         setError(errorMessage(err, 'Ha ocurrido un error'));
-        setLoading(false);
+        setPartLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
   }, [viewerPredictionId, initialPart]);
+
+  const isPending = loading || (!part && !error && Boolean(viewerPredictionId));
+  const partReady = Boolean(part);
+
+  // El desglose completo (log, aciertos exactos) se pide en segundo plano: el visor ya está pintado.
+  const { data: detailedScore } = useQuery({
+    ...predictionScoreQuery(viewerPredictionId ?? ''),
+    enabled: Boolean(viewerPredictionId) && partReady,
+  });
 
   const scoreForPrediction = useMemo(
     () =>
@@ -175,23 +193,6 @@ export function usePredictionViewerData(
     };
     return found || empty;
   }, [scoreForPrediction, leaderboardData, viewerPredictionId, part?.user]);
-
-  const isPending = loading || (!part && !error && Boolean(viewerPredictionId));
-  const partReady = Boolean(part);
-
-  // El desglose completo (log, aciertos exactos) se pide en segundo plano: el visor ya está pintado.
-  useEffect(() => {
-    if (!viewerPredictionId || !partReady) return undefined;
-    let cancelled = false;
-    fetchPredictionScore(viewerPredictionId)
-      .then((score) => {
-        if (!cancelled && score) setDetailedScore(score);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [viewerPredictionId, partReady]);
 
   const getFlat = (arr: TeamPair[] | undefined): string[] =>
     arr ? arr.flat().filter((t): t is string => Boolean(t)) : [];

@@ -13,6 +13,7 @@ const SCORE_DEPENDENT_KEYS = [
   queryKeys.matchFriendPredictions(),
   queryKeys.competitionStandings(),
   queryKeys.officialBracket(),
+  queryKeys.predictionScore(),
 ];
 
 const invalidateAll = (queryClient: QueryClient, keys: readonly (readonly unknown[])[]) => {

@@ -30,6 +30,7 @@ export const queryKeys = {
   odds: () => key('odds'),
   topScorers: () => key('topScorers'),
   officialBracket: () => key('officialBracket'),
+  predictionScore: (predictionId?: Id) => key('predictionScore', predictionId),
   matches: (competitionId?: Id) => key('matches', competitionId),
   radar: (competitionId?: Id) => key('radar', competitionId),
   competitionStandings: (competitionId?: Id) => key('competitionStandings', competitionId),

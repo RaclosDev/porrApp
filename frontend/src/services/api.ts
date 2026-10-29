@@ -165,54 +165,17 @@ export async function fetchCompetitions(): Promise<Competition[]> {
   return cachedCompetitions;
 }
 
-const OFFICIAL_BRACKET_TTL = 60_000;
-let officialBracketCache: PredictionData | null = null;
-let officialBracketCachedAt = 0;
-let officialBracketRequest: Promise<PredictionData> | null = null;
-
-/** Cuadro oficial, reutilizando la última respuesta durante 60 s salvo que se pida `force`. */
-export async function fetchOfficialBracket({ force = false } = {}): Promise<PredictionData> {
-  if (
-    !force &&
-    officialBracketCache &&
-    Date.now() - officialBracketCachedAt < OFFICIAL_BRACKET_TTL
-  ) {
-    return officialBracketCache;
-  }
-  if (!force && officialBracketRequest) return officialBracketRequest;
-  officialBracketRequest = request<PredictionData>('/standings/official-bracket')
-    .then((data) => {
-      officialBracketCache = data;
-      officialBracketCachedAt = Date.now();
-      return data;
-    })
-    .finally(() => {
-      officialBracketRequest = null;
-    });
-  return officialBracketRequest;
-}
+/** Cuadro oficial. Se cachea como consulta de TanStack (`officialBracketQuery`). */
+export const fetchOfficialBracket = () => request<PredictionData>('/standings/official-bracket');
 
 // --- Pronósticos de cuadro completo ---
 
 export const fetchPrediction = (id: number | string) =>
   request<PredictionData>(`/predictions/${id}`, { fallbackError: 'Error al cargar la porra' });
 
-const PREDICTION_SCORE_TTL = 60_000;
-const predictionScoreCache = new Map<string, { data: ParticipantScore; at: number }>();
-
-/** Desglose de puntos de un pronóstico. Se cachea 60 s porque el cálculo es costoso. */
-export async function fetchPredictionScore(
-  id: number | string | null,
-): Promise<ParticipantScore | null> {
-  if (id == null) return null;
-  const key = String(id);
-  const cached = predictionScoreCache.get(key);
-  if (cached && Date.now() - cached.at < PREDICTION_SCORE_TTL) return cached.data;
-  const data = await request<ParticipantScore>(`/predictions/${key}/score`);
-  if (predictionScoreCache.size > 100) predictionScoreCache.clear();
-  predictionScoreCache.set(key, { data, at: Date.now() });
-  return data;
-}
+/** Desglose de puntos de un pronóstico. Se cachea como consulta (`predictionScoreQuery`). */
+export const fetchPredictionScore = (id: number | string) =>
+  request<ParticipantScore>(`/predictions/${id}/score`);
 
 export const fetchPredictions = (groupId: number | string | null = null) =>
   request<PredictionSummary[]>(`/predictions${query({ groupId })}`);
