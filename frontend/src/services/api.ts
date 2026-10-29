@@ -21,7 +21,6 @@ import type {
   MatchdayPredictionInput,
   MatchdaySubmissionResult,
   Me,
-  MissingMembers,
   ParticipantScore,
   PaymentStatus,
   PaymentStatusResponse,
@@ -34,6 +33,7 @@ import type {
   TopScorer,
   UserPreferences,
 } from '../types/api';
+import { ApiError, NETWORK_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE } from './apiError';
 
 const API_BASE = '/api';
 
@@ -56,35 +56,68 @@ interface RequestOptions {
   /** Se envía como multipart (el navegador pone el boundary). */
   form?: FormData;
   signal?: AbortSignal;
+  /** Tiempo máximo de espera; por defecto {@link DEFAULT_TIMEOUT_MS}. */
+  timeoutMs?: number;
   /** Mensaje si el servidor no explica el error. */
   fallbackError?: string;
 }
 
+const DEFAULT_TIMEOUT_MS = 20_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+/** Señal que se aborta al agotarse el tiempo o cuando lo pide quien llama. */
+function requestSignal(
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): AbortSignal | undefined {
+  if (typeof AbortSignal.timeout !== 'function') return signal;
+  const timeout = AbortSignal.timeout(timeoutMs);
+  if (!signal) return timeout;
+  return typeof AbortSignal.any === 'function' ? AbortSignal.any([signal, timeout]) : signal;
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', json, form, signal, fallbackError } = options;
+  const {
+    method = 'GET',
+    json,
+    form,
+    signal,
+    fallbackError,
+    timeoutMs = form ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
+  } = options;
   const token = getAuthToken();
   const headers: Record<string, string> = {};
   if (json !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: form ?? (json !== undefined ? JSON.stringify(json) : undefined),
-    signal,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: form ?? (json !== undefined ? JSON.stringify(json) : undefined),
+      signal: requestSignal(signal, timeoutMs),
+    });
+  } catch (err) {
+    // Una cancelación pedida por quien llama (p. ej. TanStack Query) se propaga tal cual.
+    if (signal?.aborted) throw err;
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new ApiError(0, TIMEOUT_ERROR_MESSAGE);
+    }
+    throw new ApiError(0, NETWORK_ERROR_MESSAGE);
+  }
 
   if (!res.ok) {
     // Un 401 de una petición lanzada con un token anterior no debe cerrar la sesión nueva.
+    // El token se borra ya para que no salgan más peticiones con él; el resto de la limpieza
+    // la hace logout() en el store, que escucha este evento (AppProvider).
     if (res.status === 401 && token && getAuthToken() === token) {
       setAuthToken(null);
-      localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_user_id');
-      localStorage.removeItem('my_avatar_url');
       window.dispatchEvent(new Event('auth-expired'));
     }
     const body = await res.json?.().catch(() => ({}));
-    throw new Error(
+    throw new ApiError(
+      res.status,
       body?.error || body?.message || fallbackError || `HTTP error! status: ${res.status}`,
     );
   }
@@ -118,8 +151,7 @@ export const fetchMatchRadar = (competitionId: number | null = null) =>
 export const fetchTeamOdds = () => request<GroupOdds>('/teams/odds');
 
 // Evita que el panel Pichichi se quede cargando indefinidamente si el backend no responde.
-export const fetchTopScorers = () =>
-  request<TopScorer[]>('/scorers', { signal: AbortSignal.timeout(12_000) });
+export const fetchTopScorers = () => request<TopScorer[]>('/scorers', { timeoutMs: 12_000 });
 
 export const fetchCompetitionStandings = async (
   competitionId: number | null,
@@ -132,54 +164,17 @@ export async function fetchCompetitions(): Promise<Competition[]> {
   return cachedCompetitions;
 }
 
-const OFFICIAL_BRACKET_TTL = 60_000;
-let officialBracketCache: PredictionData | null = null;
-let officialBracketCachedAt = 0;
-let officialBracketRequest: Promise<PredictionData> | null = null;
-
-/** Cuadro oficial, reutilizando la última respuesta durante 60 s salvo que se pida `force`. */
-export async function fetchOfficialBracket({ force = false } = {}): Promise<PredictionData> {
-  if (
-    !force &&
-    officialBracketCache &&
-    Date.now() - officialBracketCachedAt < OFFICIAL_BRACKET_TTL
-  ) {
-    return officialBracketCache;
-  }
-  if (!force && officialBracketRequest) return officialBracketRequest;
-  officialBracketRequest = request<PredictionData>('/standings/official-bracket')
-    .then((data) => {
-      officialBracketCache = data;
-      officialBracketCachedAt = Date.now();
-      return data;
-    })
-    .finally(() => {
-      officialBracketRequest = null;
-    });
-  return officialBracketRequest;
-}
+/** Cuadro oficial. Se cachea como consulta de TanStack (`officialBracketQuery`). */
+export const fetchOfficialBracket = () => request<PredictionData>('/standings/official-bracket');
 
 // --- Pronósticos de cuadro completo ---
 
 export const fetchPrediction = (id: number | string) =>
   request<PredictionData>(`/predictions/${id}`, { fallbackError: 'Error al cargar la porra' });
 
-const PREDICTION_SCORE_TTL = 60_000;
-const predictionScoreCache = new Map<string, { data: ParticipantScore; at: number }>();
-
-/** Desglose de puntos de un pronóstico. Se cachea 60 s porque el cálculo es costoso. */
-export async function fetchPredictionScore(
-  id: number | string | null,
-): Promise<ParticipantScore | null> {
-  if (id == null) return null;
-  const key = String(id);
-  const cached = predictionScoreCache.get(key);
-  if (cached && Date.now() - cached.at < PREDICTION_SCORE_TTL) return cached.data;
-  const data = await request<ParticipantScore>(`/predictions/${key}/score`);
-  if (predictionScoreCache.size > 100) predictionScoreCache.clear();
-  predictionScoreCache.set(key, { data, at: Date.now() });
-  return data;
-}
+/** Desglose de puntos de un pronóstico. Se cachea como consulta (`predictionScoreQuery`). */
+export const fetchPredictionScore = (id: number | string) =>
+  request<ParticipantScore>(`/predictions/${id}/score`);
 
 export const fetchPredictions = (groupId: number | string | null = null) =>
   request<PredictionSummary[]>(`/predictions${query({ groupId })}`);
@@ -293,9 +288,6 @@ export const regenerateGroupJoinCode = (groupId: number | string) =>
     method: 'POST',
     fallbackError: 'Error al regenerar código',
   });
-
-export const fetchMissingRoundUsers = (groupId: number | string, round = '') =>
-  request<MissingMembers>(`/groups/${groupId}/missing-users${query({ round })}`);
 
 export const uploadGroupImage = (groupId: number | string, blob: Blob) =>
   request<LeagueImageResponse>(`/groups/${groupId}/image`, {

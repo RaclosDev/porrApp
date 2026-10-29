@@ -33,9 +33,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const {
     participantsHashes,
     userName,
-    setUserName,
     viewerPredictionId,
-    setIsAuthenticated,
     activeGroupPoolFormat,
     activeCompetitionFormatType,
     loading,
@@ -52,6 +50,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
   const userId = useAppStore((state) => state.userId);
+  const logout = useAppStore((state) => state.logout);
 
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -256,11 +255,13 @@ function Layout({ children }: { children: React.ReactNode }) {
             isLanding={isLanding}
             isUserLoggedIn={isUserLoggedIn}
             navigate={navigate}
-            setIsAuthenticated={setIsAuthenticated}
+            onLogout={() => {
+              logout();
+              navigate('/', { replace: true });
+            }}
             setShowMyPredictionModal={setShowMyPredictionModal}
             setShowProfileMenu={setShowProfileMenu}
             setShowProfileSettings={setShowProfileSettings}
-            setUserName={setUserName}
             showProfileMenu={showProfileMenu}
             userAvatarUrl={userAvatarUrl}
             userId={userId}

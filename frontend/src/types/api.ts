@@ -239,9 +239,11 @@ export interface Group {
 export interface GroupMember {
   userId: number;
   participantName: string;
-  googleEmail: string;
+  /** null en la Porra Global, que no publica emails. */
+  googleEmail: string | null;
   role: string;
-  paymentStatus: PaymentStatus;
+  /** null en la Porra Global, que no tiene pagos. */
+  paymentStatus: PaymentStatus | null;
   joinedAt: string | null;
   isAdmin: boolean;
   avatarUrl: string | null;
@@ -254,13 +256,6 @@ export interface PaymentStatusResponse {
 
 export interface JoinCodeResponse {
   joinCode: string;
-}
-
-export interface MissingMembers {
-  round: string;
-  totalMembers: number;
-  missingCount: number;
-  missingUsers: { userId: number; participantName: string }[];
 }
 
 export interface LeagueImageResponse {

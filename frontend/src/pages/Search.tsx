@@ -434,7 +434,7 @@ function Search() {
               <div className="flex justify-center mt-[35px]">
                 <button
                   onClick={handleShareTeam}
-                  className="glass-btn py-2.5 px-[25px] rounded-[10px] bg-[#25D366] bg-none text-white border border-[#25D366] flex items-center gap-2.5 text-[1.1rem]"
+                  className="glass-btn py-2.5 px-[25px] rounded-[10px] bg-[#25D366] bg-none text-[#0f172a] border border-[#25D366] flex items-center gap-2.5 text-[1.1rem]"
                 >
                   <WhatsAppIcon size={20} /> Compartir Búsqueda
                 </button>
@@ -490,7 +490,7 @@ function Search() {
                   )}
                   <button
                     onClick={handleShareUser}
-                    className="glass-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[#25D366] bg-none text-white border border-[#25D366] flex items-center gap-2"
+                    className="glass-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[#25D366] bg-none text-[#0f172a] border border-[#25D366] flex items-center gap-2"
                   >
                     <WhatsAppIcon size={20} /> Compartir Perfil
                   </button>

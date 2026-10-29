@@ -144,23 +144,12 @@ export default function MobileBracket<T extends SlotTeam>({
     if (roundIndex === 3) {
       const leftSF = leftRounds[3]?.[0];
       const rightSF = rightRounds[3]?.[0];
+      const finalTab = tabs.findIndex((t) => t.key === 'final');
 
       return (
         <div className="mb-round">
           {leftSF && (
-            <div
-              className="mb-sf-card cursor-pointer"
-              role="button"
-              tabIndex={0}
-              aria-label="Ir a la Final"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  goToTab(tabs.findIndex((t) => t.key === 'final'));
-                }
-              }}
-              onClick={() => goToTab(tabs.findIndex((t) => t.key === 'final'))}
-            >
+            <div className="mb-sf-card">
               <div className="mb-sf-label">Semifinal 1</div>
               <div className="mb-match-card">
                 {renderSlot(leftSF.home, {
@@ -179,19 +168,7 @@ export default function MobileBracket<T extends SlotTeam>({
             </div>
           )}
           {rightSF && (
-            <div
-              className="mb-sf-card cursor-pointer"
-              role="button"
-              tabIndex={0}
-              aria-label="Ir a la Final"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  goToTab(4);
-                }
-              }}
-              onClick={() => goToTab(4)}
-            >
+            <div className="mb-sf-card">
               <div className="mb-sf-label">Semifinal 2</div>
               <div className="mb-match-card">
                 {renderSlot(rightSF.home, {
@@ -209,6 +186,9 @@ export default function MobileBracket<T extends SlotTeam>({
               </div>
             </div>
           )}
+          <button type="button" className="mb-next-btn" onClick={() => goToTab(finalTab)}>
+            Ver final →
+          </button>
         </div>
       );
     }
@@ -224,9 +204,11 @@ export default function MobileBracket<T extends SlotTeam>({
             group={group}
             roundIndex={roundIndex}
             renderSlot={renderSlot}
-            onNavigateNext={() => goToTab(activeTab + 1)}
           />
         ))}
+        <button type="button" className="mb-next-btn" onClick={() => goToTab(activeTab + 1)}>
+          Siguiente ronda →
+        </button>
       </div>
     );
   };
@@ -234,10 +216,15 @@ export default function MobileBracket<T extends SlotTeam>({
   return (
     <div className="mobile-bracket">
       {/* Pestañas */}
-      <div className="mb-tabs">
+      <div className="mb-tabs" role="tablist" aria-label="Rondas del cuadro">
         {tabs.map((t, i) => (
           <button
             key={t.key}
+            type="button"
+            role="tab"
+            id={`mb-tab-${t.key}`}
+            aria-selected={activeTab === i}
+            aria-controls="mb-tabpanel"
             className={`mb-tab ${activeTab === i ? 'mb-tab-active' : ''}`}
             onClick={() => goToTab(i)}
           >
@@ -247,7 +234,13 @@ export default function MobileBracket<T extends SlotTeam>({
       </div>
 
       {/* Contenido */}
-      <div key={animKey} className={`mb-content mb-slide-${slideDir}`}>
+      <div
+        key={animKey}
+        id="mb-tabpanel"
+        role="tabpanel"
+        aria-labelledby={`mb-tab-${(tabs[activeTab] || tabs[0]).key}`}
+        className={`mb-content mb-slide-${slideDir}`}
+      >
         {renderTabContent()}
       </div>
     </div>
@@ -264,12 +257,10 @@ function BracketGroup<T extends SlotTeam>({
   group,
   roundIndex,
   renderSlot,
-  onNavigateNext,
 }: {
   group: MatchGroup<T>;
   roundIndex: number;
   renderSlot: RenderSlot<T>;
-  onNavigateNext?: () => void;
 }) {
   const { matchA, matchB, nextMatch } = group;
 
@@ -334,19 +325,7 @@ function BracketGroup<T extends SlotTeam>({
       </svg>
 
       {/* Columna derecha: partido de la siguiente ronda */}
-      <div
-        className="mb-next cursor-pointer"
-        role="button"
-        tabIndex={0}
-        aria-label="Navegar a la siguiente ronda"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onNavigateNext?.();
-          }
-        }}
-        onClick={onNavigateNext}
-      >
+      <div className="mb-next">
         {nextMatch ? (
           <div className="mb-match-card mb-match-next">
             {renderSlot(nextMatch.data.home, {

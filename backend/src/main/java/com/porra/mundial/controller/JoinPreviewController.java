@@ -276,7 +276,7 @@ public class JoinPreviewController {
 
     private String replaceTitle(String html, String title) {
         return html.replaceFirst("(?is)<title>.*?</title>",
-                "<title>" + HtmlUtils.htmlEscape(title) + "</title>");
+                java.util.regex.Matcher.quoteReplacement("<title>" + HtmlUtils.htmlEscape(title) + "</title>"));
     }
 
     private String replaceMeta(String html, String attribute, String key, String value) {

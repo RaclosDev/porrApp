@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
 
 const ZONE_LABELS = {
   champions: 'Zona Champions League',
@@ -30,7 +31,7 @@ export default function LeagueStandings() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['competitionStandings', activeCompetitionId],
+    queryKey: queryKeys.competitionStandings(activeCompetitionId),
     queryFn: () => fetchCompetitionStandings(activeCompetitionId),
     enabled: Boolean(activeCompetitionId && isMatchDay),
     staleTime: 120_000,

@@ -8,6 +8,10 @@
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --accent-color: #2563eb;
+  /* Acento para texto: #2563eb no llega a 4,5:1 sobre los fondos oscuros. */
+  --accent-text: #60a5fa;
+  /* Borde de campos de formulario, 3:1 como mínimo sobre los paneles. */
+  --input-border: #74839a;
   --accent-cyan: #00d2d3;
   --champion-gold: #fbbf24;
 }
@@ -25,6 +29,7 @@
   --color-main: var(--text-main);
   --color-muted: var(--text-muted);
   --color-accent: var(--accent-color);
+  --color-accent-text: var(--accent-text);
   --color-cyan: var(--accent-cyan);
   --color-gold: var(--champion-gold);
 }
@@ -38,6 +43,21 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+  }
+}
+
+/*
+ * Sin capa a propósito: tiene que ganar a las animaciones de los componentes y
+ * de las utilidades de Tailwind cuando el sistema pide reducir el movimiento.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -129,8 +149,9 @@
     border-radius: 10px !important;
   }
 
+  /* Texto blanco a 4,5:1 o más en todo el degradado (también al pasar el ratón). */
   .primary-btn {
-    background: linear-gradient(135deg, #0284c7 0%, #00b4d8 100%);
+    background: linear-gradient(135deg, #0277b5 0%, #007a94 100%);
     border: 1px solid rgba(0, 210, 211, 0.4);
     color: #ffffff;
     box-shadow: 0 4px 14px rgba(0, 180, 216, 0.25);
@@ -141,7 +162,7 @@
   }
 
   .primary-btn:hover {
-    background: linear-gradient(135deg, #0369a1 0%, #0096c7 100%);
+    background: linear-gradient(135deg, #0369a1 0%, #0e7490 100%);
     border-color: #00d2d3;
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(0, 210, 211, 0.35);
@@ -158,7 +179,7 @@
 
   .glass-select {
     background: rgba(15, 23, 42, 0.85);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--input-border);
     color: white;
     padding: 10px 14px;
     min-height: 44px;
@@ -168,7 +189,7 @@
 
   .glass-input {
     background: rgba(15, 23, 42, 0.85);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--input-border);
     color: white;
     padding: 10px 14px;
     min-height: 44px;
@@ -645,6 +666,21 @@
     color: var(--text-muted);
     font-style: italic;
     cursor: not-allowed;
+  }
+
+  /* Casilla pulsable: botón con el mismo aspecto que la casilla div */
+  .team-slot-btn {
+    appearance: none;
+    width: 100%;
+    margin: 0;
+    font-family: inherit;
+    line-height: inherit;
+    color: inherit;
+    text-align: left;
+  }
+
+  .team-slot-btn:focus-visible {
+    outline-offset: -2px;
   }
 
   /* Center Finals */
@@ -1239,7 +1275,7 @@
       flex-wrap: nowrap !important;
       justify-content: space-between !important;
       align-items: center !important;
-      padding: 8px 12px !important;
+      padding: 6px 12px !important;
       gap: 8px !important;
       width: 100% !important;
       height: 56px !important;
@@ -1284,12 +1320,19 @@
       display: none !important;
     }
 
+    /* Por debajo de 360 px el texto "Demo" se montaba sobre el logo: queda solo el icono */
+    @media (max-width: 359px) {
+      .header-demo-label {
+        display: none;
+      }
+    }
+
     #btn-profile-menu {
-      width: 36px !important;
-      height: 36px !important;
+      width: 44px !important;
+      height: 44px !important;
       padding: 0 !important;
       border-radius: 50% !important;
-      min-width: 36px !important;
+      min-width: 44px !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -1300,7 +1343,7 @@
       max-width: 175px !important;
       padding: 4px 8px !important;
       font-size: 0.82rem !important;
-      min-height: 34px !important;
+      min-height: 44px !important;
     }
 
     .header-center {
@@ -1681,7 +1724,7 @@
 
   /* Ensure comfortable tap target on mobile slots without truncating names */
   .mb-match-card .team-slot {
-    min-height: 40px !important;
+    min-height: 44px !important;
     padding: 6px 8px !important;
     font-size: 0.82rem !important;
     border-radius: 0 !important;
@@ -1701,7 +1744,7 @@
   }
 
   .mb-match-next .team-slot {
-    min-height: 38px !important;
+    min-height: 44px !important;
     padding: 4px 6px !important;
     font-size: 0.78rem !important;
   }
@@ -1732,6 +1775,24 @@
     text-transform: uppercase;
     margin-bottom: 6px;
     padding-left: 4px;
+  }
+
+  .mb-next-btn {
+    align-self: flex-end;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-cyan);
+    background: rgba(0, 210, 211, 0.12);
+    color: var(--accent-cyan);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .mb-next-btn:active {
+    background: rgba(0, 210, 211, 0.22);
   }
 
   .mb-final-content {
@@ -2374,7 +2435,7 @@
   .md-score-input {
     flex-shrink: 0;
     width: 52px;
-    height: 42px;
+    height: 44px;
     padding: 0;
     text-align: center;
     font-family: inherit;
@@ -2408,7 +2469,7 @@
   }
 
   .md-sign-btn {
-    min-height: 38px;
+    min-height: 44px;
     padding: 0;
     border-radius: 8px;
     font-family: inherit;
@@ -2443,7 +2504,7 @@
   }
 
   .md-predictions-btn {
-    min-height: 36px;
+    min-height: 44px;
     padding: 0 12px;
     border-radius: 8px;
     font-family: inherit;
@@ -2487,12 +2548,8 @@
 
     .md-score-input {
       width: 44px;
-      height: 40px;
+      height: 44px;
       font-size: 1.05rem;
-    }
-
-    .md-sign-btn {
-      min-height: 38px;
     }
   }
 
@@ -2574,9 +2631,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    flex: 0 0 34px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.05);

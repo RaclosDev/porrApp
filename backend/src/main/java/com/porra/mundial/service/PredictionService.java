@@ -38,6 +38,24 @@ public class PredictionService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
 
+    /** Nombre que el cuadro oficial usaba antes de existir {@code is_official}; queda reservado. */
+    static final String RESERVED_OFFICIAL_NAME = "official";
+
+    /**
+     * El cliente no puede usar el nombre reservado del cuadro oficial: los lectores antiguos
+     * todavía lo buscan por nombre cuando no hay ninguno marcado.
+     */
+    static void rejectReservedName(String predictionName) {
+        if (predictionName != null && RESERVED_OFFICIAL_NAME.equalsIgnoreCase(predictionName.trim())) {
+            throw new IllegalArgumentException("El nombre \"" + RESERVED_OFFICIAL_NAME + "\" está reservado para el cuadro oficial.");
+        }
+    }
+
+    /** Solo la cuenta interna del sistema crea el cuadro oficial; nada de lo que manda el cliente lo marca. */
+    static boolean isSystemAdmin(UserAccount user) {
+        return user != null && UserAccount.SYSTEM_ADMIN_EMAIL.equalsIgnoreCase(user.getGoogleEmail());
+    }
+
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
             throw new SecurityException("Usuario no autenticado");
@@ -95,6 +113,7 @@ public class PredictionService {
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO predictionData, Long groupId) {
+        rejectReservedName(predictionName);
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
         Edition edition = editionRepository.findByLeagueIdAndStatus(effectiveGroupId, "ACTIVE")
@@ -118,7 +137,7 @@ public class PredictionService {
                     .ifPresent(predictionRepository::delete);
         }
 
-        boolean isOfficial = "official".equalsIgnoreCase(predictionName) || "Admin".equalsIgnoreCase(email);
+        boolean isOfficial = isSystemAdmin(user);
 
         String paymentStatus = "PENDING";
         if (groupId != null && user != null) {
@@ -150,6 +169,10 @@ public class PredictionService {
 
         if (prediction.getEdition() != null && prediction.getEdition().isLocked()) {
             throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
+        }
+
+        if (!prediction.isOfficial()) {
+            rejectReservedName(predictionName);
         }
 
         if (participantName != null) prediction.setParticipantName(participantName);
@@ -236,7 +259,11 @@ public class PredictionService {
     public PredictionDataDTO getPredictionData(Long id, String requesterEmail) {
         Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-        
+
+        if (!isOwner && !pred.isOfficial()) {
+            assertMemberOfPredictionLeague(pred, requesterEmail);
+        }
+
         boolean isOfficial = pred.isOfficial();
         boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
 
@@ -245,6 +272,21 @@ public class PredictionService {
         }
 
         return getPredictionData(id);
+    }
+
+    /** Los pronósticos de una liga privada solo los ven sus miembros; los de la Porra Global, todos. */
+    private void assertMemberOfPredictionLeague(Prediction pred, String requesterEmail) {
+        League league = pred.getEdition() != null ? pred.getEdition().getLeague() : null;
+        if (league == null || league.isGlobal() || League.isGlobalId(league.getId())) {
+            return;
+        }
+        boolean member = requesterEmail != null && !requesterEmail.isBlank()
+                && userAccountRepository.findByGoogleEmail(requesterEmail)
+                        .map(user -> membershipRepository.existsById(new Membership.MembershipId(user.getId(), league.getId())))
+                        .orElse(false);
+        if (!member) {
+            throw new SecurityException("No perteneces a esta liga privada");
+        }
     }
 
     @Transactional(readOnly = true)

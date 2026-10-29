@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import MatchdayPredictor from '../../pages/MatchdayPredictor';
+import MatchdayPredictor, { hasLiveMatch } from '../../pages/MatchdayPredictor';
 import { useAppContext } from '../../context/AppContext';
 import * as api from '../../services/api';
 
@@ -10,7 +10,6 @@ vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../services/api', () => ({
   fetchMatchdayFixtures: vi.fn(),
   submitMatchdayPredictions: vi.fn(),
-  fetchMissingRoundUsers: vi.fn(),
 }));
 vi.mock('../../components/Flag', () => ({ default: () => null }));
 vi.mock('../../components/MatchFriendsPredictionsModal', () => ({ default: () => null }));
@@ -71,7 +70,7 @@ describe('matchday editing and navigation', () => {
     view.rerender(tree());
     expect(await screen.findByLabelText('Goles de Equipo B')).toHaveValue(null);
     expect(screen.queryByLabelText('Goles de Equipo A')).not.toBeInTheDocument();
-    expect(localStorage.getItem('draft_matchday_20')).toBeNull();
+    expect(localStorage.getItem('draft_matchday_u7_g20')).toBeNull();
     context = { ...context, activeGroupId: '10' };
     view.rerender(tree());
     await waitFor(() => expect(screen.getByLabelText('Goles de Equipo A')).toHaveValue(2));
@@ -143,8 +142,41 @@ describe('matchday editing and navigation', () => {
     fireEvent.change(await screen.findByLabelText('Goles de Equipo B'), { target: { value: '4' } });
     await act(async () => finishSave({ message: 'Guardado A' }));
     expect(screen.getByLabelText('Goles de Equipo B')).toHaveValue(4);
-    expect(JSON.parse(localStorage.getItem('draft_matchday_20'))['201'].homeScore).toBe('4');
+    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g20'))['201'].homeScore).toBe('4');
     expect(screen.queryByText('Guardado A')).not.toBeInTheDocument();
+  });
+
+  it('hides the save confirmation after 4 s and clears the timer on unmount', async () => {
+    const view = render(tree());
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronosticar signo 1' }));
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+      expect(await screen.findByText('Guardado')).toBeInTheDocument();
+      const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
+      act(() => vi.advanceTimersByTime(4000));
+      expect(screen.queryByText('Guardado')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Pronosticar signo 2' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+      expect(await screen.findByText('Guardado')).toBeInTheDocument();
+      clearSpy.mockClear();
+      view.unmount();
+      expect(clearSpy).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('only polls fixtures while a match is in play', () => {
+    const now = Date.parse('2030-05-01T20:30:00Z');
+    const base = fixture(1, 'Jornada 1', 'A');
+    expect(hasLiveMatch([{ ...base, matchDate: '2030-05-02T20:00:00Z' }], now)).toBe(false);
+    expect(hasLiveMatch([{ ...base, matchDate: '2030-05-01T20:00:00Z' }], now)).toBe(true);
+    expect(
+      hasLiveMatch([{ ...base, matchDate: '2030-05-01T20:00:00Z', finished: true }], now),
+    ).toBe(false);
+    expect(hasLiveMatch(undefined, now)).toBe(false);
   });
 
   it('lists every round in one selector and navigates with previous/next controls', async () => {

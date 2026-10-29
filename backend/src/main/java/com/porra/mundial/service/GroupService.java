@@ -23,6 +23,7 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Membership;
+import com.porra.mundial.util.JoinCodeGenerator;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -111,7 +112,7 @@ public class GroupService {
                     leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).ifPresent(other -> {
                         if (!League.isGlobalId(other.getId())) {
                             log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
-                            other.setJoinCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+                            other.setJoinCode(JoinCodeGenerator.next());
                             leagueRepository.saveAndFlush(other);
                         }
                     });
@@ -363,7 +364,9 @@ public class GroupService {
         leagueRepository.deleteById(groupId);
     }
 
-    @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode")
+    // Solo se cachean los aciertos: un código inexistente no debe quedarse en memoria
+    // (ni hacer crecer la caché con cada intento) ni ocultar una liga creada después.
+    @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode", unless = "#result == null")
     public Optional<League> getGroupByJoinCode(String joinCode) {
         return leagueRepository.findByJoinCode(joinCode);
     }
@@ -420,10 +423,19 @@ public class GroupService {
         return GroupResponseDTO.of(league, edition, includeJoinCode);
     }
 
-    /** Detalle de una liga; solo sus miembros ven el código de invitación. */
+    /**
+     * Detalle de una liga. Quien no es miembro de una liga privada solo ve lo mismo que en la
+     * vista previa de una invitación; solo los miembros ven el código de invitación.
+     */
     @Transactional(readOnly = true)
     public Optional<GroupResponseDTO> findGroupResponse(Long id, String viewerEmail) {
-        return getGroupById(id).map(league -> toResponse(league, isUserMemberOrAdmin(id, viewerEmail)));
+        return getGroupById(id).map(league -> {
+            boolean member = isUserMemberOrAdmin(id, viewerEmail);
+            if (member || League.isGlobalId(id) || league.isGlobal()) {
+                return toResponse(league, member);
+            }
+            return GroupResponseDTO.preview(league, editionRepository.findByLeagueIdAndStatus(id, "ACTIVE").orElse(null));
+        });
     }
 
     /** Datos públicos para previsualizar una invitación sin unirse a la liga. */
@@ -566,16 +578,20 @@ public class GroupService {
             boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
                     || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
 
-            String displayEmail = (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
-                    ? u.getGoogleEmail()
-                    : maskEmail(u.getGoogleEmail());
+            // La Porra Global es pública y no tiene pagos: ni emails ni estado de pago.
+            String displayEmail = isGlobal ? null
+                    : (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
+                            ? u.getGoogleEmail()
+                            : maskEmail(u.getGoogleEmail());
+            String paymentStatus = isGlobal ? null
+                    : m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING";
 
             list.add(GroupMemberDTO.builder()
                     .userId(u.getId())
                     .participantName(u.getParticipantName())
                     .googleEmail(displayEmail)
                     .role(m.getRole())
-                    .paymentStatus(m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING")
+                    .paymentStatus(paymentStatus)
                     .joinedAt(m.getJoinedAt())
                     .isAdmin(isAdmin)
                     .avatarUrl(u.getAvatarUrl())
@@ -662,7 +678,10 @@ public class GroupService {
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
 
-        String newCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String newCode;
+        do {
+            newCode = JoinCodeGenerator.next();
+        } while (leagueRepository.findByJoinCode(newCode).isPresent());
         group.setJoinCode(newCode);
         leagueRepository.save(group);
         return newCode;

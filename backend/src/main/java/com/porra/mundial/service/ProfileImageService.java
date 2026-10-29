@@ -162,8 +162,10 @@ public class ProfileImageService {
             throw new IllegalArgumentException(
                     "El nombre solo puede contener letras, números, espacios y los símbolos . _ ' -");
         }
-        // "Admin" está reservado: la clasificación oculta a ese participante.
-        if (name.toLowerCase(Locale.ROOT).equals("admin")) {
+        // "Admin" está reservado (la clasificación oculta a ese participante) y "official"
+        // también, porque es el nombre que identificaba al cuadro oficial.
+        String lower = name.toLowerCase(Locale.ROOT);
+        if (lower.equals("admin") || lower.equals("official")) {
             throw new IllegalArgumentException("Ese nombre no está disponible.");
         }
         return name;

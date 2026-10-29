@@ -15,6 +15,12 @@ import java.time.LocalDateTime;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserAccount {
 
+    /**
+     * Cuenta interna "Admin" que crea {@code GroupService.initDefaultGroup}. Ningún login de
+     * Google puede devolver este email, así que solo el servidor actúa en su nombre.
+     */
+    public static final String SYSTEM_ADMIN_EMAIL = "admin@local";
+
     /** Identificador autogenerado del usuario en la base de datos. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

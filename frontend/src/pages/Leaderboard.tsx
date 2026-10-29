@@ -146,26 +146,39 @@ function Leaderboard() {
   return (
     <section id="view-leaderboard" className="view-section block">
       <div className="flex justify-center items-center gap-2.5 flex-nowrap mb-[25px] mt-2.5 max-w-full">
-        <div className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1">
+        <div
+          role="tablist"
+          aria-label="Vista de la clasificación"
+          className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1"
+        >
           <button
             className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'table' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'table' ? 'text-black' : 'text-muted'} ${activeTab === 'table' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
+            type="button"
             onClick={() => setActiveTab('table')}
+            role="tab"
+            id="leaderboard-tab-table"
+            aria-selected={activeTab === 'table'}
           >
             Ranking
           </button>
           <button
             className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'evolution' ? 'bg-[linear-gradient(135deg,_#ff9f43,_#ffaf60)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'evolution' ? 'text-black' : 'text-muted'} ${activeTab === 'evolution' ? 'shadow-[0_4px_15px_rgba(255,_159,_67,_0.4)]' : 'shadow-none'}`}
+            type="button"
             onClick={() => setActiveTab('evolution')}
+            role="tab"
+            id="leaderboard-tab-evolution"
+            aria-selected={activeTab === 'evolution'}
           >
             Gráfica
           </button>
         </div>
         <button
-          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] bg-transparent text-white border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-10.5 min-w-10.5 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] bg-transparent text-[#0f172a] border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}
           title="Compartir en WhatsApp"
+          aria-label="Compartir en WhatsApp"
         >
           {sharing ? <span className="text-[1rem]">⏳</span> : <WhatsAppIcon size={24} />}
         </button>
@@ -322,7 +335,7 @@ function Leaderboard() {
                                   <strong>
                                     {r.name}
                                     {isMe && (
-                                      <span className="text-accent ml-[5px] text-[0.8em]">
+                                      <span className="text-accent-text ml-[5px] text-[0.8em]">
                                         (Tú)
                                       </span>
                                     )}
@@ -367,7 +380,7 @@ function Leaderboard() {
                             style={
                               col.kind === 'total'
                                 ? {
-                                    color: 'var(--accent-color)',
+                                    color: 'var(--accent-text)',
                                     fontWeight: 'bold',
                                     fontSize: '1.1em',
                                     textAlign: 'center',
@@ -423,7 +436,7 @@ function Leaderboard() {
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
+                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
                       {rankDisplay}
                     </span>
                     <span className="text-[1.1rem] font-bold text-white">{r.name}</span>
@@ -446,7 +459,7 @@ function Leaderboard() {
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
+                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
                       {rankDisplay}
                     </span>
                     <span className="text-[1.1rem] font-bold text-white">{r.name}</span>
