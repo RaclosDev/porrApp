@@ -1,22 +1,46 @@
 /**
- * Servicio de API: Comunicación con el backend de Spring Boot.
- * Centraliza todas las llamadas HTTP de la aplicación.
+ * Cliente HTTP del backend. Todas las llamadas pasan por {@link request}, que añade el token,
+ * convierte los errores en excepciones con el mensaje del servidor y cierra la sesión si el
+ * token actual ha caducado.
  */
+import type {
+  Competition,
+  FriendPrediction,
+  Group,
+  GroupMember,
+  GroupOdds,
+  GroupStandings,
+  JoinCodeResponse,
+  LeagueImageResponse,
+  LeagueStanding,
+  Match,
+  MatchRadar,
+  MatchdayFixture,
+  MatchdayPoints,
+  MatchdayPredictionInput,
+  MatchdaySubmissionResult,
+  Me,
+  MissingMembers,
+  ParticipantScore,
+  PaymentStatus,
+  PaymentStatusResponse,
+  PoolFormat,
+  PredictionData,
+  PredictionSaved,
+  PredictionSummary,
+  ProfileResponse,
+  StatusResponse,
+  TopScorer,
+  UserPreferences,
+} from '../types/api';
+
 const API_BASE = '/api';
 
-/**
- * Obtiene el token JWT de autenticación del usuario desde localStorage.
- * @returns {string|null} Token JWT o null si no existe.
- */
-export function getAuthToken() {
+export function getAuthToken(): string | null {
   return localStorage.getItem('token') || null;
 }
 
-/**
- * Guarda o elimina el token JWT de autenticación en localStorage.
- * @param {string|null} token - El token a guardar (o null para borrarlo).
- */
-export function setAuthToken(token) {
+export function setAuthToken(token: string | null): void {
   if (token) {
     localStorage.setItem('token', token);
   } else {
@@ -24,70 +48,105 @@ export function setAuthToken(token) {
   }
 }
 
-async function fetchJson(url, options = {}) {
-  const currentToken = getAuthToken();
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
-    },
+interface RequestOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  /** Se envía como JSON. */
+  json?: unknown;
+  /** Se envía como multipart (el navegador pone el boundary). */
+  form?: FormData;
+  signal?: AbortSignal;
+  /** Mensaje si el servidor no explica el error. */
+  fallbackError?: string;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = 'GET', json, form, signal, fallbackError } = options;
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  if (json !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers,
+    body: form ?? (json !== undefined ? JSON.stringify(json) : undefined),
+    signal,
   });
+
   if (!res.ok) {
-    if (res.status === 401 && currentToken && getAuthToken() === currentToken) {
+    // Un 401 de una petición lanzada con un token anterior no debe cerrar la sesión nueva.
+    if (res.status === 401 && token && getAuthToken() === token) {
       setAuthToken(null);
-      localStorage.removeItem('token');
       localStorage.removeItem('my_prediction_name');
       localStorage.removeItem('my_user_id');
       localStorage.removeItem('my_avatar_url');
       window.dispatchEvent(new Event('auth-expired'));
     }
-    const error = await res.json?.().catch(() => ({}));
-    throw new Error(error?.error || error?.message || `HTTP error! status: ${res.status}`);
+    const body = await res.json?.().catch(() => ({}));
+    throw new Error(
+      body?.error || body?.message || fallbackError || `HTTP error! status: ${res.status}`,
+    );
   }
-  return await res.json();
+  return res.json();
 }
 
-export async function fetchStandings() {
-  return fetchJson(`${API_BASE}/standings`);
-}
+const query = (params: Record<string, string | number | null | undefined>): string => {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== null && v !== undefined && v !== '',
+  );
+  if (entries.length === 0) return '';
+  return '?' + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+};
 
-export async function fetchMatches(competitionId = null) {
-  const url = competitionId
-    ? `${API_BASE}/matches?competitionId=${competitionId}`
-    : `${API_BASE}/matches`;
-  return fetchJson(url);
-}
+const imageForm = (blob: Blob): FormData => {
+  const form = new FormData();
+  form.append('file', blob, blob.type === 'image/png' ? 'image.png' : 'image.jpg');
+  return form;
+};
 
-export async function fetchMatchRadar(competitionId = null) {
-  const url = competitionId
-    ? `${API_BASE}/matches/radar?competitionId=${competitionId}`
-    : `${API_BASE}/matches/radar`;
-  return fetchJson(url);
+// --- Torneo y partidos ---
+
+export const fetchStandings = () => request<GroupStandings>('/standings');
+
+export const fetchMatches = (competitionId: number | null = null) =>
+  request<Match[]>(`/matches${query({ competitionId })}`);
+
+export const fetchMatchRadar = (competitionId: number | null = null) =>
+  request<MatchRadar>(`/matches/radar${query({ competitionId })}`);
+
+export const fetchTeamOdds = () => request<GroupOdds>('/teams/odds');
+
+// Evita que el panel Pichichi se quede cargando indefinidamente si el backend no responde.
+export const fetchTopScorers = () =>
+  request<TopScorer[]>('/scorers', { signal: AbortSignal.timeout(12_000) });
+
+export const fetchCompetitionStandings = async (
+  competitionId: number | null,
+): Promise<LeagueStanding[]> =>
+  competitionId ? request<LeagueStanding[]>(`/competitions/${competitionId}/standings`) : [];
+
+let cachedCompetitions: Competition[] | null = null;
+export async function fetchCompetitions(): Promise<Competition[]> {
+  cachedCompetitions ??= await request<Competition[]>('/competitions');
+  return cachedCompetitions;
 }
 
 const OFFICIAL_BRACKET_TTL = 60_000;
-let officialBracketCache = null;
+let officialBracketCache: PredictionData | null = null;
 let officialBracketCachedAt = 0;
-let officialBracketRequest = null;
+let officialBracketRequest: Promise<PredictionData> | null = null;
 
-/**
- * Devuelve el cuadro oficial reutilizando la última respuesta durante 60 s.
- * Evita repetir la petición cada vez que se abre una porra.
- *
- * @param {Object} [options]
- * @param {boolean} [options.force] - Ignora la caché y vuelve a pedir los datos.
- * @returns {Promise<Object>} Cuadro oficial de eliminatorias.
- */
-export async function fetchOfficialBracket({ force = false } = {}) {
-  const now = Date.now();
-  if (!force && officialBracketCache && now - officialBracketCachedAt < OFFICIAL_BRACKET_TTL) {
+/** Cuadro oficial, reutilizando la última respuesta durante 60 s salvo que se pida `force`. */
+export async function fetchOfficialBracket({ force = false } = {}): Promise<PredictionData> {
+  if (
+    !force &&
+    officialBracketCache &&
+    Date.now() - officialBracketCachedAt < OFFICIAL_BRACKET_TTL
+  ) {
     return officialBracketCache;
   }
-  if (!force && officialBracketRequest) {
-    return officialBracketRequest;
-  }
-  officialBracketRequest = fetchJson(`${API_BASE}/standings/official-bracket`)
+  if (!force && officialBracketRequest) return officialBracketRequest;
+  officialBracketRequest = request<PredictionData>('/standings/official-bracket')
     .then((data) => {
       officialBracketCache = data;
       officialBracketCachedAt = Date.now();
@@ -99,423 +158,186 @@ export async function fetchOfficialBracket({ force = false } = {}) {
   return officialBracketRequest;
 }
 
-const PREDICTION_SCORE_TTL = 60_000;
-const predictionScoreCache = new Map();
+// --- Pronósticos de cuadro completo ---
 
-/**
- * Desglose detallado de puntos de una porra. Se cachea 60 s porque el cálculo es costoso
- * y el visor puede abrirse varias veces seguidas.
- *
- * @param {string|number} id - ID de la porra.
- * @returns {Promise<Object|null>} Puntuación detallada o null.
- */
-export async function fetchPredictionScore(id) {
+const PREDICTION_SCORE_TTL = 60_000;
+const predictionScoreCache = new Map<string, { data: ParticipantScore; at: number }>();
+
+/** Desglose de puntos de un pronóstico. Se cachea 60 s porque el cálculo es costoso. */
+export async function fetchPredictionScore(
+  id: number | string | null,
+): Promise<ParticipantScore | null> {
   if (id == null) return null;
   const key = String(id);
   const cached = predictionScoreCache.get(key);
-  if (cached && Date.now() - cached.at < PREDICTION_SCORE_TTL) {
-    return cached.data;
-  }
-  const data = await fetchJson(`${API_BASE}/predictions/${key}/score`);
+  if (cached && Date.now() - cached.at < PREDICTION_SCORE_TTL) return cached.data;
+  const data = await request<ParticipantScore>(`/predictions/${key}/score`);
   if (predictionScoreCache.size > 100) predictionScoreCache.clear();
   predictionScoreCache.set(key, { data, at: Date.now() });
   return data;
 }
 
-export async function fetchPredictions(groupId = null) {
-  const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
-  return fetchJson(url);
-}
+export const fetchPredictions = (groupId: number | string | null = null) =>
+  request<PredictionSummary[]>(`/predictions${query({ groupId })}`);
 
-export async function fetchMyPredictions() {
-  return fetchJson(`${API_BASE}/predictions/mine`);
-}
+export const fetchMyPredictions = () => request<PredictionSummary[]>('/predictions/mine');
 
-export async function createPrediction(predictionData, groupId = null) {
-  const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
-  const token = getAuthToken();
-  const res = await fetch(url, {
+export const createPrediction = (
+  predictionData: PredictionData,
+  groupId: number | string | null = null,
+) =>
+  request<PredictionSaved>(`/predictions${query({ groupId })}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(predictionData),
+    json: predictionData,
+    fallbackError: 'Hubo un error al guardar la porra.',
   });
-  return res.json();
-}
 
-export async function deletePrediction(key) {
-  const token = getAuthToken();
-  return fetch(`${API_BASE}/predictions/${key}`, {
-    method: 'DELETE',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-}
+// --- Clasificación ---
 
-export async function updatePrediction(key, data) {
-  const token = getAuthToken();
-  return fetch(`${API_BASE}/predictions/${key}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify(data),
-  });
-}
+export const fetchLeaderboard = (groupId: number | string | null = null) =>
+  request<ParticipantScore[]>(`/leaderboard${query({ groupId })}`);
 
-export async function acceptPrediction(key) {
-  const token = getAuthToken();
-  return fetch(`${API_BASE}/predictions/${key}/pay`, {
-    method: 'PUT',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-}
+export const fetchLeaderboardMatchdays = (groupId: number | string | null = null) =>
+  request<MatchdayPoints[]>(`/leaderboard/matchdays${query({ groupId })}`);
 
-export async function fetchTeamOdds() {
-  return fetchJson(`${API_BASE}/teams/odds`);
-}
+// --- Ligas ---
 
-export async function fetchTopScorers() {
-  // Evita que el panel Pichichi permanezca cargando indefinidamente si el backend no responde.
-  return fetchJson(`${API_BASE}/scorers`, { signal: AbortSignal.timeout(12_000) });
-}
+export const fetchMyGroups = () => request<Group[]>('/groups/mine');
 
-export async function fetchLeaderboard(groupId = null) {
-  const url = groupId ? `${API_BASE}/leaderboard?groupId=${groupId}` : `${API_BASE}/leaderboard`;
-  return fetchJson(url);
-}
+export const fetchGroup = (id: number | string) => request<Group>(`/groups/${id}`);
 
-export async function fetchLeaderboardMatchdays(groupId = null) {
-  const url = groupId
-    ? `${API_BASE}/leaderboard/matchdays?groupId=${groupId}`
-    : `${API_BASE}/leaderboard/matchdays`;
-  return fetchJson(url);
-}
+/** Metadatos públicos de una invitación, sin unirse a la liga. */
+export const fetchGroupInvitationPreview = (joinCode: string) =>
+  request<Group>(`/groups/preview/${encodeURIComponent(joinCode)}`);
 
-export async function fetchCompetitionStandings(competitionId) {
-  if (!competitionId) return [];
-  return fetchJson(`${API_BASE}/competitions/${competitionId}/standings`);
-}
-
-// Groups API
-export async function fetchMyGroups() {
-  return fetchJson(`${API_BASE}/groups/mine`);
-}
-
-export async function fetchGroup(id) {
-  return fetchJson(`${API_BASE}/groups/${id}`);
-}
-
-/** Obtiene los metadatos públicos de una invitación sin aceptar la invitación. */
-export async function fetchGroupInvitationPreview(joinCode) {
-  return fetchJson(`${API_BASE}/groups/preview/${encodeURIComponent(joinCode)}`);
-}
-
-export async function leaveGroup(id) {
-  const token = getAuthToken();
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const res = await fetch(`${API_BASE}/groups/${id}/leave`, {
-    method: 'DELETE',
-    headers,
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al abandonar el grupo');
-  }
-  return res.json();
-}
-
-export async function acceptGroupPrediction(groupId, predictionId) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/predictions/${predictionId}/accept`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al confirmar la porra');
-  }
-  return res.json();
-}
-
-export async function deleteGroupPrediction(groupId, predictionId) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/predictions/${predictionId}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al eliminar la porra');
-  }
-  return res.json();
-}
-
-let cachedCompetitions = null;
-export async function fetchCompetitions() {
-  if (cachedCompetitions) return cachedCompetitions;
-  const data = await fetchJson(`${API_BASE}/competitions`);
-  cachedCompetitions = data;
-  return data;
-}
-
-export async function createGroup(name, competitionId, poolFormat, pichichi = true) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups`, {
+export const createGroup = (
+  name: string,
+  competitionId: number | string,
+  poolFormat: PoolFormat,
+  pichichi = true,
+) =>
+  request<Group>('/groups', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ name, competitionId, poolFormat, pichichi }),
+    json: { name, competitionId, poolFormat, pichichi },
+    fallbackError: 'Error al crear la liga',
   });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al crear la liga');
-  }
-  return res.json();
-}
 
-export async function updateGroup(id, name, rules) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${id}`, {
+export const updateGroup = (
+  id: number | string,
+  name: string | undefined,
+  rules: string | undefined,
+) =>
+  request<Group>(`/groups/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ name, rules }),
+    json: { name, rules },
+    fallbackError: 'Error al actualizar la liga',
   });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al actualizar la liga');
-  }
-  return res.json();
-}
 
-export async function deleteGroup(id) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${id}`, {
+export const deleteGroup = (id: number | string) =>
+  request<StatusResponse>(`/groups/${id}`, {
     method: 'DELETE',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    fallbackError: 'Error al borrar la liga',
   });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al borrar la liga');
-  }
-  return res.json();
-}
 
-export async function joinGroup(joinCode) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/join`, {
+export const joinGroup = (joinCode: string) =>
+  request<Group>('/groups/join', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ joinCode }),
+    json: { joinCode },
+    fallbackError: 'Grupo no encontrado o código inválido',
   });
-  if (res.ok) return res.json();
-  const error = await res.json().catch(() => ({}));
-  throw new Error(error.error || 'Grupo no encontrado o código inválido');
-}
 
-export async function fetchMe() {
-  return fetchJson(`${API_BASE}/users/me`);
-}
+export const leaveGroup = (id: number | string) =>
+  request<StatusResponse>(`/groups/${id}/leave`, {
+    method: 'DELETE',
+    fallbackError: 'Error al abandonar el grupo',
+  });
 
-export async function updateUserPreferences(preferences) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/users/me/preferences`, {
+export const acceptGroupPrediction = (groupId: number | string, predictionId: number | string) =>
+  request<StatusResponse>(`/groups/${groupId}/predictions/${predictionId}/accept`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify(preferences),
+    fallbackError: 'Error al confirmar la porra',
   });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al actualizar preferencias');
-  }
-  return res.json();
-}
 
-export async function fetchRules() {
-  return fetchJson(`${API_BASE}/rules`);
-}
+export const deleteGroupPrediction = (groupId: number | string, predictionId: number | string) =>
+  request<StatusResponse>(`/groups/${groupId}/predictions/${predictionId}`, {
+    method: 'DELETE',
+    fallbackError: 'Error al eliminar la porra',
+  });
 
-export async function fetchRulePreview(predHome, predAway, actualHome, actualAway) {
-  return fetchJson(
-    `${API_BASE}/rules/preview?predHome=${predHome}&predAway=${predAway}&actualHome=${actualHome}&actualAway=${actualAway}`,
+export const fetchGroupMembers = (groupId: number | string) =>
+  request<GroupMember[]>(`/groups/${groupId}/members`);
+
+export const toggleGroupMemberPayment = (
+  groupId: number | string,
+  userId: number,
+  status: PaymentStatus,
+) =>
+  request<PaymentStatusResponse>(`/groups/${groupId}/members/${userId}/payment`, {
+    method: 'PUT',
+    json: { status },
+    fallbackError: 'Error al actualizar estado de pago',
+  });
+
+export const kickGroupMember = (groupId: number | string, userId: number) =>
+  request<StatusResponse>(`/groups/${groupId}/members/${userId}`, {
+    method: 'DELETE',
+    fallbackError: 'Error al expulsar al miembro',
+  });
+
+export const regenerateGroupJoinCode = (groupId: number | string) =>
+  request<JoinCodeResponse>(`/groups/${groupId}/regenerate-code`, {
+    method: 'POST',
+    fallbackError: 'Error al regenerar código',
+  });
+
+export const fetchMissingRoundUsers = (groupId: number | string, round = '') =>
+  request<MissingMembers>(`/groups/${groupId}/missing-users${query({ round })}`);
+
+export const uploadGroupImage = (groupId: number | string, blob: Blob) =>
+  request<LeagueImageResponse>(`/groups/${groupId}/image`, {
+    method: 'PUT',
+    form: imageForm(blob),
+  });
+
+export const deleteGroupImage = (groupId: number | string) =>
+  request<LeagueImageResponse>(`/groups/${groupId}/image`, { method: 'DELETE' });
+
+// --- Pronósticos por jornada ---
+
+export const fetchMatchdayFixtures = (groupId: number | string, round = '') =>
+  request<MatchdayFixture[]>(`/predictions/matchday${query({ groupId, round })}`);
+
+export const submitMatchdayPredictions = (
+  groupId: number | string,
+  predictions: MatchdayPredictionInput[],
+) =>
+  request<MatchdaySubmissionResult>('/predictions/matchday', {
+    method: 'POST',
+    json: { groupId: Number(groupId), predictions },
+    fallbackError: 'Error al guardar pronósticos de jornada',
+  });
+
+export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId: number) =>
+  request<FriendPrediction[]>(
+    `/predictions/matchday/matches/${matchId}/predictions${query({ groupId })}`,
   );
-}
 
-export async function fetchMatchdayFixtures(groupId, round = '') {
-  const query = round
-    ? `groupId=${groupId}&round=${encodeURIComponent(round)}`
-    : `groupId=${groupId}`;
-  return fetchJson(`${API_BASE}/predictions/matchday?${query}`);
-}
+// --- Usuario ---
 
-export async function submitMatchdayPredictions(groupId, predictions) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/predictions/matchday`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify({ groupId: Number(groupId), predictions }),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al guardar pronósticos de jornada');
-  }
-  return res.json();
-}
+export const fetchMe = () => request<Me>('/users/me');
 
-export async function fetchMatchdayFriendPredictions(groupId, matchId) {
-  const token = getAuthToken();
-  return fetchJson(
-    `${API_BASE}/predictions/matchday/matches/${matchId}/predictions?groupId=${groupId}`,
-    {
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-    },
-  );
-}
-
-export async function fetchGroupMembers(groupId) {
-  const token = getAuthToken();
-  return fetchJson(`${API_BASE}/groups/${groupId}/members`, {
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-}
-
-export async function toggleGroupMemberPayment(groupId, userId, status) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/members/${userId}/payment`, {
+export const updateUserPreferences = (preferences: UserPreferences) =>
+  request<StatusResponse>('/users/me/preferences', {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify({ status }),
+    json: preferences,
+    fallbackError: 'Error al actualizar preferencias',
   });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al actualizar estado de pago');
-  }
-  return res.json();
-}
 
-export async function kickGroupMember(groupId, userId) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/members/${userId}`, {
-    method: 'DELETE',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al expulsar al miembro');
-  }
-  return res.json();
-}
+export const updateMyProfile = (participantName: string) =>
+  request<ProfileResponse>('/users/me/profile', { method: 'PUT', json: { participantName } });
 
-export async function regenerateGroupJoinCode(groupId) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/regenerate-code`, {
-    method: 'POST',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al regenerar código');
-  }
-  return res.json();
-}
+export const uploadMyAvatar = (blob: Blob) =>
+  request<ProfileResponse>('/users/me/avatar', { method: 'PUT', form: imageForm(blob) });
 
-export async function fetchMissingRoundUsers(groupId, round = '') {
-  const token = getAuthToken();
-  const query = round ? `?round=${encodeURIComponent(round)}` : '';
-  return fetchJson(`${API_BASE}/groups/${groupId}/missing-users${query}`, {
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-}
-
-// Imágenes de liga y perfil de usuario
-async function sendJson(url, method, body) {
-  const token = getAuthToken();
-  const res = await fetch(url, {
-    method,
-    headers: {
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || data.message || `Error ${res.status}`);
-  return data;
-}
-
-async function sendFile(url, blob) {
-  const token = getAuthToken();
-  const form = new FormData();
-  form.append('file', blob, blob.type === 'image/png' ? 'image.png' : 'image.jpg');
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form, // el navegador añade el boundary del multipart
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || data.message || `Error ${res.status}`);
-  return data;
-}
-
-export async function uploadGroupImage(groupId, blob) {
-  return sendFile(`${API_BASE}/groups/${groupId}/image`, blob);
-}
-
-export async function deleteGroupImage(groupId) {
-  return sendJson(`${API_BASE}/groups/${groupId}/image`, 'DELETE');
-}
-
-export async function updateMyProfile(participantName) {
-  return sendJson(`${API_BASE}/users/me/profile`, 'PUT', { participantName });
-}
-
-export async function uploadMyAvatar(blob) {
-  return sendFile(`${API_BASE}/users/me/avatar`, blob);
-}
-
-export async function deleteMyAvatar() {
-  return sendJson(`${API_BASE}/users/me/avatar`, 'DELETE');
-}
+export const deleteMyAvatar = () =>
+  request<ProfileResponse>('/users/me/avatar', { method: 'DELETE' });

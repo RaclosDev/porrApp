@@ -17,6 +17,7 @@ import {
 } from '../services/api';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
+import type { Group } from '../types/api';
 
 const EMPTY_OBJECT = Object.freeze({});
 const EMPTY_ARRAY = Object.freeze([]);
@@ -217,7 +218,7 @@ export const useAppContext = () => {
     data: groupInfo,
     isPending: groupPending,
     error: groupError,
-  } = useQuery({
+  } = useQuery<Partial<Group>>({
     queryKey: ['group', activeGroupId],
     queryFn: () =>
       activeGroupId

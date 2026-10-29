@@ -522,11 +522,11 @@ export function useBracket() {
           }
 
           if (current) {
-            setSavedPredictionId(current.id || current.key || null);
+            setSavedPredictionId(current.key || null);
             if (current.participantName && !userName) {
               setUserName(current.participantName);
             }
-            const predictionTitle = current.predictionName || current.predictionName;
+            const predictionTitle = current.predictionName;
             if (predictionTitle) setPredictionName(predictionTitle);
             const currentData = current.data;
             if (currentData) {

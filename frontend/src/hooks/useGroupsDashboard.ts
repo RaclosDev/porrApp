@@ -16,6 +16,7 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import type { PoolFormat } from '../types/api';
 
 export const POOL_FORMATS = [
   { id: 'MATCH_DAY', label: 'Por Jornadas (1X2 y Marcador Exacto)' },
@@ -72,7 +73,7 @@ export function useGroupsDashboard() {
   const [loading, setLoading] = useState(!userGroups || userGroups.length === 0);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
-  const [selectedPoolFormat, setSelectedPoolFormat] = useState('MATCH_DAY');
+  const [selectedPoolFormat, setSelectedPoolFormat] = useState<PoolFormat>('MATCH_DAY');
   const [includePichichi, setIncludePichichi] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('MATCH_DAY_LEAGUE');
   const [wizardStep, setWizardStep] = useState(1);

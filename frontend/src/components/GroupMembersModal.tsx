@@ -28,6 +28,7 @@ import {
 } from '../services/api';
 import ImagePicker from './ImagePicker';
 import { LeagueAvatar, UserAvatar } from './Avatar';
+import type { PaymentStatus } from '../types/api';
 
 const PAYMENT_FILTERS = [
   { id: 'ALL', label: 'Todos' },
@@ -166,7 +167,8 @@ export default function GroupMembersModal({
   });
 
   const paymentMutation = useMutation({
-    mutationFn: ({ userId, status }) => toggleGroupMemberPayment(groupId, userId, status),
+    mutationFn: ({ userId, status }: { userId: number; status: PaymentStatus }) =>
+      toggleGroupMemberPayment(groupId, userId, status),
     onMutate: async ({ userId, status }) => {
       setActionError('');
       await queryClient.cancelQueries({ queryKey: ['groupMembers', groupId] });
@@ -202,7 +204,7 @@ export default function GroupMembersModal({
   });
 
   const kickMutation = useMutation({
-    mutationFn: (userId) => kickGroupMember(groupId, userId),
+    mutationFn: (userId: number) => kickGroupMember(groupId, userId),
     onMutate: () => setActionError(''),
     onSuccess: () => {
       setKickTargetId(null);
