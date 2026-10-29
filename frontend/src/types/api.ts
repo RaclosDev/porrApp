@@ -200,7 +200,8 @@ export interface ParticipantScore {
   matchPoints: number;
   total: number;
   log: ScoreLogEntry[];
-  exactMatches: Record<string, unknown>;
+  /** grupo -> posición (1-4) -> acertada. */
+  exactMatches: Record<string, Record<string, boolean>>;
   passedTeams: Record<string, boolean>;
   pending: boolean;
 }

@@ -161,6 +161,9 @@ export async function fetchOfficialBracket({ force = false } = {}): Promise<Pred
 
 // --- Pronósticos de cuadro completo ---
 
+export const fetchPrediction = (id: number | string) =>
+  request<PredictionData>(`/predictions/${id}`, { fallbackError: 'Error al cargar la porra' });
+
 const PREDICTION_SCORE_TTL = 60_000;
 const predictionScoreCache = new Map<string, { data: ParticipantScore; at: number }>();
 

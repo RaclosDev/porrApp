@@ -212,13 +212,16 @@ export function extractGroupsFromR32(r32, groupOdds = {}) {
   return { groups, thirds };
 }
 
-export function buildR32FromGroups(groupsInput, thirdsRaw = []) {
+export function buildR32FromGroups(
+  groupsInput: unknown,
+  thirdsRaw: (string | { team?: string; name?: string })[] = [],
+): string[][] | null {
   if (!groupsInput || typeof groupsInput !== 'object') return null;
   const groups = normalizeGroupsDraft(groupsInput);
   if (!hasValidGroupSelections(groups)) return null;
 
   // Resolve third-place teams
-  let advancingThirds = [];
+  let advancingThirds: string[] = [];
   if (Array.isArray(thirdsRaw) && thirdsRaw.length > 0) {
     advancingThirds = thirdsRaw
       .map((t) => (typeof t === 'string' ? t.trim() : t?.team || t?.name || ''))

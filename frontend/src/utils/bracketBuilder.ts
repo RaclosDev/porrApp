@@ -10,7 +10,7 @@ export type ProvisionalTeam = {
 export type BracketSlot = string | ProvisionalTeam | null;
 
 /** Ganador del partido (oficial o, si va en juego, el que va por delante). */
-function matchWinner(m: Match): string | null {
+export function matchWinner(m: Match): string | null {
   if (m.winner) return m.winner;
   if (m.home_score == null || m.away_score == null) return null;
   if (m.home_score > m.away_score) return m.home;
@@ -35,6 +35,32 @@ export const matchTeamNames = (a: string | null | undefined, b: string | null | 
   if ((a === 'EEUU' && b === 'Estados Unidos') || (a === 'Estados Unidos' && b === 'EEUU'))
     return true;
   return a.trim().toLowerCase() === b.trim().toLowerCase();
+};
+
+/** El partido pertenece a la ronda del hueco (índice del lienzo o hueco central). */
+export const isMatchInRound = (match: Match, roundIndex: number | string | undefined) => {
+  if (roundIndex === undefined) return true;
+  if (!isKnockoutMatch(match)) return false;
+  const r = (match.round || '').toLowerCase();
+  if (roundIndex === 0) return r === 'r32' || r === '32' || r.includes('32') || r.includes('16avo');
+  if (roundIndex === 1) return r === 'r16' || r === '16' || r.includes('16') || r.includes('octav');
+  if (roundIndex === 2) return r === 'qf' || r.includes('quart') || r.includes('cuart');
+  if (roundIndex === 3) return r === 'sf' || r.includes('semi') || r.includes('semis');
+  if (roundIndex === 'final') return r === 'final' || r.includes('final');
+  if (roundIndex === 'thirdPlaceMatch')
+    return r === 'third' || r.includes('tercer') || r.includes('3rd') || r.includes('3er');
+  return true;
+};
+
+/** Próximo partido de eliminatorias sin jugar (el que se destaca en el cuadro). */
+export const nextKnockoutMatch = (games: Match[] | null | undefined): Match | null => {
+  if (!games || games.length === 0) return null;
+  const pending = games
+    .filter((g) => g && isKnockoutMatch(g) && !g.finished && !g.winner && g.home_score == null)
+    .sort(
+      (a, b) => new Date(a.date || Infinity).getTime() - new Date(b.date || Infinity).getTime(),
+    );
+  return pending[0] || null;
 };
 
 export const slotName = (slot: BracketSlot | undefined): string | null => {
