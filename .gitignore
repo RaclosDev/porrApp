@@ -6,8 +6,6 @@ dist/
 dev-dist/
 .vite/
 *.tsbuildinfo
-playwright-report/
-test-results/
 coverage/
 
 # ==============================================================================
