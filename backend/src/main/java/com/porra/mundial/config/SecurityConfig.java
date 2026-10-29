@@ -36,7 +36,7 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/info").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
                 .requestMatchers("/api/predictions/mine", "/api/groups/mine").authenticated()
                 .requestMatchers(HttpMethod.GET,
