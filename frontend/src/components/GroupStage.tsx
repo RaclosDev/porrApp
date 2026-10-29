@@ -299,11 +299,12 @@ export default function GroupStage({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[0.8rem] text-[#00d2d3] font-bold">1º Clasificado:</label>
+                  <span className="text-[0.8rem] text-[#00d2d3] font-bold">1º Clasificado:</span>
                   <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.first || ''}
                       onChange={(val) => handleSelect(groupName, 'first', val)}
+                      label={`Grupo ${groupName}, 1º clasificado`}
                       placeholder="-- Seleccionar --"
                       options={[
                         { value: '', label: '-- Seleccionar --' },
@@ -314,11 +315,12 @@ export default function GroupStage({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[0.8rem] text-[#a29bfe] font-bold">2º Clasificado:</label>
+                  <span className="text-[0.8rem] text-[#a29bfe] font-bold">2º Clasificado:</span>
                   <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.second || ''}
                       onChange={(val) => handleSelect(groupName, 'second', val)}
+                      label={`Grupo ${groupName}, 2º clasificado`}
                       placeholder="-- Seleccionar --"
                       options={[
                         { value: '', label: '-- Seleccionar --' },
@@ -329,11 +331,12 @@ export default function GroupStage({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[0.8rem] text-muted font-bold">3º:</label>
+                  <span className="text-[0.8rem] text-muted font-bold">3º:</span>
                   <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.third || ''}
                       onChange={(val) => handleSelect(groupName, 'third', val)}
+                      label={`Grupo ${groupName}, 3º clasificado`}
                       placeholder="-- Seleccionar --"
                       options={[
                         { value: '', label: '-- Seleccionar --' },
