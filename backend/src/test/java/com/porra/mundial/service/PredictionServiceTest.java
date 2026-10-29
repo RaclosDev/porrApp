@@ -291,4 +291,49 @@ class PredictionServiceTest {
                 predictionService.getPredictionData(1L, "stranger@test.com")
         );
     }
+
+    @Test
+    @DisplayName("Un usuario no puede crear el cuadro oficial llamando \"official\" a su pronóstico")
+    void clientCannotCreateOfficialByName() {
+        assertThrows(IllegalArgumentException.class, () ->
+                predictionService.createPrediction("owner@test.com", " Official ", new PredictionDataDTO(), 100L));
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Ningún pronóstico creado por un usuario sale marcado como oficial")
+    void clientPredictionIsNeverOfficial() {
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(true);
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prediction saved = predictionService.createPrediction("owner@test.com", "Admin", new PredictionDataDTO(), 100L);
+
+        assertFalse(saved.isOfficial());
+    }
+
+    @Test
+    @DisplayName("El pronóstico de la cuenta interna Admin sigue siendo el oficial")
+    void systemAdminPredictionIsOfficial() {
+        UserAccount system = UserAccount.builder().id(1L).googleEmail(UserAccount.SYSTEM_ADMIN_EMAIL).participantName("Admin").build();
+        Edition global = Edition.builder().id(2L).league(League.builder().id(League.GLOBAL_ID).joinCode(League.GLOBAL_JOIN_CODE).build()).status("ACTIVE").build();
+        when(userAccountRepository.findByGoogleEmail(UserAccount.SYSTEM_ADMIN_EMAIL)).thenReturn(Optional.of(system));
+        when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(global));
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prediction saved = predictionService.createPrediction(UserAccount.SYSTEM_ADMIN_EMAIL, "Cuadro", new PredictionDataDTO(), League.GLOBAL_ID);
+
+        assertTrue(saved.isOfficial());
+    }
+
+    @Test
+    @DisplayName("No se puede renombrar un pronóstico a \"official\"")
+    void cannotRenamePredictionToOfficial() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                predictionService.updatePrediction(1L, "owner@test.com", null, "OFFICIAL", null));
+        verify(predictionRepository, never()).save(any());
+    }
 }
