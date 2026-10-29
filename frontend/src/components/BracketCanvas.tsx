@@ -143,7 +143,7 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }:
         />
       )}
       {!isEmpty && isCombined && (
-        <div style={{ display: 'flex', marginRight: 6, flexShrink: 0, alignItems: 'center' }}>
+        <div className="flex mr-1.5 shrink-0 items-center">
           {combinedTeams.map((t, idx) => (
             <Flag
               key={t}
@@ -375,35 +375,13 @@ export default function BracketCanvas<T extends SlotTeam>({
         style={{ position: 'relative', width: colW, height: CANVAS_H, flexShrink: 0 }}
       >
         {/* Label */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -34,
-            left: 0,
-            width: '100%',
-            textAlign: 'center',
-            fontSize: '0.6rem',
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            letterSpacing: 1.5,
-            textTransform: 'uppercase',
-          }}
-        >
+        <div className="absolute -top-8.5 left-0 w-full text-center text-[0.6rem] font-bold text-muted tracking-[1.5px] uppercase">
           {ROUND_LABELS[roundIndex]}
         </div>
 
         {/* Column Total (was Footer) */}
         {renderRoundFooter && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -20,
-              left: 0,
-              width: '100%',
-              textAlign: 'center',
-              pointerEvents: 'none',
-            }}
-          >
+          <div className="absolute -top-5 left-0 w-full text-center pointer-events-none">
             {renderRoundFooter(roundIndex, side)}
           </div>
         )}

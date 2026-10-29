@@ -16,17 +16,7 @@ export default function OfficialBracketTabs({
   activeGroupPichichi,
 }: OfficialBracketTabsProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 'clamp(2px, 0.7vw, 8px)',
-        marginBottom: '20px',
-        marginTop: '5px',
-        flexWrap: 'nowrap',
-      }}
-    >
+    <div className="flex justify-center items-center gap-[clamp(2px,_0.7vw,_8px)] mb-5 mt-[5px] flex-nowrap">
       {activeTab === 'cuadro' && (
         <button
           className="glass-btn"

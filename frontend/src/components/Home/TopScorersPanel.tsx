@@ -22,40 +22,13 @@ function TopScorersPanel({
 
   if (loading || error || !topScorers || topScorers.length === 0) {
     return (
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '580px',
-          margin: '0 auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-        }}
-      >
+      <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
         {!hideTitle && (
-          <div
-            style={{
-              textAlign: 'center',
-              color: '#ffd32a',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              padding: '6px',
-              background: 'rgba(255, 211, 42, 0.1)',
-              border: '1px solid rgba(255, 211, 42, 0.3)',
-              borderRadius: '12px',
-            }}
-          >
+          <div className="text-center text-[#ffd32a] text-[1rem] font-bold p-1.5 bg-[rgba(255,_211,_42,_0.1)] border border-[rgba(255,_211,_42,_0.3)] rounded-[12px]">
             🏆 PICHICHI
           </div>
         )}
-        <div
-          style={{
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            padding: '20px',
-            fontSize: '0.9rem',
-          }}
-        >
+        <div className="text-center text-muted p-5 text-[0.9rem]">
           {loading
             ? 'Cargando goleadores…'
             : error
@@ -111,16 +84,7 @@ function TopScorersPanel({
     const medal = getMedal(s.goals, idx);
 
     return (
-      <div
-        key={s.playerId || idx}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '10px 0',
-          borderBottom: 'none',
-        }}
-      >
+      <div className="flex items-center gap-2.5 py-2.5 px-0 border-b-0" key={s.playerId || idx}>
         <span
           style={{
             width: '22px',
@@ -133,54 +97,25 @@ function TopScorersPanel({
         >
           {medal}
         </span>
-        <div
-          style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.08)',
-            flexShrink: 0,
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+        <div className="w-11 h-11 rounded-full bg-[rgba(255,255,255,0.08)] shrink-0 overflow-hidden flex items-center justify-center">
           {imageUrl && !imgErrors[s.playerId] ? (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                overflow: 'hidden',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'center',
-              }}
-            >
+            <div className="w-full h-full overflow-hidden flex items-start justify-center">
               <img
+                className="w-auto h-[200%] max-w-[none]"
                 src={imageUrl}
                 alt=""
-                style={{ width: 'auto', height: '200%', maxWidth: 'none' }}
                 onError={() => setImgErrors((prev) => ({ ...prev, [s.playerId]: true }))}
               />
             </div>
           ) : (
-            <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#ffd32a' }}>
+            <span className="text-[1rem] font-bold text-[#ffd32a]">
               {(s.shortName || s.name || '?')[0].toUpperCase()}
             </span>
           )}
         </div>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex-1 min-w-0 flex items-center gap-2">
           <Flag team={s.team} style={{ borderRadius: '2px', flexShrink: 0, width: '18px' }} />
-          <div
-            style={{
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
+          <div className="font-bold text-[0.9rem] whitespace-nowrap overflow-hidden text-ellipsis">
             {s.shortName || s.name}
           </div>
         </div>
@@ -200,46 +135,16 @@ function TopScorersPanel({
   };
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '580px',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-      }}
-    >
+    <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
       {!hideTitle && (
-        <div
-          style={{
-            textAlign: 'center',
-            color: '#ffd32a',
-            fontSize: '1rem',
-            fontWeight: 'bold',
-            padding: '6px',
-            background: 'rgba(255, 211, 42, 0.1)',
-            border: '1px solid rgba(255, 211, 42, 0.3)',
-            borderRadius: '12px',
-          }}
-        >
+        <div className="text-center text-[#ffd32a] text-[1rem] font-bold p-1.5 bg-[rgba(255,_211,_42,_0.1)] border border-[rgba(255,_211,_42,_0.3)] rounded-[12px]">
           🏆 PICHICHI
         </div>
       )}
-      <div className="glass-panel" style={{ padding: '10px', borderRadius: '16px' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '0 16px',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {left.map((s, idx) => renderScorer(s, idx))}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {right.map((s, idx) => renderScorer(s, idx + 2))}
-          </div>
+      <div className="glass-panel p-2.5 rounded-[16px]">
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-[0_16px]">
+          <div className="flex flex-col">{left.map((s, idx) => renderScorer(s, idx))}</div>
+          <div className="flex flex-col">{right.map((s, idx) => renderScorer(s, idx + 2))}</div>
         </div>
       </div>
     </div>

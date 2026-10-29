@@ -6,40 +6,15 @@ interface FeaturedMatchBannerProps {
 /** Aviso del próximo partido de eliminatorias. */
 export default function FeaturedMatchBanner({ featuredMatch }: FeaturedMatchBannerProps) {
   return (
-    <div
-      style={{
-        margin: '0 auto 12px auto',
-        padding: '8px 18px',
-        background: 'rgba(0, 210, 211, 0.12)',
-        border: '1px solid rgba(0, 210, 211, 0.5)',
-        borderRadius: '12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '10px',
-        flexWrap: 'wrap',
-        maxWidth: '580px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-        animation: 'featured-match-pulse 2s infinite',
-      }}
-    >
-      <span
-        style={{
-          fontSize: '0.75rem',
-          background: '#00d2d3',
-          color: '#000',
-          fontWeight: '900',
-          padding: '2px 8px',
-          borderRadius: '12px',
-        }}
-      >
+    <div className="mt-0 mb-3 mx-auto py-2 px-4.5 bg-[rgba(0,_210,_211,_0.12)] border border-[rgba(0,_210,_211,_0.5)] rounded-[12px] flex items-center justify-center gap-2.5 flex-wrap max-w-145 shadow-[0_4px_12px_rgba(0,0,0,0.3)] [animation:featured-match-pulse_2s_infinite]">
+      <span className="text-[0.75rem] bg-[#00d2d3] text-black font-black py-0.5 px-2 rounded-[12px]">
         🔜 PRÓXIMO PARTIDO EN EL BRACKET
       </span>
-      <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}>
+      <span className="text-white font-bold text-[0.9rem]">
         {featuredMatch.home || 'Por definir'} vs {featuredMatch.away || 'Por definir'}
       </span>
       {featuredMatch.date && (
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+        <span className="text-muted text-[0.8rem]">
           🕒{' '}
           {new Date(featuredMatch.date).toLocaleDateString('es-ES', {
             day: '2-digit',

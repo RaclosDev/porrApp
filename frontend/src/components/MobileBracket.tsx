@@ -134,9 +134,7 @@ export default function MobileBracket<T extends SlotTeam>({
       return mobileCenter ? (
         <div className="mb-final-content">{mobileCenter()}</div>
       ) : (
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
-          Final aún por definir
-        </div>
+        <div className="text-center text-muted p-10">Final aún por definir</div>
       );
     }
 
@@ -151,7 +149,7 @@ export default function MobileBracket<T extends SlotTeam>({
         <div className="mb-round">
           {leftSF && (
             <div
-              className="mb-sf-card"
+              className="mb-sf-card cursor-pointer"
               role="button"
               tabIndex={0}
               aria-label="Ir a la Final"
@@ -162,7 +160,6 @@ export default function MobileBracket<T extends SlotTeam>({
                 }
               }}
               onClick={() => goToTab(tabs.findIndex((t) => t.key === 'final'))}
-              style={{ cursor: 'pointer' }}
             >
               <div className="mb-sf-label">Semifinal 1</div>
               <div className="mb-match-card">
@@ -183,7 +180,7 @@ export default function MobileBracket<T extends SlotTeam>({
           )}
           {rightSF && (
             <div
-              className="mb-sf-card"
+              className="mb-sf-card cursor-pointer"
               role="button"
               tabIndex={0}
               aria-label="Ir a la Final"
@@ -194,7 +191,6 @@ export default function MobileBracket<T extends SlotTeam>({
                 }
               }}
               onClick={() => goToTab(4)}
-              style={{ cursor: 'pointer' }}
             >
               <div className="mb-sf-label">Semifinal 2</div>
               <div className="mb-match-card">
@@ -342,7 +338,7 @@ function BracketGroup<T extends SlotTeam>({
 
       {/* Columna derecha: partido de la siguiente ronda */}
       <div
-        className="mb-next"
+        className="mb-next cursor-pointer"
         role="button"
         tabIndex={0}
         aria-label="Navegar a la siguiente ronda"
@@ -353,7 +349,6 @@ function BracketGroup<T extends SlotTeam>({
           }
         }}
         onClick={onNavigateNext}
-        style={{ cursor: 'pointer' }}
       >
         {nextMatch ? (
           <div className="mb-match-card mb-match-next">

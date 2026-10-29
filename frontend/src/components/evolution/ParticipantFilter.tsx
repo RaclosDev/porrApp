@@ -34,78 +34,33 @@ export default function ParticipantFilter({
         padding: '14px 4px 0 4px',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '10px',
-          marginBottom: '12px',
-        }}
-      >
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+      <div className="flex justify-between items-center flex-wrap gap-2.5 mb-3">
+        <span className="text-[0.85rem] text-muted">
           👥 Participantes mostrados ({Object.values(selectedUsers).filter(Boolean).length}/
           {users.length}):
         </span>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="flex gap-2 flex-wrap">
           <button
+            className="bg-[rgba(255,255,255,0.05)] text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
             onClick={() => selectTopN(5)}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.15)',
-              padding: '4px 10px',
-              borderRadius: '15px',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-            }}
           >
             ⚡ Top 5
           </button>
           <button
+            className="bg-[rgba(255,255,255,0.05)] text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
             onClick={() => selectTopN(10)}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.15)',
-              padding: '4px 10px',
-              borderRadius: '15px',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-            }}
           >
             🔥 Top 10
           </button>
           <button
+            className="bg-[rgba(255,255,255,0.05)] text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
             onClick={selectAll}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.15)',
-              padding: '4px 10px',
-              borderRadius: '15px',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-            }}
           >
             ✔️ Todos
           </button>
           <button
+            className="bg-[rgba(255,255,255,0.05)] text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
             onClick={selectNone}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.15)',
-              padding: '4px 10px',
-              borderRadius: '15px',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-            }}
           >
             ❌ Ninguno
           </button>

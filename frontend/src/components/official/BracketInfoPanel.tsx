@@ -25,69 +25,18 @@ export default function BracketInfoPanel({
 }: BracketInfoPanelProps) {
   return (
     <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        paddingTop: '115px',
-        paddingBottom: '30px',
-        paddingLeft: '15px',
-        paddingRight: '15px',
-        background: 'transparent',
-        overflowY: 'auto',
-      }}
+      className="fixed top-0 left-0 right-0 bottom-0 z-[9999] flex items-start justify-center pt-[115px] pb-7.5 pl-[15px] pr-[15px] bg-transparent overflow-y-auto"
       onClick={() => setActivePanel(null)}
     >
       <div
-        style={{
-          width: '380px',
-          maxWidth: '92vw',
-          maxHeight: 'calc(100vh - 140px)',
-          background: 'rgba(15, 23, 42, 0.92)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          borderRadius: '16px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(59, 130, 246, 0.15)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'modalScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-          marginTop: '10px',
-        }}
+        className="w-95 max-w-[92vw] max-h-[calc(100vh_-_140px)] bg-[rgba(15,_23,_42,_0.92)] [backdrop-filter:blur(20px)] border border-[rgba(255,_255,_255,_0.15)] rounded-[16px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.8),_0_0_30px_rgba(59,_130,_246,_0.15)] flex flex-col overflow-hidden [animation:modalScaleUp_0.2s_cubic-bezier(0.16,_1,_0.3,_1)] mt-2.5"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabecera del HUD */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            padding: '12px 16px 0 16px',
-            background: 'transparent',
-          }}
-        >
+        <div className="flex justify-end items-center pt-3 pb-0 px-4 bg-transparent">
           <button
+            className="bg-[rgba(255,_255,_255,_0.08)] border-0 text-muted w-7 h-7 rounded-full flex items-center justify-center text-[1rem] cursor-pointer [transition:all_0.2s]"
             onClick={() => setActivePanel(null)}
-            style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: 'none',
-              color: 'var(--text-muted)',
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
             onMouseOver={(e) => {
               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
               e.currentTarget.style.color = '#fff';
@@ -102,7 +51,7 @@ export default function BracketInfoPanel({
         </div>
 
         {/* Contenido del HUD */}
-        <div style={{ padding: '8px 16px 16px 16px', overflowY: 'auto', flex: 1 }}>
+        <div className="pt-2 pb-4 px-4 overflow-y-auto flex-1">
           {activePanel === 'live' && (
             <LiveMatchesPanel
               liveMatches={matchRadar?.live || []}

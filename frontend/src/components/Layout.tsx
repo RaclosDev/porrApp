@@ -176,10 +176,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       <header className={`top-bar${isLanding ? ' top-bar--landing' : ''}`}>
         <div className="header-left">
-          <div
-            className="header-title-row"
-            style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'nowrap' }}
-          >
+          <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
             {/* Logo de PorrApp */}
             <NavLink
               to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
@@ -201,11 +198,9 @@ function Layout({ children }: { children: React.ReactNode }) {
                 flexShrink: 0,
               }}
             >
-              <span className="brand-ball-icon" style={{ fontSize: '1.35rem' }}>
-                ⚽
-              </span>
+              <span className="brand-ball-icon text-[1.35rem]">⚽</span>
               <span>
-                Porr<span style={{ color: 'var(--accent-cyan, #00d2d3)' }}>App</span>
+                Porr<span className="text-cyan">App</span>
               </span>
             </NavLink>
 

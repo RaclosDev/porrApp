@@ -17,18 +17,7 @@ interface GroupsViewProps {
 /** Tablas de grupos del pronóstico con los puntos de cada uno. */
 export default function GroupsView({ part, points, renderGroupTeam }: GroupsViewProps) {
   return (
-    <div
-      className="modal-groups-grid"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-        gap: '14px',
-        marginTop: '16px',
-        width: '100%',
-        maxWidth: '1500px',
-        alignSelf: 'center',
-      }}
-    >
+    <div className="modal-groups-grid grid grid-cols-[repeat(4,_minmax(0,_1fr))] gap-3.5 mt-4 w-full max-w-375 self-center">
       {Object.keys(part.groups ?? {}).map((g) => {
         let groupPts = 0;
         points?.log
@@ -48,40 +37,13 @@ export default function GroupsView({ part, points, renderGroupTeam }: GroupsView
 
         return (
           <div
+            className="bg-[linear-gradient(145deg,_rgba(30,_41,_59,_0.92),_rgba(15,_23,_42,_0.88))] border border-[rgba(148,_163,_184,_0.18)] p-3.5 rounded-[12px] text-left min-w-0 shadow-[0_6px_18px_rgba(0,_0,_0,_0.12)]"
             key={g}
-            style={{
-              background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.88))',
-              border: '1px solid rgba(148, 163, 184, 0.18)',
-              padding: '14px',
-              borderRadius: '12px',
-              textAlign: 'left',
-              minWidth: 0,
-              boxShadow: '0 6px 18px rgba(0, 0, 0, 0.12)',
-            }}
           >
-            <div
-              style={{
-                fontWeight: 'bold',
-                color: 'var(--accent-color)',
-                marginBottom: '8px',
-                fontSize: '1.1em',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                paddingBottom: '5px',
-              }}
-            >
+            <div className="font-bold text-accent mb-2 text-[1.1em] flex justify-between items-center border-b border-b-[rgba(255,255,255,0.1)] pb-[5px]">
               <span>Grupo {g}</span>
               {groupPts > 0 && (
-                <span
-                  style={{
-                    fontSize: '0.85em',
-                    background: 'rgba(0, 210, 211, 0.15)',
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                  }}
-                >
+                <span className="text-[0.85em] bg-[rgba(0,_210,_211,_0.15)] py-0.5 px-2 rounded-[10px]">
                   +{groupPts}
                 </span>
               )}

@@ -61,28 +61,8 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
   if (thirds.length === 0) return null;
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '580px',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-      }}
-    >
-      <div
-        style={{
-          textAlign: 'center',
-          color: '#00cec9',
-          fontSize: '1rem',
-          fontWeight: 'bold',
-          padding: '6px',
-          background: 'rgba(0, 206, 201, 0.1)',
-          border: '1px solid rgba(0, 206, 201, 0.3)',
-          borderRadius: '12px',
-        }}
-      >
+    <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
+      <div className="text-center text-[#00cec9] text-[1rem] font-bold p-1.5 bg-[rgba(0,_206,_201,_0.1)] border border-[rgba(0,_206,_201,_0.3)] rounded-[12px]">
         🥉 MEJORES TERCEROS
       </div>
       <div
@@ -93,49 +73,24 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
           padding: '10px',
         }}
       >
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '20px 1fr 25px 30px 28px',
-                gap: '6px',
-                paddingBottom: '6px',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                fontSize: '0.75rem',
-                color: 'var(--text-muted)',
-                fontWeight: 'bold',
-                textAlign: 'center',
-              }}
-            >
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-4">
+          <div className="flex flex-col">
+            <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-[rgba(255,255,255,0.1)] text-[0.75rem] text-muted font-bold text-center">
               <span>#</span>
-              <span style={{ textAlign: 'left' }}>Equipo</span>
+              <span className="text-left">Equipo</span>
               <span>PT</span>
               <span>DF</span>
               <span title="Fair Play (Tarjetas)">FP</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="flex flex-col">
               {thirds.slice(0, 6).map((t, idx) => {
                 const isTop8 = idx < 8;
                 const rank = idx + 1;
 
                 return (
                   <div
+                    className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 py-[5px] px-0 items-center text-[0.85rem]"
                     key={t.name}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '20px 1fr 25px 30px 28px',
-                      gap: '6px',
-                      padding: '5px 0',
-                      alignItems: 'center',
-                      fontSize: '0.85rem',
-                    }}
                   >
                     <span
                       style={{
@@ -146,44 +101,20 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                     >
                       {rank}
                     </span>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div className="flex items-center gap-1.5 overflow-hidden">
                       <Flag team={t.name} style={{ borderRadius: '2px', flexShrink: 0 }} />
-                      <span
-                        style={{
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">
                         {t.name}
                       </span>
                     </div>
-                    <span
-                      style={{
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        background: 'rgba(255,255,255,0.08)',
-                        borderRadius: '4px',
-                      }}
-                    >
+                    <span className="font-bold text-center bg-[rgba(255,255,255,0.08)] rounded-[4px]">
                       {t.pts}
                     </span>
-                    <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <span className="text-center text-muted">
                       {t.diff > 0 ? `+${t.diff}` : t.diff}
                     </span>
                     <span
-                      style={{
-                        textAlign: 'center',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.75rem',
-                      }}
+                      className="text-center text-muted text-[0.75rem]"
                       title="Puntos de Fair Play"
                     >
                       {t.fp || 0}
@@ -194,27 +125,15 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '20px 1fr 25px 30px 28px',
-                gap: '6px',
-                paddingBottom: '6px',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                fontSize: '0.75rem',
-                color: 'var(--text-muted)',
-                fontWeight: 'bold',
-                textAlign: 'center',
-              }}
-            >
+          <div className="flex flex-col">
+            <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-[rgba(255,255,255,0.1)] text-[0.75rem] text-muted font-bold text-center">
               <span>#</span>
-              <span style={{ textAlign: 'left' }}>Equipo</span>
+              <span className="text-left">Equipo</span>
               <span>PT</span>
               <span>DF</span>
               <span title="Fair Play (Tarjetas)">FP</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="flex flex-col">
               {thirds.slice(6, 12).map((t, idx) => {
                 const globalIdx = idx + 6;
                 const hasPlayed = t.mp > 0;
@@ -244,44 +163,20 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                     >
                       {rank}
                     </span>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div className="flex items-center gap-1.5 overflow-hidden">
                       <Flag team={t.name} style={{ borderRadius: '2px', flexShrink: 0 }} />
-                      <span
-                        style={{
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">
                         {t.name}
                       </span>
                     </div>
-                    <span
-                      style={{
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        background: 'rgba(255,255,255,0.08)',
-                        borderRadius: '4px',
-                      }}
-                    >
+                    <span className="font-bold text-center bg-[rgba(255,255,255,0.08)] rounded-[4px]">
                       {t.pts}
                     </span>
-                    <span style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <span className="text-center text-muted">
                       {t.diff > 0 ? `+${t.diff}` : t.diff}
                     </span>
                     <span
-                      style={{
-                        textAlign: 'center',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.75rem',
-                      }}
+                      className="text-center text-muted text-[0.75rem]"
                       title="Puntos de Fair Play"
                     >
                       {t.fp || 0}

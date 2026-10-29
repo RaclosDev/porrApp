@@ -71,35 +71,16 @@ function Leaderboard() {
 
   if (loading)
     return (
-      <section className="view-section" style={{ display: 'block' }}>
-        <div className="table-container" style={{ padding: '20px' }}>
-          <div
-            className="skeleton skeleton-text medium"
-            style={{ height: '20px', marginBottom: '20px' }}
-          />
+      <section className="view-section block">
+        <div className="table-container p-5">
+          <div className="skeleton skeleton-text medium h-5 mb-5" />
           {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="skeleton-row"
-              style={{ padding: '12px 0', borderBottom: '1px solid var(--border-color)' }}
-            >
-              <div
-                className="skeleton"
-                style={{ width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0 }}
-              />
+            <div key={i} className="skeleton-row py-3 px-0 border-b border-b-line">
+              <div className="skeleton w-6 h-6 rounded-full shrink-0" />
               <div className="skeleton skeleton-bar" />
-              <div
-                className="skeleton"
-                style={{ width: '40px', height: '16px', borderRadius: '4px' }}
-              />
-              <div
-                className="skeleton"
-                style={{ width: '40px', height: '16px', borderRadius: '4px' }}
-              />
-              <div
-                className="skeleton"
-                style={{ width: '50px', height: '20px', borderRadius: '6px' }}
-              />
+              <div className="skeleton w-10 h-4 rounded-[4px]" />
+              <div className="skeleton w-10 h-4 rounded-[4px]" />
+              <div className="skeleton w-12.5 h-5 rounded-[6px]" />
             </div>
           ))}
         </div>
@@ -163,19 +144,8 @@ function Leaderboard() {
   const summaryMatchday = selectedMatchdayInfo || currentMatchday;
 
   return (
-    <section id="view-leaderboard" className="view-section" style={{ display: 'block' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '10px',
-          flexWrap: 'nowrap',
-          marginBottom: '25px',
-          marginTop: '10px',
-          maxWidth: '100%',
-        }}
-      >
+    <section id="view-leaderboard" className="view-section block">
+      <div className="flex justify-center items-center gap-2.5 flex-nowrap mb-[25px] mt-2.5 max-w-full">
         <div
           style={{
             display: 'flex',
@@ -261,13 +231,13 @@ function Leaderboard() {
             flexShrink: 0,
           }}
         >
-          {sharing ? <span style={{ fontSize: '1rem' }}>⏳</span> : <WhatsAppIcon size={24} />}
+          {sharing ? <span className="text-[1rem]">⏳</span> : <WhatsAppIcon size={24} />}
         </button>
       </div>
 
       {activeTab === 'evolution' ? (
-        <div style={{ width: '100%', marginTop: '10px' }}>
-          <Suspense fallback={<div className="skeleton-card" style={{ height: 400 }} />}>
+        <div className="w-full mt-2.5">
+          <Suspense fallback={<div className="skeleton-card h-100" />}>
             <EvolutionChart
               validResults={validResults}
               userName={userName}
@@ -357,20 +327,8 @@ function Leaderboard() {
             </div>
           )}
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '20px',
-              alignItems: 'flex-start',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              width: '100%',
-            }}
-          >
-            <div
-              className="table-container"
-              style={{ flex: 1, minWidth: '300px', maxWidth: '1400px', margin: '0 auto' }}
-            >
+          <div className="flex gap-5 items-start flex-wrap justify-center w-full">
+            <div className="table-container flex-1 min-w-75 max-w-350 my-0 mx-auto">
               <table className="leaderboard-table">
                 <thead>
                   <tr>
@@ -413,26 +371,10 @@ function Leaderboard() {
 
                     return (
                       <tr key={r.key} style={rowStyle}>
-                        <td style={{ fontSize: '1.2em', textAlign: 'center' }}>{rankDisplay}</td>
+                        <td className="text-[1.2em] text-center">{rankDisplay}</td>
                         <td>
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'flex-start',
-                              alignItems: 'center',
-                              flexWrap: 'nowrap',
-                              gap: '6px',
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                minWidth: 0,
-                                flex: 1,
-                              }}
-                            >
+                          <div className="flex justify-start items-center flex-nowrap gap-1.5">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
                               <UserAvatar
                                 url={
                                   r.avatarUrl || (r.userId ? `/api/users/${r.userId}/avatar` : '')
@@ -440,29 +382,12 @@ function Leaderboard() {
                                 name={r.name}
                                 size={28}
                               />
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  flexWrap: 'wrap',
-                                  gap: '6px',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <span
-                                  title={`Ver Porra de ${r.name}`}
-                                  style={{ fontSize: '1.1em' }}
-                                >
+                              <div className="flex items-center flex-wrap gap-1.5 min-w-0">
+                                <span className="text-[1.1em]" title={`Ver Porra de ${r.name}`}>
                                   <strong>
                                     {r.name}
                                     {isMe && (
-                                      <span
-                                        style={{
-                                          color: 'var(--accent-color)',
-                                          marginLeft: '5px',
-                                          fontSize: '0.8em',
-                                        }}
-                                      >
+                                      <span className="text-accent ml-[5px] text-[0.8em]">
                                         (Tú)
                                       </span>
                                     )}
@@ -481,7 +406,7 @@ function Leaderboard() {
 
                             {r.id != null && (
                               <button
-                                className="glass-btn"
+                                className="glass-btn bg-[rgba(56,_173,_246,_0.2)] text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-8.5 min-h-8.5 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (isMatchday) {
@@ -489,21 +414,6 @@ function Leaderboard() {
                                   } else {
                                     state.setViewerPredictionId(r.id);
                                   }
-                                }}
-                                style={{
-                                  background: 'rgba(56, 173, 246, 0.2)',
-                                  color: '#38adf6',
-                                  border: '1px solid #38adf6',
-                                  padding: '5px 7px',
-                                  minWidth: '34px',
-                                  minHeight: '34px',
-                                  marginLeft: 'auto',
-                                  flexShrink: 0,
-                                  fontSize: '0.95rem',
-                                  lineHeight: 1,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
                                 }}
                                 title={isMatchday ? 'Ver partidos de la jornada' : 'Ver Porra'}
                               >
@@ -567,32 +477,17 @@ function Leaderboard() {
           borderRadius: '15px',
         }}
       >
-        <div
-          style={{
-            textAlign: 'center',
-            marginBottom: '20px',
-            borderBottom: '2px solid #00d2d3',
-            paddingBottom: '10px',
-          }}
-        >
-          <h1 style={{ color: '#00d2d3', margin: 0, fontSize: '28px', textTransform: 'uppercase' }}>
+        <div className="text-center mb-5 border-b-2 border-b-[#00d2d3] pb-2.5">
+          <h1 className="text-[#00d2d3] m-0 text-[28px] uppercase">
             🏆{' '}
             {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'Porra Oficial'}
           </h1>
-          <p
-            style={{ color: '#ff9f43', margin: '5px 0 0 0', fontSize: '18px', fontWeight: 'bold' }}
-          >
+          <p className="text-[#ff9f43] mt-[5px] mb-0 mx-0 text-[18px] font-bold">
             Clasificación: {activeGroupName}
           </p>
         </div>
-        <div
-          id="share-image-columns"
-          style={{ display: 'flex', gap: '20px', justifyContent: 'space-between' }}
-        >
-          <div
-            id="share-col-left"
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}
-          >
+        <div className="flex gap-5 justify-between" id="share-image-columns">
+          <div className="flex-1 flex flex-col gap-2" id="share-col-left">
             {validResults.slice(0, mid).map((r) => {
               const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
@@ -610,33 +505,20 @@ function Leaderboard() {
                     border: isMe ? '1px solid #00d2d3' : '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span
-                      style={{
-                        fontSize: '1.2rem',
-                        fontWeight: 'bold',
-                        width: '30px',
-                        textAlign: 'center',
-                        color: 'var(--accent-color)',
-                      }}
-                    >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
                       {rankDisplay}
                     </span>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>
-                      {r.name}
-                    </span>
+                    <span className="text-[1.1rem] font-bold text-white">{r.name}</span>
                   </div>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#00d2d3' }}>
+                  <span className="text-[1.2rem] font-bold text-[#00d2d3]">
                     {r.points.total} pts
                   </span>
                 </div>
               );
             })}
           </div>
-          <div
-            id="share-col-right"
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}
-          >
+          <div className="flex-1 flex flex-col gap-2" id="share-col-right">
             {validResults.slice(mid).map((r) => {
               const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
@@ -654,23 +536,13 @@ function Leaderboard() {
                     border: isMe ? '1px solid #00d2d3' : '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span
-                      style={{
-                        fontSize: '1.2rem',
-                        fontWeight: 'bold',
-                        width: '30px',
-                        textAlign: 'center',
-                        color: 'var(--accent-color)',
-                      }}
-                    >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
                       {rankDisplay}
                     </span>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>
-                      {r.name}
-                    </span>
+                    <span className="text-[1.1rem] font-bold text-white">{r.name}</span>
                   </div>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#00d2d3' }}>
+                  <span className="text-[1.2rem] font-bold text-[#00d2d3]">
                     {r.points.total} pts
                   </span>
                 </div>

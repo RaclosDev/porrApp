@@ -21,28 +21,9 @@ export default function ChartToolbar({
   setHoveredStageIdx,
 }: ChartToolbarProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '15px',
-        marginBottom: '16px',
-        padding: '0 4px',
-      }}
-    >
+    <div className="flex justify-between items-center flex-wrap gap-[15px] mb-4 py-0 px-1">
       <div>
-        <h3
-          style={{
-            margin: 0,
-            fontSize: '1.4rem',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
+        <h3 className="m-0 text-[1.4rem] text-white flex items-center gap-2">
           <span>📈 Gráfica de Evolución</span>
           {mode === 'rank' && (
             <span
@@ -75,7 +56,7 @@ export default function ChartToolbar({
         </h3>
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="flex gap-2.5 flex-wrap items-center">
         {/* Horizontal Zoom Controls */}
         <div
           style={{
@@ -106,17 +87,7 @@ export default function ChartToolbar({
           >
             🔍-
           </button>
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: '#ccc',
-              padding: '0 4px',
-              fontWeight: 'bold',
-              minWidth: '42px',
-              textAlign: 'center',
-              userSelect: 'none',
-            }}
-          >
+          <span className="text-[0.75rem] text-[#ccc] py-0 px-1 font-bold min-w-10.5 text-center select-none">
             {Math.round(zoomLevel * 100)}%
           </span>
           <button

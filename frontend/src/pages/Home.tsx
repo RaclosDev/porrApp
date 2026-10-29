@@ -62,22 +62,16 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
   const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;
   if (loading && !hasGroupsData) {
     return (
-      <section className="view-section" style={{ display: 'block' }}>
+      <section className="view-section block">
         <div className="groups-grid">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="skeleton-card">
-              <div
-                className="skeleton skeleton-text short"
-                style={{ height: '18px', marginBottom: '14px' }}
-              />
+              <div className="skeleton skeleton-text short h-4.5 mb-3.5" />
               {Array.from({ length: 4 }).map((_, j) => (
                 <div key={j} className="skeleton-row">
                   <div className="skeleton skeleton-avatar" />
                   <div className="skeleton skeleton-bar" />
-                  <div
-                    className="skeleton"
-                    style={{ width: '28px', height: '14px', borderRadius: '4px' }}
-                  />
+                  <div className="skeleton w-7 h-3.5 rounded-[4px]" />
                 </div>
               ))}
             </div>
@@ -117,29 +111,13 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           else setSelectedGroup({ name: groupName, teams });
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '10px',
-          }}
-        >
-          <h3 style={{ margin: 0 }}>Grupo {groupName}</h3>
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              fontSize: '0.75em',
-              fontWeight: 'bold',
-              color: 'var(--text-muted)',
-              paddingRight: '6px',
-            }}
-          >
-            <span style={{ width: '20px', textAlign: 'center' }}>DG</span>
-            <span style={{ width: '16px', textAlign: 'center' }}>GF</span>
-            <span style={{ width: '18px', textAlign: 'center' }}>FP</span>
-            <span style={{ width: '24px', textAlign: 'center' }}>PTS</span>
+        <div className="flex justify-between items-center mb-2.5">
+          <h3 className="m-0">Grupo {groupName}</h3>
+          <div className="flex gap-2 text-[0.75em] font-bold text-muted pr-1.5">
+            <span className="w-5 text-center">DG</span>
+            <span className="w-4 text-center">GF</span>
+            <span className="w-4.5 text-center">FP</span>
+            <span className="w-6 text-center">PTS</span>
           </div>
         </div>
 
@@ -161,33 +139,17 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           if (team.stats.status === 5) {
             statusDot = (
               <span
+                className="w-2 h-2 bg-[#3498db] rounded-full ml-1 shrink-0 inline-block"
                 title="Clasificado Matemáticamente"
                 aria-label="Clasificado Matemáticamente"
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  background: '#3498db',
-                  borderRadius: '50%',
-                  marginLeft: '4px',
-                  flexShrink: 0,
-                  display: 'inline-block',
-                }}
               />
             );
           } else if (team.stats.status === -1) {
             statusDot = (
               <span
+                className="w-2 h-2 bg-[#ff4757] rounded-full ml-1 shrink-0 inline-block"
                 title="Eliminado Matemáticamente"
                 aria-label="Eliminado Matemáticamente"
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  background: '#ff4757',
-                  borderRadius: '50%',
-                  marginLeft: '4px',
-                  flexShrink: 0,
-                  display: 'inline-block',
-                }}
               />
             );
           }
@@ -217,49 +179,22 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
                 {idx + 1}
               </span>
               <Flag team={team.name} />
-              <span
-                style={{
-                  flexGrow: 1,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
+              <span className="grow whitespace-nowrap overflow-hidden text-ellipsis flex items-center">
                 {normalizeCountryName(team.name)}
                 {statusDot}
               </span>
-              <div
-                style={{ display: 'flex', gap: '8px', fontSize: '0.85em', alignItems: 'center' }}
-              >
-                <span style={{ width: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div className="flex gap-2 text-[0.85em] items-center">
+                <span className="w-5 text-center text-muted">
                   {team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}
                 </span>
-                <span style={{ width: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  {team.stats.gls}
-                </span>
+                <span className="w-4 text-center text-muted">{team.stats.gls}</span>
                 <span
-                  style={{
-                    width: '18px',
-                    textAlign: 'center',
-                    color: 'var(--text-muted)',
-                  }}
+                  className="w-4.5 text-center text-muted"
                   title={`Fair Play: ${team.stats.fp || 0}`}
                 >
                   {team.stats.fp || 0}
                 </span>
-                <span
-                  style={{
-                    fontWeight: 'bold',
-                    background: 'rgba(255,255,255,0.08)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    color: 'white',
-                    width: '24px',
-                    textAlign: 'center',
-                  }}
-                >
+                <span className="font-bold bg-[rgba(255,255,255,0.08)] py-0.5 px-1.5 rounded-[4px] text-white w-6 text-center">
                   {team.stats.pts}
                 </span>
               </div>
@@ -271,17 +206,9 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
   };
 
   return (
-    <section id="view-home" className="view-section" style={{ display: 'block' }}>
+    <section id="view-home" className="view-section block">
       {/* Pestañas y paneles de móvil (sólo en modo grupos) */}
-      <div
-        className="mb-tabs hide-on-desktop"
-        style={{
-          width: '100%',
-          maxWidth: '420px',
-          margin: '0 auto 20px auto',
-          justifyContent: 'center',
-        }}
-      >
+      <div className="mb-tabs hide-on-desktop w-full max-w-105 mt-0 mb-5 mx-auto justify-center">
         <button
           className={`mb-tab ${activeMobilePanel === 'thirds' ? 'mb-tab-active' : ''}`}
           onClick={() => setActiveMobilePanel((p) => (p === 'thirds' ? null : 'thirds'))}
@@ -340,16 +267,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
         )}
       </div>
 
-      <div
-        className="hide-on-desktop"
-        style={{
-          marginBottom: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          width: '100%',
-        }}
-      >
+      <div className="hide-on-desktop mb-5 flex flex-col items-center w-full">
         <div className={activeMobilePanel === 'thirds' ? '' : 'mobile-step-hidden'}>
           <BestThirdsPanel
             officialPoints={officialPoints}
@@ -377,43 +295,15 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
       </div>
 
       {/* Paneles desktop (siempre visibles, solo en groups) */}
-      <div
-        className="hide-on-mobile"
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          marginBottom: '20px',
-          width: '100%',
-          gap: '20px',
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            minWidth: 'min(100%, 380px)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-          }}
-        >
+      <div className="hide-on-mobile flex flex-wrap justify-center items-start mb-5 w-full gap-5">
+        <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
           <BestThirdsPanel
             officialPoints={officialPoints}
             allGames={allGames}
             nameToIdMap={nameToIdMap}
           />
         </div>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 'min(100%, 350px)',
-            maxWidth: '600px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
+        <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel
             liveMatches={matchRadar?.live || []}
             matchRadar={matchRadar}
@@ -421,16 +311,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           />
         </div>
         {activeGroupPichichi && (
-          <div
-            style={{
-              flex: 1,
-              minWidth: 'min(100%, 380px)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'flex-start',
-            }}
-            className="pichichi-mobile-center"
-          >
+          <div className="pichichi-mobile-center flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
             <TopScorersPanel
               topScorers={topScorers}
               loading={topScorersLoading}

@@ -29,15 +29,7 @@ export default function LoginModal({
       aria-label="Identificación de usuario"
       style={{ display: showMyPredictionModal ? 'flex' : 'none', zIndex: 999999 }}
     >
-      <div
-        className="modal-content glass-panel"
-        style={{
-          maxWidth: '420px',
-          textAlign: 'center',
-          padding: '35px 25px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        }}
-      >
+      <div className="modal-content glass-panel max-w-105 text-center py-[35px] px-[25px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.5)]">
         <h3
           style={{
             color: 'var(--accent-color)',
@@ -49,18 +41,11 @@ export default function LoginModal({
         >
           Iniciar sesión
         </h3>
-        <div style={{ animation: 'fadeIn 0.5s ease forwards' }}>
-          <p
-            style={{
-              marginBottom: '30px',
-              fontSize: '1rem',
-              color: 'var(--text-muted)',
-              lineHeight: '1.5',
-            }}
-          >
+        <div className="[animation:fadeIn_0.5s_ease_forwards]">
+          <p className="mb-7.5 text-[1rem] text-muted leading-[1.5]">
             Para ver en qué liga estás o rellenar tu porra, ¡inicia sesión con Google!
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <div className="flex justify-center mb-5">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => toast.error('Inicio de sesión cancelado o fallido')}
@@ -70,14 +55,7 @@ export default function LoginModal({
             />
           </div>
           <button
-            className="glass-btn"
-            style={{
-              marginTop: '10px',
-              fontSize: '0.85rem',
-              padding: '8px 15px',
-              opacity: 0.8,
-              width: '100%',
-            }}
+            className="glass-btn mt-2.5 text-[0.85rem] py-2 px-[15px] opacity-[0.8] w-full"
             onClick={() => {
               setShowMyPredictionModal(false);
               if (isDemo) {

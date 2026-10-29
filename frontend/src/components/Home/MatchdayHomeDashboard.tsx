@@ -117,10 +117,7 @@ export default function MatchdayHomeDashboard() {
   const [showRules, setShowRules] = useState(false);
 
   return (
-    <section
-      className="view-section active"
-      style={{ maxWidth: '1080px', margin: '0 auto', padding: '4px 0 24px' }}
-    >
+    <section className="view-section active max-w-270 my-0 mx-auto pt-1 pb-6 px-0">
       {showRules && (
         <LeagueRulesModal
           group={{ name: activeGroupName, rules: activeGroupRules }}
@@ -146,15 +143,9 @@ export default function MatchdayHomeDashboard() {
         </button>
       </header>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '18px',
-        }}
-      >
+      <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
         {/* Partidos */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+        <div className="flex flex-col gap-2 min-w-0">
           <div className="home-list-header">
             <h2>
               <span>Partidos{currentRound ? ` ${currentRound}` : ''}</span>
@@ -221,19 +212,16 @@ export default function MatchdayHomeDashboard() {
               );
             })
           ) : (
-            <div
-              className="glass-panel"
-              style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}
-            >
+            <div className="glass-panel p-6 text-center text-muted">
               No hay partidos programados para esta jornada.
             </div>
           )}
         </div>
 
         {/* Ranking y tabla */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minWidth: 0 }}>
-          <div className="glass-panel" style={{ padding: '16px', borderRadius: '14px' }}>
-            <div className="home-list-header" style={{ marginBottom: '10px' }}>
+        <div className="flex flex-col gap-4.5 min-w-0">
+          <div className="glass-panel p-4 rounded-[14px]">
+            <div className="home-list-header mb-2.5">
               <h2>
                 <span aria-hidden="true">🏆</span>
                 <span>Ranking</span>
@@ -243,7 +231,7 @@ export default function MatchdayHomeDashboard() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div className="flex flex-col gap-1.5">
               {topParticipants.length > 0 ? (
                 topParticipants.map((p, index) => {
                   const isMe = p.userId?.toString() === userId?.toString() || p.name === userName;
@@ -268,24 +256,8 @@ export default function MatchdayHomeDashboard() {
                           : '1px solid transparent',
                       }}
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          minWidth: 0,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: '1rem',
-                            width: '22px',
-                            textAlign: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {medal}
-                        </span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[1rem] w-5.5 text-center shrink-0">{medal}</span>
                         <span
                           style={{
                             fontWeight: isMe ? 700 : 500,
@@ -300,28 +272,14 @@ export default function MatchdayHomeDashboard() {
                           {isMe ? ' (Tú)' : ''}
                         </span>
                       </div>
-                      <span
-                        style={{
-                          fontWeight: 800,
-                          color: 'var(--accent-color, #00d2d3)',
-                          fontSize: '0.88rem',
-                          flexShrink: 0,
-                        }}
-                      >
+                      <span className="font-extrabold text-accent text-[0.88rem] shrink-0">
                         {p.total || 0} pts
                       </span>
                     </div>
                   );
                 })
               ) : (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    color: 'var(--text-muted)',
-                    fontSize: '0.85rem',
-                    padding: '12px',
-                  }}
-                >
+                <div className="text-center text-muted text-[0.85rem] p-3">
                   Aún no hay puntuaciones en esta peña.
                 </div>
               )}
@@ -329,8 +287,8 @@ export default function MatchdayHomeDashboard() {
           </div>
 
           {topTeams.length > 0 && (
-            <div className="glass-panel" style={{ padding: '16px', borderRadius: '14px' }}>
-              <div className="home-list-header" style={{ marginBottom: '10px' }}>
+            <div className="glass-panel p-4 rounded-[14px]">
+              <div className="home-list-header mb-2.5">
                 <h2>
                   <span aria-hidden="true">📊</span>
                   <span>Tabla</span>
@@ -340,30 +298,14 @@ export default function MatchdayHomeDashboard() {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div className="flex flex-col gap-1.5">
                 {topTeams.map((t) => (
                   <div
+                    className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] bg-[rgba(255,_255,_255,_0.03)]"
                     key={t.rank + t.teamName}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                    }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                      <span
-                        style={{
-                          width: '16px',
-                          textAlign: 'center',
-                          fontSize: '0.78rem',
-                          color: 'var(--text-muted)',
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-4 text-center text-[0.78rem] text-muted shrink-0">
                         {t.rank}
                       </span>
                       <Flag
@@ -371,32 +313,13 @@ export default function MatchdayHomeDashboard() {
                         logo={t.teamLogo}
                         style={{ width: '20px', height: '20px' }}
                       />
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          fontSize: '0.85rem',
-                          color: '#fff',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <span className="font-semibold text-[0.85rem] text-white overflow-hidden text-ellipsis whitespace-nowrap">
                         {t.teamName}
                       </span>
                     </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '10px',
-                        fontSize: '0.85rem',
-                        alignItems: 'baseline',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                        {t.gamesPlayed} PJ
-                      </span>
-                      <span style={{ fontWeight: 800, color: '#fff' }}>{t.points} pts</span>
+                    <div className="flex gap-2.5 text-[0.85rem] items-baseline shrink-0">
+                      <span className="text-muted text-[0.75rem]">{t.gamesPlayed} PJ</span>
+                      <span className="font-extrabold text-white">{t.points} pts</span>
                     </div>
                   </div>
                 ))}

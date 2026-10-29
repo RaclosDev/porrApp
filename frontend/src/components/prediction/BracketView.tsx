@@ -35,12 +35,7 @@ export default function BracketView({
   renderSlot,
 }: BracketViewProps) {
   return (
-    <div
-      style={{
-        paddingBottom: '20px',
-        marginTop: '10px',
-      }}
-    >
+    <div className="pb-5 mt-2.5">
       <BracketCanvas
         leftRounds={leftRounds}
         rightRounds={rightRounds}
@@ -51,20 +46,10 @@ export default function BracketView({
         mobileCenter={() => {
           const centerTotal = getCenterPointsTotal();
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="flex flex-col gap-5">
               {/* Final */}
               <div>
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: 'rgba(251,191,36,0.9)',
-                    letterSpacing: 2,
-                    textTransform: 'uppercase',
-                    textAlign: 'center',
-                    marginBottom: 8,
-                  }}
-                >
+                <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase text-center mb-2">
                   🏆 Final 🏆
                 </div>
                 <div className="mb-match-card">
@@ -73,17 +58,8 @@ export default function BracketView({
                 </div>
               </div>
               {/* Campeón */}
-              <div style={{ textAlign: 'center' }}>
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: 'var(--champion-gold)',
-                    letterSpacing: 2,
-                    textTransform: 'uppercase',
-                    marginBottom: 8,
-                  }}
-                >
+              <div className="text-center">
+                <div className="text-[0.75rem] font-bold text-gold tracking-[2px] uppercase mb-2">
                   🏆 Campeón
                 </div>
                 <div className="champion-display">
@@ -92,17 +68,7 @@ export default function BracketView({
               </div>
               {/* Tercer Puesto */}
               <div>
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    letterSpacing: 2,
-                    textTransform: 'uppercase',
-                    textAlign: 'center',
-                    marginBottom: 8,
-                  }}
-                >
+                <div className="text-[0.75rem] font-bold text-muted tracking-[2px] uppercase text-center mb-2">
                   🥉 Tercer Puesto
                 </div>
                 <div className="mb-match-card">
@@ -118,17 +84,8 @@ export default function BracketView({
               </div>
               {/* Ganador Tercer Puesto */}
               {thirdWinnerName && (
-                <div style={{ textAlign: 'center' }}>
-                  <div
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      letterSpacing: 1.5,
-                      textTransform: 'uppercase',
-                      marginBottom: 8,
-                    }}
-                  >
+                <div className="text-center">
+                  <div className="text-[0.75rem] font-bold text-muted tracking-[1.5px] uppercase mb-2">
                     🥉 Ganador 3er Puesto
                   </div>
                   <div className="champion-display">
@@ -138,18 +95,8 @@ export default function BracketView({
               )}
               {/* Puntos del centro */}
               {centerTotal > 0 && (
-                <div style={{ textAlign: 'center' }}>
-                  <div
-                    style={{
-                      fontSize: '0.85rem',
-                      fontWeight: 'bold',
-                      color: '#00d2d3',
-                      background: 'rgba(0, 210, 211, 0.1)',
-                      display: 'inline-block',
-                      padding: '4px 12px',
-                      borderRadius: '6px',
-                    }}
-                  >
+                <div className="text-center">
+                  <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] inline-block py-1 px-3 rounded-[6px]">
                     +{centerTotal} pts
                   </div>
                 </div>

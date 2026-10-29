@@ -62,14 +62,7 @@ export default function OfficialGroupsView() {
           else setSelectedGroup({ name: groupName, teams });
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '10px',
-          }}
-        >
+        <div className="flex justify-between items-center mb-2.5">
           <h3
             style={{
               margin: 0,
@@ -83,20 +76,11 @@ export default function OfficialGroupsView() {
           >
             Grupo {groupName}
           </h3>
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              fontSize: '0.75em',
-              fontWeight: 'bold',
-              color: 'var(--text-muted)',
-              paddingRight: '6px',
-            }}
-          >
-            <span style={{ width: '20px', textAlign: 'center' }}>DG</span>
-            <span style={{ width: '16px', textAlign: 'center' }}>GF</span>
-            <span style={{ width: '18px', textAlign: 'center' }}>FP</span>
-            <span style={{ width: '24px', textAlign: 'center' }}>PTS</span>
+          <div className="flex gap-2 text-[0.75em] font-bold text-muted pr-1.5">
+            <span className="w-5 text-center">DG</span>
+            <span className="w-4 text-center">GF</span>
+            <span className="w-4.5 text-center">FP</span>
+            <span className="w-6 text-center">PTS</span>
           </div>
         </div>
 
@@ -105,33 +89,17 @@ export default function OfficialGroupsView() {
           if (team.stats.status === 5) {
             statusDot = (
               <span
+                className="w-2 h-2 bg-[#3498db] rounded-full ml-1 shrink-0 inline-block"
                 title="Clasificado Matemáticamente"
                 aria-label="Clasificado Matemáticamente"
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  background: '#3498db',
-                  borderRadius: '50%',
-                  marginLeft: '4px',
-                  flexShrink: 0,
-                  display: 'inline-block',
-                }}
               />
             );
           } else if (team.stats.status === -1) {
             statusDot = (
               <span
+                className="w-2 h-2 bg-[#ff4757] rounded-full ml-1 shrink-0 inline-block"
                 title="Eliminado Matemáticamente"
                 aria-label="Eliminado Matemáticamente"
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  background: '#ff4757',
-                  borderRadius: '50%',
-                  marginLeft: '4px',
-                  flexShrink: 0,
-                  display: 'inline-block',
-                }}
               />
             );
           }
@@ -148,25 +116,8 @@ export default function OfficialGroupsView() {
                 background: idx < 2 ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
               }}
             >
-              <span
-                style={{
-                  width: '18px',
-                  fontWeight: 'bold',
-                  color: 'var(--text-muted)',
-                  fontSize: '0.85em',
-                  flexShrink: 0,
-                }}
-              >
-                {idx + 1}
-              </span>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  marginRight: '5px',
-                  flexShrink: 0,
-                }}
-              >
+              <span className="w-4.5 font-bold text-muted text-[0.85em] shrink-0">{idx + 1}</span>
+              <span className="inline-flex items-center mr-[5px] shrink-0">
                 <Flag team={team.name} />
               </span>
               <span
@@ -182,14 +133,7 @@ export default function OfficialGroupsView() {
                 {team.name}
               </span>
               {statusDot}
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  fontSize: '0.85em',
-                  color: 'var(--text-muted)',
-                }}
-              >
+              <div className="flex gap-2 text-[0.85em] text-muted">
                 <span
                   style={{
                     width: '20px',
@@ -200,18 +144,9 @@ export default function OfficialGroupsView() {
                 >
                   {team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}
                 </span>
-                <span style={{ width: '16px', textAlign: 'center' }}>{team.stats.gls}</span>
-                <span style={{ width: '18px', textAlign: 'center' }}>{team.stats.fp}</span>
-                <span
-                  style={{
-                    width: '24px',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    color: 'var(--text-main)',
-                  }}
-                >
-                  {team.stats.pts}
-                </span>
+                <span className="w-4 text-center">{team.stats.gls}</span>
+                <span className="w-4.5 text-center">{team.stats.fp}</span>
+                <span className="w-6 text-center font-bold text-main">{team.stats.pts}</span>
               </div>
             </div>
           );
@@ -223,22 +158,16 @@ export default function OfficialGroupsView() {
   const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;
   if (loading && !hasGroupsData) {
     return (
-      <section className="view-section" style={{ display: 'block' }}>
+      <section className="view-section block">
         <div className="groups-grid">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="skeleton-card">
-              <div
-                className="skeleton skeleton-text short"
-                style={{ height: '18px', marginBottom: '14px' }}
-              />
+              <div className="skeleton skeleton-text short h-4.5 mb-3.5" />
               {Array.from({ length: 4 }).map((_, j) => (
                 <div key={j} className="skeleton-row">
                   <div className="skeleton skeleton-avatar" />
                   <div className="skeleton skeleton-bar" />
-                  <div
-                    className="skeleton"
-                    style={{ width: '28px', height: '14px', borderRadius: '4px' }}
-                  />
+                  <div className="skeleton w-7 h-3.5 rounded-[4px]" />
                 </div>
               ))}
             </div>
@@ -249,44 +178,17 @@ export default function OfficialGroupsView() {
   }
 
   return (
-    <div style={{ width: '100%' }}>
+    <div className="w-full">
       {/* Paneles superiores: Mejores Terceros, Partidos en Directo, Pichichi */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '20px',
-          justifyContent: 'center',
-          alignItems: 'stretch',
-          flexWrap: 'wrap',
-          marginBottom: '30px',
-          width: '100%',
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            minWidth: 'min(100%, 380px)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-          }}
-        >
+      <div className="flex gap-5 justify-center items-stretch flex-wrap mb-7.5 w-full">
+        <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
           <BestThirdsPanel
             officialPoints={officialPoints}
             allGames={allGames}
             nameToIdMap={nameToIdMap}
           />
         </div>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 'min(100%, 350px)',
-            maxWidth: '600px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
+        <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel
             liveMatches={matchRadar?.live || []}
             matchRadar={matchRadar}
@@ -294,16 +196,7 @@ export default function OfficialGroupsView() {
           />
         </div>
         {activeGroupPichichi && (
-          <div
-            style={{
-              flex: 1,
-              minWidth: 'min(100%, 380px)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'flex-start',
-            }}
-            className="pichichi-mobile-center"
-          >
+          <div className="pichichi-mobile-center flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
             <TopScorersPanel
               topScorers={topScorers}
               loading={topScorersLoading}

@@ -35,13 +35,13 @@ function OfficialBracket() {
 
   if (loadingGroup)
     return (
-      <p role="status" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <p className="p-6 text-center text-muted" role="status">
         Cargando liga...
       </p>
     );
   if (groupError)
     return (
-      <p role="alert" style={{ padding: '24px', textAlign: 'center', color: '#ff7675' }}>
+      <p className="p-6 text-center text-[#ff7675]" role="alert">
         No se pudo cargar la liga. Inténtalo de nuevo.
       </p>
     );
@@ -99,16 +99,8 @@ function OfficialBracketView() {
 
   if (!part) {
     return (
-      <section
-        className="view-section"
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '50vh',
-        }}
-      >
-        <h2 style={{ color: 'var(--text-muted)' }}>Cargando cuadro oficial...</h2>
+      <section className="view-section flex justify-center items-center min-h-[50vh]">
+        <h2 className="text-muted">Cargando cuadro oficial...</h2>
       </section>
     );
   }
@@ -246,7 +238,7 @@ function OfficialBracketView() {
     typeof t === 'object' && t ? t.isProvisional : false;
 
   const centerContent = (colW: number) => (
-    <div style={{ display: 'block' }}>
+    <div className="block">
       {/* FINAL */}
       <div
         style={{
@@ -282,16 +274,7 @@ function OfficialBracketView() {
           textAlign: 'center',
         }}
       >
-        <div
-          style={{
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            color: 'var(--champion-gold)',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-          }}
-        >
+        <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1.5">
           🏆 Campeón
         </div>
         <div className="champion-display">
@@ -335,17 +318,7 @@ function OfficialBracketView() {
           width: colW,
         }}
       >
-        <div
-          style={{
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-            textAlign: 'center',
-          }}
-        >
+        <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1.5 text-center">
           🥉 Tercer Puesto
         </div>
         <div className="match third-place">
@@ -360,17 +333,8 @@ function OfficialBracketView() {
             isHome: false,
           })}
         </div>
-        <div style={{ marginTop: 8, textAlign: 'center' }}>
-          <div
-            style={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: '#cd7f32',
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              marginBottom: 4,
-            }}
-          >
+        <div className="mt-2 text-center">
+          <div className="text-[0.65rem] font-bold text-[#cd7f32] tracking-[2px] uppercase mb-1">
             🥉 3.º Puesto
           </div>
           <div className="champion-display">
@@ -428,10 +392,7 @@ function OfficialBracketView() {
         100% { filter: drop-shadow(0 0 2px rgba(0,210,211,0.4)); }
       }
     `}</style>
-      <section
-        className="view-section"
-        style={{ display: 'block', paddingTop: 0, position: 'relative' }}
-      >
+      <section className="view-section block pt-0 relative">
         {/* PESTAÑAS DE NAVEGACIÓN ESTILO PILLS */}
         <OfficialBracketTabs
           activeTab={activeTab}
@@ -448,16 +409,7 @@ function OfficialBracketView() {
             {featuredMatch && <FeaturedMatchBanner featuredMatch={featuredMatch} />}
 
             {/* Controls overlay */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                marginBottom: '10px',
-                position: 'relative',
-                zIndex: 50,
-              }}
-            >
+            <div className="flex flex-col items-center mb-2.5 relative z-[50]">
               {/* HUD Modal Centrado debajo de los botones - Cierra al hacer clic en cualquier parte fuera */}
               {activePanel && (
                 <BracketInfoPanel

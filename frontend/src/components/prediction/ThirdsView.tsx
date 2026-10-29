@@ -14,38 +14,23 @@ export default function ThirdsView({
   getGroupTeamData,
 }: ThirdsViewProps) {
   return (
-    <div style={{ marginTop: '10px' }}>
-      <div
-        style={{
-          padding: '16px 20px',
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          textAlign: 'center',
-        }}
-      >
-        <h4 style={{ margin: '0 0 6px 0', color: '#a29bfe', fontSize: '1.1rem' }}>
+    <div className="mt-2.5">
+      <div className="py-4 px-5 bg-[rgba(255,_255,_255,_0.04)] border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] mb-5 text-center">
+        <h4 className="mt-0 mb-1.5 mx-0 text-[#a29bfe] text-[1.1rem]">
           Mejores Terceros Seleccionados ({advancingThirds.length}/8 a Dieciseisavos)
         </h4>
-        <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+        <p className="m-0 text-[0.88rem] text-muted">
           De los 12 equipos situados en 3ª posición en la fase de grupos, estos son los 8 que
           elegiste para avanzar al cuadro.
         </p>
       </div>
 
       {allThirdTeams.length === 0 ? (
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '30px' }}>
+        <p className="text-center text-muted p-7.5">
           No se han encontrado equipos clasificados en 3ª posición.
         </p>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: '12px',
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(260px,_1fr))] gap-3">
           {allThirdTeams.map(({ group, team }) => {
             const isAdvancing = advancingThirds.includes(team);
             const { color, status } = getGroupTeamData(group, team, 3);
@@ -68,26 +53,8 @@ export default function ThirdsView({
                   boxShadow: isAdvancing ? '0 4px 15px rgba(0, 210, 211, 0.15)' : 'none',
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    minWidth: 0,
-                    flex: 1,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      color: 'var(--text-muted)',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <span className="text-[0.75rem] font-extrabold py-[3px] px-2 rounded-[6px] bg-[rgba(255,_255,_255,_0.08)] text-muted tracking-[0.5px]">
                     G.{group}
                   </span>
                   <Flag
@@ -115,15 +82,8 @@ export default function ThirdsView({
                   </span>
                   {status === 5 && (
                     <span
+                      className="w-2 h-2 bg-[#3498db] rounded-full inline-block shrink-0"
                       title="Clasificado Matemáticamente"
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        background: '#3498db',
-                        borderRadius: '50%',
-                        display: 'inline-block',
-                        flexShrink: 0,
-                      }}
                     />
                   )}
                 </div>

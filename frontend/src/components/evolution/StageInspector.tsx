@@ -31,19 +31,8 @@ export default function StageInspector({
     >
       {currentInspectedStage ? (
         <div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '10px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              paddingBottom: '8px',
-              marginBottom: '10px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="flex justify-between items-center flex-wrap gap-2.5 border-b border-b-[rgba(255,_255,_255,_0.08)] pb-2 mb-2.5">
+            <div className="flex items-center gap-3 flex-wrap">
               <span
                 style={{
                   fontWeight: 'bold',
@@ -58,28 +47,19 @@ export default function StageInspector({
                 📍 {currentInspectedStage.roundName || currentInspectedStage.label}
               </span>
               {currentInspectedStage.matchTitle && (
-                <span style={{ fontSize: '0.88rem', color: '#fff', fontWeight: 'bold' }}>
+                <span className="text-[0.88rem] text-white font-bold">
                   ⚽ {currentInspectedStage.matchTitle}
                 </span>
               )}
               {currentInspectedStage.matchTime && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span className="text-[0.8rem] text-muted">
                   🕒 {currentInspectedStage.matchTime}
                 </span>
               )}
             </div>
             <button
+              className="bg-[rgba(255,255,255,0.08)] border-0 text-[#aaa] cursor-pointer text-[0.8rem] py-1 px-2.5 rounded-[12px] [transition:background_0.2s]"
               onClick={() => setHoveredStageIdx(null)}
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: 'none',
-                color: '#aaa',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                padding: '4px 10px',
-                borderRadius: '12px',
-                transition: 'background 0.2s',
-              }}
               title="Cerrar inspección"
             >
               ✕ Cerrar detalle
@@ -147,16 +127,8 @@ export default function StageInspector({
           </div>
         </div>
       ) : (
-        <div
-          style={{
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.85rem',
-            padding: '4px 0',
-            userSelect: 'none',
-          }}
-        >
-          👆 <span style={{ color: '#ccc' }}>Toca cualquier columna del gráfico</span> para
+        <div className="text-center text-muted text-[0.85rem] py-1 px-0 select-none">
+          👆 <span className="text-[#ccc]">Toca cualquier columna del gráfico</span> para
           inspeccionar en directo los puntos y el ranking de ese momento (sin clics dobles).
         </div>
       )}

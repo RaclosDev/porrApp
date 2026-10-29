@@ -7,15 +7,7 @@ interface ViewerTabsProps {
 /** Pestañas para cambiar entre grupos, terceros y cuadro. */
 export default function ViewerTabs({ activeTab, setActiveTab }: ViewerTabsProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: '20px',
-        marginTop: '5px',
-      }}
-    >
+    <div className="flex justify-center items-center mb-5 mt-[5px]">
       <div
         style={{
           display: 'grid',
