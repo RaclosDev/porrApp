@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Flag from './Flag';
 import { openStats } from '../utils/navigation';
 import type { Match } from '../types/api';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 export interface SelectedGroup {
   name: string;
@@ -19,14 +20,8 @@ interface GroupMatchesModalProps {
  * Modal flotante que muestra la lista de partidos de un grupo específico.
  */
 const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesModalProps) => {
-  useEffect(() => {
-    if (!selectedGroup) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedGroup, onClose]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, { active: Boolean(selectedGroup), onEscape: onClose });
 
   if (!selectedGroup) return null;
 
@@ -47,6 +42,8 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
         role="dialog"
         aria-modal="true"
         aria-label={`Partidos del Grupo ${selectedGroup.name}`}
+        ref={dialogRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-[15px]">
@@ -54,9 +51,10 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
             Partidos del Grupo {selectedGroup.name}
           </h4>
           <button
-            className="bg-none bg-transparent border-none text-[#aaa] text-[1.4rem] cursor-pointer absolute right-[15px] top-2.5 z-[2]"
+            type="button"
+            className="bg-none bg-transparent border-none text-[#aaa] text-[1.4rem] cursor-pointer absolute right-1 top-[3px] z-[2] w-11 h-11 flex items-center justify-center"
             onClick={onClose}
-            aria-label="Cerrar modal"
+            aria-label="Cerrar"
           >
             ×
           </button>

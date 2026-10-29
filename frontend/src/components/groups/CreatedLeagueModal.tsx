@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import type { GroupsDashboardState } from '../../hooks/useGroupsDashboard';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 import type { Group } from '../../types/api';
 
 interface CreatedLeagueModalProps {
@@ -19,17 +21,31 @@ export default function CreatedLeagueModal({
   handleShareWhatsApp,
   navigate,
 }: CreatedLeagueModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, { onEscape: () => setNewlyCreatedGroup(null) });
+
   return (
     <div className="fixed inset-0 bg-[rgba(0,_0,_0,_0.8)] bg-none [backdrop-filter:blur(6px)] flex items-center justify-center z-[9999] p-5">
-      <div className="bg-[#1e293b] bg-none border border-[#00d2d3] rounded-[16px] max-w-120 w-full p-7 text-center shadow-[0_20px_40px_rgba(0,_0,_0,_0.6)] relative">
+      <div
+        className="bg-[#1e293b] bg-none border border-[#00d2d3] rounded-[16px] max-w-120 w-full p-7 text-center shadow-[0_20px_40px_rgba(0,_0,_0,_0.6)] relative"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="created-league-title"
+        ref={dialogRef}
+        tabIndex={-1}
+      >
         <button
-          className="absolute top-3.5 right-4 bg-transparent bg-none border-none text-muted text-[1.4rem] cursor-pointer"
+          type="button"
+          className="absolute top-1 right-1.5 w-11 h-11 flex items-center justify-center bg-transparent bg-none border-none text-muted text-[1.4rem] cursor-pointer"
           onClick={() => setNewlyCreatedGroup(null)}
+          aria-label="Cerrar"
         >
           ✕
         </button>
         <div className="text-[2.5rem] mb-2.5">🎉 🏆</div>
-        <h2 className="text-[#00d2d3] mt-0 mb-2 mx-0 text-[1.5rem]">¡Tu liga está lista!</h2>
+        <h2 id="created-league-title" className="text-[#00d2d3] mt-0 mb-2 mx-0 text-[1.5rem]">
+          ¡Tu liga está lista!
+        </h2>
         <p className="text-white font-bold text-[1.1rem] mt-0 mb-4 mx-0">
           "{newlyCreatedGroup.name}"
         </p>

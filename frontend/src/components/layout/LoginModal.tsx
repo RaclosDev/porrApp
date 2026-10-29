@@ -1,6 +1,8 @@
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import type { NavigateFunction } from 'react-router-dom';
+import { useRef } from 'react';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 
 interface LoginModalProps {
   exitDemoMode: () => void;
@@ -20,16 +22,23 @@ export default function LoginModal({
   setShowMyPredictionModal,
   showMyPredictionModal,
 }: LoginModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Layout ya cierra este diálogo con Escape.
+  useDialogFocus(dialogRef, { active: showMyPredictionModal });
+
   return (
     <div
       id="my-prediction-modal"
       className={`modal z-[999999] ${showMyPredictionModal ? 'flex' : 'hidden'}`}
       role="dialog"
       aria-modal="true"
-      aria-label="Identificación de usuario"
+      aria-labelledby="login-modal-title"
+      ref={dialogRef}
+      tabIndex={-1}
     >
       <div className="modal-content glass-panel max-w-105 text-center py-[35px] px-[25px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.5)]">
         <h3
+          id="login-modal-title"
           className="text-accent mb-5 text-[1.8rem] tracking-[1px]"
           style={{ fontFamily: "'Outfit', sans-serif" }}
         >

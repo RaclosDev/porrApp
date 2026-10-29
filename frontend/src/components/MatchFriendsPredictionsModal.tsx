@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
 import { UserAvatar } from './Avatar';
 import type { MatchdayFixture } from '../types/api';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 function TeamCrest({ logo }: { logo: string | null }) {
   const [failed, setFailed] = useState(false);
@@ -57,6 +58,7 @@ export default function MatchFriendsPredictionsModal({
   match: MatchdayFixture | null;
   onClose: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const matchId = match?.matchId;
   const {
     data: predictions = [],
@@ -71,18 +73,15 @@ export default function MatchFriendsPredictionsModal({
   useEffect(() => {
     if (!match) return undefined;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [match, onClose]);
+  }, [match]);
+
+  useDialogFocus(dialogRef, { active: Boolean(match), onEscape: onClose });
 
   if (!match) return null;
 
@@ -106,6 +105,8 @@ export default function MatchFriendsPredictionsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="friends-predictions-title"
+        ref={dialogRef}
+        tabIndex={-1}
       >
         <div className="friends-predictions-head">
           <div>
@@ -121,7 +122,7 @@ export default function MatchFriendsPredictionsModal({
             type="button"
             className="friends-predictions-close"
             onClick={onClose}
-            aria-label="Cerrar modal"
+            aria-label="Cerrar"
           >
             ✕
           </button>
