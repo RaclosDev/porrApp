@@ -47,4 +47,4 @@ jobs:
           cache: 'maven'
           cache-dependency-path: backend/pom.xml
       - name: Build and Test with Maven
-        run: mvn -B test --file pom.xml
+        run: ./mvnw -B test
