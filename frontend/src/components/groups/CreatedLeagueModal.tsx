@@ -79,11 +79,12 @@ export default function CreatedLeagueModal({
 
         <div className="flex flex-col gap-2.5">
           <button
-            className="w-full p-3 rounded-[10px] border-none bg-[#25D366] bg-none text-white font-bold text-[0.95rem] cursor-pointer flex items-center justify-center gap-2"
+            className="w-full p-3 rounded-[10px] border-none bg-[#25D366] bg-none text-[#0f172a] font-bold text-[0.95rem] cursor-pointer flex items-center justify-center gap-2"
             type="button"
             onClick={() => handleShareWhatsApp(newlyCreatedGroup)}
+            aria-label="Compartir en WhatsApp"
           >
-            <span>💬</span> Compartir por WhatsApp
+            <span aria-hidden="true">💬</span> Compartir en WhatsApp
           </button>
 
           <button

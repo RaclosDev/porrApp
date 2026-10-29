@@ -161,11 +161,12 @@ function Leaderboard() {
           </button>
         </div>
         <button
-          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] bg-transparent text-white border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-10.5 min-w-10.5 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] bg-transparent text-[#0f172a] border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}
           title="Compartir en WhatsApp"
+          aria-label="Compartir en WhatsApp"
         >
           {sharing ? <span className="text-[1rem]">⏳</span> : <WhatsAppIcon size={24} />}
         </button>
@@ -322,7 +323,7 @@ function Leaderboard() {
                                   <strong>
                                     {r.name}
                                     {isMe && (
-                                      <span className="text-accent ml-[5px] text-[0.8em]">
+                                      <span className="text-accent-text ml-[5px] text-[0.8em]">
                                         (Tú)
                                       </span>
                                     )}
@@ -367,7 +368,7 @@ function Leaderboard() {
                             style={
                               col.kind === 'total'
                                 ? {
-                                    color: 'var(--accent-color)',
+                                    color: 'var(--accent-text)',
                                     fontWeight: 'bold',
                                     fontSize: '1.1em',
                                     textAlign: 'center',
@@ -423,7 +424,7 @@ function Leaderboard() {
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
+                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
                       {rankDisplay}
                     </span>
                     <span className="text-[1.1rem] font-bold text-white">{r.name}</span>
@@ -446,7 +447,7 @@ function Leaderboard() {
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
+                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
                       {rankDisplay}
                     </span>
                     <span className="text-[1.1rem] font-bold text-white">{r.name}</span>

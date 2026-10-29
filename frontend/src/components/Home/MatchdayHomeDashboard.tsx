@@ -254,7 +254,7 @@ export default function MatchdayHomeDashboard() {
                           {isMe ? ' (Tú)' : ''}
                         </span>
                       </div>
-                      <span className="font-extrabold text-accent text-[0.88rem] shrink-0">
+                      <span className="font-extrabold text-accent-text text-[0.88rem] shrink-0">
                         {p.total || 0} pts
                       </span>
                     </div>

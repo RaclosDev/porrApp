@@ -422,7 +422,7 @@ function Bracket() {
               border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            <h3 className="mt-0 text-accent">Guardar Porra</h3>
+            <h3 className="mt-0 text-accent-text">Guardar Porra</h3>
             <div className="flex gap-[15px] flex-wrap mb-[15px]">
               <input
                 type="text"

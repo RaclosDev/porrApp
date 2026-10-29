@@ -112,7 +112,7 @@ export default function ActiveLeagueDropdown() {
           <span className="w-full max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-white">
             {displayLeagueName}
           </span>
-          <span className="w-full text-[0.7rem] text-accent font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="w-full text-[0.7rem] text-accent-text font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
             {displayCompName}
           </span>
         </div>
