@@ -16,21 +16,24 @@ const key = (name: string, ...parts: (KeyPart | undefined)[]): readonly KeyPart[
 
 type Id = string | number | null;
 
+/** Los ids de liga y de pronóstico llegan como número o como texto; la clave usa siempre texto. */
+const asText = (id: Id | undefined) => (typeof id === 'number' ? String(id) : id);
+
 export const queryKeys = {
   myGroups: (isAuthenticated?: boolean) => key('myGroups', isAuthenticated),
-  group: (groupId?: Id) => key('group', groupId),
-  groupMembers: (groupId?: Id) => key('groupMembers', groupId),
-  predictions: (groupId?: Id) => key('predictions', groupId),
-  leaderboard: (groupId?: Id) => key('leaderboard', groupId),
-  leaderboardMatchdays: (groupId?: Id) => key('leaderboardMatchdays', groupId),
-  matchdayFixtures: (groupId?: Id, user?: Id) => key('matchdayFixtures', groupId, user),
+  group: (groupId?: Id) => key('group', asText(groupId)),
+  groupMembers: (groupId?: Id) => key('groupMembers', asText(groupId)),
+  predictions: (groupId?: Id) => key('predictions', asText(groupId)),
+  leaderboard: (groupId?: Id) => key('leaderboard', asText(groupId)),
+  leaderboardMatchdays: (groupId?: Id) => key('leaderboardMatchdays', asText(groupId)),
+  matchdayFixtures: (groupId?: Id, user?: Id) => key('matchdayFixtures', asText(groupId), user),
   matchFriendPredictions: (groupId?: Id, matchId?: Id) =>
-    key('matchFriendPredictions', groupId, matchId),
+    key('matchFriendPredictions', asText(groupId), matchId),
   standings: () => key('standings'),
   odds: () => key('odds'),
   topScorers: () => key('topScorers'),
   officialBracket: () => key('officialBracket'),
-  predictionScore: (predictionId?: Id) => key('predictionScore', predictionId),
+  predictionScore: (predictionId?: Id) => key('predictionScore', asText(predictionId)),
   matches: (competitionId?: Id) => key('matches', competitionId),
   radar: (competitionId?: Id) => key('radar', competitionId),
   competitionStandings: (competitionId?: Id) => key('competitionStandings', competitionId),
