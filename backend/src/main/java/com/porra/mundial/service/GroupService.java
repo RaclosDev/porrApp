@@ -23,6 +23,7 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Membership;
+import com.porra.mundial.util.JoinCodeGenerator;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -111,7 +112,7 @@ public class GroupService {
                     leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).ifPresent(other -> {
                         if (!League.isGlobalId(other.getId())) {
                             log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
-                            other.setJoinCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+                            other.setJoinCode(JoinCodeGenerator.next());
                             leagueRepository.saveAndFlush(other);
                         }
                     });
@@ -363,7 +364,9 @@ public class GroupService {
         leagueRepository.deleteById(groupId);
     }
 
-    @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode")
+    // Solo se cachean los aciertos: un código inexistente no debe quedarse en memoria
+    // (ni hacer crecer la caché con cada intento) ni ocultar una liga creada después.
+    @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode", unless = "#result == null")
     public Optional<League> getGroupByJoinCode(String joinCode) {
         return leagueRepository.findByJoinCode(joinCode);
     }
@@ -662,7 +665,10 @@ public class GroupService {
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
 
-        String newCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String newCode;
+        do {
+            newCode = JoinCodeGenerator.next();
+        } while (leagueRepository.findByJoinCode(newCode).isPresent());
         group.setJoinCode(newCode);
         leagueRepository.save(group);
         return newCode;

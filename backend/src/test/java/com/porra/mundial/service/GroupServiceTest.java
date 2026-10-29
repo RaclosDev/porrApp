@@ -248,4 +248,17 @@ class GroupServiceTest {
 
         assertDoesNotThrow(() -> groupService.assertCanView(10L, "member@test.com"));
     }
+
+    @Test
+    @DisplayName("Regenerar el código da uno nuevo de 10 caracteres base32 y lo guarda")
+    void regenerateJoinCodeUsesLongSecureCodes() {
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
+
+        String code = groupService.regenerateJoinCode(10L, "admin@test.com");
+
+        assertTrue(code.matches("[A-HJ-NP-Z2-9]{10}"), code);
+        assertEquals(code, league.getJoinCode());
+        verify(leagueRepository).save(league);
+    }
 }

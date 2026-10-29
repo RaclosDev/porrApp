@@ -29,7 +29,7 @@ export default function JoinGroupPanel({
           </button>
         </div>
         <p className="text-muted text-[0.88rem] m-0">
-          ¿Tienes un código de invitación de 6 letras? Introdúcelo aquí para acceder directamente a
+          ¿Tienes un código de invitación? Introdúcelo aquí para acceder directamente a
           la liga:
         </p>
         <form className="flex gap-2.5" onSubmit={handleJoin}>
@@ -37,9 +37,9 @@ export default function JoinGroupPanel({
             type="text"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="Ej: X9K2PL"
-            aria-label="Código de invitación de 6 letras"
-            maxLength={6}
+            placeholder="Ej: X9K2PLMQ7R"
+            aria-label="Código de invitación"
+            maxLength={10}
             className="glass-input flex-1 uppercase tracking-[2px] font-bold"
           />
           <button

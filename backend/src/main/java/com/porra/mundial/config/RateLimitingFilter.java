@@ -58,7 +58,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
 
         // 2. Límite general para endpoints expuestos
-        if (isRateLimitedPath(path)) {
+        if (isRateLimitedPath(path, request.getMethod())) {
             String clientIp = getClientIp(request);
             if (!isAllowed(clientIp)) {
                 log.warn("Rate limit exceeded for IP: {} on path: {}", clientIp, path);
@@ -73,7 +73,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private boolean isRateLimitedPath(String path) {
+    private boolean isRateLimitedPath(String path, String method) {
         if (path == null) return false;
         return path.startsWith("/api/standings") ||
                path.startsWith("/api/matches") ||
@@ -81,6 +81,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                path.startsWith("/api/leaderboard") ||
                path.startsWith("/api/auth/") ||
                path.startsWith("/api/users/me") ||
+               // Invitaciones: sin límite se podrían probar códigos por fuerza bruta.
+               path.startsWith("/api/groups/preview/") ||
+               path.startsWith("/join/") ||
+               (path.equals("/api/groups/join") && "POST".equalsIgnoreCase(method)) ||
                (path.startsWith("/api/groups/") && path.endsWith("/image")) ||
                (path.startsWith("/api/users/") && path.endsWith("/avatar"));
     }

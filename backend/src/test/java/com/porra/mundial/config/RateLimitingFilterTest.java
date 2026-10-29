@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -70,5 +72,30 @@ class RateLimitingFilterTest {
 
         assertEquals(200, response.getStatus());
         verify(filterChain, times(1)).doFilter(request, response);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "GET, /api/groups/preview/ABCDEF",
+            "GET, /join/ABCDEF",
+            "GET, /join/ABCDEF/image.png",
+            "POST, /api/groups/join"
+    })
+    @DisplayName("Las rutas de invitación también tienen límite, para no probar códigos por fuerza bruta")
+    void invitationPathsAreRateLimited(String method, String path) throws Exception {
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletRequest req = new MockHttpServletRequest(method, path);
+            req.setRemoteAddr("10.0.0.3");
+            MockHttpServletResponse res = new MockHttpServletResponse();
+            rateLimitingFilter.doFilterInternal(req, res, filterChain);
+            assertEquals(200, res.getStatus());
+        }
+
+        MockHttpServletRequest blocked = new MockHttpServletRequest(method, path);
+        blocked.setRemoteAddr("10.0.0.3");
+        MockHttpServletResponse blockedRes = new MockHttpServletResponse();
+        rateLimitingFilter.doFilterInternal(blocked, blockedRes, filterChain);
+
+        assertEquals(429, blockedRes.getStatus());
     }
 }
