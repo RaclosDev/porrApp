@@ -366,11 +366,6 @@ public class LeaderboardService {
 
     private OfficialState buildOfficialState() {
         PredictionDataDTO bracket = predictionRepository.findByIsOfficialTrue()
-                .or(() -> predictionRepository.findByName("official"))
-                .or(() -> predictionRepository.findAll().stream()
-                        .filter(b -> (b.getName() != null && b.getName().equalsIgnoreCase("official"))
-                                || (b.getParticipantName() != null && b.getParticipantName().equalsIgnoreCase("Admin")))
-                        .findFirst())
                 .map(Prediction::getBracketData)
                 .orElseGet(PredictionDataDTO::new);
         knockoutBracketService.enrichPredictionDataWithMatches(bracket);
@@ -390,7 +385,9 @@ public class LeaderboardService {
                 .map(gs -> gs.getTeam().getName())
                 .collect(Collectors.toList());
 
-        List<Match> knockout = matchRepository.findAll().stream().filter(this::isKnockoutMatch).collect(Collectors.toList());
+        List<Match> knockout = knockoutBracketService.worldCupMatches().stream()
+                .filter(this::isKnockoutMatch)
+                .collect(Collectors.toList());
         List<String> roundOf16 = winnersOf(knockout, m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis"));
         List<String> quarterFinals = winnersOf(knockout, m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32"));
         List<String> semiFinals = winnersOf(knockout, m -> isRound(m.getRound(), "qf", "quarter", "cuart"));

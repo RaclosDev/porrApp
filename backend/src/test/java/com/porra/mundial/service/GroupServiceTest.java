@@ -7,7 +7,6 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
-import com.porra.mundial.model.MatchPrediction;
 import com.porra.mundial.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,10 +49,7 @@ class GroupServiceTest {
     private MatchRepository matchRepository;
 
     @Mock
-    private MatchPredictionRepository matchPredictionRepository;
-
-    @Mock
-    private SyncService syncService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private GroupService groupService;
@@ -110,7 +107,6 @@ class GroupServiceTest {
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(legacy));
         when(competitionRepository.findByExternalId("uefa.champions")).thenReturn(Optional.of(canonical));
         when(matchRepository.countByCompetitionId(5L)).thenReturn(0L);
-        when(syncService.importCompetitionData(5L)).thenReturn(new SyncService.ImportResult("LaLiga", 0, 0));
         when(leagueRepository.save(any(League.class))).thenAnswer(invocation -> {
             League saved = invocation.getArgument(0);
             saved.setId(99L);
@@ -122,33 +118,8 @@ class GroupServiceTest {
 
         verify(editionRepository).save(argThat(edition ->
                 edition.getCompetition() != null && edition.getCompetition().getId().equals(5L)));
-        verify(syncService).importCompetitionData(5L);
-    }
-
-    @Test
-    void missingMembersRequiresAllMatchesAndRecognizesGroupLabels() {
-        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
-        var edition = Edition.builder().competition(Competition.builder().id(2L).build()).build();
-        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
-        var first = Match.builder().id(101L).groupName("A").build();
-        var second = Match.builder().id(102L).groupName("A").build();
-        var other = Match.builder().id(103L).groupName("B").build();
-        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(first, second, other));
-        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(Membership.builder().user(member).build()));
-        when(matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(2L, 10L))
-                .thenReturn(List.of(MatchPrediction.builder().match(first).homeScore(1).awayScore(0).build()));
-        assertEquals(1, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").missingCount());
-        when(matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(2L, 10L))
-                .thenReturn(List.of(MatchPrediction.builder().match(first).predictionSign("1").build(),
-                        MatchPrediction.builder().match(second).predictionSign("X").build()));
-        assertEquals(0, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").missingCount());
-    }
-
-    @Test
-    void missingMembersIsAnAdminOperation() {
-        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
-        assertThrows(SecurityException.class, () -> groupService.getMissingMembersForRound(10L, "stranger@test.com", "final"));
-        verifyNoInteractions(matchRepository, matchPredictionRepository);
+        // La importación se pide para después de confirmar la liga, no dentro de su transacción.
+        verify(eventPublisher).publishEvent(new CompetitionImportRequestedEvent(5L));
     }
 
     @Test

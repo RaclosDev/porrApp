@@ -11,10 +11,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Map;
-
 /**
  * Manejador principal para la conexión WebSocket (/api/ws).
  * Gestiona el registro y desregistro de sesiones para recibir notificaciones
@@ -38,9 +34,8 @@ public class AppWebSocketHandler extends TextWebSocketHandler {
         try {
             JsonNode json = objectMapper.readTree(message.getPayload());
             if (json.has("type") && "PING".equals(json.get("type").asText())) {
-                if (session.isOpen()) {
-                    session.sendMessage(new TextMessage("{\"type\":\"PONG\"}"));
-                }
+                // A través del servicio: la sesión no admite este envío a la vez que una difusión.
+                webSocketService.sendTo(session, "{\"type\":\"PONG\"}");
             }
         } catch (Exception e) {
             // Ignorar payloads malformados
@@ -50,9 +45,5 @@ public class AppWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         webSocketService.removeSession(session);
-    }
-
-    public Map<String, Instant> getActiveUsers() {
-        return Collections.emptyMap();
     }
 }

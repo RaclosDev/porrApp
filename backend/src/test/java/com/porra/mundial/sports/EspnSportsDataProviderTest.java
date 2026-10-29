@@ -2,6 +2,8 @@ package com.porra.mundial.sports;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,8 @@ import java.util.zip.GZIPOutputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,7 +42,7 @@ class EspnSportsDataProviderTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        provider = new EspnSportsDataProvider(httpClient, objectMapper);
+        provider = new EspnSportsDataProvider(httpClient, objectMapper, CircuitBreakerRegistry.ofDefaults());
     }
 
     @Test
@@ -156,5 +160,47 @@ class EspnSportsDataProviderTest {
         assertNotNull(events);
         assertTrue(events.isArray());
         assertEquals(0, events.size());
+    }
+
+    /** Breaker que se abre con dos fallos de dos llamadas. */
+    private EspnSportsDataProvider providerWithSensitiveBreaker() {
+        CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+                .slidingWindowSize(2)
+                .minimumNumberOfCalls(2)
+                .failureRateThreshold(50)
+                .build();
+        return new EspnSportsDataProvider(httpClient, objectMapper, CircuitBreakerRegistry.of(config));
+    }
+
+    @Test
+    @DisplayName("Tras fallos repetidos de ESPN el circuit breaker se abre y deja de llamarle")
+    void opensTheCircuitBreakerAfterRepeatedFailures() throws Exception {
+        EspnSportsDataProvider sensitive = providerWithSensitiveBreaker();
+        when(httpResponse.statusCode()).thenReturn(503);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        sensitive.fetchScoreboardEvents("esp.1", "20261025");
+        sensitive.fetchScoreboardEvents("esp.1", "20261026");
+        JsonNode events = sensitive.fetchScoreboardEvents("esp.1", "20261027");
+
+        assertTrue(events.isArray());
+        assertEquals(0, events.size());
+        assertFalse(sensitive.isAvailable());
+        verify(httpClient, times(2)).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("Un 404 de ESPN no cuenta como caída del proveedor")
+    void clientErrorsDoNotOpenTheCircuitBreaker() throws Exception {
+        EspnSportsDataProvider sensitive = providerWithSensitiveBreaker();
+        when(httpResponse.statusCode()).thenReturn(404);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        sensitive.fetchScoreboardEvents("esp.1", "20261025");
+        sensitive.fetchScoreboardEvents("esp.1", "20261026");
+        sensitive.fetchScoreboardEvents("esp.1", "20261027");
+
+        assertTrue(sensitive.isAvailable());
+        verify(httpClient, times(3)).send(any(HttpRequest.class), any());
     }
 }

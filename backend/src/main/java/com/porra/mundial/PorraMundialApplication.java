@@ -3,6 +3,7 @@ package com.porra.mundial;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import jakarta.annotation.PostConstruct;
@@ -15,10 +16,12 @@ import java.util.TimeZone;
  * - @SpringBootApplication: Autoconfiguración y escaneo de componentes.
  * - @EnableScheduling: Habilita los cron jobs (como el de SyncService y TopScorerService).
  * - @EnableCaching: Habilita la caché en memoria (Redis/ConcurrentMapCache) usada en LeaderboardService.
+ * - @EnableAsync: Permite tareas en segundo plano, como importar el calendario de una liga recién creada.
  */
 @SpringBootApplication
 @EnableScheduling
 @EnableCaching
+@EnableAsync
 public class PorraMundialApplication {
 
     /**

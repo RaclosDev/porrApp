@@ -60,7 +60,8 @@ public class Match {
     @Builder.Default
     private String round = "group"; 
 
-    /** El ID que usa la API externa oficial para no crear duplicados al sincronizar. */
+    /** El ID que usa la API externa oficial para no crear duplicados al sincronizar (único desde V44). */
+    @Column(unique = true)
     private String externalId;
 
     /** El minuto actual del partido si está en directo (ej. "45'", "HT", "FT"). */

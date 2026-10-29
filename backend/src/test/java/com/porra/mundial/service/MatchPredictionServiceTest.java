@@ -250,6 +250,36 @@ class MatchPredictionServiceTest {
     }
 
     @Test
+    @DisplayName("Si se corrige el marcador final, los puntos del pronóstico se recalculan")
+    void evaluatePredictionsForMatch_ReplacesPointsAfterACorrection() {
+        Prediction prediction = Prediction.builder().id(50L).edition(edition).scoreCalculatedAt(LocalDateTime.now()).build();
+        MatchPrediction mp = MatchPrediction.builder().id(1L).match(finishedMatch).prediction(prediction)
+                .homeScore(2).awayScore(1).build();
+        when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(mp));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(1), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(3, true, true, true, "Resultado exacto 2-1 (3 pts)"));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(2), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(0, false, false, false, "Fallo (0 pts)"));
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+        prediction.setScoreCalculatedAt(LocalDateTime.now());
+
+        finishedMatch.setAwayScore(2);
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+
+        assertEquals(0, mp.getPointsAwarded());
+        assertFalse(mp.getIsExactScore());
+        assertNull(prediction.getScoreCalculatedAt(), "la porra tiene que recalcular su total");
+    }
+
+    @Test
+    void hasUnscoredPredictionsAsksForPredictionsWithoutPoints() {
+        when(matchPredictionRepository.existsByMatchIdAndPointsAwardedIsNull(103L)).thenReturn(true);
+
+        assertTrue(matchPredictionService.hasUnscoredPredictions(103L));
+        assertFalse(matchPredictionService.hasUnscoredPredictions(null));
+    }
+
+    @Test
     @DisplayName("getMatchdayFixtures filtra correctamente por 'Grupo A' cuando el partido tiene groupName 'A'")
     void getMatchdayFixtures_FiltersByRoundGroup() {
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));

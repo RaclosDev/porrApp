@@ -6,11 +6,8 @@ import java.util.Objects;
 import java.util.Set;
 import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
-import com.porra.mundial.dto.MissingMembersResponse;
-import com.porra.mundial.dto.MissingUserNudgeDTO;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.LeagueRepository;
@@ -28,6 +25,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -35,7 +33,6 @@ import java.util.ArrayList;
 import java.time.LocalDateTime;
 import com.porra.mundial.model.MatchPrediction;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -58,9 +55,7 @@ public class GroupService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
-    private final MatchPredictionRepository matchPredictionRepository;
-    @org.springframework.context.annotation.Lazy
-    private final SyncService syncService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.admins:Admin}")
     private List<String> appAdmins;
@@ -204,9 +199,8 @@ public class GroupService {
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
         String joinCode;
-        // Genera un código de 6 caracteres aleatorio
         do {
-            joinCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            joinCode = JoinCodeGenerator.next();
         } while (leagueRepository.findByJoinCode(joinCode).isPresent());
 
         UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
@@ -251,14 +245,10 @@ public class GroupService {
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
 
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
-            if (matchRepository.countByCompetitionId(comp.getId()) == 0) {
-                try {
-                    syncService.importCompetitionData(comp.getId());
-                } catch (Exception e) {
-                    log.warn("Auto-importación de datos para {} falló: {}", comp.getName(), e.getMessage());
-                }
-            }
+        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()
+                && matchRepository.countByCompetitionId(comp.getId()) == 0) {
+            // Se importa tras confirmar la liga: si ESPN falla, la liga ya está creada.
+            eventPublisher.publishEvent(new CompetitionImportRequestedEvent(comp.getId()));
         }
 
         return group;
@@ -685,66 +675,5 @@ public class GroupService {
         group.setJoinCode(newCode);
         leagueRepository.save(group);
         return newCode;
-    }
-
-    /**
-     * Herramienta del Administrador: devuelve la lista de participantes que aún NO han pronosticado la jornada.
-     */
-    @Transactional(readOnly = true)
-    public MissingMembersResponse getMissingMembersForRound(Long groupId, String email, String round) {
-        verifyGroupAdmin(groupId, email);
-        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
-        if (edition == null || edition.getCompetition() == null) {
-            return MissingMembersResponse.empty();
-        }
-
-        List<Match> matches = matchRepository.findByCompetitionIdOrderByMatchDateAsc(edition.getCompetition().getId());
-        if (matches.isEmpty()) {
-            return MissingMembersResponse.empty();
-        }
-
-        String targetRound = round;
-        if (targetRound == null || targetRound.isBlank()) {
-            LocalDateTime now = LocalDateTime.now();
-            targetRound = matches.stream()
-                    .filter(m -> !Boolean.TRUE.equals(m.getFinished()) && (m.getMatchDate() == null || m.getMatchDate().isAfter(now)))
-                    .map(com.porra.mundial.util.MatchRound::label)
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(com.porra.mundial.util.MatchRound.label(matches.get(0)));
-        }
-
-        final String finalRound = targetRound;
-        List<Match> roundMatches = matches.stream()
-                .filter(m -> com.porra.mundial.util.MatchRound.matches(m, finalRound))
-                .collect(Collectors.toList());
-
-        Set<Long> matchIds = roundMatches.stream().map(Match::getId).collect(Collectors.toSet());
-
-        List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
-        List<MissingUserNudgeDTO> missingList = new ArrayList<>();
-
-        for (Membership m : memberships) {
-            UserAccount u = m.getUser();
-            if (u == null) continue;
-
-            // Comprobar si el usuario tiene predicción para algún partido de esta jornada
-            List<MatchPrediction> userPreds = matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(u.getId(), groupId);
-            Set<Long> predictedIds = userPreds.stream()
-                    .filter(mp -> mp.getMatch() != null && ((mp.getHomeScore() != null && mp.getAwayScore() != null)
-                            || (mp.getPredictionSign() != null && !mp.getPredictionSign().isBlank())))
-                    .map(mp -> mp.getMatch().getId())
-                    .collect(Collectors.toSet());
-            boolean hasPredForRound = predictedIds.containsAll(matchIds);
-
-            if (!hasPredForRound) {
-                missingList.add(MissingUserNudgeDTO.builder()
-                        .userId(u.getId())
-                        .participantName(u.getParticipantName())
-                        .build());
-            }
-        }
-
-        return new MissingMembersResponse(finalRound, memberships.size(), missingList.size(), missingList);
     }
 }

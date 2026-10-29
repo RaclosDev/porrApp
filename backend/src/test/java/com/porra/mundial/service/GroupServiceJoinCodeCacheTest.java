@@ -5,7 +5,6 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.LeagueRepository;
-import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.PredictionRepository;
@@ -16,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,20 +47,19 @@ class GroupServiceJoinCodeCacheTest {
         @Bean EditionRepository editionRepository() { return mock(EditionRepository.class, RETURNS_MOCKS); }
         @Bean MembershipRepository membershipRepository() { return mock(MembershipRepository.class); }
         @Bean MatchRepository matchRepository() { return mock(MatchRepository.class); }
-        @Bean MatchPredictionRepository matchPredictionRepository() { return mock(MatchPredictionRepository.class); }
-        @Bean SyncService syncService() { return mock(SyncService.class); }
+        @Bean ApplicationEventPublisher eventPublisher() { return mock(ApplicationEventPublisher.class); }
         @Bean GroupService groupService(LeagueRepository leagues, PredictionRepository predictions,
                                         UserAccountRepository users, CompetitionRepository competitions,
                                         EditionRepository editions, MembershipRepository memberships,
-                                        MatchRepository matches, MatchPredictionRepository matchPredictions,
-                                        SyncService sync) {
+                                        MatchRepository matches,
+                                        ApplicationEventPublisher events) {
             when(leagues.save(any(League.class))).thenAnswer(inv -> {
                 League l = inv.getArgument(0);
                 l.setId(League.GLOBAL_ID);
                 return l;
             });
             return new GroupService(leagues, predictions, users, competitions, editions, memberships,
-                    matches, matchPredictions, sync);
+                    matches, events);
         }
     }
 

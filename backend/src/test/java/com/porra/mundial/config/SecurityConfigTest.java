@@ -40,6 +40,13 @@ class SecurityConfigTest {
     }
 
     @Test
+    void healthProbeUsedByRailwayIsPublic() throws Exception {
+        int status = mockMvc.perform(get("/actuator/health/liveness")).andReturn().getResponse().getStatus();
+        org.junit.jupiter.api.Assertions.assertNotEquals(401, status);
+        org.junit.jupiter.api.Assertions.assertNotEquals(403, status);
+    }
+
+    @Test
     void writesUnderPublicPathsRequireLogin() throws Exception {
         mockMvc.perform(post("/api/scorers/refresh")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/matches")).andExpect(status().isUnauthorized());
@@ -53,6 +60,5 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/users/me")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/sync")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/groups/1/members")).andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/groups/1/missing-users")).andExpect(status().isUnauthorized());
     }
 }

@@ -2,7 +2,6 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.dto.GroupResponseDTO;
-import com.porra.mundial.dto.MissingMembersResponse;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.UserAccount;
@@ -47,27 +46,6 @@ class GroupControllerTest {
 
     private Principal userPrincipal(String email) {
         return () -> email;
-    }
-
-    @Test
-    void missingUsersHonorsRoundQueryParameter() throws Exception {
-        Mockito.when(groupService.getMissingMembersForRound(10L, "admin@test.com", "Jornada 12"))
-                .thenReturn(new MissingMembersResponse("Jornada 12", 3, 0, List.of()));
-        mockMvc.perform(get("/api/groups/10/missing-users")
-                        .param("round", "Jornada 12").principal(userPrincipal("admin@test.com")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.round").value("Jornada 12"))
-                .andExpect(jsonPath("$.totalMembers").value(3));
-    }
-
-    @Test
-    void missingUsersKeepsLegacyRoundPath() throws Exception {
-        Mockito.when(groupService.getMissingMembersForRound(10L, "admin@test.com", "final"))
-                .thenReturn(new MissingMembersResponse("final", 1, 0, List.of()));
-        mockMvc.perform(get("/api/groups/10/jornadas/final/missing-users")
-                        .principal(userPrincipal("admin@test.com")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.round").value("final"));
     }
 
     @Test
