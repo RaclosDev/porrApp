@@ -5,7 +5,6 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.LeagueRepository;
-import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.PredictionRepository;
@@ -48,12 +47,11 @@ class GroupServiceJoinCodeCacheTest {
         @Bean EditionRepository editionRepository() { return mock(EditionRepository.class, RETURNS_MOCKS); }
         @Bean MembershipRepository membershipRepository() { return mock(MembershipRepository.class); }
         @Bean MatchRepository matchRepository() { return mock(MatchRepository.class); }
-        @Bean MatchPredictionRepository matchPredictionRepository() { return mock(MatchPredictionRepository.class); }
         @Bean ApplicationEventPublisher eventPublisher() { return mock(ApplicationEventPublisher.class); }
         @Bean GroupService groupService(LeagueRepository leagues, PredictionRepository predictions,
                                         UserAccountRepository users, CompetitionRepository competitions,
                                         EditionRepository editions, MembershipRepository memberships,
-                                        MatchRepository matches, MatchPredictionRepository matchPredictions,
+                                        MatchRepository matches,
                                         ApplicationEventPublisher events) {
             when(leagues.save(any(League.class))).thenAnswer(inv -> {
                 League l = inv.getArgument(0);
@@ -61,7 +59,7 @@ class GroupServiceJoinCodeCacheTest {
                 return l;
             });
             return new GroupService(leagues, predictions, users, competitions, editions, memberships,
-                    matches, matchPredictions, events);
+                    matches, events);
         }
     }
 

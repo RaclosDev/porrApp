@@ -7,7 +7,6 @@ import com.porra.mundial.dto.GroupResponseDTO;
 import com.porra.mundial.dto.GroupUpdateDTO;
 import com.porra.mundial.dto.JoinCodeResponse;
 import com.porra.mundial.dto.MemberPaymentRequest;
-import com.porra.mundial.dto.MissingMembersResponse;
 import com.porra.mundial.dto.PaymentStatusResponse;
 import com.porra.mundial.dto.StatusResponse;
 import com.porra.mundial.model.League;
@@ -149,14 +148,5 @@ public class GroupController {
     @PostMapping("/{id}/regenerate-code")
     public JoinCodeResponse regenerateCode(@PathVariable Long id, Principal principal) {
         return new JoinCodeResponse(groupService.regenerateJoinCode(id, principal.getName()));
-    }
-
-    /** Participantes que aún no han pronosticado la jornada indicada (o la próxima). Solo el administrador. */
-    @GetMapping({"/{id}/missing-users", "/{id}/jornadas/{round}/missing-users"})
-    public MissingMembersResponse getMissingMembers(@PathVariable Long id,
-                                                    @PathVariable(required = false) String round,
-                                                    @RequestParam(name = "round", required = false) String queryRound,
-                                                    Principal principal) {
-        return groupService.getMissingMembersForRound(id, principal.getName(), round != null ? round : queryRound);
     }
 }
