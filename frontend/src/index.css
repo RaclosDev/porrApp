@@ -9,7 +9,7 @@
   --text-muted: #94a3b8;
   --accent-color: #2563eb;
   --accent-cyan: #00d2d3;
-  --champion-gold: #fbbf24;
+  --champion-gold: #fb923c;
 }
 
 * {
@@ -954,7 +954,7 @@ option {
   border: 1px solid rgba(251, 191, 36, 0.35);
   border-radius: 999px;
   background: rgba(251, 191, 36, 0.14);
-  color: #fbbf24;
+  color: #fb923c;
   font-size: 0.65rem;
   font-weight: 800;
   line-height: 1.3;
@@ -1724,7 +1724,7 @@ option {
   justify-content: center !important;
   border: 1px solid var(--champion-gold) !important;
   background: rgba(251, 191, 36, 0.12) !important;
-  color: #fbbf24 !important;
+  color: #fb923c !important;
   border-radius: 8px !important;
 }
 
@@ -2167,9 +2167,9 @@ option {
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(148, 163, 184, 0.18);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2177,33 +2177,65 @@ option {
   gap: 4px;
   white-space: nowrap;
   overflow: hidden;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.md-filter:hover:not(.is-active) {
+  background: rgba(148, 163, 184, 0.09);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #f8fafc;
 }
 
 .md-filter b {
   font-weight: 800;
+  color: #f8fafc;
 }
 
 .md-filter.is-active {
-  color: #000;
-  background: #00d2d3;
-  border-color: #00d2d3;
+  color: #ecfeff;
+  background: rgba(0, 210, 211, 0.14);
+  border-color: rgba(0, 210, 211, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(0, 210, 211, 0.12);
 }
 
-.md-filter.is-pending {
-  color: #f39c12;
-  border-color: rgba(243, 156, 18, 0.4);
+.md-filter.is-pending:not(.is-active) b {
+  color: #fb923c;
 }
 
-.md-filter.is-pending.is-active {
-  color: #000;
-  background: #f39c12;
-  border-color: #f39c12;
+.md-filter.is-finished:not(.is-active) b {
+  color: #4ade80;
 }
 
-.md-filter.is-finished.is-active {
-  color: #000;
-  background: #2ecc71;
-  border-color: #2ecc71;
+.md-filter.is-pending::before,
+.md-filter.is-finished::before {
+  content: '';
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.md-filter.is-pending::before {
+  background: #fb923c;
+}
+
+.md-filter.is-finished::before {
+  background: #4ade80;
+}
+
+.md-filter.is-pending.is-active::before,
+.md-filter.is-finished.is-active::before {
+  opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-filter {
+    transition: none;
+  }
 }
 
 .md-match {
@@ -2756,7 +2788,7 @@ option {
 .friends-prediction-status.is-pending {
   border: 1px solid rgba(251, 191, 36, 0.28);
   background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
+  color: #fb923c;
 }
 
 .friends-prediction-status.is-missed {
@@ -3143,7 +3175,7 @@ option {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #fbbf24;
+  background: #fb923c;
   box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
 }
 
@@ -3880,7 +3912,7 @@ option {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #fbbf24;
+  color: #fb923c;
   font-size: 0.76rem;
   font-weight: 700;
 }
@@ -3926,7 +3958,7 @@ option {
   margin-bottom: 10px;
   border-radius: 50%;
   background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
+  color: #fb923c;
 }
 
 .league-admin-confirm-dialog h3 {
@@ -4325,7 +4357,7 @@ option {
 
 .standings-rank.is-podium-1 {
   background: rgba(251, 191, 36, 0.16);
-  color: #fbbf24;
+  color: #fb923c;
   box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
 }
 

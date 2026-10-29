@@ -8,7 +8,9 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+    // This ESLint setup uses Espree, not a TypeScript parser. Keep TypeScript/TSX
+    // out of this config; TypeScript correctness is validated by the build/tests.
+    files: ['**/*.{js,jsx,mjs,cjs}'],
     plugins: {
       react,
       'react-hooks': reactHooks,
