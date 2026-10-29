@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.dto.TopScorerDTO;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -229,6 +230,11 @@ class TopScorerServiceTest {
         @Bean
         public HttpClient httpClient() {
             return mock(HttpClient.class);
+        }
+
+        @Bean
+        public CircuitBreakerRegistry circuitBreakerRegistry() {
+            return CircuitBreakerRegistry.ofDefaults();
         }
 
         @Bean

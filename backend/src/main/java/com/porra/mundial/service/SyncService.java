@@ -6,7 +6,6 @@ import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.sports.SportsDataProviderRegistry;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +16,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +29,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * <ul>
  *   <li>El Mundial se sincroniza entero en cada pasada; las ligas, solo de ayer a mañana.</li>
  *   <li>Tras cada pasada se actualizan las eliminatorias y las clasificaciones, y se avisa a los clientes.</li>
- *   <li>El estado de la última pasada se expone para el health check ({@code SyncHealthIndicator}).</li>
+ *   <li>El estado de la última pasada, con todas sus competiciones, se expone para el health check
+ *       ({@code SyncHealthIndicator}).</li>
+ *   <li>El circuit breaker de ESPN está en el proveedor: con él abierto, la competición no se da por sincronizada.</li>
  * </ul>
  */
 @Service
@@ -41,6 +43,10 @@ public class SyncService {
     private static final DateTimeFormatter ESPN_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
     /** Lo que espera una importación a que termine la sincronización en curso. */
     private static final long IMPORT_LOCK_TIMEOUT_MINUTES = 5;
+
+    static final String STATUS_SUCCESS = "success";
+    static final String STATUS_ERROR = "error";
+    static final String STATUS_CIRCUIT_OPEN = "circuit_breaker_open";
 
     private final CompetitionRepository competitionRepository;
     private final SportsDataProviderRegistry sportsDataProviderRegistry;
@@ -78,8 +84,18 @@ public class SyncService {
         }
     }
 
-    /** Sincroniza todas las competiciones con proveedor externo. Si ya hay una pasada en curso, no hace nada. */
-    @CircuitBreaker(name = "sportsApi", fallbackMethod = "syncFallback")
+    /** Resultado de sincronizar una competición en una pasada. */
+    private record CompetitionSync(String competition, String status, int matchesUpdated, int teamsUpdated,
+                                   String error) {
+        static CompetitionSync failed(String competition, String status, String error) {
+            return new CompetitionSync(competition, status, 0, 0, error);
+        }
+    }
+
+    /**
+     * Sincroniza todas las competiciones con proveedor externo. Si ya hay una pasada en curso, no hace nada.
+     * El estado de salud resume la pasada entera: basta con que falle una competición para que no sea "success".
+     */
     public void syncAll() {
         if (!syncLock.tryLock()) {
             log.info("Sincronización omitida: ya hay otra en curso.");
@@ -93,24 +109,25 @@ public class SyncService {
                 log.info("No hay competiciones con proveedor externo que sincronizar.");
                 return;
             }
+            List<CompetitionSync> results = new ArrayList<>();
             for (Competition competition : competitions) {
-                syncCompetition(competition);
+                results.add(syncCompetition(competition));
             }
+            recordStatus(results);
         } finally {
             syncLock.unlock();
         }
     }
 
-    /** Se ejecuta cuando el circuit breaker está abierto tras fallos repetidos del proveedor. */
-    public void syncFallback(Exception e) {
-        recordStatus("circuit_breaker_open", 0, 0, e.getMessage());
-        log.warn("Circuit breaker abierto o fallo del proveedor deportivo: {}", e.getMessage());
-    }
-
-    private void syncCompetition(Competition competition) {
+    private CompetitionSync syncCompetition(Competition competition) {
         long start = System.currentTimeMillis();
         SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getName());
         String slug = competition.getExternalId();
+        if (!provider.isAvailable()) {
+            log.warn("Sincronización de {} omitida: el circuit breaker de {} está abierto",
+                    competition.getName(), provider.getProviderName());
+            return CompetitionSync.failed(competition.getName(), STATUS_CIRCUIT_OPEN, "circuit breaker abierto");
+        }
         try {
             Map<String, Team> teams = matchEventProcessor.teamCache();
             MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition);
@@ -133,7 +150,6 @@ public class SyncService {
             if (batch.resultsChanged()) {
                 scoreInvalidationService.invalidateCompetition(competition.getId());
             }
-            recordStatus("success", matchesUpdated, batch.teamsUpdated(), null);
             log.info("Sincronización de {} con {}: {} equipos y {} partidos actualizados en {} ms",
                     competition.getName(), provider.getProviderName(), batch.teamsUpdated(), matchesUpdated,
                     System.currentTimeMillis() - start);
@@ -141,9 +157,13 @@ public class SyncService {
             if (matchesUpdated > 0 || batch.teamsUpdated() > 0) {
                 webSocketService.invalidateAndNotify();
             }
+            // Si el breaker se ha abierto durante la pasada, las respuestas vacías no eran datos reales.
+            boolean available = provider.isAvailable();
+            return new CompetitionSync(competition.getName(), available ? STATUS_SUCCESS : STATUS_CIRCUIT_OPEN,
+                    matchesUpdated, batch.teamsUpdated(), available ? null : "circuit breaker abierto");
         } catch (Exception e) {
-            recordStatus("error", 0, 0, e.getMessage());
             log.error("Falló la sincronización de {} con {}: {}", competition.getName(), provider.getProviderName(), e.getMessage(), e);
+            return CompetitionSync.failed(competition.getName(), STATUS_ERROR, e.getMessage());
         }
     }
 
@@ -238,11 +258,29 @@ public class SyncService {
         }
     }
 
-    private void recordStatus(String status, int matchesUpdated, int teamsUpdated, String error) {
+    /**
+     * Guarda el resumen de la pasada: "success" solo si todas las competiciones lo son; si alguna ha
+     * fallado, "error" (o "circuit_breaker_open" si todas las que fallan es por el breaker), con los
+     * errores de cada una.
+     */
+    private void recordStatus(List<CompetitionSync> results) {
+        List<CompetitionSync> failed = results.stream().filter(r -> !STATUS_SUCCESS.equals(r.status())).toList();
+        String status;
+        if (failed.isEmpty()) {
+            status = STATUS_SUCCESS;
+        } else if (failed.stream().allMatch(r -> STATUS_CIRCUIT_OPEN.equals(r.status()))) {
+            status = STATUS_CIRCUIT_OPEN;
+        } else {
+            status = STATUS_ERROR;
+        }
+        String errors = failed.isEmpty() ? null : failed.stream()
+                .map(r -> r.competition() + ": " + r.error())
+                .collect(java.util.stream.Collectors.joining("; "));
+
         lastSyncTime = LocalDateTime.now();
         lastSyncStatus = status;
-        lastMatchesUpdated = matchesUpdated;
-        lastTeamsUpdated = teamsUpdated;
-        lastErrorMessage = error;
+        lastMatchesUpdated = results.stream().mapToInt(CompetitionSync::matchesUpdated).sum();
+        lastTeamsUpdated = results.stream().mapToInt(CompetitionSync::teamsUpdated).sum();
+        lastErrorMessage = errors;
     }
 }

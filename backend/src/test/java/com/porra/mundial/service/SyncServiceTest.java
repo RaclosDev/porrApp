@@ -65,6 +65,7 @@ class SyncServiceTest {
         when(competitionRepository.findById(5L)).thenReturn(Optional.of(laLiga));
         when(sportsDataProviderRegistry.getProviderForCompetition(anyString())).thenReturn(provider);
         when(provider.getProviderName()).thenReturn("ESPN");
+        when(provider.isAvailable()).thenReturn(true);
         when(matchEventProcessor.teamCache()).thenReturn(new HashMap<>());
     }
 
@@ -111,5 +112,35 @@ class SyncServiceTest {
         sync.get(5, TimeUnit.SECONDS);
         assertEquals("LaLiga EA Sports", importing.get(5, TimeUnit.SECONDS).competition());
         verify(provider, timeout(1000)).fetchTeams("esp.1");
+    }
+
+    @Test
+    @DisplayName("El estado de salud resume todas las competiciones de la pasada")
+    void healthAccumulatesEveryCompetition() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(worldCup, laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+        when(knockoutBracketService.propagateKnockoutWinners()).thenReturn(2);
+        doThrow(new IllegalStateException("base de datos caída"))
+                .doNothing()
+                .when(standingsService).recalculateStandingsFromMatches();
+
+        syncService.syncAll();
+
+        // Falla el Mundial, que va primero: antes, el éxito de LaLiga lo tapaba.
+        assertEquals("error", syncService.getLastSyncStatus());
+        assertEquals("FIFA World Cup 2026: base de datos caída", syncService.getLastErrorMessage());
+        assertEquals(2, syncService.getLastMatchesUpdated());
+    }
+
+    @Test
+    @DisplayName("Con el circuit breaker abierto no se sincroniza nada y la salud lo refleja")
+    void skipsCompetitionsWhileTheCircuitBreakerIsOpen() throws Exception {
+        when(provider.isAvailable()).thenReturn(false);
+
+        syncService.syncAll();
+
+        verify(provider, never()).fetchScoreboardEvents(anyString(), anyString());
+        verify(standingsService, never()).recalculateStandingsFromMatches();
+        assertEquals("circuit_breaker_open", syncService.getLastSyncStatus());
     }
 }
