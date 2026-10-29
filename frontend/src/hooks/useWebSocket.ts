@@ -26,6 +26,7 @@ export function useWebSocket(userName, queryClient) {
           const msg = JSON.parse(event.data);
           if (msg.type === 'DATA_UPDATED') {
             queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+            queryClient.invalidateQueries({ queryKey: ['leaderboardMatchdays'] });
             queryClient.invalidateQueries({ queryKey: ['predictions'] });
             queryClient.invalidateQueries({ queryKey: ['myPredictions'] });
             queryClient.invalidateQueries({ queryKey: ['standings'] });
@@ -57,6 +58,7 @@ export function useWebSocket(userName, queryClient) {
             queryClient.invalidateQueries({ queryKey: ['matchRadar'] });
             queryClient.invalidateQueries({ queryKey: ['standings'] });
             queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+            queryClient.invalidateQueries({ queryKey: ['leaderboardMatchdays'] });
             queryClient.invalidateQueries({ queryKey: ['matchdayFixtures'] });
             queryClient.invalidateQueries({ queryKey: ['competitionStandings'] });
           }
