@@ -17,6 +17,7 @@ import {
 } from '../services/api';
 import { isApiError } from '../services/apiError';
 import { queryKeys } from '../services/queryKeys';
+import { myGroupsQuery } from '../services/queries';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
 import type { Group, MatchRadar } from '../types/api';
@@ -212,11 +213,7 @@ export const useAppContext = () => {
     data: userGroups,
     isFetched: userGroupsFetched,
     isError: userGroupsError,
-  } = useQuery({
-    queryKey: queryKeys.myGroups(isUserAuthed),
-    queryFn: () => (isUserAuthed ? fetchMyGroups() : Promise.resolve([])),
-    staleTime: 60_000,
-  });
+  } = useQuery(myGroupsQuery(isUserAuthed));
 
   const {
     data: groupInfo,

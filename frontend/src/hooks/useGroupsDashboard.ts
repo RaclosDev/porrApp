@@ -1,7 +1,6 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  fetchMyGroups,
   createGroup,
   joinGroup,
   fetchGroup,
@@ -15,12 +14,13 @@ import {
 } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
+import { myGroupsQuery } from '../services/queries';
 import type { Competition, Group, PoolFormat } from '../types/api';
+import { errorMessage } from '../utils/errors';
 
 type GroupId = number | string;
-import { errorMessage } from '../utils/errors';
 
 export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
   { id: 'MATCH_DAY', label: 'Por Jornadas (1X2 y Marcador Exacto)' },
@@ -28,20 +28,57 @@ export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
   { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
 ];
 
+const KNOWN_GROUPS_KEY = 'knownGroups';
+
+/** Ligas abiertas en este dispositivo sin sesión. Un valor corrupto cuenta como lista vacía. */
+export const readKnownGroups = (): string[] => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(KNOWN_GROUPS_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeKnownGroups = (ids: string[]) => {
+  try {
+    localStorage.setItem(KNOWN_GROUPS_KEY, JSON.stringify(ids));
+  } catch {
+    /* ignore */
+  }
+};
+
+const rememberKnownGroup = (groupId: GroupId) => {
+  const ids = readKnownGroups();
+  if (!ids.includes(groupId.toString())) writeKnownGroups([...ids, groupId.toString()]);
+};
+
+const forgetKnownGroups = (groupIds: GroupId[]) => {
+  const drop = groupIds.map(String);
+  writeKnownGroups(readKnownGroups().filter((id) => !drop.includes(id)));
+};
+
 export function useGroupsDashboard() {
   const queryClient = useQueryClient();
-  const { changeGroup, userName, userId, activeGroupId, userGroups, isAuthenticated } =
-    useAppContext();
-  const [groups, setGroups] = useState<Group[]>(
-    userGroups && userGroups.length > 0 ? userGroups : [],
-  );
-  // Permite consultar el número de ligas cargadas sin recrear loadGroupsAndCompetitions.
-  const groupsRef = useRef(groups);
-  useEffect(() => {
-    groupsRef.current = groups;
-  }, [groups]);
+  const { changeGroup, userName, userId, activeGroupId, isAuthenticated } = useAppContext();
+
+  // La lista sale directamente de la consulta compartida: si falla, se muestra el error y la
+  // caché no se toca (antes se guardaba [] y la app creía que el usuario no tenía ligas).
+  const {
+    data: myGroups,
+    isPending: myGroupsPending,
+    isError: myGroupsFailed,
+    error: myGroupsError,
+    refetch: refetchMyGroups,
+  } = useQuery(myGroupsQuery(isAuthenticated));
+  const [extraGroups, setExtraGroups] = useState<Group[]>([]);
+  const groups = useMemo(() => [...(myGroups ?? []), ...extraGroups], [myGroups, extraGroups]);
+  const loading = Boolean(userName) && myGroupsPending;
+  const groupsError = myGroupsFailed
+    ? errorMessage(myGroupsError, 'No se han podido cargar tus ligas.')
+    : '';
+
   const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [loading, setLoading] = useState(!userGroups || userGroups.length === 0);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
   const [selectedPoolFormat, setSelectedPoolFormat] = useState<PoolFormat>('MATCH_DAY');
@@ -58,86 +95,66 @@ export function useGroupsDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (userGroups) {
-      setGroups(userGroups);
-      setLoading(false);
-    }
-  }, [userGroups]);
+    let cancelled = false;
+    fetchCompetitions()
+      .catch((): Competition[] => [])
+      .then((comps) => {
+        if (cancelled) return;
+        setCompetitions(comps);
+        if (comps.length > 0) {
+          setSelectedCompetition((prev) => (prev ? prev : comps[0].id.toString()));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const loadGroupsAndCompetitions = useCallback(async () => {
-    // Only show full loading spinner if we don't already have groups in memory
-    setLoading((prev) => (groupsRef.current.length > 0 ? false : prev));
-    setError('');
-    try {
-      const [myGroups, comps] = await Promise.all([
-        fetchMyGroups().catch((err): Group[] => {
-          console.warn('No se pudieron obtener las ligas del usuario', err);
-          return [];
+  // Sin sesión, las ligas conocidas en este dispositivo se piden una a una (máximo 3).
+  useEffect(() => {
+    if (isAuthenticated || !userName || !myGroups) return;
+    const missingIds = readKnownGroups()
+      .filter((id) => !myGroups.some((g) => g.id.toString() === id))
+      .slice(0, 3);
+    if (missingIds.length === 0) return;
+    let cancelled = false;
+    const invalidIds: string[] = [];
+    Promise.all(
+      missingIds.map((id) =>
+        fetchGroup(id).catch(() => {
+          invalidIds.push(id);
+          return null;
         }),
-        fetchCompetitions().catch((): Competition[] => []),
-      ]);
+      ),
+    ).then((extra) => {
+      if (cancelled) return;
+      if (invalidIds.length > 0) forgetKnownGroups(invalidIds);
+      setExtraGroups(extra.filter((g): g is Group => g != null));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, userName, myGroups]);
 
-      setCompetitions(comps);
-      if (comps.length > 0) {
-        setSelectedCompetition((prev) => (prev ? prev : comps[0].id.toString()));
-      }
+  // Con una sola liga, esa es la activa.
+  useEffect(() => {
+    if (groups.length !== 1) return;
+    const onlyGroupId = groups[0].id.toString();
+    if (activeGroupId !== onlyGroupId) changeGroup(onlyGroupId);
+  }, [groups, activeGroupId, changeGroup]);
 
-      let knownIds = [];
-      try {
-        knownIds = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-      } catch {
-        knownIds = [];
-      }
-      const missingIds =
-        !isAuthenticated && Array.isArray(knownIds)
-          ? knownIds
-              .filter((id) => !myGroups.find((g) => g.id.toString() === id.toString()))
-              .slice(0, 3)
-          : [];
+  /** Vuelve a pedir la lista de ligas y los detalles de cada una tras un cambio. */
+  const refreshGroups = useCallback(async () => {
+    setError('');
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.group() }),
+    ]);
+  }, [queryClient]);
 
-      if (missingIds.length > 0) {
-        try {
-          const invalidIds: string[] = [];
-          const extraGroups = await Promise.all(
-            missingIds.map((id) =>
-              fetchGroup(id).catch(() => {
-                invalidIds.push(id.toString());
-                return null;
-              }),
-            ),
-          );
-          if (invalidIds.length > 0) {
-            try {
-              const current = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-              const pruned = current.filter((x: GroupId) => !invalidIds.includes(x.toString()));
-              localStorage.setItem('knownGroups', JSON.stringify(pruned));
-            } catch {
-              /* ignore */
-            }
-          }
-          const validExtras = extraGroups.filter((g): g is Group => g != null);
-          myGroups.push(...validExtras);
-        } catch (err) {
-          console.warn('No se pudieron cargar grupos extra', err);
-        }
-      }
-
-      if (myGroups.length === 1) {
-        const onlyGroupId = myGroups[0].id.toString();
-        const currentActive = localStorage.getItem('activeGroupId');
-        if (currentActive !== onlyGroupId) {
-          changeGroup(onlyGroupId);
-        }
-      }
-      setGroups(myGroups);
-      queryClient.setQueryData(queryKeys.myGroups(isAuthenticated), myGroups);
-      queryClient.invalidateQueries({ queryKey: queryKeys.group() });
-    } catch (e) {
-      console.error(e);
-      setError('Error al cargar datos');
-    }
-    setLoading(false);
-  }, [changeGroup, isAuthenticated, queryClient]);
+  const retryGroups = useCallback(() => {
+    refetchMyGroups();
+  }, [refetchMyGroups]);
 
   useEffect(() => {
     const pendingCode = localStorage.getItem('pendingJoinCode');
@@ -157,14 +174,6 @@ export function useGroupsDashboard() {
     };
   }, []);
 
-  useEffect(() => {
-    if (userName && !pendingJoinCodeNotice) {
-      loadGroupsAndCompetitions();
-    } else if (!userName) {
-      setTimeout(() => setLoading(false), 0);
-    }
-  }, [userName, pendingJoinCodeNotice, loadGroupsAndCompetitions]);
-
   const handleAcceptPendingInvite = async () => {
     const code = pendingJoinCodeNotice || localStorage.getItem('pendingJoinCode');
     if (!code || isJoiningInvite) return;
@@ -172,11 +181,7 @@ export function useGroupsDashboard() {
     setError('');
     try {
       const group = await joinGroup(code);
-      const knownGroups = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-      if (!knownGroups.includes(group.id.toString())) {
-        knownGroups.push(group.id.toString());
-        localStorage.setItem('knownGroups', JSON.stringify(knownGroups));
-      }
+      rememberKnownGroup(group.id);
       const groupId = group.id.toString();
       const fullGroup = await fetchGroup(groupId).catch(() => group);
       queryClient.setQueryData(queryKeys.group(groupId), fullGroup);
@@ -218,7 +223,7 @@ export function useGroupsDashboard() {
       setNewGroupName('');
       setNewlyCreatedGroup(group);
       changeGroup(group.id.toString());
-      loadGroupsAndCompetitions();
+      refreshGroups();
     } catch (e) {
       setError(errorMessage(e, 'Error al crear el grupo'));
     } finally {
@@ -239,7 +244,7 @@ export function useGroupsDashboard() {
   const handleSaveGroupConfig = async (groupId: GroupId, name: string, rules: string) => {
     try {
       await updateGroup(groupId, name?.trim(), rules);
-      loadGroupsAndCompetitions();
+      refreshGroups();
       return true;
     } catch (e) {
       setError(errorMessage(e, 'Ha ocurrido un error'));
@@ -250,16 +255,14 @@ export function useGroupsDashboard() {
   /** Sube la imagen de la liga. Devuelve la nueva URL; lanza Error con mensaje si falla. */
   const handleUploadGroupImage = async (groupId: GroupId, blob: Blob) => {
     const res = await uploadGroupImage(groupId, blob);
-    await loadGroupsAndCompetitions();
-    queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
+    await refreshGroups();
     toast.success('Imagen de la liga actualizada');
     return res.imageUrl || null;
   };
 
   const handleRemoveGroupImage = async (groupId: GroupId) => {
     await deleteGroupImage(groupId);
-    await loadGroupsAndCompetitions();
-    queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
+    await refreshGroups();
     toast.success('Imagen de la liga eliminada');
   };
 
@@ -282,17 +285,13 @@ export function useGroupsDashboard() {
 
     try {
       await deleteGroup(groupId);
-      const knownGroups = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-      const updatedKnownGroups = knownGroups.filter(
-        (id: GroupId) => id.toString() !== groupId.toString(),
-      );
-      localStorage.setItem('knownGroups', JSON.stringify(updatedKnownGroups));
+      forgetKnownGroups([groupId]);
 
       if (activeGroupId === groupId.toString()) {
         changeGroup(null);
       }
 
-      loadGroupsAndCompetitions();
+      refreshGroups();
       toast.success(`La liga "${groupName}" ha sido eliminada.`);
       return true;
     } catch (e) {
@@ -307,11 +306,7 @@ export function useGroupsDashboard() {
     try {
       const group = await joinGroup(joinCode);
 
-      const knownGroups = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-      if (!knownGroups.includes(group.id.toString())) {
-        knownGroups.push(group.id.toString());
-        localStorage.setItem('knownGroups', JSON.stringify(knownGroups));
-      }
+      rememberKnownGroup(group.id);
 
       const groupId = group.id.toString();
       const fullGroup = await fetchGroup(groupId).catch(() => group);
@@ -325,7 +320,7 @@ export function useGroupsDashboard() {
       ]);
       setJoinCode('');
       changeGroup(groupId);
-      await loadGroupsAndCompetitions();
+      await refreshGroups();
       toast.success(`¡Te has unido a "${fullGroup.name || group.name}"!`);
       // La portada adapta automáticamente el contenido al formato de esta liga.
       navigate('/', { replace: true });
@@ -354,13 +349,9 @@ export function useGroupsDashboard() {
     try {
       await leaveGroup(groupId);
       if (activeGroupId === groupId.toString()) changeGroup(null);
-      const knownGroups = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-      const updatedKnownGroups = knownGroups.filter(
-        (id: GroupId) => id.toString() !== groupId.toString(),
-      );
-      localStorage.setItem('knownGroups', JSON.stringify(updatedKnownGroups));
+      forgetKnownGroups([groupId]);
 
-      loadGroupsAndCompetitions();
+      refreshGroups();
       toast.success(`Has abandonado la liga "${groupName}".`);
     } catch (e) {
       setError(errorMessage(e, 'Ha ocurrido un error'));
@@ -397,6 +388,8 @@ export function useGroupsDashboard() {
     competitions,
     loading,
     error,
+    groupsError,
+    retryGroups,
     newGroupName,
     setNewGroupName,
     selectedCompetition,

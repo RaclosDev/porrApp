@@ -31,6 +31,8 @@ export default function GroupsDashboard() {
     competitions,
     loading,
     error,
+    groupsError,
+    retryGroups,
     newGroupName,
     setNewGroupName,
     selectedCompetition,
@@ -266,9 +268,25 @@ export default function GroupsDashboard() {
         />
       )}
 
+      {groupsError && (
+        <div
+          role="alert"
+          className="bg-[rgba(231,_76,_60,_0.2)] bg-none border border-[#e74c3c] text-[#ffcccc] p-[15px] rounded-[12px] mb-5 text-center flex flex-col items-center gap-3"
+        >
+          <span>{groupsError}</span>
+          <button
+            type="button"
+            onClick={retryGroups}
+            className="glass-btn py-2 px-4 font-bold text-[0.9rem] rounded-[10px] cursor-pointer"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center text-muted py-10 px-0">Cargando tus ligas...</div>
-      ) : groups.length === 0 ? (
+      ) : groupsError && groups.length === 0 ? null : groups.length === 0 ? (
         <div className="glass-panel text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.4)] bg-[rgba(0,_210,_211,_0.04)] bg-none">
           <div className="text-[3rem] mb-3">🏟️</div>
           <h3 className="text-white mt-0 mb-2 mx-0 text-[1.3rem] font-extrabold">
