@@ -198,6 +198,13 @@ export async function fetchLeaderboard(groupId = null) {
   return fetchJson(url);
 }
 
+export async function fetchLeaderboardMatchdays(groupId = null) {
+  const url = groupId
+    ? `${API_BASE}/leaderboard/matchdays?groupId=${groupId}`
+    : `${API_BASE}/leaderboard/matchdays`;
+  return fetchJson(url);
+}
+
 export async function fetchCompetitionStandings(competitionId) {
   if (!competitionId) return [];
   return fetchJson(`${API_BASE}/competitions/${competitionId}/standings`);

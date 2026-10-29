@@ -22,6 +22,8 @@ public class ParticipantScoreDTO {
     private String name;
     /** Título/Nombre de su apuesta. */
     private String betName;
+    /** URL versionada de la foto de perfil del participante, o null si no tiene. */
+    private String avatarUrl;
     
     /** (Opcional) Predicción del partido de tercer y cuarto puesto. */
     private List<String> thirdPlaceMatch;

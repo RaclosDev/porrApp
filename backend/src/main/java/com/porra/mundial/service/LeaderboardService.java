@@ -1,14 +1,21 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.dto.PredictionDataDTO;
+import com.porra.mundial.dto.MatchdayPointsDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
+import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchPrediction;
+import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
+import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.model.Membership;
+import com.porra.mundial.util.MatchRound;
 import com.porra.mundial.scoring.CalculationContext;
 import com.porra.mundial.scoring.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,6 +45,8 @@ public class LeaderboardService {
     private final SyncService syncService;
     private final ScoringStrategy scoringStrategy;
     private final MatchPredictionRepository matchPredictionRepository;
+    private final MembershipRepository membershipRepository;
+    private final EditionRepository editionRepository;
 
     /**
      * @param groupId ID del grupo a consultar.
@@ -54,6 +64,7 @@ public class LeaderboardService {
                 .allMatch(p -> p.getScoreCalculatedAt() != null);
 
         if (allMaterialized) {
+            Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
             List<ParticipantScoreDTO> fastLeaderboard = new ArrayList<>(groupPredictions.size());
             for (Prediction pred : groupPredictions) {
                 if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
@@ -63,7 +74,8 @@ public class LeaderboardService {
                         .userId(pred.getUser() != null ? pred.getUser().getId() : null)
                         .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()))
                         .betName(pred.getBetName())
-                        .pending(!Boolean.TRUE.equals(pred.getPaid()))
+                        .avatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null)
+                        .pending(isPaymentPending(pred, membershipPayment))
                         .total(pred.getTotalPoints() != null ? pred.getTotalPoints() : 0)
                         .r1(pred.getR1Points() != null ? pred.getR1Points() : 0)
                         .r32(pred.getR32Points() != null ? pred.getR32Points() : 0)
@@ -86,6 +98,7 @@ public class LeaderboardService {
                 String nameB = b.getName() != null ? b.getName() : "";
                 return nameA.compareToIgnoreCase(nameB);
             });
+            addLeagueMembersWithoutPredictions(groupId, fastLeaderboard);
             return fastLeaderboard;
         }
 
@@ -101,10 +114,10 @@ public class LeaderboardService {
 
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();
+        Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
 
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
         Map<String, List<String>> orderedTeamsPerGroup = new HashMap<>();
-
         for (GroupStanding gs : allStandings) {
             if (gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && gs.getTeam() != null) {
                 orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName().toUpperCase().trim(), k -> new ArrayList<>())
@@ -248,7 +261,7 @@ public class LeaderboardService {
             score.setUserId(pred.getUser() != null ? pred.getUser().getId() : null);
             score.setName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
             score.setBetName(pred.getBetName());
-            score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
+            score.setPending(isPaymentPending(pred, membershipPayment));
             leaderboard.add(score);
 
             pred.setTotalPoints(score.getTotal());
@@ -279,7 +292,204 @@ public class LeaderboardService {
             String nameB = b.getName() != null ? b.getName() : "";
             return nameA.compareToIgnoreCase(nameB);
         });
+        addLeagueMembersWithoutPredictions(groupId, leaderboard);
+        leaderboard.sort((a, b) -> {
+            if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
+            if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
+            String nameA = a.getName() != null ? a.getName() : "";
+            String nameB = b.getName() != null ? b.getName() : "";
+            return nameA.compareToIgnoreCase(nameB);
+        });
         return leaderboard;
+    }
+
+    private Map<Long, String> getMembershipPaymentStatus(Long groupId) {
+        if (groupId == null) return Collections.emptyMap();
+        Map<Long, String> statuses = new HashMap<>();
+        for (Membership membership : membershipRepository.findByLeagueId(groupId)) {
+            if (membership.getUser() == null || membership.getUser().getId() == null) continue;
+            statuses.put(membership.getUser().getId(),
+                    membership.getPaymentStatus() != null ? membership.getPaymentStatus() : "PENDING");
+        }
+        return statuses;
+    }
+
+    private boolean isPaymentPending(Prediction pred, Map<Long, String> membershipPayment) {
+        Long userId = pred.getUser() != null ? pred.getUser().getId() : null;
+        if (userId != null) {
+            String status = membershipPayment.get(userId);
+            if (status != null) return !"PAID".equalsIgnoreCase(status);
+        }
+        return !Boolean.TRUE.equals(pred.getPaid());
+    }
+
+    private void addLeagueMembersWithoutPredictions(Long groupId, List<ParticipantScoreDTO> leaderboard) {
+        if (groupId == null) return;
+
+        Set<Long> representedUserIds = new HashSet<>();
+        for (ParticipantScoreDTO score : leaderboard) {
+            if (score.getUserId() != null) representedUserIds.add(score.getUserId());
+        }
+
+        for (Membership membership : membershipRepository.findByLeagueId(groupId)) {
+            if (membership.getUser() == null || membership.getUser().getId() == null) continue;
+            var user = membership.getUser();
+            if (user.getParticipantName() == null || user.getParticipantName().equalsIgnoreCase("Admin")) continue;
+            if (!representedUserIds.add(user.getId())) continue;
+
+            leaderboard.add(ParticipantScoreDTO.builder()
+                    .id(null)
+                    .userId(user.getId())
+                    .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(user.getParticipantName()))
+                    .avatarUrl(user.getAvatarUrl())
+                    .betName("")
+                    .pending(false)
+                    .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
+                    .log(new ArrayList<>())
+                    .exactMatches(new HashMap<>())
+                    .passedTeams(new HashMap<>())
+                    .build());
+        }
+
+        leaderboard.sort((a, b) -> {
+            if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
+            if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
+            String nameA = a.getName() != null ? a.getName() : "";
+            String nameB = b.getName() != null ? b.getName() : "";
+            return nameA.compareToIgnoreCase(nameB);
+        });
+    }
+
+    /**
+     * Devuelve el desglose de puntos por jornada de todos los participantes de una liga.
+     * Solo incluye puntos positivos; el frontend muestra 0 cuando no hay aciertos.
+     *
+     * @param groupId ID de la liga. Si es null se calcula sobre todas las porras.
+     * @return Jornadas ordenadas cronológicamente con sus puntos por pronóstico.
+     */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<MatchdayPointsDTO> getMatchdayBreakdown(Long groupId) {
+        List<Prediction> groupPredictions = groupId != null
+                ? predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId)
+                : predictionRepository.findAllWithUserAndEdition();
+
+        Set<Long> participantPredictionIds = groupPredictions.stream()
+                .filter(p -> p.getParticipantName() == null || !p.getParticipantName().equalsIgnoreCase("Admin"))
+                .map(Prediction::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Edition edition = groupId != null
+                ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null)
+                : null;
+
+        List<Match> competitionMatches = edition != null && edition.getCompetition() != null
+                ? matchRepository.findByCompetitionId(edition.getCompetition().getId())
+                : matchRepository.findAll();
+
+        Map<String, MatchdayAccumulator> matchdays = new LinkedHashMap<>();
+        competitionMatches.stream()
+                .filter(Objects::nonNull)
+                .filter(m -> m.getMatchDate() != null)
+                .sorted(Comparator.comparing(Match::getMatchDate))
+                .forEach(match -> {
+                    String label = MatchRound.label(match);
+                    if (isUsableMatchdayLabel(label)) {
+                        matchdays.computeIfAbsent(label, key -> new MatchdayAccumulator(label, match.getMatchDate()))
+                                .addMatch(match);
+                    }
+                });
+
+        List<MatchPrediction> matchPredictions = groupId != null
+                ? matchPredictionRepository.findByPredictionEditionLeagueId(groupId)
+                : matchPredictionRepository.findAll();
+
+        for (MatchPrediction matchPrediction : matchPredictions) {
+            if (matchPrediction == null
+                    || matchPrediction.getPointsAwarded() == null
+                    || matchPrediction.getPointsAwarded() <= 0
+                    || matchPrediction.getPrediction() == null
+                    || matchPrediction.getPrediction().getId() == null
+                    || matchPrediction.getMatch() == null
+                    || !participantPredictionIds.contains(matchPrediction.getPrediction().getId())) {
+                continue;
+            }
+
+            String label = MatchRound.label(matchPrediction.getMatch());
+            if (!isUsableMatchdayLabel(label)) continue;
+
+            matchdays.computeIfAbsent(label,
+                            key -> new MatchdayAccumulator(label, matchPrediction.getMatch().getMatchDate()))
+                    .addPoints(matchPrediction.getPrediction().getId(), matchPrediction.getPointsAwarded());
+        }
+
+        int currentIndex = -1;
+        int index = 0;
+        for (MatchdayAccumulator accumulator : matchdays.values()) {
+            if (!accumulator.finished) {
+                currentIndex = index;
+                break;
+            }
+            index++;
+        }
+        if (currentIndex < 0 && !matchdays.isEmpty()) {
+            currentIndex = matchdays.size() - 1;
+        }
+
+        List<MatchdayPointsDTO> result = new ArrayList<>(matchdays.size());
+        index = 0;
+        for (MatchdayAccumulator accumulator : matchdays.values()) {
+            result.add(MatchdayPointsDTO.builder()
+                    .label(accumulator.label)
+                    .date(accumulator.date)
+                    .finished(accumulator.finished)
+                    .current(index == currentIndex)
+                    .matchCount(accumulator.matchCount)
+                    .pointsByPrediction(accumulator.points)
+                    .build());
+            index++;
+        }
+        return result;
+    }
+
+    private boolean isUsableMatchdayLabel(String label) {
+        return label != null && !label.isBlank() && !"Sin jornada".equalsIgnoreCase(label);
+    }
+
+    private static final class MatchdayAccumulator {
+        private final String label;
+        private final Map<Long, Integer> points = new HashMap<>();
+        private LocalDateTime date;
+        private int matchCount;
+        private boolean finished = true;
+
+        private MatchdayAccumulator(String label, LocalDateTime date) {
+            this.label = label;
+            this.date = date;
+        }
+
+        private void addMatch(Match match) {
+            matchCount++;
+            if (match.getMatchDate() != null && (date == null || match.getMatchDate().isBefore(date))) {
+                date = match.getMatchDate();
+            }
+            if (isPlayablePending(match)) {
+                finished = false;
+            }
+        }
+
+        private void addPoints(Long predictionId, int pointsAwarded) {
+            points.merge(predictionId, pointsAwarded, Integer::sum);
+        }
+
+        private boolean isPlayablePending(Match match) {
+            if (Boolean.TRUE.equals(match.getFinished())) return false;
+            MatchStatusNormalized status = match.getStatus();
+            return status != MatchStatusNormalized.CANCELLED
+                    && status != MatchStatusNormalized.POSTPONED
+                    && status != MatchStatusNormalized.ABANDONED
+                    && status != MatchStatusNormalized.SUSPENDED;
+        }
     }
 
     @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", allEntries = true)
@@ -475,6 +685,7 @@ public class LeaderboardService {
         score.setUserId(pred.getUser() != null ? pred.getUser().getId() : null);
         score.setName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
         score.setBetName(pred.getBetName());
+        score.setAvatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null);
         score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
 
         return score;

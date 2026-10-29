@@ -144,13 +144,22 @@ public class PredictionService {
 
         boolean isOfficial = "official".equalsIgnoreCase(predictionName) || "Admin".equalsIgnoreCase(email);
 
+        String paymentStatus = "PENDING";
+        if (groupId != null && user != null) {
+            Membership.MembershipId memberId = new Membership.MembershipId(user.getId(), groupId);
+            paymentStatus = membershipRepository.findById(memberId)
+                    .map(Membership::getPaymentStatus)
+                    .filter(status -> status != null && !status.isBlank())
+                    .orElse("PENDING");
+        }
+
         Prediction prediction = Prediction.builder()
                 .user(user)
                 .edition(edition)
                 .name(predictionName)
                 .isOfficial(isOfficial)
                 .bracketData(betData)
-                .paymentStatus("PENDING")
+                .paymentStatus(paymentStatus)
                 .createdAt(LocalDateTime.now())
                 .build();
 

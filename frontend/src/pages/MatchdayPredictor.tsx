@@ -547,6 +547,16 @@ function MatchdayLeague({ context }) {
             <div key={fixture.matchId} className={`md-match${isMatchLocked ? ' is-locked' : ''}`}>
               <div className="md-match-top">
                 <span>📅 {formatDate(fixture.matchDate)}</span>
+                <div className="md-match-status-actions">
+                  <button
+                    type="button"
+                    className="md-bets-btn md-bets-icon-btn"
+                    onClick={() => setSelectedMatchForFriends(fixture)}
+                    aria-label={`Ver pronósticos de ${fixture.homeTeam} vs ${fixture.awayTeam}`}
+                    title="Ver pronósticos de amigos"
+                  >
+                    <span aria-hidden="true">👥</span>
+                  </button>
                 {fixture.finished ? (
                   <span className="md-badge is-finished">
                     Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
@@ -558,6 +568,7 @@ function MatchdayLeague({ context }) {
                 ) : (
                   <span className="md-badge is-open">⏱️ Abierto</span>
                 )}
+                </div>
               </div>
 
               <div className="md-team-rows">
@@ -625,18 +636,6 @@ function MatchdayLeague({ context }) {
                     </button>
                   );
                 })}
-              </div>
-
-              <div className="md-match-footer">
-                <button
-                  type="button"
-                  onClick={() => setSelectedMatchForFriends(fixture)}
-                  className="md-bets-btn"
-                  aria-label={`Ver porras de amigos para ${fixture.homeTeam} vs ${fixture.awayTeam}`}
-                >
-                  <span aria-hidden="true">👥</span>
-                  <span>Ver pronósticos</span>
-                </button>
               </div>
 
               {/* Desglose de puntos si el partido ya ha finalizado */}

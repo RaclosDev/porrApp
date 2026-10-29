@@ -2,13 +2,13 @@ import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { normalizeCountryName } from '../utils/constants';
 import {
-  getAuthToken,
   fetchStandings,
   fetchMatches,
   fetchMatchRadar,
   fetchPredictions,
   fetchTeamOdds,
   fetchLeaderboard,
+  fetchLeaderboardMatchdays,
   fetchGroup,
   fetchTopScorers,
   fetchMe,
@@ -16,7 +16,7 @@ import {
   updateUserPreferences,
 } from '../services/api';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useAppStore, defaultBracketState } from '../store/useAppStore';
+import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
 
 const EMPTY_OBJECT = Object.freeze({});
 const EMPTY_ARRAY = Object.freeze([]);
@@ -102,7 +102,6 @@ export function AppProvider({ children }) {
         setUserId('');
       }, 0);
       localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_bet_name');
       localStorage.removeItem('my_user_id');
       localStorage.removeItem('my_avatar_url');
     }
@@ -131,14 +130,17 @@ export function AppProvider({ children }) {
           localStorage.removeItem('activeGroupId');
           changeGroup('');
         } else {
-          const currentLocal = localStorage.getItem('activeGroupId');
-          const belongsToCurrent = myGroups.some((g) => g.id.toString() === currentLocal);
+          // La fuente de verdad es el store (no localStorage): handleGoogleSuccess
+          // puede haber escrito la preferencia del servidor sin actualizar el estado.
+          const currentStoreGroup = useAppStore.getState().activeGroupId;
+          const belongsToCurrent =
+            currentStoreGroup && myGroups.some((g) => g.id.toString() === currentStoreGroup);
 
-          if (belongsToCurrent && currentLocal) {
-            // El usuario ya tiene una liga válida seleccionada en este navegador (respetar en F5)
+          if (belongsToCurrent) {
+            // El usuario ya tiene una liga válida seleccionada en esta sesión (respetar en F5)
             const currentBracket = useAppStore.getState().bracketState;
             if (currentBracket === defaultBracketState) {
-              const savedDraft = localStorage.getItem(`draft_bracket_${currentLocal}`);
+              const savedDraft = localStorage.getItem(`draft_bracket_${currentStoreGroup}`);
               if (savedDraft) {
                 try {
                   const parsed = JSON.parse(savedDraft);
@@ -151,18 +153,32 @@ export function AppProvider({ children }) {
               }
             }
             // Si difiere de la preferencia en BD, sincronizamos la BD sin cambiar la selección local
-            if (dbGroupId !== currentLocal) {
-              updateUserPreferences({ lastSelectedGroupId: Number(currentLocal) }).catch(() => {});
+            if (dbGroupId !== currentStoreGroup) {
+              updateUserPreferences({ lastSelectedGroupId: Number(currentStoreGroup) }).catch(
+                () => {},
+              );
             }
           } else if (dbGroupId && myGroups.some((g) => g.id.toString() === dbGroupId)) {
-            // No hay selección local válida en este navegador, usar la preferencia de BD
+            // No hay selección local válida en esta sesión, usar la preferencia de BD
             changeGroup(dbGroupId);
           } else {
-            // Sin preferencia local ni en BD: usar la liga más reciente
-            const mostRecent = [...myGroups].sort(
-              (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
-            )[0];
-            changeGroup(mostRecent.id.toString());
+            // Sin preferencia en BD: la última liga visitada en este dispositivo y,
+            // si no hay historial, la más reciente por fecha de creación.
+            const visits = readGroupVisits();
+            const lastVisitedId = Object.entries(visits)
+              .sort(([, a], [, b]) => Number(b) - Number(a))
+              .map(([id]) => id)
+              .find((id) => myGroups.some((g) => g.id.toString() === id));
+
+            if (lastVisitedId) {
+              changeGroup(lastVisitedId);
+            } else {
+              const mostRecent = [...myGroups].sort(
+                (a, b) =>
+                  new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+              )[0];
+              changeGroup(mostRecent.id.toString());
+            }
           }
         }
       } catch {
@@ -219,13 +235,13 @@ export const useAppContext = () => {
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
           formatType: fromList.formatType,
-          betMode: fromList.poolFormat || fromList.betMode,
           poolFormat: fromList.poolFormat,
           pichichi: fromList.pichichi,
           isLocked: fromList.isLocked,
           lockDate: fromList.lockDate,
           adminParticipantName: fromList.adminParticipantName,
           adminUserId: fromList.adminUserId,
+          rules: fromList.rules,
         };
       }
       return undefined;
@@ -311,6 +327,16 @@ export const useAppContext = () => {
     enabled: Boolean(activeGroupId),
   });
 
+  const isMatchdayPool =
+    groupInfo?.poolFormat === 'MATCH_DAY' || groupInfo?.formatType === 'LEAGUE';
+
+  const { data: leaderboardMatchdays } = useQuery({
+    queryKey: ['leaderboardMatchdays', activeGroupId],
+    queryFn: () => fetchLeaderboardMatchdays(activeGroupId),
+    enabled: Boolean(activeGroupId && isMatchdayPool),
+    staleTime: 60_000,
+  });
+
   const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: ['matches', activeCompetitionId],
     enabled: competitionReady,
@@ -347,8 +373,7 @@ export const useAppContext = () => {
   const activeGroupName = groupInfo?.name || 'Ninguna Liga Seleccionada';
   const activeGroupAdmin = groupInfo?.adminParticipantName || null;
   const activeGroupAdminId = groupInfo?.adminUserId || null;
-  const activeGroupBetMode =
-    groupInfo?.poolFormat || groupInfo?.betMode || (activeGroupId ? null : 'FULL_BRACKET');
+  const activeGroupPoolFormat = groupInfo?.poolFormat || (activeGroupId ? null : 'FULL_BRACKET');
   const activeGroupIsLocked = Boolean(groupInfo?.isLocked);
   const activeGroupLockDate = groupInfo?.lockDate || null;
 
@@ -367,25 +392,6 @@ export const useAppContext = () => {
 
   const loading = loadingGroup || (loadingStandings && !standings) || (loadingMatches && !matches);
 
-  const isRaclos = useMemo(() => {
-    const token = getAuthToken();
-    if (!token) return false;
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return false;
-      const payload = JSON.parse(atob(parts[1]));
-      if (
-        payload.email &&
-        ['raclosdev@gmail.com', 'raclosnegocios@gmail.com'].includes(payload.email.toLowerCase())
-      ) {
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }, [store.isAuthenticated]);
-
   return {
     ...store,
     isAuthenticated: isUserAuthed,
@@ -402,25 +408,29 @@ export const useAppContext = () => {
     groupOdds: odds && typeof odds === 'object' && typeof odds !== 'function' ? odds : EMPTY_OBJECT,
     nameToIdMap,
     leaderboardData: Array.isArray(leaderboard) ? leaderboard : EMPTY_ARRAY,
+    leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
     loading,
     loadingGroup,
     groupError,
     fetchData: () => queryClient.invalidateQueries(),
     onlineUsers: EMPTY_ARRAY,
-    isRaclos,
     activeGroupName,
     activeGroupAdmin,
     activeGroupAdminId,
-    activeGroupPoolFormat: activeGroupBetMode,
-    activeGroupBetMode,
+    activeGroupPoolFormat,
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,
+    activeGroupRules: groupInfo?.rules || '',
     activeCompetitionId,
     activeCompetitionName: groupInfo?.competitionName || null,
     activeCompetitionFormatType:
       groupInfo?.formatType ||
-      (activeGroupBetMode ? (activeGroupBetMode === 'MATCH_DAY' ? 'LEAGUE' : 'TOURNAMENT') : null),
+      (activeGroupPoolFormat
+        ? activeGroupPoolFormat === 'MATCH_DAY'
+          ? 'LEAGUE'
+          : 'TOURNAMENT'
+        : null),
     userGroups: Array.isArray(userGroups) ? userGroups : EMPTY_ARRAY,
     userGroupsLoaded: !isUserAuthed || (userGroupsFetched && !userGroupsError),
     topScorers: Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,
