@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,11 @@ import type { TeamPair } from '../types/api';
 type Side = 'left' | 'right';
 
 const cloneBracket = (state: BracketState): BracketState => JSON.parse(JSON.stringify(state));
+
+const EMPTY_BRACKET_JSON = JSON.stringify(defaultBracketState);
+/** El cuadro no tiene nada rellenado (no hay borrador local que conservar). */
+const isEmptyBracket = (state: BracketState): boolean =>
+  state === defaultBracketState || JSON.stringify(state) === EMPTY_BRACKET_JSON;
 
 /** Nombres de los dos equipos de un cruce, si ya están los dos. */
 const matchPair = (m: BracketMatch | null): string[] | undefined => {
@@ -73,6 +78,16 @@ export function useBracket() {
   const [savedThirdsDraft, setSavedThirdsDraft] = useState<string[]>(() =>
     readThirdsDraft(activeGroupId, userId),
   );
+  // Al cambiar de liga o de usuario, el estado local es de la anterior: se relee de su borrador.
+  const draftScope = `${userId}:${activeGroupId}`;
+  const [loadedDraftScope, setLoadedDraftScope] = useState(draftScope);
+  if (loadedDraftScope !== draftScope) {
+    setLoadedDraftScope(draftScope);
+    setSavedGroupsDraft(readGroupsDraft(activeGroupId, userId));
+    setSavedThirdsDraft(readThirdsDraft(activeGroupId, userId));
+    setPredictionName('');
+    setSavedPredictionId(null);
+  }
   const navigate = useNavigate();
 
   const isKnockoutsOnly = activeGroupPoolFormat === 'KNOCKOUTS_ONLY';
@@ -146,80 +161,97 @@ export function useBracket() {
     }
   }, [activeGroupId, navigate, isAuthenticated]);
 
+  // Valores que la hidratación consulta al llegar la respuesta, sin volver a lanzarla.
+  const latestRef = useRef({ participantsHashes, groupOdds, userName, topScorer, bracketState });
   useEffect(() => {
-    const token = getAuthToken();
-    if ((isAuthenticated || Boolean(token)) && activeGroupId) {
-      fetchMyPredictions()
-        .then((predictions) => {
-          if (!Array.isArray(predictions)) return;
-          let current = predictions.find(
-            (b) => b.groupId?.toString() === activeGroupId?.toString(),
+    latestRef.current = { participantsHashes, groupOdds, userName, topScorer, bracketState };
+  });
+
+  // Liga (y usuario) cuya porra guardada ya se ha volcado al editor.
+  const hydratedScopeRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!(isAuthenticated || Boolean(getAuthToken())) || !activeGroupId) return;
+    const scope = `${userId}:${activeGroupId}`;
+    // Una sola vez por liga: volver a hidratar pisaría lo que el usuario lleva editado.
+    if (hydratedScopeRef.current === scope) return;
+    hydratedScopeRef.current = scope;
+    const groupId = activeGroupId;
+    let cancelled = false;
+    let settled = false;
+
+    fetchMyPredictions()
+      .then((predictions) => {
+        settled = true;
+        // Si ha cambiado la liga mientras llegaba la respuesta, no es de esta liga.
+        if (cancelled || !Array.isArray(predictions)) return;
+        const latest = latestRef.current;
+        let current = predictions.find((b) => b.groupId?.toString() === groupId);
+        if (!current && isGlobalLeagueId(groupId)) {
+          current = predictions.find((b) => !b.groupId || isGlobalLeagueId(b.groupId));
+        }
+        if (!current && predictions.length === 1) {
+          current = predictions[0];
+        }
+        if (!current && latest.participantsHashes.length > 0) {
+          current = latest.participantsHashes.find(
+            (p) =>
+              (userId && p.userId?.toString() === userId) ||
+              (latest.userName &&
+                p.participantName?.toLowerCase() === latest.userName.toLowerCase()),
           );
-          if (!current && (!activeGroupId || isGlobalLeagueId(activeGroupId))) {
-            current = predictions.find((b) => !b.groupId || isGlobalLeagueId(b.groupId));
-          }
-          if (!current && predictions.length === 1) {
-            current = predictions[0];
-          }
-          if (!current && Array.isArray(participantsHashes) && participantsHashes.length > 0) {
-            current = participantsHashes.find(
-              (p) =>
-                (userId && p.userId?.toString() === userId?.toString()) ||
-                (userName && p.participantName?.toLowerCase() === userName.toLowerCase()),
-            );
-          }
+        }
+        if (!current) return;
 
-          if (current) {
-            setSavedPredictionId(current.key || null);
-            if (current.participantName && !userName) {
-              setUserName(current.participantName);
-            }
-            const predictionTitle = current.predictionName;
-            if (predictionTitle) setPredictionName(predictionTitle);
-            const currentData = current.data;
-            if (currentData) {
-              if (currentData.scorer) setTopScorer(currentData.scorer);
-              let norm = normalizeGroupsDraft(currentData.groups);
-              let normThirds = Array.isArray(currentData.thirds) ? currentData.thirds : [];
+        setSavedPredictionId(current.key || null);
+        if (current.participantName && !latest.userName) setUserName(current.participantName);
+        const predictionTitle = current.predictionName;
+        if (predictionTitle) setPredictionName((prev) => prev || predictionTitle);
+        const currentData = current.data;
+        if (!currentData) return;
+        if (currentData.scorer && !latest.topScorer) setTopScorer(currentData.scorer);
 
-              if (!hasValidGroupSelections(norm) && (currentData.r32 || currentData.r1)) {
-                const extracted = extractGroupsFromR32(
-                  currentData.r32 || currentData.r1,
-                  groupOdds,
-                );
-                norm = extracted.groups;
-                if (normThirds.length === 0) normThirds = extracted.thirds;
-              }
+        let norm = normalizeGroupsDraft(currentData.groups);
+        let normThirds = Array.isArray(currentData.thirds) ? currentData.thirds : [];
+        if (!hasValidGroupSelections(norm) && (currentData.r32 || currentData.r1)) {
+          const extracted = extractGroupsFromR32(
+            currentData.r32 || currentData.r1,
+            latest.groupOdds,
+          );
+          norm = extracted.groups;
+          if (normThirds.length === 0) normThirds = extracted.thirds;
+        }
 
-              if (hasValidGroupSelections(norm)) {
-                setSavedGroupsDraft(norm);
-                writeDraft('groups', activeGroupId, userId, norm);
-              }
-              if (normThirds.length > 0) {
-                setSavedThirdsDraft(normThirds);
-                writeDraft('advancing', activeGroupId, userId, normThirds);
-              }
-              const hydrated = reconstructBracketState(currentData);
-              if (hydrated) {
-                setBracketState(hydrated);
-              }
-            }
-          }
-        })
-        .catch(console.error);
-    }
-  }, [
-    userName,
-    userId,
-    activeGroupId,
-    isAuthenticated,
-    participantsHashes,
-    groupOdds,
-    setBracketState,
-    setTopScorer,
-    setPredictionName,
-    setUserName,
-  ]);
+        // Un borrador local sin guardar manda sobre lo que hay en el servidor.
+        if (
+          hasValidGroupSelections(norm) &&
+          !hasValidGroupSelections(readGroupsDraft(groupId, userId))
+        ) {
+          setSavedGroupsDraft(norm);
+          writeDraft('groups', groupId, userId, norm);
+        }
+        if (normThirds.length > 0 && readThirdsDraft(groupId, userId).length === 0) {
+          setSavedThirdsDraft(normThirds);
+          writeDraft('advancing', groupId, userId, normThirds);
+        }
+        const hydrated = reconstructBracketState(currentData);
+        if (hydrated && isEmptyBracket(latest.bracketState)) {
+          setBracketState(hydrated);
+        }
+      })
+      .catch((err) => {
+        settled = true;
+        // Sin respuesta no se ha hidratado nada: se reintentará la próxima vez.
+        if (hydratedScopeRef.current === scope) hydratedScopeRef.current = null;
+        console.error(err);
+      });
+
+    return () => {
+      cancelled = true;
+      // Una petición cortada a medias no cuenta como hidratada.
+      if (!settled && hydratedScopeRef.current === scope) hydratedScopeRef.current = null;
+    };
+  }, [userId, activeGroupId, isAuthenticated, setBracketState, setTopScorer, setUserName]);
 
   // Si aún no hay borrador de grupos válido pero el bracket ya tiene equipos en R32, extraer automáticamente
   useEffect(() => {
