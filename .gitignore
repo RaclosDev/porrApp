@@ -86,6 +86,7 @@ maven.zip
 *.json
 !package.json
 !package-lock.json
+!railway.json
 !frontend/package.json
 !frontend/package-lock.json
 !tsconfig*.json
