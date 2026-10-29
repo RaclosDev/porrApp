@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { compareTeams } from '../utils/points';
+import { useSortedGroups } from '../hooks/useSortedGroups';
 import { normalizeCountryName } from '../utils/constants';
 import Flag from '../components/Flag';
-import GroupMatchesModal from '../components/GroupMatchesModal';
+import GroupMatchesModal, { type SelectedGroup } from '../components/GroupMatchesModal';
+import type { TeamOdds } from '../types/api';
 import OfficialBracket from './OfficialBracket';
 import BestThirdsPanel from '../components/Home/BestThirdsPanel';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
@@ -11,15 +12,11 @@ import TopScorersPanel from '../components/Home/TopScorersPanel';
 import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
 
 /**
- * Componente de la página principal (Home).
- * Muestra el estado actual del torneo oficial, la clasificación por grupos en vivo,
- * los mejores terceros, partidos en directo y la tabla de goleadores.
- * Permite alternar entre la vista de fase de grupos y la vista de bracket eliminatorio oficial.
- *
- * @component
- * @returns {JSX.Element} La página de inicio renderizada.
+ * Página principal: estado del torneo oficial, clasificación por grupos en vivo,
+ * mejores terceros, partidos en directo y goleadores. Alterna entre la vista de
+ * fase de grupos y el cuadro eliminatorio oficial.
  */
-function Home({ defaultMode = 'bracket' }) {
+function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' }) {
   const {
     groupOdds,
     officialPoints,
@@ -37,40 +34,17 @@ function Home({ defaultMode = 'bracket' }) {
     loadingGroup,
     groupError,
   } = useAppContext();
-  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
   const [viewMode, setViewMode] = useState(defaultMode);
-  const [activeMobilePanel, setActiveMobilePanel] = useState(null); // null, 'thirds', 'live', 'scorers'
+  const [activeMobilePanel, setActiveMobilePanel] = useState<'thirds' | 'live' | 'scorers' | null>(
+    null,
+  );
 
   useEffect(() => {
     setViewMode(defaultMode);
   }, [defaultMode]);
 
-  const sortedGroups = useMemo(() => {
-    if (!groupOdds) return {};
-    const res = {};
-    Object.entries(groupOdds).forEach(([groupName, teams]) => {
-      const teamsWithStats = (teams || []).map((t) => {
-        const safeKey = t.name.replace(/[.#$[\]]/g, '');
-        const stats = officialPoints?.[groupName]?.[safeKey] || {
-          pts: 0,
-          diff: 0,
-          gls: 0,
-          mp: 0,
-          fp: 0,
-        };
-        return { ...t, stats };
-      });
-
-      teamsWithStats.sort((a, b) => {
-        if (a.stats?.pos && b.stats?.pos) {
-          return a.stats.pos - b.stats.pos;
-        }
-        return compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap);
-      });
-      res[groupName] = teamsWithStats;
-    });
-    return res;
-  }, [groupOdds, officialPoints, allGames, nameToIdMap]);
+  const sortedGroups = useSortedGroups();
 
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
@@ -113,7 +87,7 @@ function Home({ defaultMode = 'bracket' }) {
     );
   }
 
-  const renderGroup = (groupName, teams) => {
+  const renderGroup = (groupName: string, teams: TeamOdds[]) => {
     const teamsWithStats = sortedGroups[groupName] || [];
 
     return (

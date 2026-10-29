@@ -1,10 +1,31 @@
-import { useState, useRef, useEffect } from 'react';
-import { MATCH_H } from './BracketCanvas';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { MATCH_H, type CanvasMatch, type RenderSlot, type SlotTeam } from './BracketCanvas';
+
+type Side = 'left' | 'right';
+
+interface PlacedMatch<T extends SlotTeam> {
+  data: CanvasMatch<T>;
+  side: Side;
+  index: number;
+}
+
+/** 2 partidos de una ronda y el de la siguiente al que alimentan. */
+interface MatchGroup<T extends SlotTeam> {
+  matchA: PlacedMatch<T>;
+  matchB: PlacedMatch<T>;
+  nextMatch: (PlacedMatch<T> & { roundIndex: number }) | null;
+}
+
+interface Tab {
+  key: string;
+  label: string;
+  roundIndex: number;
+}
 
 /**
  * Pestañas del bracket móvil, una por cada ronda eliminatoria.
  */
-const ALL_TABS = [
+const ALL_TABS: Tab[] = [
   { key: 'r32', label: '16avos', roundIndex: 0 },
   { key: 'r16', label: 'Octavos', roundIndex: 1 },
   { key: 'qf', label: 'Cuartos', roundIndex: 2 },
@@ -17,19 +38,10 @@ const ALL_TABS = [
  * Muestra las eliminatorias en formato lineal vertical con pestañas por ronda.
  * Cada ronda muestra sus partidos agrupados en pares que alimentan la siguiente ronda,
  * con líneas SVG conectoras estilo árbol.
- *
- * @component
- * @param {Object} props
- * @param {Array[]} props.leftRounds  - Rondas del lado izquierdo del bracket.
- * @param {Array[]} props.rightRounds - Rondas del lado derecho del bracket.
- * @param {Function} props.renderSlot - Función inyectada para pintar un slot de equipo.
- * @param {Function} [props.mobileCenter] - Render prop para la pestaña "Final" (flow layout).
- * @param {number} [props.defaultTab=0] - Pestaña activa por defecto.
- * @returns {JSX.Element} El bracket móvil con pestañas.
  */
-const getTabs = (hasR32) => (hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32'));
+const getTabs = (hasR32: boolean) => (hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32'));
 
-const resolveTabIndex = (tabs, target) => {
+const resolveTabIndex = (tabs: Tab[], target: number) => {
   if (typeof target === 'number') {
     const byRound = tabs.findIndex((t) => t.roundIndex === target);
     if (byRound !== -1) return byRound;
@@ -38,12 +50,19 @@ const resolveTabIndex = (tabs, target) => {
   return 0;
 };
 
-export default function MobileBracket({
+export default function MobileBracket<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
   mobileCenter,
   defaultTab = 0,
+}: {
+  leftRounds: CanvasMatch<T>[][];
+  rightRounds: CanvasMatch<T>[][];
+  renderSlot: RenderSlot<T>;
+  /** Contenido de la pestaña "Final". */
+  mobileCenter?: () => ReactNode;
+  defaultTab?: number;
 }) {
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
   const tabs = getTabs(hasR32);
@@ -60,7 +79,7 @@ export default function MobileBracket({
   }, [defaultTab, hasR32]);
 
   /** Cambia de pestaña con animación de deslizamiento */
-  const goToTab = (newTab) => {
+  const goToTab = (newTab: number) => {
     if (newTab === activeTab) return;
     hasUserNavigated.current = true;
     setSlideDir(newTab > activeTab ? 'right' : 'left');
@@ -72,13 +91,11 @@ export default function MobileBracket({
    * Agrupa los partidos de una ronda en pares.
    * Cada par son 2 partidos de la ronda actual que alimentan 1 partido de la siguiente.
    *
-   * @param {number} roundIndex - Índice de la ronda (0-2).
-   * @returns {Array} Lista de grupos { matchA, matchB, nextMatch }.
    */
-  const buildGroups = (roundIndex) => {
-    const groups = [];
+  const buildGroups = (roundIndex: number) => {
+    const groups: MatchGroup<T>[] = [];
 
-    for (const side of ['left', 'right']) {
+    for (const side of ['left', 'right'] as const) {
       const rounds = side === 'left' ? leftRounds : rightRounds;
       const matches = rounds[roundIndex] || [];
       const nextRoundMatches = roundIndex < 3 ? rounds[roundIndex + 1] || [] : [];
@@ -246,12 +263,18 @@ export default function MobileBracket({
 /**
  * Grupo visual de 2 partidos de la ronda actual que alimentan 1 partido de la siguiente.
  * Dibuja líneas SVG estilo bracket entre los partidos actuales y el siguiente.
- *
- * @param {Object} props.group      - Datos del grupo { matchA, matchB, nextMatch }.
- * @param {number} props.roundIndex - Índice de la ronda actual.
- * @param {Function} props.renderSlot - Función para pintar un slot de equipo.
  */
-function BracketGroup({ group, roundIndex, renderSlot, onNavigateNext }) {
+function BracketGroup<T extends SlotTeam>({
+  group,
+  roundIndex,
+  renderSlot,
+  onNavigateNext,
+}: {
+  group: MatchGroup<T>;
+  roundIndex: number;
+  renderSlot: RenderSlot<T>;
+  onNavigateNext?: () => void;
+}) {
   const { matchA, matchB, nextMatch } = group;
 
   // Posiciones SVG
@@ -326,7 +349,7 @@ function BracketGroup({ group, roundIndex, renderSlot, onNavigateNext }) {
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            onNavigateNext();
+            onNavigateNext?.();
           }
         }}
         onClick={onNavigateNext}

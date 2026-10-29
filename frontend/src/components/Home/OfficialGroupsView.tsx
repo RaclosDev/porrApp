@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { compareTeams } from '../../utils/points';
 import Flag from '../Flag';
 import GroupMatchesModal from '../GroupMatchesModal';
 import BestThirdsPanel from './BestThirdsPanel';
 import LiveMatchesPanel from './LiveMatchesPanel';
 import TopScorersPanel from './TopScorersPanel';
+import type { SelectedGroup } from '../GroupMatchesModal';
+import type { TeamOdds } from '../../types/api';
+import { useSortedGroups } from '../../hooks/useSortedGroups';
 
 /**
  * Componente que renderiza la vista oficial de fase de grupos del torneo:
@@ -26,36 +28,11 @@ export default function OfficialGroupsView() {
     activeGroupPichichi,
   } = useAppContext();
 
-  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
 
-  const sortedGroups = useMemo(() => {
-    if (!groupOdds) return {};
-    const res = {};
-    Object.entries(groupOdds).forEach(([groupName, teams]) => {
-      const teamsWithStats = (teams || []).map((t) => {
-        const safeKey = t.name.replace(/[.#$[\]]/g, '');
-        const stats = officialPoints?.[groupName]?.[safeKey] || {
-          pts: 0,
-          diff: 0,
-          gls: 0,
-          mp: 0,
-          fp: 0,
-        };
-        return { ...t, stats };
-      });
+  const sortedGroups = useSortedGroups();
 
-      teamsWithStats.sort((a, b) => {
-        if (a.stats?.pos && b.stats?.pos) {
-          return a.stats.pos - b.stats.pos;
-        }
-        return compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap);
-      });
-      res[groupName] = teamsWithStats;
-    });
-    return res;
-  }, [groupOdds, officialPoints, allGames, nameToIdMap]);
-
-  const renderGroup = (groupName, teams) => {
+  const renderGroup = (groupName: string, teams: TeamOdds[]) => {
     const teamsWithStats = sortedGroups[groupName] || [];
 
     return (
@@ -182,7 +159,14 @@ export default function OfficialGroupsView() {
               >
                 {idx + 1}
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', flexShrink: 0 }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  marginRight: '5px',
+                  flexShrink: 0,
+                }}
+              >
                 <Flag team={team.name} />
               </span>
               <span
@@ -321,11 +305,11 @@ export default function OfficialGroupsView() {
             className="pichichi-mobile-center"
           >
             <TopScorersPanel
-            topScorers={topScorers}
-            loading={topScorersLoading}
-            error={topScorersError}
-            onRetry={refreshTopScorers}
-          />
+              topScorers={topScorers}
+              loading={topScorersLoading}
+              error={topScorersError}
+              onRetry={refreshTopScorers}
+            />
           </div>
         )}
       </div>

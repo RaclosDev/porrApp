@@ -7,8 +7,11 @@ import {
   normalizeGroupsDraft as normalizeSelections,
   type GroupSelection,
 } from '../hooks/useBracket';
+import type { GroupOdds } from '../types/api';
 
-const getSavedSelections = (groupId) => {
+type Selections = Record<string, GroupSelection>;
+
+const getSavedSelections = (groupId: string): Selections => {
   try {
     const saved = localStorage.getItem('draft_groups_' + groupId);
     if (!saved) return {};
@@ -19,7 +22,7 @@ const getSavedSelections = (groupId) => {
   }
 };
 
-const getSavedThirds = (groupId) => {
+const getSavedThirds = (groupId: string): string[] => {
   try {
     const saved = localStorage.getItem('draft_advancing_' + groupId);
     return saved ? JSON.parse(saved) : [];
@@ -32,13 +35,6 @@ const getSavedThirds = (groupId) => {
  * Componente interactivo para que el usuario prediga la Fase de Grupos.
  * Permite elegir 1º, 2º y hasta 8 equipos como los "Mejores Terceros".
  * Persiste los datos en localStorage en caso de recarga o cierre.
- *
- * @component
- * @param {Object} props
- * @param {Object} props.groupOdds - Datos de los grupos y sus equipos.
- * @param {Function} props.onComplete - Callback llamado cuando el usuario valida su fase de grupos.
- * @param {string} props.activeGroupId - ID único del grupo (ej: 'draft_groups_peña1') para persistencia.
- * @returns {JSX.Element} La pantalla de selección de grupos.
  */
 export default function GroupStage({
   groupOdds,
@@ -46,8 +42,16 @@ export default function GroupStage({
   activeGroupId,
   initialSelections,
   initialThirds,
+}: {
+  groupOdds: GroupOdds;
+  /** Se llama cuando el usuario valida su fase de grupos. */
+  onComplete: (selections: Selections, thirds: string[]) => void;
+  /** Liga activa; separa los borradores en localStorage. */
+  activeGroupId: string;
+  initialSelections?: unknown;
+  initialThirds?: string[];
 }) {
-  const [selections, setSelections] = useState<Record<string, GroupSelection>>(() => {
+  const [selections, setSelections] = useState<Selections>(() => {
     if (hasValidGroupSelections(initialSelections)) {
       return normalizeSelections(initialSelections);
     }
@@ -58,7 +62,7 @@ export default function GroupStage({
     return normalizeSelections(initialSelections || {});
   });
 
-  const [advancingThirds, setAdvancingThirds] = useState(() => {
+  const [advancingThirds, setAdvancingThirds] = useState<string[]>(() => {
     if (initialThirds && Array.isArray(initialThirds) && initialThirds.length > 0) {
       return initialThirds;
     }
@@ -165,7 +169,7 @@ export default function GroupStage({
    * Maneja la selección de un equipo en un grupo y asegura que
    * no se pueda poner al mismo equipo en 1º y en 2º a la vez.
    */
-  const handleSelect = (group, pos, teamName) => {
+  const handleSelect = (group: string, pos: keyof GroupSelection, teamName: string) => {
     setSelections((prev) => {
       const next = { ...prev };
       const currentGroup = { ...next[group] };
@@ -185,7 +189,7 @@ export default function GroupStage({
   /**
    * Agrega o quita un equipo a la lista final de 8 mejores terceros.
    */
-  const toggleAdvancingThird = (team) => {
+  const toggleAdvancingThird = (team: string) => {
     setAdvancingThirds((prev) => {
       if (prev.includes(team)) return prev.filter((x) => x !== team);
       if (prev.length < 8) return [...prev, team];
@@ -201,7 +205,7 @@ export default function GroupStage({
    * Valida que todos los grupos tengan 1º y 2º, y que haya exactamente 8 terceros.
    */
   const handleSubmit = () => {
-    const missingFirstsOrSeconds = [];
+    const missingFirstsOrSeconds: string[] = [];
     Object.keys(selections).forEach((g) => {
       if (!selections[g].first || !selections[g].second) {
         missingFirstsOrSeconds.push(g);

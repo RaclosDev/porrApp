@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
-import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
+import BracketCanvas, {
+  TeamSlot,
+  matchTop,
+  MATCH_H,
+  COL_GAP,
+  type SlotContext,
+} from '../components/BracketCanvas';
+import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
 import { PredictionSkeleton } from '../components/Skeleton';
 import { useBracket } from '../hooks/useBracket';
@@ -85,7 +92,10 @@ function Bracket() {
   }
 
   /** Slot renderer for BracketCanvas */
-  const renderSlot = (team, { side, roundIndex, matchIndex, isHome }) => {
+  const renderSlot = (
+    team: BracketTeam | null | undefined,
+    { side, roundIndex, matchIndex, isHome }: SlotContext,
+  ) => {
     // R32 in KNOCKOUTS_ONLY with placeholder → dropdown
     if (roundIndex === 0 && isKnockoutsOnly && team?.name?.includes('º')) {
       return (
@@ -147,7 +157,7 @@ function Bracket() {
 
   const finalTopY = matchTop(3, 0);
 
-  const renderCenter = (colW) => (
+  const renderCenter = (colW: number) => (
     <>
       {/* FINAL */}
       <div

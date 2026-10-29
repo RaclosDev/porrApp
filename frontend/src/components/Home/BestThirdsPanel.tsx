@@ -1,12 +1,24 @@
 import { useMemo } from 'react';
 import Flag from '../Flag';
 import { compareTeams } from '../../utils/points';
+import type { GroupStandings, Match, TeamStanding } from '../../types/api';
 
-function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }) {
+interface ThirdPlaceRow extends TeamStanding {
+  group: string;
+  name: string;
+}
+
+interface BestThirdsPanelProps {
+  officialPoints: GroupStandings;
+  allGames: Match[];
+  nameToIdMap: Record<string, number>;
+}
+
+function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPanelProps) {
   const thirds = useMemo(() => {
     if (!officialPoints || Object.keys(officialPoints).length === 0) return [];
 
-    const arr = [];
+    const arr: ThirdPlaceRow[] = [];
     Object.keys(officialPoints).forEach((groupName) => {
       const groupData = officialPoints[groupName];
       const teamNames = Object.keys(groupData);

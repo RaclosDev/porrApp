@@ -1,10 +1,10 @@
 import type { GroupOdds, GroupStandings, Match } from '../types/api';
 
 /** Equipo clasificado según el marcador; provisional si el partido no ha terminado. */
-export interface ProvisionalTeam {
+export type ProvisionalTeam = {
   name: string;
   isProvisional: boolean;
-}
+};
 
 /** Hueco del cuadro: nombre conocido, ganador calculado o vacío. */
 export type BracketSlot = string | ProvisionalTeam | null;
@@ -18,7 +18,26 @@ function matchWinner(m: Match): string | null {
   return null;
 }
 
-const slotName = (slot: BracketSlot | undefined): string | null => {
+/** Partido de eliminatorias (no de fase de grupos ni de liga). */
+export const isKnockoutMatch = (m: Match | null | undefined) => {
+  if (!m) return false;
+  if (m.groupName && m.groupName !== '-' && m.groupName.trim() !== '') return false;
+  const r = (m.round || '').toLowerCase().trim();
+  if (r === 'group' || r.startsWith('group') || r.includes('grupo') || r.includes('jornada'))
+    return false;
+  return true;
+};
+
+/** Mismo equipo aunque cambien mayúsculas o el alias de EE. UU. */
+export const matchTeamNames = (a: string | null | undefined, b: string | null | undefined) => {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if ((a === 'EEUU' && b === 'Estados Unidos') || (a === 'Estados Unidos' && b === 'EEUU'))
+    return true;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+};
+
+export const slotName = (slot: BracketSlot | undefined): string | null => {
   if (slot == null) return null;
   return typeof slot === 'string' ? slot : slot.name;
 };
@@ -80,15 +99,6 @@ export function buildBracketData(
       }
     });
   }
-
-  const isKnockoutMatch = (m: Match | null | undefined) => {
-    if (!m) return false;
-    if (m.groupName && m.groupName !== '-' && m.groupName.trim() !== '') return false;
-    const r = (m.round || '').toLowerCase().trim();
-    if (r === 'group' || r.startsWith('group') || r.includes('grupo') || r.includes('jornada'))
-      return false;
-    return true;
-  };
 
   const matchRound = (m: Match, ...keys: string[]) => {
     if (!m || !m.round || !isKnockoutMatch(m)) return false;
@@ -168,14 +178,6 @@ export function buildBracketData(
       if (winner) r16[r16Idx][1] = winner;
     }
   }
-
-  const matchTeamNames = (a: string | null | undefined, b: string | null | undefined) => {
-    if (!a || !b) return false;
-    if (a === b) return true;
-    if ((a === 'EEUU' && b === 'Estados Unidos') || (a === 'Estados Unidos' && b === 'EEUU'))
-      return true;
-    return a.trim().toLowerCase() === b.trim().toLowerCase();
-  };
 
   const realQF = safeGames
     .filter((m) => matchRound(m, 'qf', 'quarter', 'cuart'))

@@ -3,7 +3,25 @@ import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
 import Flag from '../components/Flag';
-import { buildBracketData } from '../utils/bracketBuilder';
+import {
+  buildBracketData,
+  isKnockoutMatch,
+  matchTeamNames,
+  slotName,
+  type BracketSlot,
+} from '../utils/bracketBuilder';
+import type { CanvasMatch, SlotContext } from '../components/BracketCanvas';
+import type { Match } from '../types/api';
+
+/** Huecos de la final y del tercer puesto, que la página pinta fuera del lienzo. */
+interface CenterSlotContext {
+  side: 'center';
+  roundIndex: 'final' | 'thirdPlaceMatch';
+  isHome: boolean;
+  matchIndex?: number;
+}
+
+type OfficialSlotContext = SlotContext | CenterSlotContext;
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
 import OfficialGroupsView from '../components/Home/OfficialGroupsView';
@@ -54,7 +72,7 @@ function OfficialBracketView() {
     activeGroupPichichi,
   } = useAppContext();
 
-  const [activePanel, setActivePanel] = useState(null); // 'live', 'scorers', null
+  const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
   const [activeTab, setActiveTab] = useState('cuadro'); // 'cuadro' | 'grupos'
 
   // Build bracket data
@@ -62,15 +80,6 @@ function OfficialBracketView() {
     () => buildBracketData(officialPoints, groupOdds, allGames),
     [officialPoints, groupOdds, allGames],
   );
-
-  const isKnockoutMatch = (m) => {
-    if (!m) return false;
-    if (m.groupName && m.groupName !== '-' && m.groupName.trim() !== '') return false;
-    const r = (m.round || '').toLowerCase().trim();
-    if (r === 'group' || r.startsWith('group') || r.includes('grupo') || r.includes('jornada'))
-      return false;
-    return true;
-  };
 
   // Featured upcoming match
   const featuredMatch = useMemo(() => {
@@ -83,7 +92,7 @@ function OfficialBracketView() {
     return koUnfinished[0] || null;
   }, [allGames]);
 
-  const isMatchInRound = (match, ctx) => {
+  const isMatchInRound = (match: Match, ctx: OfficialSlotContext | undefined) => {
     if (!match || !ctx) return true;
     if (!isKnockoutMatch(match)) return false;
     const r = (match.round || '').toLowerCase();
@@ -99,8 +108,7 @@ function OfficialBracketView() {
   };
 
   const { leftRounds, rightRounds } = useMemo(() => {
-    if (!part) return { leftRounds: [], rightRounds: [] };
-    const toMatches = (arr) =>
+    const toMatches = (arr: BracketSlot[][] | undefined): CanvasMatch<BracketSlot>[] =>
       (arr || []).map((m) => ({ home: m?.[0] || null, away: m?.[1] || null }));
 
     return {
@@ -136,9 +144,9 @@ function OfficialBracketView() {
   }
 
   // Render slot
-  const renderSlot = (teamOrObj, context) => {
+  const renderSlot = (teamOrObj: BracketSlot | undefined, context?: OfficialSlotContext) => {
     const isObj = typeof teamOrObj === 'object' && teamOrObj !== null;
-    const name = isObj ? teamOrObj.name : teamOrObj;
+    const name = slotName(teamOrObj);
     const isProv = isObj ? teamOrObj.isProvisional : false;
 
     let style: CSSProperties = isProv
@@ -149,7 +157,7 @@ function OfficialBracketView() {
       : {};
 
     let scoreContent = null;
-    let oppName = null;
+    let oppName: string | null = null;
     if (context && name && !name.includes('º') && name !== 'Por definir') {
       const { side, roundIndex, matchIndex, isHome } = context;
       let opponent = null;
@@ -167,15 +175,7 @@ function OfficialBracketView() {
           opponent = isHome ? part.thirdPlaceMatch?.[1] : part.thirdPlaceMatch?.[0];
       }
 
-      oppName = typeof opponent === 'object' && opponent ? opponent.name : opponent;
-
-      const matchTeamNames = (a, b) => {
-        if (!a || !b) return false;
-        if (a === b) return true;
-        if ((a === 'EEUU' && b === 'Estados Unidos') || (a === 'Estados Unidos' && b === 'EEUU'))
-          return true;
-        return a.trim().toLowerCase() === b.trim().toLowerCase();
-      };
+      oppName = slotName(opponent);
 
       const m = (allGames || []).find((g) => {
         if (!g) return false;
@@ -271,10 +271,11 @@ function OfficialBracketView() {
   // Center content
   const finalTopY = matchTop(3, 0);
 
-  const getName = (t) => (typeof t === 'object' && t ? t.name : t);
-  const getIsProv = (t) => (typeof t === 'object' && t ? t.isProvisional : false);
+  const getName = slotName;
+  const getIsProv = (t: BracketSlot | undefined) =>
+    typeof t === 'object' && t ? t.isProvisional : false;
 
-  const centerContent = (colW) => (
+  const centerContent = (colW: number) => (
     <div style={{ display: 'block' }}>
       {/* FINAL */}
       <div

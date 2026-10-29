@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { compareTeams } from '../../utils/points';
-import { game } from '../fixtures';
+import { game, standing } from '../fixtures';
 
 describe('compareTeams in points.ts', () => {
   const teamA = { name: 'España' };
@@ -9,8 +9,8 @@ describe('compareTeams in points.ts', () => {
   it('ordena por puntos totales cuando no hay empate', () => {
     const officialPoints = {
       'Grupo A': {
-        España: { pts: 6, diff: 2, gls: 4, fp: 0 },
-        Alemania: { pts: 3, diff: 0, gls: 2, fp: 0 },
+        España: standing({ pts: 6, diff: 2, gls: 4, fp: 0 }),
+        Alemania: standing({ pts: 3, diff: 0, gls: 2, fp: 0 }),
       },
     };
 
@@ -22,8 +22,8 @@ describe('compareTeams in points.ts', () => {
   it('desempata por diferencia de goles si los puntos son iguales', () => {
     const officialPoints = {
       'Grupo A': {
-        España: { pts: 4, diff: +3, gls: 5, fp: 0 },
-        Alemania: { pts: 4, diff: +1, gls: 3, fp: 0 },
+        España: standing({ pts: 4, diff: +3, gls: 5, fp: 0 }),
+        Alemania: standing({ pts: 4, diff: +1, gls: 3, fp: 0 }),
       },
     };
 
@@ -34,8 +34,8 @@ describe('compareTeams in points.ts', () => {
   it('desempata por goles a favor si puntos y diferencia son iguales', () => {
     const officialPoints = {
       'Grupo A': {
-        España: { pts: 4, diff: +2, gls: 6, fp: 0 },
-        Alemania: { pts: 4, diff: +2, gls: 4, fp: 0 },
+        España: standing({ pts: 4, diff: +2, gls: 6, fp: 0 }),
+        Alemania: standing({ pts: 4, diff: +2, gls: 4, fp: 0 }),
       },
     };
 
@@ -46,8 +46,8 @@ describe('compareTeams in points.ts', () => {
   it('desempata por Fair Play cuando todo lo demás está empatado', () => {
     const officialPoints = {
       'Grupo A': {
-        España: { pts: 4, diff: +2, gls: 4, fp: -1 },
-        Alemania: { pts: 4, diff: +2, gls: 4, fp: -3 },
+        España: standing({ pts: 4, diff: +2, gls: 4, fp: -1 }),
+        Alemania: standing({ pts: 4, diff: +2, gls: 4, fp: -3 }),
       },
     };
 
@@ -59,8 +59,8 @@ describe('compareTeams in points.ts', () => {
   it('desempata por enfrentamiento directo (Head-to-Head) si existe partido', () => {
     const officialPoints = {
       'Grupo A': {
-        España: { pts: 3, diff: 0, gls: 2, fp: 0 },
-        Alemania: { pts: 3, diff: 0, gls: 2, fp: 0 },
+        España: standing({ pts: 3, diff: 0, gls: 2, fp: 0 }),
+        Alemania: standing({ pts: 3, diff: 0, gls: 2, fp: 0 }),
       },
     };
 

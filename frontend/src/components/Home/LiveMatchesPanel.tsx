@@ -1,12 +1,19 @@
 import Flag from '../Flag';
 import { openStats } from '../../utils/navigation';
+import type { Match, MatchRadar } from '../../types/api';
 
-function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
-  const renderLiveMatch = (m) => {
-    const d = new Date(m.date);
+interface LiveMatchesPanelProps {
+  liveMatches: Match[];
+  matchRadar: MatchRadar | null | undefined;
+  maxNext?: number;
+}
+
+function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesPanelProps) {
+  const renderLiveMatch = (m: Match) => {
+    const d = new Date(m.date ?? 0);
     const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
     const hasStarted = new Date() >= d;
-    const isPlaceholder = (t) =>
+    const isPlaceholder = (t: string | null | undefined) =>
       !t ||
       t.toLowerCase().includes('por definir') ||
       t.toLowerCase().includes('tbd') ||
@@ -80,7 +87,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
     .filter((m) => !liveMatches.some((live) => live.id === m.id))
     .slice(0, maxNext);
   const hasLive = liveMatches && liveMatches.length > 0;
-  const isActuallyLive = hasLive && liveMatches.some((m) => new Date(m.date) <= new Date());
+  const isActuallyLive = hasLive && liveMatches.some((m) => new Date(m.date ?? 0) <= new Date());
 
   if (!hasLive && nextMatches.length === 0) {
     return (

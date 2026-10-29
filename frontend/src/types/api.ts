@@ -83,8 +83,20 @@ export interface MatchRadar {
   next: Match[];
 }
 
-/** Clasificación de grupos: grupo -> equipo -> estadística (pts, diff, gls, mp...). */
-export type GroupStandings = Record<string, Record<string, Record<string, number>>>;
+/** Estadísticas de un equipo en su grupo (StandingsService). */
+export interface TeamStanding {
+  pts: number;
+  diff: number;
+  gls: number;
+  mp: number;
+  fp: number;
+  pos: number;
+  /** 5 = clasificado matemáticamente, -1 = eliminado, 0 = en juego. */
+  status: number;
+}
+
+/** Clasificación de grupos: grupo -> equipo -> estadísticas. */
+export type GroupStandings = Record<string, Record<string, TeamStanding>>;
 
 export interface LeagueStanding {
   rank: number;

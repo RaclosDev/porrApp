@@ -5,15 +5,16 @@ import { useAppContext } from '../../context/AppContext';
 import { fetchCompetitionStandings } from '../../services/api';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
+import type { Match } from '../../types/api';
 
-function formatKickOff(date) {
+function formatKickOff(date: string | null) {
   if (!date) return 'VS';
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return 'VS';
   return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatMatchDate(date) {
+function formatMatchDate(date: string | null) {
   if (!date) return 'Fecha por confirmar';
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return 'Fecha por confirmar';
@@ -26,7 +27,7 @@ function formatMatchDate(date) {
   });
 }
 
-function roundLabelFor(match) {
+function roundLabelFor(match: Match | null | undefined) {
   if (!match) return '';
   if (match.groupName) return `Grupo ${match.groupName}`;
   if (match.round && match.round.toLowerCase() !== 'group') return match.round;
@@ -58,12 +59,14 @@ export default function MatchdayHomeDashboard() {
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
   const showCompetition =
     Boolean(activeCompetitionName) &&
-    activeCompetitionName.trim().toLowerCase() !== (activeGroupName || '').trim().toLowerCase();
+    (activeCompetitionName ?? '').trim().toLowerCase() !==
+      (activeGroupName || '').trim().toLowerCase();
 
   // Jornada actual: la primera ronda con partidos sin finalizar (o la última si ya acabó todo).
   // Se muestran todos los partidos de esa jornada, también los ya finalizados.
   const { currentRound, matchdayMatches } = useMemo(() => {
-    if (!allGames || allGames.length === 0) return { currentRound: null, matchdayMatches: [] };
+    const empty = { currentRound: null as string | null, matchdayMatches: [] as Match[] };
+    if (!allGames || allGames.length === 0) return empty;
 
     const sorted = [...allGames].sort((a, b) => {
       const dateA = a.date ? new Date(a.date).getTime() : 0;
@@ -71,8 +74,8 @@ export default function MatchdayHomeDashboard() {
       return dateA - dateB;
     });
 
-    const rounds = [];
-    const byRound = new Map();
+    const rounds: string[] = [];
+    const byRound = new Map<string, Match[]>();
     sorted.forEach((match) => {
       const label = roundLabelFor(match);
       if (!label) return;
@@ -80,21 +83,19 @@ export default function MatchdayHomeDashboard() {
         byRound.set(label, []);
         rounds.push(label);
       }
-      byRound.get(label).push(match);
+      byRound.get(label)!.push(match);
     });
 
-    if (rounds.length === 0) return { currentRound: null, matchdayMatches: [] };
+    if (rounds.length === 0) return empty;
 
     let currentIndex = rounds.findIndex((label) =>
-      byRound
-        .get(label)
-        .some(
-          (match) =>
-            !match.finished &&
-            !['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED'].includes(
-              (match.status || '').toUpperCase(),
-            ),
-        ),
+      (byRound.get(label) ?? []).some(
+        (match) =>
+          !match.finished &&
+          !['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED'].includes(
+            (match.status || '').toUpperCase(),
+          ),
+      ),
     );
     if (currentIndex === -1) currentIndex = rounds.length - 1;
 
