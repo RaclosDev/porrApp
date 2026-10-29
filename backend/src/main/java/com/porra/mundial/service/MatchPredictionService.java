@@ -42,7 +42,7 @@ public class MatchPredictionService {
      */
     @Transactional(readOnly = true)
     public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(String email, Long groupId, String round) {
-        if (groupId != null && Long.valueOf(1L).equals(groupId)) {
+        if (League.isGlobalId(groupId)) {
             return java.util.Collections.emptyList();
         }
         if (groupId != null) {
@@ -216,7 +216,7 @@ public class MatchPredictionService {
 
         // Asegurar membresía previa en ligas privadas
         Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-        boolean isGlobal = edition.getLeague() != null && "GLOBAL".equalsIgnoreCase(edition.getLeague().getJoinCode());
+        boolean isGlobal = edition.getLeague() != null && edition.getLeague().isGlobal();
         if (!membershipRepository.existsById(memId) && !isGlobal) {
             throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
         }
@@ -376,7 +376,7 @@ public class MatchPredictionService {
                     .orElse(null)
                 : null;
 
-        if (!Long.valueOf(1L).equals(groupId)) {
+        if (!League.isGlobalId(groupId)) {
             boolean isMember = false;
             if (caller != null) {
                     Membership.MembershipId memId = new Membership.MembershipId(caller.getId(), groupId);

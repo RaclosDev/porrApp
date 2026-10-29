@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.model.League;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Edition;
@@ -95,9 +96,9 @@ public class PredictionService {
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO predictionData, Long groupId) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
-        Long effectiveGroupId = groupId != null ? groupId : 1L;
+        Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
         Edition edition = editionRepository.findByLeagueIdAndStatus(effectiveGroupId, "ACTIVE")
-                .or(() -> editionRepository.findByLeagueIdAndStatus(1L, "ACTIVE"))
+                .or(() -> editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE"))
                 .orElse(null);
 
         if (edition != null && edition.isLocked()) {
@@ -106,7 +107,7 @@ public class PredictionService {
 
         if (groupId != null && user != null && edition != null && edition.getLeague() != null) {
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-            boolean isGlobal = "GLOBAL".equalsIgnoreCase(edition.getLeague().getJoinCode());
+            boolean isGlobal = edition.getLeague().isGlobal();
             if (!membershipRepository.existsById(memId) && !isGlobal) {
                 throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
             }

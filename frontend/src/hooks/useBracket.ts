@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
+import { isGlobalLeagueId } from '../utils/constants';
 import { defaultBracketState } from '../store/useAppStore';
 
 export const WORLD_CUP_2026_GROUPS = {
@@ -505,8 +506,8 @@ export function useBracket() {
           let current = predictions.find(
             (b) => b.groupId?.toString() === activeGroupId?.toString(),
           );
-          if (!current && (activeGroupId === '1' || activeGroupId === 1 || !activeGroupId)) {
-            current = predictions.find((b) => !b.groupId || b.groupId === 1 || b.groupId === '1');
+          if (!current && (!activeGroupId || isGlobalLeagueId(activeGroupId))) {
+            current = predictions.find((b) => !b.groupId || isGlobalLeagueId(b.groupId));
           }
           if (!current && predictions.length === 1) {
             current = predictions[0];

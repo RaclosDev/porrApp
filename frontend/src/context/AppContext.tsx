@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { normalizeCountryName } from '../utils/constants';
+import { normalizeCountryName, isGlobalLeagueId } from '../utils/constants';
 import {
   fetchStandings,
   fetchMatches,
@@ -292,7 +292,12 @@ export const useAppContext = () => {
   });
 
   useEffect(() => {
-    if (!store.isDemoMode && predictionsError && activeGroupId && String(activeGroupId) !== '1') {
+    if (
+      !store.isDemoMode &&
+      predictionsError &&
+      activeGroupId &&
+      !isGlobalLeagueId(activeGroupId)
+    ) {
       const msg = predictionsError.message || '';
       if (msg.includes('403') || msg.includes('No perteneces')) {
         // No cambiar silenciosamente a la liga global: eso hace que parezca

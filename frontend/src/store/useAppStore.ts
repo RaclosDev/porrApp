@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { updateUserPreferences } from '../services/api';
+import { GLOBAL_LEAGUE_ID, DEMO_COMPETITION_ID } from '../utils/constants';
 
 export const defaultBracketState = {
   r32: {
@@ -152,19 +153,19 @@ export const useAppStore = create((set, get) => ({
 
   enterDemoMode: () => {
     localStorage.setItem('isDemoMode', 'true');
-    localStorage.setItem('activeGroupId', '1');
-    localStorage.setItem('activeCompetitionId', '2');
+    localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
+    localStorage.setItem('activeCompetitionId', String(DEMO_COMPETITION_ID));
     set({
       isDemoMode: true,
-      activeGroupId: '1',
-      activeCompetitionId: 2,
+      activeGroupId: GLOBAL_LEAGUE_ID,
+      activeCompetitionId: DEMO_COMPETITION_ID,
       viewerPredictionId: null,
     });
   },
 
   exitDemoMode: () => {
     localStorage.removeItem('isDemoMode');
-    localStorage.setItem('activeGroupId', '1');
+    localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
     localStorage.removeItem('activeCompetitionId');
     localStorage.removeItem('my_prediction_name');
     localStorage.removeItem('my_user_id');

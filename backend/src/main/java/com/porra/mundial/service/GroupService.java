@@ -64,7 +64,7 @@ public class GroupService {
 
     /**
      * Script de inicialización que corre al arrancar el backend.
-     * Crea automáticamente la "Porra Global" oficial si no existe,
+     * Crea automáticamente la League.GLOBAL_NAME oficial si no existe,
      * para asegurar que los usuarios sin grupo puedan participar en algo.
      */
     @PostConstruct
@@ -77,15 +77,15 @@ public class GroupService {
                         .participantName("Admin")
                         .build()));
 
-        League globalGroup = leagueRepository.findById(1L).orElse(null);
+        League globalGroup = leagueRepository.findById(League.GLOBAL_ID).orElse(null);
 
         if (globalGroup == null) {
             // Find if any group has code GLOBAL
-            globalGroup = leagueRepository.findByJoinCode("GLOBAL").orElse(null);
+            globalGroup = leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).orElse(null);
             if (globalGroup == null) {
                 globalGroup = League.builder()
-                        .name("Porra Global")
-                        .joinCode("GLOBAL")
+                        .name(League.GLOBAL_NAME)
+                        .joinCode(League.GLOBAL_JOIN_CODE)
                         .adminUser(adminUser)
                         .build();
                 globalGroup = leagueRepository.save(globalGroup);
@@ -98,24 +98,24 @@ public class GroupService {
                     || "admin@local".equalsIgnoreCase(currentAdminEmail)
                     || (currentAdminEmail != null && currentAdminEmail.toLowerCase(java.util.Locale.ROOT).endsWith("@auto.generated"));
 
-            boolean metadataNeedsUpdate = !"GLOBAL".equals(globalGroup.getJoinCode())
-                    || !"Porra Global".equals(globalGroup.getName());
+            boolean metadataNeedsUpdate = !League.GLOBAL_JOIN_CODE.equals(globalGroup.getJoinCode())
+                    || !League.GLOBAL_NAME.equals(globalGroup.getName());
             boolean adminNeedsUpdate = currentAdminIsPlaceholder
                     && (currentAdmin == null || !adminUser.getId().equals(currentAdmin.getId()));
 
             if (metadataNeedsUpdate || adminNeedsUpdate) {
                 try {
                     // Avoid a unique-code conflict if another league currently uses GLOBAL.
-                    leagueRepository.findByJoinCode("GLOBAL").ifPresent(other -> {
-                        if (!other.getId().equals(1L)) {
+                    leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).ifPresent(other -> {
+                        if (!League.isGlobalId(other.getId())) {
                             log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
                             other.setJoinCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
                             leagueRepository.saveAndFlush(other);
                         }
                     });
 
-                    globalGroup.setJoinCode("GLOBAL");
-                    globalGroup.setName("Porra Global");
+                    globalGroup.setJoinCode(League.GLOBAL_JOIN_CODE);
+                    globalGroup.setName(League.GLOBAL_NAME);
                     if (adminNeedsUpdate) {
                         log.info("Replacing placeholder administrator of Porra Global with the default Admin account.");
                         globalGroup.setAdminUser(adminUser);
@@ -522,7 +522,7 @@ public class GroupService {
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
 
-        boolean isGlobal = "GLOBAL".equalsIgnoreCase(group.getJoinCode());
+        boolean isGlobal = group.isGlobal();
         boolean callerIsAdmin = false;
 
         if (email != null && !email.isBlank()) {

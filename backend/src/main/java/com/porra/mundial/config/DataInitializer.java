@@ -1,6 +1,7 @@
 package com.porra.mundial.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.porra.mundial.model.League;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Prediction;
@@ -309,7 +310,7 @@ public class DataInitializer implements CommandLineRunner {
             {"dfsdf", "fdsfsdfs"}
         };
 
-        Edition globalEdition = editionRepository.findByLeagueIdAndStatus(1L, "ACTIVE").orElse(null);
+        Edition globalEdition = editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE").orElse(null);
         if (globalEdition != null && globalEdition.getLockDate() == null) {
             globalEdition.setLockDate(LocalDateTime.of(2026, 6, 11, 20, 0));
             globalEdition = editionRepository.save(globalEdition);

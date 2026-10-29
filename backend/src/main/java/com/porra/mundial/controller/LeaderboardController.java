@@ -2,6 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.MatchdayPointsDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
+import com.porra.mundial.model.League;
 import com.porra.mundial.service.LeaderboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -55,7 +56,7 @@ public class LeaderboardController {
     }
 
     private void assertGroupAccess(Long groupId, Principal principal) {
-        if (groupId == null || Long.valueOf(1L).equals(groupId)) return;
+        if (groupId == null || League.isGlobalId(groupId)) return;
 
         String email = principal != null && principal.getName() != null ? principal.getName() : null;
         if (email == null) {
