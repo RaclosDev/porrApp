@@ -112,7 +112,6 @@ describe('useLeaderboard hook', () => {
         },
       ],
       loading: false,
-      isRaclos: false,
       activeGroupName: 'Liga Amigos',
       activeGroupId: 10,
       activeGroupPichichi: true,

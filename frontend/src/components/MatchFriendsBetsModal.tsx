@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendBets } from '../services/api';
 import { UserAvatar } from './Avatar';
 
-function TeamCrest({ team, logo }) {
+function TeamCrest({ logo }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => setFailed(false), [logo]);

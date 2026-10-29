@@ -19,19 +19,6 @@ export default function GroupsDashboard() {
   const [selectedGroupForRules, setSelectedGroupForRules] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setShowCreateModal(false);
-        setShowJoinModal(false);
-        // El modal de administración gestiona su propio Escape para proteger cambios sin guardar.
-        setSelectedGroupForRules(null);
-        setNewlyCreatedGroup(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const {
     groups,
@@ -71,6 +58,20 @@ export default function GroupsDashboard() {
     activeGroupId,
     navigate,
   } = useGroupsDashboard();
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowCreateModal(false);
+        setShowJoinModal(false);
+        // El modal de administración gestiona su propio Escape para proteger cambios sin guardar.
+        setSelectedGroupForRules(null);
+        setNewlyCreatedGroup(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setNewlyCreatedGroup]);
 
   const handleDirectGoogleLogin = async (credentialResponse) => {
     try {
@@ -112,25 +113,133 @@ export default function GroupsDashboard() {
   };
 
   const inviteSummary = pendingJoinCodeNotice ? (
-    <div className="glass-panel invite-summary-card" style={{ maxWidth: 520, width: '100%', margin: '0 auto 24px', boxSizing: 'border-box', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', background: 'linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))', border: '1px solid var(--border-color)', boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+    <div
+      className="glass-panel invite-summary-card"
+      style={{
+        maxWidth: 520,
+        width: '100%',
+        margin: '0 auto 24px',
+        boxSizing: 'border-box',
+        borderRadius: 16,
+        padding: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        textAlign: 'left',
+        background: 'linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
+        border: '1px solid var(--border-color)',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 64 }}>
-        {pendingInvite?.imageUrl ? <img src={pendingInvite.imageUrl} alt={pendingInvite.name ? `Imagen de ${pendingInvite.name}` : 'Imagen de la liga'} style={{ display: 'block', width: 64, height: 64, flex: '0 0 64px', borderRadius: 12, objectFit: 'cover' }} /> : <LeagueAvatar name={pendingInvite?.name || 'Invitación'} size={64} />}
+        {pendingInvite?.imageUrl ? (
+          <img
+            src={pendingInvite.imageUrl}
+            alt={pendingInvite.name ? `Imagen de ${pendingInvite.name}` : 'Imagen de la liga'}
+            style={{
+              display: 'block',
+              width: 64,
+              height: 64,
+              flex: '0 0 64px',
+              borderRadius: 12,
+              objectFit: 'cover',
+            }}
+          />
+        ) : (
+          <LeagueAvatar name={pendingInvite?.name || 'Invitación'} size={64} />
+        )}
         <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-          <h2 style={{ fontSize: '1.15rem', lineHeight: 1.2, margin: '0 0 4px', color: 'var(--text-primary, #fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={pendingInvite?.name || 'Cargando liga…'}>{pendingInvite?.name || 'Cargando liga…'}</h2>
+          <h2
+            style={{
+              fontSize: '1.15rem',
+              lineHeight: 1.2,
+              margin: '0 0 4px',
+              color: 'var(--text-primary, #fff)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={pendingInvite?.name || 'Cargando liga…'}
+          >
+            {pendingInvite?.name || 'Cargando liga…'}
+          </h2>
         </div>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        <span style={{ fontSize: '0.72rem', fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: 'rgba(162, 155, 254, 0.14)', border: '1px solid rgba(162, 155, 254, 0.35)', color: '#a29bfe' }}>{pendingInvite?.competitionName || 'Fútbol'}</span>
-        <span style={{ fontSize: '0.72rem', fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: 'rgba(0, 210, 211, 0.1)', border: '1px solid rgba(0, 210, 211, 0.3)', color: '#00d2d3' }}>{pendingInvite?.poolFormat === 'MATCH_DAY' ? 'Jornadas' : pendingInvite?.poolFormat === 'KNOCKOUTS_ONLY' ? 'Eliminatorias' : pendingInvite?.poolFormat === 'FULL_BRACKET' ? 'Cuadro completo' : 'Porra de fútbol'}</span>
+        <span
+          style={{
+            fontSize: '0.72rem',
+            fontWeight: 600,
+            padding: '3px 9px',
+            borderRadius: 999,
+            background: 'rgba(162, 155, 254, 0.14)',
+            border: '1px solid rgba(162, 155, 254, 0.35)',
+            color: '#a29bfe',
+          }}
+        >
+          {pendingInvite?.competitionName || 'Fútbol'}
+        </span>
+        <span
+          style={{
+            fontSize: '0.72rem',
+            fontWeight: 600,
+            padding: '3px 9px',
+            borderRadius: 999,
+            background: 'rgba(0, 210, 211, 0.1)',
+            border: '1px solid rgba(0, 210, 211, 0.3)',
+            color: '#00d2d3',
+          }}
+        >
+          {pendingInvite?.poolFormat === 'MATCH_DAY'
+            ? 'Jornadas'
+            : pendingInvite?.poolFormat === 'KNOCKOUTS_ONLY'
+              ? 'Eliminatorias'
+              : pendingInvite?.poolFormat === 'FULL_BRACKET'
+                ? 'Cuadro completo'
+                : 'Porra de fútbol'}
+        </span>
       </div>
-      {userName ? <button type="button" onClick={handleAcceptPendingInvite} disabled={!pendingInvite || isJoiningInvite} style={{ width: '100%', marginTop: 2, border: 0, borderRadius: 10, padding: '10px 14px', background: 'linear-gradient(135deg, #00d2d3, #00a8ff)', color: '#0f172a', fontWeight: 800, fontSize: '0.9rem', cursor: pendingInvite && !isJoiningInvite ? 'pointer' : 'wait', opacity: pendingInvite && !isJoiningInvite ? 1 : .65 }}>{isJoiningInvite ? 'Uniéndote…' : 'Unirme a la liga'}</button> : <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}><GoogleLogin onSuccess={handleDirectGoogleLogin} onError={() => toast.error('Inicio de sesión cancelado')} theme="filled_black" shape="pill" text="continue_with" /></div>}
+      {userName ? (
+        <button
+          type="button"
+          onClick={handleAcceptPendingInvite}
+          disabled={!pendingInvite || isJoiningInvite}
+          style={{
+            width: '100%',
+            marginTop: 2,
+            border: 0,
+            borderRadius: 10,
+            padding: '10px 14px',
+            background: 'linear-gradient(135deg, #00d2d3, #00a8ff)',
+            color: '#0f172a',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            cursor: pendingInvite && !isJoiningInvite ? 'pointer' : 'wait',
+            opacity: pendingInvite && !isJoiningInvite ? 1 : 0.65,
+          }}
+        >
+          {isJoiningInvite ? 'Uniéndote…' : 'Unirme a la liga'}
+        </button>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+          <GoogleLogin
+            onSuccess={handleDirectGoogleLogin}
+            onError={() => toast.error('Inicio de sesión cancelado')}
+            theme="filled_black"
+            shape="pill"
+            text="continue_with"
+          />
+        </div>
+      )}
     </div>
   ) : null;
 
   if (!userName) {
     return (
       <div
-        className={pendingJoinCodeNotice ? 'join-auth-screen has-pending-invite' : 'join-auth-screen'}
+        className={
+          pendingJoinCodeNotice ? 'join-auth-screen has-pending-invite' : 'join-auth-screen'
+        }
         style={{
           textAlign: 'center',
           padding: 'clamp(16px, 4vw, 32px)',
@@ -904,8 +1013,10 @@ export default function GroupsDashboard() {
                     </button>
                   )}
 
-  {group.joinCode && (
-                    <div style={{ display: 'flex', alignItems: 'stretch', gap: '8px', width: '100%' }}>
+                  {group.joinCode && (
+                    <div
+                      style={{ display: 'flex', alignItems: 'stretch', gap: '8px', width: '100%' }}
+                    >
                       <button
                         type="button"
                         onClick={() => handleShareWhatsApp(group)}
@@ -929,8 +1040,15 @@ export default function GroupsDashboard() {
                         title="Invitar por WhatsApp"
                         aria-label={`Invitar a ${group.name} por WhatsApp`}
                       >
-                        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M20.52 3.48A11.86 11.86 0 0 0 12.08 0C5.5 0 .14 5.35.14 11.94c0 2.1.55 4.16 1.6 5.97L0 24l6.25-1.64a11.94 11.94 0 0 0 5.82 1.49h.01c6.58 0 11.94-5.36 11.94-11.94 0-3.19-1.24-6.19-3.5-8.43ZM12.08 21.8h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.71.97.99-3.62-.23-.37a9.88 9.88 0 0 1-1.52-5.25c0-5.46 4.44-9.9 9.9-9.9a9.83 9.83 0 0 1 7 2.9 9.83 9.83 0 0 1 2.9 7c0 5.46-4.45 9.9-9.92 9.9Zm5.43-7.41c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.5 1.69.64.71.23 1.36.2 1.87.12.57-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35Z"/>
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 24 24"
+                          width="16"
+                          height="16"
+                          fill="currentColor"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M20.52 3.48A11.86 11.86 0 0 0 12.08 0C5.5 0 .14 5.35.14 11.94c0 2.1.55 4.16 1.6 5.97L0 24l6.25-1.64a11.94 11.94 0 0 0 5.82 1.49h.01c6.58 0 11.94-5.36 11.94-11.94 0-3.19-1.24-6.19-3.5-8.43ZM12.08 21.8h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.71.97.99-3.62-.23-.37a9.88 9.88 0 0 1-1.52-5.25c0-5.46 4.44-9.9 9.9-9.9a9.83 9.83 0 0 1 7 2.9 9.83 9.83 0 0 1 2.9 7c0 5.46-4.45 9.9-9.92 9.9Zm5.43-7.41c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.5 1.69.64.71.23 1.36.2 1.87.12.57-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35Z" />
                         </svg>
                         <span>Invitar</span>
                       </button>

@@ -337,7 +337,7 @@ export function reconstructBracketState(data) {
       right: toMatches(data.sf || [], 1, 1, 'R2'),
     },
     final: (() => {
-      let f = data.final || data.finalMatch;
+      const f = data.final || data.finalMatch;
       if (Array.isArray(f) && (f[0] || f[1])) {
         return { home: toSlot(f[0]), away: toSlot(f[1]), id: 'FINAL' };
       }
@@ -352,7 +352,7 @@ export function reconstructBracketState(data) {
     })(),
     champion: toSlot(typeof data.champion === 'object' ? data.champion?.name : data.champion),
     thirdPlaceMatch: (() => {
-      let t = data.thirdPlaceMatch || data.thirdMatch || data.third;
+      const t = data.thirdPlaceMatch || data.thirdMatch || data.third;
       if (Array.isArray(t) && (t[0] || t[1])) {
         return { home: toSlot(t[0]), away: toSlot(t[1]), id: 'THIRD' };
       }
@@ -487,7 +487,7 @@ export function useBracket() {
       updateSlot(m.away);
     });
     if (changed) setBracketState(ns);
-  }, [officialPoints, groupOdds, bracketState, setBracketState]);
+  }, [officialPoints, groupOdds, bracketState, setBracketState, isKnockoutsOnly]);
 
   useEffect(() => {
     if (!activeGroupId && !isAuthenticated) {

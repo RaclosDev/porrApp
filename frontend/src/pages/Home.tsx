@@ -42,9 +42,7 @@ function Home({ defaultMode = 'bracket' }) {
   const [activeMobilePanel, setActiveMobilePanel] = useState(null); // null, 'thirds', 'live', 'scorers'
 
   useEffect(() => {
-    if (defaultMode !== viewMode) {
-      setViewMode(defaultMode);
-    }
+    setViewMode(defaultMode);
   }, [defaultMode]);
 
   const sortedGroups = useMemo(() => {

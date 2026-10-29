@@ -18,21 +18,8 @@ import OfficialGroupsView from '../components/Home/OfficialGroupsView';
  * @returns {JSX.Element} La vista del bracket oficial.
  */
 function OfficialBracket() {
-  const {
-    officialPoints,
-    groupOdds,
-    allGames,
-    matchRadar,
-    topScorers,
-    topScorersLoading,
-    topScorersError,
-    refreshTopScorers,
-    activeGroupPichichi,
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    loadingGroup,
-    groupError,
-  } = useAppContext();
+  const { activeGroupPoolFormat, activeCompetitionFormatType, loadingGroup, groupError } =
+    useAppContext();
 
   const isMatchDay =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
@@ -52,6 +39,22 @@ function OfficialBracket() {
   if (activeCompetitionFormatType && isMatchDay) {
     return <Navigate to="/tabla" replace />;
   }
+
+  return <OfficialBracketView />;
+}
+
+function OfficialBracketView() {
+  const {
+    officialPoints,
+    groupOdds,
+    allGames,
+    matchRadar,
+    topScorers,
+    topScorersLoading,
+    topScorersError,
+    refreshTopScorers,
+    activeGroupPichichi,
+  } = useAppContext();
 
   const [activePanel, setActivePanel] = useState(null); // 'live', 'scorers', null
   const [activeTab, setActiveTab] = useState('cuadro'); // 'cuadro' | 'grupos'
@@ -744,12 +747,14 @@ function OfficialBracket() {
                           maxNext={3}
                         />
                       )}
-                      {activePanel === 'scorers' && <TopScorersPanel
-                        topScorers={topScorers}
-                        loading={topScorersLoading}
-                        error={topScorersError}
-                        onRetry={refreshTopScorers}
-                      />}
+                      {activePanel === 'scorers' && (
+                        <TopScorersPanel
+                          topScorers={topScorers}
+                          loading={topScorersLoading}
+                          error={topScorersError}
+                          onRetry={refreshTopScorers}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

@@ -4,6 +4,40 @@ import Flag from './Flag';
 import CustomSelect from './CustomSelect';
 import { hasValidGroupSelections } from '../hooks/useBracket';
 
+const normalizeSelections = (data) => {
+  if (!data || typeof data !== 'object') return {};
+  const res = {};
+  Object.keys(data).forEach((g) => {
+    const val = data[g];
+    if (Array.isArray(val)) {
+      res[g] = { first: val[0] || '', second: val[1] || '', third: val[2] || '' };
+    } else if (val && typeof val === 'object') {
+      res[g] = { first: val.first || '', second: val.second || '', third: val.third || '' };
+    }
+  });
+  return res;
+};
+
+const getSavedSelections = (groupId) => {
+  try {
+    const saved = localStorage.getItem('draft_groups_' + groupId);
+    if (!saved) return {};
+    const parsed = normalizeSelections(JSON.parse(saved));
+    return hasValidGroupSelections(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const getSavedThirds = (groupId) => {
+  try {
+    const saved = localStorage.getItem('draft_advancing_' + groupId);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
 /**
  * Componente interactivo para que el usuario prediga la Fase de Grupos.
  * Permite elegir 1º, 2º y hasta 8 equipos como los "Mejores Terceros".
@@ -23,40 +57,6 @@ export default function GroupStage({
   initialSelections,
   initialThirds,
 }) {
-  const normalizeSelections = (data) => {
-    if (!data || typeof data !== 'object') return {};
-    const res = {};
-    Object.keys(data).forEach((g) => {
-      const val = data[g];
-      if (Array.isArray(val)) {
-        res[g] = { first: val[0] || '', second: val[1] || '', third: val[2] || '' };
-      } else if (val && typeof val === 'object') {
-        res[g] = { first: val.first || '', second: val.second || '', third: val.third || '' };
-      }
-    });
-    return res;
-  };
-
-  const getSavedSelections = (groupId) => {
-    try {
-      const saved = localStorage.getItem('draft_groups_' + groupId);
-      if (!saved) return {};
-      const parsed = normalizeSelections(JSON.parse(saved));
-      return hasValidGroupSelections(parsed) ? parsed : {};
-    } catch {
-      return {};
-    }
-  };
-
-  const getSavedThirds = (groupId) => {
-    try {
-      const saved = localStorage.getItem('draft_advancing_' + groupId);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  };
-
   const [selections, setSelections] = useState(() => {
     if (hasValidGroupSelections(initialSelections)) {
       return normalizeSelections(initialSelections);

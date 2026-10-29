@@ -19,7 +19,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
   if (!selectedGroup) return null;
 
   const groupNames = selectedGroup.teams.map((t) => t.name);
-  let groupMatches = allGames.filter(
+  const groupMatches = allGames.filter(
     (g) => groupNames.includes(g.home) && groupNames.includes(g.away),
   );
   groupMatches.sort((a, b) => new Date(a.date) - new Date(b.date));

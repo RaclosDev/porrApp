@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   fetchMyGroups,
   createGroup,
@@ -64,6 +64,11 @@ export function useGroupsDashboard() {
   const { changeGroup, userName, userId, activeGroupId, userGroups, isAuthenticated } =
     useAppContext();
   const [groups, setGroups] = useState(userGroups && userGroups.length > 0 ? userGroups : []);
+  // Permite consultar el número de ligas cargadas sin recrear loadGroupsAndCompetitions.
+  const groupsRef = useRef(groups);
+  useEffect(() => {
+    groupsRef.current = groups;
+  }, [groups]);
   const [competitions, setCompetitions] = useState([]);
   const [loading, setLoading] = useState(!userGroups || userGroups.length === 0);
   const [newGroupName, setNewGroupName] = useState('');
@@ -92,7 +97,7 @@ export function useGroupsDashboard() {
 
   const loadGroupsAndCompetitions = useCallback(async () => {
     // Only show full loading spinner if we don't already have groups in memory
-    setLoading((prev) => (groups.length > 0 ? false : prev));
+    setLoading((prev) => (groupsRef.current.length > 0 ? false : prev));
     setError('');
     try {
       const [myGroups, comps] = await Promise.all([

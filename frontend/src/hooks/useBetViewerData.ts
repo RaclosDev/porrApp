@@ -371,7 +371,7 @@ export function useBetViewerData(
   const winQF = getFlat(part?.qf);
   const winSF = getFlat(part?.sf);
   const winFinal = useMemo(() => {
-    let f = part?.final || part?.finalMatch;
+    const f = part?.final || part?.finalMatch;
     if (Array.isArray(f)) {
       return f.map((t) => (typeof t === 'object' && t ? t.name : t)).filter(Boolean);
     }
