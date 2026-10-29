@@ -91,10 +91,21 @@ public class GroupService {
                 globalGroup = leagueRepository.save(globalGroup);
             }
         } else {
-            // Ensure group 1 is named "Porra Global", has joinCode "GLOBAL", and admin is "Admin"
-            if (!"GLOBAL".equals(globalGroup.getJoinCode()) || !"Porra Global".equals(globalGroup.getName()) || !adminUser.getId().equals(globalGroup.getAdminUser().getId())) {
+            // Normalize the global league without overwriting a real administrator.
+            UserAccount currentAdmin = globalGroup.getAdminUser();
+            String currentAdminEmail = currentAdmin != null ? currentAdmin.getGoogleEmail() : null;
+            boolean currentAdminIsPlaceholder = currentAdmin == null
+                    || "admin@local".equalsIgnoreCase(currentAdminEmail)
+                    || (currentAdminEmail != null && currentAdminEmail.toLowerCase(java.util.Locale.ROOT).endsWith("@auto.generated"));
+
+            boolean metadataNeedsUpdate = !"GLOBAL".equals(globalGroup.getJoinCode())
+                    || !"Porra Global".equals(globalGroup.getName());
+            boolean adminNeedsUpdate = currentAdminIsPlaceholder
+                    && (currentAdmin == null || !adminUser.getId().equals(currentAdmin.getId()));
+
+            if (metadataNeedsUpdate || adminNeedsUpdate) {
                 try {
-                    // If there's another group with join code GLOBAL, we rename it first to avoid unique constraint violation
+                    // Avoid a unique-code conflict if another league currently uses GLOBAL.
                     leagueRepository.findByJoinCode("GLOBAL").ifPresent(other -> {
                         if (!other.getId().equals(1L)) {
                             log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
@@ -102,14 +113,16 @@ public class GroupService {
                             leagueRepository.saveAndFlush(other);
                         }
                     });
-                    
-                    log.info("Updating existing group 1 to be the Global group (joinCode=GLOBAL, name=Porra Global, adminUser=Admin)");
+
                     globalGroup.setJoinCode("GLOBAL");
                     globalGroup.setName("Porra Global");
-                    globalGroup.setAdminUser(adminUser);
+                    if (adminNeedsUpdate) {
+                        log.info("Replacing placeholder administrator of Porra Global with the default Admin account.");
+                        globalGroup.setAdminUser(adminUser);
+                    }
                     globalGroup = leagueRepository.saveAndFlush(globalGroup);
                 } catch (Exception e) {
-                    log.error("Failed to update global group, likely due to DB constraints. Error: {}", e.getMessage(), e);
+                    log.error("Failed to normalize the global league. Error: {}", e.getMessage(), e);
                 }
             }
         }
@@ -139,15 +152,20 @@ public class GroupService {
             editionRepository.save(edition);
         }
 
-        // Ensure Membership for Admin
+        // Ensure the current league administrator has an ADMIN membership, even if a stale
+        // MEMBER membership already exists from before an administrator change.
         Membership.MembershipId memId = new Membership.MembershipId(finalGlobalGroup.getAdminUser().getId(), finalGlobalGroup.getId());
-        if (!membershipRepository.existsById(memId)) {
+        Membership adminMembership = membershipRepository.findById(memId).orElse(null);
+        if (adminMembership == null) {
             membershipRepository.save(Membership.builder()
                 .id(memId)
                 .user(finalGlobalGroup.getAdminUser())
                 .league(finalGlobalGroup)
                 .role("ADMIN")
                 .build());
+        } else if (!"ADMIN".equalsIgnoreCase(adminMembership.getRole())) {
+            adminMembership.setRole("ADMIN");
+            membershipRepository.save(adminMembership);
         }
 
         // Migrate all existing predictions to this global group (except the Admin template)
