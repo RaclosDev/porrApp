@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +42,8 @@ public class MatchEventProcessor {
     private final TopScorerService topScorerService;
     private final WebSocketService webSocketService;
 
-    private final Map<String, Team> teamCache = new ConcurrentHashMap<>();
+    /** Se sustituye entero al refrescar: quien ya tiene el mapa anterior no lo ve vaciarse a medias. */
+    private volatile Map<String, Team> teamCache = new ConcurrentHashMap<>();
     private volatile long lastTeamCacheRefresh = 0;
 
     /** Acumula lo que cambia durante una sincronización o importación. */
@@ -90,18 +90,19 @@ public class MatchEventProcessor {
     /** Equipos indexados por nombre, nombre en inglés e id externo; se refresca cada hora. */
     public Map<String, Team> teamCache() {
         long now = System.currentTimeMillis();
-        if (teamCache.isEmpty() || now - lastTeamCacheRefresh > TEAM_CACHE_TTL_MS) {
-            Map<String, Team> fresh = new HashMap<>();
+        Map<String, Team> current = teamCache;
+        if (current.isEmpty() || now - lastTeamCacheRefresh > TEAM_CACHE_TTL_MS) {
+            Map<String, Team> fresh = new ConcurrentHashMap<>();
             teamRepository.findAll().forEach(team -> {
                 if (team.getName() != null) fresh.put(team.getName(), team);
                 if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
                 if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
             });
-            teamCache.clear();
-            teamCache.putAll(fresh);
+            teamCache = fresh;
             lastTeamCacheRefresh = now;
+            return fresh;
         }
-        return teamCache;
+        return current;
     }
 
     /**

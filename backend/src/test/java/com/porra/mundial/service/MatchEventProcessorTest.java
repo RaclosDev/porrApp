@@ -16,8 +16,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -247,5 +249,20 @@ class MatchEventProcessorTest {
 
         verify(matchPredictionService, never()).evaluatePredictionsForMatch(any());
         verify(topScorerService, never()).refresh();
+    }
+
+    @Test
+    @DisplayName("Refrescar la caché de equipos la sustituye entera: el mapa que ya se usaba no se vacía")
+    void teamCacheRefreshReplacesTheMapAtomically() {
+        when(teamRepository.findAll()).thenReturn(List.of(spain), List.of(spain, uruguay));
+
+        Map<String, Team> inUse = processor.teamCache();
+        ReflectionTestUtils.setField(processor, "lastTeamCacheRefresh", 0L);
+        Map<String, Team> refreshed = processor.teamCache();
+
+        assertNotSame(inUse, refreshed);
+        assertSame(spain, inUse.get("España"), "una sincronización en curso conserva sus equipos");
+        assertSame(uruguay, refreshed.get("212"));
+        assertSame(refreshed, processor.teamCache());
     }
 }
