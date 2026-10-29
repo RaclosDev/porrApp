@@ -39,6 +39,14 @@ const roundLabelFor = (fixture: MatchdayFixture) =>
       : fixture.matchDate
         ? `Fecha ${fixture.matchDate.slice(0, 10)}`
         : 'Sin jornada';
+/** Hay algún partido empezado y sin terminar. */
+export const hasLiveMatch = (
+  fixtures: MatchdayFixture[] | undefined,
+  now: number = Date.now(),
+): boolean =>
+  Boolean(
+    fixtures?.some((f) => !f.finished && f.matchDate != null && Date.parse(f.matchDate) <= now),
+  );
 const hasPrediction = (prediction: DraftPrediction | undefined) =>
   Boolean(
     prediction && ((prediction.homeScore !== '' && prediction.awayScore !== '') || prediction.sign),
@@ -134,7 +142,9 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
     queryKey: queryKeys.matchdayFixtures(activeGroupId, userId || userName),
     queryFn: () => fetchMatchdayFixtures(activeGroupId, ''),
     enabled: Boolean(activeGroupId && isMatchDay),
-    refetchInterval: 30_000,
+    // El WebSocket ya invalida al cambiar un resultado; el sondeo solo cubre los partidos en
+    // juego (reloj y marcador en directo) por si se pierde un mensaje.
+    refetchInterval: (query) => (hasLiveMatch(query.state.data) ? 30_000 : false),
   });
 
   // Inicializar estado local cuando llegan datos del backend
@@ -241,13 +251,20 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       setSaveErrorMsg('');
       queryClient.invalidateQueries({ queryKey: queryKeys.matchdayFixtures(groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
-      setTimeout(() => setSaveSuccessMsg(''), 4000);
     },
     onError: (err) => {
       setSaveErrorMsg(errorMessage(err, 'Error al guardar pronósticos'));
       setSaveSuccessMsg('');
     },
   });
+
+  // El aviso de guardado desaparece a los 4 s; el temporizador se limpia al desmontar o si
+  // llega otro aviso antes.
+  useEffect(() => {
+    if (!saveSuccessMsg) return;
+    const timer = setTimeout(() => setSaveSuccessMsg(''), 4000);
+    return () => clearTimeout(timer);
+  }, [saveSuccessMsg]);
 
   const updatePrediction = (matchId: number, prediction: DraftPrediction) => {
     persistDraft({ ...draftRef.current, [matchId]: prediction });
