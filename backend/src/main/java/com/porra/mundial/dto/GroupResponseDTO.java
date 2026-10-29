@@ -1,5 +1,8 @@
 package com.porra.mundial.dto;
 
+import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Edition;
+import com.porra.mundial.model.League;
 import lombok.Builder;
 import lombok.Data;
 
@@ -44,4 +47,50 @@ public class GroupResponseDTO {
     private String rules;
     /** URL (versionada) de la imagen de la liga, o null si no tiene. */
     private String imageUrl;
+
+    /**
+     * Vista completa de una liga con los datos de su edición activa.
+     *
+     * @param edition         edición activa, o null si la liga no tiene
+     * @param includeJoinCode solo los miembros ven el código de invitación
+     */
+    public static GroupResponseDTO of(League league, Edition edition, boolean includeJoinCode) {
+        GroupResponseDTOBuilder builder = builder()
+                .id(league.getId())
+                .name(league.getName())
+                .joinCode(includeJoinCode ? league.getJoinCode() : null)
+                .adminParticipantName(league.getAdminParticipantName())
+                .adminUserId(league.getAdminUserId())
+                .createdAt(league.getCreatedAt())
+                .rules(league.getRules())
+                .imageUrl(league.getImageUrl())
+                .isLocked(edition != null && edition.isLocked());
+        if (edition != null) {
+            withEdition(builder, edition)
+                    .lockDate(edition.getLockDate());
+        }
+        return builder.build();
+    }
+
+    /** Vista pública para la previsualización de una invitación: sin administrador, reglas ni código. */
+    public static GroupResponseDTO preview(League league, Edition edition) {
+        GroupResponseDTOBuilder builder = builder()
+                .id(league.getId())
+                .name(league.getName())
+                .imageUrl(league.getImageUrl());
+        if (edition != null) {
+            withEdition(builder, edition);
+        }
+        return builder.build();
+    }
+
+    private static GroupResponseDTOBuilder withEdition(GroupResponseDTOBuilder builder, Edition edition) {
+        Competition competition = edition.getCompetition();
+        return builder
+                .competitionId(competition != null ? competition.getId() : null)
+                .competitionName(competition != null ? competition.getName() : null)
+                .formatType(competition != null ? competition.getFormatType() : null)
+                .poolFormat(edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null)
+                .pichichi(edition.isPichichi());
+    }
 }

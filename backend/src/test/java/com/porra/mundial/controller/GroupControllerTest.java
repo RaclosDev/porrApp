@@ -1,12 +1,11 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.config.JwtUtil;
+import com.porra.mundial.dto.GroupResponseDTO;
+import com.porra.mundial.dto.MissingMembersResponse;
 import com.porra.mundial.model.League;
-import com.porra.mundial.model.Competition;
-import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.UserAccount;
-import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.WebSocketService;
 import org.junit.jupiter.api.DisplayName;
@@ -20,12 +19,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,9 +40,6 @@ class GroupControllerTest {
     private GroupService groupService;
 
     @MockBean
-    private EditionRepository editionRepository;
-
-    @MockBean
     private WebSocketService webSocketService;
 
     @MockBean
@@ -55,17 +52,18 @@ class GroupControllerTest {
     @Test
     void missingUsersHonorsRoundQueryParameter() throws Exception {
         Mockito.when(groupService.getMissingMembersForRound(10L, "admin@test.com", "Jornada 12"))
-                .thenReturn(java.util.Map.of("round", "Jornada 12", "missingCount", 0));
+                .thenReturn(new MissingMembersResponse("Jornada 12", 3, 0, List.of()));
         mockMvc.perform(get("/api/groups/10/missing-users")
                         .param("round", "Jornada 12").principal(userPrincipal("admin@test.com")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.round").value("Jornada 12"));
+                .andExpect(jsonPath("$.round").value("Jornada 12"))
+                .andExpect(jsonPath("$.totalMembers").value(3));
     }
 
     @Test
     void missingUsersKeepsLegacyRoundPath() throws Exception {
         Mockito.when(groupService.getMissingMembersForRound(10L, "admin@test.com", "final"))
-                .thenReturn(java.util.Map.of("round", "final"));
+                .thenReturn(new MissingMembersResponse("final", 1, 0, List.of()));
         mockMvc.perform(get("/api/groups/10/jornadas/final/missing-users")
                         .principal(userPrincipal("admin@test.com")))
                 .andExpect(status().isOk())
@@ -73,95 +71,43 @@ class GroupControllerTest {
     }
 
     @Test
-    @DisplayName("Miembro del grupo puede ver el joinCode")
-    void memberCanSeeJoinCode() throws Exception {
-        League group = League.builder()
-                .id(10L)
-                .name("Grupo Amigos")
-                .joinCode("SECRET10")
-                .adminUser(UserAccount.builder().id(1L).participantName("Admin").build())
-                .build();
-
-        Mockito.when(groupService.getGroupById(10L)).thenReturn(Optional.of(group));
-        Mockito.when(groupService.isUserMemberOrAdmin(eq(10L), eq("member@test.com"))).thenReturn(true);
-        Mockito.when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.empty());
+    @DisplayName("El detalle del grupo se pide con el email de quien lo consulta")
+    void groupDetailsUseViewerEmail() throws Exception {
+        Mockito.when(groupService.findGroupResponse(10L, "member@test.com"))
+                .thenReturn(Optional.of(GroupResponseDTO.builder().id(10L).name("Grupo Amigos").joinCode("AMIGOS").build()));
 
         mockMvc.perform(get("/api/groups/10").principal(userPrincipal("member@test.com")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(10))
-                .andExpect(jsonPath("$.joinCode").value("SECRET10"));
+                .andExpect(jsonPath("$.name").value("Grupo Amigos"))
+                .andExpect(jsonPath("$.joinCode").value("AMIGOS"));
     }
 
     @Test
-    @DisplayName("No miembro NO puede ver el joinCode (recibe null)")
-    void nonMemberCannotSeeJoinCode() throws Exception {
-        League group = League.builder()
-                .id(10L)
-                .name("Grupo Privado")
-                .joinCode("SUPERSECRET")
-                .adminUser(UserAccount.builder().id(1L).participantName("Admin").build())
-                .build();
+    @DisplayName("Un grupo inexistente devuelve 404 con mensaje de error")
+    void unknownGroupReturnsNotFound() throws Exception {
+        Mockito.when(groupService.findGroupResponse(99L, null)).thenReturn(Optional.empty());
 
-        Mockito.when(groupService.getGroupById(10L)).thenReturn(Optional.of(group));
-        Mockito.when(groupService.isUserMemberOrAdmin(eq(10L), eq("stranger@test.com"))).thenReturn(false);
-        Mockito.when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/api/groups/10").principal(userPrincipal("stranger@test.com")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(10))
-                .andExpect(jsonPath("$.joinCode").doesNotExist());
+        mockMvc.perform(get("/api/groups/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Grupo no encontrado"));
     }
 
     @Test
-    @DisplayName("Detalle del grupo incluye el poolFormat de la edición activa")
-    void groupDetailsIncludesPoolFormat() throws Exception {
-        League group = League.builder()
-                .id(20L)
-                .name("Liga Mundial")
-                .joinCode("WC2026")
-                .adminUser(UserAccount.builder().id(1L).participantName("Admin").build())
-                .build();
-
-        Competition comp = Competition.builder().id(1L).name("Mundial 2026").build();
-        Edition edition = Edition.builder()
-                .id(5L)
-                .league(group)
-                .competition(comp)
-                .poolFormat(PoolFormat.KNOCKOUTS_ONLY)
-                .pichichi(true)
-                .build();
-
-        Mockito.when(groupService.getGroupById(20L)).thenReturn(Optional.of(group));
-        Mockito.when(groupService.isUserMemberOrAdmin(eq(20L), eq("member@test.com"))).thenReturn(true);
-        Mockito.when(editionRepository.findByLeagueIdAndStatus(20L, "ACTIVE")).thenReturn(Optional.of(edition));
-
-        mockMvc.perform(get("/api/groups/20").principal(userPrincipal("member@test.com")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.betMode").doesNotExist())
-                .andExpect(jsonPath("$.poolFormat").value("KNOCKOUTS_ONLY"))
-                .andExpect(jsonPath("$.competitionName").value("Mundial 2026"));
-    }
-
-    @Test
-    @DisplayName("Crear grupo con nuevo campo poolFormat es exitoso")
-    void createGroupWithPoolFormatField() throws Exception {
+    @DisplayName("Crear un grupo devuelve el DTO con poolFormat y código de invitación")
+    void createGroupReturnsDto() throws Exception {
         League createdGroup = League.builder()
                 .id(30L)
                 .name("Liga Nueva")
                 .joinCode("NUEVA30")
                 .adminUser(UserAccount.builder().id(2L).participantName("User2").build())
                 .build();
-
         Mockito.when(groupService.createGroup(eq("Liga Nueva"), eq("user@test.com"), eq(1L), eq(PoolFormat.FULL_BRACKET), eq(true)))
                 .thenReturn(createdGroup);
+        Mockito.when(groupService.toResponse(createdGroup, true))
+                .thenReturn(GroupResponseDTO.builder().id(30L).name("Liga Nueva").joinCode("NUEVA30").poolFormat("FULL_BRACKET").build());
 
         String json = """
-            {
-                "name": "Liga Nueva",
-                "competitionId": 1,
-                "poolFormat": "FULL_BRACKET",
-                "pichichi": true
-            }
+            {"name": "Liga Nueva", "competitionId": 1, "poolFormat": "FULL_BRACKET", "pichichi": true}
             """;
 
         mockMvc.perform(post("/api/groups")
@@ -170,6 +116,27 @@ class GroupControllerTest {
                         .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(30))
-                .andExpect(jsonPath("$.name").value("Liga Nueva"));
+                .andExpect(jsonPath("$.joinCode").value("NUEVA30"))
+                .andExpect(jsonPath("$.poolFormat").value("FULL_BRACKET"));
+    }
+
+    @Test
+    @DisplayName("Crear un grupo sin poolFormat es un error de validación")
+    void createGroupRequiresPoolFormat() throws Exception {
+        mockMvc.perform(post("/api/groups")
+                        .principal(userPrincipal("user@test.com"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Liga\", \"competitionId\": 1}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("El estado de pago solo admite PAID o PENDING")
+    void memberPaymentRejectsUnknownStatus() throws Exception {
+        mockMvc.perform(put("/api/groups/10/members/2/payment")
+                        .principal(userPrincipal("admin@test.com"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\": \"MAYBE\"}"))
+                .andExpect(status().isBadRequest());
     }
 }

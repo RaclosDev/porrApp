@@ -137,11 +137,11 @@ class GroupServiceTest {
         when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(Membership.builder().user(member).build()));
         when(matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(2L, 10L))
                 .thenReturn(List.of(MatchPrediction.builder().match(first).homeScore(1).awayScore(0).build()));
-        assertEquals(1, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").get("missingCount"));
+        assertEquals(1, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").missingCount());
         when(matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(2L, 10L))
                 .thenReturn(List.of(MatchPrediction.builder().match(first).predictionSign("1").build(),
                         MatchPrediction.builder().match(second).predictionSign("X").build()));
-        assertEquals(0, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").get("missingCount"));
+        assertEquals(0, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").missingCount());
     }
 
     @Test

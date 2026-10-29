@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.Set;
 import com.porra.mundial.dto.GroupMemberDTO;
+import com.porra.mundial.dto.GroupResponseDTO;
+import com.porra.mundial.dto.MissingMembersResponse;
 import com.porra.mundial.dto.MissingUserNudgeDTO;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.MatchRepository;
@@ -390,7 +392,7 @@ public class GroupService {
      */
     @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "userGroups", key = "#email")
-    public List<com.porra.mundial.dto.GroupResponseDTO> getUserGroupDTOs(String email) {
+    public List<GroupResponseDTO> getUserGroupDTOs(String email) {
         List<League> groups = getUserGroups(email);
         if (groups.isEmpty()) return List.of();
 
@@ -400,26 +402,29 @@ public class GroupService {
         java.util.Map<Long, Edition> editionMap = activeEditions.stream()
                 .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e, (e1, e2) -> e1));
 
-        return groups.stream().map(g -> {
-            Edition e = editionMap.get(g.getId());
-            return com.porra.mundial.dto.GroupResponseDTO.builder()
-                    .id(g.getId())
-                    .name(g.getName())
-                    .joinCode(g.getJoinCode())
-                    .adminParticipantName(g.getAdminParticipantName())
-                    .adminUserId(g.getAdminUserId())
-                    .createdAt(g.getCreatedAt())
-                    .competitionId(e != null && e.getCompetition() != null ? e.getCompetition().getId() : null)
-                    .competitionName(e != null && e.getCompetition() != null ? e.getCompetition().getName() : null)
-                    .formatType(e != null && e.getCompetition() != null ? e.getCompetition().getFormatType() : null)
-                    .poolFormat(e != null && e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
-                    .pichichi(e != null ? e.isPichichi() : null)
-                    .lockDate(e != null ? e.getLockDate() : null)
-                    .isLocked(e != null && e.isLocked())
-                    .rules(g.getRules())
-                    .imageUrl(g.getImageUrl())
-                    .build();
-        }).collect(Collectors.toList());
+        return groups.stream()
+                .map(g -> GroupResponseDTO.of(g, editionMap.get(g.getId()), true))
+                .collect(Collectors.toList());
+    }
+
+    /** Liga con su edición activa; el código de invitación solo se incluye si se indica. */
+    @Transactional(readOnly = true)
+    public GroupResponseDTO toResponse(League league, boolean includeJoinCode) {
+        Edition edition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null);
+        return GroupResponseDTO.of(league, edition, includeJoinCode);
+    }
+
+    /** Detalle de una liga; solo sus miembros ven el código de invitación. */
+    @Transactional(readOnly = true)
+    public Optional<GroupResponseDTO> findGroupResponse(Long id, String viewerEmail) {
+        return getGroupById(id).map(league -> toResponse(league, isUserMemberOrAdmin(id, viewerEmail)));
+    }
+
+    /** Datos públicos para previsualizar una invitación sin unirse a la liga. */
+    @Transactional(readOnly = true)
+    public Optional<GroupResponseDTO> findInvitationPreview(String joinCode) {
+        return getGroupByJoinCode(joinCode).map(league -> GroupResponseDTO.preview(
+                league, editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null)));
     }
 
     @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
@@ -477,12 +482,6 @@ public class GroupService {
         if (!group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
             throw new SecurityException("No tienes permiso para administrar esta liga.");
         }
-    }
-
-    @Transactional(readOnly = true)
-    public List<Prediction> getGroupPredictionsForAdmin(Long groupId, String email) {
-        verifyGroupAdmin(groupId, email);
-        return predictionRepository.findByEditionLeagueId(groupId);
     }
 
     /**
@@ -653,16 +652,16 @@ public class GroupService {
      * Herramienta del Administrador: devuelve la lista de participantes que aún NO han pronosticado la jornada.
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> getMissingMembersForRound(Long groupId, String email, String round) {
+    public MissingMembersResponse getMissingMembersForRound(Long groupId, String email, String round) {
         verifyGroupAdmin(groupId, email);
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
         if (edition == null || edition.getCompetition() == null) {
-            return Map.of("round", "", "totalMembers", 0, "missingCount", 0, "missingUsers", List.of());
+            return MissingMembersResponse.empty();
         }
 
         List<Match> matches = matchRepository.findByCompetitionIdOrderByMatchDateAsc(edition.getCompetition().getId());
         if (matches.isEmpty()) {
-            return Map.of("round", "", "totalMembers", 0, "missingCount", 0, "missingUsers", List.of());
+            return MissingMembersResponse.empty();
         }
 
         String targetRound = round;
@@ -707,11 +706,6 @@ public class GroupService {
             }
         }
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("round", finalRound);
-        response.put("totalMembers", memberships.size());
-        response.put("missingCount", missingList.size());
-        response.put("missingUsers", missingList);
-        return response;
+        return new MissingMembersResponse(finalRound, memberships.size(), missingList.size(), missingList);
     }
 }

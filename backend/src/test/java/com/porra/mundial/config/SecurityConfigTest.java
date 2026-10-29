@@ -35,6 +35,8 @@ class SecurityConfigTest {
     void publicReadsAreAllowedWithoutLogin() throws Exception {
         when(topScorerService.getTopScorers()).thenReturn(List.of());
         mockMvc.perform(get("/api/scorers")).andExpect(status().isOk());
+        // Ruta pública sin controlador en este test: pasa la seguridad y llega al 404.
+        mockMvc.perform(get("/api/groups/1")).andExpect(status().isNotFound());
     }
 
     @Test
@@ -50,5 +52,7 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/predictions/mine")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/users/me")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/sync")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/groups/1/members")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/groups/1/missing-users")).andExpect(status().isUnauthorized());
     }
 }

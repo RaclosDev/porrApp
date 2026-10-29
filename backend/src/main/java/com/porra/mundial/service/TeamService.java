@@ -2,6 +2,7 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.dto.TeamOddsDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,19 +75,14 @@ public class TeamService {
      * por HTTP para que el frontend siga funcionando sin tener que reescribirlo.
      */
     @org.springframework.cache.annotation.Cacheable("groupOdds")
-    public Map<String, List<Map<String, Object>>> getGroupOdds() {
-        Map<String, List<Map<String, Object>>> result = new TreeMap<>();
+    public Map<String, List<TeamOddsDTO>> getGroupOdds() {
+        Map<String, List<TeamOddsDTO>> result = new TreeMap<>();
         Map<String, List<Team>> groups = getTeamsByGroup();
 
         groups.forEach((groupName, teams) -> {
-            List<Map<String, Object>> teamList = teams.stream().map(t -> {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("name", t.getName());
-                entry.put("win", t.getWinOdds());
-                entry.put("qualify", t.getQualifyOdds());
-                entry.put("outright", t.getOutrightOdds());
-                return entry;
-            }).collect(Collectors.toList());
+            List<TeamOddsDTO> teamList = teams.stream()
+                    .map(t -> new TeamOddsDTO(t.getName(), t.getWinOdds(), t.getQualifyOdds(), t.getOutrightOdds()))
+                    .collect(Collectors.toList());
             result.put(groupName, teamList);
         });
 

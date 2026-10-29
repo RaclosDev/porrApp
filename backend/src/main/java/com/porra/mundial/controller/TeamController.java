@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.service.TeamService;
+import com.porra.mundial.dto.TeamOddsDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +28,7 @@ public class TeamController {
      * @return Mapa agrupado donde la clave es el Grupo ("A", "B") y el valor son los Equipos.
      */
     @GetMapping("/odds")
-    public Map<String, List<Map<String, Object>>> getGroupOdds() {
+    public Map<String, List<TeamOddsDTO>> getGroupOdds() {
         return teamService.getGroupOdds();
     }
 }

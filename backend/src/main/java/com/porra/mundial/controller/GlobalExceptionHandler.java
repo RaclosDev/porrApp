@@ -132,8 +132,20 @@ public class GlobalExceptionHandler {
      * Manejador de fallback o comodín sanitizado.
      * Atrapa cualquier otra excepción no contemplada evitando exponer detalles internos de BD o Tomcat.
      */
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<Map<String, String>> handleMalformedRequest(Exception ex) {
+        return ResponseEntity.badRequest().body(Map.of("error", "La petición no tiene un formato válido."));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
+        // Errores del propio Spring MVC (ruta inexistente, método no permitido...) conservan su código HTTP.
+        if (ex instanceof org.springframework.web.ErrorResponse errorResponse) {
+            return ResponseEntity.status(errorResponse.getStatusCode())
+                    .body(Map.of("error", errorResponse.getBody().getDetail() != null
+                            ? errorResponse.getBody().getDetail() : "Error en la solicitud"));
+        }
         log.error("Excepción no controlada en el servidor: ", ex);
         Map<String, String> error = new HashMap<>();
         error.put("error", "Ha ocurrido un error inesperado en el servidor.");
