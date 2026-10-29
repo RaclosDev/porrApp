@@ -110,7 +110,6 @@ public class KnockoutBracketService {
      */
     public PredictionDataDTO officialBracket() {
         PredictionDataDTO bracket = predictionRepository.findByIsOfficialTrue()
-                .or(() -> predictionRepository.findByName("official"))
                 .map(official -> predictionService.getPredictionData(official.getId()))
                 .orElseGet(PredictionDataDTO::new);
         enrichPredictionDataWithMatches(bracket);

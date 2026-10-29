@@ -366,11 +366,6 @@ public class LeaderboardService {
 
     private OfficialState buildOfficialState() {
         PredictionDataDTO bracket = predictionRepository.findByIsOfficialTrue()
-                .or(() -> predictionRepository.findByName("official"))
-                .or(() -> predictionRepository.findAll().stream()
-                        .filter(b -> (b.getName() != null && b.getName().equalsIgnoreCase("official"))
-                                || (b.getParticipantName() != null && b.getParticipantName().equalsIgnoreCase("Admin")))
-                        .findFirst())
                 .map(Prediction::getBracketData)
                 .orElseGet(PredictionDataDTO::new);
         knockoutBracketService.enrichPredictionDataWithMatches(bracket);

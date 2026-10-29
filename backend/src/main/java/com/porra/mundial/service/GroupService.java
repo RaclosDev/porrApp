@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.time.LocalDateTime;
 import com.porra.mundial.model.MatchPrediction;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -204,9 +203,8 @@ public class GroupService {
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
         String joinCode;
-        // Genera un código de 6 caracteres aleatorio
         do {
-            joinCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            joinCode = JoinCodeGenerator.next();
         } while (leagueRepository.findByJoinCode(joinCode).isPresent());
 
         UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)

@@ -159,7 +159,11 @@ public class PredictionService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        return predictionRepository.save(prediction);
+        Prediction saved = predictionRepository.save(prediction);
+        if (isOfficial) {
+            scoreInvalidationService.invalidateWorldCup();
+        }
+        return saved;
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
