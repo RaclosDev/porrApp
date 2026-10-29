@@ -48,27 +48,16 @@ function Stats() {
       <section className="view-section active block">
         <div className="flex flex-wrap gap-5 justify-center">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="skeleton-card" style={{ flex: 1, minWidth: '300px' }}>
-              <div className="skeleton skeleton-text medium" style={{ height: '20px' }} />
+            <div key={i} className="skeleton-card flex-1 min-w-75">
+              <div className="skeleton skeleton-text medium h-5" />
               {Array.from({ length: 5 }).map((_, j) => (
-                <div key={j} style={{ marginBottom: '12px' }}>
-                  <div className="skeleton-row" style={{ marginBottom: '6px' }}>
+                <div className="mb-3" key={j}>
+                  <div className="skeleton-row mb-1.5">
                     <div className="skeleton skeleton-avatar" />
-                    <div className="skeleton skeleton-bar" style={{ maxWidth: '120px' }} />
-                    <div
-                      className="skeleton"
-                      style={{
-                        width: '30px',
-                        height: '12px',
-                        borderRadius: '4px',
-                        marginLeft: 'auto',
-                      }}
-                    />
+                    <div className="skeleton skeleton-bar max-w-30" />
+                    <div className="skeleton w-7.5 h-3 rounded-[4px] ml-auto" />
                   </div>
-                  <div
-                    className="skeleton"
-                    style={{ width: '100%', height: '10px', borderRadius: '10px' }}
-                  />
+                  <div className="skeleton w-full h-2.5 rounded-[10px]" />
                 </div>
               ))}
             </div>
@@ -149,6 +138,7 @@ function Stats() {
 
     return (
       <div
+        className="cursor-pointer mb-[15px]"
         role="button"
         tabIndex={0}
         onClick={() => setModalData({ title: name, users: usersArray, percentage, count, isTwins })}
@@ -158,7 +148,6 @@ function Stats() {
             setModalData({ title: name, users: usersArray, percentage, count, isTwins });
           }
         }}
-        style={{ cursor: 'pointer', marginBottom: '15px' }}
         aria-label={`Ver detalles de ${name}`}
       >
         <div className="flex justify-between mb-1.5 text-[0.95rem]">
@@ -167,20 +156,11 @@ function Stats() {
             {flagHtml}
             {cleanName}
           </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            <span style={{ color: 'white', fontWeight: 'bold' }}>{percentage}%</span>{' '}
-            {!isTwins && `(${count})`}
+          <div className="text-muted text-[0.9rem]">
+            <span className="text-white font-bold">{percentage}%</span> {!isTwins && `(${count})`}
           </div>
         </div>
-        <div
-          style={{
-            width: '100%',
-            background: 'rgba(255,255,255,0.05)',
-            borderRadius: '10px',
-            height: '10px',
-            overflow: 'hidden',
-          }}
-        >
+        <div className="w-full bg-[rgba(255,255,255,0.05)] rounded-[10px] h-2.5 overflow-hidden">
           <div
             style={{
               height: '100%',
@@ -243,14 +223,7 @@ function Stats() {
         </h3>
         <div className="flex flex-col">
           {dataList.length === 0 ? (
-            <div
-              style={{
-                color: 'rgba(255,255,255,0.3)',
-                fontStyle: 'italic',
-                textAlign: 'center',
-                padding: '20px 0',
-              }}
-            >
+            <div className="text-[rgba(255,255,255,0.3)] italic text-center py-5 px-0">
               Sin datos suficientes
             </div>
           ) : (
@@ -292,23 +265,14 @@ function Stats() {
 
   return (
     <section id="view-stats" className="view-section active block">
-      <div className="section-header" style={{ marginBottom: '40px' }}>
-        <h2 style={{ color: 'var(--accent-cyan)', fontSize: '2.5rem', margin: '0 0 10px 0' }}>
-          Estadísticas Globales
-        </h2>
-        <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>
+      <div className="section-header mb-10">
+        <h2 className="text-cyan text-[2.5rem] mt-0 mb-2.5 mx-0">Estadísticas Globales</h2>
+        <p className="text-[1.1rem] text-muted">
           Análisis de las {stats.total} porras registradas en el servidor.
         </p>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '25px',
-          marginTop: '20px',
-        }}
-      >
+      <div className="grid grid-cols-[repeat(auto-fit,_minmax(320px,_1fr))] gap-[25px] mt-5">
         {renderCard('Campeón del Mundo', '🏆', stats.champions, '#f1c40f')}
         {renderCard('Subcampeón', '🥈', stats.runnerups, '#95a5a6')}
         {renderCard('Reyes del Grupo (1ºs)', '👑', stats.kings, '#1abc9c')}
@@ -327,11 +291,10 @@ function Stats() {
       {/* Expanded Card Modal */}
       {expandedCard && (
         <div
-          className="modal"
+          className="modal flex z-[999990]"
           role="dialog"
           aria-modal="true"
           aria-label={expandedCard.title}
-          style={{ display: 'flex', zIndex: 999990 }}
           onClick={() => setExpandedCard(null)}
         >
           <div
@@ -349,15 +312,7 @@ function Stats() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                padding: '20px',
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                textAlign: 'center',
-                flexShrink: 0,
-              }}
-            >
+            <div className="bg-[rgba(0,0,0,0.3)] p-5 border-b border-b-[rgba(255,255,255,0.05)] text-center shrink-0">
               <h3
                 style={{
                   color: expandedCard.color,
@@ -372,7 +327,7 @@ function Stats() {
                 {expandedCard.icon} {expandedCard.title}
               </h3>
             </div>
-            <div style={{ padding: '20px', overflowY: 'auto', flexGrow: 1 }}>
+            <div className="p-5 overflow-y-auto grow">
               {expandedCard.dataList.map(([name, users, override]) => (
                 <ProgressBarItem
                   key={name}
@@ -385,19 +340,10 @@ function Stats() {
                 />
               ))}
             </div>
-            <div
-              style={{
-                padding: '15px 20px',
-                background: 'rgba(0,0,0,0.2)',
-                display: 'flex',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
+            <div className="py-[15px] px-5 bg-[rgba(0,0,0,0.2)] flex justify-center shrink-0">
               <button
                 onClick={() => setExpandedCard(null)}
-                className="glass-btn primary-btn"
-                style={{ width: '100%', padding: '12px', fontSize: '1.05rem' }}
+                className="glass-btn primary-btn w-full p-3 text-[1.05rem]"
               >
                 Cerrar
               </button>
@@ -409,76 +355,34 @@ function Stats() {
       {/* Stats Detail Modal */}
       {modalData && (
         <div
-          className="modal"
+          className="modal flex z-[999999]"
           role="dialog"
           aria-modal="true"
           aria-label={modalData.title}
-          style={{ display: 'flex', zIndex: 999999 }}
           onClick={() => setModalData(null)}
         >
           <div
-            className="modal-content"
-            style={{
-              maxWidth: '400px',
-              padding: '0',
-              overflow: 'hidden',
-              background: '#1e293b',
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
+            className="modal-content max-w-100 p-0 overflow-hidden bg-[#1e293b] border border-[rgba(255,255,255,0.1)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                padding: '25px 20px',
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                textAlign: 'center',
-              }}
-            >
-              <h3 style={{ color: 'white', margin: '0 0 10px 0', fontSize: '1.4rem' }}>
-                {modalData.title}
-              </h3>
-              <div
-                style={{
-                  display: 'inline-block',
-                  background: 'rgba(0, 210, 211, 0.1)',
-                  color: 'var(--accent-cyan)',
-                  padding: '6px 14px',
-                  borderRadius: '10px',
-                  fontWeight: 'bold',
-                }}
-              >
+            <div className="bg-[rgba(0,0,0,0.3)] py-[25px] px-5 border-b border-b-[rgba(255,255,255,0.05)] text-center">
+              <h3 className="text-white mt-0 mb-2.5 mx-0 text-[1.4rem]">{modalData.title}</h3>
+              <div className="inline-block bg-[rgba(0,_210,_211,_0.1)] text-cyan py-1.5 px-3.5 rounded-[10px] font-bold">
                 {modalData.percentage}% de los votos ({modalData.count} personas)
               </div>
             </div>
-            <ul
-              style={{
-                listStyle: 'none',
-                padding: '10px 0',
-                margin: 0,
-                maxHeight: '350px',
-                overflowY: 'auto',
-              }}
-            >
+            <ul className="list-none py-2.5 px-0 m-0 max-h-87.5 overflow-y-auto">
               {modalData.users.map((u, i) => (
-                <li key={i} style={{ padding: '12px 25px', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--accent-cyan)', marginRight: '10px' }}>•</span>
-                  <span style={{ color: 'white', fontWeight: 500 }}>{u}</span>
+                <li className="py-3 px-[25px] flex items-center" key={i}>
+                  <span className="text-cyan mr-2.5">•</span>
+                  <span className="text-white font-medium">{u}</span>
                 </li>
               ))}
             </ul>
-            <div
-              style={{
-                padding: '15px 20px',
-                background: 'rgba(0,0,0,0.2)',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
+            <div className="py-[15px] px-5 bg-[rgba(0,0,0,0.2)] flex justify-center">
               <button
                 onClick={() => setModalData(null)}
-                className="glass-btn primary-btn"
-                style={{ width: '100%', padding: '12px', fontSize: '1.05rem' }}
+                className="glass-btn primary-btn w-full p-3 text-[1.05rem]"
               >
                 Cerrar
               </button>

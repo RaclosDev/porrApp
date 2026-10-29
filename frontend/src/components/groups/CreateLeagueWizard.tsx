@@ -33,100 +33,42 @@ export default function CreateLeagueWizard({
   setShowCreateModal,
 }: CreateLeagueWizardProps) {
   return (
-    <div
-      style={{
-        maxWidth: '820px',
-        margin: '0 auto 30px auto',
-      }}
-    >
-      <div
-        className="glass-panel"
-        style={{
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          border: '1px solid #00d2d3',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3
-            style={{
-              margin: 0,
-              color: 'var(--accent-color)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            🏆 Crear Nueva Liga
-          </h3>
+    <div className="max-w-205 mt-0 mb-7.5 mx-auto">
+      <div className="glass-panel p-6 flex flex-col gap-4 border border-[#00d2d3]">
+        <div className="flex justify-between items-center">
+          <h3 className="m-0 text-accent flex items-center gap-2.5">🏆 Crear Nueva Liga</h3>
           <button
+            className="bg-none border-0 text-muted cursor-pointer text-[1.2rem] min-w-10 min-h-10 flex items-center justify-center"
             type="button"
             onClick={() => setShowCreateModal(false)}
             aria-label="Cerrar modal"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: '1.2rem',
-              minWidth: '40px',
-              minHeight: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
             title="Cerrar"
           >
             ✕
           </button>
         </div>
 
-        <form
-          onSubmit={handleCreate}
-          style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
-        >
+        <form className="flex flex-col gap-3.5" onSubmit={handleCreate}>
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '0.8rem',
-                color: 'var(--text-muted)',
-                marginBottom: '4px',
-              }}
-            >
-              Nombre de tu Liga:
-            </label>
+            <label className="block text-[0.8rem] text-muted mb-1">Nombre de tu Liga:</label>
             <input
               type="text"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               placeholder="Ej: Amigos del Barrio, Porra Oficina 2026..."
               aria-label="Nombre del nuevo grupo"
-              className="glass-input"
-              style={{ width: '100%' }}
+              className="glass-input w-full"
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)',
-                  marginBottom: '4px',
-                }}
-              >
-                Competición Deportiva:
-              </label>
+          <div className="flex gap-2.5 flex-wrap">
+            <div className="flex-[1_1_200px]">
+              <label className="block text-[0.8rem] text-muted mb-1">Competición Deportiva:</label>
               <select
                 aria-label="Seleccionar competición deportiva"
                 value={selectedCompetition}
                 onChange={(e) => setSelectedCompetition(e.target.value)}
-                className="glass-input"
-                style={{ width: '100%' }}
+                className="glass-input w-full"
               >
                 {competitions.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -136,23 +78,13 @@ export default function CreateLeagueWizard({
               </select>
             </div>
 
-            <div style={{ flex: '1 1 200px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)',
-                  marginBottom: '4px',
-                }}
-              >
-                Modalidad / Formato:
-              </label>
+            <div className="flex-[1_1_200px]">
+              <label className="block text-[0.8rem] text-muted mb-1">Modalidad / Formato:</label>
               <select
                 aria-label="Seleccionar formato de porra"
                 value={selectedPoolFormat}
                 onChange={(e) => setSelectedPoolFormat(e.target.value as PoolFormat)}
-                className="glass-input"
-                style={{ width: '100%' }}
+                className="glass-input w-full"
               >
                 {POOL_FORMATS.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -163,20 +95,7 @@ export default function CreateLeagueWizard({
             </div>
           </div>
 
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              color: 'var(--text-muted)',
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              padding: '8px 12px',
-              background: 'rgba(0,0,0,0.2)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-            }}
-          >
+          <label className="flex items-center gap-2.5 text-muted text-[0.85rem] cursor-pointer py-2 px-3 bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.1)] rounded-[8px]">
             <input
               type="checkbox"
               checked={includePichichi}

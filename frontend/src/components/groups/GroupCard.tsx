@@ -50,51 +50,26 @@ export default function GroupCard({
       }}
     >
       {isSelected && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '-10px',
-            left: '15px',
-            background: '#00d2d3',
-            color: '#000',
-            padding: '2px 10px',
-            borderRadius: '12px',
-            fontSize: '0.75rem',
-            fontWeight: 'bold',
-          }}
-        >
+        <div className="absolute -top-2.5 left-[15px] bg-[#00d2d3] text-black py-0.5 px-2.5 rounded-[12px] text-[0.75rem] font-bold">
           SELECCIONADA
         </div>
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          minHeight: '64px',
-        }}
-      >
+      <div className="flex items-center gap-3.5 min-h-16">
         <LeagueAvatar url={group.imageUrl} size={64} />
-        <div style={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <h3
-            style={{
-              fontSize: '1.15rem',
-              margin: '0 0 4px 0',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
+            className="text-[1.15rem] mt-0 mb-1 mx-0 overflow-hidden text-ellipsis whitespace-nowrap"
             title={group.name}
           >
             {group.name}
           </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>
+          <p className="text-muted text-[0.8rem] m-0">
             Admin: <strong>{group.adminParticipantName}</strong>
           </p>
         </div>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+      <div className="flex flex-wrap gap-1.5">
         {isCreator && (
           <span
             style={{
@@ -142,15 +117,7 @@ export default function GroupCard({
         )}
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          marginTop: 'auto',
-          paddingTop: '10px',
-        }}
-      >
+      <div className="flex flex-col gap-2 mt-auto pt-2.5">
         {isSelected ? (
           <div
             style={{
@@ -176,20 +143,7 @@ export default function GroupCard({
           <button
             type="button"
             onClick={() => handleEnterGroup(group.id)}
-            className="glass-btn primary-btn"
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              boxSizing: 'border-box',
-              cursor: 'pointer',
-            }}
+            className="glass-btn primary-btn w-full py-2.5 px-3.5 rounded-[10px] font-bold text-[0.9rem] flex items-center justify-center gap-1.5 box-border cursor-pointer"
           >
             <span>Acceder a esta Liga</span>
             <span>→</span>
@@ -197,7 +151,7 @@ export default function GroupCard({
         )}
 
         {group.joinCode && (
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: '8px', width: '100%' }}>
+          <div className="flex items-stretch gap-2 w-full">
             <button
               type="button"
               onClick={() => handleShareWhatsApp(group)}
@@ -278,21 +232,11 @@ export default function GroupCard({
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className="flex gap-2 items-center">
           <button
             type="button"
             onClick={() => setSelectedGroupForRules(group)}
-            className="glass-btn"
-            style={{
-              flex: 1,
-              padding: '8px 12px',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap',
-            }}
+            className="glass-btn flex-1 py-2 px-3 text-[0.85rem] flex items-center justify-center gap-1.5 whitespace-nowrap"
             title="Ver las reglas de esta liga"
             aria-label="Ver las reglas de esta liga"
           >
@@ -303,18 +247,7 @@ export default function GroupCard({
           <button
             type="button"
             onClick={() => setSelectedGroupForMembers(group)}
-            className="glass-btn"
-            style={{
-              flex: 1,
-              padding: '8px 12px',
-              fontSize: '0.85rem',
-              color: '#00d2d3',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap',
-            }}
+            className="glass-btn flex-1 py-2 px-3 text-[0.85rem] text-[#00d2d3] flex items-center justify-center gap-1.5 whitespace-nowrap"
             title={isCreator ? 'Administrar liga' : 'Ver participantes'}
             aria-label={isCreator ? 'Administrar liga' : 'Ver participantes'}
           >
@@ -327,16 +260,7 @@ export default function GroupCard({
           <button
             type="button"
             onClick={() => handleLeaveGroup(group.id, group.name)}
-            className="glass-btn"
-            style={{
-              width: '100%',
-              padding: '8px 14px',
-              fontSize: '0.85rem',
-              background: 'rgba(231, 76, 60, 0.15)',
-              border: '1px solid rgba(231, 76, 60, 0.6)',
-              color: '#ffcccc',
-              whiteSpace: 'nowrap',
-            }}
+            className="glass-btn w-full py-2 px-3.5 text-[0.85rem] bg-[rgba(231,_76,_60,_0.15)] border border-[rgba(231,_76,_60,_0.6)] text-[#ffcccc] whitespace-nowrap"
             title="Abandonar Liga"
           >
             Salir de la liga

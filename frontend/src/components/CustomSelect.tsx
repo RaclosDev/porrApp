@@ -45,7 +45,7 @@ export default function CustomSelect({ value, options, onChange, placeholder }: 
   return (
     <div ref={dropdownRef} style={{ position: 'relative', flex: 1, zIndex: isOpen ? 1000 : 1 }}>
       <div
-        className="glass-input"
+        className="glass-input py-1.5 px-2 text-[0.85rem] cursor-pointer flex justify-between items-center min-h-11"
         role="combobox"
         aria-expanded={isOpen}
         tabIndex={0}
@@ -58,26 +58,9 @@ export default function CustomSelect({ value, options, onChange, placeholder }: 
             setIsOpen(false);
           }
         }}
-        style={{
-          padding: '6px 8px',
-          fontSize: '0.85rem',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          minHeight: '44px',
-        }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            flex: 1,
-          }}
-        >
+        <div className="flex items-center justify-center gap-2 flex-1">
           {selectedOption ? (
             <>
               {selectedOption.value !== '' && (
@@ -90,28 +73,14 @@ export default function CustomSelect({ value, options, onChange, placeholder }: 
               <span>{selectedOption.label}</span>
             </>
           ) : (
-            <span style={{ color: 'var(--text-muted)' }}>{placeholder}</span>
+            <span className="text-muted">{placeholder}</span>
           )}
         </div>
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>▼</span>
+        <span className="text-[0.7rem] text-muted">▼</span>
       </div>
 
       {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            background: '#0f172a',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px',
-            marginTop: '4px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-            zIndex: 100,
-            overflow: 'hidden',
-          }}
-        >
+        <div className="absolute top-full left-0 right-0 bg-[#0f172a] border border-[rgba(255,255,255,0.2)] rounded-[8px] mt-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] z-[100] overflow-hidden">
           {options.map((opt, idx) => (
             <div
               key={idx}

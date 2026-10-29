@@ -228,12 +228,10 @@ export default function GroupStage({
   };
 
   return (
-    <div style={{ width: '100%' }}>
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h2 style={{ color: 'var(--accent-color)', margin: '0 0 10px 0' }}>
-          Paso 1: Fase de Grupos
-        </h2>
-        <p style={{ color: 'var(--text-muted)' }}>
+    <div className="w-full">
+      <div className="text-center mb-7.5">
+        <h2 className="text-accent mt-0 mb-2.5 mx-0">Paso 1: Fase de Grupos</h2>
+        <p className="text-muted">
           Selecciona 1º y 2º en cada grupo. Puedes marcar todos los 3º que quieras, y luego elegir a
           los 8 mejores abajo.
         </p>
@@ -275,40 +273,15 @@ export default function GroupStage({
                   gap: '8px',
                 }}
               >
-                <h3
-                  style={{
-                    margin: '0 0 5px 0',
-                    textAlign: 'center',
-                    borderBottom: '1px solid rgba(255,255,255,0.1)',
-                    paddingBottom: '6px',
-                    fontSize: '1.1rem',
-                  }}
-                >
+                <h3 className="mt-0 mb-[5px] mx-0 text-center border-b border-b-[rgba(255,255,255,0.1)] pb-1.5 text-[1.1rem]">
                   Grupo {groupName}
                 </h3>
 
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '6px',
-                    marginBottom: '12px',
-                  }}
-                >
+                <div className="grid grid-cols-[1fr_1fr] gap-1.5 mb-3">
                   {teams.map((t) => (
                     <div
+                      className="flex items-center justify-center gap-1.5 text-[0.85rem] bg-[rgba(255,255,255,0.1)] p-1.5 rounded-[4px] overflow-hidden"
                       key={t.name}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        fontSize: '0.85rem',
-                        background: 'rgba(255,255,255,0.1)',
-                        padding: '6px',
-                        borderRadius: '4px',
-                        overflow: 'hidden',
-                      }}
                     >
                       <Flag
                         team={t.name}
@@ -322,12 +295,7 @@ export default function GroupStage({
                         }}
                       />
                       <span
-                        style={{
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          fontWeight: '500',
-                        }}
+                        className="whitespace-nowrap overflow-hidden text-ellipsis font-medium"
                         title={t.name}
                       >
                         {t.name}
@@ -336,11 +304,9 @@ export default function GroupStage({
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.8rem', color: '#00d2d3', fontWeight: 'bold' }}>
-                    1º Clasificado:
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[0.8rem] text-[#00d2d3] font-bold">1º Clasificado:</label>
+                  <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.first || ''}
                       onChange={(val) => handleSelect(groupName, 'first', val)}
@@ -353,11 +319,9 @@ export default function GroupStage({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.8rem', color: '#a29bfe', fontWeight: 'bold' }}>
-                    2º Clasificado:
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[0.8rem] text-[#a29bfe] font-bold">2º Clasificado:</label>
+                  <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.second || ''}
                       onChange={(val) => handleSelect(groupName, 'second', val)}
@@ -370,13 +334,9 @@ export default function GroupStage({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label
-                    style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold' }}
-                  >
-                    3º:
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[0.8rem] text-muted font-bold">3º:</label>
+                  <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.third || ''}
                       onChange={(val) => handleSelect(groupName, 'third', val)}
@@ -419,10 +379,8 @@ export default function GroupStage({
             border: '1px solid rgba(255,255,255,0.1)',
           }}
         >
-          <h3 style={{ textAlign: 'center', color: '#a29bfe', marginTop: 0 }}>
-            Selecciona los 8 Mejores Terceros
-          </h3>
-          <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          <h3 className="text-center text-[#a29bfe] mt-0">Selecciona los 8 Mejores Terceros</h3>
+          <p className="text-center text-[0.9rem] text-muted">
             Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los 8 que
             pasarán a octavos de final (
             <strong style={{ color: advancingThirds.length === 8 ? '#00b894' : '#ff4757' }}>
@@ -432,26 +390,11 @@ export default function GroupStage({
           </p>
 
           {selectedThirds.length === 0 ? (
-            <p
-              style={{
-                textAlign: 'center',
-                color: 'rgba(255,255,255,0.3)',
-                fontStyle: 'italic',
-                marginTop: '20px',
-              }}
-            >
+            <p className="text-center text-[rgba(255,255,255,0.3)] italic mt-5">
               Aún no has seleccionado ningún 3º clasificado en los grupos de arriba.
             </p>
           ) : (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '10px',
-                justifyContent: 'center',
-                marginTop: '15px',
-              }}
-            >
+            <div className="flex flex-wrap gap-2.5 justify-center mt-[15px]">
               {selectedThirds.map((t) => {
                 const isSelected = advancingThirds.includes(t);
                 return (
@@ -497,14 +440,13 @@ export default function GroupStage({
         >
           <button
             onClick={handleSubmit}
-            className="glass-btn primary-btn"
-            style={{ fontSize: '1.2rem', padding: '12px 30px' }}
+            className="glass-btn primary-btn text-[1.2rem] py-3 px-7.5"
             disabled={advancingThirds.length !== 8}
           >
             Generar Eliminatorias
           </button>
           {advancingThirds.length !== 8 && (
-            <p style={{ color: '#ff4757', fontSize: '0.9rem', marginTop: '10px' }}>
+            <p className="text-[#ff4757] text-[0.9rem] mt-2.5">
               Selecciona exactamente 8 terceros para continuar.
             </p>
           )}

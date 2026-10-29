@@ -1,6 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Trophy, Users, Calendar, Pencil, Swords, LayoutGrid, ListOrdered } from 'lucide-react';
+import {
+  Home,
+  Trophy,
+  Users,
+  Calendar,
+  Pencil,
+  Swords,
+  LayoutGrid,
+  ListOrdered,
+} from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 /**

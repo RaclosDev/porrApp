@@ -122,32 +122,25 @@ export default function ImagePicker({
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-      <div
-        data-testid={`${idPrefix}-preview`}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-      >
+    <div className="flex items-center gap-3.5 flex-wrap">
+      <div className="flex flex-col items-center gap-1.5" data-testid={`${idPrefix}-preview`}>
         {renderPreview(shownUrl)}
         {pending && (
-          <span
-            style={{ fontSize: '0.68rem', fontWeight: 700, color: '#00d2d3', textAlign: 'center' }}
-          >
-            Vista previa
-          </span>
+          <span className="text-[0.68rem] font-bold text-[#00d2d3] text-center">Vista previa</span>
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+      <div className="flex flex-col gap-2 min-w-0">
         <input
+          className="hidden"
           ref={inputRef}
           id={inputId}
           type="file"
           accept="image/*"
           onChange={handleFile}
           disabled={disabled || busy}
-          style={{ display: 'none' }}
         />
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="flex gap-2 flex-wrap">
           <button
             type="button"
             className="glass-btn"
@@ -196,11 +189,11 @@ export default function ImagePicker({
             </button>
           )}
         </div>
-        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+        <span className="text-[0.72rem] text-muted">
           JPG, PNG o WebP. Se recorta en cuadrado y se reduce automáticamente.
         </span>
         {error && (
-          <span role="alert" style={{ fontSize: '0.78rem', color: '#ff6b7a' }}>
+          <span className="text-[0.78rem] text-[#ff6b7a]" role="alert">
             {error}
           </span>
         )}

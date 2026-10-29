@@ -37,19 +37,8 @@ export default function LinkedInEntry() {
 
   // Pantalla de transición mínima mientras redirige
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '60vh',
-        gap: '16px',
-        color: 'var(--text-muted, #94a3b8)',
-        fontSize: '1rem',
-      }}
-    >
-      <span style={{ fontSize: '2.5rem' }}>⚽</span>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-muted text-[1rem]">
+      <span className="text-[2.5rem]">⚽</span>
       <span>Cargando Porra Global...</span>
     </div>
   );

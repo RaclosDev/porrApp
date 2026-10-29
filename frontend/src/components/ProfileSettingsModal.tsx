@@ -55,56 +55,29 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
 
   return (
     <div
+      className="fixed inset-0 bg-[rgba(0,_0,_0,_0.75)] [backdrop-filter:blur(8px)] flex items-center justify-center z-[1000] p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-settings-title"
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '16px',
-      }}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '460px',
-          background: '#151525',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 id="profile-settings-title" style={{ margin: 0, color: '#fff', fontSize: '1.2rem' }}>
+      <div className="w-full max-w-115 bg-[#151525] border border-[rgba(255,255,255,0.1)] rounded-[16px] p-5 flex flex-col gap-4.5 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center">
+          <h3 className="m-0 text-white text-[1.2rem]" id="profile-settings-title">
             Ajustes de cuenta
           </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar ajustes"
-            className="glass-btn"
-            style={{ width: 32, height: 32, borderRadius: '50%', cursor: 'pointer' }}
+            className="glass-btn w-8 h-8 rounded-full cursor-pointer"
           >
             ✕
           </button>
         </div>
 
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-            Foto de perfil
-          </span>
+        <section className="flex flex-col gap-2">
+          <span className="text-[0.8rem] font-bold text-muted">Foto de perfil</span>
           <ImagePicker
             idPrefix="avatar-picker"
             currentUrl={avatarUrl}
@@ -124,21 +97,17 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
           />
         </section>
 
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label
-            htmlFor="profile-name-input"
-            style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}
-          >
+        <section className="flex flex-col gap-2">
+          <label className="text-[0.8rem] font-bold text-muted" htmlFor="profile-name-input">
             Nombre público
           </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="flex gap-2">
             <input
               id="profile-name-input"
-              className="glass-input"
+              className="glass-input flex-1 min-w-0"
               value={name}
               maxLength={30}
               onChange={(e) => setName(e.target.value)}
-              style={{ flex: 1, minWidth: 0 }}
             />
             <button
               type="button"
@@ -159,11 +128,11 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
             </button>
           </div>
           {error && (
-            <span role="alert" style={{ fontSize: '0.8rem', color: '#ff6b7a' }}>
+            <span className="text-[0.8rem] text-[#ff6b7a]" role="alert">
               {error}
             </span>
           )}
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+          <span className="text-[0.74rem] text-muted">
             Es el nombre que ven tus amigos en clasificaciones y ligas. Tu cuenta de Google y su
             vinculación no cambian.
           </span>

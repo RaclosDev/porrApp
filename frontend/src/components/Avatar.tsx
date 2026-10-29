@@ -26,11 +26,11 @@ function Img({ src, size, radius, fallback, label = '' }: ImgProps) {
     return (
       <span style={box} data-testid="avatar-image">
         <img
+          className="w-full h-full object-cover block"
           src={src}
           alt={label || ''}
           decoding="async"
           onError={() => setFailed(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       </span>
     );

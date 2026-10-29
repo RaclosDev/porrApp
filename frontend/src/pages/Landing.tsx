@@ -2,21 +2,9 @@ import React from 'react';
 
 export default function Landing() {
   return (
-    <div
-      className="landing-page"
-      style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px 16px 60px' }}
-    >
+    <div className="landing-page max-w-300 my-0 mx-auto pt-5 pb-15 px-4">
       {/* Hero Section */}
-      <section
-        style={{
-          textAlign: 'center',
-          padding: '50px 20px 40px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '20px',
-        }}
-      >
+      <section className="text-center pt-12.5 pb-10 px-5 flex flex-col items-center gap-5">
         <h1
           style={{
             fontFamily: "'Outfit', sans-serif",
@@ -41,17 +29,7 @@ export default function Landing() {
           </span>
         </h1>
 
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: '8px 12px',
-            maxWidth: '650px',
-            margin: '8px auto 0',
-            padding: '0 10px',
-          }}
-        >
+        <div className="flex flex-wrap justify-center gap-[8px_12px] max-w-162.5 mt-2 mb-0 mx-auto py-0 px-2.5">
           {[
             { icon: '🏆', text: '+10 Competiciones' },
             { icon: '⚡', text: 'Puntos en tiempo real' },
@@ -59,55 +37,21 @@ export default function Landing() {
             { icon: '❌', text: 'Cero líos de Excel' },
           ].map((item) => (
             <div
+              className="inline-flex items-center gap-2 py-[7px] px-3.5 bg-[rgba(255,_255,_255,_0.05)] border border-[rgba(255,_255,_255,_0.1)] rounded-[9999px] text-[clamp(0.85rem,_2vw,_0.95rem)] text-[#e2e8f0] font-medium [backdrop-filter:blur(8px)] shadow-[0_2px_10px_rgba(0,_0,_0,_0.15)]"
               key={item.text}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '7px 14px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '9999px',
-                fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
-                color: '#e2e8f0',
-                fontWeight: 500,
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
-              }}
             >
-              <span style={{ fontSize: '1rem', lineHeight: 1 }}>{item.icon}</span>
+              <span className="text-[1rem] leading-[1]">{item.icon}</span>
               <span>{item.text}</span>
             </div>
           ))}
         </div>
 
         {/* CTA Buttons */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '15px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            marginTop: '15px',
-          }}
-        >
+        <div className="flex gap-[15px] justify-center items-center flex-wrap mt-[15px]">
           <button
             id="btn-hero-login"
             onClick={() => window.dispatchEvent(new CustomEvent('open-login-modal'))}
-            className="glass-btn primary-btn"
-            style={{
-              padding: '14px 28px',
-              fontSize: '1.05rem',
-              fontWeight: 800,
-              minHeight: '50px',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              boxShadow: '0 8px 25px rgba(0, 210, 211, 0.3)',
-            }}
+            className="glass-btn primary-btn py-3.5 px-7 text-[1.05rem] font-extrabold min-h-12.5 rounded-[12px] cursor-pointer inline-flex items-center gap-2.5 shadow-[0_8px_25px_rgba(0,_210,_211,_0.3)]"
           >
             <span>⚽</span>
             <span>Empezar a Jugar</span>
@@ -116,8 +60,8 @@ export default function Landing() {
       </section>
 
       {/* Feature Grid */}
-      <section style={{ margin: '45px 0 25px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+      <section className="mt-[45px] mb-[25px] mx-0">
+        <div className="text-center mb-7">
           <h2
             style={{
               fontFamily: "'Outfit', sans-serif",
@@ -128,48 +72,15 @@ export default function Landing() {
           >
             Todo lo que necesitas para tu porra
           </h2>
-          <p
-            style={{
-              color: 'var(--text-muted, #94a3b8)',
-              fontSize: '0.95rem',
-              maxWidth: '560px',
-              margin: '0 auto',
-            }}
-          >
+          <p className="text-muted text-[0.95rem] max-w-140 my-0 mx-auto">
             Sin líos de Excel ni hojas de cálculo. Todo automatizado para competir con tus amigos.
           </p>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '16px',
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-4">
           {/* Feature 1 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(251, 191, 36, 0.15)',
-                color: '#fbbf24',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
+          <div className="glass-panel p-5 flex flex-col gap-2">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(251,_191,_36,_0.15)] text-[#fbbf24] flex items-center justify-center text-[1.3rem]">
               🏆
             </div>
             <h3
@@ -182,42 +93,15 @@ export default function Landing() {
             >
               Cuadros Eliminatorios
             </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
+            <p className="text-muted text-[0.86rem] leading-[1.45] m-0">
               Árbol visual interactivo hasta la Gran Final con cruces automáticos, desempates y
               Pichichi.
             </p>
           </div>
 
           {/* Feature 2 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(0, 210, 211, 0.15)',
-                color: '#00d2d3',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
+          <div className="glass-panel p-5 flex flex-col gap-2">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(0,_210,_211,_0.15)] text-[#00d2d3] flex items-center justify-center text-[1.3rem]">
               ⚽
             </div>
             <h3
@@ -230,41 +114,14 @@ export default function Landing() {
             >
               Ligas por Jornadas
             </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
+            <p className="text-muted text-[0.86rem] leading-[1.45] m-0">
               Para LaLiga, Premier y Champions. Pronósticos fecha a fecha con marcadores al minuto.
             </p>
           </div>
 
           {/* Feature 3 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(56, 189, 248, 0.15)',
-                color: '#38bdf8',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
+          <div className="glass-panel p-5 flex flex-col gap-2">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(56,_189,_248,_0.15)] text-[#38bdf8] flex items-center justify-center text-[1.3rem]">
               👥
             </div>
             <h3
@@ -277,41 +134,14 @@ export default function Landing() {
             >
               Ligas Privadas
             </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
+            <p className="text-muted text-[0.86rem] leading-[1.45] m-0">
               Crea tu liga en 10 segundos e invita a tus amigos por WhatsApp con un simple enlace.
             </p>
           </div>
 
           {/* Feature 4 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(168, 85, 247, 0.15)',
-                color: '#a855f7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
+          <div className="glass-panel p-5 flex flex-col gap-2">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(168,_85,_247,_0.15)] text-[#a855f7] flex items-center justify-center text-[1.3rem]">
               📊
             </div>
             <h3
@@ -324,42 +154,15 @@ export default function Landing() {
             >
               Directo y Clasificación
             </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
+            <p className="text-muted text-[0.86rem] leading-[1.45] m-0">
               Tabla de posiciones en tiempo real, desglose detallado de puntos y evolución del
               ranking.
             </p>
           </div>
 
           {/* Feature 5 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(34, 197, 94, 0.15)',
-                color: '#22c55e',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
+          <div className="glass-panel p-5 flex flex-col gap-2">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(34,_197,_94,_0.15)] text-[#22c55e] flex items-center justify-center text-[1.3rem]">
               📱
             </div>
             <h3
@@ -372,42 +175,15 @@ export default function Landing() {
             >
               App Instalable (PWA)
             </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
+            <p className="text-muted text-[0.86rem] leading-[1.45] m-0">
               Instálala en tu móvil iOS o Android con un toque para consultar los partidos en
               cualquier lugar.
             </p>
           </div>
 
           {/* Feature 6 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#ef4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
+          <div className="glass-panel p-5 flex flex-col gap-2">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(239,_68,_68,_0.15)] text-[#ef4444] flex items-center justify-center text-[1.3rem]">
               🔒
             </div>
             <h3
@@ -420,14 +196,7 @@ export default function Landing() {
             >
               Cierre Automático
             </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
+            <p className="text-muted text-[0.86rem] leading-[1.45] m-0">
               Bloqueo estricto antes del pitido inicial de cada partido para garantizar total juego
               limpio.
             </p>
@@ -436,7 +205,7 @@ export default function Landing() {
       </section>
 
       {/* How it works */}
-      <section style={{ margin: '45px 0 30px', textAlign: 'center' }}>
+      <section className="mt-[45px] mb-7.5 mx-0 text-center">
         <h2
           style={{
             fontFamily: "'Outfit', sans-serif",
@@ -448,88 +217,33 @@ export default function Landing() {
           ¿Cómo empezar en 3 pasos?
         </h2>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '16px',
-            textAlign: 'center',
-          }}
-        >
-          <div className="glass-panel" style={{ padding: '18px 14px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--accent-cyan, #00d2d3)',
-                color: '#0f172a',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px',
-                fontSize: '0.95rem',
-              }}
-            >
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(220px,_1fr))] gap-4 text-center">
+          <div className="glass-panel py-4.5 px-3.5">
+            <div className="w-8 h-8 rounded-full bg-cyan text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
               1
             </div>
-            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
-              Inicia Sesión
-            </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
+            <h4 className="text-white mb-1 text-[0.98rem]">Inicia Sesión</h4>
+            <p className="text-muted text-[0.84rem] m-0">
               Identifícate con tu cuenta de Google en un solo clic.
             </p>
           </div>
 
-          <div className="glass-panel" style={{ padding: '18px 14px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--accent-cyan, #00d2d3)',
-                color: '#0f172a',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px',
-                fontSize: '0.95rem',
-              }}
-            >
+          <div className="glass-panel py-4.5 px-3.5">
+            <div className="w-8 h-8 rounded-full bg-cyan text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
               2
             </div>
-            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
-              Crea o Únete
-            </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
+            <h4 className="text-white mb-1 text-[0.98rem]">Crea o Únete</h4>
+            <p className="text-muted text-[0.84rem] m-0">
               Crea una liga para tus amigos o introduce su código de invitación.
             </p>
           </div>
 
-          <div className="glass-panel" style={{ padding: '18px 14px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--accent-cyan, #00d2d3)',
-                color: '#0f172a',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px',
-                fontSize: '0.95rem',
-              }}
-            >
+          <div className="glass-panel py-4.5 px-3.5">
+            <div className="w-8 h-8 rounded-full bg-cyan text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
               3
             </div>
-            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
-              Pronostica y Compite
-            </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
+            <h4 className="text-white mb-1 text-[0.98rem]">Pronostica y Compite</h4>
+            <p className="text-muted text-[0.84rem] m-0">
               Rellena tus resultados, sigue los partidos en vivo y lidera la clasificación.
             </p>
           </div>
@@ -537,21 +251,10 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer
-        style={{
-          marginTop: '45px',
-          paddingTop: '20px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          color: '#94a3b8',
-          fontSize: '0.85rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <footer className="mt-[45px] pt-5 border-t border-t-[rgba(255,_255,_255,_0.08)] flex justify-center items-center text-[#94a3b8] text-[0.85rem]">
+        <div className="flex items-center gap-2">
           <span>⚽</span>
-          <strong style={{ color: '#fff' }}>PorrApp</strong>
+          <strong className="text-white">PorrApp</strong>
           <span>· Porras Deportivas</span>
         </div>
       </footer>

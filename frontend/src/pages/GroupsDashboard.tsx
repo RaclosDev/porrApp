@@ -113,41 +113,26 @@ export default function GroupsDashboard() {
         boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 64 }}>
+      <div className="flex items-center gap-3.5 min-h-16">
         {pendingInvite?.imageUrl ? (
           <img
+            className="block w-16 h-16 flex-[0_0_64px] rounded-[12px] object-cover"
             src={pendingInvite.imageUrl}
             alt={pendingInvite.name ? `Imagen de ${pendingInvite.name}` : 'Imagen de la liga'}
-            style={{
-              display: 'block',
-              width: 64,
-              height: 64,
-              flex: '0 0 64px',
-              borderRadius: 12,
-              objectFit: 'cover',
-            }}
           />
         ) : (
           <LeagueAvatar url={null} size={64} />
         )}
-        <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+        <div className="min-w-0 flex-[1_1_auto]">
           <h2
-            style={{
-              fontSize: '1.15rem',
-              lineHeight: 1.2,
-              margin: '0 0 4px',
-              color: 'var(--text-primary, #fff)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
+            className="text-[1.15rem] leading-[1.2] mt-0 mb-1 mx-0 text-[color:var(--text-primary,_#fff)] overflow-hidden text-ellipsis whitespace-nowrap"
             title={pendingInvite?.name || 'Cargando liga…'}
           >
             {pendingInvite?.name || 'Cargando liga…'}
           </h2>
         </div>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <div className="flex flex-wrap gap-1.5">
         <span
           style={{
             fontSize: '0.72rem',
@@ -203,7 +188,7 @@ export default function GroupsDashboard() {
           {isJoiningInvite ? 'Uniéndote…' : 'Unirme a la liga'}
         </button>
       ) : (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+        <div className="flex justify-center mt-0.5">
           <GoogleLogin
             onSuccess={handleDirectGoogleLogin}
             onError={() => toast.error('Inicio de sesión cancelado')}
@@ -234,13 +219,11 @@ export default function GroupsDashboard() {
 
         {!pendingJoinCodeNotice && (
           <>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>
-              Debes iniciar sesión con Google
-            </h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
+            <h2 className="text-[1.5rem] mb-[15px]">Debes iniciar sesión con Google</h2>
+            <p className="text-muted mb-5">
               Para crear o unirte a una liga, necesitas acceder con tu cuenta de Google:
             </p>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="flex justify-center">
               <GoogleLogin
                 onSuccess={handleDirectGoogleLogin}
                 onError={() => toast.error('Inicio de sesión cancelado')}
@@ -270,24 +253,11 @@ export default function GroupsDashboard() {
         />
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '14px',
-          marginBottom: '24px',
-          paddingBottom: '16px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        }}
-      >
+      <div className="flex justify-between items-center flex-wrap gap-3.5 mb-6 pb-4 border-b border-b-[rgba(255,_255,_255,_0.08)]">
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.6rem', color: '#fff', fontWeight: 800 }}>
-            Mis Ligas
-          </h2>
+          <h2 className="m-0 text-[1.6rem] text-white font-extrabold">Mis Ligas</h2>
         </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="flex gap-2.5 flex-wrap">
           <button
             type="button"
             onClick={() => {
@@ -335,17 +305,7 @@ export default function GroupsDashboard() {
       </div>
 
       {error && (
-        <div
-          style={{
-            background: 'rgba(231, 76, 60, 0.2)',
-            border: '1px solid #e74c3c',
-            color: '#ffcccc',
-            padding: '15px',
-            borderRadius: '12px',
-            marginBottom: '20px',
-            textAlign: 'center',
-          }}
-        >
+        <div className="bg-[rgba(231,_76,_60,_0.2)] border border-[#e74c3c] text-[#ffcccc] p-[15px] rounded-[12px] mb-5 text-center">
           {error}
         </div>
       )}
@@ -379,9 +339,7 @@ export default function GroupsDashboard() {
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0' }}>
-          Cargando tus ligas...
-        </div>
+        <div className="text-center text-muted py-10 px-0">Cargando tus ligas...</div>
       ) : groups.length === 0 ? (
         <div
           className="glass-panel"
@@ -395,38 +353,22 @@ export default function GroupsDashboard() {
             background: 'rgba(0, 210, 211, 0.04)',
           }}
         >
-          <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🏟️</div>
-          <h3 style={{ color: '#fff', margin: '0 0 8px 0', fontSize: '1.3rem', fontWeight: 800 }}>
+          <div className="text-[3rem] mb-3">🏟️</div>
+          <h3 className="text-white mt-0 mb-2 mx-0 text-[1.3rem] font-extrabold">
             Aún no te has unido a ninguna liga privada
           </h3>
-          <p
-            style={{
-              color: 'var(--text-muted)',
-              fontSize: '0.92rem',
-              maxWidth: '420px',
-              margin: '0 auto 24px',
-              lineHeight: 1.5,
-            }}
-          >
+          <p className="text-muted text-[0.92rem] max-w-105 mt-0 mb-6 mx-auto leading-[1.5]">
             Crea tu propia porra personalizada para competir con tus amigos o únete a una ya
             existente usando un código de invitación.
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="flex gap-3 justify-center flex-wrap">
             <button
               type="button"
               onClick={() => {
                 setShowCreateModal(true);
                 setShowJoinModal(false);
               }}
-              className="glass-btn primary-btn"
-              style={{
-                padding: '11px 22px',
-                fontWeight: 800,
-                fontSize: '0.95rem',
-                background: 'linear-gradient(135deg, #00d2d3, #00a8ff)',
-                color: '#0f172a',
-                boxShadow: '0 4px 15px rgba(0, 210, 211, 0.3)',
-              }}
+              className="glass-btn primary-btn py-[11px] px-5.5 font-extrabold text-[0.95rem] bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] text-[#0f172a] shadow-[0_4px_15px_rgba(0,_210,_211,_0.3)]"
             >
               ➕ Crear mi primera liga
             </button>
@@ -436,15 +378,14 @@ export default function GroupsDashboard() {
                 setShowJoinModal(true);
                 setShowCreateModal(false);
               }}
-              className="glass-btn"
-              style={{ padding: '11px 20px', fontWeight: 700, fontSize: '0.95rem' }}
+              className="glass-btn py-[11px] px-5 font-bold text-[0.95rem]"
             >
               🎟️ Unirse con código
             </button>
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className="flex gap-[15px] flex-wrap justify-center">
           {groups.map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
             const isCreator = isGroupAdmin(group);

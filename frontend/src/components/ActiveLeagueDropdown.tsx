@@ -96,14 +96,7 @@ export default function ActiveLeagueDropdown() {
         }}
       >
         <span>➕</span>
-        <span
-          style={{
-            maxWidth: '130px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <span className="max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
           Crear o unirse
         </span>
       </button>
@@ -118,15 +111,7 @@ export default function ActiveLeagueDropdown() {
     activeCompetitionName || (activeCompetitionFormatType === 'LEAGUE' ? 'Liga' : 'Mundial');
 
   return (
-    <div
-      ref={dropdownRef}
-      style={{
-        position: 'relative',
-        display: 'inline-flex',
-        alignItems: 'center',
-        zIndex: 105,
-      }}
-    >
+    <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
       <button
         type="button"
         id="btn-active-league-dropdown"
@@ -153,37 +138,11 @@ export default function ActiveLeagueDropdown() {
         }}
       >
         <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            textAlign: 'left',
-            lineHeight: 1.15,
-          }}
-        >
-          <span
-            style={{
-              maxWidth: '140px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: '#fff',
-            }}
-          >
+        <div className="flex flex-col items-start text-left leading-[1.15]">
+          <span className="max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-white">
             {displayLeagueName}
           </span>
-          <span
-            style={{
-              fontSize: '0.7rem',
-              color: 'var(--accent-color, #00d2d3)',
-              fontWeight: 500,
-              maxWidth: '130px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <span className="text-[0.7rem] text-accent font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
             {displayCompName}
           </span>
         </div>
@@ -203,52 +162,16 @@ export default function ActiveLeagueDropdown() {
       {isOpen && (
         <div
           role="menu"
-          className="active-league-menu"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            background: '#111827',
-            border: '1px solid rgba(0, 210, 211, 0.35)',
-            borderRadius: '12px',
-            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 210, 211, 0.15)',
-            backdropFilter: 'blur(12px)',
-            padding: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-            animation: 'fadeIn 0.15s ease-out',
-          }}
+          className="active-league-menu absolute top-[calc(100%_+_8px)] bg-[#111827] border border-[rgba(0,_210,_211,_0.35)] rounded-[12px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.75),_0_0_20px_rgba(0,_210,_211,_0.15)] [backdrop-filter:blur(12px)] p-2 flex flex-col gap-1 [animation:fadeIn_0.15s_ease-out]"
         >
-          <div
-            style={{
-              padding: '6px 10px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              color: 'var(--text-muted, #94a3b8)',
-              textTransform: 'uppercase',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              marginBottom: '4px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+          <div className="py-1.5 px-2.5 text-[0.75rem] font-bold tracking-[0.5px] text-muted uppercase border-b border-b-[rgba(255,_255,_255,_0.08)] mb-1 flex justify-between items-center">
             <span>Mis Ligas</span>
-            <span style={{ fontSize: '0.7rem', color: '#00d2d3' }}>
+            <span className="text-[0.7rem] text-[#00d2d3]">
               {userGroups?.length || 0} {userGroups?.length === 1 ? 'liga' : 'ligas'}
             </span>
           </div>
 
-          <div
-            style={{
-              maxHeight: '240px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '3px',
-            }}
-          >
+          <div className="max-h-60 overflow-y-auto flex flex-col gap-[3px]">
             {sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
@@ -287,9 +210,9 @@ export default function ActiveLeagueDropdown() {
                       if (!isSelected) e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <div className="flex items-center gap-2 min-w-0">
                       <LeagueAvatar url={g.imageUrl} badge={gBadge} size={30} />
-                      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                      <div className="min-w-0 flex flex-col">
                         <span
                           style={{
                             fontWeight: isSelected ? 700 : 500,
@@ -301,29 +224,20 @@ export default function ActiveLeagueDropdown() {
                         >
                           {g.name}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94a3b8)' }}>
+                        <span className="text-[0.72rem] text-muted">
                           {g.competitionName || 'Mundial'} ·{' '}
                           {g.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
                         </span>
                       </div>
                     </div>
                     {isSelected && (
-                      <span style={{ color: '#00d2d3', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                        ✓
-                      </span>
+                      <span className="text-[#00d2d3] font-bold text-[0.9rem]">✓</span>
                     )}
                   </button>
                 );
               })
             ) : (
-              <div
-                style={{
-                  padding: '12px 10px',
-                  textAlign: 'center',
-                  color: 'var(--text-muted, #94a3b8)',
-                  fontSize: '0.8rem',
-                }}
-              >
+              <div className="py-3 px-2.5 text-center text-muted text-[0.8rem]">
                 {isAuthenticated
                   ? 'No te has unido a ninguna liga privada todavía.'
                   : 'Inicia sesión para unirte o ver tus ligas.'}
@@ -331,13 +245,7 @@ export default function ActiveLeagueDropdown() {
             )}
           </div>
 
-          <div
-            style={{
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-              paddingTop: '6px',
-              marginTop: '4px',
-            }}
-          >
+          <div className="border-t border-t-[rgba(255,_255,_255,_0.08)] pt-1.5 mt-1">
             <button
               type="button"
               onClick={() => {
