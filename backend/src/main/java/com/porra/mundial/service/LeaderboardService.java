@@ -53,6 +53,20 @@ public class LeaderboardService {
      * @param groupId ID del grupo a consultar.
      * @return El ranking ordenado de participantes con todos sus desgloses de puntos.
      */
+    /** Clasificación: más puntos, luego más puntos por partido, luego nombre. */
+    private static final Comparator<ParticipantScoreDTO> LEADERBOARD_ORDER = Comparator
+            .comparingInt(ParticipantScoreDTO::getTotal).reversed()
+            .thenComparing(Comparator.comparingInt(ParticipantScoreDTO::getMatchPoints).reversed())
+            .thenComparing(score -> score.getName() != null ? score.getName() : "", String.CASE_INSENSITIVE_ORDER);
+
+    /** Mejores terceros: puntos, diferencia de goles, goles a favor, fair play y nombre. */
+    private static final Comparator<GroupStanding> THIRD_PLACE_ORDER = Comparator
+            .comparingInt((GroupStanding gs) -> gs.getPoints() != null ? gs.getPoints() : 0).reversed()
+            .thenComparing(Comparator.comparingInt((GroupStanding gs) -> gs.getGoalDiff() != null ? gs.getGoalDiff() : 0).reversed())
+            .thenComparing(Comparator.comparingInt((GroupStanding gs) -> gs.getGoalsFor() != null ? gs.getGoalsFor() : 0).reversed())
+            .thenComparing(Comparator.comparingInt((GroupStanding gs) -> gs.getFairPlayPoints() != null ? gs.getFairPlayPoints() : 0).reversed())
+            .thenComparing(gs -> gs.getTeam().getName());
+
     @Cacheable(value = "leaderboard", key = "#groupId != null ? #groupId : 0L")
     @org.springframework.transaction.annotation.Transactional
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
@@ -92,189 +106,29 @@ public class LeaderboardService {
                         .build();
                 fastLeaderboard.add(score);
             }
-            fastLeaderboard.sort((a, b) -> {
-                if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
-                if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
-                String nameA = a.getName() != null ? a.getName() : "";
-                String nameB = b.getName() != null ? b.getName() : "";
-                return nameA.compareToIgnoreCase(nameB);
-            });
             addLeagueMembersWithoutPredictions(groupId, fastLeaderboard);
+            fastLeaderboard.sort(LEADERBOARD_ORDER);
             return fastLeaderboard;
         }
 
-        Prediction adminPrediction = predictionRepository.findByIsOfficialTrue()
-                .or(() -> predictionRepository.findByName("official"))
-                .or(() -> predictionRepository.findAll().stream()
-                        .filter(b -> (b.getName() != null && b.getName().equalsIgnoreCase("official"))
-                                || (b.getParticipantName() != null && b.getParticipantName().equalsIgnoreCase("Admin")))
-                        .findFirst())
-                .orElse(null);
-        PredictionDataDTO officialData = (adminPrediction != null && adminPrediction.getBracketData() != null) ? adminPrediction.getBracketData() : new PredictionDataDTO();
-        knockoutBracketService.enrichPredictionDataWithMatches(officialData);
-
-        Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
-        List<GroupStanding> allStandings = standingsService.getAllStandings();
+        OfficialState official = buildOfficialState();
+        boolean pichichiActive = groupPredictions.stream()
+                .anyMatch(p -> p.getEdition() == null || p.getEdition().isPichichi());
+        List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
 
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
-        Map<String, List<String>> orderedTeamsPerGroup = new HashMap<>();
-        for (GroupStanding gs : allStandings) {
-            if (gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && gs.getTeam() != null) {
-                orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName().toUpperCase().trim(), k -> new ArrayList<>())
-                        .add(gs.getTeam().getName());
-            }
-        }
-
-        List<GroupStanding> allThirds = allStandings.stream()
-                .filter(gs -> Integer.valueOf(3).equals(gs.getPosition()) && gs.getTeam() != null)
-                .sorted((a, b) -> {
-                    int ptsA = a.getPoints() != null ? a.getPoints() : 0;
-                    int ptsB = b.getPoints() != null ? b.getPoints() : 0;
-                    if (ptsA != ptsB) return Integer.compare(ptsB, ptsA);
-
-                    int gdA = a.getGoalDiff() != null ? a.getGoalDiff() : 0;
-                    int gdB = b.getGoalDiff() != null ? b.getGoalDiff() : 0;
-                    if (gdA != gdB) return Integer.compare(gdB, gdA);
-
-                    int gfA = a.getGoalsFor() != null ? a.getGoalsFor() : 0;
-                    int gfB = b.getGoalsFor() != null ? b.getGoalsFor() : 0;
-                    if (gfA != gfB) return Integer.compare(gfB, gfA);
-
-                    int fpA = a.getFairPlayPoints() != null ? a.getFairPlayPoints() : 0;
-                    int fpB = b.getFairPlayPoints() != null ? b.getFairPlayPoints() : 0;
-                    if (fpA != fpB) return Integer.compare(fpB, fpA);
-
-                    return a.getTeam().getName().compareTo(b.getTeam().getName());
-                })
-                .collect(Collectors.toList());
-
-        List<String> bestVirtualThirds = allThirds.stream().limit(8).map(gs -> gs.getTeam().getName()).collect(Collectors.toList());
-        boolean pichichiActive = groupPredictions.stream()
-                .anyMatch(p -> p.getEdition() == null || p.getEdition().isPichichi());
-        List<TopScorerDTO> allScorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
-
-        List<Match> allMatches = matchRepository.findAll();
-        List<Match> knockoutMatches = allMatches.stream().filter(this::isKnockoutMatch).collect(Collectors.toList());
-        List<Match> r32Matches = knockoutMatches.stream().filter(m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> r16Matches = knockoutMatches.stream().filter(m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> qfMatches = knockoutMatches.stream().filter(m -> isRound(m.getRound(), "qf", "quarter", "cuart")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> sfMatches = knockoutMatches.stream().filter(m -> isRound(m.getRound(), "sf", "semi")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> finalMatchDb = knockoutMatches.stream()
-                .filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "third", "tercer", "3rd", "3er"))
-                .collect(Collectors.toList());
-        List<Match> thirdMatchDb = knockoutMatches.stream()
-                .filter(m -> isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
-                .collect(Collectors.toList());
-
-        java.util.function.Function<Match, String> getWinner = (m) -> {
-            if (m == null) return null;
-            if (m.getWinnerTeam() != null && m.getWinnerTeam().getName() != null) return m.getWinnerTeam().getName();
-            if (Boolean.TRUE.equals(m.getFinished()) && m.getHomeScore() != null && m.getAwayScore() != null) {
-                if (m.getHomeScore() > m.getAwayScore()) return m.getHomeTeam() != null ? m.getHomeTeam().getName() : null;
-                if (m.getAwayScore() > m.getHomeScore()) return m.getAwayTeam() != null ? m.getAwayTeam().getName() : null;
-            }
-            return null;
-        };
-
-        List<String> offOctavos = new ArrayList<>();
-        for (Match m : r32Matches) {
-            String w = getWinner.apply(m);
-            if (w != null) offOctavos.add(w);
-        }
-
-        List<String> offQf = new ArrayList<>();
-        for (Match m : r16Matches) {
-            String w = getWinner.apply(m);
-            if (w != null) offQf.add(w);
-        }
-
-        List<String> offSf = new ArrayList<>();
-        for (Match m : qfMatches) {
-            String w = getWinner.apply(m);
-            if (w != null) offSf.add(w);
-        }
-
-        List<String> offFinal = new ArrayList<>();
-        for (Match m : sfMatches) {
-            String w = getWinner.apply(m);
-            if (w != null) offFinal.add(w);
-        }
-
-        String offChampion = finalMatchDb.isEmpty() ? null : getWinner.apply(finalMatchDb.get(0));
-        String offThirdPlaceWinner = thirdMatchDb.isEmpty() ? null : getWinner.apply(thirdMatchDb.get(0));
-        if (officialData != null) {
-            if (officialData.getThirdPlaceWinner() == null && offThirdPlaceWinner != null) {
-                officialData.setThirdPlaceWinner(offThirdPlaceWinner);
-            }
-            if ((officialData.getThirdPlaceMatch() == null || officialData.getThirdPlaceMatch().isEmpty()) && !thirdMatchDb.isEmpty()) {
-                Match tm = thirdMatchDb.get(0);
-                if (tm.getHomeTeam() != null && tm.getAwayTeam() != null) {
-                    officialData.setThirdPlaceMatch(List.of(tm.getHomeTeam().getName(), tm.getAwayTeam().getName()));
-                }
-            }
-        }
-
         List<Prediction> toUpdate = new ArrayList<>();
         for (Prediction pred : groupPredictions) {
             if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
 
-            PredictionDataDTO participant = pred.getBracketData();
             List<MatchPrediction> matchPreds = matchPredictionRepository.findByPredictionId(pred.getId());
+            if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
 
-            if (participant == null && (matchPreds == null || matchPreds.isEmpty())) {
-                continue;
-            }
-
-            ParticipantScoreDTO score;
-            if (participant != null) {
-                CalculationContext ctx = new CalculationContext(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers, offOctavos, offQf, offSf, offFinal, offChampion);
-                score = calculatePoints(ctx);
-                score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
-                score.setThirdPlaceWinner(participant.getThirdPlaceWinner());
-            } else {
-                score = ParticipantScoreDTO.builder()
-                        .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
-                        .log(new ArrayList<>())
-                        .exactMatches(new HashMap<>())
-                        .passedTeams(new HashMap<>())
-                        .build();
-            }
-
-            int matchPoints = 0;
-            if (matchPreds != null) {
-                for (MatchPrediction mp : matchPreds) {
-                    if (mp.getPointsAwarded() != null && mp.getPointsAwarded() > 0) {
-                        matchPoints += mp.getPointsAwarded();
-                        score.getLog().add(ParticipantScoreDTO.LogEntry.builder()
-                                .stage("matchday")
-                                .amount(mp.getPointsAwarded())
-                                .msg(mp.getScoringDetails() != null ? mp.getScoringDetails() : ("Acierto en partido (+ " + mp.getPointsAwarded() + " pts)"))
-                                .build());
-                    }
-                }
-            }
-            score.setMatchPoints(matchPoints);
-            score.setMatchPoints(matchPoints);
-            score.setTotal(score.getTotal() + matchPoints);
-
-            score.setId(pred.getId());
-            score.setUserId(pred.getUser() != null ? pred.getUser().getId() : null);
-            score.setName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
-            score.setPredictionName(pred.getPredictionName());
+            ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers);
             score.setPending(isPaymentPending(pred, membershipPayment));
             leaderboard.add(score);
-
-            pred.setTotalPoints(score.getTotal());
-            pred.setR1Points(score.getR1());
-            pred.setR32Points(score.getR32());
-            pred.setR16Points(score.getR16());
-            pred.setQfPoints(score.getQf());
-            pred.setSfPoints(score.getSf());
-            pred.setFinalsPoints(score.getFinals());
-            pred.setScorerPoints(score.getScorer());
-            pred.setMatchPoints(score.getMatchPoints());
-            pred.setScoreCalculatedAt(java.time.LocalDateTime.now());
+            materialize(pred, score);
             toUpdate.add(pred);
         }
 
@@ -286,21 +140,8 @@ public class LeaderboardService {
             }
         }
 
-        leaderboard.sort((a, b) -> {
-            if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
-            if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
-            String nameA = a.getName() != null ? a.getName() : "";
-            String nameB = b.getName() != null ? b.getName() : "";
-            return nameA.compareToIgnoreCase(nameB);
-        });
         addLeagueMembersWithoutPredictions(groupId, leaderboard);
-        leaderboard.sort((a, b) -> {
-            if (a.getTotal() != b.getTotal()) return Integer.compare(b.getTotal(), a.getTotal());
-            if (a.getMatchPoints() != b.getMatchPoints()) return Integer.compare(b.getMatchPoints(), a.getMatchPoints());
-            String nameA = a.getName() != null ? a.getName() : "";
-            String nameB = b.getName() != null ? b.getName() : "";
-            return nameA.compareToIgnoreCase(nameB);
-        });
+        leaderboard.sort(LEADERBOARD_ORDER);
         return leaderboard;
     }
 
@@ -499,19 +340,42 @@ public class LeaderboardService {
         Prediction pred = predictionRepository.findById(predictionId).orElse(null);
         if (pred == null) return null;
 
-        Prediction adminPrediction = predictionRepository.findByIsOfficialTrue()
+        boolean pichichiActive = pred.getEdition() == null || pred.getEdition().isPichichi();
+        List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
+        ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
+                buildOfficialState(), scorers);
+        score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
+        return score;
+    }
+
+    /**
+     * Estado real del torneo contra el que se puntúa: cuadro oficial, puntos y orden de cada grupo,
+     * mejores terceros y equipos que han ido superando cada ronda.
+     */
+    private record OfficialState(
+            PredictionDataDTO bracket,
+            Map<String, Map<String, Map<String, Integer>>> groupPoints,
+            Map<String, List<String>> orderedTeamsPerGroup,
+            List<String> bestThirds,
+            List<String> roundOf16,
+            List<String> quarterFinals,
+            List<String> semiFinals,
+            List<String> finalists,
+            String champion) {
+    }
+
+    private OfficialState buildOfficialState() {
+        PredictionDataDTO bracket = predictionRepository.findByIsOfficialTrue()
                 .or(() -> predictionRepository.findByName("official"))
                 .or(() -> predictionRepository.findAll().stream()
                         .filter(b -> (b.getName() != null && b.getName().equalsIgnoreCase("official"))
                                 || (b.getParticipantName() != null && b.getParticipantName().equalsIgnoreCase("Admin")))
                         .findFirst())
-                .orElse(null);
-        PredictionDataDTO officialData = (adminPrediction != null && adminPrediction.getBracketData() != null) ? adminPrediction.getBracketData() : new PredictionDataDTO();
-        knockoutBracketService.enrichPredictionDataWithMatches(officialData);
+                .map(Prediction::getBracketData)
+                .orElseGet(PredictionDataDTO::new);
+        knockoutBracketService.enrichPredictionDataWithMatches(bracket);
 
-        Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();
-
         Map<String, List<String>> orderedTeamsPerGroup = new HashMap<>();
         for (GroupStanding gs : allStandings) {
             if (gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && gs.getTeam() != null) {
@@ -519,124 +383,64 @@ public class LeaderboardService {
                         .add(gs.getTeam().getName());
             }
         }
-
-        List<GroupStanding> allThirds = allStandings.stream()
+        List<String> bestThirds = allStandings.stream()
                 .filter(gs -> Integer.valueOf(3).equals(gs.getPosition()) && gs.getTeam() != null)
-                .sorted((a, b) -> {
-                    int ptsA = a.getPoints() != null ? a.getPoints() : 0;
-                    int ptsB = b.getPoints() != null ? b.getPoints() : 0;
-                    if (ptsA != ptsB) return Integer.compare(ptsB, ptsA);
-
-                    int gdA = a.getGoalDiff() != null ? a.getGoalDiff() : 0;
-                    int gdB = b.getGoalDiff() != null ? b.getGoalDiff() : 0;
-                    if (gdA != gdB) return Integer.compare(gdB, gdA);
-
-                    int gfA = a.getGoalsFor() != null ? a.getGoalsFor() : 0;
-                    int gfB = b.getGoalsFor() != null ? b.getGoalsFor() : 0;
-                    if (gfA != gfB) return Integer.compare(gfB, gfA);
-
-                    int fpA = a.getFairPlayPoints() != null ? a.getFairPlayPoints() : 0;
-                    int fpB = b.getFairPlayPoints() != null ? b.getFairPlayPoints() : 0;
-                    if (fpA != fpB) return Integer.compare(fpB, fpA);
-
-                    return a.getTeam().getName().compareTo(b.getTeam().getName());
-                })
+                .sorted(THIRD_PLACE_ORDER)
+                .limit(8)
+                .map(gs -> gs.getTeam().getName())
                 .collect(Collectors.toList());
 
-        List<String> bestVirtualThirds = allThirds.stream().limit(8).map(gs -> gs.getTeam().getName()).collect(Collectors.toList());
-        boolean pichichiActive = pred.getEdition() == null || pred.getEdition().isPichichi();
-        List<TopScorerDTO> allScorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
-
-        List<Match> allMatches = matchRepository.findAll();
-        List<Match> knockoutMatches = allMatches.stream().filter(this::isKnockoutMatch).collect(Collectors.toList());
-        List<Match> r32Matches = knockoutMatches.stream().filter(m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> r16Matches = knockoutMatches.stream().filter(m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> qfMatches = knockoutMatches.stream().filter(m -> isRound(m.getRound(), "qf", "quarter", "cuart")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> sfMatches = knockoutMatches.stream().filter(m -> isRound(m.getRound(), "sf", "semi")).sorted(Comparator.comparing(Match::getMatchDate)).collect(Collectors.toList());
-        List<Match> finalMatchDb = knockoutMatches.stream()
+        List<Match> knockout = matchRepository.findAll().stream().filter(this::isKnockoutMatch).collect(Collectors.toList());
+        List<String> roundOf16 = winnersOf(knockout, m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis"));
+        List<String> quarterFinals = winnersOf(knockout, m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32"));
+        List<String> semiFinals = winnersOf(knockout, m -> isRound(m.getRound(), "qf", "quarter", "cuart"));
+        List<String> finalists = winnersOf(knockout, m -> isRound(m.getRound(), "sf", "semi"));
+        Match finalMatch = knockout.stream()
                 .filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "third", "tercer", "3rd", "3er"))
-                .collect(Collectors.toList());
-        List<Match> thirdMatchDb = knockoutMatches.stream()
+                .findFirst().orElse(null);
+        Match thirdPlaceMatch = knockout.stream()
                 .filter(m -> isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
-                .collect(Collectors.toList());
+                .findFirst().orElse(null);
 
-        java.util.function.Function<Match, String> getWinner = (m) -> {
-            if (m == null) return null;
-            if (m.getWinnerTeam() != null && m.getWinnerTeam().getName() != null) return m.getWinnerTeam().getName();
-            if (Boolean.TRUE.equals(m.getFinished()) && m.getHomeScore() != null && m.getAwayScore() != null) {
-                if (m.getHomeScore() > m.getAwayScore()) return m.getHomeTeam() != null ? m.getHomeTeam().getName() : null;
-                if (m.getAwayScore() > m.getHomeScore()) return m.getAwayTeam() != null ? m.getAwayTeam().getName() : null;
+        if (thirdPlaceMatch != null) {
+            String thirdWinner = winnerName(thirdPlaceMatch);
+            if (bracket.getThirdPlaceWinner() == null && thirdWinner != null) {
+                bracket.setThirdPlaceWinner(thirdWinner);
             }
-            return null;
-        };
-
-        List<String> offOctavos = new ArrayList<>();
-        for (Match m : r32Matches) {
-            String w = getWinner.apply(m);
-            if (w != null) offOctavos.add(w);
-        }
-
-        List<String> offQf = new ArrayList<>();
-        for (Match m : r16Matches) {
-            String w = getWinner.apply(m);
-            if (w != null) offQf.add(w);
-        }
-
-        List<String> offSf = new ArrayList<>();
-        for (Match m : qfMatches) {
-            String w = getWinner.apply(m);
-            if (w != null) offSf.add(w);
-        }
-
-        List<String> offFinal = new ArrayList<>();
-        for (Match m : sfMatches) {
-            String w = getWinner.apply(m);
-            if (w != null) offFinal.add(w);
-        }
-
-        String offChampion = finalMatchDb.isEmpty() ? null : getWinner.apply(finalMatchDb.get(0));
-        String offThirdPlaceWinner = thirdMatchDb.isEmpty() ? null : getWinner.apply(thirdMatchDb.get(0));
-        if (officialData != null) {
-            if (officialData.getThirdPlaceWinner() == null && offThirdPlaceWinner != null) {
-                officialData.setThirdPlaceWinner(offThirdPlaceWinner);
-            }
-            if ((officialData.getThirdPlaceMatch() == null || officialData.getThirdPlaceMatch().isEmpty()) && !thirdMatchDb.isEmpty()) {
-                Match tm = thirdMatchDb.get(0);
-                if (tm.getHomeTeam() != null && tm.getAwayTeam() != null) {
-                    officialData.setThirdPlaceMatch(List.of(tm.getHomeTeam().getName(), tm.getAwayTeam().getName()));
-                }
+            if ((bracket.getThirdPlaceMatch() == null || bracket.getThirdPlaceMatch().isEmpty())
+                    && thirdPlaceMatch.getHomeTeam() != null && thirdPlaceMatch.getAwayTeam() != null) {
+                bracket.setThirdPlaceMatch(List.of(thirdPlaceMatch.getHomeTeam().getName(), thirdPlaceMatch.getAwayTeam().getName()));
             }
         }
 
+        return new OfficialState(bracket, standingsService.getOfficialPoints(), orderedTeamsPerGroup, bestThirds,
+                roundOf16, quarterFinals, semiFinals, finalists, finalMatch != null ? winnerName(finalMatch) : null);
+    }
+
+    /** Puntos del cuadro (si lo tiene) más los de los pronósticos por partido. */
+    private ParticipantScoreDTO scorePrediction(Prediction pred, List<MatchPrediction> matchPreds,
+                                                OfficialState official, List<TopScorerDTO> scorers) {
         PredictionDataDTO participant = pred.getBracketData();
-        List<MatchPrediction> matchPreds = matchPredictionRepository.findByPredictionId(pred.getId());
-
         ParticipantScoreDTO score;
         if (participant != null) {
-            CalculationContext ctx = new CalculationContext(participant, officialData, officialPoints, orderedTeamsPerGroup, bestVirtualThirds, allScorers, offOctavos, offQf, offSf, offFinal, offChampion);
-            score = calculatePoints(ctx);
+            score = calculatePoints(new CalculationContext(participant, official.bracket(), official.groupPoints(),
+                    official.orderedTeamsPerGroup(), official.bestThirds(), scorers, official.roundOf16(),
+                    official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion()));
             score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
             score.setThirdPlaceWinner(participant.getThirdPlaceWinner());
         } else {
-            score = ParticipantScoreDTO.builder()
-                    .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
-                    .log(new ArrayList<>())
-                    .exactMatches(new HashMap<>())
-                    .passedTeams(new HashMap<>())
-                    .build();
+            score = emptyScore();
         }
 
         int matchPoints = 0;
-        if (matchPreds != null) {
-            for (MatchPrediction mp : matchPreds) {
-                if (mp.getPointsAwarded() != null && mp.getPointsAwarded() > 0) {
-                    matchPoints += mp.getPointsAwarded();
-                    score.getLog().add(ParticipantScoreDTO.LogEntry.builder()
-                            .stage("matchday")
-                            .amount(mp.getPointsAwarded())
-                            .msg(mp.getScoringDetails() != null ? mp.getScoringDetails() : ("Acierto en partido (+ " + mp.getPointsAwarded() + " pts)"))
-                            .build());
-                }
+        for (MatchPrediction mp : matchPreds) {
+            if (mp.getPointsAwarded() != null && mp.getPointsAwarded() > 0) {
+                matchPoints += mp.getPointsAwarded();
+                score.getLog().add(ParticipantScoreDTO.LogEntry.builder()
+                        .stage("matchday")
+                        .amount(mp.getPointsAwarded())
+                        .msg(mp.getScoringDetails() != null ? mp.getScoringDetails() : ("Acierto en partido (+ " + mp.getPointsAwarded() + " pts)"))
+                        .build());
             }
         }
         score.setMatchPoints(matchPoints);
@@ -646,19 +450,53 @@ public class LeaderboardService {
         score.setName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
         score.setPredictionName(pred.getPredictionName());
         score.setAvatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null);
-        score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
-
         return score;
     }
 
-    private ParticipantScoreDTO calculatePoints(CalculationContext ctx) {
-        ParticipantScoreDTO score = ParticipantScoreDTO.builder()
+    /** Guarda en el pronóstico su puntuación para que la clasificación no se recalcule en cada petición. */
+    private static void materialize(Prediction pred, ParticipantScoreDTO score) {
+        pred.setTotalPoints(score.getTotal());
+        pred.setR1Points(score.getR1());
+        pred.setR32Points(score.getR32());
+        pred.setR16Points(score.getR16());
+        pred.setQfPoints(score.getQf());
+        pred.setSfPoints(score.getSf());
+        pred.setFinalsPoints(score.getFinals());
+        pred.setScorerPoints(score.getScorer());
+        pred.setMatchPoints(score.getMatchPoints());
+        pred.setScoreCalculatedAt(java.time.LocalDateTime.now());
+    }
+
+    private List<String> winnersOf(List<Match> matches, java.util.function.Predicate<Match> round) {
+        return matches.stream()
+                .filter(round)
+                .sorted(Comparator.comparing(Match::getMatchDate))
+                .map(LeaderboardService::winnerName)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    /** Ganador declarado o, en un partido terminado, el que ganó en el marcador. */
+    private static String winnerName(Match m) {
+        if (m.getWinnerTeam() != null && m.getWinnerTeam().getName() != null) return m.getWinnerTeam().getName();
+        if (Boolean.TRUE.equals(m.getFinished()) && m.getHomeScore() != null && m.getAwayScore() != null) {
+            if (m.getHomeScore() > m.getAwayScore()) return m.getHomeTeam() != null ? m.getHomeTeam().getName() : null;
+            if (m.getAwayScore() > m.getHomeScore()) return m.getAwayTeam() != null ? m.getAwayTeam().getName() : null;
+        }
+        return null;
+    }
+
+    private static ParticipantScoreDTO emptyScore() {
+        return ParticipantScoreDTO.builder()
                 .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
                 .log(new ArrayList<>())
                 .exactMatches(new HashMap<>())
                 .passedTeams(new HashMap<>())
                 .build();
+    }
 
+    private ParticipantScoreDTO calculatePoints(CalculationContext ctx) {
+        ParticipantScoreDTO score = emptyScore();
         scoringStrategy.evaluateScores(score, ctx);
 
         int total = score.getR1() + score.getR32() + score.getR16() + score.getQf() + score.getSf() + score.getFinals() + score.getScorer();
