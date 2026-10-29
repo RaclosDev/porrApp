@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { fetchCompetitionStandings } from '../../services/api';
 import Flag from '../Flag';
+import LeagueRulesModal from '../LeagueRulesModal';
 
 function formatKickOff(date) {
   if (!date) return 'VS';
@@ -37,6 +38,7 @@ export default function MatchdayHomeDashboard() {
   const {
     activeGroupName,
     activeCompetitionName,
+    activeGroupRules,
     activeCompetitionId,
     allGames,
     leaderboardData,
@@ -84,13 +86,15 @@ export default function MatchdayHomeDashboard() {
     if (rounds.length === 0) return { currentRound: null, matchdayMatches: [] };
 
     let currentIndex = rounds.findIndex((label) =>
-      byRound.get(label).some(
-        (match) =>
-          !match.finished &&
-          !['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED'].includes(
-            (match.status || '').toUpperCase(),
-          ),
-      ),
+      byRound
+        .get(label)
+        .some(
+          (match) =>
+            !match.finished &&
+            !['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED'].includes(
+              (match.status || '').toUpperCase(),
+            ),
+        ),
     );
     if (currentIndex === -1) currentIndex = rounds.length - 1;
 
@@ -109,20 +113,26 @@ export default function MatchdayHomeDashboard() {
   }, [leagueStandings]);
 
   const participantCount = leaderboardData?.length || 0;
+  const [showRules, setShowRules] = useState(false);
 
   return (
     <section
       className="view-section active"
       style={{ maxWidth: '1080px', margin: '0 auto', padding: '4px 0 24px' }}
     >
+      {showRules && (
+        <LeagueRulesModal
+          group={{ name: activeGroupName, rules: activeGroupRules }}
+          onClose={() => setShowRules(false)}
+        />
+      )}
+
       {/* Cabecera de la liga */}
       <header className="home-hero">
         <div className="home-hero-info">
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
           <div className="home-hero-pills">
-            {showCompetition && (
-              <span className="home-hero-pill">{activeCompetitionName}</span>
-            )}
+            {showCompetition && <span className="home-hero-pill">{activeCompetitionName}</span>}
             <span className="home-hero-pill muted">
               {participantCount > 0
                 ? `${participantCount} ${participantCount === 1 ? 'participante' : 'participantes'}`
@@ -130,7 +140,9 @@ export default function MatchdayHomeDashboard() {
             </span>
           </div>
         </div>
-
+        <button type="button" className="home-rules-btn" onClick={() => setShowRules(true)}>
+          📜 Reglas
+        </button>
       </header>
 
       <div
@@ -225,11 +237,7 @@ export default function MatchdayHomeDashboard() {
                 <span aria-hidden="true">🏆</span>
                 <span>Ranking</span>
               </h2>
-              <button
-                type="button"
-                className="home-link-btn"
-                onClick={() => navigate('/ranking')}
-              >
+              <button type="button" className="home-link-btn" onClick={() => navigate('/ranking')}>
                 Ver todo →
               </button>
             </div>

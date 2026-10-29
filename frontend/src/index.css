@@ -1896,6 +1896,24 @@ option {
   white-space: nowrap;
 }
 
+.home-rules-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 210, 211, 0.35);
+  background: rgba(0, 210, 211, 0.08);
+  color: var(--accent-cyan);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.home-rules-btn:hover,
+.home-rules-btn:focus-visible {
+  background: rgba(0, 210, 211, 0.16);
+}
+
 .home-link-btn {
   flex-shrink: 0;
   background: transparent;

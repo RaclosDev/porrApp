@@ -241,6 +241,7 @@ export const useAppContext = () => {
           lockDate: fromList.lockDate,
           adminParticipantName: fromList.adminParticipantName,
           adminUserId: fromList.adminUserId,
+          rules: fromList.rules,
         };
       }
       return undefined;
@@ -420,6 +421,7 @@ export const useAppContext = () => {
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,
+    activeGroupRules: groupInfo?.rules || '',
     activeCompetitionId,
     activeCompetitionName: groupInfo?.competitionName || null,
     activeCompetitionFormatType:
