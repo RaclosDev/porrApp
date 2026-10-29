@@ -130,11 +130,11 @@ public class GroupService {
         final League finalGlobalGroup = globalGroup;
 
         // Ensure competition exists (siempre la canónica con proveedor externo)
-        Competition comp = competitionRepository.findByExternalId("fifa.world")
+        Competition comp = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
             .or(() -> competitionRepository.findByName("FIFA World Cup 2026"))
             .orElseGet(() -> competitionRepository.save(Competition.builder()
                     .name("FIFA World Cup 2026")
-                    .externalId("fifa.world")
+                    .externalId(Competition.WORLD_CUP_EXTERNAL_ID)
                     .formatType("TOURNAMENT")
                     .build()));
 
@@ -278,7 +278,7 @@ public class GroupService {
         } else if (name.contains("laliga") || name.contains("la liga")) {
             slug = "esp.1";
         } else if (name.contains("mundial") || name.contains("world cup")) {
-            slug = "fifa.world";
+            slug = Competition.WORLD_CUP_EXTERNAL_ID;
         }
         if (slug == null) {
             return comp;

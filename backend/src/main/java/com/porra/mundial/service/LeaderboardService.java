@@ -42,7 +42,7 @@ public class LeaderboardService {
     private final StandingsService standingsService;
     private final TopScorerService topScorerService;
     private final MatchRepository matchRepository;
-    private final SyncService syncService;
+    private final KnockoutBracketService knockoutBracketService;
     private final ScoringStrategy scoringStrategy;
     private final MatchPredictionRepository matchPredictionRepository;
     private final MembershipRepository membershipRepository;
@@ -110,7 +110,7 @@ public class LeaderboardService {
                         .findFirst())
                 .orElse(null);
         PredictionDataDTO officialData = (adminPrediction != null && adminPrediction.getBracketData() != null) ? adminPrediction.getBracketData() : new PredictionDataDTO();
-        syncService.enrichPredictionDataWithMatches(officialData);
+        knockoutBracketService.enrichPredictionDataWithMatches(officialData);
 
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();
@@ -506,7 +506,7 @@ public class LeaderboardService {
                         .findFirst())
                 .orElse(null);
         PredictionDataDTO officialData = (adminPrediction != null && adminPrediction.getBracketData() != null) ? adminPrediction.getBracketData() : new PredictionDataDTO();
-        syncService.enrichPredictionDataWithMatches(officialData);
+        knockoutBracketService.enrichPredictionDataWithMatches(officialData);
 
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();

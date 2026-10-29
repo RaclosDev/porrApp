@@ -36,7 +36,7 @@ public class TeamService {
      */
     public Map<String, List<Team>> getTeamsByGroup() {
         return getAllTeams().stream()
-                .filter(t -> t.getGroupName() != null && !"-".equals(t.getGroupName()) && !"Por definir".equalsIgnoreCase(t.getName()))
+                .filter(t -> t.getGroupName() != null && !"-".equals(t.getGroupName()) && !Team.PLACEHOLDER_NAME.equalsIgnoreCase(t.getName()))
                 .collect(Collectors.groupingBy(
                         t -> t.getGroupName().toUpperCase().trim(),
                         TreeMap::new,

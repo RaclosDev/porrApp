@@ -6,7 +6,7 @@ import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.service.LeaderboardService;
 import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.StandingsService;
-import com.porra.mundial.service.SyncService;
+import com.porra.mundial.service.KnockoutBracketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +24,7 @@ import java.util.Optional;
 public class StandingsController {
 
     private final StandingsService standingsService;
-    private final SyncService syncService;
+    private final KnockoutBracketService knockoutBracketService;
     private final PredictionRepository predictionRepository;
     private final PredictionService predictionService;
     private final LeaderboardService leaderboardService;
@@ -43,7 +43,7 @@ public class StandingsController {
         if (officialPrediction.isPresent()) {
             try {
                 PredictionDataDTO dto = predictionService.getPredictionData(officialPrediction.get().getId());
-                syncService.enrichPredictionDataWithMatches(dto);
+                knockoutBracketService.enrichPredictionDataWithMatches(dto);
                 return ResponseEntity.ok(dto);
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -52,7 +52,7 @@ public class StandingsController {
         }
 
         PredictionDataDTO fallbackDto = new PredictionDataDTO();
-        syncService.enrichPredictionDataWithMatches(fallbackDto);
+        knockoutBracketService.enrichPredictionDataWithMatches(fallbackDto);
         return ResponseEntity.ok(fallbackDto);
     }
 }

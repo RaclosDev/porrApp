@@ -12,7 +12,6 @@ public final class TextSanitizer {
     private static final Map<String, String> MOJIBAKE_MAP = new LinkedHashMap<>();
     private static final Map<String, String> TEAM_CORRECTIONS = new LinkedHashMap<>();
     private static final Map<String, String> PARTICIPANT_CORRECTIONS = new LinkedHashMap<>();
-    private static final Map<String, String> COUNTRY_CODE_MAP = new LinkedHashMap<>();
 
 
     static {
@@ -109,99 +108,6 @@ public final class TextSanitizer {
         PARTICIPANT_CORRECTIONS.put("Iv??n", "Iván");
         PARTICIPANT_CORRECTIONS.put("Sebasti??n", "Sebastián");
         PARTICIPANT_CORRECTIONS.put("Gonz??lez", "González");
-
-        COUNTRY_CODE_MAP.put("méxico", "mx");
-        COUNTRY_CODE_MAP.put("mexico", "mx");
-        COUNTRY_CODE_MAP.put("sudáfrica", "za");
-        COUNTRY_CODE_MAP.put("sudafrica", "za");
-        COUNTRY_CODE_MAP.put("corea del sur", "kr");
-        COUNTRY_CODE_MAP.put("corea", "kr");
-        COUNTRY_CODE_MAP.put("chequia", "cz");
-        COUNTRY_CODE_MAP.put("canadá", "ca");
-        COUNTRY_CODE_MAP.put("canada", "ca");
-        COUNTRY_CODE_MAP.put("bosnia y her.", "ba");
-        COUNTRY_CODE_MAP.put("bosnia y herzegovina", "ba");
-        COUNTRY_CODE_MAP.put("bosnia", "ba");
-        COUNTRY_CODE_MAP.put("catar", "qa");
-        COUNTRY_CODE_MAP.put("qatar", "qa");
-        COUNTRY_CODE_MAP.put("suiza", "ch");
-        COUNTRY_CODE_MAP.put("brasil", "br");
-        COUNTRY_CODE_MAP.put("brazil", "br");
-        COUNTRY_CODE_MAP.put("marruecos", "ma");
-        COUNTRY_CODE_MAP.put("haití", "ht");
-        COUNTRY_CODE_MAP.put("haiti", "ht");
-        COUNTRY_CODE_MAP.put("escocia", "gb-sct");
-        COUNTRY_CODE_MAP.put("eeuu", "us");
-        COUNTRY_CODE_MAP.put("ee.uu.", "us");
-        COUNTRY_CODE_MAP.put("estados unidos", "us");
-        COUNTRY_CODE_MAP.put("usa", "us");
-        COUNTRY_CODE_MAP.put("turquía", "tr");
-        COUNTRY_CODE_MAP.put("turquia", "tr");
-        COUNTRY_CODE_MAP.put("paraguay", "py");
-        COUNTRY_CODE_MAP.put("nueva caledonia", "nc");
-        COUNTRY_CODE_MAP.put("alemania", "de");
-        COUNTRY_CODE_MAP.put("germany", "de");
-        COUNTRY_CODE_MAP.put("ecuador", "ec");
-        COUNTRY_CODE_MAP.put("costa de marfil", "ci");
-        COUNTRY_CODE_MAP.put("curaçao", "cw");
-        COUNTRY_CODE_MAP.put("curazao", "cw");
-        COUNTRY_CODE_MAP.put("países bajos", "nl");
-        COUNTRY_CODE_MAP.put("paises bajos", "nl");
-        COUNTRY_CODE_MAP.put("holanda", "nl");
-        COUNTRY_CODE_MAP.put("japón", "jp");
-        COUNTRY_CODE_MAP.put("japon", "jp");
-        COUNTRY_CODE_MAP.put("japan", "jp");
-        COUNTRY_CODE_MAP.put("suecia", "se");
-        COUNTRY_CODE_MAP.put("sweden", "se");
-        COUNTRY_CODE_MAP.put("túnez", "tn");
-        COUNTRY_CODE_MAP.put("tunez", "tn");
-        COUNTRY_CODE_MAP.put("bélgica", "be");
-        COUNTRY_CODE_MAP.put("belgica", "be");
-        COUNTRY_CODE_MAP.put("egipto", "eg");
-        COUNTRY_CODE_MAP.put("irán", "ir");
-        COUNTRY_CODE_MAP.put("iran", "ir");
-        COUNTRY_CODE_MAP.put("nueva zelanda", "nz");
-        COUNTRY_CODE_MAP.put("españa", "es");
-        COUNTRY_CODE_MAP.put("spain", "es");
-        COUNTRY_CODE_MAP.put("cabo verde", "cv");
-        COUNTRY_CODE_MAP.put("arabia saudí", "sa");
-        COUNTRY_CODE_MAP.put("arabia saudi", "sa");
-        COUNTRY_CODE_MAP.put("uruguay", "uy");
-        COUNTRY_CODE_MAP.put("francia", "fr");
-        COUNTRY_CODE_MAP.put("france", "fr");
-        COUNTRY_CODE_MAP.put("senegal", "sn");
-        COUNTRY_CODE_MAP.put("irak", "iq");
-        COUNTRY_CODE_MAP.put("iraq", "iq");
-        COUNTRY_CODE_MAP.put("noruega", "no");
-        COUNTRY_CODE_MAP.put("norway", "no");
-        COUNTRY_CODE_MAP.put("argentina", "ar");
-        COUNTRY_CODE_MAP.put("argelia", "dz");
-        COUNTRY_CODE_MAP.put("algeria", "dz");
-        COUNTRY_CODE_MAP.put("austria", "at");
-        COUNTRY_CODE_MAP.put("jordania", "jo");
-        COUNTRY_CODE_MAP.put("portugal", "pt");
-        COUNTRY_CODE_MAP.put("rd congo", "cd");
-        COUNTRY_CODE_MAP.put("r.d. congo", "cd");
-        COUNTRY_CODE_MAP.put("república democrática del congo", "cd");
-        COUNTRY_CODE_MAP.put("uzbekistán", "uz");
-        COUNTRY_CODE_MAP.put("uzbekistan", "uz");
-        COUNTRY_CODE_MAP.put("colombia", "co");
-        COUNTRY_CODE_MAP.put("inglaterra", "gb-eng");
-        COUNTRY_CODE_MAP.put("england", "gb-eng");
-        COUNTRY_CODE_MAP.put("croacia", "hr");
-        COUNTRY_CODE_MAP.put("croatia", "hr");
-        COUNTRY_CODE_MAP.put("ghana", "gh");
-        COUNTRY_CODE_MAP.put("panamá", "pa");
-        COUNTRY_CODE_MAP.put("panama", "pa");
-        COUNTRY_CODE_MAP.put("australia", "au");
-        COUNTRY_CODE_MAP.put("dinamarca", "dk");
-        COUNTRY_CODE_MAP.put("denmark", "dk");
-        COUNTRY_CODE_MAP.put("polonia", "pl");
-        COUNTRY_CODE_MAP.put("poland", "pl");
-        COUNTRY_CODE_MAP.put("camerún", "cm");
-        COUNTRY_CODE_MAP.put("camerun", "cm");
-        COUNTRY_CODE_MAP.put("serbia", "rs");
-
         PARTICIPANT_CORRECTIONS.put("Rodr??guez", "Rodríguez");
         PARTICIPANT_CORRECTIONS.put("Fern??ndez", "Fernández");
         PARTICIPANT_CORRECTIONS.put("L??pez", "López");
@@ -234,32 +140,6 @@ public final class TextSanitizer {
             }
         }
         return result;
-    }
-
-    /**
-     * Corrige nombres de países y equipos corruptos.
-     */
-    public static String fixTeamName(String name) {
-        if (name == null || name.isBlank()) {
-            return name;
-        }
-        String cleaned = fixMojibake(name.trim());
-        for (Map.Entry<String, String> entry : TEAM_CORRECTIONS.entrySet()) {
-            if (cleaned.equalsIgnoreCase(entry.getKey()) || cleaned.contains(entry.getKey())) {
-                cleaned = cleaned.replace(entry.getKey(), entry.getValue());
-            }
-        }
-        // Casos con comodines específicos
-        if (cleaned.startsWith("Espa") && (cleaned.endsWith("a") || cleaned.contains("??")) && !cleaned.equals("España")) {
-            return "España";
-        }
-        if (cleaned.startsWith("M") && cleaned.endsWith("xico") && !cleaned.equals("México")) {
-            return "México";
-        }
-        if (cleaned.startsWith("Sud") && cleaned.endsWith("frica") && !cleaned.equals("Sudáfrica")) {
-            return "Sudáfrica";
-        }
-        return cleaned;
     }
 
     /**
@@ -297,18 +177,6 @@ public final class TextSanitizer {
             }
         }
         return sanitized;
-    }
-
-    /**
-     * Devuelve la ruta relativa local del SVG de la bandera de un país/selección, o null si no aplica.
-     */
-    public static String getTeamFlagUrl(String teamName) {
-        if (teamName == null || teamName.isBlank()) {
-            return null;
-        }
-        String clean = fixTeamName(teamName).trim().toLowerCase();
-        String code = COUNTRY_CODE_MAP.get(clean);
-        return code != null ? "/flags/" + code + ".svg" : null;
     }
 
 }

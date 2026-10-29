@@ -84,8 +84,8 @@ public class MatchPredictionService {
         matches = matches.stream()
                 .filter(m -> {
                     if (m.getHomeTeam() == null || m.getAwayTeam() == null) return true;
-                    boolean h = "Por definir".equalsIgnoreCase(m.getHomeTeam().getName()) || "TBD".equalsIgnoreCase(m.getHomeTeam().getNameEn());
-                    boolean a = "Por definir".equalsIgnoreCase(m.getAwayTeam().getName()) || "TBD".equalsIgnoreCase(m.getAwayTeam().getNameEn());
+                    boolean h = Team.isPlaceholder(m.getHomeTeam());
+                    boolean a = Team.isPlaceholder(m.getAwayTeam());
                     return !(h && a);
                 })
                 .collect(Collectors.toList());
@@ -156,8 +156,8 @@ public class MatchPredictionService {
 
             result.add(MatchdayFixturePredictionDTO.builder()
                     .matchId(match.getId())
-                    .homeTeam(match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Por definir")
-                    .awayTeam(match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Por definir")
+                    .homeTeam(match.getHomeTeam() != null ? match.getHomeTeam().getName() : Team.PLACEHOLDER_NAME)
+                    .awayTeam(match.getAwayTeam() != null ? match.getAwayTeam().getName() : Team.PLACEHOLDER_NAME)
                     .homeTeamId(match.getHomeTeam() != null ? match.getHomeTeam().getId() : null)
                     .awayTeamId(match.getAwayTeam() != null ? match.getAwayTeam().getId() : null)
                     .homeTeamLogo(match.getHomeTeam() != null ? match.getHomeTeam().getLogoUrl() : null)

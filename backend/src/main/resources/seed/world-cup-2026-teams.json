@@ -1,0 +1,338 @@
+[
+  {
+    "name": "México",
+    "group": "A",
+    "winOdds": 1.72,
+    "qualifyOdds": 1.1,
+    "outrightOdds": 67.0
+  },
+  {
+    "name": "Sudáfrica",
+    "group": "A",
+    "winOdds": 13.0,
+    "qualifyOdds": 2.25,
+    "outrightOdds": 1001.0
+  },
+  {
+    "name": "Corea del Sur",
+    "group": "A",
+    "winOdds": 4.33,
+    "qualifyOdds": 1.36,
+    "outrightOdds": 401.0
+  },
+  {
+    "name": "Chequia",
+    "group": "A",
+    "winOdds": 4.33,
+    "qualifyOdds": 1.36,
+    "outrightOdds": 301.0
+  },
+  {
+    "name": "Canadá",
+    "group": "B",
+    "winOdds": 3.0,
+    "qualifyOdds": 1.14,
+    "outrightOdds": 126.0
+  },
+  {
+    "name": "Bosnia y Her.",
+    "group": "B",
+    "winOdds": 6.0,
+    "qualifyOdds": 1.44,
+    "outrightOdds": 351.0
+  },
+  {
+    "name": "Catar",
+    "group": "B",
+    "winOdds": 34.0,
+    "qualifyOdds": 4.0,
+    "outrightOdds": 2001.0
+  },
+  {
+    "name": "Suiza",
+    "group": "B",
+    "winOdds": 1.72,
+    "qualifyOdds": 1.083,
+    "outrightOdds": 81.0
+  },
+  {
+    "name": "Brasil",
+    "group": "C",
+    "winOdds": 1.25,
+    "qualifyOdds": 1.01,
+    "outrightOdds": 9.0
+  },
+  {
+    "name": "Marruecos",
+    "group": "C",
+    "winOdds": 4.5,
+    "qualifyOdds": 1.12,
+    "outrightOdds": 51.0
+  },
+  {
+    "name": "Escocia",
+    "group": "C",
+    "winOdds": 13.0,
+    "qualifyOdds": 2.05,
+    "outrightOdds": 751.0
+  },
+  {
+    "name": "Haití",
+    "group": "C",
+    "winOdds": 41.0,
+    "qualifyOdds": 5.0,
+    "outrightOdds": 2501.0
+  },
+  {
+    "name": "EEUU",
+    "group": "D",
+    "winOdds": 1.75,
+    "qualifyOdds": 1.1,
+    "outrightOdds": 67.0
+  },
+  {
+    "name": "Turquía",
+    "group": "D",
+    "winOdds": 3.75,
+    "qualifyOdds": 1.3,
+    "outrightOdds": 201.0
+  },
+  {
+    "name": "Paraguay",
+    "group": "D",
+    "winOdds": 4.5,
+    "qualifyOdds": 1.4,
+    "outrightOdds": 301.0
+  },
+  {
+    "name": "Nueva Caledonia",
+    "group": "D",
+    "winOdds": 81.0,
+    "qualifyOdds": 9.0,
+    "outrightOdds": 5001.0
+  },
+  {
+    "name": "Alemania",
+    "group": "E",
+    "winOdds": 1.3,
+    "qualifyOdds": 1.02,
+    "outrightOdds": 11.0
+  },
+  {
+    "name": "Ecuador",
+    "group": "E",
+    "winOdds": 4.5,
+    "qualifyOdds": 1.25,
+    "outrightOdds": 101.0
+  },
+  {
+    "name": "Costa de Marfil",
+    "group": "E",
+    "winOdds": 8.0,
+    "qualifyOdds": 1.55,
+    "outrightOdds": 251.0
+  },
+  {
+    "name": "Curaçao",
+    "group": "E",
+    "winOdds": 51.0,
+    "qualifyOdds": 7.0,
+    "outrightOdds": 3501.0
+  },
+  {
+    "name": "Países Bajos",
+    "group": "F",
+    "winOdds": 1.4,
+    "qualifyOdds": 1.03,
+    "outrightOdds": 17.0
+  },
+  {
+    "name": "Japón",
+    "group": "F",
+    "winOdds": 4.0,
+    "qualifyOdds": 1.28,
+    "outrightOdds": 126.0
+  },
+  {
+    "name": "Suecia",
+    "group": "F",
+    "winOdds": 6.5,
+    "qualifyOdds": 1.44,
+    "outrightOdds": 201.0
+  },
+  {
+    "name": "Túnez",
+    "group": "F",
+    "winOdds": 15.0,
+    "qualifyOdds": 2.5,
+    "outrightOdds": 1001.0
+  },
+  {
+    "name": "Bélgica",
+    "group": "G",
+    "winOdds": 1.45,
+    "qualifyOdds": 1.04,
+    "outrightOdds": 26.0
+  },
+  {
+    "name": "Egipto",
+    "group": "G",
+    "winOdds": 5.0,
+    "qualifyOdds": 1.36,
+    "outrightOdds": 201.0
+  },
+  {
+    "name": "Irán",
+    "group": "G",
+    "winOdds": 7.0,
+    "qualifyOdds": 1.5,
+    "outrightOdds": 301.0
+  },
+  {
+    "name": "Nueva Zelanda",
+    "group": "G",
+    "winOdds": 19.0,
+    "qualifyOdds": 2.8,
+    "outrightOdds": 1501.0
+  },
+  {
+    "name": "España",
+    "group": "H",
+    "winOdds": 1.25,
+    "qualifyOdds": 1.01,
+    "outrightOdds": 7.0
+  },
+  {
+    "name": "Uruguay",
+    "group": "H",
+    "winOdds": 4.33,
+    "qualifyOdds": 1.15,
+    "outrightOdds": 34.0
+  },
+  {
+    "name": "Arabia Saudí",
+    "group": "H",
+    "winOdds": 13.0,
+    "qualifyOdds": 2.1,
+    "outrightOdds": 751.0
+  },
+  {
+    "name": "Cabo Verde",
+    "group": "H",
+    "winOdds": 34.0,
+    "qualifyOdds": 4.5,
+    "outrightOdds": 2001.0
+  },
+  {
+    "name": "Francia",
+    "group": "I",
+    "winOdds": 1.22,
+    "qualifyOdds": 1.005,
+    "outrightOdds": 6.5
+  },
+  {
+    "name": "Noruega",
+    "group": "I",
+    "winOdds": 5.0,
+    "qualifyOdds": 1.2,
+    "outrightOdds": 51.0
+  },
+  {
+    "name": "Senegal",
+    "group": "I",
+    "winOdds": 9.0,
+    "qualifyOdds": 1.6,
+    "outrightOdds": 201.0
+  },
+  {
+    "name": "Irak",
+    "group": "I",
+    "winOdds": 41.0,
+    "qualifyOdds": 5.5,
+    "outrightOdds": 3001.0
+  },
+  {
+    "name": "Argentina",
+    "group": "J",
+    "winOdds": 1.2,
+    "qualifyOdds": 1.005,
+    "outrightOdds": 6.0
+  },
+  {
+    "name": "Austria",
+    "group": "J",
+    "winOdds": 5.5,
+    "qualifyOdds": 1.25,
+    "outrightOdds": 67.0
+  },
+  {
+    "name": "Argelia",
+    "group": "J",
+    "winOdds": 11.0,
+    "qualifyOdds": 1.8,
+    "outrightOdds": 401.0
+  },
+  {
+    "name": "Jordania",
+    "group": "J",
+    "winOdds": 41.0,
+    "qualifyOdds": 6.0,
+    "outrightOdds": 3501.0
+  },
+  {
+    "name": "Portugal",
+    "group": "K",
+    "winOdds": 1.36,
+    "qualifyOdds": 1.025,
+    "outrightOdds": 13.0
+  },
+  {
+    "name": "RD Congo",
+    "group": "K",
+    "winOdds": 15.0,
+    "qualifyOdds": 2.4,
+    "outrightOdds": 1001.0
+  },
+  {
+    "name": "Uzbekistán",
+    "group": "K",
+    "winOdds": 15.0,
+    "qualifyOdds": 2.4,
+    "outrightOdds": 1001.0
+  },
+  {
+    "name": "Colombia",
+    "group": "K",
+    "winOdds": 3.0,
+    "qualifyOdds": 1.12,
+    "outrightOdds": 34.0
+  },
+  {
+    "name": "Inglaterra",
+    "group": "L",
+    "winOdds": 1.28,
+    "qualifyOdds": 1.015,
+    "outrightOdds": 7.5
+  },
+  {
+    "name": "Croacia",
+    "group": "L",
+    "winOdds": 4.5,
+    "qualifyOdds": 1.22,
+    "outrightOdds": 81.0
+  },
+  {
+    "name": "Ghana",
+    "group": "L",
+    "winOdds": 11.0,
+    "qualifyOdds": 1.72,
+    "outrightOdds": 401.0
+  },
+  {
+    "name": "Panamá",
+    "group": "L",
+    "winOdds": 51.0,
+    "qualifyOdds": 2.75,
+    "outrightOdds": 1501.0
+  }
+]

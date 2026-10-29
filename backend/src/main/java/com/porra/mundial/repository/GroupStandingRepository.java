@@ -21,9 +21,4 @@ public interface GroupStandingRepository extends JpaRepository<GroupStanding, Lo
      * "Dame la clasificación completa ordenada directamente por grupo y posición oficial"
      */
     List<GroupStanding> findAllByOrderByGroupNameAscPositionAsc();
-    
-    /**
-     * "Borra la clasificación antigua de un grupo (se usa cuando resincronizamos con la API)"
-     */
-    void deleteByGroupName(String groupName);
 }

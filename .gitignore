@@ -90,6 +90,7 @@ maven.zip
 !frontend/package-lock.json
 !tsconfig*.json
 !frontend/tsconfig*.json
+!backend/src/main/resources/seed/*.json
 cv*.html
 *.zip
 scratch/

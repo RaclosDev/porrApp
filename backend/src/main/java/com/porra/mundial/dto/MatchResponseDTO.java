@@ -1,5 +1,6 @@
 package com.porra.mundial.dto;
 
+import com.porra.mundial.model.Team;
 import com.porra.mundial.model.Match;
 
 import java.time.LocalDateTime;
@@ -53,8 +54,8 @@ public record MatchResponseDTO(
 
         return new MatchResponseDTO(
                 m.getId(),
-                m.getHomeTeam() != null ? m.getHomeTeam().getName() : "Por definir",
-                m.getAwayTeam() != null ? m.getAwayTeam().getName() : "Por definir",
+                m.getHomeTeam() != null ? m.getHomeTeam().getName() : Team.PLACEHOLDER_NAME,
+                m.getAwayTeam() != null ? m.getAwayTeam().getName() : Team.PLACEHOLDER_NAME,
                 m.getHomeTeam() != null ? m.getHomeTeam().getId() : null,
                 m.getAwayTeam() != null ? m.getAwayTeam().getId() : null,
                 homeLogo,
