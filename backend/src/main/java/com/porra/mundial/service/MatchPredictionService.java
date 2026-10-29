@@ -2,7 +2,7 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
-import com.porra.mundial.dto.MatchdayFriendBetDTO;
+import com.porra.mundial.dto.MatchdayFriendPredictionDTO;
 import com.porra.mundial.model.*;
 import com.porra.mundial.repository.*;
 import com.porra.mundial.scoring.MatchScoreResult;
@@ -188,7 +188,7 @@ public class MatchPredictionService {
      * Guarda o actualiza los pronósticos de una lista de partidos comprobando los plazos individuales.
      */
     @Transactional
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public int saveMatchdayPredictions(String email, Long groupId, List<MatchPredictionItemDTO> items) {
         if (email == null || email.isBlank()) {
             throw new SecurityException("Usuario no autenticado");
@@ -311,7 +311,7 @@ public class MatchPredictionService {
      * Evalúa y actualiza los puntos de todos los pronósticos de un partido que acaba de finalizar.
      */
     @Transactional
-    @CacheEvict(value = {"leaderboard", "rebuiltBetData", "allBetsDto", "allPredictionsDto"}, allEntries = true)
+    @CacheEvict(value = "leaderboard", allEntries = true)
     public void evaluatePredictionsForMatch(Match match) {
         if (match == null || !Boolean.TRUE.equals(match.getFinished()) || match.getId() == null || match.getHomeScore() == null || match.getAwayScore() == null) {
             return;
@@ -360,7 +360,7 @@ public class MatchPredictionService {
      * Si el partido está abierto, los resultados de otros usuarios permanecen ocultos para evitar copias.
      */
     @Transactional(readOnly = true)
-    public List<MatchdayFriendBetDTO> getFriendBetsForMatch(String email, Long groupId, Long matchId) {
+    public List<MatchdayFriendPredictionDTO> getFriendPredictionsForMatch(String email, Long groupId, Long matchId) {
         if (groupId == null || matchId == null) {
             throw new IllegalArgumentException("El grupo y el partido son obligatorios");
         }
@@ -417,12 +417,12 @@ public class MatchPredictionService {
             }
         }
 
-        List<MatchdayFriendBetDTO> list = new ArrayList<>();
+        List<MatchdayFriendPredictionDTO> list = new ArrayList<>();
         for (UserAccount member : memberMap.values()) {
             boolean isCaller = caller != null && caller.getId().equals(member.getId());
             MatchPrediction mp = userPredMap.get(member.getId());
 
-            MatchdayFriendBetDTO.MatchdayFriendBetDTOBuilder builder = MatchdayFriendBetDTO.builder()
+            MatchdayFriendPredictionDTO.MatchdayFriendPredictionDTOBuilder builder = MatchdayFriendPredictionDTO.builder()
                     .userId(member.getId())
                     .participantName(member.getParticipantName() != null ? member.getParticipantName() : "Anónimo")
                     .avatarUrl(member.getAvatarUrl())

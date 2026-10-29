@@ -2,8 +2,7 @@ package com.porra.mundial.model;
 
 /**
  * Formato o modalidad de juego para una porra (PoolFormat).
- * Sustituye a la terminología legacy 'BetMode' proporcionando
- * un lenguaje ubicuo centrado en el formato del torneo.
+ * Define qué partes del torneo pronostica cada participante.
  */
 public enum PoolFormat {
     /** Pronóstico completo: fase de grupos y todo el árbol de eliminatorias. */

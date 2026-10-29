@@ -68,7 +68,7 @@ public class TeamService {
     }
 
     /**
-     *  Traductor de Cuotas de Apuestas.
+     *  Traductor de probabilidades de los equipos.
      * Este método sustituye a tu antiguo archivo estático `data.js`.
      * Convierte los datos almacenados en BD al mismo formato JSON que antes leías
      * por HTTP para que el frontend siga funcionando sin tener que reescribirlo.

@@ -30,24 +30,9 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     @Query("SELECT p FROM Prediction p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.edition")
     List<Prediction> findAllWithUserAndEdition();
 
-    List<Prediction> findByEditionLeagueIdOrderByTotalPointsDesc(Long groupId);
-
-    List<Prediction> findAllByOrderByTotalPointsDesc();
-
-    List<Prediction> findByUserGoogleEmail(String email);
-
     Optional<Prediction> findByUserGoogleEmailAndEditionLeagueId(String email, Long groupId);
 
     Optional<Prediction> findByName(String name);
 
-    @Query("SELECT p FROM Prediction p WHERE p.name = :betName")
-    Optional<Prediction> findByBetName(@Param("betName") String betName);
-
     Optional<Prediction> findByIsOfficialTrue();
-
-    Optional<Prediction> findByEditionIdAndIsOfficialTrue(Long editionId);
-
-    @org.springframework.data.jpa.repository.Modifying
-    @Query("UPDATE Prediction p SET p.scoreCalculatedAt = null")
-    void invalidateAllScores();
 }

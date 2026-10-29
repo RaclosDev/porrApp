@@ -106,9 +106,4 @@ public class AuthGoogleController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error al procesar login con Google"));
         }
     }
-
-    @GetMapping("/claimed-names")
-    public ResponseEntity<java.util.List<String>> getClaimedNames() {
-        return ResponseEntity.ok(Collections.emptyList());
-    }
 }

@@ -39,7 +39,7 @@ export default function ProfileSettingsModal({ onClose }) {
     try {
       const res = await updateMyProfile(name);
       setUserName(res.participantName);
-      localStorage.setItem('my_bet_name', res.participantName);
+      localStorage.setItem('my_prediction_name', res.participantName);
       setName(res.participantName);
       refreshEverywhere();
       toast.success('Nombre actualizado');

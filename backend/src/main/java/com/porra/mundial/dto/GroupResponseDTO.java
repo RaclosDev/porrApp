@@ -32,8 +32,6 @@ public class GroupResponseDTO {
     private String competitionName;
     /** Formato de competición física: "LEAGUE" o "TOURNAMENT". */
     private String formatType;
-    /** Formato de porra (legacy). */
-    private String betMode;
     /** Formato de porra / modalidad (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY). */
     private String poolFormat;
     /** Si esta edición cuenta con un premio/ranking al pichichi. */

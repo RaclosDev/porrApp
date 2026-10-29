@@ -102,7 +102,6 @@ export function AppProvider({ children }) {
         setUserId('');
       }, 0);
       localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_bet_name');
       localStorage.removeItem('my_user_id');
       localStorage.removeItem('my_avatar_url');
     }
@@ -236,7 +235,6 @@ export const useAppContext = () => {
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
           formatType: fromList.formatType,
-          betMode: fromList.poolFormat || fromList.betMode,
           poolFormat: fromList.poolFormat,
           pichichi: fromList.pichichi,
           isLocked: fromList.isLocked,
@@ -374,8 +372,7 @@ export const useAppContext = () => {
   const activeGroupName = groupInfo?.name || 'Ninguna Liga Seleccionada';
   const activeGroupAdmin = groupInfo?.adminParticipantName || null;
   const activeGroupAdminId = groupInfo?.adminUserId || null;
-  const activeGroupBetMode =
-    groupInfo?.poolFormat || groupInfo?.betMode || (activeGroupId ? null : 'FULL_BRACKET');
+  const activeGroupPoolFormat = groupInfo?.poolFormat || (activeGroupId ? null : 'FULL_BRACKET');
   const activeGroupIsLocked = Boolean(groupInfo?.isLocked);
   const activeGroupLockDate = groupInfo?.lockDate || null;
 
@@ -419,8 +416,7 @@ export const useAppContext = () => {
     activeGroupName,
     activeGroupAdmin,
     activeGroupAdminId,
-    activeGroupPoolFormat: activeGroupBetMode,
-    activeGroupBetMode,
+    activeGroupPoolFormat,
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,
@@ -428,7 +424,11 @@ export const useAppContext = () => {
     activeCompetitionName: groupInfo?.competitionName || null,
     activeCompetitionFormatType:
       groupInfo?.formatType ||
-      (activeGroupBetMode ? (activeGroupBetMode === 'MATCH_DAY' ? 'LEAGUE' : 'TOURNAMENT') : null),
+      (activeGroupPoolFormat
+        ? activeGroupPoolFormat === 'MATCH_DAY'
+          ? 'LEAGUE'
+          : 'TOURNAMENT'
+        : null),
     userGroups: Array.isArray(userGroups) ? userGroups : EMPTY_ARRAY,
     userGroupsLoaded: !isUserAuthed || (userGroupsFetched && !userGroupsError),
     topScorers: Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,

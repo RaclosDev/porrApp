@@ -7,7 +7,7 @@ import { extractGroupsFromR32, hasValidGroupSelections, buildR32FromGroups } fro
  * Hook personalizado que carga y procesa los datos necesarios para visualizar la porra de un usuario.
  * Maneja la lógica de obtener los puntos oficiales, combinarlos con los de la porra y calcular en vivo qué se ha acertado.
  *
- * @param {string|number} viewerBetId - ID de la porra a visualizar.
+ * @param {string|number} viewerPredictionId - ID de la porra a visualizar.
  * @param {Object} officialPoints - Puntuación oficial calculada de los equipos.
  * @param {Array} leaderboardData - Datos globales del Leaderboard para extraer la información de los puntos obtenidos por este usuario.
  * @param {Object} groupOdds - Datos de los grupos y equipos que los conforman.
@@ -59,8 +59,8 @@ const checkIsKnockoutPhase = (games, officialData) => {
   return false;
 };
 
-export function useBetViewerData(
-  viewerBetId,
+export function usePredictionViewerData(
+  viewerPredictionId,
   officialPoints,
   leaderboardData,
   groupOdds,
@@ -239,7 +239,7 @@ export function useBetViewerData(
   useEffect(() => {
     let cancelled = false;
 
-    if (!viewerBetId) {
+    if (!viewerPredictionId) {
       setRawPart(null);
       setError(null);
       setLoading(false);
@@ -257,7 +257,7 @@ export function useBetViewerData(
 
     const partPromise = hasInitialPart
       ? Promise.resolve(null)
-      : fetch(`/api/predictions/${viewerBetId}`, {
+      : fetch(`/api/predictions/${viewerPredictionId}`, {
           headers: {
             ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}),
           },
@@ -312,23 +312,29 @@ export function useBetViewerData(
     return () => {
       cancelled = true;
     };
-  }, [viewerBetId, initialPart]);
+  }, [viewerPredictionId, initialPart]);
 
-  const scoreForBet = useMemo(
+  const scoreForPrediction = useMemo(
     () =>
-      detailedScore && String(detailedScore.id) === String(viewerBetId) ? detailedScore : null,
-    [detailedScore, viewerBetId],
+      detailedScore && String(detailedScore.id) === String(viewerPredictionId)
+        ? detailedScore
+        : null,
+    [detailedScore, viewerPredictionId],
   );
 
   const points = useMemo(() => {
-    if (scoreForBet && Array.isArray(scoreForBet.log)) {
-      return scoreForBet;
+    if (scoreForPrediction && Array.isArray(scoreForPrediction.log)) {
+      return scoreForPrediction;
     }
     const found = (leaderboardData || []).find((lb) => {
       if (!lb) return false;
-      if (viewerBetId && String(lb.id) === String(viewerBetId)) return true;
+      if (viewerPredictionId && String(lb.id) === String(viewerPredictionId)) return true;
       if (part?.user && lb.name && lb.name.toLowerCase() === part.user.toLowerCase()) return true;
-      if (part?.betName && lb.betName && lb.betName.toLowerCase() === part.betName.toLowerCase())
+      if (
+        part?.predictionName &&
+        lb.predictionName &&
+        lb.predictionName.toLowerCase() === part.predictionName.toLowerCase()
+      )
         return true;
       return false;
     });
@@ -347,16 +353,16 @@ export function useBetViewerData(
         passedTeams: {},
       }
     );
-  }, [scoreForBet, leaderboardData, viewerBetId, part?.user, part?.betName]);
+  }, [scoreForPrediction, leaderboardData, viewerPredictionId, part?.user, part?.predictionName]);
 
-  const isPending = loading || (!part && !error && Boolean(viewerBetId));
+  const isPending = loading || (!part && !error && Boolean(viewerPredictionId));
   const partReady = Boolean(part);
 
   // El desglose completo (log, aciertos exactos) se pide en segundo plano: el visor ya está pintado.
   useEffect(() => {
-    if (!viewerBetId || !partReady) return undefined;
+    if (!viewerPredictionId || !partReady) return undefined;
     let cancelled = false;
-    fetchPredictionScore(viewerBetId)
+    fetchPredictionScore(viewerPredictionId)
       .then((score) => {
         if (!cancelled && score) setDetailedScore(score);
       })
@@ -364,7 +370,7 @@ export function useBetViewerData(
     return () => {
       cancelled = true;
     };
-  }, [viewerBetId, partReady]);
+  }, [viewerPredictionId, partReady]);
 
   const getFlat = (arr) => (arr ? arr.flat().filter(Boolean) : []);
   const winR16 = getFlat(part?.r16);

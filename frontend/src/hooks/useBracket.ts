@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { createBet, fetchMyBets, getAuthToken } from '../services/api';
+import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
 import { defaultBracketState } from '../store/useAppStore';
@@ -393,7 +393,7 @@ export function useBracket() {
     activeGroupId,
     fetchData,
     groupOdds,
-    activeGroupBetMode,
+    activeGroupPoolFormat,
     officialPoints,
     activeGroupPichichi,
     activeGroupIsLocked,
@@ -403,8 +403,8 @@ export function useBracket() {
     participantsHashes,
   } = useAppContext();
 
-  const [betName, setBetName] = useState('');
-  const [savedBetId, setSavedBetId] = useState(null);
+  const [predictionName, setPredictionName] = useState('');
+  const [savedPredictionId, setSavedPredictionId] = useState(null);
   const [savedGroupsDraft, setSavedGroupsDraft] = useState(() => {
     try {
       const raw = localStorage.getItem(`draft_groups_${activeGroupId}`);
@@ -425,8 +425,8 @@ export function useBracket() {
   });
   const navigate = useNavigate();
 
-  const isKnockoutsOnly = activeGroupBetMode === 'KNOCKOUTS_ONLY';
-  const isMatchDay = activeGroupBetMode === 'MATCH_DAY';
+  const isKnockoutsOnly = activeGroupPoolFormat === 'KNOCKOUTS_ONLY';
+  const isMatchDay = activeGroupPoolFormat === 'MATCH_DAY';
   const allTeams = groupOdds
     ? Object.values(groupOdds)
         .flat()
@@ -499,15 +499,17 @@ export function useBracket() {
   useEffect(() => {
     const token = getAuthToken();
     if ((isAuthenticated || Boolean(token)) && activeGroupId) {
-      fetchMyBets()
-        .then((bets) => {
-          if (!Array.isArray(bets)) return;
-          let current = bets.find((b) => b.groupId?.toString() === activeGroupId?.toString());
+      fetchMyPredictions()
+        .then((predictions) => {
+          if (!Array.isArray(predictions)) return;
+          let current = predictions.find(
+            (b) => b.groupId?.toString() === activeGroupId?.toString(),
+          );
           if (!current && (activeGroupId === '1' || activeGroupId === 1 || !activeGroupId)) {
-            current = bets.find((b) => !b.groupId || b.groupId === 1 || b.groupId === '1');
+            current = predictions.find((b) => !b.groupId || b.groupId === 1 || b.groupId === '1');
           }
-          if (!current && bets.length === 1) {
-            current = bets[0];
+          if (!current && predictions.length === 1) {
+            current = predictions[0];
           }
           if (!current && Array.isArray(participantsHashes) && participantsHashes.length > 0) {
             current = participantsHashes.find(
@@ -519,12 +521,12 @@ export function useBracket() {
           }
 
           if (current) {
-            setSavedBetId(current.id || current.key || null);
+            setSavedPredictionId(current.id || current.key || null);
             if (current.participantName && !userName) {
               setUserName(current.participantName);
             }
-            const betTitle = current.betName || current.predictionName;
-            if (betTitle) setBetName(betTitle);
+            const predictionTitle = current.predictionName || current.predictionName;
+            if (predictionTitle) setPredictionName(predictionTitle);
             const currentData = current.data;
             if (currentData) {
               if (currentData.scorer) setTopScorer(currentData.scorer);
@@ -577,7 +579,7 @@ export function useBracket() {
     groupOdds,
     setBracketState,
     setTopScorer,
-    setBetName,
+    setPredictionName,
     setUserName,
   ]);
 
@@ -714,8 +716,8 @@ export function useBracket() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const generateBetData = async () => {
-    if (!betName.trim()) {
+  const generatePredictionData = async () => {
+    if (!predictionName.trim()) {
       toast.error('Por favor introduce un nombre para tu porra.');
       return;
     }
@@ -768,9 +770,9 @@ export function useBracket() {
       if (groupsRaw[g].third) formattedGroups[g].push(groupsRaw[g].third);
     });
 
-    const betData = {
+    const predictionData = {
       user: userName,
-      bet: betName,
+      prediction: predictionName,
       r1: r32,
       r32,
       r16,
@@ -811,7 +813,7 @@ export function useBracket() {
       return;
     }
     try {
-      await createBet(betData, activeGroupId);
+      await createPrediction(predictionData, activeGroupId);
       toast.success('¡Porra guardada correctamente en la liga!');
       fetchData();
     } catch (e) {
@@ -893,8 +895,8 @@ export function useBracket() {
     setUserName,
     topScorer,
     setTopScorer,
-    betName,
-    setBetName,
+    predictionName,
+    setPredictionName,
     isKnockoutsOnly,
     isMatchDay,
     allTeams,
@@ -908,12 +910,12 @@ export function useBracket() {
     setR32Team,
     advanceTeam,
     handleGroupStageComplete,
-    generateBetData,
+    generatePredictionData,
     getTeamStatus,
     handleResetToGroupStage,
     savedGroupsDraft,
     savedThirdsDraft,
-    savedBetId,
+    savedPredictionId,
     loadingGroup,
     groupError,
   };

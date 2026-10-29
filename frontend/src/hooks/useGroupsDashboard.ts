@@ -22,7 +22,6 @@ export const POOL_FORMATS = [
   { id: 'FULL_BRACKET', label: 'Completa (Fase de grupos y cruces)' },
   { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
 ];
-export const BET_MODES = POOL_FORMATS;
 
 export const PRESET_TEMPLATES = [
   {
@@ -73,7 +72,7 @@ export function useGroupsDashboard() {
   const [loading, setLoading] = useState(!userGroups || userGroups.length === 0);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
-  const [selectedBetMode, setSelectedBetMode] = useState('MATCH_DAY');
+  const [selectedPoolFormat, setSelectedPoolFormat] = useState('MATCH_DAY');
   const [includePichichi, setIncludePichichi] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('MATCH_DAY_LEAGUE');
   const [wizardStep, setWizardStep] = useState(1);
@@ -235,7 +234,7 @@ export function useGroupsDashboard() {
     setSelectedTemplate(templateId);
     const tmpl = PRESET_TEMPLATES.find((t) => t.id === templateId);
     if (tmpl) {
-      setSelectedBetMode(tmpl.poolFormat);
+      setSelectedPoolFormat(tmpl.poolFormat);
       setIncludePichichi(tmpl.pichichi);
       if (tmpl.id === 'WORLD_CUP_FULL' && competitions.length > 0) {
         const wc = competitions.find(
@@ -250,7 +249,7 @@ export function useGroupsDashboard() {
   const handleCreate = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isCreating) return;
-    if (!newGroupName.trim() || !selectedCompetition || !selectedBetMode) {
+    if (!newGroupName.trim() || !selectedCompetition || !selectedPoolFormat) {
       setError('El nombre del grupo y la competición son obligatorios');
       return;
     }
@@ -259,7 +258,7 @@ export function useGroupsDashboard() {
       const group = await createGroup(
         newGroupName.trim(),
         selectedCompetition,
-        selectedBetMode,
+        selectedPoolFormat,
         includePichichi,
       );
       setNewGroupName('');
@@ -438,8 +437,8 @@ export function useGroupsDashboard() {
     setNewGroupName,
     selectedCompetition,
     setSelectedCompetition,
-    selectedBetMode,
-    setSelectedBetMode,
+    selectedPoolFormat,
+    setSelectedPoolFormat,
     includePichichi,
     setIncludePichichi,
     selectedTemplate,

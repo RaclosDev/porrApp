@@ -38,7 +38,6 @@ async function fetchJson(url, options = {}) {
       setAuthToken(null);
       localStorage.removeItem('token');
       localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_bet_name');
       localStorage.removeItem('my_user_id');
       localStorage.removeItem('my_avatar_url');
       window.dispatchEvent(new Event('auth-expired'));
@@ -127,12 +126,10 @@ export async function fetchPredictions(groupId = null) {
   const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
   return fetchJson(url);
 }
-export const fetchBets = fetchPredictions;
 
 export async function fetchMyPredictions() {
   return fetchJson(`${API_BASE}/predictions/mine`);
 }
-export const fetchMyBets = fetchMyPredictions;
 
 export async function createPrediction(predictionData, groupId = null) {
   const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
@@ -147,7 +144,6 @@ export async function createPrediction(predictionData, groupId = null) {
   });
   return res.json();
 }
-export const createBet = createPrediction;
 
 export async function deletePrediction(key) {
   const token = getAuthToken();
@@ -158,7 +154,6 @@ export async function deletePrediction(key) {
     },
   });
 }
-export const deleteBet = deletePrediction;
 
 export async function updatePrediction(key, data) {
   const token = getAuthToken();
@@ -171,7 +166,6 @@ export async function updatePrediction(key, data) {
     body: JSON.stringify(data),
   });
 }
-export const updateBet = updatePrediction;
 
 export async function acceptPrediction(key) {
   const token = getAuthToken();
@@ -182,7 +176,6 @@ export async function acceptPrediction(key) {
     },
   });
 }
-export const acceptBet = acceptPrediction;
 
 export async function fetchTeamOdds() {
   return fetchJson(`${API_BASE}/teams/odds`);
@@ -255,7 +248,6 @@ export async function acceptGroupPrediction(groupId, predictionId) {
   }
   return res.json();
 }
-export const acceptGroupBet = acceptGroupPrediction;
 
 export async function deleteGroupPrediction(groupId, predictionId) {
   const token = getAuthToken();
@@ -272,7 +264,6 @@ export async function deleteGroupPrediction(groupId, predictionId) {
   }
   return res.json();
 }
-export const deleteGroupBet = deleteGroupPrediction;
 
 let cachedCompetitions = null;
 export async function fetchCompetitions() {
@@ -290,7 +281,7 @@ export async function createGroup(name, competitionId, poolFormat, pichichi = tr
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ name, competitionId, poolFormat, betMode: poolFormat, pichichi }),
+    body: JSON.stringify({ name, competitionId, poolFormat, pichichi }),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -401,13 +392,16 @@ export async function submitMatchdayPredictions(groupId, predictions) {
   return res.json();
 }
 
-export async function fetchMatchdayFriendBets(groupId, matchId) {
+export async function fetchMatchdayFriendPredictions(groupId, matchId) {
   const token = getAuthToken();
-  return fetchJson(`${API_BASE}/predictions/matchday/matches/${matchId}/bets?groupId=${groupId}`, {
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
+  return fetchJson(
+    `${API_BASE}/predictions/matchday/matches/${matchId}/predictions?groupId=${groupId}`,
+    {
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
     },
-  });
+  );
 }
 
 export async function fetchGroupMembers(groupId) {

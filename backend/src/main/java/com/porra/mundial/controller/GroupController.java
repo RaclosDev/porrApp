@@ -8,7 +8,6 @@ import com.porra.mundial.dto.GroupUpdateDTO;
 import com.porra.mundial.dto.GroupJoinDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
 import jakarta.validation.Valid;
-import com.porra.mundial.model.Edition;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.service.GroupService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,7 @@ import java.util.Optional;
 /**
  * Controlador REST para la gestión de Grupos (Ligas Privadas).
  * Permite a los usuarios crear grupos, unirse mediante códigos de invitación,
- * y a los administradores gestionar los miembros y validar los pagos de sus apuestas.
+ * y a los administradores gestionar los miembros y validar los pagos de sus pronósticos.
  */
 @RestController
 @RequestMapping("/api/groups")
@@ -55,7 +54,7 @@ public class GroupController {
      * Crea un nuevo grupo privado en el sistema.
      * El usuario que lo crea se convierte automáticamente en su administrador.
      * 
-     * @param payload Datos para la creación (Nombre del grupo, Competición, Modo de Apuesta, etc.).
+     * @param payload Datos para la creación (Nombre del grupo, Competición, Formato de porra, etc.).
      * @param principal Identidad del usuario creador.
      * @return El grupo recién creado (incluyendo su código de invitación generado).
      */
@@ -63,7 +62,7 @@ public class GroupController {
     public ResponseEntity<?> createGroup(@Valid @RequestBody GroupCreateDTO payload, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         
-        com.porra.mundial.model.PoolFormat poolFormat = com.porra.mundial.model.PoolFormat.fromString(payload.resolveFormat());
+        com.porra.mundial.model.PoolFormat poolFormat = com.porra.mundial.model.PoolFormat.fromString(payload.getPoolFormat());
         League group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(), poolFormat, payload.getPichichi());
         return ResponseEntity.ok(group);
     }
@@ -85,7 +84,7 @@ public class GroupController {
     }
 
     /**
-     * Elimina por completo un grupo y todas las apuestas asociadas a él.
+     * Elimina por completo un grupo y todos los pronósticos asociados a él.
      * Solo puede ser invocado por el administrador del grupo.
      * 
      * @param id ID del grupo a eliminar.
@@ -144,7 +143,6 @@ public class GroupController {
                     .competitionName(edition.getCompetition() != null ? edition.getCompetition().getName() : null)
                     .formatType(edition.getCompetition() != null ? edition.getCompetition().getFormatType() : null)
                     .poolFormat(edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null)
-                    .betMode(edition.getBetMode() != null ? edition.getBetMode().name() : null)
                     .pichichi(edition.isPichichi());
         });
         return ResponseEntity.ok(builder.build());
@@ -173,7 +171,6 @@ public class GroupController {
                 builder.competitionId(e.getCompetition() != null ? e.getCompetition().getId() : null)
                        .competitionName(e.getCompetition() != null ? e.getCompetition().getName() : null)
                        .formatType(e.getCompetition() != null ? e.getCompetition().getFormatType() : null)
-                       .betMode(e.getBetMode() != null ? e.getBetMode().name() : null)
                        .poolFormat(e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
                        .pichichi(e.isPichichi())
                        .lockDate(e.getLockDate())
@@ -187,7 +184,7 @@ public class GroupController {
 
     /**
      * Permite a un usuario salirse voluntariamente de un grupo.
-     * Si el usuario tenía apuestas en el grupo, estas pueden o no eliminarse dependiendo de la regla de negocio.
+     * Si el usuario tenía pronósticos en el grupo, estos pueden o no eliminarse dependiendo de la regla de negocio.
      * 
      * @param id ID del grupo a abandonar.
      * @param principal Identidad del usuario.
@@ -201,46 +198,46 @@ public class GroupController {
     }
 
     /**
-     * Listado de apuestas de un grupo exclusivo para la vista de Administración del Grupo.
+     * Listado de pronósticos de un grupo exclusivo para la vista de Administración del Grupo.
      * 
      * @param id ID del grupo.
      * @param principal Identidad del usuario (debe coincidir con el administrador del grupo).
-     * @return Lista de apuestas con datos adicionales de gestión.
+     * @return Lista de pronósticos con datos adicionales de gestión.
      */
-    @GetMapping({"/{id}/bets", "/{id}/predictions"})
-    public ResponseEntity<?> getGroupBetsAdmin(@PathVariable Long id, Principal principal) {
+    @GetMapping("/{id}/predictions")
+    public ResponseEntity<?> getGroupPredictionsAdmin(@PathVariable Long id, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(groupService.getGroupBetsForAdmin(id, principal.getName()));
+        return ResponseEntity.ok(groupService.getGroupPredictionsForAdmin(id, principal.getName()));
     }
 
     /**
-     * El administrador del grupo marca una apuesta como "Aceptada" o "Pagada" (PAID).
+     * El administrador del grupo marca un pronóstico como "Aceptada" o "Pagada" (PAID).
      * Esto normalmente la hace visible en el leaderboard.
      */
-    @PutMapping({"/{id}/bets/{betId}/accept", "/{id}/predictions/{betId}/accept"})
-    public ResponseEntity<?> acceptBetAdmin(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
+    @PutMapping("/{id}/predictions/{predictionId}/accept")
+    public ResponseEntity<?> acceptPredictionAdmin(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        Object result = groupService.toggleBetPaymentStatus(id, betId, principal.getName(), true);
+        Object result = groupService.togglePredictionPaymentStatus(id, predictionId, principal.getName(), true);
         webSocketService.invalidateAndNotify();
         return ResponseEntity.ok(result);
     }
 
     /**
-     * El administrador del grupo revoca el estado de "Pagado" de una apuesta.
+     * El administrador del grupo revoca el estado de "Pagado" de un pronóstico.
      */
-    @PutMapping({"/{id}/bets/{betId}/reject", "/{id}/predictions/{betId}/reject"})
-    public ResponseEntity<?> rejectBet(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
+    @PutMapping("/{id}/predictions/{predictionId}/reject")
+    public ResponseEntity<?> rejectPrediction(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(groupService.toggleBetPaymentStatus(id, betId, principal.getName(), false));
+        return ResponseEntity.ok(groupService.togglePredictionPaymentStatus(id, predictionId, principal.getName(), false));
     }
 
     /**
-     * El administrador del grupo elimina una apuesta del grupo por ser inválida, morosa, etc.
+     * El administrador del grupo elimina un pronóstico del grupo por ser inválido, moroso, etc.
      */
-    @DeleteMapping({"/{id}/bets/{betId}", "/{id}/predictions/{betId}"})
-    public ResponseEntity<?> deleteBetAdmin(@PathVariable Long id, @PathVariable Long betId, Principal principal) {
+    @DeleteMapping("/{id}/predictions/{predictionId}")
+    public ResponseEntity<?> deletePredictionAdmin(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        groupService.deleteBet(id, betId, principal.getName());
+        groupService.deletePrediction(id, predictionId, principal.getName());
         webSocketService.invalidateAndNotify();
         return ResponseEntity.ok(Map.of("status", "success"));
     }

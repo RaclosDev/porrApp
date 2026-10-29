@@ -14,14 +14,14 @@ import java.util.Map;
 @Data
 @Builder
 public class ParticipantScoreDTO {
-    /** Identificador de la apuesta evaluada. */
+    /** Identificador del pronóstico evaluado. */
     private Long id;
-    /** Identificador de la cuenta de usuario propietaria de la apuesta. */
+    /** Identificador de la cuenta de usuario propietaria del pronóstico. */
     private Long userId;
     /** Nombre público del participante en el ranking. */
     private String name;
-    /** Título/Nombre de su apuesta. */
-    private String betName;
+    /** Título/Nombre de su pronóstico. */
+    private String predictionName;
     /** URL versionada de la foto de perfil del participante, o null si no tiene. */
     private String avatarUrl;
     
@@ -58,7 +58,7 @@ public class ParticipantScoreDTO {
     /** Mapa auxiliar de equipos que simplemente acertó que pasaban de ronda, sin importar por dónde. */
     private Map<String, Boolean> passedTeams;
     
-    /** Indicador visual en UI si la apuesta tiene el pago pendiente. */
+    /** Indicador visual en UI si el pronóstico tiene el pago pendiente. */
     private boolean pending;
 
     /**

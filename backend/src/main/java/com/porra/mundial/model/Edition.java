@@ -67,29 +67,4 @@ public class Edition {
         return lockDate != null && LocalDateTime.now().isAfter(lockDate);
     }
 
-    // Métodos de compatibilidad hacia atrás para betMode
-
-    public PoolFormat getBetMode() {
-        return poolFormat != null ? poolFormat : PoolFormat.FULL_BRACKET;
-    }
-
-    public void setBetMode(PoolFormat format) {
-        this.poolFormat = format;
-    }
-
-    public void setBetMode(BetMode legacyMode) {
-        this.poolFormat = legacyMode != null ? legacyMode.toPoolFormat() : PoolFormat.FULL_BRACKET;
-    }
-
-    public static class EditionBuilder {
-        public EditionBuilder betMode(BetMode mode) {
-            this.poolFormat = mode != null ? mode.toPoolFormat() : PoolFormat.FULL_BRACKET;
-            return this;
-        }
-
-        public EditionBuilder betMode(PoolFormat format) {
-            this.poolFormat = format;
-            return this;
-        }
-    }
 }

@@ -117,14 +117,6 @@ public class Prediction {
         this.name = predictionName;
     }
 
-    public String getBetName() {
-        return name;
-    }
-
-    public void setBetName(String betName) {
-        this.name = betName;
-    }
-
     @Transient
     public String getParticipantName() {
         return user != null ? user.getParticipantName() : null;
@@ -156,10 +148,6 @@ public class Prediction {
     }
 
     public static class PredictionBuilder {
-        public PredictionBuilder betName(String betName) {
-            this.name = betName;
-            return this;
-        }
 
         public PredictionBuilder predictionName(String predictionName) {
             this.name = predictionName;

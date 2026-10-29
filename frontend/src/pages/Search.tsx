@@ -233,8 +233,14 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
  * @returns {JSX.Element} La vista de la central de inteligencia.
  */
 function Search() {
-  const { participantsHashes, groupOdds, loading, userName, setViewerBetId, activeGroupPichichi } =
-    useAppContext();
+  const {
+    participantsHashes,
+    groupOdds,
+    loading,
+    userName,
+    setViewerPredictionId,
+    activeGroupPichichi,
+  } = useAppContext();
 
   // Read initial state from URL parameters (if shared link), fallback to localStorage, then default
   const urlParams = new URLSearchParams(window.location.search);
@@ -513,10 +519,10 @@ function Search() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
-                          setViewerBetId(r.id);
+                          setViewerPredictionId(r.id);
                         }
                       }}
-                      onClick={() => setViewerBetId(r.id)}
+                      onClick={() => setViewerPredictionId(r.id)}
                       style={{
                         cursor: 'pointer',
                         background: 'rgba(243, 104, 224, 0.1)',
@@ -567,10 +573,10 @@ function Search() {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            setViewerBetId(r.id);
+                            setViewerPredictionId(r.id);
                           }
                         }}
-                        onClick={() => setViewerBetId(r.id)}
+                        onClick={() => setViewerPredictionId(r.id)}
                         style={{
                           cursor: 'pointer',
                           background: 'rgba(255, 255, 255, 0.03)',
@@ -767,7 +773,7 @@ function Search() {
                 >
                   {userStats.id && (
                     <button
-                      onClick={() => setViewerBetId(userStats.id)}
+                      onClick={() => setViewerPredictionId(userStats.id)}
                       className="glass-btn primary-btn"
                       style={{
                         padding: '8px 25px',

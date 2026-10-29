@@ -1289,7 +1289,7 @@ option {
     order: 1;
     margin: 0;
   }
-  #btn-view-my-bet-header {
+  #btn-view-my-prediction-header {
     order: 2;
     margin: 0;
   }
@@ -2217,7 +2217,7 @@ option {
   flex-shrink: 0;
 }
 
-.md-bets-icon-btn {
+.md-predictions-icon-btn {
   width: 30px;
   min-width: 30px;
   min-height: 30px;
@@ -2229,7 +2229,7 @@ option {
   line-height: 1;
 }
 
-.md-bets-icon-btn:focus-visible {
+.md-predictions-icon-btn:focus-visible {
   outline: 2px solid #00d2d3;
   outline-offset: 2px;
 }
@@ -2364,7 +2364,7 @@ option {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.md-bets-btn {
+.md-predictions-btn {
   min-height: 36px;
   padding: 0 12px;
   border-radius: 8px;
@@ -2426,7 +2426,7 @@ option {
 }
 
 /* ===== Modal de pronósticos del grupo ===== */
-@keyframes friends-bets-in {
+@keyframes friends-predictions-in {
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.98);
@@ -2437,7 +2437,7 @@ option {
   }
 }
 
-.friends-bets-overlay {
+.friends-predictions-overlay {
   position: fixed;
   inset: 0;
   z-index: 10000;
@@ -2449,7 +2449,7 @@ option {
   backdrop-filter: blur(10px);
 }
 
-.friends-bets-panel {
+.friends-predictions-panel {
   display: flex;
   flex-direction: column;
   width: min(560px, 100%);
@@ -2461,10 +2461,10 @@ option {
   box-shadow:
     0 30px 70px rgba(0, 0, 0, 0.7),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  animation: friends-bets-in 0.22s ease-out;
+  animation: friends-predictions-in 0.22s ease-out;
 }
 
-.friends-bets-head {
+.friends-predictions-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -2473,7 +2473,7 @@ option {
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-.friends-bets-kicker {
+.friends-predictions-kicker {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -2484,7 +2484,7 @@ option {
   text-transform: uppercase;
 }
 
-.friends-bets-title {
+.friends-predictions-title {
   margin: 4px 0 0;
   color: #fff;
   font-family: 'Outfit', sans-serif;
@@ -2492,7 +2492,7 @@ option {
   line-height: 1.15;
 }
 
-.friends-bets-close {
+.friends-predictions-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2507,11 +2507,11 @@ option {
   cursor: pointer;
 }
 
-.friends-bets-close:hover {
+.friends-predictions-close:hover {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.friends-bets-match {
+.friends-predictions-match {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -2519,7 +2519,7 @@ option {
   padding: 16px 20px 10px;
 }
 
-.friends-bets-team {
+.friends-predictions-team {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2528,25 +2528,25 @@ option {
   font-weight: 800;
 }
 
-.friends-bets-team > span:last-child {
+.friends-predictions-team > span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.friends-bets-team.is-away {
+.friends-predictions-team.is-away {
   justify-content: flex-end;
   text-align: right;
 }
 
-.friends-bets-crest {
+.friends-predictions-crest {
   width: 30px;
   height: 30px;
   flex: 0 0 30px;
   object-fit: contain;
 }
 
-.friends-bets-crest-fallback {
+.friends-predictions-crest-fallback {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2555,7 +2555,7 @@ option {
   font-size: 0.95rem;
 }
 
-.friends-bets-center {
+.friends-predictions-center {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2563,20 +2563,20 @@ option {
   min-width: 58px;
 }
 
-.friends-bets-vs {
+.friends-predictions-vs {
   color: var(--text-muted);
   font-size: 0.95rem;
   font-weight: 900;
   letter-spacing: 0.04em;
 }
 
-.friends-bets-vs.is-finished {
+.friends-predictions-vs.is-finished {
   color: #fff;
   font-size: 1.15rem;
   letter-spacing: 0.02em;
 }
 
-.friends-bets-round {
+.friends-predictions-round {
   color: var(--text-muted);
   font-size: 0.62rem;
   font-weight: 700;
@@ -2585,7 +2585,7 @@ option {
   white-space: nowrap;
 }
 
-.friends-bets-meta {
+.friends-predictions-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2596,12 +2596,12 @@ option {
   font-size: 0.72rem;
 }
 
-.friends-bets-count {
+.friends-predictions-count {
   color: #e2e8f0;
   font-weight: 700;
 }
 
-.friends-bets-progress {
+.friends-predictions-progress {
   height: 4px;
   margin: 8px 20px 12px;
   overflow: hidden;
@@ -2609,7 +2609,7 @@ option {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.friends-bets-progress i {
+.friends-predictions-progress i {
   display: block;
   height: 100%;
   border-radius: inherit;
@@ -2617,7 +2617,7 @@ option {
   transition: width 0.25s ease;
 }
 
-.friends-bets-list {
+.friends-predictions-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2625,7 +2625,7 @@ option {
   overflow-y: auto;
 }
 
-.friends-bet {
+.friends-prediction {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2635,17 +2635,17 @@ option {
   background: rgba(255, 255, 255, 0.03);
 }
 
-.friends-bet.is-caller {
+.friends-prediction.is-caller {
   border-color: rgba(0, 210, 211, 0.28);
   background: rgba(0, 210, 211, 0.07);
 }
 
-.friends-bet-main {
+.friends-prediction-main {
   flex: 1;
   min-width: 0;
 }
 
-.friends-bet-name {
+.friends-prediction-name {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2655,13 +2655,13 @@ option {
   font-weight: 700;
 }
 
-.friends-bet-name > span:first-child {
+.friends-prediction-name > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.friends-bet-you {
+.friends-prediction-you {
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--accent-cyan);
@@ -2670,13 +2670,13 @@ option {
   font-weight: 800;
 }
 
-.friends-bet-time {
+.friends-prediction-time {
   margin-top: 2px;
   color: var(--text-muted);
   font-size: 0.68rem;
 }
 
-.friends-bet-result {
+.friends-prediction-result {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -2684,13 +2684,13 @@ option {
   flex-shrink: 0;
 }
 
-.friends-bet-score-row {
+.friends-prediction-score-row {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-.friends-bet-score {
+.friends-prediction-score {
   padding: 2px 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -2701,7 +2701,7 @@ option {
   white-space: nowrap;
 }
 
-.friends-bet-sign {
+.friends-prediction-sign {
   padding: 0 5px;
   border-radius: 5px;
   background: rgba(0, 210, 211, 0.12);
@@ -2710,18 +2710,18 @@ option {
   font-weight: 800;
 }
 
-.friends-bet-points {
+.friends-prediction-points {
   color: #2ecc71;
   font-size: 0.65rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
-.friends-bet-points.is-zero {
+.friends-prediction-points.is-zero {
   color: var(--text-muted);
 }
 
-.friends-bet-status {
+.friends-prediction-status {
   padding: 3px 7px;
   border-radius: 999px;
   font-size: 0.68rem;
@@ -2729,42 +2729,42 @@ option {
   white-space: nowrap;
 }
 
-.friends-bet-status.is-hidden {
+.friends-prediction-status.is-hidden {
   border: 1px solid rgba(59, 130, 246, 0.28);
   background: rgba(59, 130, 246, 0.14);
   color: #93c5fd;
 }
 
-.friends-bet-status.is-pending {
+.friends-prediction-status.is-pending {
   border: 1px solid rgba(251, 191, 36, 0.28);
   background: rgba(251, 191, 36, 0.12);
   color: #fbbf24;
 }
 
-.friends-bet-status.is-missed {
+.friends-prediction-status.is-missed {
   border: 1px solid rgba(248, 113, 113, 0.28);
   background: rgba(248, 113, 113, 0.12);
   color: #f87171;
 }
 
-.friends-bets-message {
+.friends-predictions-message {
   padding: 28px 12px;
   color: var(--text-muted);
   font-size: 0.85rem;
   text-align: center;
 }
 
-.friends-bets-message.is-error {
+.friends-predictions-message.is-error {
   color: #ff7675;
 }
 
-.friends-bets-skeletons {
+.friends-predictions-skeletons {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.friends-bets-skeleton {
+.friends-predictions-skeleton {
   height: 60px;
   border-radius: 14px;
   background: linear-gradient(
@@ -2777,7 +2777,7 @@ option {
   animation: skeleton-shimmer 1.2s infinite linear;
 }
 
-.friends-bets-foot {
+.friends-predictions-foot {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2788,59 +2788,59 @@ option {
 }
 
 @media (max-width: 560px) {
-  .friends-bets-overlay {
+  .friends-predictions-overlay {
     align-items: flex-end;
     padding: 0;
   }
 
-  .friends-bets-panel {
+  .friends-predictions-panel {
     width: 100%;
     max-height: 88dvh;
     border-radius: 22px 22px 0 0;
     border-bottom: 0;
   }
 
-  .friends-bets-head {
+  .friends-predictions-head {
     padding: 14px 16px 12px;
   }
 
-  .friends-bets-title {
+  .friends-predictions-title {
     font-size: 1.05rem;
   }
 
-  .friends-bets-match {
+  .friends-predictions-match {
     gap: 8px;
     padding: 14px 16px 8px;
   }
 
-  .friends-bets-team {
+  .friends-predictions-team {
     gap: 6px;
     font-size: 0.82rem;
   }
 
-  .friends-bets-crest {
+  .friends-predictions-crest {
     width: 24px;
     height: 24px;
     flex-basis: 24px;
   }
 
-  .friends-bets-meta {
+  .friends-predictions-meta {
     padding: 0 16px;
   }
 
-  .friends-bets-progress {
+  .friends-predictions-progress {
     margin: 8px 16px 10px;
   }
 
-  .friends-bets-list {
+  .friends-predictions-list {
     padding: 0 12px 12px;
   }
 
-  .friends-bet {
+  .friends-prediction {
     padding: 9px 10px;
   }
 
-  .friends-bets-foot {
+  .friends-predictions-foot {
     padding: 10px 16px 12px;
   }
 }

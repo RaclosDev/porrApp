@@ -68,7 +68,7 @@ describe('league switching', () => {
     await waitFor(() => expect(result.current.allGames).toHaveLength(1));
     act(() => result.current.changeGroup('20'));
     expect(result.current.activeCompetitionId).toBe(3);
-    expect(result.current.activeGroupBetMode).toBe('MATCH_DAY');
+    expect(result.current.activeGroupPoolFormat).toBe('MATCH_DAY');
     expect(result.current.allGames).toEqual([]);
     expect(result.current.participantsHashes).toEqual([]);
     expect(result.current.leaderboardData).toEqual([]);
@@ -80,7 +80,7 @@ describe('league switching', () => {
     await waitFor(() => expect(result.current.allGames).toHaveLength(1));
     act(() => result.current.changeGroup('99'));
     expect(result.current.loadingGroup).toBe(true);
-    expect(result.current.activeGroupBetMode).toBeNull();
+    expect(result.current.activeGroupPoolFormat).toBeNull();
     expect(result.current.activeCompetitionId).toBeNull();
     expect(result.current.allGames).toEqual([]);
     expect(api.fetchMatches).not.toHaveBeenCalledWith(null);
@@ -91,7 +91,7 @@ describe('league switching', () => {
     useAppStore.setState({
       bracketState: bracket,
       viewerPredictionId: 123,
-      viewerBetId: 123,
+      viewerPredictionId: 123,
       topScorer: 'Player',
     });
     useAppStore.getState().changeGroup('20');
@@ -99,7 +99,7 @@ describe('league switching', () => {
     expect(useAppStore.getState()).toMatchObject({
       activeCompetitionId: null,
       viewerPredictionId: null,
-      viewerBetId: null,
+      viewerPredictionId: null,
       topScorer: '',
     });
     useAppStore.getState().changeGroup('10');

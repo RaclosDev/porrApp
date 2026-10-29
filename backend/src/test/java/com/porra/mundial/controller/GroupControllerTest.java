@@ -113,8 +113,8 @@ class GroupControllerTest {
     }
 
     @Test
-    @DisplayName("Detalle del grupo incluye tanto betMode como poolFormat")
-    void groupDetailsIncludesBothBetModeAndPoolFormat() throws Exception {
+    @DisplayName("Detalle del grupo incluye el poolFormat de la edición activa")
+    void groupDetailsIncludesPoolFormat() throws Exception {
         League group = League.builder()
                 .id(20L)
                 .name("Liga Mundial")
@@ -137,7 +137,7 @@ class GroupControllerTest {
 
         mockMvc.perform(get("/api/groups/20").principal(userPrincipal("member@test.com")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.betMode").value("KNOCKOUTS_ONLY"))
+                .andExpect(jsonPath("$.betMode").doesNotExist())
                 .andExpect(jsonPath("$.poolFormat").value("KNOCKOUTS_ONLY"))
                 .andExpect(jsonPath("$.competitionName").value("Mundial 2026"));
     }

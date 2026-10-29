@@ -28,7 +28,7 @@ public class LeaderboardController {
     /**
      * Calcula y devuelve la clasificación general o específica de un grupo.
      * Al recibir la petición, este método desencadena todo el motor de cálculo de puntos en tiempo real
-     * (comparando las apuestas de todos los usuarios frente al Bracket Oficial), en vez de devolver
+     * (comparando los pronósticos de todos los usuarios frente al Bracket Oficial), en vez de devolver
      * un listado estático precalculado.
      * 
      * @param groupId ID del grupo a consultar. Si no se indica, asume el Global (ID = 1).

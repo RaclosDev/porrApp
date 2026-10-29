@@ -53,7 +53,12 @@ const DemoPredictionPage = () => {
   // La demo muestra la porra pública de Raclos en modo estrictamente de solo lectura.
   const raclosPrediction = participantsHashes.find((participant) =>
     /raclos/i.test(
-      String(participant?.participantName || participant?.name || participant?.data?.participantName || ''),
+      String(
+        participant?.participantName ||
+          participant?.name ||
+          participant?.data?.participantName ||
+          '',
+      ),
     ),
   );
   const predictionId = raclosPrediction?.key ?? raclosPrediction?.id;
@@ -67,7 +72,7 @@ const DemoPredictionPage = () => {
     );
   }
 
-  return <PredictionViewer inline betId={predictionId} />;
+  return <PredictionViewer inline predictionId={predictionId} />;
 };
 
 const DemoPage = () => {

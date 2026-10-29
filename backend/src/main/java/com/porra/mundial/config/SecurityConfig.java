@@ -38,10 +38,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
-                .requestMatchers("/api/predictions/mine", "/api/bets/mine", "/api/groups/mine").authenticated()
+                .requestMatchers("/api/predictions/mine", "/api/groups/mine").authenticated()
                 // Lecturas públicas: cada controlador filtra los datos de ligas privadas.
                 .requestMatchers(HttpMethod.GET,
-                        "/api/predictions/**", "/api/bets/**",
+                        "/api/predictions/**",
                         "/api/matches/**",
                         "/api/standings/**",
                         "/api/scorers/**",

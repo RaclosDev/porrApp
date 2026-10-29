@@ -8,7 +8,6 @@ import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.StandingsService;
 import com.porra.mundial.service.SyncService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,25 +33,6 @@ public class StandingsController {
     @GetMapping("/standings")
     public Map<String, Map<String, Map<String, Integer>>> getStandings() {
         return standingsService.getOfficialPoints();
-    }
-
-    @GetMapping(value = "/standings/export/csv", produces = "text/csv; charset=UTF-8")
-    public ResponseEntity<String> exportStandingsCsv(@RequestParam(required = false) Long groupId, java.security.Principal principal) {
-        if (groupId != null && !Long.valueOf(1L).equals(groupId)) {
-            String email = principal != null && principal.getName() != null ? principal.getName() : null;
-            if (email == null) {
-                var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-                email = (auth != null) ? auth.getName() : null;
-            }
-            if (email == null || !groupService.isUserMemberOrAdmin(groupId, email)) {
-                throw new org.springframework.web.server.ResponseStatusException(
-                        org.springframework.http.HttpStatus.FORBIDDEN, "No tienes acceso para exportar la clasificación de esta liga privada");
-            }
-        }
-        String csv = leaderboardService.exportLeaderboardCsv(groupId);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"clasificacion-porra.csv\"")
-                .body(csv);
     }
 
     @GetMapping("/standings/official-bracket")

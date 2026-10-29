@@ -19,13 +19,13 @@ class SportsDataProviderRegistryTest {
     private SportsDataProvider espnProvider;
 
     @Mock
-    private SportsDataProvider apiFootballProvider;
+    private SportsDataProvider domesticLeagueProvider;
 
     private SportsDataProviderRegistry registry;
 
     @BeforeEach
     void setUp() {
-        registry = new SportsDataProviderRegistry(List.of(espnProvider, apiFootballProvider));
+        registry = new SportsDataProviderRegistry(List.of(espnProvider, domesticLeagueProvider));
     }
 
     @Test
@@ -39,14 +39,14 @@ class SportsDataProviderRegistryTest {
     }
 
     @Test
-    @DisplayName("Debe resolver API-Football para competiciones de liga doméstica")
-    void resolvesApiFootballForDomesticLeagues() {
+    @DisplayName("Debe resolver el proveedor que soporte la liga doméstica")
+    void resolvesProviderForDomesticLeagues() {
         when(espnProvider.supports("laliga-2026")).thenReturn(false);
-        when(apiFootballProvider.supports("laliga-2026")).thenReturn(true);
+        when(domesticLeagueProvider.supports("laliga-2026")).thenReturn(true);
 
         SportsDataProvider resolved = registry.getProviderForCompetition("laliga-2026");
 
-        assertSame(apiFootballProvider, resolved);
+        assertSame(domesticLeagueProvider, resolved);
     }
 
     @Test

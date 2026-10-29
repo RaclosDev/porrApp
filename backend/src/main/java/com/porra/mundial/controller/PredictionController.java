@@ -7,7 +7,6 @@ import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.WebSocketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +17,10 @@ import java.util.Map;
 
 /**
  * Controlador REST para la gestion de Pronosticos y Porras (Prediction).
- * Expone rutas bajo /api/predictions y /api/bets para total compatibilidad.
+ * Expone las rutas bajo /api/predictions.
  */
 @RestController
-@RequestMapping({"/api/predictions", "/api/bets"})
+@RequestMapping("/api/predictions")
 @RequiredArgsConstructor
 public class PredictionController {
 

@@ -37,63 +37,6 @@ public class MatchController {
     }
 
     /**
-     * @param competitionId (Opcional) Filtrar por competición.
-     * @return Los partidos que se están jugando en este momento exacto.
-     */
-    @GetMapping("/live")
-    public List<MatchResponseDTO> getLiveMatches(@RequestParam(required = false) Long competitionId) {
-        List<Match> matches = competitionId != null
-                ? matchService.getLiveMatches(competitionId)
-                : matchService.getLiveMatches();
-        return matches.stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * @param limit Número máximo de partidos a devolver.
-     * @param competitionId (Opcional) Filtrar por competición.
-     * @return Los últimos N partidos que ya han finalizado.
-     */
-    @GetMapping("/last")
-    public List<MatchResponseDTO> getLastMatches(@RequestParam(defaultValue = "5") int limit,
-                                                @RequestParam(required = false) Long competitionId) {
-        List<Match> matches = competitionId != null
-                ? matchService.getLastMatches(limit, competitionId)
-                : matchService.getLastMatches(limit);
-        return matches.stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * @param limit Número máximo de partidos a devolver.
-     * @param competitionId (Opcional) Filtrar por competición.
-     * @return Los próximos N partidos agendados en el calendario.
-     */
-    @GetMapping("/next")
-    public List<MatchResponseDTO> getNextMatches(@RequestParam(defaultValue = "5") int limit,
-                                                @RequestParam(required = false) Long competitionId) {
-        List<Match> matches = competitionId != null
-                ? matchService.getNextMatches(limit, competitionId)
-                : matchService.getNextMatches(limit);
-        return matches.stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * @param group La letra del grupo (Ej: "A").
-     * @return Partidos pertenecientes a un grupo de la fase de grupos.
-     */
-    @GetMapping("/group/{group}")
-    public List<MatchResponseDTO> getGroupMatches(@PathVariable String group) {
-        return matchService.getMatchesByGroup(group.toUpperCase()).stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    /**
      * Agregador conveniente para la pantalla de inicio del Frontend ("El Radar").
      * @param competitionId (Opcional) Filtrar radar por competición activa.
      * @return Mapa combinado con partidos en vivo, finalizados recientemente y los próximos.

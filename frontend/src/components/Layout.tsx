@@ -47,7 +47,7 @@ const prefetchRoute = (path) => {
 /**
  * Componente Layout principal que envuelve a todas las rutas.
  * Contiene la barra de navegación superior (Header), el manejo de autenticación global (Google Login),
- * el banner de instalación PWA, y el visor global de porras (BetViewer).
+ * el banner de instalación PWA, y el visor global de porras (PredictionViewer).
  *
  * @component
  * @param {Object} props
@@ -59,7 +59,7 @@ function Layout({ children }) {
     participantsHashes,
     userName,
     setUserName,
-    viewerBetId,
+    viewerPredictionId,
     setIsAuthenticated,
     activeGroupPoolFormat,
     activeCompetitionFormatType,
@@ -72,7 +72,7 @@ function Layout({ children }) {
     userGroupsLoaded,
   } = useAppContext();
   const navigate = useNavigate();
-  const [showMyBetModal, setShowMyBetModal] = useState(false);
+  const [showMyPredictionModal, setShowMyPredictionModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
@@ -124,7 +124,7 @@ function Layout({ children }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setShowMyBetModal(false);
+        setShowMyPredictionModal(false);
         setShowProfileMenu(false);
       }
     };
@@ -133,7 +133,7 @@ function Layout({ children }) {
   }, []);
 
   useEffect(() => {
-    const handleOpenLogin = () => setShowMyBetModal(true);
+    const handleOpenLogin = () => setShowMyPredictionModal(true);
     window.addEventListener('open-login-modal', handleOpenLogin);
     return () => window.removeEventListener('open-login-modal', handleOpenLogin);
   }, []);
@@ -144,7 +144,7 @@ function Layout({ children }) {
    */
   useEffect(() => {
     if (location.state?.requireLogin) {
-      setShowMyBetModal(true);
+      setShowMyPredictionModal(true);
     }
   }, [location.state]);
 
@@ -200,7 +200,6 @@ function Layout({ children }) {
         setIsAuthenticated?.(true);
         setUserName(data.participantName);
         localStorage.setItem('my_prediction_name', data.participantName);
-        localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
         const store = useAppStore.getState();
         if (data.userId) store.setUserId(String(data.userId));
@@ -209,7 +208,7 @@ function Layout({ children }) {
           // Pasar por changeGroup para que el store quede sincronizado con localStorage.
           store.changeGroup(data.lastSelectedGroupId);
         }
-        setShowMyBetModal(false);
+        setShowMyPredictionModal(false);
         toast.success(`¡Bienvenido, ${data.participantName}!`);
         if (!localStorage.getItem('activeGroupId')) {
           navigate('/mis-ligas');
@@ -262,7 +261,7 @@ function Layout({ children }) {
           <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => setShowMyBetModal(true)}
+              onClick={() => setShowMyPredictionModal(true)}
               style={{
                 background: 'var(--accent-cyan, #00d2d3)',
                 color: '#0f172a',
@@ -361,7 +360,7 @@ function Layout({ children }) {
                 {/* Botón Ver Mi Porra / Pronosticar Jornada */}
                 {loading ? null : isMatchDayLeague ? (
                   <button
-                    id="btn-complete-my-bet-header"
+                    id="btn-complete-my-prediction-header"
                     className="glass-btn primary-btn header-porra-cta"
                     style={{
                       padding: '6px 14px',
@@ -381,7 +380,7 @@ function Layout({ children }) {
                 ) : userName &&
                   participantsHashes.find((h) => h.participantName === userName) ? null : (
                   <button
-                    id="btn-complete-my-bet-header"
+                    id="btn-complete-my-prediction-header"
                     className="glass-btn primary-btn header-porra-cta"
                     style={{
                       padding: '6px 14px',
@@ -585,7 +584,7 @@ function Layout({ children }) {
                 <button
                   id="btn-login-header"
                   type="button"
-                  onClick={() => setShowMyBetModal(true)}
+                  onClick={() => setShowMyPredictionModal(true)}
                   className="glass-btn"
                   style={{
                     height: '38px',
@@ -719,7 +718,6 @@ function Layout({ children }) {
                         setIsAuthenticated?.(false);
                         setUserName('');
                         localStorage.removeItem('my_prediction_name');
-                        localStorage.removeItem('my_bet_name');
                         localStorage.removeItem('my_user_id');
                         localStorage.removeItem('my_avatar_url');
                         localStorage.removeItem('token');
@@ -820,12 +818,12 @@ function Layout({ children }) {
 
       {/* Modal de Autenticación / Registro */}
       <div
-        id="my-bet-modal"
+        id="my-prediction-modal"
         className="modal"
         role="dialog"
         aria-modal="true"
         aria-label="Identificación de usuario"
-        style={{ display: showMyBetModal ? 'flex' : 'none', zIndex: 999999 }}
+        style={{ display: showMyPredictionModal ? 'flex' : 'none', zIndex: 999999 }}
       >
         <div
           className="modal-content glass-panel"
@@ -877,7 +875,7 @@ function Layout({ children }) {
                 width: '100%',
               }}
               onClick={() => {
-                setShowMyBetModal(false);
+                setShowMyPredictionModal(false);
                 if (isDemo) {
                   exitDemoMode?.();
                 }
@@ -891,7 +889,7 @@ function Layout({ children }) {
       </div>
 
       {/* Visor Global de Porras (Portal Inyectado) */}
-      {viewerBetId && (
+      {viewerPredictionId && (
         <Suspense fallback={null}>
           <PredictionViewer />
         </Suspense>

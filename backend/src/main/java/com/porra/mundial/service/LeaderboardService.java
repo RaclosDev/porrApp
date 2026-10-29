@@ -73,7 +73,7 @@ public class LeaderboardService {
                         .id(pred.getId())
                         .userId(pred.getUser() != null ? pred.getUser().getId() : null)
                         .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()))
-                        .betName(pred.getBetName())
+                        .predictionName(pred.getPredictionName())
                         .avatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null)
                         .pending(isPaymentPending(pred, membershipPayment))
                         .total(pred.getTotalPoints() != null ? pred.getTotalPoints() : 0)
@@ -110,7 +110,7 @@ public class LeaderboardService {
                         .findFirst())
                 .orElse(null);
         PredictionDataDTO officialData = (adminPrediction != null && adminPrediction.getBracketData() != null) ? adminPrediction.getBracketData() : new PredictionDataDTO();
-        syncService.enrichBetDataWithMatches(officialData);
+        syncService.enrichPredictionDataWithMatches(officialData);
 
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();
@@ -260,7 +260,7 @@ public class LeaderboardService {
             score.setId(pred.getId());
             score.setUserId(pred.getUser() != null ? pred.getUser().getId() : null);
             score.setName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
-            score.setBetName(pred.getBetName());
+            score.setPredictionName(pred.getPredictionName());
             score.setPending(isPaymentPending(pred, membershipPayment));
             leaderboard.add(score);
 
@@ -342,7 +342,7 @@ public class LeaderboardService {
                     .userId(user.getId())
                     .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(user.getParticipantName()))
                     .avatarUrl(user.getAvatarUrl())
-                    .betName("")
+                    .predictionName("")
                     .pending(false)
                     .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
                     .log(new ArrayList<>())
@@ -492,47 +492,6 @@ public class LeaderboardService {
         }
     }
 
-    @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", allEntries = true)
-    @org.springframework.transaction.annotation.Transactional
-    public void invalidateScores() {
-        predictionRepository.invalidateAllScores();
-    }
-
-    private String sanitizeCsvField(String value) {
-        if (value == null || value.isBlank()) return "\"\"";
-        String clean = value.replace("\"", "\"\"");
-        if (clean.startsWith("=") || clean.startsWith("+") || clean.startsWith("-") || clean.startsWith("@") || clean.startsWith("\t") || clean.startsWith("\r")) {
-            clean = "'" + clean;
-        }
-        return "\"" + clean + "\"";
-    }
-
-    public String exportLeaderboardCsv(Long groupId) {
-        List<ParticipantScoreDTO> leaderboard = getLeaderboard(groupId);
-        StringBuilder sb = new StringBuilder();
-        sb.append("Posicion,Participante,Nombre Porra,Puntos Totales,Jornadas,Fase Grupos,R32,Octavos,Cuartos,Semifinales,Final,Pichichi,Estado Pago\n");
-        int pos = 1;
-        for (ParticipantScoreDTO score : leaderboard) {
-            String pName = sanitizeCsvField(score.getName());
-            String bName = sanitizeCsvField(score.getBetName());
-            String status = score.isPending() ? "Pendiente" : "Pagado";
-            sb.append(pos++).append(",")
-              .append(pName).append(",")
-              .append(bName).append(",")
-              .append(score.getTotal()).append(",")
-              .append(score.getMatchPoints()).append(",")
-              .append(score.getR1()).append(",")
-              .append(score.getR32()).append(",")
-              .append(score.getR16()).append(",")
-              .append(score.getQf()).append(",")
-              .append(score.getSf()).append(",")
-              .append(score.getFinals()).append(",")
-              .append(score.getScorer()).append(",")
-              .append(status).append("\n");
-        }
-        return sb.toString();
-    }
-
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ParticipantScoreDTO calculateScoreForPrediction(Long predictionId) {
         if (predictionId == null) return null;
@@ -547,7 +506,7 @@ public class LeaderboardService {
                         .findFirst())
                 .orElse(null);
         PredictionDataDTO officialData = (adminPrediction != null && adminPrediction.getBracketData() != null) ? adminPrediction.getBracketData() : new PredictionDataDTO();
-        syncService.enrichBetDataWithMatches(officialData);
+        syncService.enrichPredictionDataWithMatches(officialData);
 
         Map<String, Map<String, Map<String, Integer>>> officialPoints = standingsService.getOfficialPoints();
         List<GroupStanding> allStandings = standingsService.getAllStandings();
@@ -684,7 +643,7 @@ public class LeaderboardService {
         score.setId(pred.getId());
         score.setUserId(pred.getUser() != null ? pred.getUser().getId() : null);
         score.setName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
-        score.setBetName(pred.getBetName());
+        score.setPredictionName(pred.getPredictionName());
         score.setAvatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null);
         score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
 
