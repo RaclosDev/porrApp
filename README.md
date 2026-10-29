@@ -25,7 +25,7 @@ Porras de fútbol con amigos: cada liga elige su formato, los resultados se sinc
 | Capa | Tecnologías |
 | --- | --- |
 | Frontend | React 19, TypeScript (`strict`), Vite, TanStack Query, Zustand, Tailwind CSS v4, Radix UI |
-| Backend | Java 21, Spring Boot 3, Spring Security, Spring Data JPA, WebSockets, Resilience4j |
+| Backend | Java 21, Spring Boot 4, Spring Security, Spring Data JPA, WebSockets, Resilience4j |
 | Datos | PostgreSQL con migraciones Flyway |
 | Calidad | Vitest + Testing Library, JUnit 5 + Mockito, ESLint, Prettier, GitHub Actions |
 | Despliegue | Docker multi-etapa (el frontend se sirve desde Spring Boot) en Railway |

@@ -583,7 +583,7 @@ public class GroupService {
                     .role(m.getRole())
                     .paymentStatus(paymentStatus)
                     .joinedAt(m.getJoinedAt())
-                    .isAdmin(isAdmin)
+                    .admin(isAdmin)
                     .avatarUrl(u.getAvatarUrl())
                     .build());
         }

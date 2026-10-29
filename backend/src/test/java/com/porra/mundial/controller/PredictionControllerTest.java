@@ -1,6 +1,6 @@
 package com.porra.mundial.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
@@ -10,9 +10,9 @@ import com.porra.mundial.service.WebSocketService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,19 +35,19 @@ class PredictionControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private PredictionService predictionService;
 
-    @MockBean
+    @MockitoBean
     private com.porra.mundial.service.GroupService groupService;
 
-    @MockBean
+    @MockitoBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
-    @MockBean
+    @MockitoBean
     private com.porra.mundial.service.LeaderboardService leaderboardService;
 
-    @MockBean
+    @MockitoBean
     private WebSocketService webSocketService;
 
     @Test

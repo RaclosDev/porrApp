@@ -2,9 +2,9 @@ package com.porra.mundial.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.ErrorCode;
+import org.flywaydb.core.api.CoreErrorCode;
 import org.flywaydb.core.api.output.ValidateOutput;
-import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
+import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -41,11 +41,11 @@ public class FlywayConfig {
         // Las migraciones pendientes también salen como inválidas aquí; migrate() las aplica después.
         List<ValidateOutput> problems = flyway.validateWithResult().invalidMigrations.stream()
                 .filter(m -> m.errorDetails == null
-                        || m.errorDetails.errorCode != ErrorCode.RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED)
+                        || m.errorDetails.errorCode != CoreErrorCode.RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED)
                 .toList();
         return !problems.isEmpty() && problems.stream().allMatch(m ->
                 m.errorDetails != null
-                        && m.errorDetails.errorCode == ErrorCode.CHECKSUM_MISMATCH
+                        && m.errorDetails.errorCode == CoreErrorCode.CHECKSUM_MISMATCH
                         && KNOWN_CHECKSUM_DRIFT.contains(m.version));
     }
 }

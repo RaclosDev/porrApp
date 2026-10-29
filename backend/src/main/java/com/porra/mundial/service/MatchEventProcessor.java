@@ -1,6 +1,6 @@
 package com.porra.mundial.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.porra.mundial.config.Constants;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
