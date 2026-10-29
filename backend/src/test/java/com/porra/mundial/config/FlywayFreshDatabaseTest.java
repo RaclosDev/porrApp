@@ -43,5 +43,17 @@ class FlywayFreshDatabaseTest {
             // V34 referencia esos equipos; V33.1 los crea cuando no existen.
             assertThat(rs.getInt(1)).isEqualTo(20);
         }
+
+        try (Connection c = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+             ResultSet rs = c.createStatement().executeQuery(
+                     "SELECT c.external_id, count(*) FROM matches m JOIN competitions c ON c.id = m.competition_id"
+                             + " WHERE m.round LIKE 'Jornada %' GROUP BY c.external_id")) {
+            // Las jornadas que importa V34 tienen que quedar en LaLiga aunque no sea la competición 4.
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString(1)).isEqualTo("esp.1");
+            assertThat(rs.getInt(2)).isEqualTo(90);
+            assertThat(rs.next()).isFalse();
+        }
     }
 }
