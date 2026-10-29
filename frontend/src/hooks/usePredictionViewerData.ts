@@ -4,7 +4,7 @@ import { compareTeams } from '../utils/points';
 import { matchWinner } from '../utils/bracketBuilder';
 import type { CanvasMatch } from '../components/BracketCanvas';
 import { checkIsKnockoutPhase, injectQualifiedTeams, normalizePart } from '../utils/predictionData';
-import { buildR32FromGroups, hasValidGroupSelections } from './useBracket';
+import { buildR32FromGroups, hasValidGroupSelections } from '../utils/bracketDraft';
 import type {
   GroupOdds,
   GroupStandings,

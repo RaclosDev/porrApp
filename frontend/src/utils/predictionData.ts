@@ -4,7 +4,7 @@ import {
   extractGroupsFromR32,
   hasValidGroupSelections,
   type GroupSelection,
-} from '../hooks/useBracket';
+} from './bracketDraft';
 
 /** Pronóstico listo para el visor: grupos como posiciones y cruces con nombres. */
 export type ViewerPrediction = Omit<PredictionData, 'groups'> & {

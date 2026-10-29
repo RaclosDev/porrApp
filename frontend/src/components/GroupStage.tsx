@@ -6,7 +6,7 @@ import {
   hasValidGroupSelections,
   normalizeGroupsDraft as normalizeSelections,
   type GroupSelection,
-} from '../hooks/useBracket';
+} from '../utils/bracketDraft';
 import type { GroupOdds } from '../types/api';
 
 type Selections = Record<string, GroupSelection>;

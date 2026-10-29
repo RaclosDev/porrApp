@@ -9,7 +9,7 @@ import GroupsView from './prediction/GroupsView';
 import ThirdsView from './prediction/ThirdsView';
 import BracketView from './prediction/BracketView';
 import { getTeamVal, type ViewerTab } from './prediction/viewerTypes';
-import { extractGroupsFromR32 } from '../hooks/useBracket';
+import { extractGroupsFromR32 } from '../utils/bracketDraft';
 import { isMatchInRound, nextKnockoutMatch } from '../utils/bracketBuilder';
 import type { RoundRef } from '../hooks/usePredictionViewerData';
 import { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCanvas';

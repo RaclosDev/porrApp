@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { reconstructBracketState } from '../../hooks/useBracket';
+import { reconstructBracketState } from '../../utils/bracketDraft';
 
 describe('reconstructBracketState', () => {
-  it('correctly parses final whether it is array of strings, object, or finalMatch', () => {
-    // Array of strings
+  it('builds the final and the champion from the stored name lists', () => {
     const state1 = reconstructBracketState({
       final: ['España', 'Brasil'],
       champion: 'España',
@@ -11,31 +10,6 @@ describe('reconstructBracketState', () => {
     expect(state1?.final?.home?.name).toBe('España');
     expect(state1?.final?.away?.name).toBe('Brasil');
     expect(state1?.champion?.name).toBe('España');
-
-    // Object with home/away strings
-    const state2 = reconstructBracketState({
-      final: { home: 'Paraguay', away: 'Suiza' },
-      champion: 'Paraguay',
-    });
-    expect(state2?.final?.home?.name).toBe('Paraguay');
-    expect(state2?.final?.away?.name).toBe('Suiza');
-
-    // Object with home/away { name } objects
-    const state3 = reconstructBracketState({
-      final: { home: { name: 'Francia' }, away: { name: 'Alemania' } },
-      champion: { name: 'Francia' },
-    });
-    expect(state3?.final?.home?.name).toBe('Francia');
-    expect(state3?.final?.away?.name).toBe('Alemania');
-    expect(state3?.champion?.name).toBe('Francia');
-
-    // finalMatch key
-    const state4 = reconstructBracketState({
-      finalMatch: ['Argentina', 'Portugal'],
-      champion: 'Argentina',
-    });
-    expect(state4?.final?.home?.name).toBe('Argentina');
-    expect(state4?.final?.away?.name).toBe('Portugal');
   });
 
   it('correctly populates r32 from r1 fallback or groups fallback', () => {

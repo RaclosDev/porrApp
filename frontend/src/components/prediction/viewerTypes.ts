@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { GroupSelection } from '../../hooks/useBracket';
+import type { GroupSelection } from '../../utils/bracketDraft';
 import type { RoundRef, usePredictionViewerData } from '../../hooks/usePredictionViewerData';
 
 export type ViewerTab = 'groups' | 'thirds' | 'bracket';

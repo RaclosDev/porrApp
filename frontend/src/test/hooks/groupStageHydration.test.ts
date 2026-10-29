@@ -3,7 +3,7 @@ import {
   extractGroupsFromR32,
   hasValidGroupSelections,
   normalizeGroupsDraft,
-} from '../../hooks/useBracket';
+} from '../../utils/bracketDraft';
 
 describe('Group stage extraction and validation', () => {
   it('correctly identifies empty vs valid group selections', () => {
