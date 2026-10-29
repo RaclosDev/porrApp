@@ -8,6 +8,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Semaphore;
+
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -97,5 +100,34 @@ class ImageProcessorTest {
         ImageProcessor.ProcessedImage result = ImageProcessor.process(polyglot);
 
         assertFalse(new String(result.data(), StandardCharsets.ISO_8859_1).contains("<script>"));
+    }
+
+    @Test
+    @DisplayName("El máximo es de unos 6 MP; por debajo se decodifica submuestreada y se reduce a 512 px")
+    void enforcesSixMegapixelsAndSubsamples() throws Exception {
+        assertThrows(IllegalArgumentException.class, () -> ImageProcessor.process(image(3000, 2400, "png", false)));
+
+        assertEquals(2, ImageProcessor.subsampling(2400, 2400));
+        assertEquals(1, ImageProcessor.subsampling(1000, 500));
+        ImageProcessor.ProcessedImage result = ImageProcessor.process(image(2400, 2400, "jpg", false));
+        BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(result.data()));
+        assertEquals(512, decoded.getWidth());
+        assertEquals(512, decoded.getHeight());
+    }
+
+    @Test
+    @DisplayName("Si ya hay demasiadas imágenes procesándose responde 503 y siempre libera su hueco")
+    void limitsConcurrentDecodes() throws Exception {
+        byte[] png = image(50, 50, "png", false);
+
+        ResponseStatusException busy = assertThrows(ResponseStatusException.class,
+                () -> ImageProcessor.process(png, new Semaphore(0), 10));
+        assertEquals(503, busy.getStatusCode().value());
+
+        Semaphore slots = new Semaphore(1);
+        ImageProcessor.process(png, slots, 10);
+        byte[] fakePng = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4};
+        assertThrows(IllegalArgumentException.class, () -> ImageProcessor.process(fakePng, slots, 10));
+        assertEquals(1, slots.availablePermits());
     }
 }
