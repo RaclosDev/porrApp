@@ -1,8 +1,10 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.dto.PredictionDataDTO;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -23,6 +26,9 @@ class KnockoutBracketServiceTest {
 
     @Mock
     private MatchRepository matchRepository;
+
+    @Mock
+    private CompetitionRepository competitionRepository;
 
     @Mock
     private ScoreInvalidationService scoreInvalidationService;
@@ -57,6 +63,13 @@ class KnockoutBracketServiceTest {
                 .build();
     }
 
+    private static final long WORLD_CUP_ID = 2L;
+
+    private void givenWorldCupMatches(Match... matches) {
+        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(WORLD_CUP_ID));
+        when(matchRepository.findByCompetitionId(WORLD_CUP_ID)).thenReturn(List.of(matches));
+    }
+
     @Test
     @DisplayName("Coloca ganadores de semis en la final y perdedores en el tercer puesto")
     void propagatesSemiFinalResults() {
@@ -64,7 +77,7 @@ class KnockoutBracketServiceTest {
         Match semi2 = knockout("sf", brazil, argentina, 0, 1, 15);
         Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
         Match third = knockout("third", placeholder, placeholder, null, null, 18);
-        when(matchRepository.findAll()).thenReturn(List.of(semi1, semi2, finalMatch, third));
+        givenWorldCupMatches(semi1, semi2, finalMatch, third);
 
         int updated = service.propagateKnockoutWinners();
 
@@ -82,7 +95,7 @@ class KnockoutBracketServiceTest {
     void doesNothingWithoutDecidedSemis() {
         Match semi1 = knockout("sf", spain, france, null, null, 14);
         Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
-        when(matchRepository.findAll()).thenReturn(List.of(semi1, finalMatch));
+        givenWorldCupMatches(semi1, finalMatch);
 
         assertEquals(0, service.propagateKnockoutWinners());
         verify(matchRepository, never()).save(any());
@@ -97,7 +110,7 @@ class KnockoutBracketServiceTest {
         Match finalMatch = knockout("final", spain, argentina, 3, 2, 19);
         finalMatch.setWinnerTeam(spain);
         Match third = knockout("third", france, brazil, 1, 0, 18);
-        when(matchRepository.findAll()).thenReturn(List.of(semi1, semi2, finalMatch, third));
+        givenWorldCupMatches(semi1, semi2, finalMatch, third);
 
         PredictionDataDTO dto = new PredictionDataDTO();
         service.enrichPredictionDataWithMatches(dto);
@@ -113,7 +126,7 @@ class KnockoutBracketServiceTest {
     void derivesFinalistsFromSemisWhenFinalIsMissing() {
         Match semi1 = knockout("semifinal", spain, france, 1, 0, 14);
         Match semi2 = knockout("semifinal", brazil, argentina, 2, 0, 15);
-        when(matchRepository.findAll()).thenReturn(List.of(semi1, semi2));
+        givenWorldCupMatches(semi1, semi2);
 
         PredictionDataDTO dto = new PredictionDataDTO();
         service.enrichPredictionDataWithMatches(dto);
@@ -129,5 +142,27 @@ class KnockoutBracketServiceTest {
         Match group = Match.builder().groupName("A").round("final").build();
         assertFalse(KnockoutBracketService.isKnockoutMatch(group));
         assertTrue(KnockoutBracketService.isKnockoutMatch(Match.builder().round("qf").build()));
+    }
+
+    @Test
+    @DisplayName("Las eliminatorias de otras competiciones no entran en el cuadro del Mundial")
+    void ignoresKnockoutMatchesOfOtherCompetitions() {
+        Team betis = Team.builder().id(20L).name("Real Betis").groupName("-").build();
+        Team osasuna = Team.builder().id(21L).name("Osasuna").groupName("-").build();
+        Match cupFinal = knockout("final", betis, osasuna, 2, 0, 1);
+        cupFinal.setWinnerTeam(betis);
+        Match semi1 = knockout("sf", spain, france, 2, 1, 14);
+        Match semi2 = knockout("sf", brazil, argentina, 0, 1, 15);
+        Match finalMatch = knockout("final", spain, argentina, 1, 0, 19);
+        finalMatch.setWinnerTeam(spain);
+        // Lo que devolvería una consulta sin filtrar: la final de copa va primero.
+        lenient().when(matchRepository.findAll()).thenReturn(List.of(cupFinal, semi1, semi2, finalMatch));
+        givenWorldCupMatches(semi1, semi2, finalMatch);
+
+        PredictionDataDTO dto = new PredictionDataDTO();
+        service.enrichPredictionDataWithMatches(dto);
+
+        assertEquals(List.of("España", "Argentina"), dto.getFinalMatch());
+        assertEquals("España", dto.getChampion());
     }
 }

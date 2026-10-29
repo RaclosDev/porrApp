@@ -1,8 +1,10 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
@@ -28,6 +30,7 @@ public class StandingsService {
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
     private final TeamRepository teamRepository;
+    private final CompetitionRepository competitionRepository;
     private final ScoreInvalidationService scoreInvalidationService;
 
     /**
@@ -53,8 +56,7 @@ public class StandingsService {
         }
 
         Map<String, List<GroupStanding>> byGroup = standings.stream().collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
-        List<Match> allMatches = matchRepository.findAll();
-        if (allMatches == null) allMatches = Collections.emptyList();
+        List<Match> allMatches = worldCupMatches();
         List<GroupStanding> sorted = new ArrayList<>();
         List<Match> finalMatches = allMatches;
         byGroup.keySet().stream().sorted().forEach(group -> {
@@ -199,9 +201,7 @@ public class StandingsService {
                 return a.getTeam().getName().compareTo(b.getTeam().getName());
             });
 
-            List<Match> allMatches = matchRepository.findAll();
-            if (allMatches == null) allMatches = Collections.emptyList();
-            List<Match> allGroupMatches = allMatches.stream()
+            List<Match> allGroupMatches = worldCupMatches().stream()
                     .filter(m -> "group".equalsIgnoreCase(m.getRound()))
                     .toList();
             boolean isGroupStageDone = !allGroupMatches.isEmpty() && allGroupMatches.stream().allMatch(m -> Boolean.TRUE.equals(m.getFinished()));
@@ -242,7 +242,8 @@ public class StandingsService {
     }
 
     private void doRecalculateStandings() {
-        List<Match> groupMatches = matchRepository.findAll().stream()
+        List<Match> allMatches = worldCupMatches();
+        List<Match> groupMatches = allMatches.stream()
                 .filter(m -> "group".equalsIgnoreCase(m.getRound()) && Boolean.TRUE.equals(m.getFinished())
                         && m.getHomeTeam() != null && m.getAwayTeam() != null
                         && m.getHomeScore() != null && m.getAwayScore() != null)
@@ -317,7 +318,6 @@ public class StandingsService {
             standingsByGroup.computeIfAbsent(groupName, k -> new ArrayList<>()).add(standing);
         }
 
-        List<Match> allMatches = matchRepository.findAll();
         List<GroupStanding> allSortedStandings = new ArrayList<>();
         List<GroupStanding> thirdPlaceTeams = new ArrayList<>();
 
@@ -386,6 +386,13 @@ public class StandingsService {
         if (changed) {
             scoreInvalidationService.invalidateWorldCup();
         }
+    }
+
+    /** Partidos del Mundial: los grupos son los suyos y no se mezclan con los de ligas u otros torneos. */
+    private List<Match> worldCupMatches() {
+        return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
+                .map(matchRepository::findByCompetitionId)
+                .orElse(Collections.emptyList());
     }
 
     /** Datos de la clasificación que puntúan los cuadros: si cambia alguno, hay que recalcular las porras. */

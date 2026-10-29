@@ -74,7 +74,6 @@ class LeaderboardBenchmarkTest {
         when(standingsService.getOfficialPoints()).thenReturn(Collections.emptyMap());
         when(standingsService.getAllStandings()).thenReturn(Collections.emptyList());
         when(topScorerService.getTopScorers()).thenReturn(Collections.emptyList());
-        when(matchRepository.findAll()).thenReturn(Collections.emptyList());
 
         int participantCount = 1000;
         List<Prediction> participants = new ArrayList<>(participantCount);

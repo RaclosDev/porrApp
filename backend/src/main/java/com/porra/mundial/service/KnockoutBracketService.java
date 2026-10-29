@@ -1,8 +1,10 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.dto.PredictionDataDTO;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.util.Objects;
 public class KnockoutBracketService {
 
     private final MatchRepository matchRepository;
+    private final CompetitionRepository competitionRepository;
     private final PredictionRepository predictionRepository;
     private final PredictionService predictionService;
     private final ScoreInvalidationService scoreInvalidationService;
@@ -114,8 +117,15 @@ public class KnockoutBracketService {
         return bracket;
     }
 
+    /** Partidos del Mundial, el único torneo con cuadro oficial; los de otras competiciones no cuentan. */
+    public List<Match> worldCupMatches() {
+        return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
+                .map(matchRepository::findByCompetitionId)
+                .orElse(List.of());
+    }
+
     private FinalRounds findFinalRounds() {
-        List<Match> knockout = matchRepository.findAll().stream().filter(KnockoutBracketService::isKnockoutMatch).toList();
+        List<Match> knockout = worldCupMatches().stream().filter(KnockoutBracketService::isKnockoutMatch).toList();
         List<Match> semis = knockout.stream()
                 .filter(m -> isRound(m.getRound(), "sf", "semi"))
                 .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
