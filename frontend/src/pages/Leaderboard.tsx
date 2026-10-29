@@ -1,7 +1,14 @@
 import React, { useState, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useLeaderboard } from '../hooks/useLeaderboard';
+import { useLeaderboard, type SortColumn } from '../hooks/useLeaderboard';
+
+interface LeaderboardColumn {
+  key: SortColumn;
+  label: string;
+  shortLabel?: string;
+  kind: 'total' | 'matchday' | 'detail';
+}
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import WhatsAppIcon from '../components/WhatsAppIcon';
 import { UserAvatar } from '../components/Avatar';
@@ -15,7 +22,7 @@ function rankLabel(rank: number | '-' | undefined, lowestPaidRank: number): stri
   return rank ?? '-';
 }
 
-const compactMatchdayLabel = (label) => {
+const compactMatchdayLabel = (label: string | null) => {
   if (!label) return '';
   const jornada = /^jornada\s+(\d+)$/i.exec(label);
   if (jornada) return `J${jornada[1]}`;
@@ -104,7 +111,10 @@ function Leaderboard() {
   const isMatchday =
     activeGroupPoolFormat === 'MATCH_DAY' || state.activeCompetitionFormatType === 'LEAGUE';
 
-  const columns = isMatchday
+  const scorerColumn: LeaderboardColumn[] = activeGroupPichichi
+    ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }]
+    : [];
+  const columns: LeaderboardColumn[] = isMatchday
     ? [
         { key: 'total', label: 'TOTAL', kind: 'total' },
         selectedMatchday
@@ -115,7 +125,7 @@ function Leaderboard() {
               kind: 'matchday',
             }
           : { key: 'matchPoints', label: 'Puntos Jornadas', kind: 'detail' },
-        ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }] : []),
+        ...scorerColumn,
       ]
     : [
         { key: 'total', label: 'TOTAL', kind: 'total' },
@@ -126,15 +136,15 @@ function Leaderboard() {
         { key: 'qf', label: 'Cuartos', kind: 'detail' },
         { key: 'sf', label: 'Semis', kind: 'detail' },
         { key: 'finals', label: 'Finales', kind: 'detail' },
-        ...(activeGroupPichichi ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }] : []),
+        ...scorerColumn,
       ];
 
-  const sortIndicator = (colKey) => {
+  const sortIndicator = (colKey: SortColumn) => {
     if (sortColumn !== colKey) return '';
     return sortDirection === 'desc' ? ' ▼' : ' ▲';
   };
 
-  const thStyle = (colKey: string): React.CSSProperties => ({
+  const thStyle = (colKey: SortColumn): React.CSSProperties => ({
     cursor: 'pointer',
     userSelect: 'none',
     whiteSpace: 'nowrap',
@@ -144,7 +154,7 @@ function Leaderboard() {
     borderBottom: sortColumn === colKey ? '2px solid #00d2d3' : undefined,
   });
 
-  const columnClass = (col) => {
+  const columnClass = (col: LeaderboardColumn) => {
     if (col.kind === 'matchday') return 'lb-matchday-cell';
     if (col.kind === 'detail') return 'leaderboard-mobile-detail';
     return '';

@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
-import type { ParticipantScore } from '../types/api';
+import type { MatchdayPoints, ParticipantScore } from '../types/api';
 import { errorMessage } from '../utils/errors';
 
 /** Fila de la clasificación tal como la pinta la interfaz. */
@@ -23,7 +23,11 @@ export interface LeaderboardRow {
   rank?: number | '-';
 }
 
-const EMPTY_MATCHDAYS = [];
+/** Columnas numéricas por las que se puede ordenar la clasificación. */
+export type SortColumn =
+  'total' | 'matchday' | 'matchPoints' | 'r1' | 'r32' | 'r16' | 'qf' | 'sf' | 'finals' | 'scorer';
+
+const EMPTY_MATCHDAYS: MatchdayPoints[] = [];
 
 export function useLeaderboard() {
   const state = useAppContext();
@@ -41,9 +45,9 @@ export function useLeaderboard() {
   } = state;
   const [sharing, setSharing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [sortColumn, setSortColumn] = useState('total');
-  const [sortDirection, setSortDirection] = useState('desc');
-  const [selectedMatchdayState, setSelectedMatchdayState] = useState(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn>('total');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedMatchdayState, setSelectedMatchdayState] = useState<string | null>(null);
 
   const isLeagueAdmin =
     activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
@@ -69,12 +73,11 @@ export function useLeaderboard() {
     : -1;
 
   const { results, lowestPaidRank, matchdayStats } = useMemo(() => {
-    const getMatchdayPoints = (backendScore) => {
+    const getMatchdayPoints = (backendScore: ParticipantScore) => {
       if (!selectedMatchdayInfo || backendScore.id == null) return 0;
       const pointsByPrediction = selectedMatchdayInfo.pointsByPrediction;
       if (!pointsByPrediction) return 0;
-      const value =
-        pointsByPrediction[backendScore.id] ?? pointsByPrediction[String(backendScore.id)];
+      const value = pointsByPrediction[String(backendScore.id)];
       return Number(value) || 0;
     };
 
@@ -108,7 +111,7 @@ export function useLeaderboard() {
     });
 
     let currentRank = 1;
-    let previousVal = null;
+    let previousVal: number | null = null;
 
     list.forEach((r) => {
       if (r.paid) {
@@ -142,7 +145,7 @@ export function useLeaderboard() {
       });
     }
 
-    let stats = null;
+    let stats: { myPoints: number; leader: LeaderboardRow | null } | null = null;
     if (selectedMatchdayInfo) {
       const paidList = list.filter((r) => r.paid);
       const me = paidList.find(
@@ -172,6 +175,7 @@ export function useLeaderboard() {
       const html2canvasModule = await import('html2canvas');
       const html2canvas = html2canvasModule.default;
       const template = document.getElementById('share-image-template');
+      if (!template) throw new Error('Falta la plantilla de la imagen');
       const canvas = await html2canvas(template, {
         backgroundColor: '#0f0f1a',
         scale: 2,
@@ -199,7 +203,7 @@ export function useLeaderboard() {
     }
   };
 
-  const handleAcceptPrediction = async (predictionId) => {
+  const handleAcceptPrediction = async (predictionId: number) => {
     if (!window.confirm('¿Confirmar que este jugador ha pagado / es aceptado en la liga?')) return;
     setActionLoading(true);
     try {
@@ -212,7 +216,7 @@ export function useLeaderboard() {
     }
   };
 
-  const handleDeletePrediction = async (predictionId) => {
+  const handleDeletePrediction = async (predictionId: number) => {
     if (!window.confirm('¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.'))
       return;
     setActionLoading(true);
@@ -226,7 +230,7 @@ export function useLeaderboard() {
     }
   };
 
-  const handleSort = (column) => {
+  const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
     } else {
@@ -235,11 +239,11 @@ export function useLeaderboard() {
     }
   };
 
-  const handleSelectMatchday = (label) => {
+  const handleSelectMatchday = (label: string) => {
     if (label) setSelectedMatchdayState(label);
   };
 
-  const handleStepMatchday = (direction) => {
+  const handleStepMatchday = (direction: 1 | -1) => {
     const nextIndex = matchdayIndex + direction;
     if (nextIndex >= 0 && nextIndex < matchdays.length) {
       setSelectedMatchdayState(matchdays[nextIndex].label);

@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -31,6 +37,8 @@ import { LeagueAvatar, UserAvatar } from './Avatar';
 import type { PaymentStatus } from '../types/api';
 import { errorMessage } from '../utils/errors';
 
+type CopyTarget = 'code' | 'link';
+
 const PAYMENT_FILTERS = [
   { id: 'ALL', label: 'Todos' },
   { id: 'PAID', label: 'Pagados' },
@@ -55,11 +63,26 @@ export default function GroupMembersModal({
   onDelete,
   onUploadImage,
   onRemoveImage,
+}: {
+  groupId: number;
+  groupName: string;
+  currentJoinCode: string | null | undefined;
+  isAdmin: boolean;
+  currentUserId?: string | number | null;
+  initialRules?: string;
+  imageUrl?: string | null;
+  onClose: () => void;
+  onCodeRegenerated: (newCode: string) => void;
+  /** Devuelve si se ha guardado. */
+  onSaveSettings: (settings: { name: string; rules: string }) => Promise<boolean>;
+  onDelete: () => Promise<boolean>;
+  onUploadImage: (blob: Blob) => Promise<void>;
+  onRemoveImage: () => Promise<void>;
 }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('members');
   const [activeCode, setActiveCode] = useState(currentJoinCode || '');
-  const [copiedTarget, setCopiedTarget] = useState('');
+  const [copiedTarget, setCopiedTarget] = useState<CopyTarget | ''>('');
   const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState('');
   const [name, setName] = useState(groupName || '');
@@ -67,7 +90,7 @@ export default function GroupMembersModal({
   const [savingConfig, setSavingConfig] = useState(false);
   const [search, setSearch] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('ALL');
-  const [kickTargetId, setKickTargetId] = useState(null);
+  const [kickTargetId, setKickTargetId] = useState<number | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
@@ -96,7 +119,7 @@ export default function GroupMembersModal({
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (leaveConfirmOpen) {
           setLeaveConfirmOpen(false);
@@ -238,13 +261,13 @@ export default function GroupMembersModal({
     },
   });
 
-  const markCopied = (target) => {
+  const markCopied = (target: CopyTarget) => {
     setCopiedTarget(target);
     clearTimeout(copyTimeoutRef.current);
     copyTimeoutRef.current = setTimeout(() => setCopiedTarget(''), 2200);
   };
 
-  const copyText = async (text, target, message) => {
+  const copyText = async (text: string, target: CopyTarget, message: string) => {
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard no disponible');
       await navigator.clipboard.writeText(text);
@@ -268,7 +291,7 @@ export default function GroupMembersModal({
         return;
       } catch (err) {
         // Cancelar el diálogo nativo no debe copiar el enlace por sorpresa.
-        if (err?.name === 'AbortError') return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
       }
     }
     await copyText(inviteLink, 'link', 'Enlace de invitación copiado');
@@ -347,7 +370,7 @@ export default function GroupMembersModal({
   const currentTab = isAdmin ? tab : 'members';
   const isNameValid = Boolean(name.trim());
 
-  const handleTabKeyDown = (event) => {
+  const handleTabKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     const nextTab = tab === 'members' ? 'settings' : 'members';

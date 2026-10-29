@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { openStats } from '../utils/navigation';
 import Flag from '../components/Flag';
+import type { Match } from '../types/api';
 
 /**
  * Componente que muestra los partidos en vivo, recientes y proximos.
@@ -55,13 +56,13 @@ function Radar() {
   const lastMatches = (matchRadar?.last || []).slice(0, 10);
   const nextMatches = (matchRadar?.next || []).slice(0, 10);
 
-  const renderMatchCard = (m, type) => {
-    const d = new Date(m.date);
+  const renderMatchCard = (m: Match, type: 'live' | 'last' | 'next') => {
+    const d = new Date(m.date ?? 0);
     const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-    const isActuallyLive = type === 'live' && new Date(m.date) <= new Date();
+    const isActuallyLive = type === 'live' && new Date(m.date ?? 0) <= new Date();
     const statusLabel = isActuallyLive ? m.displayClock || 'En Juego' : dateFormatted;
 
-    const isPlaceholder = (t) =>
+    const isPlaceholder = (t: string | null | undefined) =>
       !t ||
       t.toLowerCase().includes('por definir') ||
       t.toLowerCase().includes('tbd') ||
@@ -138,7 +139,7 @@ function Radar() {
       >
         {liveMatches.length > 0 &&
           (() => {
-            const isActuallyLive = liveMatches.some((m) => new Date(m.date) <= new Date());
+            const isActuallyLive = liveMatches.some((m) => new Date(m.date ?? 0) <= new Date());
             return (
               <div
                 className="radar-column"

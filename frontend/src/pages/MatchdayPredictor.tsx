@@ -6,7 +6,11 @@ import { useAppContext } from '../context/AppContext';
 import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
 import Flag from '../components/Flag';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
-import type { MatchdayPredictionInput, MatchdaySubmissionResult } from '../types/api';
+import type {
+  MatchdayFixture,
+  MatchdayPredictionInput,
+  MatchdaySubmissionResult,
+} from '../types/api';
 import { errorMessage } from '../utils/errors';
 
 /** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
@@ -24,8 +28,8 @@ interface SaveVariables {
   savedMatchIds: number[];
 }
 
-const EMPTY_FIXTURES = [];
-const roundLabelFor = (fixture) =>
+const EMPTY_FIXTURES: MatchdayFixture[] = [];
+const roundLabelFor = (fixture: MatchdayFixture) =>
   fixture.groupName
     ? `Grupo ${fixture.groupName}`
     : fixture.round && fixture.round !== 'group'
@@ -33,7 +37,7 @@ const roundLabelFor = (fixture) =>
       : fixture.matchDate
         ? `Fecha ${fixture.matchDate.slice(0, 10)}`
         : 'Sin jornada';
-const hasPrediction = (prediction) =>
+const hasPrediction = (prediction: DraftPrediction | undefined) =>
   Boolean(
     prediction && ((prediction.homeScore !== '' && prediction.awayScore !== '') || prediction.sign),
   );
@@ -55,7 +59,7 @@ function MatchdayPredictor() {
  * Permite a los participantes de ligas por jornadas pronosticar partido a partido,
  * con bloqueo individual por fecha de inicio y visualización de puntos obtenidos.
  */
-function MatchdayLeague({ context }) {
+function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext> }) {
   const {
     activeGroupId,
     activeGroupName,
@@ -75,9 +79,11 @@ function MatchdayLeague({ context }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [selectedRound, setSelectedRound] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'FINISHED'
-  const [selectedMatchForFriends, setSelectedMatchForFriends] = useState(null);
+  const [selectedRound, setSelectedRound] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'FINISHED'>('ALL');
+  const [selectedMatchForFriends, setSelectedMatchForFriends] = useState<MatchdayFixture | null>(
+    null,
+  );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localPredictions, setLocalPredictions] = useState<Draft>({});
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
@@ -86,7 +92,7 @@ function MatchdayLeague({ context }) {
   const draftKey = `draft_matchday_${activeGroupId}`;
 
   const persistDraft = useCallback(
-    (draft) => {
+    (draft: Draft) => {
       draftRef.current = draft;
       try {
         if (Object.keys(draft).length) localStorage.setItem(draftKey, JSON.stringify(draft));
@@ -130,9 +136,9 @@ function MatchdayLeague({ context }) {
   // Inicializar estado local cuando llegan datos del backend
   useEffect(() => {
     if (fixtures.length > 0) {
-      const initial = {};
+      const initial: Draft = {};
       // Cargar borrador previo si existe en LocalStorage para esta liga
-      let draft = draftRef.current || {};
+      let draft: Draft = draftRef.current || {};
       try {
         const storedDraft = draftRef.current === null ? localStorage.getItem(draftKey) : null;
         if (storedDraft) {
@@ -143,7 +149,7 @@ function MatchdayLeague({ context }) {
         console.warn('Error reading matchday draft', e);
       }
 
-      const openDraft = {};
+      const openDraft: Draft = {};
       fixtures.forEach((f) => {
         const d = draft[f.matchId];
         // Solo usar borrador si el partido sigue abierto y no tiene predicción ya guardada en servidor
@@ -171,8 +177,8 @@ function MatchdayLeague({ context }) {
 
   // Jornadas disponibles en orden y jornada actual (la primera con partidos sin finalizar).
   const { availableRounds, currentRound } = useMemo(() => {
-    const rounds = [];
-    const seen = new Set();
+    const rounds: string[] = [];
+    const seen = new Set<string>();
     fixtures.forEach((f) => {
       const label = roundLabelFor(f);
       if (!seen.has(label)) {
@@ -182,7 +188,7 @@ function MatchdayLeague({ context }) {
     });
 
     if (rounds.length === 0) {
-      return { availableRounds: [], currentRound: null };
+      return { availableRounds: [] as string[], currentRound: null };
     }
 
     let activeIndex = rounds.findIndex((r) =>
@@ -193,7 +199,7 @@ function MatchdayLeague({ context }) {
     return { availableRounds: rounds, currentRound: rounds[activeIndex] };
   }, [fixtures]);
 
-  const roundIndex = availableRounds.indexOf(selectedRound);
+  const roundIndex = selectedRound ? availableRounds.indexOf(selectedRound) : -1;
 
   // Seleccionar la jornada actual por defecto al cargar los partidos
   useEffect(() => {
@@ -239,13 +245,13 @@ function MatchdayLeague({ context }) {
     },
   });
 
-  const updatePrediction = (matchId, prediction) => {
+  const updatePrediction = (matchId: number, prediction: DraftPrediction) => {
     persistDraft({ ...draftRef.current, [matchId]: prediction });
     setHasUnsavedChanges(true);
     setLocalPredictions((previous) => ({ ...previous, [matchId]: prediction }));
   };
 
-  const handleScoreChange = (matchId, side, val) => {
+  const handleScoreChange = (matchId: number, side: 'home' | 'away', val: string) => {
     const cleanVal = val.replace(/[^0-9]/g, '').slice(0, 2);
     const current = localPredictions[matchId] || { homeScore: '', awayScore: '', sign: '' };
     const updated = {
@@ -265,7 +271,7 @@ function MatchdayLeague({ context }) {
     updatePrediction(matchId, updated);
   };
 
-  const handleQuickSign = (matchId, sign) => {
+  const handleQuickSign = (matchId: number, sign: '1' | 'X' | '2') => {
     const current = localPredictions[matchId] || { homeScore: '', awayScore: '', sign: '' };
     let h = current.homeScore;
     let a = current.awayScore;
@@ -341,7 +347,7 @@ function MatchdayLeague({ context }) {
     });
   };
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'Fecha por confirmar';
     try {
       const d = new Date(dateStr);
@@ -588,7 +594,7 @@ function MatchdayLeague({ context }) {
                       Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
                     </span>
                   ) : isMatchLocked ? (
-                    <span className="md-badge is-locked" title={fixture.lockReason}>
+                    <span className="md-badge is-locked" title={fixture.lockReason ?? undefined}>
                       🔒 Bloqueado
                     </span>
                   ) : (
@@ -646,7 +652,7 @@ function MatchdayLeague({ context }) {
               </div>
 
               <div className="md-signs">
-                {['1', 'X', '2'].map((s) => {
+                {(['1', 'X', '2'] as const).map((s) => {
                   const isSelected = pred.sign === s;
                   return (
                     <button

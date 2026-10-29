@@ -1152,14 +1152,15 @@ export default function GroupsDashboard() {
             await handleRemoveGroupImage(selectedGroupForMembers.id);
             setSelectedGroupForMembers((prev) => (prev ? { ...prev, imageUrl: null } : prev));
           }}
-          isAdmin={
+          isAdmin={Boolean(
             (selectedGroupForMembers.adminUserId &&
               userId &&
               String(selectedGroupForMembers.adminUserId) === String(userId)) ||
             (selectedGroupForMembers.adminParticipantName &&
               userName &&
-              selectedGroupForMembers.adminParticipantName.toLowerCase() === userName.toLowerCase())
-          }
+              selectedGroupForMembers.adminParticipantName.toLowerCase() ===
+                userName.toLowerCase()),
+          )}
           currentUserId={userId}
           onClose={() => setSelectedGroupForMembers(null)}
           onCodeRegenerated={(newCode) => {
