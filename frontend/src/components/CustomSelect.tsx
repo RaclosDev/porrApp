@@ -1,28 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
 import Flag from './Flag';
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface CustomSelectProps {
+  /** Valor seleccionado (nombre del equipo). */
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  /** Texto si no hay valor seleccionado. */
+  placeholder?: string;
+}
+
 /**
- * Componente Select (Dropdown) personalizado para seleccionar equipos.
- * Permite mostrar banderas junto a las opciones y mantener un estilo visual 'glass'.
- *
- * @component
- * @param {Object} props - Propiedades del componente.
- * @param {string} props.value - Valor actualmente seleccionado (nombre del equipo).
- * @param {Array<{value: string, label: string}>} props.options - Opciones disponibles.
- * @param {Function} props.onChange - Callback que se ejecuta cuando el usuario selecciona una opción.
- * @param {string} props.placeholder - Texto que se muestra si no hay valor seleccionado.
- * @returns {JSX.Element} Dropdown interactivo.
+ * Select personalizado para elegir equipos: muestra banderas junto a las opciones
+ * y mantiene el estilo visual 'glass'.
  */
-export default function CustomSelect({ value, options, onChange, placeholder }) {
+export default function CustomSelect({ value, options, onChange, placeholder }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   /**
    * Cierra el desplegable si el usuario hace click fuera del componente.
    */
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -37,9 +43,9 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
   );
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', flex: 1, zIndex: isOpen ? 1000 : 1 }}>
+    <div className={`relative flex-1 ${isOpen ? 'z-[1000]' : 'z-[1]'}`} ref={dropdownRef}>
       <div
-        className="glass-input"
+        className="glass-input py-1.5 px-2 text-[0.85rem] cursor-pointer flex justify-between items-center min-h-11"
         role="combobox"
         aria-expanded={isOpen}
         tabIndex={0}
@@ -52,26 +58,9 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
             setIsOpen(false);
           }
         }}
-        style={{
-          padding: '6px 8px',
-          fontSize: '0.85rem',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          minHeight: '44px',
-        }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            flex: 1,
-          }}
-        >
+        <div className="flex items-center justify-center gap-2 flex-1">
           {selectedOption ? (
             <>
               {selectedOption.value !== '' && (
@@ -84,30 +73,17 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
               <span>{selectedOption.label}</span>
             </>
           ) : (
-            <span style={{ color: 'var(--text-muted)' }}>{placeholder}</span>
+            <span className="text-muted">{placeholder}</span>
           )}
         </div>
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>▼</span>
+        <span className="text-[0.7rem] text-muted">▼</span>
       </div>
 
       {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            background: '#0f172a',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px',
-            marginTop: '4px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-            zIndex: 100,
-            overflow: 'hidden',
-          }}
-        >
+        <div className="absolute top-full left-0 right-0 bg-[#0f172a] bg-none border border-[rgba(255,255,255,0.2)] rounded-[8px] mt-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] z-[100] overflow-hidden">
           {options.map((opt, idx) => (
             <div
+              className={`py-2 px-2.5 text-[0.85rem] cursor-pointer flex items-center justify-center gap-2 ${value === opt.value ? 'bg-[rgba(255,255,255,0.1)] bg-none' : 'bg-transparent bg-none'} ${idx < options.length - 1 ? 'border-b border-b-[rgba(255,255,255,0.05)]' : 'border-b-0'}`}
               key={idx}
               role="option"
               tabIndex={0}
@@ -118,18 +94,6 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
                   onChange(opt.value);
                   setIsOpen(false);
                 }
-              }}
-              style={{
-                padding: '8px 10px',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                background: value === opt.value ? 'rgba(255,255,255,0.1)' : 'transparent',
-                borderBottom:
-                  idx < options.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
               onMouseLeave={(e) => {

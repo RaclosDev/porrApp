@@ -52,20 +52,13 @@ const DemoPredictionPage = () => {
 
   // La demo muestra la porra pública de Raclos en modo estrictamente de solo lectura.
   const raclosPrediction = participantsHashes.find((participant) =>
-    /raclos/i.test(
-      String(
-        participant?.participantName ||
-          participant?.name ||
-          participant?.data?.participantName ||
-          '',
-      ),
-    ),
+    /raclos/i.test(participant?.participantName || ''),
   );
-  const predictionId = raclosPrediction?.key ?? raclosPrediction?.id;
+  const predictionId = raclosPrediction?.key;
 
   if (!predictionId) {
     return (
-      <section className="view-section" style={{ display: 'block', padding: '24px' }}>
+      <section className="view-section block p-6">
         <h2>Mi Porra · Demo</h2>
         <p role="status">No se ha encontrado la porra pública de Raclos en esta liga.</p>
       </section>
@@ -86,7 +79,13 @@ const DemoPage = () => {
   return <Home />;
 };
 
-const ProtectedRoute = ({ children, guestAllowed = false }) => {
+const ProtectedRoute = ({
+  children,
+  guestAllowed = false,
+}: {
+  children: React.ReactNode;
+  guestAllowed?: boolean;
+}) => {
   const { isAuthenticated, userName, isDemoMode } = useAppContext();
   const isAuthed = isAuthenticated && Boolean(userName);
   const location = useLocation();
@@ -152,7 +151,7 @@ function App() {
               />
               {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
               <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
-              <Route path="/grupos" element={<Home defaultMode="groups" hideToggle={true} />} />
+              <Route path="/grupos" element={<Home defaultMode="groups" />} />
               <Route
                 path="/stats"
                 element={

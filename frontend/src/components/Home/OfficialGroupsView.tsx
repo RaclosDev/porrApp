@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { compareTeams } from '../../utils/points';
 import Flag from '../Flag';
 import GroupMatchesModal from '../GroupMatchesModal';
 import BestThirdsPanel from './BestThirdsPanel';
 import LiveMatchesPanel from './LiveMatchesPanel';
 import TopScorersPanel from './TopScorersPanel';
+import type { SelectedGroup } from '../GroupMatchesModal';
+import type { TeamOdds } from '../../types/api';
+import { useSortedGroups } from '../../hooks/useSortedGroups';
 
 /**
  * Componente que renderiza la vista oficial de fase de grupos del torneo:
@@ -26,42 +28,17 @@ export default function OfficialGroupsView() {
     activeGroupPichichi,
   } = useAppContext();
 
-  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
 
-  const sortedGroups = useMemo(() => {
-    if (!groupOdds) return {};
-    const res = {};
-    Object.entries(groupOdds).forEach(([groupName, teams]) => {
-      const teamsWithStats = (teams || []).map((t) => {
-        const safeKey = t.name.replace(/[.#$[\]]/g, '');
-        const stats = officialPoints?.[groupName]?.[safeKey] || {
-          pts: 0,
-          diff: 0,
-          gls: 0,
-          mp: 0,
-          fp: 0,
-        };
-        return { ...t, stats };
-      });
+  const sortedGroups = useSortedGroups();
 
-      teamsWithStats.sort((a, b) => {
-        if (a.stats?.pos && b.stats?.pos) {
-          return a.stats.pos - b.stats.pos;
-        }
-        return compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap);
-      });
-      res[groupName] = teamsWithStats;
-    });
-    return res;
-  }, [groupOdds, officialPoints, allGames, nameToIdMap]);
-
-  const renderGroup = (groupName, teams) => {
+  const renderGroup = (groupName: string, teams: TeamOdds[]) => {
     const teamsWithStats = sortedGroups[groupName] || [];
 
     return (
       <div
         key={groupName}
-        className="group-card"
+        className={`group-card relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
         role="button"
         tabIndex={0}
         aria-label={`Ver detalles del Grupo ${groupName}`}
@@ -73,53 +50,23 @@ export default function OfficialGroupsView() {
           }
         }}
         id={`group-card-${groupName}`}
-        style={{
-          position: 'relative',
-          zIndex: selectedGroup?.name === groupName ? 100 : 1,
-          cursor: 'pointer',
-          border: selectedGroup?.name === groupName ? '1px solid var(--accent-color)' : '',
-          outline: selectedGroup?.name === groupName ? '2px solid var(--accent-cyan)' : 'none',
-        }}
         onClick={() => {
           if (selectedGroup?.name === groupName) setSelectedGroup(null);
           else setSelectedGroup({ name: groupName, teams });
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '10px',
-          }}
-        >
+        <div className="flex justify-between items-center mb-2.5">
           <h3
-            style={{
-              margin: 0,
-              fontFamily: 'inherit',
-              fontSize: '1rem',
-              lineHeight: 1.25,
-              fontWeight: 800,
-              letterSpacing: '-0.01em',
-              textAlign: 'left',
-            }}
+            className="m-0 text-[1rem] leading-[1.25] font-extrabold tracking-[-0.01em] text-left"
+            style={{ fontFamily: 'inherit' }}
           >
             Grupo {groupName}
           </h3>
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              fontSize: '0.75em',
-              fontWeight: 'bold',
-              color: 'var(--text-muted)',
-              paddingRight: '6px',
-            }}
-          >
-            <span style={{ width: '20px', textAlign: 'center' }}>DG</span>
-            <span style={{ width: '16px', textAlign: 'center' }}>GF</span>
-            <span style={{ width: '18px', textAlign: 'center' }}>FP</span>
-            <span style={{ width: '24px', textAlign: 'center' }}>PTS</span>
+          <div className="flex gap-2 text-[0.75em] font-bold text-muted pr-1.5">
+            <span className="w-5 text-center">DG</span>
+            <span className="w-4 text-center">GF</span>
+            <span className="w-4.5 text-center">FP</span>
+            <span className="w-6 text-center">PTS</span>
           </div>
         </div>
 
@@ -128,106 +75,49 @@ export default function OfficialGroupsView() {
           if (team.stats.status === 5) {
             statusDot = (
               <span
+                className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
                 title="Clasificado Matemáticamente"
                 aria-label="Clasificado Matemáticamente"
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  background: '#3498db',
-                  borderRadius: '50%',
-                  marginLeft: '4px',
-                  flexShrink: 0,
-                  display: 'inline-block',
-                }}
               />
             );
           } else if (team.stats.status === -1) {
             statusDot = (
               <span
+                className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"
                 title="Eliminado Matemáticamente"
                 aria-label="Eliminado Matemáticamente"
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  background: '#ff4757',
-                  borderRadius: '50%',
-                  marginLeft: '4px',
-                  flexShrink: 0,
-                  display: 'inline-block',
-                }}
               />
             );
           }
 
           return (
             <div
+              className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)] bg-none' : 'bg-transparent bg-none'}`}
               key={team.name}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '6px 8px',
-                marginBottom: '4px',
-                borderRadius: '6px',
-                background: idx < 2 ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
-              }}
             >
-              <span
-                style={{
-                  width: '18px',
-                  fontWeight: 'bold',
-                  color: 'var(--text-muted)',
-                  fontSize: '0.85em',
-                  flexShrink: 0,
-                }}
-              >
-                {idx + 1}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', flexShrink: 0 }}>
+              <span className="w-4.5 font-bold text-muted text-[0.85em] shrink-0">{idx + 1}</span>
+              <span className="inline-flex items-center mr-[5px] shrink-0">
                 <Flag team={team.name} />
               </span>
               <span
-                style={{
-                  flexGrow: 1,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  marginRight: '8px',
-                  fontWeight: idx < 2 ? 'bold' : 'normal',
-                }}
+                className={`grow whitespace-nowrap overflow-hidden text-ellipsis mr-2 ${idx < 2 ? 'font-bold' : 'font-normal'}`}
               >
                 {team.name}
               </span>
               {statusDot}
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  fontSize: '0.85em',
-                  color: 'var(--text-muted)',
-                }}
-              >
+              <div className="flex gap-2 text-[0.85em] text-muted">
                 <span
+                  className="w-5 text-center"
                   style={{
-                    width: '20px',
-                    textAlign: 'center',
                     color:
                       team.stats.diff > 0 ? '#2ecc71' : team.stats.diff < 0 ? '#ff7675' : 'inherit',
                   }}
                 >
                   {team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}
                 </span>
-                <span style={{ width: '16px', textAlign: 'center' }}>{team.stats.gls}</span>
-                <span style={{ width: '18px', textAlign: 'center' }}>{team.stats.fp}</span>
-                <span
-                  style={{
-                    width: '24px',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    color: 'var(--text-main)',
-                  }}
-                >
-                  {team.stats.pts}
-                </span>
+                <span className="w-4 text-center">{team.stats.gls}</span>
+                <span className="w-4.5 text-center">{team.stats.fp}</span>
+                <span className="w-6 text-center font-bold text-main">{team.stats.pts}</span>
               </div>
             </div>
           );
@@ -239,22 +129,16 @@ export default function OfficialGroupsView() {
   const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;
   if (loading && !hasGroupsData) {
     return (
-      <section className="view-section" style={{ display: 'block' }}>
+      <section className="view-section block">
         <div className="groups-grid">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="skeleton-card">
-              <div
-                className="skeleton skeleton-text short"
-                style={{ height: '18px', marginBottom: '14px' }}
-              />
+              <div className="skeleton skeleton-text short h-4.5 mb-3.5" />
               {Array.from({ length: 4 }).map((_, j) => (
                 <div key={j} className="skeleton-row">
                   <div className="skeleton skeleton-avatar" />
                   <div className="skeleton skeleton-bar" />
-                  <div
-                    className="skeleton"
-                    style={{ width: '28px', height: '14px', borderRadius: '4px' }}
-                  />
+                  <div className="skeleton w-7 h-3.5 rounded-[4px]" />
                 </div>
               ))}
             </div>
@@ -265,44 +149,17 @@ export default function OfficialGroupsView() {
   }
 
   return (
-    <div style={{ width: '100%' }}>
+    <div className="w-full">
       {/* Paneles superiores: Mejores Terceros, Partidos en Directo, Pichichi */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '20px',
-          justifyContent: 'center',
-          alignItems: 'stretch',
-          flexWrap: 'wrap',
-          marginBottom: '30px',
-          width: '100%',
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            minWidth: 'min(100%, 380px)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-          }}
-        >
+      <div className="flex gap-5 justify-center items-stretch flex-wrap mb-7.5 w-full">
+        <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
           <BestThirdsPanel
             officialPoints={officialPoints}
             allGames={allGames}
             nameToIdMap={nameToIdMap}
           />
         </div>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 'min(100%, 350px)',
-            maxWidth: '600px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
+        <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel
             liveMatches={matchRadar?.live || []}
             matchRadar={matchRadar}
@@ -310,22 +167,13 @@ export default function OfficialGroupsView() {
           />
         </div>
         {activeGroupPichichi && (
-          <div
-            style={{
-              flex: 1,
-              minWidth: 'min(100%, 380px)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'flex-start',
-            }}
-            className="pichichi-mobile-center"
-          >
+          <div className="pichichi-mobile-center flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
             <TopScorersPanel
-            topScorers={topScorers}
-            loading={topScorersLoading}
-            error={topScorersError}
-            onRetry={refreshTopScorers}
-          />
+              topScorers={topScorers}
+              loading={topScorersLoading}
+              error={topScorersError}
+              onRetry={refreshTopScorers}
+            />
           </div>
         )}
       </div>

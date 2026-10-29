@@ -9,7 +9,7 @@ describe('bracket persistence & hydration on reload (F5)', () => {
   it('returns defaultBracketState if no draft exists in localStorage', () => {
     const state = getInitialBracketState('42');
     expect(state).toEqual(defaultBracketState);
-    expect(state.r32.left[0].home.name).toContain('º');
+    expect(state.r32.left[0].home?.name).toContain('º');
   });
 
   it('returns saved bracket state with real countries from localStorage', () => {
@@ -20,9 +20,9 @@ describe('bracket persistence & hydration on reload (F5)', () => {
     localStorage.setItem('draft_bracket_42', JSON.stringify(customBracket));
 
     const state = getInitialBracketState('42');
-    expect(state.r32.left[0].home.name).toBe('España');
-    expect(state.r32.left[0].away.name).toBe('Alemania');
-    expect(state.r32.left[0].home.name).not.toContain('º');
+    expect(state.r32.left[0].home?.name).toBe('España');
+    expect(state.r32.left[0].away?.name).toBe('Alemania');
+    expect(state.r32.left[0].home?.name).not.toContain('º');
   });
 
   it('handles invalid or corrupted JSON gracefully by returning defaultBracketState', () => {

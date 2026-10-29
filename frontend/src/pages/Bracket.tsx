@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
-import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
+import BracketCanvas, {
+  TeamSlot,
+  matchTop,
+  MATCH_H,
+  COL_GAP,
+  type SlotContext,
+} from '../components/BracketCanvas';
+import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
 import { PredictionSkeleton } from '../components/Skeleton';
 import { useBracket } from '../hooks/useBracket';
@@ -54,20 +61,19 @@ function Bracket() {
   const myPred = participantsHashes?.find(
     (h) =>
       (userName && h.participantName?.toLowerCase() === userName.toLowerCase()) ||
-      h.isCaller ||
       (userId && h.userId?.toString() === userId?.toString()),
   );
-  const effectivePredictionId = savedPredictionId || myPred?.key || myPred?.id;
+  const effectivePredictionId = savedPredictionId || myPred?.key;
 
   if (loadingGroup)
     return (
-      <div style={{ padding: '8px 0' }}>
+      <div className="py-2 px-0">
         <PredictionSkeleton />
       </div>
     );
   if (groupError)
     return (
-      <p role="alert" style={{ padding: '24px', textAlign: 'center', color: '#ff7675' }}>
+      <p className="p-6 text-center text-[#ff7675]" role="alert">
         No se pudo cargar la liga. Inténtalo de nuevo.
       </p>
     );
@@ -86,14 +92,16 @@ function Bracket() {
   }
 
   /** Slot renderer for BracketCanvas */
-  const renderSlot = (team, { side, roundIndex, matchIndex, isHome }) => {
+  const renderSlot = (
+    team: BracketTeam | null | undefined,
+    { side, roundIndex, matchIndex, isHome }: SlotContext,
+  ) => {
     // R32 in KNOCKOUTS_ONLY with placeholder → dropdown
     if (roundIndex === 0 && isKnockoutsOnly && team?.name?.includes('º')) {
       return (
         <select
           aria-label="Seleccionar equipo clasificado"
-          className="glass-input"
-          style={{ width: '100%', height: 42, padding: '0 10px', fontSize: '0.85rem' }}
+          className="glass-input w-full h-10.5 py-0 px-2.5 text-[0.85rem]"
           defaultValue=""
           onChange={(e) => e.target.value && setR32Team(e.target.value, side, matchIndex, isHome)}
         >
@@ -117,17 +125,9 @@ function Bracket() {
         if (teamStatus === 5) {
           statusIndicator = (
             <span
+              className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
               title="Clasificado Matemáticamente"
               aria-label="Clasificado Matemáticamente"
-              style={{
-                width: '8px',
-                height: '8px',
-                background: '#3498db',
-                borderRadius: '50%',
-                marginLeft: '4px',
-                flexShrink: 0,
-                display: 'inline-block',
-              }}
             />
           );
         }
@@ -148,28 +148,18 @@ function Bracket() {
 
   const finalTopY = matchTop(3, 0);
 
-  const renderCenter = (colW) => (
+  const renderCenter = (colW: number) => (
     <>
       {/* FINAL */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY - 22,
-          left: COL_GAP,
-          width: colW,
-          textAlign: 'center',
-          fontSize: '0.65rem',
-          fontWeight: 700,
-          color: 'rgba(251,191,36,0.9)',
-          letterSpacing: 2,
-          textTransform: 'uppercase',
-        }}
+        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase"
+        style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
       >
         ⚽ Final
       </div>
       <div
-        className="match final-match"
-        style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}
+        className="match final-match absolute"
+        style={{ top: finalTopY, left: COL_GAP, width: colW }}
       >
         <TeamSlot
           name={bracketState.final?.home?.name}
@@ -187,24 +177,10 @@ function Bracket() {
 
       {/* CAMPEÓN */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY + MATCH_H + 18,
-          left: COL_GAP,
-          width: colW,
-          textAlign: 'center',
-        }}
+        className="absolute text-center"
+        style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
       >
-        <div
-          style={{
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            color: 'var(--champion-gold)',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-          }}
-        >
+        <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1.5">
           🏆 Campeón
         </div>
         <div className="champion-display">
@@ -214,24 +190,10 @@ function Bracket() {
 
       {/* TERCER PUESTO */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY + MATCH_H + 18 + MATCH_H + 44,
-          left: COL_GAP,
-          width: colW,
-        }}
+        className="absolute"
+        style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
       >
-        <div
-          style={{
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-            textAlign: 'center',
-          }}
-        >
+        <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1.5 text-center">
           🥉 Tercer Puesto
         </div>
         <div className="match third-place">
@@ -251,10 +213,8 @@ function Bracket() {
           />
         </div>
         {bracketState.thirdPlaceWinner && (
-          <div style={{ marginTop: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: 4 }}>
-              Ganador:
-            </div>
+          <div className="mt-2.5 text-center">
+            <div className="text-[0.65rem] text-muted mb-1">Ganador:</div>
             <TeamSlot name={bracketState.thirdPlaceWinner?.name} />
           </div>
         )}
@@ -263,29 +223,13 @@ function Bracket() {
   );
 
   return (
-    <section id="view-bracket" className="view-section" style={{ display: 'block' }}>
+    <section id="view-bracket" className="view-section block">
       {effectivePredictionId && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            marginBottom: '16px',
-            padding: '0 8px',
-          }}
-        >
+        <div className="flex justify-end mb-4 py-0 px-2">
           <button
             type="button"
             onClick={() => setIsEditing(false)}
-            className="glass-btn"
-            style={{
-              padding: '8px 16px',
-              fontSize: '0.88rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
+            className="glass-btn py-2 px-4 text-[0.88rem] font-bold cursor-pointer flex items-center gap-1.5"
           >
             👁️ Ver Pronóstico Guardado
           </button>
@@ -301,25 +245,16 @@ function Bracket() {
         />
       ) : (
         <>
-          <div className="section-header" style={{ marginBottom: 30, textAlign: 'center' }}>
-            <h2 style={{ margin: 0 }}>Paso 2: Eliminatorias</h2>
-            <p style={{ color: 'var(--text-muted)', marginTop: 8, fontSize: '0.9rem' }}>
+          <div className="section-header mb-7.5 text-center">
+            <h2 className="m-0">Paso 2: Eliminatorias</h2>
+            <p className="text-muted mt-2 text-[0.9rem]">
               Haz clic en un equipo para avanzarlo a la siguiente ronda
             </p>
             {!isKnockoutsOnly && (
               <button
                 type="button"
                 onClick={handleResetToGroupStage}
-                className="glass-btn"
-                style={{
-                  marginTop: '10px',
-                  fontSize: '0.85rem',
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  color: 'var(--accent-cyan)',
-                  border: '1px solid rgba(0, 210, 211, 0.4)',
-                  cursor: 'pointer',
-                }}
+                className="glass-btn mt-2.5 text-[0.85rem] py-1.5 px-3.5 rounded-[20px] text-cyan border border-[rgba(0,_210,_211,_0.4)] cursor-pointer"
               >
                 ← Modificar Fase de Grupos
               </button>
@@ -359,20 +294,10 @@ function Bracket() {
               renderSlot={renderSlot}
               renderCenter={renderCenter}
               mobileCenter={() => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div className="flex flex-col gap-5">
                   {/* Final */}
                   <div>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: 'rgba(251,191,36,0.9)',
-                        letterSpacing: 2,
-                        textTransform: 'uppercase',
-                        textAlign: 'center',
-                        marginBottom: 8,
-                      }}
-                    >
+                    <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase text-center mb-2">
                       ⚽ Final
                     </div>
                     <div className="mb-match-card">
@@ -393,17 +318,8 @@ function Bracket() {
                     </div>
                   </div>
                   {/* Campeón */}
-                  <div style={{ textAlign: 'center' }}>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: 'var(--champion-gold)',
-                        letterSpacing: 2,
-                        textTransform: 'uppercase',
-                        marginBottom: 8,
-                      }}
-                    >
+                  <div className="text-center">
+                    <div className="text-[0.75rem] font-bold text-gold tracking-[2px] uppercase mb-2">
                       🏆 Campeón
                     </div>
                     <div className="champion-display">
@@ -412,17 +328,7 @@ function Bracket() {
                   </div>
                   {/* Tercer Puesto */}
                   <div>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        letterSpacing: 2,
-                        textTransform: 'uppercase',
-                        textAlign: 'center',
-                        marginBottom: 8,
-                      }}
-                    >
+                    <div className="text-[0.75rem] font-bold text-muted tracking-[2px] uppercase text-center mb-2">
                       🥉 Tercer Puesto
                     </div>
                     <div className="mb-match-card">
@@ -442,16 +348,8 @@ function Bracket() {
                       />
                     </div>
                     {bracketState.thirdPlaceWinner && (
-                      <div style={{ marginTop: 10, textAlign: 'center' }}>
-                        <div
-                          style={{
-                            fontSize: '0.65rem',
-                            color: 'var(--text-muted)',
-                            marginBottom: 4,
-                          }}
-                        >
-                          Ganador:
-                        </div>
+                      <div className="mt-2.5 text-center">
+                        <div className="text-[0.65rem] text-muted mb-1">Ganador:</div>
                         <TeamSlot name={bracketState.thirdPlaceWinner?.name} />
                       </div>
                     )}
@@ -489,16 +387,15 @@ function Bracket() {
               border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            <h3 style={{ marginTop: 0, color: 'var(--accent-color)' }}>Guardar Porra</h3>
-            <div style={{ display: 'flex', gap: 15, flexWrap: 'wrap', marginBottom: 15 }}>
+            <h3 className="mt-0 text-accent">Guardar Porra</h3>
+            <div className="flex gap-[15px] flex-wrap mb-[15px]">
               <input
                 type="text"
                 placeholder="Tu Nombre (Loguéate arriba primero)"
                 aria-label="Tu Nombre"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                className="glass-input"
-                style={{ flex: 1, minWidth: 200 }}
+                className="glass-input flex-1 min-w-50"
                 disabled={isAuthenticated}
               />
               <input
@@ -507,8 +404,7 @@ function Bracket() {
                 aria-label="Nombre de la Porra"
                 value={predictionName}
                 onChange={(e) => setPredictionName(e.target.value)}
-                className="glass-input"
-                style={{ flex: 1, minWidth: 200 }}
+                className="glass-input flex-1 min-w-50"
               />
               {activeGroupPichichi && (
                 <input
@@ -517,23 +413,12 @@ function Bracket() {
                   aria-label="Pichichi"
                   value={topScorer}
                   onChange={(e) => setTopScorer(e.target.value)}
-                  className="glass-input"
-                  style={{ flex: 1, minWidth: 200 }}
+                  className="glass-input flex-1 min-w-50"
                 />
               )}
             </div>
             {activeGroupIsLocked && (
-              <div
-                style={{
-                  padding: '10px 14px',
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.4)',
-                  borderRadius: 8,
-                  color: '#fca5a5',
-                  marginBottom: 15,
-                  fontSize: '0.9rem',
-                }}
-              >
+              <div className="py-2.5 px-3.5 bg-[rgba(239,_68,_68,_0.15)] bg-none border border-[rgba(239,_68,_68,_0.4)] rounded-[8px] text-[#fca5a5] mb-[15px] text-[0.9rem]">
                 🔒 <b>Pronósticos cerrados:</b> El plazo para enviar o modificar porras en esta liga
                 ha finalizado.
               </div>

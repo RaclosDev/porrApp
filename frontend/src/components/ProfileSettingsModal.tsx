@@ -5,12 +5,13 @@ import { updateMyProfile, uploadMyAvatar, deleteMyAvatar } from '../services/api
 import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
 import { UserAvatar } from './Avatar';
+import { errorMessage } from '../utils/errors';
 
 /**
  * Ajustes de cuenta: nombre público y foto de perfil.
  * No cambia el correo ni el nombre de Google ni la vinculación de la cuenta.
  */
-export default function ProfileSettingsModal({ onClose }) {
+export default function ProfileSettingsModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const userName = useAppStore((s) => s.userName);
   const avatarUrl = useAppStore((s) => s.userAvatarUrl);
@@ -22,7 +23,7 @@ export default function ProfileSettingsModal({ onClose }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -44,7 +45,7 @@ export default function ProfileSettingsModal({ onClose }) {
       refreshEverywhere();
       toast.success('Nombre actualizado');
     } catch (err) {
-      setError(err.message || 'No se pudo guardar el nombre');
+      setError(errorMessage(err, 'No se pudo guardar el nombre'));
     } finally {
       setSaving(false);
     }
@@ -54,56 +55,29 @@ export default function ProfileSettingsModal({ onClose }) {
 
   return (
     <div
+      className="fixed inset-0 bg-[rgba(0,_0,_0,_0.75)] bg-none [backdrop-filter:blur(8px)] flex items-center justify-center z-[1000] p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-settings-title"
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '16px',
-      }}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '460px',
-          background: '#151525',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 id="profile-settings-title" style={{ margin: 0, color: '#fff', fontSize: '1.2rem' }}>
+      <div className="w-full max-w-115 bg-[#151525] bg-none border border-[rgba(255,255,255,0.1)] rounded-[16px] p-5 flex flex-col gap-4.5 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center">
+          <h3 className="m-0 text-white text-[1.2rem]" id="profile-settings-title">
             Ajustes de cuenta
           </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar ajustes"
-            className="glass-btn"
-            style={{ width: 32, height: 32, borderRadius: '50%', cursor: 'pointer' }}
+            className="glass-btn w-8 h-8 rounded-full cursor-pointer"
           >
             ✕
           </button>
         </div>
 
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-            Foto de perfil
-          </span>
+        <section className="flex flex-col gap-2">
+          <span className="text-[0.8rem] font-bold text-muted">Foto de perfil</span>
           <ImagePicker
             idPrefix="avatar-picker"
             currentUrl={avatarUrl}
@@ -123,46 +97,33 @@ export default function ProfileSettingsModal({ onClose }) {
           />
         </section>
 
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label
-            htmlFor="profile-name-input"
-            style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}
-          >
+        <section className="flex flex-col gap-2">
+          <label className="text-[0.8rem] font-bold text-muted" htmlFor="profile-name-input">
             Nombre público
           </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="flex gap-2">
             <input
               id="profile-name-input"
-              className="glass-input"
+              className="glass-input flex-1 min-w-0"
               value={name}
               maxLength={30}
               onChange={(e) => setName(e.target.value)}
-              style={{ flex: 1, minWidth: 0 }}
             />
             <button
               type="button"
-              className="glass-btn"
+              className="glass-btn py-1.5 px-3.5 font-bold rounded-[8px] bg-[rgba(0,_210,_211,_0.15)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] cursor-pointer"
               onClick={saveName}
               disabled={saving || unchanged || name.trim().length < 2}
-              style={{
-                padding: '6px 14px',
-                fontWeight: 700,
-                borderRadius: '8px',
-                background: 'rgba(0, 210, 211, 0.15)',
-                border: '1px solid rgba(0, 210, 211, 0.45)',
-                color: '#00d2d3',
-                cursor: 'pointer',
-              }}
             >
               {saving ? 'Guardando…' : 'Guardar'}
             </button>
           </div>
           {error && (
-            <span role="alert" style={{ fontSize: '0.8rem', color: '#ff6b7a' }}>
+            <span className="text-[0.8rem] text-[#ff6b7a]" role="alert">
               {error}
             </span>
           )}
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+          <span className="text-[0.74rem] text-muted">
             Es el nombre que ven tus amigos en clasificaciones y ligas. Tu cuenta de Google y su
             vinculación no cambian.
           </span>

@@ -1,24 +1,21 @@
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, type ReactNode } from 'react';
 import { getCountryCode } from '../utils/constants';
 import Flag from './Flag';
 import MobileBracket from './MobileBracket';
+import type { BracketTeam } from '../store/useAppStore';
 
 // Vertical layout constants
 export const SLOT_H = 36;
 export const MATCH_H = SLOT_H * 2 + 2; // 74px
 export const R32_PITCH = MATCH_H + 14; // 88px
 
-const leafTop = (i) => i * R32_PITCH;
+const leafTop = (i: number) => i * R32_PITCH;
 
 /**
- * Calcula la posición Y (top) de un partido en el Bracket para centrarlo
- * correctamente respecto a la ronda anterior.
- *
- * @param {number} r - Índice de la ronda (0 = 1/16, 1 = Octavos, 2 = Cuartos, 3 = Semis).
- * @param {number} i - Índice del partido en esa ronda.
- * @returns {number} Posición en píxeles (top).
+ * Posición Y (top) de un partido, centrado respecto a sus dos partidos de la ronda anterior.
+ * `r`: 0 = dieciseisavos, 1 = octavos, 2 = cuartos, 3 = semis; `i`: índice en la ronda.
  */
-export function matchTop(r, i) {
+export function matchTop(r: number, i: number): number {
   if (r === 0) return leafTop(i);
   return (matchTop(r - 1, i * 2) + matchTop(r - 1, i * 2 + 1)) / 2;
 }
@@ -35,19 +32,19 @@ export const COL_GAP = GAP;
 const ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
 
 // SVG connector lines
-/**
- * Componente que dibuja las líneas (ramas) conectoras entre una ronda y la siguiente.
- *
- * @component
- * @param {Object} props
- * @param {number} props.parentTop - Top (Y) del partido padre (ronda actual).
- * @param {number} props.childATop - Top (Y) del primer hijo (ronda previa).
- * @param {number} props.childBTop - Top (Y) del segundo hijo (ronda previa).
- * @param {string} props.dir - 'right' o 'left'. Define hacia dónde crecen las ramas.
- * @param {number} props.colW - Ancho actual de la columna (para calcular márgenes).
- * @returns {JSX.Element} Líneas de conexión SVG.
- */
-function Connectors({ parentTop, childATop, childBTop, dir, colW }) {
+interface ConnectorsProps {
+  /** Top del partido de la ronda actual. */
+  parentTop: number;
+  /** Tops de sus dos partidos de la ronda previa. */
+  childATop: number;
+  childBTop: number;
+  /** Hacia dónde crecen las ramas. */
+  dir: 'left' | 'right';
+  colW: number;
+}
+
+/** Líneas SVG que unen dos partidos de una ronda con el de la siguiente. */
+function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsProps) {
   const pMid = parentTop + MATCH_H / 2;
   const aMid = childATop + MATCH_H / 2;
   const bMid = childBTop + MATCH_H / 2;
@@ -65,15 +62,8 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }) {
 
   return (
     <svg
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: svgLeft,
-        width: GAP,
-        height: svgH,
-        overflow: 'visible',
-        pointerEvents: 'none',
-      }}
+      className="absolute top-0 overflow-visible pointer-events-none"
+      style={{ left: svgLeft, width: GAP, height: svgH }}
     >
       <line x1={childX} y1={aMid} x2={midX} y2={aMid} stroke={color} strokeWidth={sw} />
       <line x1={childX} y1={bMid} x2={midX} y2={bMid} stroke={color} strokeWidth={sw} />
@@ -95,7 +85,14 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }) {
  * @param {ReactNode} [props.rightContent] - Elemento a renderizar en la derecha (puntos).
  * @returns {JSX.Element} La casilla del bracket.
  */
-export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }) {
+interface TeamSlotProps {
+  name: string | null | undefined;
+  onClick?: () => void;
+  slotStyle?: React.CSSProperties;
+  rightContent?: React.ReactNode;
+}
+
+export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }: TeamSlotProps) {
   const isEmpty = !name;
   const lower = name?.toLowerCase() || '';
   const isCombined = !isEmpty && name.includes(' / ');
@@ -139,7 +136,7 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
         />
       )}
       {!isEmpty && isCombined && (
-        <div style={{ display: 'flex', marginRight: 6, flexShrink: 0, alignItems: 'center' }}>
+        <div className="flex mr-1.5 shrink-0 items-center">
           {combinedTeams.map((t, idx) => (
             <Flag
               key={t}
@@ -158,13 +155,7 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
         </div>
       )}
       <span
-        style={{
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flex: 1,
-          fontSize: isCombined ? '0.65rem' : '0.78rem',
-        }}
+        className={`overflow-hidden text-ellipsis whitespace-nowrap flex-1 ${isCombined ? 'text-[0.65rem]' : 'text-[0.78rem]'}`}
       >
         {name ?? 'Por definir'}
       </span>
@@ -184,9 +175,9 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
  * @param {Array[]} rightRounds - Rondas del lado derecho.
  * @returns {number} Índice de la pestaña activa (0-4).
  */
-function computeActiveTab(leftRounds, rightRounds) {
+function computeActiveTab(leftRounds: CanvasMatch[][], rightRounds: CanvasMatch[][]) {
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
-  const isRealTeam = (team) => {
+  const isRealTeam = (team: SlotTeam | undefined) => {
     if (!team) return false;
     const name = typeof team === 'object' ? team.name : team;
     if (!name) return false;
@@ -195,12 +186,12 @@ function computeActiveTab(leftRounds, rightRounds) {
     return true;
   };
 
-  const isMatchComplete = (match) => {
+  const isMatchComplete = (match: CanvasMatch | undefined) => {
     if (!match) return false;
     return isRealTeam(match.home) && isRealTeam(match.away);
   };
 
-  const isRoundComplete = (roundIndex) => {
+  const isRoundComplete = (roundIndex: number) => {
     const leftMatches = leftRounds[roundIndex] || [];
     const rightMatches = rightRounds[roundIndex] || [];
     const allMatches = [...leftMatches, ...rightMatches];
@@ -224,16 +215,55 @@ function computeActiveTab(leftRounds, rightRounds) {
  * que colapsan hacia una columna central (La Final y Tercer Puesto).
  *
  * @component
- * @param {Object} props
- * @param {Array[]} props.leftRounds - Array 2D (4 rondas) con partidos para el lado izquierdo.
- * @param {Array[]} props.rightRounds - Array 2D (4 rondas) con partidos para el lado derecho.
- * @param {Function} props.renderSlot - Función inyectada que dice CÓMO pintar un Slot (inyecta lógica de clics o coloreado).
- * @param {Function} props.renderCenter - Función que dibuja el centro (Final/Tercer puesto).
- * @param {Object} [props.hiddenRounds={}] - Mapa (0:true) indicando qué columnas deben ocultarse en móvil/filtrado.
- * @param {Function} [props.renderRoundFooter] - Función opcional que pinta el pie de cada columna (para sumar puntos por ronda).
- * @returns {JSX.Element} El lienzo del bracket de eliminatorias.
  */
-export default function BracketCanvas({
+export type SlotTeam = BracketTeam | string | null | undefined;
+
+/** Partido del cuadro; cada página decide qué guarda en los huecos (`T`). */
+export interface CanvasMatch<T extends SlotTeam = SlotTeam> {
+  home?: T;
+  away?: T;
+}
+
+export type RenderSlot<T extends SlotTeam = SlotTeam> = (
+  team: T | undefined,
+  context: SlotContext,
+) => ReactNode;
+
+/** Huecos de la final y del tercer puesto, que la página pinta fuera del lienzo. */
+export interface CenterSlotContext {
+  side: 'center';
+  roundIndex: 'final' | 'thirdPlaceMatch';
+  isHome: boolean;
+  matchIndex?: number;
+}
+
+export type OfficialSlotContext = SlotContext | CenterSlotContext;
+
+export interface SlotContext {
+  side: 'left' | 'right';
+  roundIndex: number;
+  matchIndex: number;
+  isHome: boolean;
+}
+
+interface BracketCanvasProps<T extends SlotTeam> {
+  /** 4 rondas de partidos del lado izquierdo. */
+  leftRounds: CanvasMatch<T>[][];
+  /** 4 rondas de partidos del lado derecho. */
+  rightRounds: CanvasMatch<T>[][];
+  /** Pinta un hueco del cuadro (inyecta la lógica de clics o coloreado). */
+  renderSlot: RenderSlot<T>;
+  /** Dibuja el centro (final y tercer puesto) con el ancho de columna calculado. */
+  renderCenter: (colW: number) => ReactNode;
+  /** Columnas ocultas en móvil o al filtrar, indexadas por ronda. */
+  hiddenRounds?: Record<number, boolean>;
+  /** Pie opcional de cada columna (p. ej. puntos por ronda). */
+  renderRoundFooter?: (roundIndex: number, side: 'left' | 'right') => ReactNode;
+  /** Centro alternativo para la vista móvil. */
+  mobileCenter?: () => ReactNode;
+}
+
+export default function BracketCanvas<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
@@ -241,8 +271,8 @@ export default function BracketCanvas({
   hiddenRounds = {},
   renderRoundFooter,
   mobileCenter,
-}) {
-  const wrapperRef = useRef(null);
+}: BracketCanvasProps<T>) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [colW, setColW] = useState(DEFAULT_COL);
   const [scale, setScale] = useState(1);
   const [isOverflowX, setIsOverflowX] = useState(false);
@@ -316,46 +346,30 @@ export default function BracketCanvas({
   const centerW = colW + GAP * 2;
 
   /** Render one round column as a flex item. Returns null if hidden. */
-  const renderRoundCol = (rounds, roundIndex, side, connDir) => {
+  const renderRoundCol = (
+    rounds: CanvasMatch<T>[][],
+    roundIndex: number,
+    side: 'left' | 'right',
+    connDir: 'left' | 'right' | null,
+  ) => {
     if (hiddenRounds[roundIndex]) return null;
     const matches = rounds[roundIndex];
     if (!matches) return null;
 
     return (
       <div
+        className="relative shrink-0"
         key={`${side}-${roundIndex}`}
-        style={{ position: 'relative', width: colW, height: CANVAS_H, flexShrink: 0 }}
+        style={{ width: colW, height: CANVAS_H }}
       >
         {/* Label */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -34,
-            left: 0,
-            width: '100%',
-            textAlign: 'center',
-            fontSize: '0.6rem',
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            letterSpacing: 1.5,
-            textTransform: 'uppercase',
-          }}
-        >
+        <div className="absolute -top-8.5 left-0 w-full text-center text-[0.6rem] font-bold text-muted tracking-[1.5px] uppercase">
           {ROUND_LABELS[roundIndex]}
         </div>
 
         {/* Column Total (was Footer) */}
         {renderRoundFooter && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -20,
-              left: 0,
-              width: '100%',
-              textAlign: 'center',
-              pointerEvents: 'none',
-            }}
-          >
+          <div className="absolute -top-5 left-0 w-full text-center pointer-events-none">
             {renderRoundFooter(roundIndex, side)}
           </div>
         )}
@@ -364,8 +378,8 @@ export default function BracketCanvas({
         {matches.map((match, i) => (
           <div
             key={i}
-            className="match"
-            style={{ position: 'absolute', top: matchTop(roundIndex, i), left: 0, width: '100%' }}
+            className="match absolute left-0 w-full"
+            style={{ top: matchTop(roundIndex, i) }}
           >
             {renderSlot(match.home, { side, roundIndex, matchIndex: i, isHome: true })}
             {renderSlot(match.away, { side, roundIndex, matchIndex: i, isHome: false })}
@@ -404,37 +418,15 @@ export default function BracketCanvas({
       {/* Desktop horizontal bracket */}
       <div
         ref={wrapperRef}
-        className="desktop-bracket-wrapper"
-        style={{
-          width: '100%',
-          paddingBottom: 10,
-          display: 'flex',
-          justifyContent: isOverflowX ? 'flex-start' : 'center',
-        }}
+        className={`desktop-bracket-wrapper w-full pb-2.5 flex ${isOverflowX ? 'justify-start' : 'justify-center'}`}
       >
-        <div
-          style={{
-            width: visualWidth,
-            height: visualHeight,
-            flexShrink: 0,
-            position: 'relative',
-          }}
-        >
+        <div className="shrink-0 relative" style={{ width: visualWidth, height: visualHeight }}>
           <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              display: 'inline-flex',
-              alignItems: 'flex-start',
-              padding: '40px 16px 10px',
-              gap: 0,
-              transform: `scale(${scale})`,
-              transformOrigin: '0 0',
-            }}
+            className="absolute top-0 left-0 inline-flex items-start pt-10 pb-2.5 px-4 gap-0 [transform-origin:0_0]"
+            style={{ transform: `scale(${scale})` }}
           >
             {/* Left side */}
-            <div style={{ display: 'flex', gap: GAP, height: CANVAS_H, flexShrink: 0 }}>
+            <div className="flex shrink-0" style={{ gap: GAP, height: CANVAS_H }}>
               {[0, 1, 2, 3].map((rIdx) =>
                 renderRoundCol(leftRounds, rIdx, 'left', rIdx > 0 ? 'right' : null),
               )}
@@ -443,13 +435,8 @@ export default function BracketCanvas({
             {/* SF → Final dashed connector (left) */}
             {!hiddenRounds[3] && (
               <svg
-                style={{
-                  width: GAP,
-                  height: CANVAS_H,
-                  flexShrink: 0,
-                  overflow: 'visible',
-                  pointerEvents: 'none',
-                }}
+                className="shrink-0 overflow-visible pointer-events-none"
+                style={{ width: GAP, height: CANVAS_H }}
               >
                 <line
                   x1={0}
@@ -464,20 +451,15 @@ export default function BracketCanvas({
             )}
 
             {/* Center */}
-            <div style={{ position: 'relative', width: centerW, height: CANVAS_H, flexShrink: 0 }}>
+            <div className="relative shrink-0" style={{ width: centerW, height: CANVAS_H }}>
               {renderCenter(colW)}
             </div>
 
             {/* Final → SF dashed connector (right) */}
             {!hiddenRounds[3] && (
               <svg
-                style={{
-                  width: GAP,
-                  height: CANVAS_H,
-                  flexShrink: 0,
-                  overflow: 'visible',
-                  pointerEvents: 'none',
-                }}
+                className="shrink-0 overflow-visible pointer-events-none"
+                style={{ width: GAP, height: CANVAS_H }}
               >
                 <line
                   x1={0}
@@ -492,7 +474,7 @@ export default function BracketCanvas({
             )}
 
             {/* Right side */}
-            <div style={{ display: 'flex', gap: GAP, height: CANVAS_H, flexShrink: 0 }}>
+            <div className="flex shrink-0" style={{ gap: GAP, height: CANVAS_H }}>
               {[3, 2, 1, 0].map((rIdx) =>
                 renderRoundCol(rightRounds, rIdx, 'right', rIdx > 0 ? 'left' : null),
               )}

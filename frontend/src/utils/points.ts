@@ -1,23 +1,34 @@
-export function compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap) {
+import type { GroupStandings, Match } from '../types/api';
+
+interface RankedTeam {
+  name: string;
+}
+
+export function compareTeams(
+  a: RankedTeam,
+  b: RankedTeam,
+  groupName: string,
+  officialPoints: GroupStandings | null | undefined,
+  allGames: Match[] | null | undefined,
+  nameToIdMap: Record<string, number> | null | undefined,
+): number {
   const safeNameA = a.name.replace(/[.#$[\]]/g, '');
   const safeNameB = b.name.replace(/[.#$[\]]/g, '');
 
-  const statsA =
-    officialPoints && officialPoints[groupName] && officialPoints[groupName][safeNameA];
-  const statsB =
-    officialPoints && officialPoints[groupName] && officialPoints[groupName][safeNameB];
+  const statsA = officialPoints?.[groupName]?.[safeNameA];
+  const statsB = officialPoints?.[groupName]?.[safeNameB];
 
-  const ptsA = typeof statsA === 'object' && statsA !== null ? statsA.pts || 0 : statsA || 0;
-  const ptsB = typeof statsB === 'object' && statsB !== null ? statsB.pts || 0 : statsB || 0;
+  const ptsA = statsA?.pts || 0;
+  const ptsB = statsB?.pts || 0;
 
-  const diffA = typeof statsA === 'object' && statsA !== null ? statsA.diff || 0 : 0;
-  const diffB = typeof statsB === 'object' && statsB !== null ? statsB.diff || 0 : 0;
+  const diffA = statsA?.diff || 0;
+  const diffB = statsB?.diff || 0;
 
-  const glsA = typeof statsA === 'object' && statsA !== null ? statsA.gls || 0 : 0;
-  const glsB = typeof statsB === 'object' && statsB !== null ? statsB.gls || 0 : 0;
+  const glsA = statsA?.gls || 0;
+  const glsB = statsB?.gls || 0;
 
-  const fpA = typeof statsA === 'object' && statsA !== null ? statsA.fp || 0 : 0;
-  const fpB = typeof statsB === 'object' && statsB !== null ? statsB.fp || 0 : 0;
+  const fpA = statsA?.fp || 0;
+  const fpB = statsB?.fp || 0;
 
   // Puntos totales
   if (ptsB !== ptsA) return ptsB - ptsA;
@@ -39,35 +50,21 @@ export function compareTeams(a, b, groupName, officialPoints, allGames, nameToId
           (g.home_team_id === idA && g.away_team_id === idB) ||
           (g.home_team_id === idB && g.away_team_id === idA),
       );
-      if (
-        h2hGame &&
-        h2hGame.home_score !== null &&
-        h2hGame.away_score !== null &&
-        h2hGame.home_score !== '' &&
-        h2hGame.away_score !== ''
-      ) {
-        const scoreA =
-          h2hGame.home_team_id === idA
-            ? parseInt(h2hGame.home_score)
-            : parseInt(h2hGame.away_score);
-        const scoreB =
-          h2hGame.home_team_id === idB
-            ? parseInt(h2hGame.home_score)
-            : parseInt(h2hGame.away_score);
-        if (!isNaN(scoreA) && !isNaN(scoreB)) {
-          if (scoreA > scoreB) h2hPtsA += 3;
-          else if (scoreB > scoreA) h2hPtsB += 3;
-          else {
-            h2hPtsA += 1;
-            h2hPtsB += 1;
-          }
-
-          h2hDiffA += scoreA - scoreB;
-          h2hDiffB += scoreB - scoreA;
-
-          h2hGlsA += scoreA;
-          h2hGlsB += scoreB;
+      if (h2hGame && h2hGame.home_score != null && h2hGame.away_score != null) {
+        const scoreA = h2hGame.home_team_id === idA ? h2hGame.home_score : h2hGame.away_score;
+        const scoreB = h2hGame.home_team_id === idB ? h2hGame.home_score : h2hGame.away_score;
+        if (scoreA > scoreB) h2hPtsA += 3;
+        else if (scoreB > scoreA) h2hPtsB += 3;
+        else {
+          h2hPtsA += 1;
+          h2hPtsB += 1;
         }
+
+        h2hDiffA += scoreA - scoreB;
+        h2hDiffB += scoreB - scoreA;
+
+        h2hGlsA += scoreA;
+        h2hGlsB += scoreB;
       }
     }
   }

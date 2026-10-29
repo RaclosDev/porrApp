@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { readGroupVisits } from '../store/useAppStore';
 import { LeagueAvatar } from './Avatar';
 
-function getCompetitionBadge(competitionName) {
+function getCompetitionBadge(competitionName: string | null | undefined) {
   if (!competitionName) return '🏆';
   const lower = competitionName.toLowerCase();
   if (lower.includes('laliga') || lower.includes('copa del rey') || lower.includes('españa'))
@@ -34,7 +34,7 @@ export default function ActiveLeagueDropdown() {
   } = useAppContext();
 
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   // La liga activa primero y, después, las visitadas más recientemente.
@@ -54,12 +54,12 @@ export default function ActiveLeagueDropdown() {
   }, [userGroups, activeGroupId]);
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
-    function handleKeyDown(event) {
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setIsOpen(false);
       }
@@ -78,32 +78,11 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => navigate('/mis-ligas')}
-        className="glass-btn"
+        className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-8.5 rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.6)] bg-[rgba(0,_210,_211,_0.1)] bg-none text-[#00d2d3] cursor-pointer text-[0.82rem] font-bold"
         title="Crear o unirse a una liga"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '4px 10px',
-          minHeight: '34px',
-          borderRadius: '16px',
-          border: '1px dashed rgba(0, 210, 211, 0.6)',
-          background: 'rgba(0, 210, 211, 0.1)',
-          color: '#00d2d3',
-          cursor: 'pointer',
-          fontSize: '0.82rem',
-          fontWeight: 700,
-        }}
       >
         <span>➕</span>
-        <span
-          style={{
-            maxWidth: '130px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <span className="max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
           Crear o unirse
         </span>
       </button>
@@ -118,83 +97,27 @@ export default function ActiveLeagueDropdown() {
     activeCompetitionName || (activeCompetitionFormatType === 'LEAGUE' ? 'Liga' : 'Mundial');
 
   return (
-    <div
-      ref={dropdownRef}
-      style={{
-        position: 'relative',
-        display: 'inline-flex',
-        alignItems: 'center',
-        zIndex: 105,
-      }}
-    >
+    <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
       <button
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => setIsOpen(!isOpen)}
-        className="glass-btn"
+        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-9.5 rounded-[10px] border border-[rgba(0,_210,_211,_0.4)] text-main cursor-pointer font-semibold text-[0.88rem] [transition:all_0.2s_ease] ${isOpen ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(15,_23,_42,_0.75)] bg-none'} ${isOpen ? 'shadow-[0_0_15px_rgba(0,_210,_211,_0.25)]' : 'shadow-none'}`}
         aria-expanded={isOpen}
         aria-haspopup="true"
         title="Cambiar de liga o peña"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 12px',
-          minHeight: '38px',
-          borderRadius: '10px',
-          border: '1px solid rgba(0, 210, 211, 0.4)',
-          background: isOpen ? 'rgba(0, 210, 211, 0.15)' : 'rgba(15, 23, 42, 0.75)',
-          color: 'var(--text-main, #fff)',
-          cursor: 'pointer',
-          fontWeight: 600,
-          fontSize: '0.88rem',
-          boxShadow: isOpen ? '0 0 15px rgba(0, 210, 211, 0.25)' : 'none',
-          transition: 'all 0.2s ease',
-        }}
       >
         <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            textAlign: 'left',
-            lineHeight: 1.15,
-          }}
-        >
-          <span
-            style={{
-              maxWidth: '140px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: '#fff',
-            }}
-          >
+        <div className="flex flex-col items-start text-left leading-[1.15]">
+          <span className="max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-white">
             {displayLeagueName}
           </span>
-          <span
-            style={{
-              fontSize: '0.7rem',
-              color: 'var(--accent-color, #00d2d3)',
-              fontWeight: 500,
-              maxWidth: '130px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <span className="text-[0.7rem] text-accent font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
             {displayCompName}
           </span>
         </div>
         <span
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted, #94a3b8)',
-            transform: isOpen ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.2s ease',
-            marginLeft: '2px',
-          }}
+          className={`text-[0.75rem] text-muted [transition:transform_0.2s_ease] ml-0.5 ${isOpen ? '[transform:rotate(180deg)]' : '[transform:none]'}`}
         >
           ▾
         </span>
@@ -203,81 +126,29 @@ export default function ActiveLeagueDropdown() {
       {isOpen && (
         <div
           role="menu"
-          className="active-league-menu"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            background: '#111827',
-            border: '1px solid rgba(0, 210, 211, 0.35)',
-            borderRadius: '12px',
-            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 210, 211, 0.15)',
-            backdropFilter: 'blur(12px)',
-            padding: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-            animation: 'fadeIn 0.15s ease-out',
-          }}
+          className="active-league-menu absolute top-[calc(100%_+_8px)] bg-[#111827] bg-none border border-[rgba(0,_210,_211,_0.35)] rounded-[12px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.75),_0_0_20px_rgba(0,_210,_211,_0.15)] [backdrop-filter:blur(12px)] p-2 flex flex-col gap-1 [animation:fadeIn_0.15s_ease-out]"
         >
-          <div
-            style={{
-              padding: '6px 10px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              color: 'var(--text-muted, #94a3b8)',
-              textTransform: 'uppercase',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              marginBottom: '4px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+          <div className="py-1.5 px-2.5 text-[0.75rem] font-bold tracking-[0.5px] text-muted uppercase border-b border-b-[rgba(255,_255,_255,_0.08)] mb-1 flex justify-between items-center">
             <span>Mis Ligas</span>
-            <span style={{ fontSize: '0.7rem', color: '#00d2d3' }}>
+            <span className="text-[0.7rem] text-[#00d2d3]">
               {userGroups?.length || 0} {userGroups?.length === 1 ? 'liga' : 'ligas'}
             </span>
           </div>
 
-          <div
-            style={{
-              maxHeight: '240px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '3px',
-            }}
-          >
+          <div className="max-h-60 overflow-y-auto flex flex-col gap-[3px]">
             {sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
                 const gBadge = getCompetitionBadge(g.competitionName);
                 return (
                   <button
+                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(0,_210,_211,_0.12)] bg-none' : 'bg-transparent bg-none'} ${isSelected ? 'text-[#00d2d3]' : 'text-white'}`}
                     key={g.id}
                     type="button"
                     onClick={() => {
                       changeGroup(g.id.toString());
                       setIsOpen(false);
                       navigate('/');
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px',
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      border: isSelected
-                        ? '1px solid rgba(0, 210, 211, 0.4)'
-                        : '1px solid transparent',
-                      background: isSelected ? 'rgba(0, 210, 211, 0.12)' : 'transparent',
-                      color: isSelected ? '#00d2d3' : '#fff',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'background 0.15s ease',
-                      width: '100%',
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected)
@@ -287,43 +158,28 @@ export default function ActiveLeagueDropdown() {
                       if (!isSelected) e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <div className="flex items-center gap-2 min-w-0">
                       <LeagueAvatar url={g.imageUrl} badge={gBadge} size={30} />
-                      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                      <div className="min-w-0 flex flex-col">
                         <span
-                          style={{
-                            fontWeight: isSelected ? 700 : 500,
-                            fontSize: '0.88rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
+                          className={`text-[0.88rem] overflow-hidden text-ellipsis whitespace-nowrap ${isSelected ? 'font-bold' : 'font-medium'}`}
                         >
                           {g.name}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94a3b8)' }}>
+                        <span className="text-[0.72rem] text-muted">
                           {g.competitionName || 'Mundial'} ·{' '}
                           {g.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
                         </span>
                       </div>
                     </div>
                     {isSelected && (
-                      <span style={{ color: '#00d2d3', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                        ✓
-                      </span>
+                      <span className="text-[#00d2d3] font-bold text-[0.9rem]">✓</span>
                     )}
                   </button>
                 );
               })
             ) : (
-              <div
-                style={{
-                  padding: '12px 10px',
-                  textAlign: 'center',
-                  color: 'var(--text-muted, #94a3b8)',
-                  fontSize: '0.8rem',
-                }}
-              >
+              <div className="py-3 px-2.5 text-center text-muted text-[0.8rem]">
                 {isAuthenticated
                   ? 'No te has unido a ninguna liga privada todavía.'
                   : 'Inicia sesión para unirte o ver tus ligas.'}
@@ -331,34 +187,13 @@ export default function ActiveLeagueDropdown() {
             )}
           </div>
 
-          <div
-            style={{
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-              paddingTop: '6px',
-              marginTop: '4px',
-            }}
-          >
+          <div className="border-t border-t-[rgba(255,_255,_255,_0.08)] pt-1.5 mt-1">
             <button
+              className="w-full py-2 px-2.5 rounded-[8px] border border-dashed border-[rgba(0,_210,_211,_0.35)] bg-[rgba(0,_210,_211,_0.05)] bg-none text-[#00d2d3] text-[0.82rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 [transition:all_0.15s_ease]"
               type="button"
               onClick={() => {
                 setIsOpen(false);
                 navigate('/mis-ligas');
-              }}
-              style={{
-                width: '100%',
-                padding: '8px 10px',
-                borderRadius: '8px',
-                border: '1px dashed rgba(0, 210, 211, 0.35)',
-                background: 'rgba(0, 210, 211, 0.05)',
-                color: '#00d2d3',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(0, 210, 211, 0.15)';

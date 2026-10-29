@@ -16,73 +16,42 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import type { Competition, Group, PoolFormat } from '../types/api';
 
-export const POOL_FORMATS = [
+type GroupId = number | string;
+import { errorMessage } from '../utils/errors';
+
+export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
   { id: 'MATCH_DAY', label: 'Por Jornadas (1X2 y Marcador Exacto)' },
   { id: 'FULL_BRACKET', label: 'Completa (Fase de grupos y cruces)' },
   { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
-];
-
-export const PRESET_TEMPLATES = [
-  {
-    id: 'MATCH_DAY_LEAGUE',
-    name: 'Liga Jornada a Jornada',
-    icon: '⚡',
-    badge: 'Recomendada',
-    poolFormat: 'MATCH_DAY',
-    pichichi: false,
-    tagline: 'Ideal para ligas de fútbol (LaLiga, Premier, Champions)',
-    description:
-      'Pronósticos partido a partido con cierre individual. 3 pts por signo (1X2) y +2 pts por marcador exacto.',
-  },
-  {
-    id: 'WORLD_CUP_FULL',
-    name: 'Mundial 2026 Completo',
-    icon: '🏆',
-    badge: 'Torneo',
-    poolFormat: 'FULL_BRACKET',
-    pichichi: true,
-    tagline: 'Fase de grupos + eliminatorias + Pichichi oficial',
-    description:
-      'Cuadro clasificatorio completo con puntuación escalonada y Pichichi oficial (200 pts).',
-  },
-  {
-    id: 'KNOCKOUT_BRACKET',
-    name: 'Solo Eliminatorias',
-    icon: '🎯',
-    badge: 'Rápido',
-    poolFormat: 'KNOCKOUTS_ONLY',
-    pichichi: false,
-    tagline: 'Pronósticos directos de cruces eliminatorios',
-    description: 'Pronostica las rondas eliminatorias desde octavos de final hasta la final.',
-  },
 ];
 
 export function useGroupsDashboard() {
   const queryClient = useQueryClient();
   const { changeGroup, userName, userId, activeGroupId, userGroups, isAuthenticated } =
     useAppContext();
-  const [groups, setGroups] = useState(userGroups && userGroups.length > 0 ? userGroups : []);
+  const [groups, setGroups] = useState<Group[]>(
+    userGroups && userGroups.length > 0 ? userGroups : [],
+  );
   // Permite consultar el número de ligas cargadas sin recrear loadGroupsAndCompetitions.
   const groupsRef = useRef(groups);
   useEffect(() => {
     groupsRef.current = groups;
   }, [groups]);
-  const [competitions, setCompetitions] = useState([]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(!userGroups || userGroups.length === 0);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
-  const [selectedPoolFormat, setSelectedPoolFormat] = useState('MATCH_DAY');
+  const [selectedPoolFormat, setSelectedPoolFormat] = useState<PoolFormat>('MATCH_DAY');
   const [includePichichi, setIncludePichichi] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('MATCH_DAY_LEAGUE');
-  const [wizardStep, setWizardStep] = useState(1);
-  const [newlyCreatedGroup, setNewlyCreatedGroup] = useState(null);
+  const [newlyCreatedGroup, setNewlyCreatedGroup] = useState<Group | null>(null);
   const [pendingJoinCodeNotice, setPendingJoinCodeNotice] = useState('');
-  const [pendingInvite, setPendingInvite] = useState(null);
+  const [pendingInvite, setPendingInvite] = useState<Group | null>(null);
   const [isJoiningInvite, setIsJoiningInvite] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
-  const [visibleCodes, setVisibleCodes] = useState(new Set());
+  const [visibleCodes, setVisibleCodes] = useState(new Set<GroupId>());
   const [isCreating, setIsCreating] = useState(false);
 
   const navigate = useNavigate();
@@ -100,11 +69,11 @@ export function useGroupsDashboard() {
     setError('');
     try {
       const [myGroups, comps] = await Promise.all([
-        fetchMyGroups().catch((err) => {
+        fetchMyGroups().catch((err): Group[] => {
           console.warn('No se pudieron obtener las ligas del usuario', err);
           return [];
         }),
-        fetchCompetitions().catch(() => []),
+        fetchCompetitions().catch((): Competition[] => []),
       ]);
 
       setCompetitions(comps);
@@ -127,7 +96,7 @@ export function useGroupsDashboard() {
 
       if (missingIds.length > 0) {
         try {
-          const invalidIds = [];
+          const invalidIds: string[] = [];
           const extraGroups = await Promise.all(
             missingIds.map((id) =>
               fetchGroup(id).catch(() => {
@@ -139,13 +108,13 @@ export function useGroupsDashboard() {
           if (invalidIds.length > 0) {
             try {
               const current = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-              const pruned = current.filter((x) => !invalidIds.includes(x.toString()));
+              const pruned = current.filter((x: GroupId) => !invalidIds.includes(x.toString()));
               localStorage.setItem('knownGroups', JSON.stringify(pruned));
             } catch {
               /* ignore */
             }
           }
-          const validExtras = extraGroups.filter((g) => g !== null && g !== undefined);
+          const validExtras = extraGroups.filter((g): g is Group => g != null);
           myGroups.push(...validExtras);
         } catch (err) {
           console.warn('No se pudieron cargar grupos extra', err);
@@ -180,7 +149,7 @@ export function useGroupsDashboard() {
         if (!cancelled) setPendingInvite(preview);
       })
       .catch((e) => {
-        if (!cancelled) setError(e.message || 'No se ha encontrado esta invitación');
+        if (!cancelled) setError(errorMessage(e, 'No se ha encontrado esta invitación'));
       });
     return () => {
       cancelled = true;
@@ -224,29 +193,13 @@ export function useGroupsDashboard() {
       toast.success(`¡Te has unido a "${fullGroup.name || group.name}"!`);
       navigate('/', { replace: true });
     } catch (e) {
-      setError(e.message || 'No se ha podido aceptar la invitación');
+      setError(errorMessage(e, 'No se ha podido aceptar la invitación'));
     } finally {
       setIsJoiningInvite(false);
     }
   };
 
-  const selectTemplate = (templateId) => {
-    setSelectedTemplate(templateId);
-    const tmpl = PRESET_TEMPLATES.find((t) => t.id === templateId);
-    if (tmpl) {
-      setSelectedPoolFormat(tmpl.poolFormat);
-      setIncludePichichi(tmpl.pichichi);
-      if (tmpl.id === 'WORLD_CUP_FULL' && competitions.length > 0) {
-        const wc = competitions.find(
-          (c) =>
-            c.name.toLowerCase().includes('world cup') || c.name.toLowerCase().includes('mundial'),
-        );
-        if (wc) setSelectedCompetition(wc.id.toString());
-      }
-    }
-  };
-
-  const handleCreate = async (e) => {
+  const handleCreate = async (e?: { preventDefault?: () => void }) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isCreating) return;
     if (!newGroupName.trim() || !selectedCompetition || !selectedPoolFormat) {
@@ -266,7 +219,7 @@ export function useGroupsDashboard() {
       changeGroup(group.id.toString());
       loadGroupsAndCompetitions();
     } catch (e) {
-      setError(e.message || 'Error al crear el grupo');
+      setError(errorMessage(e, 'Error al crear el grupo'));
     } finally {
       setIsCreating(false);
     }
@@ -274,7 +227,7 @@ export function useGroupsDashboard() {
 
   // Compartir solo el enlace: WhatsApp genera la vista previa con los metadatos OG,
   // exactamente igual que al pegar la URL a mano.
-  const handleShareWhatsApp = (group) => {
+  const handleShareWhatsApp = (group: Pick<Group, 'joinCode'> | null | undefined) => {
     if (!group?.joinCode) return;
 
     const link = `https://porra.raclos.es/join/${encodeURIComponent(group.joinCode)}`;
@@ -282,19 +235,19 @@ export function useGroupsDashboard() {
   };
 
   /** Guarda nombre y reglas en una sola petición para evitar estados parciales. */
-  const handleSaveGroupConfig = async (groupId, name, rules) => {
+  const handleSaveGroupConfig = async (groupId: GroupId, name: string, rules: string) => {
     try {
       await updateGroup(groupId, name?.trim(), rules);
       loadGroupsAndCompetitions();
       return true;
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e, 'Ha ocurrido un error'));
       return false;
     }
   };
 
   /** Sube la imagen de la liga. Devuelve la nueva URL; lanza Error con mensaje si falla. */
-  const handleUploadGroupImage = async (groupId, blob) => {
+  const handleUploadGroupImage = async (groupId: GroupId, blob: Blob) => {
     const res = await uploadGroupImage(groupId, blob);
     await loadGroupsAndCompetitions();
     queryClient.invalidateQueries({ queryKey: ['myGroups'] });
@@ -302,7 +255,7 @@ export function useGroupsDashboard() {
     return res.imageUrl || null;
   };
 
-  const handleRemoveGroupImage = async (groupId) => {
+  const handleRemoveGroupImage = async (groupId: GroupId) => {
     await deleteGroupImage(groupId);
     await loadGroupsAndCompetitions();
     queryClient.invalidateQueries({ queryKey: ['myGroups'] });
@@ -313,7 +266,11 @@ export function useGroupsDashboard() {
    * Elimina una liga. `skipConfirm` se usa cuando la confirmación ya se pidió
    * dentro de la interfaz (por ejemplo, escribiendo el nombre de la liga).
    */
-  const handleDeleteGroup = async (groupId, groupName, { skipConfirm = false } = {}) => {
+  const handleDeleteGroup = async (
+    groupId: GroupId,
+    groupName: string,
+    { skipConfirm = false } = {},
+  ) => {
     if (
       !skipConfirm &&
       !window.confirm(
@@ -325,7 +282,9 @@ export function useGroupsDashboard() {
     try {
       await deleteGroup(groupId);
       const knownGroups = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-      const updatedKnownGroups = knownGroups.filter((id) => id.toString() !== groupId.toString());
+      const updatedKnownGroups = knownGroups.filter(
+        (id: GroupId) => id.toString() !== groupId.toString(),
+      );
       localStorage.setItem('knownGroups', JSON.stringify(updatedKnownGroups));
 
       if (activeGroupId === groupId.toString()) {
@@ -336,13 +295,13 @@ export function useGroupsDashboard() {
       toast.success(`La liga "${groupName}" ha sido eliminada.`);
       return true;
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e, 'Ha ocurrido un error'));
       return false;
     }
   };
 
-  const handleJoin = async (e) => {
-    e.preventDefault();
+  const handleJoin = async (e?: { preventDefault?: () => void }) => {
+    e?.preventDefault?.();
     if (!joinCode.trim()) return;
     try {
       const group = await joinGroup(joinCode);
@@ -370,11 +329,11 @@ export function useGroupsDashboard() {
       // La portada adapta automáticamente el contenido al formato de esta liga.
       navigate('/', { replace: true });
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e, 'Ha ocurrido un error'));
     }
   };
 
-  const handleEnterGroup = (groupId) => {
+  const handleEnterGroup = (groupId: GroupId) => {
     changeGroup(groupId.toString());
     const g = groups.find((item) => item.id.toString() === groupId.toString());
     if (g && g.poolFormat === 'MATCH_DAY') {
@@ -384,7 +343,7 @@ export function useGroupsDashboard() {
     }
   };
 
-  const handleLeaveGroup = async (groupId, groupName) => {
+  const handleLeaveGroup = async (groupId: GroupId, groupName: string) => {
     if (
       !window.confirm(
         `¿Estás seguro de que quieres abandonar la liga "${groupName}"? Perderás tus porras en esta liga.`,
@@ -395,17 +354,19 @@ export function useGroupsDashboard() {
       await leaveGroup(groupId);
       if (activeGroupId === groupId.toString()) changeGroup(null);
       const knownGroups = JSON.parse(localStorage.getItem('knownGroups') || '[]');
-      const updatedKnownGroups = knownGroups.filter((id) => id.toString() !== groupId.toString());
+      const updatedKnownGroups = knownGroups.filter(
+        (id: GroupId) => id.toString() !== groupId.toString(),
+      );
       localStorage.setItem('knownGroups', JSON.stringify(updatedKnownGroups));
 
       loadGroupsAndCompetitions();
       toast.success(`Has abandonado la liga "${groupName}".`);
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e, 'Ha ocurrido un error'));
     }
   };
 
-  const toggleCodeVisibility = (groupId) => {
+  const toggleCodeVisibility = (groupId: GroupId) => {
     setVisibleCodes((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(groupId)) {
@@ -417,12 +378,14 @@ export function useGroupsDashboard() {
     });
   };
 
-  const handleCopyCode = (code) => {
+  const handleCopyCode = (code: string | null) => {
+    if (!code) return;
     navigator.clipboard.writeText(code);
     toast.success(`Código "${code}" copiado al portapapeles`);
   };
 
-  const handleCopyLink = (code) => {
+  const handleCopyLink = (code: string | null) => {
+    if (!code) return;
     const link = `${window.location.origin}/join/${code}`;
     navigator.clipboard.writeText(link);
     toast.success('Enlace de invitación copiado al portapapeles');
@@ -441,10 +404,6 @@ export function useGroupsDashboard() {
     setSelectedPoolFormat,
     includePichichi,
     setIncludePichichi,
-    selectedTemplate,
-    selectTemplate,
-    wizardStep,
-    setWizardStep,
     newlyCreatedGroup,
     setNewlyCreatedGroup,
     pendingJoinCodeNotice,
@@ -473,3 +432,5 @@ export function useGroupsDashboard() {
     navigate,
   };
 }
+
+export type GroupsDashboardState = ReturnType<typeof useGroupsDashboard>;

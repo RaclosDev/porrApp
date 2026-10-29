@@ -1,5 +1,22 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, type ChangeEvent, type ReactNode } from 'react';
 import { prepareImageForUpload, validateImageFile } from '../utils/image';
+import { errorMessage } from '../utils/errors';
+
+interface ImagePickerProps {
+  currentUrl: string | null | undefined;
+  renderPreview: (url: string | null | undefined) => ReactNode;
+  onUpload: (blob: Blob) => Promise<unknown>;
+  onRemove: () => Promise<unknown>;
+  disabled?: boolean;
+  idPrefix?: string;
+}
+
+/** Imagen elegida y aún sin subir; `blob` llega cuando termina el recorte. */
+interface PendingImage {
+  blob: Blob | null;
+  url: string;
+  processing: boolean;
+}
 
 /**
  * Selector de imagen con vista previa local inmediata.
@@ -12,10 +29,10 @@ export default function ImagePicker({
   onRemove,
   disabled = false,
   idPrefix = 'image-picker',
-}) {
-  const inputRef = useRef(null);
+}: ImagePickerProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const selectionId = useRef(0);
-  const [pending, setPending] = useState(null); // { blob, url, processing }
+  const [pending, setPending] = useState<PendingImage | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,7 +46,7 @@ export default function ImagePicker({
     };
   }, [pending?.url]);
 
-  const handleFile = async (e) => {
+  const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // permite volver a elegir el mismo archivo
     if (!file) return;
@@ -57,7 +74,7 @@ export default function ImagePicker({
     } catch (err) {
       if (selectionId.current !== currentSelection) return;
       setPending((previous) => (previous?.url === previewUrl ? null : previous));
-      setError(err.message || 'No se pudo leer la imagen.');
+      setError(errorMessage(err, 'No se pudo leer la imagen.'));
     }
   };
 
@@ -69,7 +86,7 @@ export default function ImagePicker({
       await onUpload(pending.blob);
       setPending(null);
     } catch (err) {
-      setError(err.message || 'No se pudo subir la imagen.');
+      setError(errorMessage(err, 'No se pudo subir la imagen.'));
     } finally {
       setBusy(false);
     }
@@ -82,7 +99,7 @@ export default function ImagePicker({
       await onRemove();
       setPending(null);
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar la imagen.');
+      setError(errorMessage(err, 'No se pudo eliminar la imagen.'));
     } finally {
       setBusy(false);
     }
@@ -105,30 +122,25 @@ export default function ImagePicker({
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-      <div
-        data-testid={`${idPrefix}-preview`}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-      >
+    <div className="flex items-center gap-3.5 flex-wrap">
+      <div className="flex flex-col items-center gap-1.5" data-testid={`${idPrefix}-preview`}>
         {renderPreview(shownUrl)}
         {pending && (
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#00d2d3', textAlign: 'center' }}>
-            Vista previa
-          </span>
+          <span className="text-[0.68rem] font-bold text-[#00d2d3] text-center">Vista previa</span>
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+      <div className="flex flex-col gap-2 min-w-0">
         <input
+          className="hidden"
           ref={inputRef}
           id={inputId}
           type="file"
           accept="image/*"
           onChange={handleFile}
           disabled={disabled || busy}
-          style={{ display: 'none' }}
         />
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="flex gap-2 flex-wrap">
           <button
             type="button"
             className="glass-btn"
@@ -177,11 +189,11 @@ export default function ImagePicker({
             </button>
           )}
         </div>
-        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+        <span className="text-[0.72rem] text-muted">
           JPG, PNG o WebP. Se recorta en cuadrado y se reduce automáticamente.
         </span>
         {error && (
-          <span role="alert" style={{ fontSize: '0.78rem', color: '#ff6b7a' }}>
+          <span className="text-[0.78rem] text-[#ff6b7a]" role="alert">
             {error}
           </span>
         )}

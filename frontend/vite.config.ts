@@ -17,7 +17,7 @@ export default defineConfig({
           if (!id.includes('node_modules')) return;
 
           if (id.includes('lucide-react')) return 'icons';
-          if (id.includes('@tanstack') || id.includes('axios')) return 'data-vendor';
+          if (id.includes('@tanstack')) return 'data-vendor';
           if (id.includes('@react-oauth')) return 'auth-vendor';
           if (
             id.includes('@radix-ui') ||
@@ -49,7 +49,13 @@ export default defineConfig({
     VitePWA({
       strategies: 'generateSW',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'maskable-512.png'],
+      includeAssets: [
+        'favicon.png',
+        'apple-touch-icon.png',
+        'icon-192.png',
+        'icon-512.png',
+        'maskable-512.png',
+      ],
       manifest: {
         name: 'PorrApp · Porras de fútbol',
         short_name: 'PorrApp',
@@ -104,8 +110,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      // API_PROXY_TARGET permite usar otra API (p. ej. la de producción en modo demo).
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
       // Permite probar la imagen de invitación contra el backend local.
@@ -119,6 +126,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
-    exclude: ['e2e/**', 'node_modules/**'],
+    exclude: ['node_modules/**'],
   },
 });

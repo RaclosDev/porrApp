@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getCountryCode, getCountryEmoji, normalizeCountryName } from '../utils/constants';
 
 /**
@@ -14,7 +14,15 @@ import { getCountryCode, getCountryEmoji, normalizeCountryName } from '../utils/
  * @param {string} [props.className=''] - Clases CSS adicionales.
  * @returns {JSX.Element|null} Elemento <img> o emoji con la bandera o escudo.
  */
-const Flag = ({ team, logo, size = 'w40', style = {}, className = '' }) => {
+interface FlagProps {
+  team: string | null | undefined;
+  logo?: string | null;
+  size?: string;
+  style?: React.CSSProperties;
+  className?: string;
+}
+
+const Flag = ({ team, logo, size = 'w40', style = {}, className = '' }: FlagProps) => {
   const [hasError, setHasError] = useState(false);
   const [logoError, setLogoError] = useState(false);
 

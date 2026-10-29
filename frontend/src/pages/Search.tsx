@@ -17,26 +17,36 @@ const searchConditions = [
   { val: 'eliminated_groups', label: 'Cae en Grupos', icon: '❌' },
 ];
 
-/**
- * Componente de menú desplegable personalizado con buscador integrado.
- *
- * @param {Object} props
- * @param {string} props.value - Valor seleccionado actualmente.
- * @param {Function} props.onChange - Función a llamar cuando el valor cambia.
- * @param {Array} props.options - Opciones disponibles a seleccionar.
- * @param {string} props.placeholder - Texto a mostrar cuando no hay nada seleccionado.
- * @param {boolean} [props.withFlags=false] - Indica si mostrar banderas (si las opciones son países).
- * @returns {JSX.Element} Un dropdown con buscador interno.
- */
-function CustomDropdown({ value, onChange, options, placeholder, withFlags = false }) {
+/** Opción del desplegable: un texto o un valor con etiqueta e icono. */
+type DropdownOption = string | { val: string; label: string; icon?: string };
+
+const optionValue = (o: DropdownOption) => (typeof o === 'string' ? o : o.val);
+const optionLabel = (o: DropdownOption) => (typeof o === 'string' ? o : o.label);
+const optionIcon = (o: DropdownOption | undefined) =>
+  o && typeof o !== 'string' ? o.icon : undefined;
+
+/** Menú desplegable con buscador integrado; `withFlags` muestra banderas para países. */
+function CustomDropdown({
+  value,
+  onChange,
+  options,
+  placeholder,
+  withFlags = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: DropdownOption[];
+  placeholder: string;
+  withFlags?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef(null);
-  const inputRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         setSearchTerm('');
       }
@@ -45,37 +55,28 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedOption = options.find((o) => (o.val || o) === value);
-  const displayLabel = selectedOption ? selectedOption.label || selectedOption : '';
-  const displayIcon = !searchTerm && selectedOption?.icon;
+  const selectedOption = options.find((o) => optionValue(o) === value);
+  const displayLabel = selectedOption ? optionLabel(selectedOption) : '';
+  const displayIcon = !searchTerm && optionIcon(selectedOption);
 
-  const filteredOptions = options.filter((opt) => {
-    const label = (opt.label || opt).toLowerCase();
-    return label.includes(searchTerm.toLowerCase());
-  });
+  const filteredOptions = options.filter((opt) =>
+    optionLabel(opt).toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
+    <div className="relative w-full max-w-100" ref={dropdownRef}>
       <div
+        className={`w-full py-[15px] px-5 bg-[rgba(20,20,35,0.9)] bg-none flex items-center justify-between [cursor:text] [transition:all_0.2s] ${isOpen ? 'shadow-[0_4px_12px_rgba(0,0,0,0.4)]' : 'shadow-none'}`}
         onClick={() => {
           setIsOpen(true);
           inputRef.current?.focus();
         }}
         style={{
-          width: '100%',
-          padding: '15px 20px',
           borderRadius: '12px',
-          background: 'rgba(20,20,35,0.9)',
           border: `1px solid ${isOpen ? 'var(--accent-color)' : 'rgba(255,255,255,0.2)'}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'text',
-          transition: 'all 0.2s',
-          boxShadow: isOpen ? '0 4px 12px rgba(0,0,0,0.4)' : 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexGrow: 1 }}>
+        <div className="flex items-center gap-2.5 grow">
           {displayIcon && <span>{displayIcon}</span>}
           {!searchTerm && withFlags && value && (
             <Flag
@@ -91,6 +92,7 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
             />
           )}
           <input
+            className="bg-transparent bg-none border-none text-white [outline:none] text-[1.1rem] w-full"
             ref={inputRef}
             type="text"
             value={isOpen ? searchTerm : displayLabel}
@@ -100,17 +102,10 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
             }}
             placeholder={placeholder}
             aria-label={placeholder || 'Buscar'}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'white',
-              outline: 'none',
-              fontSize: '1.1rem',
-              width: '100%',
-            }}
           />
         </div>
         <span
+          className={`text-[0.8em] text-white [transition:transform_0.2s] cursor-pointer ${isOpen ? '[transform:rotate(180deg)]' : '[transform:none]'}`}
           role="button"
           tabIndex={0}
           aria-label="Alternar menú desplegable"
@@ -120,13 +115,6 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
               e.stopPropagation();
               setIsOpen(!isOpen);
             }
-          }}
-          style={{
-            fontSize: '0.8em',
-            color: 'white',
-            transform: isOpen ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.2s',
-            cursor: 'pointer',
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -138,30 +126,15 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
       </div>
 
       {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: '8px',
-            background: 'rgba(20,20,35,0.95)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '12px',
-            maxHeight: '300px',
-            overflowY: 'auto',
-            zIndex: 100,
-            boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[rgba(20,20,35,0.95)] bg-none border border-[rgba(255,255,255,0.1)] rounded-[12px] max-h-75 overflow-y-auto z-[100] shadow-[0_10px_30px_rgba(0,0,0,0.8)] [backdrop-filter:blur(10px)]">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((opt) => {
-              const val = opt.val || opt;
-              const label = opt.label || opt;
-              const icon = opt.icon;
+              const val = optionValue(opt);
+              const label = optionLabel(opt);
+              const icon = optionIcon(opt);
               return (
                 <div
+                  className={`py-3 px-5 flex items-center gap-2.5 cursor-pointer [transition:background_0.2s] text-white ${value === val ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : 'bg-transparent bg-none'}`}
                   key={val}
                   role="option"
                   tabIndex={0}
@@ -178,16 +151,6 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
                     onChange(val);
                     setIsOpen(false);
                     setSearchTerm('');
-                  }}
-                  style={{
-                    padding: '12px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    background: value === val ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
-                    color: 'white',
                   }}
                   onMouseOver={(e) => {
                     if (value !== val) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
@@ -215,9 +178,7 @@ function CustomDropdown({ value, onChange, options, placeholder, withFlags = fal
               );
             })
           ) : (
-            <div style={{ padding: '12px 20px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              No hay resultados
-            </div>
+            <div className="py-3 px-5 text-muted italic">No hay resultados</div>
           )}
         </div>
       )}
@@ -294,76 +255,31 @@ function Search() {
     selectedUser,
   );
 
-  if (loading)
-    return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando buscador...</div>;
+  if (loading) return <div className="text-center p-8">Cargando buscador...</div>;
 
   const totalVotes = participantsHashes.length;
   const teamPercentage = teamResults ? Math.round((teamResults.length / totalVotes) * 100) : 0;
 
   return (
-    <section id="view-search" className="view-section" style={{ display: 'block', opacity: 1 }}>
-      <div className="section-header" style={{ marginBottom: '30px' }}>
-        <h2 style={{ color: '#f368e0', fontSize: '2.5rem', margin: '0 0 10px 0' }}>
-          Central de Inteligencia
-        </h2>
-        <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>
+    <section id="view-search" className="view-section block opacity-[1]">
+      <div className="section-header mb-7.5">
+        <h2 className="text-[#f368e0] text-[2.5rem] mt-0 mb-2.5 mx-0">Central de Inteligencia</h2>
+        <p className="text-[1.1rem] text-muted">
           Investiga los pronósticos del grupo o analiza el perfil psicológico de tus rivales.
         </p>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '35px' }}>
-        <div
-          style={{
-            display: 'flex',
-            background: 'rgba(15, 23, 42, 0.8)',
-            padding: '5px',
-            borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(12px)',
-            position: 'relative',
-            gap: '6px',
-          }}
-        >
+      <div className="flex justify-center mb-[35px]">
+        <div className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-[5px] rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1.5">
           <button
+            className={`py-2.5 px-7.5 font-extrabold text-[1.05rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-2 tracking-[0.5px] ${searchMode === 'team' ? 'bg-accent bg-none' : 'bg-transparent bg-none'} ${searchMode === 'team' ? 'text-white' : 'text-muted'} ${searchMode === 'team' ? 'shadow-[0_4px_12px_rgba(0,_0,_0,_0.25)]' : 'shadow-none'}`}
             onClick={() => setSearchMode('team')}
-            style={{
-              padding: '10px 30px',
-              fontWeight: 800,
-              fontSize: '1.05rem',
-              background: searchMode === 'team' ? 'var(--accent-color)' : 'transparent',
-              border: 'none',
-              color: searchMode === 'team' ? '#ffffff' : 'var(--text-muted)',
-              cursor: 'pointer',
-              borderRadius: '12px',
-              transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: searchMode === 'team' ? '0 4px 12px rgba(0, 0, 0, 0.25)' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              letterSpacing: '0.5px',
-            }}
           >
             🔍 Por Equipo
           </button>
           <button
+            className={`py-2.5 px-7.5 font-extrabold text-[1.05rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-2 tracking-[0.5px] ${searchMode === 'user' ? 'bg-cyan bg-none' : 'bg-transparent bg-none'} ${searchMode === 'user' ? 'text-black' : 'text-muted'} ${searchMode === 'user' ? 'shadow-[0_4px_12px_rgba(0,_0,_0,_0.25)]' : 'shadow-none'}`}
             onClick={() => setSearchMode('user')}
-            style={{
-              padding: '10px 30px',
-              fontWeight: 800,
-              fontSize: '1.05rem',
-              background: searchMode === 'user' ? 'var(--accent-cyan)' : 'transparent',
-              border: 'none',
-              color: searchMode === 'user' ? '#000000' : 'var(--text-muted)',
-              cursor: 'pointer',
-              borderRadius: '12px',
-              transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: searchMode === 'user' ? '0 4px 12px rgba(0, 0, 0, 0.25)' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              letterSpacing: '0.5px',
-            }}
           >
             🧠 Perfil de Jugador
           </button>
@@ -371,40 +287,10 @@ function Search() {
       </div>
 
       {searchMode === 'team' && (
-        <div
-          style={{
-            background: 'rgba(20,20,35,0.8)',
-            border: '1px solid rgba(243, 104, 224, 0.3)',
-            padding: '40px',
-            borderRadius: '16px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '20px',
-              marginBottom: '40px',
-              justifyContent: 'center',
-            }}
-          >
-            <div
-              style={{
-                flex: '1 1 300px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '15px',
-                  color: 'var(--text-muted)',
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                }}
-              >
+        <div className="bg-[rgba(20,20,35,0.8)] bg-none border border-[rgba(243,_104,_224,_0.3)] p-10 rounded-[16px]">
+          <div className="flex flex-wrap gap-5 mb-10 justify-center">
+            <div className="flex-[1_1_300px] flex flex-col items-center">
+              <label className="block mb-[15px] text-muted font-bold text-[1.1rem]">
                 Selecciona Equipo:
               </label>
               <CustomDropdown
@@ -415,23 +301,8 @@ function Search() {
                 withFlags={true}
               />
             </div>
-            <div
-              style={{
-                flex: '1 1 300px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '15px',
-                  color: 'var(--text-muted)',
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                }}
-              >
+            <div className="flex-[1_1_300px] flex flex-col items-center">
+              <label className="block mb-[15px] text-muted font-bold text-[1.1rem]">
                 Selecciona Condición:
               </label>
               <CustomDropdown
@@ -444,23 +315,8 @@ function Search() {
           </div>
 
           {selectedTeam && teamResults && (
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: '16px',
-                padding: '30px',
-                border: '1px solid rgba(255,255,255,0.05)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '15px',
-                  marginBottom: '25px',
-                }}
-              >
+            <div className="bg-[rgba(0,0,0,0.3)] bg-none rounded-[16px] p-7.5 border border-[rgba(255,255,255,0.05)]">
+              <div className="flex items-center justify-center gap-[15px] mb-[25px]">
                 <Flag
                   team={selectedTeam}
                   size="48x36"
@@ -471,47 +327,27 @@ function Search() {
                     boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
                   }}
                 />
-                <h3 style={{ margin: 0, fontSize: '2rem' }}>{selectedTeam}</h3>
+                <h3 className="m-0 text-[2rem]">{selectedTeam}</h3>
               </div>
 
-              <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-                <div style={{ fontSize: '1.3rem', color: 'var(--text-muted)' }}>
-                  <strong style={{ color: '#f368e0', fontSize: '2rem' }}>{teamPercentage}%</strong>{' '}
-                  del grupo piensa esto ({teamResults.length} de {totalVotes})
+              <div className="text-center mb-[35px]">
+                <div className="text-[1.3rem] text-muted">
+                  <strong className="text-[#f368e0] text-[2rem]">{teamPercentage}%</strong> del
+                  grupo piensa esto ({teamResults.length} de {totalVotes})
                 </div>
-                <div
-                  style={{
-                    width: '100%',
-                    maxWidth: '500px',
-                    margin: '15px auto 0',
-                    background: 'rgba(255,255,255,0.1)',
-                    height: '16px',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                  }}
-                >
+                <div className="w-full max-w-125 mt-[15px] mb-0 mx-auto bg-[rgba(255,255,255,0.1)] bg-none h-4 rounded-[8px] overflow-hidden">
                   <div
-                    style={{
-                      width: `${teamPercentage}%`,
-                      background: '#f368e0',
-                      height: '100%',
-                      transition: 'width 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
+                    className="bg-[#f368e0] bg-none h-full [transition:width_1.5s_cubic-bezier(0.4,_0,_0.2,_1)]"
+                    style={{ width: `${teamPercentage}%` }}
                   ></div>
                 </div>
               </div>
 
               {teamResults.length > 0 || (teamNegativeResults && teamNegativeResults.length > 0) ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                    justifyContent: 'center',
-                  }}
-                >
+                <div className="flex flex-wrap gap-3 justify-center">
                   {teamResults.map((r) => (
                     <div
+                      className="cursor-pointer bg-[rgba(243,_104,_224,_0.1)] bg-none border border-[rgba(243,_104,_224,_0.3)] py-2.5 px-5 rounded-[10px] flex items-center gap-2.5 text-[1.1rem] [transition:transform_0.2s,_boxShadow_0.2s]"
                       key={r.id}
                       role="button"
                       tabIndex={0}
@@ -523,18 +359,6 @@ function Search() {
                         }
                       }}
                       onClick={() => setViewerPredictionId(r.id)}
-                      style={{
-                        cursor: 'pointer',
-                        background: 'rgba(243, 104, 224, 0.1)',
-                        border: '1px solid rgba(243, 104, 224, 0.3)',
-                        padding: '10px 20px',
-                        borderRadius: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        fontSize: '1.1rem',
-                        transition: 'transform 0.2s, boxShadow 0.2s',
-                      }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.transform = 'scale(1.05)';
                         e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
@@ -544,20 +368,7 @@ function Search() {
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      <span
-                        style={{
-                          background: '#f368e0',
-                          color: 'white',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.9rem',
-                          fontWeight: 'bold',
-                        }}
-                      >
+                      <span className="bg-[#f368e0] bg-none text-white w-6 h-6 rounded-full flex items-center justify-center text-[0.9rem] font-bold">
                         {r.name.charAt(0).toUpperCase()}
                       </span>
                       {r.name}
@@ -566,6 +377,7 @@ function Search() {
                   {teamNegativeResults &&
                     teamNegativeResults.map((r) => (
                       <div
+                        className="cursor-pointer bg-[rgba(255,_255,_255,_0.03)] bg-none border border-dashed border-[rgba(255,_255,_255,_0.2)] py-2.5 px-5 rounded-[10px] flex items-center gap-2.5 text-[1.05rem] text-muted opacity-[0.45] [transition:all_0.2s_cubic-bezier(0.4,_0,_0.2,_1)]"
                         key={r.id}
                         role="button"
                         tabIndex={0}
@@ -577,20 +389,6 @@ function Search() {
                           }
                         }}
                         onClick={() => setViewerPredictionId(r.id)}
-                        style={{
-                          cursor: 'pointer',
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px dashed rgba(255, 255, 255, 0.2)',
-                          padding: '10px 20px',
-                          borderRadius: '10px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          fontSize: '1.05rem',
-                          color: 'var(--text-muted)',
-                          opacity: 0.45,
-                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                        }}
                         onMouseOver={(e) => {
                           e.currentTarget.style.opacity = '0.95';
                           e.currentTarget.style.transform = 'scale(1.05)';
@@ -606,54 +404,23 @@ function Search() {
                           e.currentTarget.style.color = 'var(--text-muted)';
                         }}
                       >
-                        <span
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            color: '#ff6b6b',
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold',
-                          }}
-                        >
+                        <span className="bg-[rgba(255,_255,_255,_0.1)] bg-none text-[#ff6b6b] w-6 h-6 rounded-full flex items-center justify-center text-[0.8rem] font-bold">
                           ✕
                         </span>
-                        <span style={{ textDecoration: 'line-through' }}>{r.name}</span>
+                        <span className="line-through">{r.name}</span>
                       </div>
                     ))}
                 </div>
               ) : (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    color: 'var(--text-muted)',
-                    fontStyle: 'italic',
-                    fontSize: '1.1rem',
-                  }}
-                >
+                <div className="text-center text-muted italic text-[1.1rem]">
                   Nadie ha pronosticado esta combinación.
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '35px' }}>
+              <div className="flex justify-center mt-[35px]">
                 <button
                   onClick={handleShareTeam}
-                  className="glass-btn"
-                  style={{
-                    padding: '10px 25px',
-                    borderRadius: '10px',
-                    background: '#25D366',
-                    color: 'white',
-                    border: '1px solid #25D366',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    fontSize: '1.1rem',
-                  }}
+                  className="glass-btn py-2.5 px-[25px] rounded-[10px] bg-[#25D366] bg-none text-white border border-[#25D366] flex items-center gap-2.5 text-[1.1rem]"
                 >
                   <WhatsAppIcon size={20} /> Compartir Búsqueda
                 </button>
@@ -664,31 +431,9 @@ function Search() {
       )}
 
       {searchMode === 'user' && (
-        <div
-          style={{
-            background: 'rgba(20,20,35,0.8)',
-            border: '1px solid rgba(0, 210, 211, 0.3)',
-            padding: '40px',
-            borderRadius: '16px',
-          }}
-        >
-          <div
-            style={{
-              marginBottom: '40px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '15px',
-                color: 'var(--text-muted)',
-                fontWeight: 'bold',
-                fontSize: '1.1rem',
-              }}
-            >
+        <div className="bg-[rgba(20,20,35,0.8)] bg-none border border-[rgba(0,_210,_211,_0.3)] p-10 rounded-[16px]">
+          <div className="mb-10 flex flex-col items-center">
+            <label className="block mb-[15px] text-muted font-bold text-[1.1rem]">
               Selecciona Jugador para ver su Perfil:
             </label>
             <CustomDropdown
@@ -700,155 +445,49 @@ function Search() {
           </div>
 
           {selectedUser && userStats && (
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: '16px',
-                padding: '30px',
-                border: '1px solid rgba(255,255,255,0.05)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  marginBottom: '30px',
-                }}
-              >
-                <h3
-                  style={{
-                    margin: '0 0 10px 0',
-                    color: '#00d2d3',
-                    fontSize: '2rem',
-                    textAlign: 'center',
-                  }}
-                >
+            <div className="bg-[rgba(0,0,0,0.3)] bg-none rounded-[16px] p-7.5 border border-[rgba(255,255,255,0.05)]">
+              <div className="flex flex-col items-center mb-7.5">
+                <h3 className="mt-0 mb-2.5 mx-0 text-[#00d2d3] text-[2rem] text-center">
                   Perfil de {selectedUser}
                 </h3>
 
                 {userName && userName !== selectedUser && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      background: 'rgba(0, 210, 211, 0.1)',
-                      padding: '10px 20px',
-                      borderRadius: '20px',
-                      border: '1px solid rgba(0, 210, 211, 0.3)',
-                    }}
-                  >
-                    <span style={{ fontSize: '1.5rem' }}>🎯</span>
-                    <span style={{ fontSize: '1.1rem' }}>
+                  <div className="flex items-center gap-2.5 bg-[rgba(0,_210,_211,_0.1)] bg-none py-2.5 px-5 rounded-[20px] border border-[rgba(0,_210,_211,_0.3)]">
+                    <span className="text-[1.5rem]">🎯</span>
+                    <span className="text-[1.1rem]">
                       Similitud con tu porra: <strong>{userStats.similarity}%</strong>
                     </span>
                   </div>
                 )}
                 {userName === selectedUser && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      background: 'rgba(241, 196, 15, 0.1)',
-                      padding: '10px 20px',
-                      borderRadius: '20px',
-                      border: '1px solid rgba(241, 196, 15, 0.3)',
-                      color: '#f1c40f',
-                    }}
-                  >
-                    <span style={{ fontSize: '1.5rem' }}>👑</span>
-                    <span style={{ fontSize: '1.1rem' }}>Este eres tú. ¡Mucha suerte!</span>
+                  <div className="flex items-center gap-2.5 bg-[rgba(241,_196,_15,_0.1)] bg-none py-2.5 px-5 rounded-[20px] border border-[rgba(241,_196,_15,_0.3)] text-[#f1c40f]">
+                    <span className="text-[1.5rem]">👑</span>
+                    <span className="text-[1.1rem]">Este eres tú. ¡Mucha suerte!</span>
                   </div>
                 )}
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '15px',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                    marginTop: '15px',
-                  }}
-                >
+                <div className="flex gap-[15px] flex-wrap justify-center mt-[15px]">
                   {userStats.id && (
                     <button
                       onClick={() => setViewerPredictionId(userStats.id)}
-                      className="glass-btn primary-btn"
-                      style={{
-                        padding: '8px 25px',
-                        borderRadius: '10px',
-                        fontSize: '1.1rem',
-                        background: 'rgba(0, 210, 211, 0.2)',
-                        border: '1px solid #00d2d3',
-                        color: '#00d2d3',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
+                      className="glass-btn primary-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[rgba(0,_210,_211,_0.2)] bg-none border border-[#00d2d3] text-[#00d2d3] flex items-center gap-2"
                     >
                       👁️ Ver Porra Completa
                     </button>
                   )}
                   <button
                     onClick={handleShareUser}
-                    className="glass-btn"
-                    style={{
-                      padding: '8px 25px',
-                      borderRadius: '10px',
-                      fontSize: '1.1rem',
-                      background: '#25D366',
-                      color: 'white',
-                      border: '1px solid #25D366',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
+                    className="glass-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[#25D366] bg-none text-white border border-[#25D366] flex items-center gap-2"
                   >
                     <WhatsAppIcon size={20} /> Compartir Perfil
                   </button>
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                  gap: '20px',
-                  marginBottom: '30px',
-                }}
-              >
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🏆</div>
-                  <div
-                    style={{
-                      color: 'var(--text-muted)',
-                      fontSize: '0.9rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    Campeón
-                  </div>
-                  <div
-                    style={{
-                      fontWeight: 'bold',
-                      fontSize: '1.3rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      marginTop: '10px',
-                    }}
-                  >
+              <div className="grid grid-cols-[repeat(auto-fit,_minmax(220px,_1fr))] gap-5 mb-7.5">
+                <div className="bg-[rgba(255,255,255,0.03)] bg-none p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
+                  <div className="text-[2.5rem] mb-2.5">🏆</div>
+                  <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">Campeón</div>
+                  <div className="font-bold text-[1.3rem] flex items-center justify-center gap-2.5 mt-2.5">
                     <Flag
                       team={userStats.champion}
                       size="24x18"
@@ -859,63 +498,21 @@ function Search() {
                 </div>
 
                 {activeGroupPichichi && (
-                  <div
-                    style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      padding: '20px',
-                      borderRadius: '12px',
-                      textAlign: 'center',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                    }}
-                  >
-                    <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👟</div>
-                    <div
-                      style={{
-                        color: 'var(--text-muted)',
-                        fontSize: '0.9rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px',
-                      }}
-                    >
+                  <div className="bg-[rgba(255,255,255,0.03)] bg-none p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
+                    <div className="text-[2.5rem] mb-2.5">👟</div>
+                    <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">
                       Pichichi
                     </div>
-                    <div style={{ fontWeight: 'bold', fontSize: '1.3rem', marginTop: '10px' }}>
+                    <div className="font-bold text-[1.3rem] mt-2.5">
                       {userStats.scorer || 'No elegido'}
                     </div>
                   </div>
                 )}
 
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>⚔️</div>
-                  <div
-                    style={{
-                      color: 'var(--text-muted)',
-                      fontSize: '0.9rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    Su Final
-                  </div>
-                  <div
-                    style={{
-                      fontWeight: 'bold',
-                      fontSize: '1.1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      marginTop: '10px',
-                    }}
-                  >
+                <div className="bg-[rgba(255,255,255,0.03)] bg-none p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
+                  <div className="text-[2.5rem] mb-2.5">⚔️</div>
+                  <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">Su Final</div>
+                  <div className="font-bold text-[1.1rem] flex items-center justify-center gap-2.5 mt-2.5">
                     {userStats.final && userStats.final.length === 2 ? (
                       <>
                         <Flag
@@ -923,7 +520,7 @@ function Search() {
                           size="20x15"
                           style={{ width: 20, height: 15, borderRadius: 2 }}
                         />
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>vs</span>
+                        <span className="text-muted text-[0.9rem]">vs</span>
                         <Flag
                           team={userStats.final[1]}
                           size="20x15"
@@ -938,50 +535,20 @@ function Search() {
               </div>
 
               {/* Psicología */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '20px',
-                }}
-              >
-                <div
-                  style={{
-                    background: 'rgba(232, 67, 147, 0.1)',
-                    border: '1px solid rgba(232, 67, 147, 0.3)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                  }}
-                >
-                  <h4
-                    style={{
-                      color: '#e84393',
-                      marginTop: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      fontSize: '1.2rem',
-                    }}
-                  >
+              <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-5">
+                <div className="bg-[rgba(232,_67,_147,_0.1)] bg-none border border-[rgba(232,_67,_147,_0.3)] p-5 rounded-[12px]">
+                  <h4 className="text-[#e84393] mt-0 flex items-center gap-2.5 text-[1.2rem]">
                     🦄 Sus "Locuras"
                   </h4>
                   <p className="text-[var(--text-muted)] text-sm mb-4">
                     Equipos no favoritos que ha metido en Cuartos o Semis.
                   </p>
                   {userStats.madness.length > 0 ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    <div className="flex flex-wrap gap-2.5">
                       {userStats.madness.map((t) => (
                         <div
+                          className="flex items-center gap-1.5 bg-[rgba(0,0,0,0.4)] bg-none py-1.5 px-3 rounded-[15px] text-[0.95rem]"
                           key={t}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: 'rgba(0,0,0,0.4)',
-                            padding: '6px 12px',
-                            borderRadius: '15px',
-                            fontSize: '0.95rem',
-                          }}
                         >
                           <Flag
                             team={t}
@@ -1002,43 +569,19 @@ function Search() {
                   )}
                 </div>
 
-                <div
-                  style={{
-                    background: 'rgba(155, 89, 182, 0.1)',
-                    border: '1px solid rgba(155, 89, 182, 0.3)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                  }}
-                >
-                  <h4
-                    style={{
-                      color: '#9b59b6',
-                      marginTop: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      fontSize: '1.2rem',
-                    }}
-                  >
+                <div className="bg-[rgba(155,_89,_182,_0.1)] bg-none border border-[rgba(155,_89,_182,_0.3)] p-5 rounded-[12px]">
+                  <h4 className="text-[#9b59b6] mt-0 flex items-center gap-2.5 text-[1.2rem]">
                     💀 Sus "Haters"
                   </h4>
                   <p className="text-[var(--text-muted)] text-sm mb-4">
                     Equipos top que ha fulminado en Fase de Grupos.
                   </p>
                   {userStats.haters.length > 0 ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    <div className="flex flex-wrap gap-2.5">
                       {userStats.haters.map((t) => (
                         <div
+                          className="flex items-center gap-1.5 bg-[rgba(0,0,0,0.4)] bg-none py-1.5 px-3 rounded-[15px] text-[0.95rem]"
                           key={t}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: 'rgba(0,0,0,0.4)',
-                            padding: '6px 12px',
-                            borderRadius: '15px',
-                            fontSize: '0.95rem',
-                          }}
                         >
                           <Flag
                             team={t}
@@ -1061,24 +604,8 @@ function Search() {
                   )}
                 </div>
 
-                <div
-                  style={{
-                    background: 'rgba(231, 76, 60, 0.1)',
-                    border: '1px solid rgba(231, 76, 60, 0.3)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                  }}
-                >
-                  <h4
-                    style={{
-                      color: '#e74c3c',
-                      marginTop: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      fontSize: '1.2rem',
-                    }}
-                  >
+                <div className="bg-[rgba(231,_76,_60,_0.1)] bg-none border border-[rgba(231,_76,_60,_0.3)] p-5 rounded-[12px]">
+                  <h4 className="text-[#e74c3c] mt-0 flex items-center gap-2.5 text-[1.2rem]">
                     🏥 ¡Al Psiquiatra!
                   </h4>
                   <p className="text-[var(--text-muted)] text-sm mb-4">
@@ -1089,24 +616,10 @@ function Search() {
                     <div className="flex flex-col gap-3">
                       {userStats.asylum.map((item) => (
                         <div
+                          className="bg-[rgba(0,0,0,0.4)] bg-none p-2.5 rounded-[10px] text-[0.9rem]"
                           key={item.team}
-                          style={{
-                            background: 'rgba(0,0,0,0.4)',
-                            padding: '10px',
-                            borderRadius: '10px',
-                            fontSize: '0.9rem',
-                          }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              fontWeight: 'bold',
-                              color: '#e74c3c',
-                              marginBottom: '4px',
-                            }}
-                          >
+                          <div className="flex items-center gap-1.5 font-bold text-[#e74c3c] mb-1">
                             <Flag
                               team={item.team}
                               size="w80"
@@ -1119,9 +632,9 @@ function Search() {
                             />
                             {item.team}
                           </div>
-                          <div style={{ color: 'rgba(255,255,255,0.8)' }}>
+                          <div className="text-[rgba(255,255,255,0.8)]">
                             Único en predecir:{' '}
-                            <span style={{ fontStyle: 'italic' }}>{item.labels.join(', ')}</span>
+                            <span className="italic">{item.labels.join(', ')}</span>
                           </div>
                         </div>
                       ))}

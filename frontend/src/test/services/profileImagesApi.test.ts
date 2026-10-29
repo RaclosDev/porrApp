@@ -22,7 +22,7 @@ describe('API de imágenes y perfil', () => {
     setAuthToken(null);
   });
 
-  const ok = (body) =>
+  const ok = (body: unknown) =>
     Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
 
   it('sube la imagen de liga como multipart PUT con el token y sin Content-Type manual', async () => {
@@ -82,6 +82,8 @@ describe('API de imágenes y perfil', () => {
     expect(validateImageFile(new File(['x'], 'a.png', { type: 'image/png' }))).toBeNull();
     expect(validateImageFile(new File(['x'], 'a.jpg', { type: 'image/jpeg' }))).toBeNull();
     expect(validateImageFile(new File(['x'], 'a.webp', { type: 'image/webp' }))).toBeNull();
-    expect(validateImageFile(new File(['x'], 'a.heic', { type: 'image/heic' }))).toMatch(/HEIC\/HEIF/);
+    expect(validateImageFile(new File(['x'], 'a.heic', { type: 'image/heic' }))).toMatch(
+      /HEIC\/HEIF/,
+    );
   });
 });
