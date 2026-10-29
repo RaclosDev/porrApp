@@ -130,15 +130,7 @@ function PredictionViewer({
     const rightContent =
       slotPoints !== null ? (
         <span
-          style={{
-            marginLeft: '4px',
-            fontSize: '0.85em',
-            fontWeight: 'bold',
-            color: slotPoints === '0' ? '#e74c3c' : '#2ecc71',
-            background: slotPoints === '0' ? 'rgba(231,76,60,0.1)' : 'rgba(46,204,113,0.1)',
-            padding: '2px 4px',
-            borderRadius: '4px',
-          }}
+          className={`ml-1 text-[0.85em] font-bold py-0.5 px-1 rounded-[4px] ${slotPoints === '0' ? 'text-[#e74c3c]' : 'text-[#2ecc71]'} ${slotPoints === '0' ? 'bg-[rgba(231,76,60,0.1)]' : 'bg-[rgba(46,204,113,0.1)]'}`}
         >
           {slotPoints}
         </span>
@@ -206,17 +198,8 @@ function PredictionViewer({
       <div className="block">
         {/* FINAL HEADER & POINTS */}
         <div
-          style={{
-            position: 'absolute',
-            top: finalTopY - 44,
-            left: COL_GAP,
-            width: colW,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 2,
-            pointerEvents: 'none',
-          }}
+          className="absolute flex flex-col items-center gap-0.5 pointer-events-none"
+          style={{ top: finalTopY - 44, left: COL_GAP, width: colW }}
         >
           <div className="text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase">
             🏆 Final 🏆
@@ -231,8 +214,8 @@ function PredictionViewer({
         </div>
 
         <div
-          className="match final-match"
-          style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}
+          className="match final-match absolute"
+          style={{ top: finalTopY, left: COL_GAP, width: colW }}
         >
           {renderSlot(finalHome, { roundIndex: 'final', isHome: true })}
           {renderSlot(finalAway, { roundIndex: 'final', isHome: false })}
@@ -240,13 +223,8 @@ function PredictionViewer({
 
         {/* CAMPEÓN */}
         <div
-          style={{
-            position: 'absolute',
-            top: finalTopY + MATCH_H + 16,
-            left: COL_GAP,
-            width: colW,
-            textAlign: 'center',
-          }}
+          className="absolute text-center"
+          style={{ top: finalTopY + MATCH_H + 16, left: COL_GAP, width: colW }}
         >
           <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1">
             🏆 Campeón
@@ -271,13 +249,8 @@ function PredictionViewer({
 
         {/* TERCER PUESTO */}
         <div
-          style={{
-            position: 'absolute',
-            top: finalTopY + MATCH_H + 16 + MATCH_H + 36,
-            left: COL_GAP,
-            width: colW,
-            textAlign: 'center',
-          }}
+          className="absolute text-center"
+          style={{ top: finalTopY + MATCH_H + 16 + MATCH_H + 36, left: COL_GAP, width: colW }}
         >
           <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1">
             🥉 Tercer Puesto
@@ -434,15 +407,7 @@ function PredictionViewer({
   if (error) {
     if (inline) {
       return (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '40px 20px',
-            background: 'rgba(231,76,60,0.1)',
-            borderRadius: '16px',
-            border: '1px solid rgba(231,76,60,0.3)',
-          }}
-        >
+        <div className="text-center py-10 px-5 bg-[rgba(231,76,60,0.1)] rounded-[16px] border border-[rgba(231,76,60,0.3)]">
           <div className="text-[2.5rem] mb-3">🔒</div>
           <h3 className="text-[#e74c3c] mb-2.5">Porra no disponible</h3>
           <p className="text-muted leading-[1.5]">{error}</p>

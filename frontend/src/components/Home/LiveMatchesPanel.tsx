@@ -93,18 +93,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
       {hasLive && (
         <div className="flex flex-col gap-2">
           <div
-            style={{
-              textAlign: 'center',
-              color: isActuallyLive ? '#ff4757' : '#ffa502',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              padding: '6px',
-              background: isActuallyLive ? 'rgba(255, 71, 87, 0.1)' : 'rgba(255, 165, 2, 0.1)',
-              border: isActuallyLive
-                ? '1px solid rgba(255, 71, 87, 0.3)'
-                : '1px solid rgba(255, 165, 2, 0.3)',
-              borderRadius: '12px',
-            }}
+            className={`text-center text-[1rem] font-bold p-1.5 rounded-[12px] ${isActuallyLive ? 'text-[#ff4757]' : 'text-[#ffa502]'} ${isActuallyLive ? 'bg-[rgba(255,_71,_87,_0.1)]' : 'bg-[rgba(255,_165,_2,_0.1)]'} ${isActuallyLive ? 'border border-[rgba(255,_71,_87,_0.3)]' : 'border border-[rgba(255,_165,_2,_0.3)]'}`}
           >
             {isActuallyLive ? '🔴 EN DIRECTO' : '⏳ A PUNTO DE COMENZAR'}
           </div>

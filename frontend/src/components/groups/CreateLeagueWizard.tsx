@@ -38,7 +38,7 @@ export default function CreateLeagueWizard({
         <div className="flex justify-between items-center">
           <h3 className="m-0 text-accent flex items-center gap-2.5">🏆 Crear Nueva Liga</h3>
           <button
-            className="bg-none border-0 text-muted cursor-pointer text-[1.2rem] min-w-10 min-h-10 flex items-center justify-center"
+            className="bg-none border-none text-muted cursor-pointer text-[1.2rem] min-w-10 min-h-10 flex items-center justify-center"
             type="button"
             onClick={() => setShowCreateModal(false)}
             aria-label="Cerrar modal"
@@ -107,14 +107,7 @@ export default function CreateLeagueWizard({
           <button
             type="submit"
             disabled={isCreating}
-            className="glass-btn primary-btn"
-            style={{
-              padding: '12px',
-              fontWeight: 'bold',
-              fontSize: '0.95rem',
-              marginTop: '6px',
-              cursor: isCreating ? 'not-allowed' : 'pointer',
-            }}
+            className={`glass-btn primary-btn p-3 font-bold text-[0.95rem] mt-1.5 ${isCreating ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >
             {isCreating ? '⏳ Creando Liga...' : '🚀 Crear Liga'}
           </button>

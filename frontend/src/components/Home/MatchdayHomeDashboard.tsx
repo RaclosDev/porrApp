@@ -242,31 +242,13 @@ export default function MatchdayHomeDashboard() {
 
                   return (
                     <div
+                      className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.12)]' : 'bg-[rgba(255,_255,_255,_0.03)]'} ${isMe ? 'border border-[rgba(0,_210,_211,_0.35)]' : 'border border-transparent'}`}
                       key={p.id || index}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        background: isMe ? 'rgba(0, 210, 211, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-                        border: isMe
-                          ? '1px solid rgba(0, 210, 211, 0.35)'
-                          : '1px solid transparent',
-                      }}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[1rem] w-5.5 text-center shrink-0">{medal}</span>
                         <span
-                          style={{
-                            fontWeight: isMe ? 700 : 500,
-                            fontSize: '0.88rem',
-                            color: '#fff',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
+                          className={`text-[0.88rem] text-white overflow-hidden text-ellipsis whitespace-nowrap ${isMe ? 'font-bold' : 'font-medium'}`}
                         >
                           {p.name}
                           {isMe ? ' (Tú)' : ''}

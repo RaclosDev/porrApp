@@ -31,23 +31,7 @@ export default function GroupCard({
   return (
     <div
       key={group.id}
-      className="glass-panel"
-      style={{
-        flex: '1',
-        minWidth: '280px',
-        maxWidth: '360px',
-        padding: '20px',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        borderRadius: '16px',
-        background: 'linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
-        border: isSelected ? '2px solid #00d2d3' : '1px solid var(--border-color)',
-        boxShadow: isSelected
-          ? '0 8px 24px rgba(0, 210, 211, 0.18)'
-          : '0 4px 14px rgba(0, 0, 0, 0.25)',
-      }}
+      className={`glass-panel flex-1 min-w-70 max-w-90 p-5 relative flex flex-col gap-3 rounded-[16px] bg-[linear-gradient(160deg,_rgba(255,255,255,0.05),_rgba(255,255,255,0.015))] ${isSelected ? 'border-2 border-[#00d2d3]' : 'border border-line'} ${isSelected ? 'shadow-[0_8px_24px_rgba(0,_210,_211,_0.18)]' : 'shadow-[0_4px_14px_rgba(0,_0,_0,_0.25)]'}`}
     >
       {isSelected && (
         <div className="absolute -top-2.5 left-[15px] bg-[#00d2d3] text-black py-0.5 px-2.5 rounded-[12px] text-[0.75rem] font-bold">
@@ -71,47 +55,17 @@ export default function GroupCard({
       </div>
       <div className="flex flex-wrap gap-1.5">
         {isCreator && (
-          <span
-            style={{
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              padding: '3px 9px',
-              borderRadius: '999px',
-              background: 'rgba(255, 193, 7, 0.14)',
-              border: '1px solid rgba(255, 193, 7, 0.4)',
-              color: '#ffc107',
-            }}
-          >
+          <span className="text-[0.72rem] font-bold py-[3px] px-[9px] rounded-[999px] bg-[rgba(255,_193,_7,_0.14)] border border-[rgba(255,_193,_7,_0.4)] text-[#ffc107]">
             👑 Administras
           </span>
         )}
         {group.competitionName && (
-          <span
-            style={{
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              padding: '3px 9px',
-              borderRadius: '999px',
-              background: 'rgba(162, 155, 254, 0.14)',
-              border: '1px solid rgba(162, 155, 254, 0.35)',
-              color: '#a29bfe',
-            }}
-          >
+          <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(162,_155,_254,_0.14)] border border-[rgba(162,_155,_254,_0.35)] text-[#a29bfe]">
             {group.competitionName}
           </span>
         )}
         {group.poolFormat && (
-          <span
-            style={{
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              padding: '3px 9px',
-              borderRadius: '999px',
-              background: 'rgba(0, 210, 211, 0.1)',
-              border: '1px solid rgba(0, 210, 211, 0.3)',
-              color: '#00d2d3',
-            }}
-          >
+          <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(0,_210,_211,_0.1)] border border-[rgba(0,_210,_211,_0.3)] text-[#00d2d3]">
             {group.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
           </span>
         )}
@@ -119,23 +73,7 @@ export default function GroupCard({
 
       <div className="flex flex-col gap-2 mt-auto pt-2.5">
         {isSelected ? (
-          <div
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              background: 'rgba(0, 210, 211, 0.12)',
-              border: '1px solid #00d2d3',
-              color: '#00d2d3',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              boxSizing: 'border-box',
-            }}
-          >
+          <div className="w-full py-2.5 px-3.5 rounded-[10px] bg-[rgba(0,_210,_211,_0.12)] border border-[#00d2d3] text-[#00d2d3] font-bold text-[0.9rem] flex items-center justify-center gap-1.5 box-border">
             <span>✓</span>
             <span>Liga Actual</span>
           </div>
@@ -155,23 +93,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleShareWhatsApp(group)}
-              className="glass-btn"
-              style={{
-                flex: '1 1 auto',
-                minWidth: 0,
-                padding: '10px 12px',
-                borderRadius: '10px',
-                fontWeight: 800,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '7px',
-                color: '#fff',
-                background: 'linear-gradient(135deg, #25D366, #128C7E)',
-                border: '1px solid rgba(37, 211, 102, 0.55)',
-                boxSizing: 'border-box',
-              }}
+              className="glass-btn flex-[1_1_auto] min-w-0 py-2.5 px-3 rounded-[10px] font-extrabold text-[0.9rem] flex items-center justify-center gap-[7px] text-white bg-[linear-gradient(135deg,_#25D366,_#128C7E)] border border-[rgba(37,_211,_102,_0.55)] box-border"
               title="Invitar por WhatsApp"
               aria-label={`Invitar a ${group.name} por WhatsApp`}
             >
@@ -190,18 +112,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleCopyCode(group.joinCode)}
-              className="glass-btn"
-              style={{
-                flex: '0 0 auto',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                fontWeight: 800,
-                fontSize: '0.85rem',
-                color: '#fff',
-                background: 'rgba(0, 0, 0, 0.25)',
-                border: '1px solid var(--border-color)',
-                whiteSpace: 'nowrap',
-              }}
+              className="glass-btn flex-[0_0_auto] py-2.5 px-3 rounded-[10px] font-extrabold text-[0.85rem] text-white bg-[rgba(0,_0,_0,_0.25)] border border-line whitespace-nowrap"
               title="Copiar código de invitación"
               aria-label={`Copiar código de invitación de ${group.name}`}
             >
@@ -210,20 +121,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleCopyLink(group.joinCode)}
-              className="glass-btn"
-              style={{
-                flex: '0 0 42px',
-                width: 42,
-                padding: '10px 0',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1rem',
-                color: '#fff',
-                background: 'rgba(0, 0, 0, 0.25)',
-                border: '1px solid var(--border-color)',
-              }}
+              className="glass-btn flex-[0_0_42px] w-10.5 py-2.5 px-0 rounded-[10px] flex items-center justify-center text-[1rem] text-white bg-[rgba(0,_0,_0,_0.25)] border border-line"
               title="Copiar enlace de invitación"
               aria-label={`Copiar enlace de invitación de ${group.name}`}
             >

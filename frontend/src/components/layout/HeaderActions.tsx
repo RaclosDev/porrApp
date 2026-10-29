@@ -44,22 +44,7 @@ export default function HeaderActions({
                 if (enterDemoMode) enterDemoMode();
                 navigate('/demo');
               }}
-              className="glass-btn"
-              style={{
-                height: '38px',
-                padding: '0 12px',
-                fontSize: '0.82rem',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#e2e8f0',
-              }}
+              className="glass-btn h-9.5 py-0 px-3 text-[0.82rem] rounded-[10px] flex items-center gap-1.5 font-bold cursor-pointer whitespace-nowrap bg-[rgba(255,_255,_255,_0.06)] border border-[rgba(255,_255,_255,_0.15)] text-[#e2e8f0]"
               title="Probar Demo del Mundial"
             >
               <span>🚀</span>
@@ -70,24 +55,7 @@ export default function HeaderActions({
             id="btn-login-header"
             type="button"
             onClick={() => setShowMyPredictionModal(true)}
-            className="glass-btn"
-            style={{
-              height: '38px',
-              padding: '0 16px',
-              fontSize: '0.88rem',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              background: 'rgba(0, 210, 211, 0.12)',
-              border: '1px solid rgba(0, 210, 211, 0.45)',
-              color: '#00d2d3',
-              boxShadow: '0 4px 15px rgba(0, 210, 211, 0.15)',
-            }}
+            className="glass-btn h-9.5 py-0 px-4 text-[0.88rem] rounded-[10px] flex items-center justify-center gap-2 font-bold cursor-pointer whitespace-nowrap bg-[rgba(0,_210,_211,_0.12)] border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]"
             title="Iniciar Sesión"
           >
             <span className="text-[1.05rem]">👤</span>

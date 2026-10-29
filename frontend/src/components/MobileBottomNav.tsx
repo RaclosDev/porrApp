@@ -58,33 +58,11 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className="mobile-bottom-nav floating-capsule-nav"
+      className={`mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 bg-[rgba(12,_18,_34,_0.88)] [backdrop-filter:blur(24px)_saturate(190%)] border border-[rgba(255,_255,_255,_0.12)] rounded-[32px] flex items-center justify-around py-0 px-1.5 z-[1000] shadow-[0_16px_36px_-4px_rgba(0,_0,_0,_0.65),_0_0_0_1px_rgba(255,_255,_255,_0.05),_inset_0_1px_0_rgba(255,_255,_255,_0.15)] ${isNavLocked ? 'opacity-[0.45]' : 'opacity-[1]'} ${isNavLocked ? 'pointer-events-none' : 'pointer-events-auto'}`}
       aria-label="Navegación principal móvil"
       inert={isNavLocked}
       aria-disabled={isNavLocked || undefined}
-      style={{
-        position: 'fixed',
-        bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'calc(100% - 24px)',
-        maxWidth: '430px',
-        height: '62px',
-        background: 'rgba(12, 18, 34, 0.88)',
-        backdropFilter: 'blur(24px) saturate(190%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(190%)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        borderRadius: '32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        padding: '0 6px',
-        zIndex: 1000,
-        opacity: isNavLocked ? 0.45 : 1,
-        pointerEvents: isNavLocked ? 'none' : 'auto',
-        boxShadow:
-          '0 16px 36px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
-      }}
+      style={{ WebkitBackdropFilter: 'blur(24px) saturate(190%)' }}
     >
       {navItems.map((item) => {
         const IconComponent = item.icon;
@@ -114,15 +92,7 @@ export default function MobileBottomNav() {
             {({ isActive }) => (
               <>
                 <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    lineHeight: 1,
-                    filter: isActive ? 'drop-shadow(0 0 8px rgba(0, 210, 211, 0.55))' : 'none',
-                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
-                    transition: 'transform 0.2s ease',
-                  }}
+                  className={`flex items-center justify-center leading-[1] [transition:transform_0.2s_ease] ${isActive ? '[filter:drop-shadow(0_0_8px_rgba(0,_210,_211,_0.55))]' : '[filter:none]'} ${isActive ? '[transform:scale(1.08)]' : '[transform:scale(1)]'}`}
                 >
                   <IconComponent
                     size={20}
@@ -131,13 +101,7 @@ export default function MobileBottomNav() {
                   />
                 </span>
                 <span
-                  style={{
-                    fontSize: '0.64rem',
-                    fontWeight: isActive ? 700 : 500,
-                    letterSpacing: '0.2px',
-                    color: isActive ? 'var(--accent-cyan, #00d2d3)' : '#8899a6',
-                    transition: 'color 0.2s ease',
-                  }}
+                  className={`text-[0.64rem] tracking-[0.2px] [transition:color_0.2s_ease] ${isActive ? 'font-bold' : 'font-medium'} ${isActive ? 'text-cyan' : 'text-[#8899a6]'}`}
                 >
                   {item.label}
                 </span>

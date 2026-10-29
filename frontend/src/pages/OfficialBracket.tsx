@@ -173,15 +173,7 @@ function OfficialBracketView() {
 
         scoreContent = (
           <span
-            style={{
-              marginLeft: '4px',
-              fontSize: '0.85em',
-              fontWeight: 'bold',
-              color: isWinner ? '#2ecc71' : 'var(--text-muted)',
-              background: 'rgba(255,255,255,0.05)',
-              padding: '2px 4px',
-              borderRadius: '4px',
-            }}
+            className={`ml-1 text-[0.85em] font-bold bg-[rgba(255,255,255,0.05)] py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[#2ecc71]' : 'text-muted'}`}
           >
             {score}
           </span>
@@ -241,24 +233,14 @@ function OfficialBracketView() {
     <div className="block">
       {/* FINAL */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY - 22,
-          left: COL_GAP,
-          width: colW,
-          textAlign: 'center',
-          fontSize: '0.65rem',
-          fontWeight: 700,
-          color: 'rgba(251,191,36,0.9)',
-          letterSpacing: 2,
-          textTransform: 'uppercase',
-        }}
+        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase"
+        style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
       >
         🏆 Final 🏆
       </div>
       <div
-        className="match final-match"
-        style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}
+        className="match final-match absolute"
+        style={{ top: finalTopY, left: COL_GAP, width: colW }}
       >
         {renderSlot(part.final?.[0], { side: 'center', roundIndex: 'final', isHome: true })}
         {renderSlot(part.final?.[1], { side: 'center', roundIndex: 'final', isHome: false })}
@@ -266,32 +248,15 @@ function OfficialBracketView() {
 
       {/* CAMPEÓN */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY + MATCH_H + 18,
-          left: COL_GAP,
-          width: colW,
-          textAlign: 'center',
-        }}
+        className="absolute text-center"
+        style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
       >
         <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1.5">
           🏆 Campeón
         </div>
         <div className="champion-display">
           <div
-            className="team-slot"
-            style={{
-              height: 50,
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-              borderColor: getIsProv(part.champion) ? '#ff4757' : '#fbbf24',
-              background: 'rgba(251,191,36,0.15)',
-              color: '#fbbf24',
-              borderStyle: getIsProv(part.champion) ? 'dashed' : 'solid',
-              animation: getIsProv(part.champion) ? 'provisional-pulse 1.5s infinite' : 'none',
-            }}
+            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.champion) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
           >
             <Flag
               team={getName(part.champion) || ''}
@@ -311,12 +276,8 @@ function OfficialBracketView() {
 
       {/* TERCER PUESTO */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY + MATCH_H + 18 + MATCH_H + 44,
-          left: COL_GAP,
-          width: colW,
-        }}
+        className="absolute"
+        style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
       >
         <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1.5 text-center">
           🥉 Tercer Puesto
@@ -339,21 +300,7 @@ function OfficialBracketView() {
           </div>
           <div className="champion-display">
             <div
-              className="team-slot"
-              style={{
-                height: 38,
-                fontSize: '0.95rem',
-                fontWeight: 'bold',
-                justifyContent: 'center',
-                pointerEvents: 'none',
-                borderColor: getIsProv(part.thirdPlaceWinner) ? '#ff4757' : '#cd7f32',
-                background: 'rgba(205, 127, 50, 0.15)',
-                color: '#e0a96d',
-                borderStyle: getIsProv(part.thirdPlaceWinner) ? 'dashed' : 'solid',
-                animation: getIsProv(part.thirdPlaceWinner)
-                  ? 'provisional-pulse 1.5s infinite'
-                  : 'none',
-              }}
+              className={`team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.thirdPlaceWinner) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
             >
               <Flag
                 team={getName(part.thirdPlaceWinner) || ''}

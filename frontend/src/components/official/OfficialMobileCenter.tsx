@@ -44,19 +44,7 @@ export default function OfficialMobileCenter({
         </div>
         <div className="champion-display">
           <div
-            className="team-slot"
-            style={{
-              height: 50,
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-              borderColor: getIsProv(part.champion) ? '#ff4757' : '#fbbf24',
-              background: 'rgba(251,191,36,0.15)',
-              color: '#fbbf24',
-              borderStyle: getIsProv(part.champion) ? 'dashed' : 'solid',
-              animation: getIsProv(part.champion) ? 'provisional-pulse 1.5s infinite' : 'none',
-            }}
+            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.champion) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
           >
             <Flag
               team={getName(part.champion) || ''}
@@ -96,21 +84,7 @@ export default function OfficialMobileCenter({
           </div>
           <div className="champion-display">
             <div
-              className="team-slot"
-              style={{
-                height: 42,
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                justifyContent: 'center',
-                pointerEvents: 'none',
-                borderColor: getIsProv(part.thirdPlaceWinner) ? '#ff4757' : '#cd7f32',
-                background: 'rgba(205, 127, 50, 0.15)',
-                color: '#e0a96d',
-                borderStyle: getIsProv(part.thirdPlaceWinner) ? 'dashed' : 'solid',
-                animation: getIsProv(part.thirdPlaceWinner)
-                  ? 'provisional-pulse 1.5s infinite'
-                  : 'none',
-              }}
+              className={`team-slot h-10.5 text-[1rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.thirdPlaceWinner) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
             >
               <Flag
                 team={getName(part.thirdPlaceWinner) || ''}

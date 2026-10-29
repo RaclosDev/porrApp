@@ -37,7 +37,7 @@ export default function LeagueRulesModal({
             </h2>
           </div>
           <button
-            className="bg-[rgba(255,_255,_255,_0.08)] border-0 text-white w-8 h-8 rounded-full cursor-pointer shrink-0"
+            className="bg-[rgba(255,_255,_255,_0.08)] border-none text-white w-8 h-8 rounded-full cursor-pointer shrink-0"
             onClick={onClose}
             aria-label="Cerrar reglas"
           >

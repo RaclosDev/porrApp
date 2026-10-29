@@ -205,21 +205,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             </NavLink>
 
             {isLanding || isInviteAuthScreen ? null : isDemo ? (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 10px',
-                  borderRadius: '16px',
-                  background: 'rgba(0, 210, 211, 0.12)',
-                  border: '1px solid rgba(0, 210, 211, 0.4)',
-                  color: 'var(--accent-cyan, #00d2d3)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-[16px] bg-[rgba(0,_210,_211,_0.12)] border border-[rgba(0,_210,_211,_0.4)] text-cyan text-[0.8rem] font-bold whitespace-nowrap">
                 🌍 Mundial 2026
               </span>
             ) : (
@@ -231,17 +217,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                 {loading ? null : isMatchDayLeague ? (
                   <button
                     id="btn-complete-my-prediction-header"
-                    className="glass-btn primary-btn header-porra-cta"
-                    style={{
-                      padding: '6px 14px',
-                      minHeight: '38px',
-                      borderRadius: '10px',
-                      fontWeight: 'bold',
-                      fontSize: '0.85rem',
-                      cursor: isNavLocked ? 'not-allowed' : 'pointer',
-                      whiteSpace: 'nowrap',
-                      opacity: isNavLocked ? 0.4 : 1,
-                    }}
+                    className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
                     onClick={() => navigate('/jornadas')}
                     disabled={isNavLocked}
                   >
@@ -251,17 +227,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                   participantsHashes.find((h) => h.participantName === userName) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
-                    className="glass-btn primary-btn header-porra-cta"
-                    style={{
-                      padding: '6px 14px',
-                      minHeight: '38px',
-                      borderRadius: '10px',
-                      fontWeight: 'bold',
-                      fontSize: '0.85rem',
-                      cursor: isNavLocked ? 'not-allowed' : 'pointer',
-                      whiteSpace: 'nowrap',
-                      opacity: isNavLocked ? 0.4 : 1,
-                    }}
+                    className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
                     onClick={() => navigate('/prediction')}
                     disabled={isNavLocked}
                   >

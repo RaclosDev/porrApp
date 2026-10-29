@@ -43,7 +43,7 @@ export default function CustomSelect({ value, options, onChange, placeholder }: 
   );
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', flex: 1, zIndex: isOpen ? 1000 : 1 }}>
+    <div className={`relative flex-1 ${isOpen ? 'z-[1000]' : 'z-[1]'}`} ref={dropdownRef}>
       <div
         className="glass-input py-1.5 px-2 text-[0.85rem] cursor-pointer flex justify-between items-center min-h-11"
         role="combobox"
@@ -83,6 +83,7 @@ export default function CustomSelect({ value, options, onChange, placeholder }: 
         <div className="absolute top-full left-0 right-0 bg-[#0f172a] border border-[rgba(255,255,255,0.2)] rounded-[8px] mt-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] z-[100] overflow-hidden">
           {options.map((opt, idx) => (
             <div
+              className={`py-2 px-2.5 text-[0.85rem] cursor-pointer flex items-center justify-center gap-2 ${value === opt.value ? 'bg-[rgba(255,255,255,0.1)]' : 'bg-transparent'} ${idx < options.length - 1 ? 'border-b border-b-[rgba(255,255,255,0.05)]' : 'border-b-0'}`}
               key={idx}
               role="option"
               tabIndex={0}
@@ -93,18 +94,6 @@ export default function CustomSelect({ value, options, onChange, placeholder }: 
                   onChange(opt.value);
                   setIsOpen(false);
                 }
-              }}
-              style={{
-                padding: '8px 10px',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                background: value === opt.value ? 'rgba(255,255,255,0.1)' : 'transparent',
-                borderBottom:
-                  idx < options.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
               onMouseLeave={(e) => {

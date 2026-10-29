@@ -36,19 +36,9 @@ function TopScorersPanel({
               : 'Todavía no hay datos de goleadores disponibles.'}
           {error && onRetry && (
             <button
+              className="block mt-3 mb-0 mx-auto py-2 px-3.5 rounded-[8px] border border-cyan bg-[rgba(0,_210,_211,_0.12)] text-main font-bold cursor-pointer"
               type="button"
               onClick={onRetry}
-              style={{
-                display: 'block',
-                margin: '12px auto 0',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                border: '1px solid var(--accent-cyan, #00d2d3)',
-                background: 'rgba(0, 210, 211, 0.12)',
-                color: 'var(--text-main, #fff)',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
             >
               Reintentar
             </button>
@@ -86,14 +76,7 @@ function TopScorersPanel({
     return (
       <div className="flex items-center gap-2.5 py-2.5 px-0 border-b-0" key={s.playerId || idx}>
         <span
-          style={{
-            width: '22px',
-            textAlign: 'center',
-            fontWeight: 'bold',
-            color: isLeader ? '#ffd32a' : 'var(--text-muted)',
-            fontSize: '1rem',
-            flexShrink: 0,
-          }}
+          className={`w-5.5 text-center font-bold text-[1rem] shrink-0 ${isLeader ? 'text-[#ffd32a]' : 'text-muted'}`}
         >
           {medal}
         </span>
@@ -120,13 +103,7 @@ function TopScorersPanel({
           </div>
         </div>
         <div
-          style={{
-            fontWeight: 'bold',
-            fontSize: '1.2rem',
-            color: isLeader ? '#ffd32a' : 'var(--text-main)',
-            minWidth: '24px',
-            textAlign: 'right',
-          }}
+          className={`font-bold text-[1.2rem] min-w-6 text-right ${isLeader ? 'text-[#ffd32a]' : 'text-main'}`}
         >
           {s.goals}
         </div>

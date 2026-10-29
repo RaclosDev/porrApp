@@ -111,18 +111,9 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
             />
             <button
               type="button"
-              className="glass-btn"
+              className="glass-btn py-1.5 px-3.5 font-bold rounded-[8px] bg-[rgba(0,_210,_211,_0.15)] border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] cursor-pointer"
               onClick={saveName}
               disabled={saving || unchanged || name.trim().length < 2}
-              style={{
-                padding: '6px 14px',
-                fontWeight: 700,
-                borderRadius: '8px',
-                background: 'rgba(0, 210, 211, 0.15)',
-                border: '1px solid rgba(0, 210, 211, 0.45)',
-                color: '#00d2d3',
-                cursor: 'pointer',
-              }}
             >
               {saving ? 'Guardando…' : 'Guardar'}
             </button>

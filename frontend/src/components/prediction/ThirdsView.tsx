@@ -39,19 +39,8 @@ export default function ThirdsView({
 
             return (
               <div
+                className={`flex items-center justify-between py-3 px-4 rounded-[10px] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.08)]' : 'bg-[rgba(255,_255,_255,_0.03)]'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.08)]'} ${isAdvancing ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]' : 'shadow-none'}`}
                 key={group}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  borderRadius: '10px',
-                  background: isAdvancing ? 'rgba(0, 210, 211, 0.08)' : 'rgba(255, 255, 255, 0.03)',
-                  border: isAdvancing
-                    ? '1px solid rgba(0, 210, 211, 0.4)'
-                    : '1px solid rgba(255, 255, 255, 0.08)',
-                  boxShadow: isAdvancing ? '0 4px 15px rgba(0, 210, 211, 0.15)' : 'none',
-                }}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <span className="text-[0.75rem] font-extrabold py-[3px] px-2 rounded-[6px] bg-[rgba(255,_255,_255,_0.08)] text-muted tracking-[0.5px]">
@@ -69,14 +58,8 @@ export default function ThirdsView({
                     }}
                   />
                   <span
-                    style={{
-                      fontWeight: 700,
-                      fontSize: '0.95rem',
-                      color: displayColor,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
+                    className="font-bold text-[0.95rem] overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{ color: displayColor }}
                   >
                     {team}
                   </span>
@@ -88,6 +71,7 @@ export default function ThirdsView({
                   )}
                 </div>
                 <span
+                  className={`inline-flex items-center justify-center shrink-0 w-6.5 h-6.5 ml-2 rounded-full text-[0.95rem] font-extrabold leading-[1] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.16)]' : 'bg-[rgba(255,_255,_255,_0.05)]'} ${isAdvancing ? 'text-[#00d2d3]' : 'text-muted'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.12)]'}`}
                   role="img"
                   title={
                     isAdvancing
@@ -99,26 +83,6 @@ export default function ThirdsView({
                       ? 'Seleccionado para avanzar a R32'
                       : 'No seleccionado para avanzar a R32'
                   }
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    width: '26px',
-                    height: '26px',
-                    marginLeft: '8px',
-                    borderRadius: '50%',
-                    fontSize: '0.95rem',
-                    fontWeight: 800,
-                    lineHeight: 1,
-                    background: isAdvancing
-                      ? 'rgba(0, 210, 211, 0.16)'
-                      : 'rgba(255, 255, 255, 0.05)',
-                    color: isAdvancing ? '#00d2d3' : 'var(--text-muted)',
-                    border: isAdvancing
-                      ? '1px solid rgba(0, 210, 211, 0.4)'
-                      : '1px solid rgba(255, 255, 255, 0.12)',
-                  }}
                 >
                   {isAdvancing ? '✓' : '×'}
                 </span>

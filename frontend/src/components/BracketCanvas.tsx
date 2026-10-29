@@ -62,15 +62,8 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsPr
 
   return (
     <svg
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: svgLeft,
-        width: GAP,
-        height: svgH,
-        overflow: 'visible',
-        pointerEvents: 'none',
-      }}
+      className="absolute top-0 overflow-visible pointer-events-none"
+      style={{ left: svgLeft, width: GAP, height: svgH }}
     >
       <line x1={childX} y1={aMid} x2={midX} y2={aMid} stroke={color} strokeWidth={sw} />
       <line x1={childX} y1={bMid} x2={midX} y2={bMid} stroke={color} strokeWidth={sw} />
@@ -162,13 +155,7 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }:
         </div>
       )}
       <span
-        style={{
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flex: 1,
-          fontSize: isCombined ? '0.65rem' : '0.78rem',
-        }}
+        className={`overflow-hidden text-ellipsis whitespace-nowrap flex-1 ${isCombined ? 'text-[0.65rem]' : 'text-[0.78rem]'}`}
       >
         {name ?? 'Por definir'}
       </span>
@@ -371,8 +358,9 @@ export default function BracketCanvas<T extends SlotTeam>({
 
     return (
       <div
+        className="relative shrink-0"
         key={`${side}-${roundIndex}`}
-        style={{ position: 'relative', width: colW, height: CANVAS_H, flexShrink: 0 }}
+        style={{ width: colW, height: CANVAS_H }}
       >
         {/* Label */}
         <div className="absolute -top-8.5 left-0 w-full text-center text-[0.6rem] font-bold text-muted tracking-[1.5px] uppercase">
@@ -390,8 +378,8 @@ export default function BracketCanvas<T extends SlotTeam>({
         {matches.map((match, i) => (
           <div
             key={i}
-            className="match"
-            style={{ position: 'absolute', top: matchTop(roundIndex, i), left: 0, width: '100%' }}
+            className="match absolute left-0 w-full"
+            style={{ top: matchTop(roundIndex, i) }}
           >
             {renderSlot(match.home, { side, roundIndex, matchIndex: i, isHome: true })}
             {renderSlot(match.away, { side, roundIndex, matchIndex: i, isHome: false })}
@@ -430,37 +418,15 @@ export default function BracketCanvas<T extends SlotTeam>({
       {/* Desktop horizontal bracket */}
       <div
         ref={wrapperRef}
-        className="desktop-bracket-wrapper"
-        style={{
-          width: '100%',
-          paddingBottom: 10,
-          display: 'flex',
-          justifyContent: isOverflowX ? 'flex-start' : 'center',
-        }}
+        className={`desktop-bracket-wrapper w-full pb-2.5 flex ${isOverflowX ? 'justify-start' : 'justify-center'}`}
       >
-        <div
-          style={{
-            width: visualWidth,
-            height: visualHeight,
-            flexShrink: 0,
-            position: 'relative',
-          }}
-        >
+        <div className="shrink-0 relative" style={{ width: visualWidth, height: visualHeight }}>
           <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              display: 'inline-flex',
-              alignItems: 'flex-start',
-              padding: '40px 16px 10px',
-              gap: 0,
-              transform: `scale(${scale})`,
-              transformOrigin: '0 0',
-            }}
+            className="absolute top-0 left-0 inline-flex items-start pt-10 pb-2.5 px-4 gap-0 [transform-origin:0_0]"
+            style={{ transform: `scale(${scale})` }}
           >
             {/* Left side */}
-            <div style={{ display: 'flex', gap: GAP, height: CANVAS_H, flexShrink: 0 }}>
+            <div className="flex shrink-0" style={{ gap: GAP, height: CANVAS_H }}>
               {[0, 1, 2, 3].map((rIdx) =>
                 renderRoundCol(leftRounds, rIdx, 'left', rIdx > 0 ? 'right' : null),
               )}
@@ -469,13 +435,8 @@ export default function BracketCanvas<T extends SlotTeam>({
             {/* SF → Final dashed connector (left) */}
             {!hiddenRounds[3] && (
               <svg
-                style={{
-                  width: GAP,
-                  height: CANVAS_H,
-                  flexShrink: 0,
-                  overflow: 'visible',
-                  pointerEvents: 'none',
-                }}
+                className="shrink-0 overflow-visible pointer-events-none"
+                style={{ width: GAP, height: CANVAS_H }}
               >
                 <line
                   x1={0}
@@ -490,20 +451,15 @@ export default function BracketCanvas<T extends SlotTeam>({
             )}
 
             {/* Center */}
-            <div style={{ position: 'relative', width: centerW, height: CANVAS_H, flexShrink: 0 }}>
+            <div className="relative shrink-0" style={{ width: centerW, height: CANVAS_H }}>
               {renderCenter(colW)}
             </div>
 
             {/* Final → SF dashed connector (right) */}
             {!hiddenRounds[3] && (
               <svg
-                style={{
-                  width: GAP,
-                  height: CANVAS_H,
-                  flexShrink: 0,
-                  overflow: 'visible',
-                  pointerEvents: 'none',
-                }}
+                className="shrink-0 overflow-visible pointer-events-none"
+                style={{ width: GAP, height: CANVAS_H }}
               >
                 <line
                   x1={0}
@@ -518,7 +474,7 @@ export default function BracketCanvas<T extends SlotTeam>({
             )}
 
             {/* Right side */}
-            <div style={{ display: 'flex', gap: GAP, height: CANVAS_H, flexShrink: 0 }}>
+            <div className="flex shrink-0" style={{ gap: GAP, height: CANVAS_H }}>
               {[3, 2, 1, 0].map((rIdx) =>
                 renderRoundCol(rightRounds, rIdx, 'right', rIdx > 0 ? 'left' : null),
               )}

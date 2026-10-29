@@ -23,7 +23,7 @@ export default function CreatedLeagueModal({
     <div className="fixed inset-0 bg-[rgba(0,_0,_0,_0.8)] [backdrop-filter:blur(6px)] flex items-center justify-center z-[9999] p-5">
       <div className="bg-[#1e293b] border border-[#00d2d3] rounded-[16px] max-w-120 w-full p-7 text-center shadow-[0_20px_40px_rgba(0,_0,_0,_0.6)] relative">
         <button
-          className="absolute top-3.5 right-4 bg-transparent border-0 text-muted text-[1.4rem] cursor-pointer"
+          className="absolute top-3.5 right-4 bg-transparent border-none text-muted text-[1.4rem] cursor-pointer"
           onClick={() => setNewlyCreatedGroup(null)}
         >
           ✕
@@ -63,23 +63,9 @@ export default function CreatedLeagueModal({
 
         <div className="flex flex-col gap-2.5">
           <button
+            className="w-full p-3 rounded-[10px] border-none bg-[#25D366] text-white font-bold text-[0.95rem] cursor-pointer flex items-center justify-center gap-2"
             type="button"
             onClick={() => handleShareWhatsApp(newlyCreatedGroup)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              borderRadius: '10px',
-              border: 'none',
-              background: '#25D366',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-            }}
           >
             <span>💬</span> Compartir por WhatsApp
           </button>

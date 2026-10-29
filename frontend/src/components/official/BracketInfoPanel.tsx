@@ -35,7 +35,7 @@ export default function BracketInfoPanel({
         {/* Cabecera del HUD */}
         <div className="flex justify-end items-center pt-3 pb-0 px-4 bg-transparent">
           <button
-            className="bg-[rgba(255,_255,_255,_0.08)] border-0 text-muted w-7 h-7 rounded-full flex items-center justify-center text-[1rem] cursor-pointer [transition:all_0.2s]"
+            className="bg-[rgba(255,_255,_255,_0.08)] border-none text-muted w-7 h-7 rounded-full flex items-center justify-center text-[1rem] cursor-pointer [transition:all_0.2s]"
             onClick={() => setActivePanel(null)}
             onMouseOver={(e) => {
               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';

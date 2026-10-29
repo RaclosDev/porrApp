@@ -38,7 +38,7 @@ export default function OfficialGroupsView() {
     return (
       <div
         key={groupName}
-        className="group-card"
+        className={`group-card relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
         role="button"
         tabIndex={0}
         aria-label={`Ver detalles del Grupo ${groupName}`}
@@ -50,13 +50,6 @@ export default function OfficialGroupsView() {
           }
         }}
         id={`group-card-${groupName}`}
-        style={{
-          position: 'relative',
-          zIndex: selectedGroup?.name === groupName ? 100 : 1,
-          cursor: 'pointer',
-          border: selectedGroup?.name === groupName ? '1px solid var(--accent-color)' : '',
-          outline: selectedGroup?.name === groupName ? '2px solid var(--accent-cyan)' : 'none',
-        }}
         onClick={() => {
           if (selectedGroup?.name === groupName) setSelectedGroup(null);
           else setSelectedGroup({ name: groupName, teams });
@@ -64,15 +57,8 @@ export default function OfficialGroupsView() {
       >
         <div className="flex justify-between items-center mb-2.5">
           <h3
-            style={{
-              margin: 0,
-              fontFamily: 'inherit',
-              fontSize: '1rem',
-              lineHeight: 1.25,
-              fontWeight: 800,
-              letterSpacing: '-0.01em',
-              textAlign: 'left',
-            }}
+            className="m-0 text-[1rem] leading-[1.25] font-extrabold tracking-[-0.01em] text-left"
+            style={{ fontFamily: 'inherit' }}
           >
             Grupo {groupName}
           </h3>
@@ -106,38 +92,23 @@ export default function OfficialGroupsView() {
 
           return (
             <div
+              className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)]' : 'bg-transparent'}`}
               key={team.name}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '6px 8px',
-                marginBottom: '4px',
-                borderRadius: '6px',
-                background: idx < 2 ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
-              }}
             >
               <span className="w-4.5 font-bold text-muted text-[0.85em] shrink-0">{idx + 1}</span>
               <span className="inline-flex items-center mr-[5px] shrink-0">
                 <Flag team={team.name} />
               </span>
               <span
-                style={{
-                  flexGrow: 1,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  marginRight: '8px',
-                  fontWeight: idx < 2 ? 'bold' : 'normal',
-                }}
+                className={`grow whitespace-nowrap overflow-hidden text-ellipsis mr-2 ${idx < 2 ? 'font-bold' : 'font-normal'}`}
               >
                 {team.name}
               </span>
               {statusDot}
               <div className="flex gap-2 text-[0.85em] text-muted">
                 <span
+                  className="w-5 text-center"
                   style={{
-                    width: '20px',
-                    textAlign: 'center',
                     color:
                       team.stats.diff > 0 ? '#2ecc71' : team.stats.diff < 0 ? '#ff7675' : 'inherit',
                   }}

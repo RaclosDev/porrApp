@@ -6,24 +6,13 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="text-center pt-12.5 pb-10 px-5 flex flex-col items-center gap-5">
         <h1
-          style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: 'clamp(2.2rem, 5vw, 3.8rem)',
-            fontWeight: 800,
-            lineHeight: 1.15,
-            letterSpacing: '-0.5px',
-            color: '#fff',
-            maxWidth: '850px',
-            margin: '0 auto',
-          }}
+          className="text-[clamp(2.2rem,_5vw,_3.8rem)] font-extrabold leading-[1.15] tracking-[-0.5px] text-white max-w-212.5 my-0 mx-auto"
+          style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           La porra de toda la vida,{' '}
           <span
-            style={{
-              background: 'linear-gradient(135deg, #00d2d3 0%, #38bdf8 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
+            className="bg-[linear-gradient(135deg,_#00d2d3_0%,_#38bdf8_100%)]"
+            style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
           >
             pero bien hecha.
           </span>
@@ -63,12 +52,8 @@ export default function Landing() {
       <section className="mt-[45px] mb-[25px] mx-0">
         <div className="text-center mb-7">
           <h2
-            style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: 'clamp(1.5rem, 3.2vw, 2.1rem)',
-              color: '#fff',
-              marginBottom: '8px',
-            }}
+            className="text-[clamp(1.5rem,_3.2vw,_2.1rem)] text-white mb-2"
+            style={{ fontFamily: "'Outfit', sans-serif" }}
           >
             Todo lo que necesitas para tu porra
           </h2>
@@ -84,12 +69,8 @@ export default function Landing() {
               🏆
             </div>
             <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
+              className="text-[1.08rem] text-white m-0"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Cuadros Eliminatorios
             </h3>
@@ -105,12 +86,8 @@ export default function Landing() {
               ⚽
             </div>
             <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
+              className="text-[1.08rem] text-white m-0"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Ligas por Jornadas
             </h3>
@@ -125,12 +102,8 @@ export default function Landing() {
               👥
             </div>
             <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
+              className="text-[1.08rem] text-white m-0"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Ligas Privadas
             </h3>
@@ -145,12 +118,8 @@ export default function Landing() {
               📊
             </div>
             <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
+              className="text-[1.08rem] text-white m-0"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Directo y Clasificación
             </h3>
@@ -166,12 +135,8 @@ export default function Landing() {
               📱
             </div>
             <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
+              className="text-[1.08rem] text-white m-0"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               App Instalable (PWA)
             </h3>
@@ -187,12 +152,8 @@ export default function Landing() {
               🔒
             </div>
             <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
+              className="text-[1.08rem] text-white m-0"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Cierre Automático
             </h3>
@@ -207,12 +168,8 @@ export default function Landing() {
       {/* How it works */}
       <section className="mt-[45px] mb-7.5 mx-0 text-center">
         <h2
-          style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: 'clamp(1.4rem, 2.8vw, 1.9rem)',
-            color: '#fff',
-            marginBottom: '20px',
-          }}
+          className="text-[clamp(1.4rem,_2.8vw,_1.9rem)] text-white mb-5"
+          style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           ¿Cómo empezar en 3 pasos?
         </h2>

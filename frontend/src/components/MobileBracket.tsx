@@ -283,10 +283,7 @@ function BracketGroup<T extends SlotTeam>({
   return (
     <div className="mb-group">
       {/* Columna izquierda: partidos de la ronda actual */}
-      <div
-        className="mb-current"
-        style={{ display: 'flex', flexDirection: 'column', gap: CARD_GAP }}
-      >
+      <div className="mb-current flex flex-col" style={{ gap: CARD_GAP }}>
         <div className="mb-match-card">
           {renderSlot(matchA.data.home, {
             side: matchA.side,

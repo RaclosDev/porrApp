@@ -87,7 +87,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
     return (
       <div
         key={groupName}
-        className="group-card"
+        className={`group-card relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
         role="button"
         tabIndex={0}
         aria-label={`Ver detalles del Grupo ${groupName}`}
@@ -99,13 +99,6 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           }
         }}
         id={`group-card-${groupName}`}
-        style={{
-          position: 'relative',
-          zIndex: selectedGroup?.name === groupName ? 100 : 1,
-          cursor: 'pointer',
-          border: selectedGroup?.name === groupName ? '1px solid var(--accent-color)' : '',
-          outline: selectedGroup?.name === groupName ? '2px solid var(--accent-cyan)' : 'none',
-        }}
         onClick={() => {
           if (selectedGroup?.name === groupName) setSelectedGroup(null);
           else setSelectedGroup({ name: groupName, teams });
@@ -156,26 +149,11 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
 
           return (
             <div
+              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)]' : 'bg-transparent'}`}
               key={team.name}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '6px 8px',
-                borderLeft: borderLeftStyle,
-                marginBottom: '4px',
-                borderRadius: '0 6px 6px 0',
-                background: idx < 2 ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
-              }}
+              style={{ borderLeft: borderLeftStyle, borderRadius: '0 6px 6px 0' }}
             >
-              <span
-                style={{
-                  width: '18px',
-                  fontWeight: 'bold',
-                  color: posColor,
-                  fontSize: '0.85em',
-                  flexShrink: 0,
-                }}
-              >
+              <span className="w-4.5 font-bold text-[0.85em] shrink-0" style={{ color: posColor }}>
                 {idx + 1}
               </span>
               <Flag team={team.name} />

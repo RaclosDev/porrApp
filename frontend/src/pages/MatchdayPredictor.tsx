@@ -419,8 +419,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         <button
           onClick={handleSaveAll}
           disabled={saveMutation.isPending || activeGroupIsLocked}
-          className="glass-btn primary-btn md-save-btn"
-          style={{ cursor: activeGroupIsLocked ? 'not-allowed' : 'pointer' }}
+          className={`glass-btn primary-btn md-save-btn ${activeGroupIsLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
         >
           {saveMutation.isPending ? 'Guardando…' : 'Guardar'}
         </button>
@@ -643,40 +642,16 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
                 fixture.pointsAwarded !== null &&
                 fixture.pointsAwarded !== undefined && (
                   <div
-                    style={{
-                      marginTop: '10px',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      background:
-                        fixture.pointsAwarded > 0
-                          ? 'rgba(46, 204, 113, 0.12)'
-                          : 'rgba(255,255,255,0.03)',
-                      border:
-                        fixture.pointsAwarded > 0
-                          ? '1px solid rgba(46, 204, 113, 0.3)'
-                          : '1px solid rgba(255,255,255,0.06)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      fontSize: '0.85rem',
-                    }}
+                    className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${fixture.pointsAwarded > 0 ? 'bg-[rgba(46,_204,_113,_0.12)]' : 'bg-[rgba(255,255,255,0.03)]'} ${fixture.pointsAwarded > 0 ? 'border border-[rgba(46,_204,_113,_0.3)]' : 'border border-[rgba(255,255,255,0.06)]'}`}
                   >
                     <span
-                      style={{
-                        color: fixture.pointsAwarded > 0 ? '#2ecc71' : 'var(--text-muted)',
-                      }}
+                      className={`${fixture.pointsAwarded > 0 ? 'text-[#2ecc71]' : 'text-muted'}`}
                     >
                       {fixture.scoringDetails ||
                         (fixture.pointsAwarded > 0 ? 'Acierto en pronóstico' : 'Sin puntos')}
                     </span>
                     <span
-                      style={{
-                        fontWeight: 800,
-                        color: fixture.pointsAwarded > 0 ? '#2ecc71' : 'var(--text-muted)',
-                        fontSize: '0.95rem',
-                        flexShrink: 0,
-                      }}
+                      className={`font-extrabold text-[0.95rem] shrink-0 ${fixture.pointsAwarded > 0 ? 'text-[#2ecc71]' : 'text-muted'}`}
                     >
                       +{fixture.pointsAwarded} pts
                     </span>
@@ -692,20 +667,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
           <button
             onClick={handleSaveAll}
             disabled={saveMutation.isPending || activeGroupIsLocked}
-            className="glass-btn primary-btn"
-            style={{
-              padding: '12px 24px',
-              fontWeight: 800,
-              fontSize: '1rem',
-              borderRadius: '30px',
-              background: 'linear-gradient(135deg, #00d2d3, #00a8ff)',
-              color: '#000',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-            }}
+            className="glass-btn primary-btn py-3 px-6 font-extrabold text-[1rem] rounded-[30px] bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] text-black border-none flex items-center gap-2 cursor-pointer"
           >
             <span>💾</span>
             <span>

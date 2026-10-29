@@ -23,21 +23,15 @@ export default function LoginModal({
   return (
     <div
       id="my-prediction-modal"
-      className="modal"
+      className={`modal z-[999999] ${showMyPredictionModal ? 'flex' : 'hidden'}`}
       role="dialog"
       aria-modal="true"
       aria-label="Identificación de usuario"
-      style={{ display: showMyPredictionModal ? 'flex' : 'none', zIndex: 999999 }}
     >
       <div className="modal-content glass-panel max-w-105 text-center py-[35px] px-[25px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.5)]">
         <h3
-          style={{
-            color: 'var(--accent-color)',
-            marginBottom: '20px',
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: '1.8rem',
-            letterSpacing: '1px',
-          }}
+          className="text-accent mb-5 text-[1.8rem] tracking-[1px]"
+          style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           Iniciar sesión
         </h3>

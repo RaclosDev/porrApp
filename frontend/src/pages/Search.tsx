@@ -66,22 +66,14 @@ function CustomDropdown({
   return (
     <div className="relative w-full max-w-100" ref={dropdownRef}>
       <div
+        className={`w-full py-[15px] px-5 bg-[rgba(20,20,35,0.9)] flex items-center justify-between [cursor:text] [transition:all_0.2s] ${isOpen ? 'shadow-[0_4px_12px_rgba(0,0,0,0.4)]' : 'shadow-none'}`}
         onClick={() => {
           setIsOpen(true);
           inputRef.current?.focus();
         }}
         style={{
-          width: '100%',
-          padding: '15px 20px',
           borderRadius: '12px',
-          background: 'rgba(20,20,35,0.9)',
           border: `1px solid ${isOpen ? 'var(--accent-color)' : 'rgba(255,255,255,0.2)'}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'text',
-          transition: 'all 0.2s',
-          boxShadow: isOpen ? '0 4px 12px rgba(0,0,0,0.4)' : 'none',
         }}
       >
         <div className="flex items-center gap-2.5 grow">
@@ -100,7 +92,7 @@ function CustomDropdown({
             />
           )}
           <input
-            className="bg-transparent border-0 text-white [outline:none] text-[1.1rem] w-full"
+            className="bg-transparent border-none text-white [outline:none] text-[1.1rem] w-full"
             ref={inputRef}
             type="text"
             value={isOpen ? searchTerm : displayLabel}
@@ -113,6 +105,7 @@ function CustomDropdown({
           />
         </div>
         <span
+          className={`text-[0.8em] text-white [transition:transform_0.2s] cursor-pointer ${isOpen ? '[transform:rotate(180deg)]' : '[transform:none]'}`}
           role="button"
           tabIndex={0}
           aria-label="Alternar menú desplegable"
@@ -122,13 +115,6 @@ function CustomDropdown({
               e.stopPropagation();
               setIsOpen(!isOpen);
             }
-          }}
-          style={{
-            fontSize: '0.8em',
-            color: 'white',
-            transform: isOpen ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.2s',
-            cursor: 'pointer',
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -148,6 +134,7 @@ function CustomDropdown({
               const icon = optionIcon(opt);
               return (
                 <div
+                  className={`py-3 px-5 flex items-center gap-2.5 cursor-pointer [transition:background_0.2s] text-white ${value === val ? 'bg-[rgba(0,_210,_211,_0.2)]' : 'bg-transparent'}`}
                   key={val}
                   role="option"
                   tabIndex={0}
@@ -164,16 +151,6 @@ function CustomDropdown({
                     onChange(val);
                     setIsOpen(false);
                     setSearchTerm('');
-                  }}
-                  style={{
-                    padding: '12px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    background: value === val ? 'rgba(0, 210, 211, 0.2)' : 'transparent',
-                    color: 'white',
                   }}
                   onMouseOver={(e) => {
                     if (value !== val) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
@@ -293,58 +270,16 @@ function Search() {
       </div>
 
       <div className="flex justify-center mb-[35px]">
-        <div
-          style={{
-            display: 'flex',
-            background: 'rgba(15, 23, 42, 0.8)',
-            padding: '5px',
-            borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(12px)',
-            position: 'relative',
-            gap: '6px',
-          }}
-        >
+        <div className="flex bg-[rgba(15,_23,_42,_0.8)] p-[5px] rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1.5">
           <button
+            className={`py-2.5 px-7.5 font-extrabold text-[1.05rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-2 tracking-[0.5px] ${searchMode === 'team' ? 'bg-accent' : 'bg-transparent'} ${searchMode === 'team' ? 'text-white' : 'text-muted'} ${searchMode === 'team' ? 'shadow-[0_4px_12px_rgba(0,_0,_0,_0.25)]' : 'shadow-none'}`}
             onClick={() => setSearchMode('team')}
-            style={{
-              padding: '10px 30px',
-              fontWeight: 800,
-              fontSize: '1.05rem',
-              background: searchMode === 'team' ? 'var(--accent-color)' : 'transparent',
-              border: 'none',
-              color: searchMode === 'team' ? '#ffffff' : 'var(--text-muted)',
-              cursor: 'pointer',
-              borderRadius: '12px',
-              transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: searchMode === 'team' ? '0 4px 12px rgba(0, 0, 0, 0.25)' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              letterSpacing: '0.5px',
-            }}
           >
             🔍 Por Equipo
           </button>
           <button
+            className={`py-2.5 px-7.5 font-extrabold text-[1.05rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-2 tracking-[0.5px] ${searchMode === 'user' ? 'bg-cyan' : 'bg-transparent'} ${searchMode === 'user' ? 'text-black' : 'text-muted'} ${searchMode === 'user' ? 'shadow-[0_4px_12px_rgba(0,_0,_0,_0.25)]' : 'shadow-none'}`}
             onClick={() => setSearchMode('user')}
-            style={{
-              padding: '10px 30px',
-              fontWeight: 800,
-              fontSize: '1.05rem',
-              background: searchMode === 'user' ? 'var(--accent-cyan)' : 'transparent',
-              border: 'none',
-              color: searchMode === 'user' ? '#000000' : 'var(--text-muted)',
-              cursor: 'pointer',
-              borderRadius: '12px',
-              transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: searchMode === 'user' ? '0 4px 12px rgba(0, 0, 0, 0.25)' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              letterSpacing: '0.5px',
-            }}
           >
             🧠 Perfil de Jugador
           </button>
@@ -380,14 +315,7 @@ function Search() {
           </div>
 
           {selectedTeam && teamResults && (
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: '16px',
-                padding: '30px',
-                border: '1px solid rgba(255,255,255,0.05)',
-              }}
-            >
+            <div className="bg-[rgba(0,0,0,0.3)] rounded-[16px] p-7.5 border border-[rgba(255,255,255,0.05)]">
               <div className="flex items-center justify-center gap-[15px] mb-[25px]">
                 <Flag
                   team={selectedTeam}
@@ -409,12 +337,8 @@ function Search() {
                 </div>
                 <div className="w-full max-w-125 mt-[15px] mb-0 mx-auto bg-[rgba(255,255,255,0.1)] h-4 rounded-[8px] overflow-hidden">
                   <div
-                    style={{
-                      width: `${teamPercentage}%`,
-                      background: '#f368e0',
-                      height: '100%',
-                      transition: 'width 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
+                    className="bg-[#f368e0] h-full [transition:width_1.5s_cubic-bezier(0.4,_0,_0.2,_1)]"
+                    style={{ width: `${teamPercentage}%` }}
                   ></div>
                 </div>
               </div>
@@ -496,18 +420,7 @@ function Search() {
               <div className="flex justify-center mt-[35px]">
                 <button
                   onClick={handleShareTeam}
-                  className="glass-btn"
-                  style={{
-                    padding: '10px 25px',
-                    borderRadius: '10px',
-                    background: '#25D366',
-                    color: 'white',
-                    border: '1px solid #25D366',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    fontSize: '1.1rem',
-                  }}
+                  className="glass-btn py-2.5 px-[25px] rounded-[10px] bg-[#25D366] text-white border border-[#25D366] flex items-center gap-2.5 text-[1.1rem]"
                 >
                   <WhatsAppIcon size={20} /> Compartir Búsqueda
                 </button>
@@ -532,31 +445,14 @@ function Search() {
           </div>
 
           {selectedUser && userStats && (
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: '16px',
-                padding: '30px',
-                border: '1px solid rgba(255,255,255,0.05)',
-              }}
-            >
+            <div className="bg-[rgba(0,0,0,0.3)] rounded-[16px] p-7.5 border border-[rgba(255,255,255,0.05)]">
               <div className="flex flex-col items-center mb-7.5">
                 <h3 className="mt-0 mb-2.5 mx-0 text-[#00d2d3] text-[2rem] text-center">
                   Perfil de {selectedUser}
                 </h3>
 
                 {userName && userName !== selectedUser && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      background: 'rgba(0, 210, 211, 0.1)',
-                      padding: '10px 20px',
-                      borderRadius: '20px',
-                      border: '1px solid rgba(0, 210, 211, 0.3)',
-                    }}
-                  >
+                  <div className="flex items-center gap-2.5 bg-[rgba(0,_210,_211,_0.1)] py-2.5 px-5 rounded-[20px] border border-[rgba(0,_210,_211,_0.3)]">
                     <span className="text-[1.5rem]">🎯</span>
                     <span className="text-[1.1rem]">
                       Similitud con tu porra: <strong>{userStats.similarity}%</strong>
@@ -564,18 +460,7 @@ function Search() {
                   </div>
                 )}
                 {userName === selectedUser && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      background: 'rgba(241, 196, 15, 0.1)',
-                      padding: '10px 20px',
-                      borderRadius: '20px',
-                      border: '1px solid rgba(241, 196, 15, 0.3)',
-                      color: '#f1c40f',
-                    }}
-                  >
+                  <div className="flex items-center gap-2.5 bg-[rgba(241,_196,_15,_0.1)] py-2.5 px-5 rounded-[20px] border border-[rgba(241,_196,_15,_0.3)] text-[#f1c40f]">
                     <span className="text-[1.5rem]">👑</span>
                     <span className="text-[1.1rem]">Este eres tú. ¡Mucha suerte!</span>
                   </div>
@@ -584,36 +469,14 @@ function Search() {
                   {userStats.id && (
                     <button
                       onClick={() => setViewerPredictionId(userStats.id)}
-                      className="glass-btn primary-btn"
-                      style={{
-                        padding: '8px 25px',
-                        borderRadius: '10px',
-                        fontSize: '1.1rem',
-                        background: 'rgba(0, 210, 211, 0.2)',
-                        border: '1px solid #00d2d3',
-                        color: '#00d2d3',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
+                      className="glass-btn primary-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[rgba(0,_210,_211,_0.2)] border border-[#00d2d3] text-[#00d2d3] flex items-center gap-2"
                     >
                       👁️ Ver Porra Completa
                     </button>
                   )}
                   <button
                     onClick={handleShareUser}
-                    className="glass-btn"
-                    style={{
-                      padding: '8px 25px',
-                      borderRadius: '10px',
-                      fontSize: '1.1rem',
-                      background: '#25D366',
-                      color: 'white',
-                      border: '1px solid #25D366',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
+                    className="glass-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[#25D366] text-white border border-[#25D366] flex items-center gap-2"
                   >
                     <WhatsAppIcon size={20} /> Compartir Perfil
                   </button>
@@ -621,15 +484,7 @@ function Search() {
               </div>
 
               <div className="grid grid-cols-[repeat(auto-fit,_minmax(220px,_1fr))] gap-5 mb-7.5">
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
+                <div className="bg-[rgba(255,255,255,0.03)] p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
                   <div className="text-[2.5rem] mb-2.5">🏆</div>
                   <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">Campeón</div>
                   <div className="font-bold text-[1.3rem] flex items-center justify-center gap-2.5 mt-2.5">
@@ -643,15 +498,7 @@ function Search() {
                 </div>
 
                 {activeGroupPichichi && (
-                  <div
-                    style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      padding: '20px',
-                      borderRadius: '12px',
-                      textAlign: 'center',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                    }}
-                  >
+                  <div className="bg-[rgba(255,255,255,0.03)] p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
                     <div className="text-[2.5rem] mb-2.5">👟</div>
                     <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">
                       Pichichi
@@ -662,15 +509,7 @@ function Search() {
                   </div>
                 )}
 
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
+                <div className="bg-[rgba(255,255,255,0.03)] p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
                   <div className="text-[2.5rem] mb-2.5">⚔️</div>
                   <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">Su Final</div>
                   <div className="font-bold text-[1.1rem] flex items-center justify-center gap-2.5 mt-2.5">

@@ -45,26 +45,17 @@ export default function ChartCanvas({
 }: ChartCanvasProps) {
   return (
     <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        paddingBottom: '8px',
-      }}
+      className="relative w-full overflow-x-auto pb-2"
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <svg
+        className="w-full h-auto block overflow-visible [transition:min-width_0.3s_cubic-bezier(0.2,_0.8,_0.2,_1)]"
         viewBox={`0 0 ${width} ${height}`}
         style={{
-          width: '100%',
           minWidth:
             timeScale === 'rounds'
               ? `${Math.max(100, zoomLevel * 100)}%`
               : `${Math.max(750, zoomLevel * 750)}px`,
-          height: 'auto',
-          display: 'block',
-          overflow: 'visible',
-          transition: 'min-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
         }}
         onClick={() => {
           setHoveredStageIdx(null);
@@ -210,12 +201,8 @@ export default function ChartCanvas({
 
           return (
             <g
+              className={`[transition:opacity_0.2s] cursor-pointer ${isOtherHovered ? 'opacity-[0.15]' : 'opacity-[1]'}`}
               key={u.key}
-              style={{
-                opacity: isOtherHovered ? 0.15 : 1,
-                transition: 'opacity 0.2s',
-                cursor: 'pointer',
-              }}
               onMouseEnter={() => setHoveredUser(u.key)}
               onMouseLeave={() => setHoveredUser(null)}
               onClick={(e) => {

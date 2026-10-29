@@ -146,90 +146,26 @@ function Leaderboard() {
   return (
     <section id="view-leaderboard" className="view-section block">
       <div className="flex justify-center items-center gap-2.5 flex-nowrap mb-[25px] mt-2.5 max-w-full">
-        <div
-          style={{
-            display: 'flex',
-            background: 'rgba(15, 23, 42, 0.8)',
-            padding: '4px',
-            borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(12px)',
-            position: 'relative',
-            gap: '4px',
-          }}
-        >
+        <div className="flex bg-[rgba(15,_23,_42,_0.8)] p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1">
           <button
+            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'table' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)]' : 'bg-transparent'} ${activeTab === 'table' ? 'text-black' : 'text-muted'} ${activeTab === 'table' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
             onClick={() => setActiveTab('table')}
-            style={{
-              padding: '8px 18px',
-              fontWeight: 800,
-              fontSize: '0.95rem',
-              background:
-                activeTab === 'table' ? 'linear-gradient(135deg, #00d2d3, #01a3a4)' : 'transparent',
-              border: 'none',
-              color: activeTab === 'table' ? '#000000' : 'var(--text-muted)',
-              cursor: 'pointer',
-              borderRadius: '12px',
-              transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: activeTab === 'table' ? '0 4px 15px rgba(0, 210, 211, 0.4)' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              letterSpacing: '0.5px',
-              whiteSpace: 'nowrap',
-            }}
           >
             Ranking
           </button>
           <button
+            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'evolution' ? 'bg-[linear-gradient(135deg,_#ff9f43,_#ffaf60)]' : 'bg-transparent'} ${activeTab === 'evolution' ? 'text-black' : 'text-muted'} ${activeTab === 'evolution' ? 'shadow-[0_4px_15px_rgba(255,_159,_67,_0.4)]' : 'shadow-none'}`}
             onClick={() => setActiveTab('evolution')}
-            style={{
-              padding: '8px 18px',
-              fontWeight: 800,
-              fontSize: '0.95rem',
-              background:
-                activeTab === 'evolution'
-                  ? 'linear-gradient(135deg, #ff9f43, #ffaf60)'
-                  : 'transparent',
-              border: 'none',
-              color: activeTab === 'evolution' ? '#000000' : 'var(--text-muted)',
-              cursor: 'pointer',
-              borderRadius: '12px',
-              transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: activeTab === 'evolution' ? '0 4px 15px rgba(255, 159, 67, 0.4)' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              letterSpacing: '0.5px',
-              whiteSpace: 'nowrap',
-            }}
           >
             Gráfica
           </button>
         </div>
         <button
+          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] text-white border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-10.5 min-w-10.5 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}
           title="Compartir en WhatsApp"
-          style={{
-            padding: '8px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, #25D366, #1ebd5a)',
-            color: 'white',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: '14px',
-            cursor: sharing ? 'not-allowed' : 'pointer',
-            boxShadow: '0 8px 25px rgba(37, 211, 102, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-            backdropFilter: 'blur(12px)',
-            transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-            minHeight: '42px',
-            minWidth: '42px',
-            flexShrink: 0,
-          }}
         >
           {sharing ? <span className="text-[1rem]">⏳</span> : <WhatsAppIcon size={24} />}
         </button>
@@ -463,19 +399,9 @@ function Leaderboard() {
 
       {/* SHARE IMAGE TEMPLATE (Hidden) */}
       <div
+        className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 bg-[#0f0f1a] text-white box-border rounded-[15px]"
         id="share-image-template"
-        style={{
-          position: 'absolute',
-          top: '-9999px',
-          left: '-9999px',
-          width: '800px',
-          padding: '30px',
-          background: '#0f0f1a',
-          color: 'white',
-          fontFamily: "'Outfit', sans-serif",
-          boxSizing: 'border-box',
-          borderRadius: '15px',
-        }}
+        style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         <div className="text-center mb-5 border-b-2 border-b-[#00d2d3] pb-2.5">
           <h1 className="text-[#00d2d3] m-0 text-[28px] uppercase">
@@ -494,16 +420,8 @@ function Leaderboard() {
               const isMe = r.name === userName;
               return (
                 <div
+                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)]' : 'bg-[rgba(255,255,255,0.05)]'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
                   key={r.key}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: isMe ? 'rgba(0, 210, 211, 0.15)' : 'rgba(255,255,255,0.05)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: isMe ? '1px solid #00d2d3' : '1px solid rgba(255,255,255,0.05)',
-                  }}
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
@@ -525,16 +443,8 @@ function Leaderboard() {
               const isMe = r.name === userName;
               return (
                 <div
+                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)]' : 'bg-[rgba(255,255,255,0.05)]'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
                   key={r.key}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: isMe ? 'rgba(0, 210, 211, 0.15)' : 'rgba(255,255,255,0.05)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: isMe ? '1px solid #00d2d3' : '1px solid rgba(255,255,255,0.05)',
-                  }}
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">

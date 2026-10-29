@@ -54,7 +54,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
             Partidos del Grupo {selectedGroup.name}
           </h4>
           <button
-            className="bg-none border-0 text-[#aaa] text-[1.4rem] cursor-pointer absolute right-[15px] top-2.5 z-[2]"
+            className="bg-none border-none text-[#aaa] text-[1.4rem] cursor-pointer absolute right-[15px] top-2.5 z-[2]"
             onClick={onClose}
             aria-label="Cerrar modal"
           >
@@ -94,14 +94,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
                     <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
                   </div>
                   <div
-                    style={{
-                      padding: '2px 0',
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                      color: hasStarted ? 'white' : 'var(--text-muted)',
-                      background: hasStarted ? 'rgba(0,0,0,0.3)' : 'transparent',
-                      borderRadius: '4px',
-                    }}
+                    className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasStarted ? 'text-white' : 'text-muted'} ${hasStarted ? 'bg-[rgba(0,0,0,0.3)]' : 'bg-transparent'}`}
                   >
                     {hasStarted ? `${m.homeScore} - ${m.awayScore}` : 'VS'}
                   </div>

@@ -95,7 +95,9 @@ function Radar() {
   return (
     <section id="view-radar" className="view-section active block">
       <div className="section-header mb-5 text-center">
-        <h2 style={{ margin: 0, fontFamily: "'Outfit', sans-serif" }}>Panel de Partidos</h2>
+        <h2 className="m-0" style={{ fontFamily: "'Outfit', sans-serif" }}>
+          Panel de Partidos
+        </h2>
       </div>
 
       <div className="radar-container flex flex-col gap-7.5">
@@ -105,11 +107,7 @@ function Radar() {
             return (
               <div className="radar-column w-full max-w-150 my-0 mx-auto mb-2.5">
                 <h3
-                  style={{
-                    textAlign: 'center',
-                    color: isActuallyLive ? '#ff4757' : '#ffa502',
-                    marginBottom: '15px',
-                  }}
+                  className={`text-center mb-[15px] ${isActuallyLive ? 'text-[#ff4757]' : 'text-[#ffa502]'}`}
                 >
                   {isActuallyLive ? 'En Directo' : 'A punto de comenzar'}
                 </h3>
@@ -122,26 +120,14 @@ function Radar() {
 
         <div className="radar-tabs hide-on-desktop flex justify-center gap-2.5 mb-2.5">
           <button
-            className="glass-btn"
+            className={`glass-btn flex-1 max-w-50 ${activeTab === 'proximos' ? 'bg-[rgba(0,_210,_211,_0.2)]' : ''} ${activeTab === 'proximos' ? 'border border-cyan' : ''}`}
             onClick={() => setActiveTab('proximos')}
-            style={{
-              flex: 1,
-              maxWidth: '200px',
-              background: activeTab === 'proximos' ? 'rgba(0, 210, 211, 0.2)' : '',
-              border: activeTab === 'proximos' ? '1px solid var(--accent-cyan)' : '',
-            }}
           >
             Próximos Partidos
           </button>
           <button
-            className="glass-btn"
+            className={`glass-btn flex-1 max-w-50 ${activeTab === 'ultimos' ? 'bg-[rgba(0,_210,_211,_0.2)]' : ''} ${activeTab === 'ultimos' ? 'border border-cyan' : ''}`}
             onClick={() => setActiveTab('ultimos')}
-            style={{
-              flex: 1,
-              maxWidth: '200px',
-              background: activeTab === 'ultimos' ? 'rgba(0, 210, 211, 0.2)' : '',
-              border: activeTab === 'ultimos' ? '1px solid var(--accent-cyan)' : '',
-            }}
           >
             Últimos Resultados
           </button>

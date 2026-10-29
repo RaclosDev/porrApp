@@ -65,14 +65,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
       <div className="text-center text-[#00cec9] text-[1rem] font-bold p-1.5 bg-[rgba(0,_206,_201,_0.1)] border border-[rgba(0,_206,_201,_0.3)] rounded-[12px]">
         🥉 MEJORES TERCEROS
       </div>
-      <div
-        style={{
-          background: 'var(--bg-card)',
-          borderRadius: '12px',
-          border: '1px solid rgba(255,255,255,0.05)',
-          padding: '10px',
-        }}
-      >
+      <div className="bg-(color:--bg-card) rounded-[12px] border border-[rgba(255,255,255,0.05)] p-2.5">
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-4">
           <div className="flex flex-col">
             <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-[rgba(255,255,255,0.1)] text-[0.75rem] text-muted font-bold text-center">
@@ -93,11 +86,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                     key={t.name}
                   >
                     <span
-                      style={{
-                        color: isTop8 ? '#00b894' : 'var(--text-muted)',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                      }}
+                      className={`font-bold text-center ${isTop8 ? 'text-[#00b894]' : 'text-muted'}`}
                     >
                       {rank}
                     </span>
@@ -142,24 +131,12 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
 
                 return (
                   <div
+                    className={`grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 py-[5px] px-0 items-center text-[0.85rem] ${globalIdx === 7 ? 'border-b-2 [border-bottom-style:dashed] border-b-[rgba(255,_71,_87,_0.5)]' : 'border-b-0'}`}
                     key={t.name}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '20px 1fr 25px 30px 28px',
-                      gap: '6px',
-                      padding: '5px 0',
-                      alignItems: 'center',
-                      fontSize: '0.85rem',
-                      borderBottom: globalIdx === 7 ? '2px dashed rgba(255, 71, 87, 0.5)' : 'none',
-                      opacity: isTop8 ? 1 : hasPlayed ? 0.5 : 0.3,
-                    }}
+                    style={{ opacity: isTop8 ? 1 : hasPlayed ? 0.5 : 0.3 }}
                   >
                     <span
-                      style={{
-                        color: isTop8 ? '#00b894' : 'var(--text-muted)',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                      }}
+                      className={`font-bold text-center ${isTop8 ? 'text-[#00b894]' : 'text-muted'}`}
                     >
                       {rank}
                     </span>

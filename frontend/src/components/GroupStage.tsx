@@ -264,14 +264,8 @@ export default function GroupStage({
             return (
               <div
                 key={groupName}
-                className="group-card glass-panel"
-                style={{
-                  position: 'relative',
-                  zIndex: 50 - idx,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                }}
+                className="group-card glass-panel relative flex flex-col gap-2"
+                style={{ zIndex: 50 - idx }}
               >
                 <h3 className="mt-0 mb-[5px] mx-0 text-center border-b border-b-[rgba(255,255,255,0.1)] pb-1.5 text-[1.1rem]">
                   Grupo {groupName}
@@ -370,20 +364,14 @@ export default function GroupStage({
       </div>
 
       <div className={mobileStep === 'thirds' ? '' : 'mobile-step-hidden'}>
-        <div
-          style={{
-            padding: '20px',
-            background: 'rgba(255,255,255,0.05)',
-            borderRadius: '12px',
-            marginBottom: '30px',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}
-        >
+        <div className="p-5 bg-[rgba(255,255,255,0.05)] rounded-[12px] mb-7.5 border border-[rgba(255,255,255,0.1)]">
           <h3 className="text-center text-[#a29bfe] mt-0">Selecciona los 8 Mejores Terceros</h3>
           <p className="text-center text-[0.9rem] text-muted">
             Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los 8 que
             pasarán a octavos de final (
-            <strong style={{ color: advancingThirds.length === 8 ? '#00b894' : '#ff4757' }}>
+            <strong
+              className={`${advancingThirds.length === 8 ? 'text-[#00b894]' : 'text-[#ff4757]'}`}
+            >
               {advancingThirds.length}/8
             </strong>
             ).
@@ -401,15 +389,7 @@ export default function GroupStage({
                   <button
                     key={t}
                     onClick={() => toggleAdvancingThird(t)}
-                    className="glass-btn"
-                    style={{
-                      background: isSelected ? 'rgba(0, 210, 211, 0.2)' : 'rgba(255,255,255,0.05)',
-                      border: isSelected ? '1px solid #00d2d3' : '1px solid rgba(255,255,255,0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 12px',
-                    }}
+                    className={`glass-btn flex items-center gap-2 py-2 px-3 ${isSelected ? 'bg-[rgba(0,_210,_211,_0.2)]' : 'bg-[rgba(255,255,255,0.05)]'} ${isSelected ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.2)]'}`}
                   >
                     <Flag
                       team={t}
@@ -429,15 +409,7 @@ export default function GroupStage({
           )}
         </div>
 
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '20px',
-            background: 'rgba(255,255,255,0.05)',
-            borderRadius: '12px',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}
-        >
+        <div className="text-center p-5 bg-[rgba(255,255,255,0.05)] rounded-[12px] border border-[rgba(255,255,255,0.1)]">
           <button
             onClick={handleSubmit}
             className="glass-btn primary-btn text-[1.2rem] py-3 px-7.5"

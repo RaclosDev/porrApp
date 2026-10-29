@@ -152,24 +152,14 @@ function Bracket() {
     <>
       {/* FINAL */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY - 22,
-          left: COL_GAP,
-          width: colW,
-          textAlign: 'center',
-          fontSize: '0.65rem',
-          fontWeight: 700,
-          color: 'rgba(251,191,36,0.9)',
-          letterSpacing: 2,
-          textTransform: 'uppercase',
-        }}
+        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase"
+        style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
       >
         ⚽ Final
       </div>
       <div
-        className="match final-match"
-        style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}
+        className="match final-match absolute"
+        style={{ top: finalTopY, left: COL_GAP, width: colW }}
       >
         <TeamSlot
           name={bracketState.final?.home?.name}
@@ -187,13 +177,8 @@ function Bracket() {
 
       {/* CAMPEÓN */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY + MATCH_H + 18,
-          left: COL_GAP,
-          width: colW,
-          textAlign: 'center',
-        }}
+        className="absolute text-center"
+        style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
       >
         <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1.5">
           🏆 Campeón
@@ -205,12 +190,8 @@ function Bracket() {
 
       {/* TERCER PUESTO */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY + MATCH_H + 18 + MATCH_H + 44,
-          left: COL_GAP,
-          width: colW,
-        }}
+        className="absolute"
+        style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
       >
         <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1.5 text-center">
           🥉 Tercer Puesto
@@ -273,16 +254,7 @@ function Bracket() {
               <button
                 type="button"
                 onClick={handleResetToGroupStage}
-                className="glass-btn"
-                style={{
-                  marginTop: '10px',
-                  fontSize: '0.85rem',
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  color: 'var(--accent-cyan)',
-                  border: '1px solid rgba(0, 210, 211, 0.4)',
-                  cursor: 'pointer',
-                }}
+                className="glass-btn mt-2.5 text-[0.85rem] py-1.5 px-3.5 rounded-[20px] text-cyan border border-[rgba(0,_210,_211,_0.4)] cursor-pointer"
               >
                 ← Modificar Fase de Grupos
               </button>

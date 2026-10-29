@@ -26,14 +26,7 @@ export default function ParticipantFilter({
   users,
 }: ParticipantFilterProps) {
   return (
-    <div
-      style={{
-        marginTop: '16px',
-        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-        paddingTop: '14px',
-        padding: '14px 4px 0 4px',
-      }}
-    >
+    <div className="mt-4 border-t border-t-[rgba(255,_255,_255,_0.08)] pt-3.5 pt-3.5 pb-0 px-1">
       <div className="flex justify-between items-center flex-wrap gap-2.5 mb-3">
         <span className="text-[0.85rem] text-muted">
           👥 Participantes mostrados ({Object.values(selectedUsers).filter(Boolean).length}/
@@ -69,15 +62,8 @@ export default function ParticipantFilter({
 
       {/* Legend Chips Grid */}
       <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '8px',
-          maxHeight: '130px',
-          overflowY: 'auto',
-          padding: '2px',
-          WebkitOverflowScrolling: 'touch',
-        }}
+        className="flex flex-wrap gap-2 max-h-32.5 overflow-y-auto p-0.5"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {users.map((u) => {
           const isSel = selectedUsers[u.key];
@@ -85,52 +71,31 @@ export default function ParticipantFilter({
           const lastIdx = activeStages.length - 1;
           return (
             <div
+              className={`flex items-center gap-1.5 py-[5px] px-3 cursor-pointer text-[0.8rem] [transition:all_0.2s] ${isSel ? 'text-white' : 'text-muted'} ${isSel ? 'opacity-[1]' : 'opacity-[0.4]'} ${isHovered ? '[transform:translateY(-1px)]' : '[transform:none]'}`}
               key={u.key}
               onClick={() => toggleUser(u.key)}
               onMouseEnter={() => setHoveredUser(u.key)}
               onMouseLeave={() => setHoveredUser(null)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '5px 12px',
                 borderRadius: '20px',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                transition: 'all 0.2s',
                 background: isSel
                   ? isHovered
                     ? 'rgba(255,255,255,0.2)'
                     : 'rgba(255,255,255,0.08)'
                   : 'transparent',
                 border: isSel ? `1px solid ${u.color}` : '1px solid rgba(255,255,255,0.1)',
-                color: isSel ? '#fff' : 'var(--text-muted)',
-                opacity: isSel ? 1 : 0.4,
                 boxShadow: isHovered && isSel ? `0 0 10px ${u.color}66` : 'none',
-                transform: isHovered ? 'translateY(-1px)' : 'none',
               }}
             >
               <span
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  background: u.color,
-                  display: 'inline-block',
-                }}
+                className="w-2.5 h-2.5 rounded-full inline-block"
+                style={{ background: u.color }}
               ></span>
-              <span style={{ fontWeight: u.isMe ? 'bold' : 'normal' }}>
+              <span className={`${u.isMe ? 'font-bold' : 'font-normal'}`}>
                 {u.name} {u.isMe && '★'}
               </span>
               {isSel && (
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    color: u.color,
-                    fontWeight: 'bold',
-                    marginLeft: '2px',
-                  }}
-                >
+                <span className="text-[0.75rem] font-bold ml-0.5" style={{ color: u.color }}>
                   {mode === 'rank'
                     ? `${u.rankEvolution[lastIdx]}º`
                     : `${u.pointsEvolution[lastIdx]}pts`}

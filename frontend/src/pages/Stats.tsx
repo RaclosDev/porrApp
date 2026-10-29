@@ -162,13 +162,8 @@ function Stats() {
         </div>
         <div className="w-full bg-[rgba(255,255,255,0.05)] rounded-[10px] h-2.5 overflow-hidden">
           <div
-            style={{
-              height: '100%',
-              width: `${percentage}%`,
-              background: color,
-              borderRadius: '10px',
-              transition: 'width 0.4s ease',
-            }}
+            className="h-full rounded-[10px] [transition:width_0.4s_ease]"
+            style={{ width: `${percentage}%`, background: color }}
           />
         </div>
       </div>
@@ -187,17 +182,11 @@ function Stats() {
 
     return (
       <div
-        className="group-card"
-        style={{
-          flex: 1,
-          minWidth: '300px',
-          background: 'rgba(20,20,35,0.8)',
-          border: `1px solid ${color}40`,
-          padding: '25px',
-          borderRadius: '16px',
-        }}
+        className="group-card flex-1 min-w-75 bg-[rgba(20,20,35,0.8)] p-[25px]"
+        style={{ border: `1px solid ${color}40`, borderRadius: '16px' }}
       >
         <h3
+          className={`mt-0 mb-5 flex items-center gap-2.5 text-[1.2rem] ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
           role={hasMore ? 'button' : undefined}
           tabIndex={hasMore ? 0 : undefined}
           onClick={() => hasMore && setExpandedCard({ title, icon, dataList, color, isFinals })}
@@ -207,16 +196,7 @@ function Stats() {
               setExpandedCard({ title, icon, dataList, color, isFinals });
             }
           }}
-          style={{
-            color: color,
-            marginTop: 0,
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            fontSize: '1.2rem',
-            cursor: hasMore ? 'pointer' : 'default',
-          }}
+          style={{ color: color }}
           aria-label={hasMore ? `Expandir ${title}` : undefined}
         >
           {icon} {title}
@@ -242,16 +222,8 @@ function Stats() {
               {hasMore && (
                 <button
                   onClick={() => setExpandedCard({ title, icon, dataList, color, isFinals })}
-                  className="glass-btn"
-                  style={{
-                    marginTop: '10px',
-                    padding: '10px',
-                    fontSize: '0.9rem',
-                    color: color,
-                    borderColor: `${color}40`,
-                    background: 'rgba(255,255,255,0.05)',
-                    width: '100%',
-                  }}
+                  className="glass-btn mt-2.5 p-2.5 text-[0.9rem] bg-[rgba(255,255,255,0.05)] w-full"
+                  style={{ color: color, borderColor: `${color}40` }}
                 >
                   Ver {dataList.length - 5} más
                 </button>
@@ -298,31 +270,14 @@ function Stats() {
           onClick={() => setExpandedCard(null)}
         >
           <div
-            className="modal-content"
-            style={{
-              maxWidth: '500px',
-              width: '90%',
-              padding: '0',
-              overflow: 'hidden',
-              background: '#1e293b',
-              border: `1px solid ${expandedCard.color}40`,
-              display: 'flex',
-              flexDirection: 'column',
-              maxHeight: '80vh',
-            }}
+            className="modal-content max-w-125 w-[90%] p-0 overflow-hidden bg-[#1e293b] flex flex-col max-h-[80vh]"
+            style={{ border: `1px solid ${expandedCard.color}40` }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-[rgba(0,0,0,0.3)] p-5 border-b border-b-[rgba(255,255,255,0.05)] text-center shrink-0">
               <h3
-                style={{
-                  color: expandedCard.color,
-                  margin: 0,
-                  fontSize: '1.4rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                }}
+                className="m-0 text-[1.4rem] flex items-center justify-center gap-2.5"
+                style={{ color: expandedCard.color }}
               >
                 {expandedCard.icon} {expandedCard.title}
               </h3>

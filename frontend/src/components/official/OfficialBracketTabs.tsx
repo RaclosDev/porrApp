@@ -19,105 +19,32 @@ export default function OfficialBracketTabs({
     <div className="flex justify-center items-center gap-[clamp(2px,_0.7vw,_8px)] mb-5 mt-[5px] flex-nowrap">
       {activeTab === 'cuadro' && (
         <button
-          className="glass-btn"
+          className={`glass-btn [padding:clamp(4px,_1.1vw,_6px)_clamp(5px,_1.5vw,_10px)] text-[clamp(0.6rem,_2.4vw,_0.8rem)] font-bold min-h-auto self-stretch rounded-[12px] [transition:all_0.2s] cursor-pointer whitespace-nowrap ${activePanel === 'live' ? 'bg-[rgba(255,_71,_87,_0.18)]' : 'bg-transparent'} ${activePanel === 'live' ? 'border-[#ff4757]' : 'border-line'} ${activePanel === 'live' ? 'text-[#ff4757]' : 'text-muted'}`}
           onClick={() => setActivePanel((p) => (p === 'live' ? null : 'live'))}
-          style={{
-            padding: 'clamp(4px, 1.1vw, 6px) clamp(5px, 1.5vw, 10px)',
-            fontSize: 'clamp(0.6rem, 2.4vw, 0.8rem)',
-            fontWeight: 'bold',
-            minHeight: 'auto',
-            alignSelf: 'stretch',
-            background: activePanel === 'live' ? 'rgba(255, 71, 87, 0.18)' : 'transparent',
-            borderColor: activePanel === 'live' ? '#ff4757' : 'var(--border-color)',
-            color: activePanel === 'live' ? '#ff4757' : 'var(--text-muted)',
-            borderRadius: '12px',
-            transition: 'all 0.2s',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
         >
           <span className="results-toggle-icon">🔴</span> Partidos
         </button>
       )}
-      <div
-        style={{
-          display: 'inline-flex',
-          background: 'rgba(15, 23, 42, 0.8)',
-          padding: '4px',
-          borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(12px)',
-          gap: '4px',
-        }}
-      >
+      <div className="inline-flex bg-[rgba(15,_23,_42,_0.8)] p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] gap-1">
         <button
+          className={`[padding:clamp(7px,_1.6vw,_8px)_clamp(9px,_2.6vw,_22px)] font-extrabold text-[clamp(0.76rem,_3vw,_0.95rem)] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'cuadro' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)]' : 'bg-transparent'} ${activeTab === 'cuadro' ? 'text-black' : 'text-muted'} ${activeTab === 'cuadro' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
           type="button"
           onClick={() => setActiveTab('cuadro')}
-          style={{
-            padding: 'clamp(7px, 1.6vw, 8px) clamp(9px, 2.6vw, 22px)',
-            fontWeight: 800,
-            fontSize: 'clamp(0.76rem, 3vw, 0.95rem)',
-            background:
-              activeTab === 'cuadro' ? 'linear-gradient(135deg, #00d2d3, #01a3a4)' : 'transparent',
-            border: 'none',
-            color: activeTab === 'cuadro' ? '#000000' : 'var(--text-muted)',
-            cursor: 'pointer',
-            borderRadius: '12px',
-            transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-            boxShadow: activeTab === 'cuadro' ? '0 4px 15px rgba(0, 210, 211, 0.4)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            letterSpacing: '0.5px',
-            whiteSpace: 'nowrap',
-          }}
         >
           🏆 Cuadro
         </button>
         <button
+          className={`[padding:clamp(7px,_1.6vw,_8px)_clamp(9px,_2.6vw,_22px)] font-extrabold text-[clamp(0.76rem,_3vw,_0.95rem)] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'grupos' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)]' : 'bg-transparent'} ${activeTab === 'grupos' ? 'text-black' : 'text-muted'} ${activeTab === 'grupos' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
           type="button"
           onClick={() => setActiveTab('grupos')}
-          style={{
-            padding: 'clamp(7px, 1.6vw, 8px) clamp(9px, 2.6vw, 22px)',
-            fontWeight: 800,
-            fontSize: 'clamp(0.76rem, 3vw, 0.95rem)',
-            background:
-              activeTab === 'grupos' ? 'linear-gradient(135deg, #00d2d3, #01a3a4)' : 'transparent',
-            border: 'none',
-            color: activeTab === 'grupos' ? '#000000' : 'var(--text-muted)',
-            cursor: 'pointer',
-            borderRadius: '12px',
-            transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
-            boxShadow: activeTab === 'grupos' ? '0 4px 15px rgba(0, 210, 211, 0.4)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            letterSpacing: '0.5px',
-            whiteSpace: 'nowrap',
-          }}
         >
           📋 Grupos
         </button>
       </div>
       {activeTab === 'cuadro' && activeGroupPichichi && (
         <button
-          className="glass-btn"
+          className={`glass-btn [padding:clamp(4px,_1.1vw,_6px)_clamp(5px,_1.5vw,_10px)] text-[clamp(0.6rem,_2.4vw,_0.8rem)] font-bold min-h-auto self-stretch rounded-[12px] [transition:all_0.2s] cursor-pointer whitespace-nowrap ${activePanel === 'scorers' ? 'bg-[rgba(255,_211,_42,_0.18)]' : 'bg-transparent'} ${activePanel === 'scorers' ? 'border-[#ffd32a]' : 'border-line'} ${activePanel === 'scorers' ? 'text-[#ffd32a]' : 'text-muted'}`}
           onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
-          style={{
-            padding: 'clamp(4px, 1.1vw, 6px) clamp(5px, 1.5vw, 10px)',
-            fontSize: 'clamp(0.6rem, 2.4vw, 0.8rem)',
-            fontWeight: 'bold',
-            minHeight: 'auto',
-            alignSelf: 'stretch',
-            background: activePanel === 'scorers' ? 'rgba(255, 211, 42, 0.18)' : 'transparent',
-            borderColor: activePanel === 'scorers' ? '#ffd32a' : 'var(--border-color)',
-            color: activePanel === 'scorers' ? '#ffd32a' : 'var(--text-muted)',
-            borderRadius: '12px',
-            transition: 'all 0.2s',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
         >
           <span className="results-toggle-icon">🏆</span> Pichichi
         </button>

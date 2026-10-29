@@ -19,14 +19,8 @@ export default function ViewerHeader({
   return (
     <div className="flex justify-between items-center border-b border-b-[rgba(255,255,255,0.1)] pb-2.5 mb-[15px] flex-wrap gap-2.5">
       <h3
-        style={{
-          color: 'var(--accent-cyan, #00d2d3)',
-          fontFamily: "'Outfit', sans-serif",
-          fontSize: '1.25rem',
-          fontWeight: 800,
-          letterSpacing: '-0.3px',
-          margin: 0,
-        }}
+        className="text-cyan text-[1.25rem] font-extrabold tracking-[-0.3px] m-0"
+        style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         Porra de {part.user}
       </h3>
@@ -51,17 +45,7 @@ export default function ViewerHeader({
           <button
             type="button"
             onClick={handleClose}
-            className="glass-btn"
-            style={{
-              padding: '5px 14px',
-              fontSize: '0.88rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              background: 'rgba(255, 255, 255, 0.08)',
-              color: '#fff',
-            }}
+            className="glass-btn py-[5px] px-3.5 text-[0.88rem] rounded-[8px] font-bold cursor-pointer border border-[rgba(255,_255,_255,_0.2)] bg-[rgba(255,_255,_255,_0.08)] text-white"
           >
             ✕ Cerrar
           </button>
