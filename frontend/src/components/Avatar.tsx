@@ -55,7 +55,7 @@ export function UserAvatar({
       radius="50%"
       fallback={
         <span
-          className="w-full h-full bg-[rgba(0,_210,_211,_0.15)] text-[#00d2d3] flex items-center justify-center font-bold"
+          className="w-full h-full bg-[rgba(0,_210,_211,_0.15)] bg-none text-[#00d2d3] flex items-center justify-center font-bold"
           style={{ fontSize: Math.max(11, Math.round(size * 0.42)) }}
         >
           {name ? name.charAt(0).toUpperCase() : 'U'}
@@ -82,7 +82,7 @@ export function LeagueAvatar({
       radius={Math.round(size * 0.28)}
       fallback={
         <span
-          className="w-full h-full bg-[rgba(255,_255,_255,_0.06)] flex items-center justify-center leading-[1]"
+          className="w-full h-full bg-[rgba(255,_255,_255,_0.06)] bg-none flex items-center justify-center leading-[1]"
           style={{ fontSize: Math.round(size * 0.6) }}
         >
           {badge}

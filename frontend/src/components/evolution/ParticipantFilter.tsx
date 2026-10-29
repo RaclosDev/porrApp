@@ -34,25 +34,25 @@ export default function ParticipantFilter({
         </span>
         <div className="flex gap-2 flex-wrap">
           <button
-            className="bg-[rgba(255,255,255,0.05)] text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
+            className="bg-[rgba(255,255,255,0.05)] bg-none text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
             onClick={() => selectTopN(5)}
           >
             ⚡ Top 5
           </button>
           <button
-            className="bg-[rgba(255,255,255,0.05)] text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
+            className="bg-[rgba(255,255,255,0.05)] bg-none text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
             onClick={() => selectTopN(10)}
           >
             🔥 Top 10
           </button>
           <button
-            className="bg-[rgba(255,255,255,0.05)] text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
+            className="bg-[rgba(255,255,255,0.05)] bg-none text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
             onClick={selectAll}
           >
             ✔️ Todos
           </button>
           <button
-            className="bg-[rgba(255,255,255,0.05)] text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
+            className="bg-[rgba(255,255,255,0.05)] bg-none text-white border border-[rgba(255,255,255,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s]"
             onClick={selectNone}
           >
             ❌ Ninguno

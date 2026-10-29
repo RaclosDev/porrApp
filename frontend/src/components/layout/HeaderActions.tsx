@@ -44,7 +44,7 @@ export default function HeaderActions({
                 if (enterDemoMode) enterDemoMode();
                 navigate('/demo');
               }}
-              className="glass-btn h-9.5 py-0 px-3 text-[0.82rem] rounded-[10px] flex items-center gap-1.5 font-bold cursor-pointer whitespace-nowrap bg-[rgba(255,_255,_255,_0.06)] border border-[rgba(255,_255,_255,_0.15)] text-[#e2e8f0]"
+              className="glass-btn h-9.5 py-0 px-3 text-[0.82rem] rounded-[10px] flex items-center gap-1.5 font-bold cursor-pointer whitespace-nowrap bg-[rgba(255,_255,_255,_0.06)] bg-none border border-[rgba(255,_255,_255,_0.15)] text-[#e2e8f0]"
               title="Probar Demo del Mundial"
             >
               <span>🚀</span>
@@ -55,7 +55,7 @@ export default function HeaderActions({
             id="btn-login-header"
             type="button"
             onClick={() => setShowMyPredictionModal(true)}
-            className="glass-btn h-9.5 py-0 px-4 text-[0.88rem] rounded-[10px] flex items-center justify-center gap-2 font-bold cursor-pointer whitespace-nowrap bg-[rgba(0,_210,_211,_0.12)] border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]"
+            className="glass-btn h-9.5 py-0 px-4 text-[0.88rem] rounded-[10px] flex items-center justify-center gap-2 font-bold cursor-pointer whitespace-nowrap bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]"
             title="Iniciar Sesión"
           >
             <span className="text-[1.05rem]">👤</span>
@@ -79,7 +79,7 @@ export default function HeaderActions({
           </button>
 
           {showProfileMenu && (
-            <div className="absolute top-full right-0 bg-[#151525] shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] p-3 mt-2.5 z-[100] min-w-50 flex flex-col gap-2.5">
+            <div className="absolute top-full right-0 bg-[#151525] bg-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] p-3 mt-2.5 z-[100] min-w-50 flex flex-col gap-2.5">
               <div className="border-b border-b-[rgba(255,_255,_255,_0.08)] pb-2 flex items-center gap-2">
                 <UserAvatar url={userAvatarUrl} name={userName} size={32} />
                 <div className="overflow-hidden">
@@ -102,7 +102,7 @@ export default function HeaderActions({
               </button>
 
               <button
-                className="bg-[rgba(255,_71,_87,_0.12)] border border-[rgba(255,_71,_87,_0.4)] text-[#ff4757] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"
+                className="bg-[rgba(255,_71,_87,_0.12)] bg-none border border-[rgba(255,_71,_87,_0.4)] text-[#ff4757] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"
                 onClick={() => {
                   setAuthToken(null);
                   setIsAuthenticated?.(false);

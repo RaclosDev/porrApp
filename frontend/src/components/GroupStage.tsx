@@ -274,7 +274,7 @@ export default function GroupStage({
                 <div className="grid grid-cols-[1fr_1fr] gap-1.5 mb-3">
                   {teams.map((t) => (
                     <div
-                      className="flex items-center justify-center gap-1.5 text-[0.85rem] bg-[rgba(255,255,255,0.1)] p-1.5 rounded-[4px] overflow-hidden"
+                      className="flex items-center justify-center gap-1.5 text-[0.85rem] bg-[rgba(255,255,255,0.1)] bg-none p-1.5 rounded-[4px] overflow-hidden"
                       key={t.name}
                     >
                       <Flag
@@ -364,7 +364,7 @@ export default function GroupStage({
       </div>
 
       <div className={mobileStep === 'thirds' ? '' : 'mobile-step-hidden'}>
-        <div className="p-5 bg-[rgba(255,255,255,0.05)] rounded-[12px] mb-7.5 border border-[rgba(255,255,255,0.1)]">
+        <div className="p-5 bg-[rgba(255,255,255,0.05)] bg-none rounded-[12px] mb-7.5 border border-[rgba(255,255,255,0.1)]">
           <h3 className="text-center text-[#a29bfe] mt-0">Selecciona los 8 Mejores Terceros</h3>
           <p className="text-center text-[0.9rem] text-muted">
             Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los 8 que
@@ -389,7 +389,7 @@ export default function GroupStage({
                   <button
                     key={t}
                     onClick={() => toggleAdvancingThird(t)}
-                    className={`glass-btn flex items-center gap-2 py-2 px-3 ${isSelected ? 'bg-[rgba(0,_210,_211,_0.2)]' : 'bg-[rgba(255,255,255,0.05)]'} ${isSelected ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.2)]'}`}
+                    className={`glass-btn flex items-center gap-2 py-2 px-3 ${isSelected ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isSelected ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.2)]'}`}
                   >
                     <Flag
                       team={t}
@@ -409,7 +409,7 @@ export default function GroupStage({
           )}
         </div>
 
-        <div className="text-center p-5 bg-[rgba(255,255,255,0.05)] rounded-[12px] border border-[rgba(255,255,255,0.1)]">
+        <div className="text-center p-5 bg-[rgba(255,255,255,0.05)] bg-none rounded-[12px] border border-[rgba(255,255,255,0.1)]">
           <button
             onClick={handleSubmit}
             className="glass-btn primary-btn text-[1.2rem] py-3 px-7.5"

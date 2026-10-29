@@ -31,10 +31,10 @@ export default function GroupCard({
   return (
     <div
       key={group.id}
-      className={`glass-panel flex-1 min-w-70 max-w-90 p-5 relative flex flex-col gap-3 rounded-[16px] bg-[linear-gradient(160deg,_rgba(255,255,255,0.05),_rgba(255,255,255,0.015))] ${isSelected ? 'border-2 border-[#00d2d3]' : 'border border-line'} ${isSelected ? 'shadow-[0_8px_24px_rgba(0,_210,_211,_0.18)]' : 'shadow-[0_4px_14px_rgba(0,_0,_0,_0.25)]'}`}
+      className={`glass-panel flex-1 min-w-70 max-w-90 p-5 relative flex flex-col gap-3 rounded-[16px] bg-[linear-gradient(160deg,_rgba(255,255,255,0.05),_rgba(255,255,255,0.015))] bg-transparent ${isSelected ? 'border-2 border-[#00d2d3]' : 'border border-line'} ${isSelected ? 'shadow-[0_8px_24px_rgba(0,_210,_211,_0.18)]' : 'shadow-[0_4px_14px_rgba(0,_0,_0,_0.25)]'}`}
     >
       {isSelected && (
-        <div className="absolute -top-2.5 left-[15px] bg-[#00d2d3] text-black py-0.5 px-2.5 rounded-[12px] text-[0.75rem] font-bold">
+        <div className="absolute -top-2.5 left-[15px] bg-[#00d2d3] bg-none text-black py-0.5 px-2.5 rounded-[12px] text-[0.75rem] font-bold">
           SELECCIONADA
         </div>
       )}
@@ -55,17 +55,17 @@ export default function GroupCard({
       </div>
       <div className="flex flex-wrap gap-1.5">
         {isCreator && (
-          <span className="text-[0.72rem] font-bold py-[3px] px-[9px] rounded-[999px] bg-[rgba(255,_193,_7,_0.14)] border border-[rgba(255,_193,_7,_0.4)] text-[#ffc107]">
+          <span className="text-[0.72rem] font-bold py-[3px] px-[9px] rounded-[999px] bg-[rgba(255,_193,_7,_0.14)] bg-none border border-[rgba(255,_193,_7,_0.4)] text-[#ffc107]">
             👑 Administras
           </span>
         )}
         {group.competitionName && (
-          <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(162,_155,_254,_0.14)] border border-[rgba(162,_155,_254,_0.35)] text-[#a29bfe]">
+          <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(162,_155,_254,_0.14)] bg-none border border-[rgba(162,_155,_254,_0.35)] text-[#a29bfe]">
             {group.competitionName}
           </span>
         )}
         {group.poolFormat && (
-          <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(0,_210,_211,_0.1)] border border-[rgba(0,_210,_211,_0.3)] text-[#00d2d3]">
+          <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(0,_210,_211,_0.1)] bg-none border border-[rgba(0,_210,_211,_0.3)] text-[#00d2d3]">
             {group.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
           </span>
         )}
@@ -73,7 +73,7 @@ export default function GroupCard({
 
       <div className="flex flex-col gap-2 mt-auto pt-2.5">
         {isSelected ? (
-          <div className="w-full py-2.5 px-3.5 rounded-[10px] bg-[rgba(0,_210,_211,_0.12)] border border-[#00d2d3] text-[#00d2d3] font-bold text-[0.9rem] flex items-center justify-center gap-1.5 box-border">
+          <div className="w-full py-2.5 px-3.5 rounded-[10px] bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[#00d2d3] text-[#00d2d3] font-bold text-[0.9rem] flex items-center justify-center gap-1.5 box-border">
             <span>✓</span>
             <span>Liga Actual</span>
           </div>
@@ -93,7 +93,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleShareWhatsApp(group)}
-              className="glass-btn flex-[1_1_auto] min-w-0 py-2.5 px-3 rounded-[10px] font-extrabold text-[0.9rem] flex items-center justify-center gap-[7px] text-white bg-[linear-gradient(135deg,_#25D366,_#128C7E)] border border-[rgba(37,_211,_102,_0.55)] box-border"
+              className="glass-btn flex-[1_1_auto] min-w-0 py-2.5 px-3 rounded-[10px] font-extrabold text-[0.9rem] flex items-center justify-center gap-[7px] text-white bg-[linear-gradient(135deg,_#25D366,_#128C7E)] bg-transparent border border-[rgba(37,_211,_102,_0.55)] box-border"
               title="Invitar por WhatsApp"
               aria-label={`Invitar a ${group.name} por WhatsApp`}
             >
@@ -112,7 +112,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleCopyCode(group.joinCode)}
-              className="glass-btn flex-[0_0_auto] py-2.5 px-3 rounded-[10px] font-extrabold text-[0.85rem] text-white bg-[rgba(0,_0,_0,_0.25)] border border-line whitespace-nowrap"
+              className="glass-btn flex-[0_0_auto] py-2.5 px-3 rounded-[10px] font-extrabold text-[0.85rem] text-white bg-[rgba(0,_0,_0,_0.25)] bg-none border border-line whitespace-nowrap"
               title="Copiar código de invitación"
               aria-label={`Copiar código de invitación de ${group.name}`}
             >
@@ -121,7 +121,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleCopyLink(group.joinCode)}
-              className="glass-btn flex-[0_0_42px] w-10.5 py-2.5 px-0 rounded-[10px] flex items-center justify-center text-[1rem] text-white bg-[rgba(0,_0,_0,_0.25)] border border-line"
+              className="glass-btn flex-[0_0_42px] w-10.5 py-2.5 px-0 rounded-[10px] flex items-center justify-center text-[1rem] text-white bg-[rgba(0,_0,_0,_0.25)] bg-none border border-line"
               title="Copiar enlace de invitación"
               aria-label={`Copiar enlace de invitación de ${group.name}`}
             >
@@ -158,7 +158,7 @@ export default function GroupCard({
           <button
             type="button"
             onClick={() => handleLeaveGroup(group.id, group.name)}
-            className="glass-btn w-full py-2 px-3.5 text-[0.85rem] bg-[rgba(231,_76,_60,_0.15)] border border-[rgba(231,_76,_60,_0.6)] text-[#ffcccc] whitespace-nowrap"
+            className="glass-btn w-full py-2 px-3.5 text-[0.85rem] bg-[rgba(231,_76,_60,_0.15)] bg-none border border-[rgba(231,_76,_60,_0.6)] text-[#ffcccc] whitespace-nowrap"
             title="Abandonar Liga"
           >
             Salir de la liga

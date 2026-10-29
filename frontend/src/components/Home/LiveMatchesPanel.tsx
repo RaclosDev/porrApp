@@ -51,7 +51,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
         {showStatsButton && (
           <div className="text-center">
             <button
-              className="bg-[#1e272e] text-[#00d2d3] border border-[rgba(0,210,211,0.3)] rounded-[8px] min-h-11 py-2.5 px-4.5 text-[0.9rem] font-bold cursor-pointer inline-flex items-center justify-center gap-[5px] shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+              className="bg-[#1e272e] bg-none text-[#00d2d3] border border-[rgba(0,210,211,0.3)] rounded-[8px] min-h-11 py-2.5 px-4.5 text-[0.9rem] font-bold cursor-pointer inline-flex items-center justify-center gap-[5px] shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
               onClick={() => openStats()}
               aria-label={`Ver estadísticas de ${m.home} contra ${m.away}`}
             >
@@ -93,7 +93,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
       {hasLive && (
         <div className="flex flex-col gap-2">
           <div
-            className={`text-center text-[1rem] font-bold p-1.5 rounded-[12px] ${isActuallyLive ? 'text-[#ff4757]' : 'text-[#ffa502]'} ${isActuallyLive ? 'bg-[rgba(255,_71,_87,_0.1)]' : 'bg-[rgba(255,_165,_2,_0.1)]'} ${isActuallyLive ? 'border border-[rgba(255,_71,_87,_0.3)]' : 'border border-[rgba(255,_165,_2,_0.3)]'}`}
+            className={`text-center text-[1rem] font-bold p-1.5 rounded-[12px] ${isActuallyLive ? 'text-[#ff4757]' : 'text-[#ffa502]'} ${isActuallyLive ? 'bg-[rgba(255,_71,_87,_0.1)] bg-none' : 'bg-[rgba(255,_165,_2,_0.1)] bg-none'} ${isActuallyLive ? 'border border-[rgba(255,_71,_87,_0.3)]' : 'border border-[rgba(255,_165,_2,_0.3)]'}`}
           >
             {isActuallyLive ? '🔴 EN DIRECTO' : '⏳ A PUNTO DE COMENZAR'}
           </div>
@@ -105,7 +105,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
 
       {nextMatches.length > 0 && (
         <div className="flex flex-col gap-2">
-          <div className="text-center text-[#a29bfe] text-[1rem] font-bold p-1.5 bg-[rgba(162,_155,_254,_0.1)] border border-[rgba(162,_155,_254,_0.3)] rounded-[12px]">
+          <div className="text-center text-[#a29bfe] text-[1rem] font-bold p-1.5 bg-[rgba(162,_155,_254,_0.1)] bg-none border border-[rgba(162,_155,_254,_0.3)] rounded-[12px]">
             {nextMatches.length === 1 ? '🔜 PRÓXIMO PARTIDO' : '🔜 PRÓXIMOS PARTIDOS'}
           </div>
           <div className="last-matches-grid grid-cols-[1fr] gap-2.5">

@@ -125,7 +125,7 @@ function Bracket() {
         if (teamStatus === 5) {
           statusIndicator = (
             <span
-              className="w-2 h-2 bg-[#3498db] rounded-full ml-1 shrink-0 inline-block"
+              className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
               title="Clasificado Matemáticamente"
               aria-label="Clasificado Matemáticamente"
             />
@@ -418,7 +418,7 @@ function Bracket() {
               )}
             </div>
             {activeGroupIsLocked && (
-              <div className="py-2.5 px-3.5 bg-[rgba(239,_68,_68,_0.15)] border border-[rgba(239,_68,_68,_0.4)] rounded-[8px] text-[#fca5a5] mb-[15px] text-[0.9rem]">
+              <div className="py-2.5 px-3.5 bg-[rgba(239,_68,_68,_0.15)] bg-none border border-[rgba(239,_68,_68,_0.4)] rounded-[8px] text-[#fca5a5] mb-[15px] text-[0.9rem]">
                 🔒 <b>Pronósticos cerrados:</b> El plazo para enviar o modificar porras en esta liga
                 ha finalizado.
               </div>

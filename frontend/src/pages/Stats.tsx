@@ -160,7 +160,7 @@ function Stats() {
             <span className="text-white font-bold">{percentage}%</span> {!isTwins && `(${count})`}
           </div>
         </div>
-        <div className="w-full bg-[rgba(255,255,255,0.05)] rounded-[10px] h-2.5 overflow-hidden">
+        <div className="w-full bg-[rgba(255,255,255,0.05)] bg-none rounded-[10px] h-2.5 overflow-hidden">
           <div
             className="h-full rounded-[10px] [transition:width_0.4s_ease]"
             style={{ width: `${percentage}%`, background: color }}
@@ -182,7 +182,7 @@ function Stats() {
 
     return (
       <div
-        className="group-card flex-1 min-w-75 bg-[rgba(20,20,35,0.8)] p-[25px]"
+        className="group-card flex-1 min-w-75 bg-[rgba(20,20,35,0.8)] bg-none p-[25px]"
         style={{ border: `1px solid ${color}40`, borderRadius: '16px' }}
       >
         <h3
@@ -222,7 +222,7 @@ function Stats() {
               {hasMore && (
                 <button
                   onClick={() => setExpandedCard({ title, icon, dataList, color, isFinals })}
-                  className="glass-btn mt-2.5 p-2.5 text-[0.9rem] bg-[rgba(255,255,255,0.05)] w-full"
+                  className="glass-btn mt-2.5 p-2.5 text-[0.9rem] bg-[rgba(255,255,255,0.05)] bg-none w-full"
                   style={{ color: color, borderColor: `${color}40` }}
                 >
                   Ver {dataList.length - 5} más
@@ -270,11 +270,11 @@ function Stats() {
           onClick={() => setExpandedCard(null)}
         >
           <div
-            className="modal-content max-w-125 w-[90%] p-0 overflow-hidden bg-[#1e293b] flex flex-col max-h-[80vh]"
+            className="modal-content max-w-125 w-[90%] p-0 overflow-hidden bg-[#1e293b] bg-none flex flex-col max-h-[80vh]"
             style={{ border: `1px solid ${expandedCard.color}40` }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-[rgba(0,0,0,0.3)] p-5 border-b border-b-[rgba(255,255,255,0.05)] text-center shrink-0">
+            <div className="bg-[rgba(0,0,0,0.3)] bg-none p-5 border-b border-b-[rgba(255,255,255,0.05)] text-center shrink-0">
               <h3
                 className="m-0 text-[1.4rem] flex items-center justify-center gap-2.5"
                 style={{ color: expandedCard.color }}
@@ -295,7 +295,7 @@ function Stats() {
                 />
               ))}
             </div>
-            <div className="py-[15px] px-5 bg-[rgba(0,0,0,0.2)] flex justify-center shrink-0">
+            <div className="py-[15px] px-5 bg-[rgba(0,0,0,0.2)] bg-none flex justify-center shrink-0">
               <button
                 onClick={() => setExpandedCard(null)}
                 className="glass-btn primary-btn w-full p-3 text-[1.05rem]"
@@ -317,12 +317,12 @@ function Stats() {
           onClick={() => setModalData(null)}
         >
           <div
-            className="modal-content max-w-100 p-0 overflow-hidden bg-[#1e293b] border border-[rgba(255,255,255,0.1)]"
+            className="modal-content max-w-100 p-0 overflow-hidden bg-[#1e293b] bg-none border border-[rgba(255,255,255,0.1)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-[rgba(0,0,0,0.3)] py-[25px] px-5 border-b border-b-[rgba(255,255,255,0.05)] text-center">
+            <div className="bg-[rgba(0,0,0,0.3)] bg-none py-[25px] px-5 border-b border-b-[rgba(255,255,255,0.05)] text-center">
               <h3 className="text-white mt-0 mb-2.5 mx-0 text-[1.4rem]">{modalData.title}</h3>
-              <div className="inline-block bg-[rgba(0,_210,_211,_0.1)] text-cyan py-1.5 px-3.5 rounded-[10px] font-bold">
+              <div className="inline-block bg-[rgba(0,_210,_211,_0.1)] bg-none text-cyan py-1.5 px-3.5 rounded-[10px] font-bold">
                 {modalData.percentage}% de los votos ({modalData.count} personas)
               </div>
             </div>
@@ -334,7 +334,7 @@ function Stats() {
                 </li>
               ))}
             </ul>
-            <div className="py-[15px] px-5 bg-[rgba(0,0,0,0.2)] flex justify-center">
+            <div className="py-[15px] px-5 bg-[rgba(0,0,0,0.2)] bg-none flex justify-center">
               <button
                 onClick={() => setModalData(null)}
                 className="glass-btn primary-btn w-full p-3 text-[1.05rem]"

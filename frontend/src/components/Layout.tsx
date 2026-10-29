@@ -205,7 +205,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             </NavLink>
 
             {isLanding || isInviteAuthScreen ? null : isDemo ? (
-              <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-[16px] bg-[rgba(0,_210,_211,_0.12)] border border-[rgba(0,_210,_211,_0.4)] text-cyan text-[0.8rem] font-bold whitespace-nowrap">
+              <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-[16px] bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.4)] text-cyan text-[0.8rem] font-bold whitespace-nowrap">
                 🌍 Mundial 2026
               </span>
             ) : (

@@ -38,7 +38,7 @@ export default function CreateLeagueWizard({
         <div className="flex justify-between items-center">
           <h3 className="m-0 text-accent flex items-center gap-2.5">🏆 Crear Nueva Liga</h3>
           <button
-            className="bg-none border-none text-muted cursor-pointer text-[1.2rem] min-w-10 min-h-10 flex items-center justify-center"
+            className="bg-none bg-transparent border-none text-muted cursor-pointer text-[1.2rem] min-w-10 min-h-10 flex items-center justify-center"
             type="button"
             onClick={() => setShowCreateModal(false)}
             aria-label="Cerrar modal"
@@ -95,7 +95,7 @@ export default function CreateLeagueWizard({
             </div>
           </div>
 
-          <label className="flex items-center gap-2.5 text-muted text-[0.85rem] cursor-pointer py-2 px-3 bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.1)] rounded-[8px]">
+          <label className="flex items-center gap-2.5 text-muted text-[0.85rem] cursor-pointer py-2 px-3 bg-[rgba(0,0,0,0.2)] bg-none border border-[rgba(255,255,255,0.1)] rounded-[8px]">
             <input
               type="checkbox"
               checked={includePichichi}

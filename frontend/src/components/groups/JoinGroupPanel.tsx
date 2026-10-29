@@ -19,7 +19,7 @@ export default function JoinGroupPanel({
         <div className="flex justify-between items-center">
           <h3 className="m-0 text-[#9b59b6] flex items-center gap-2.5">🎟️ Unirse con Código</h3>
           <button
-            className="bg-none border-none text-muted cursor-pointer text-[1.2rem] min-w-11 min-h-11 flex items-center justify-center"
+            className="bg-none bg-transparent border-none text-muted cursor-pointer text-[1.2rem] min-w-11 min-h-11 flex items-center justify-center"
             type="button"
             onClick={() => setShowJoinModal(false)}
             aria-label="Cerrar"
@@ -44,7 +44,7 @@ export default function JoinGroupPanel({
           />
           <button
             type="submit"
-            className="glass-btn primary-btn bg-[#9b59b6] border-[#9b59b6] font-bold"
+            className="glass-btn primary-btn bg-[#9b59b6] bg-none border-[#9b59b6] font-bold"
           >
             Unirse
           </button>

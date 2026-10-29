@@ -95,7 +95,7 @@ export default function GroupsDashboard() {
   };
 
   const inviteSummary = pendingJoinCodeNotice ? (
-    <div className="glass-panel invite-summary-card max-w-130 w-full mt-0 mb-6 mx-auto box-border rounded-[16px] p-5 flex flex-col gap-3 text-left bg-[linear-gradient(160deg,_rgba(255,255,255,0.05),_rgba(255,255,255,0.015))] border border-line shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
+    <div className="glass-panel invite-summary-card max-w-130 w-full mt-0 mb-6 mx-auto box-border rounded-[16px] p-5 flex flex-col gap-3 text-left bg-[linear-gradient(160deg,_rgba(255,255,255,0.05),_rgba(255,255,255,0.015))] bg-transparent border border-line shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
       <div className="flex items-center gap-3.5 min-h-16">
         {pendingInvite?.imageUrl ? (
           <img
@@ -116,10 +116,10 @@ export default function GroupsDashboard() {
         </div>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(162,_155,_254,_0.14)] border border-[rgba(162,_155,_254,_0.35)] text-[#a29bfe]">
+        <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(162,_155,_254,_0.14)] bg-none border border-[rgba(162,_155,_254,_0.35)] text-[#a29bfe]">
           {pendingInvite?.competitionName || 'Fútbol'}
         </span>
-        <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(0,_210,_211,_0.1)] border border-[rgba(0,_210,_211,_0.3)] text-[#00d2d3]">
+        <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(0,_210,_211,_0.1)] bg-none border border-[rgba(0,_210,_211,_0.3)] text-[#00d2d3]">
           {pendingInvite?.poolFormat === 'MATCH_DAY'
             ? 'Jornadas'
             : pendingInvite?.poolFormat === 'KNOCKOUTS_ONLY'
@@ -131,7 +131,7 @@ export default function GroupsDashboard() {
       </div>
       {userName ? (
         <button
-          className={`w-full mt-0.5 border-none rounded-[10px] py-2.5 px-3.5 bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] text-[#0f172a] font-extrabold text-[0.9rem] ${pendingInvite && !isJoiningInvite ? 'cursor-pointer' : '[cursor:wait]'} ${pendingInvite && !isJoiningInvite ? 'opacity-[1]' : 'opacity-[0.65]'}`}
+          className={`w-full mt-0.5 border-none rounded-[10px] py-2.5 px-3.5 bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] bg-transparent text-[#0f172a] font-extrabold text-[0.9rem] ${pendingInvite && !isJoiningInvite ? 'cursor-pointer' : '[cursor:wait]'} ${pendingInvite && !isJoiningInvite ? 'opacity-[1]' : 'opacity-[0.65]'}`}
           type="button"
           onClick={handleAcceptPendingInvite}
           disabled={!pendingInvite || isJoiningInvite}
@@ -215,7 +215,7 @@ export default function GroupsDashboard() {
               setShowJoinModal((prev) => !prev);
               setShowCreateModal(false);
             }}
-            className={`glass-btn py-2 px-4 text-[0.88rem] font-bold rounded-[10px] cursor-pointer ${showJoinModal ? 'border border-[#9b59b6]' : 'border border-[rgba(255,255,255,0.15)]'} ${showJoinModal ? 'bg-[rgba(155,_89,_182,_0.25)]' : 'bg-[rgba(255,255,255,0.06)]'} ${showJoinModal ? 'text-[#e056fd]' : 'text-white'}`}
+            className={`glass-btn py-2 px-4 text-[0.88rem] font-bold rounded-[10px] cursor-pointer ${showJoinModal ? 'border border-[#9b59b6]' : 'border border-[rgba(255,255,255,0.15)]'} ${showJoinModal ? 'bg-[rgba(155,_89,_182,_0.25)] bg-none' : 'bg-[rgba(255,255,255,0.06)] bg-none'} ${showJoinModal ? 'text-[#e056fd]' : 'text-white'}`}
           >
             🎟️ Unirse con Código
           </button>
@@ -225,7 +225,7 @@ export default function GroupsDashboard() {
               setShowCreateModal((prev) => !prev);
               setShowJoinModal(false);
             }}
-            className={`glass-btn primary-btn py-2 px-4.5 text-[0.88rem] font-extrabold rounded-[10px] cursor-pointer ${showCreateModal ? 'bg-[rgba(255,255,255,0.12)]' : 'bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)]'} ${showCreateModal ? 'text-white' : 'text-[#0f172a]'} ${showCreateModal ? 'border border-[rgba(255,255,255,0.2)]' : 'border-none'} ${showCreateModal ? 'shadow-none' : 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.3)]'}`}
+            className={`glass-btn primary-btn py-2 px-4.5 text-[0.88rem] font-extrabold rounded-[10px] cursor-pointer ${showCreateModal ? 'bg-[rgba(255,255,255,0.12)] bg-none' : 'bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] bg-transparent'} ${showCreateModal ? 'text-white' : 'text-[#0f172a]'} ${showCreateModal ? 'border border-[rgba(255,255,255,0.2)]' : 'border-none'} ${showCreateModal ? 'shadow-none' : 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.3)]'}`}
           >
             {showCreateModal ? '✕ Cancelar Creación' : '➕ Crear Nueva Liga'}
           </button>
@@ -233,7 +233,7 @@ export default function GroupsDashboard() {
       </div>
 
       {error && (
-        <div className="bg-[rgba(231,_76,_60,_0.2)] border border-[#e74c3c] text-[#ffcccc] p-[15px] rounded-[12px] mb-5 text-center">
+        <div className="bg-[rgba(231,_76,_60,_0.2)] bg-none border border-[#e74c3c] text-[#ffcccc] p-[15px] rounded-[12px] mb-5 text-center">
           {error}
         </div>
       )}
@@ -269,7 +269,7 @@ export default function GroupsDashboard() {
       {loading ? (
         <div className="text-center text-muted py-10 px-0">Cargando tus ligas...</div>
       ) : groups.length === 0 ? (
-        <div className="glass-panel text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.4)] bg-[rgba(0,_210,_211,_0.04)]">
+        <div className="glass-panel text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.4)] bg-[rgba(0,_210,_211,_0.04)] bg-none">
           <div className="text-[3rem] mb-3">🏟️</div>
           <h3 className="text-white mt-0 mb-2 mx-0 text-[1.3rem] font-extrabold">
             Aún no te has unido a ninguna liga privada
@@ -285,7 +285,7 @@ export default function GroupsDashboard() {
                 setShowCreateModal(true);
                 setShowJoinModal(false);
               }}
-              className="glass-btn primary-btn py-[11px] px-5.5 font-extrabold text-[0.95rem] bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] text-[#0f172a] shadow-[0_4px_15px_rgba(0,_210,_211,_0.3)]"
+              className="glass-btn primary-btn py-[11px] px-5.5 font-extrabold text-[0.95rem] bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] bg-transparent text-[#0f172a] shadow-[0_4px_15px_rgba(0,_210,_211,_0.3)]"
             >
               ➕ Crear mi primera liga
             </button>

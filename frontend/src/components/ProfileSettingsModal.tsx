@@ -55,13 +55,13 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
 
   return (
     <div
-      className="fixed inset-0 bg-[rgba(0,_0,_0,_0.75)] [backdrop-filter:blur(8px)] flex items-center justify-center z-[1000] p-4"
+      className="fixed inset-0 bg-[rgba(0,_0,_0,_0.75)] bg-none [backdrop-filter:blur(8px)] flex items-center justify-center z-[1000] p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-settings-title"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-115 bg-[#151525] border border-[rgba(255,255,255,0.1)] rounded-[16px] p-5 flex flex-col gap-4.5 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-115 bg-[#151525] bg-none border border-[rgba(255,255,255,0.1)] rounded-[16px] p-5 flex flex-col gap-4.5 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center">
           <h3 className="m-0 text-white text-[1.2rem]" id="profile-settings-title">
             Ajustes de cuenta
@@ -111,7 +111,7 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
             />
             <button
               type="button"
-              className="glass-btn py-1.5 px-3.5 font-bold rounded-[8px] bg-[rgba(0,_210,_211,_0.15)] border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] cursor-pointer"
+              className="glass-btn py-1.5 px-3.5 font-bold rounded-[8px] bg-[rgba(0,_210,_211,_0.15)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] cursor-pointer"
               onClick={saveName}
               disabled={saving || unchanged || name.trim().length < 2}
             >

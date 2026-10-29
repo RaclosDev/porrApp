@@ -24,7 +24,7 @@ function TopScorersPanel({
     return (
       <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
         {!hideTitle && (
-          <div className="text-center text-[#ffd32a] text-[1rem] font-bold p-1.5 bg-[rgba(255,_211,_42,_0.1)] border border-[rgba(255,_211,_42,_0.3)] rounded-[12px]">
+          <div className="text-center text-[#ffd32a] text-[1rem] font-bold p-1.5 bg-[rgba(255,_211,_42,_0.1)] bg-none border border-[rgba(255,_211,_42,_0.3)] rounded-[12px]">
             🏆 PICHICHI
           </div>
         )}
@@ -36,7 +36,7 @@ function TopScorersPanel({
               : 'Todavía no hay datos de goleadores disponibles.'}
           {error && onRetry && (
             <button
-              className="block mt-3 mb-0 mx-auto py-2 px-3.5 rounded-[8px] border border-cyan bg-[rgba(0,_210,_211,_0.12)] text-main font-bold cursor-pointer"
+              className="block mt-3 mb-0 mx-auto py-2 px-3.5 rounded-[8px] border border-cyan bg-[rgba(0,_210,_211,_0.12)] bg-none text-main font-bold cursor-pointer"
               type="button"
               onClick={onRetry}
             >
@@ -80,7 +80,7 @@ function TopScorersPanel({
         >
           {medal}
         </span>
-        <div className="w-11 h-11 rounded-full bg-[rgba(255,255,255,0.08)] shrink-0 overflow-hidden flex items-center justify-center">
+        <div className="w-11 h-11 rounded-full bg-[rgba(255,255,255,0.08)] bg-none shrink-0 overflow-hidden flex items-center justify-center">
           {imageUrl && !imgErrors[s.playerId] ? (
             <div className="w-full h-full overflow-hidden flex items-start justify-center">
               <img
@@ -114,7 +114,7 @@ function TopScorersPanel({
   return (
     <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
       {!hideTitle && (
-        <div className="text-center text-[#ffd32a] text-[1rem] font-bold p-1.5 bg-[rgba(255,_211,_42,_0.1)] border border-[rgba(255,_211,_42,_0.3)] rounded-[12px]">
+        <div className="text-center text-[#ffd32a] text-[1rem] font-bold p-1.5 bg-[rgba(255,_211,_42,_0.1)] bg-none border border-[rgba(255,_211,_42,_0.3)] rounded-[12px]">
           🏆 PICHICHI
         </div>
       )}

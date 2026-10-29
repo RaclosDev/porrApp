@@ -11,7 +11,7 @@ export default function Landing() {
         >
           La porra de toda la vida,{' '}
           <span
-            className="bg-[linear-gradient(135deg,_#00d2d3_0%,_#38bdf8_100%)]"
+            className="bg-[linear-gradient(135deg,_#00d2d3_0%,_#38bdf8_100%)] bg-transparent"
             style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
           >
             pero bien hecha.
@@ -26,7 +26,7 @@ export default function Landing() {
             { icon: '❌', text: 'Cero líos de Excel' },
           ].map((item) => (
             <div
-              className="inline-flex items-center gap-2 py-[7px] px-3.5 bg-[rgba(255,_255,_255,_0.05)] border border-[rgba(255,_255,_255,_0.1)] rounded-[9999px] text-[clamp(0.85rem,_2vw,_0.95rem)] text-[#e2e8f0] font-medium [backdrop-filter:blur(8px)] shadow-[0_2px_10px_rgba(0,_0,_0,_0.15)]"
+              className="inline-flex items-center gap-2 py-[7px] px-3.5 bg-[rgba(255,_255,_255,_0.05)] bg-none border border-[rgba(255,_255,_255,_0.1)] rounded-[9999px] text-[clamp(0.85rem,_2vw,_0.95rem)] text-[#e2e8f0] font-medium [backdrop-filter:blur(8px)] shadow-[0_2px_10px_rgba(0,_0,_0,_0.15)]"
               key={item.text}
             >
               <span className="text-[1rem] leading-[1]">{item.icon}</span>
@@ -65,7 +65,7 @@ export default function Landing() {
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-4">
           {/* Feature 1 */}
           <div className="glass-panel p-5 flex flex-col gap-2">
-            <div className="w-10 h-10 rounded-[10px] bg-[rgba(251,_191,_36,_0.15)] text-[#fbbf24] flex items-center justify-center text-[1.3rem]">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(251,_191,_36,_0.15)] bg-none text-[#fbbf24] flex items-center justify-center text-[1.3rem]">
               🏆
             </div>
             <h3
@@ -82,7 +82,7 @@ export default function Landing() {
 
           {/* Feature 2 */}
           <div className="glass-panel p-5 flex flex-col gap-2">
-            <div className="w-10 h-10 rounded-[10px] bg-[rgba(0,_210,_211,_0.15)] text-[#00d2d3] flex items-center justify-center text-[1.3rem]">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(0,_210,_211,_0.15)] bg-none text-[#00d2d3] flex items-center justify-center text-[1.3rem]">
               ⚽
             </div>
             <h3
@@ -98,7 +98,7 @@ export default function Landing() {
 
           {/* Feature 3 */}
           <div className="glass-panel p-5 flex flex-col gap-2">
-            <div className="w-10 h-10 rounded-[10px] bg-[rgba(56,_189,_248,_0.15)] text-[#38bdf8] flex items-center justify-center text-[1.3rem]">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(56,_189,_248,_0.15)] bg-none text-[#38bdf8] flex items-center justify-center text-[1.3rem]">
               👥
             </div>
             <h3
@@ -114,7 +114,7 @@ export default function Landing() {
 
           {/* Feature 4 */}
           <div className="glass-panel p-5 flex flex-col gap-2">
-            <div className="w-10 h-10 rounded-[10px] bg-[rgba(168,_85,_247,_0.15)] text-[#a855f7] flex items-center justify-center text-[1.3rem]">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(168,_85,_247,_0.15)] bg-none text-[#a855f7] flex items-center justify-center text-[1.3rem]">
               📊
             </div>
             <h3
@@ -131,7 +131,7 @@ export default function Landing() {
 
           {/* Feature 5 */}
           <div className="glass-panel p-5 flex flex-col gap-2">
-            <div className="w-10 h-10 rounded-[10px] bg-[rgba(34,_197,_94,_0.15)] text-[#22c55e] flex items-center justify-center text-[1.3rem]">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(34,_197,_94,_0.15)] bg-none text-[#22c55e] flex items-center justify-center text-[1.3rem]">
               📱
             </div>
             <h3
@@ -148,7 +148,7 @@ export default function Landing() {
 
           {/* Feature 6 */}
           <div className="glass-panel p-5 flex flex-col gap-2">
-            <div className="w-10 h-10 rounded-[10px] bg-[rgba(239,_68,_68,_0.15)] text-[#ef4444] flex items-center justify-center text-[1.3rem]">
+            <div className="w-10 h-10 rounded-[10px] bg-[rgba(239,_68,_68,_0.15)] bg-none text-[#ef4444] flex items-center justify-center text-[1.3rem]">
               🔒
             </div>
             <h3
@@ -176,7 +176,7 @@ export default function Landing() {
 
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(220px,_1fr))] gap-4 text-center">
           <div className="glass-panel py-4.5 px-3.5">
-            <div className="w-8 h-8 rounded-full bg-cyan text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
+            <div className="w-8 h-8 rounded-full bg-cyan bg-none text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
               1
             </div>
             <h4 className="text-white mb-1 text-[0.98rem]">Inicia Sesión</h4>
@@ -186,7 +186,7 @@ export default function Landing() {
           </div>
 
           <div className="glass-panel py-4.5 px-3.5">
-            <div className="w-8 h-8 rounded-full bg-cyan text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
+            <div className="w-8 h-8 rounded-full bg-cyan bg-none text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
               2
             </div>
             <h4 className="text-white mb-1 text-[0.98rem]">Crea o Únete</h4>
@@ -196,7 +196,7 @@ export default function Landing() {
           </div>
 
           <div className="glass-panel py-4.5 px-3.5">
-            <div className="w-8 h-8 rounded-full bg-cyan text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
+            <div className="w-8 h-8 rounded-full bg-cyan bg-none text-[#0f172a] font-extrabold flex items-center justify-center mt-0 mb-2.5 mx-auto text-[0.95rem]">
               3
             </div>
             <h4 className="text-white mb-1 text-[0.98rem]">Pronostica y Compite</h4>

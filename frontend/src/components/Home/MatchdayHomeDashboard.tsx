@@ -242,7 +242,7 @@ export default function MatchdayHomeDashboard() {
 
                   return (
                     <div
-                      className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.12)]' : 'bg-[rgba(255,_255,_255,_0.03)]'} ${isMe ? 'border border-[rgba(0,_210,_211,_0.35)]' : 'border border-transparent'}`}
+                      className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.12)] bg-none' : 'bg-[rgba(255,_255,_255,_0.03)] bg-none'} ${isMe ? 'border border-[rgba(0,_210,_211,_0.35)]' : 'border border-transparent'}`}
                       key={p.id || index}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -283,7 +283,7 @@ export default function MatchdayHomeDashboard() {
               <div className="flex flex-col gap-1.5">
                 {topTeams.map((t) => (
                   <div
-                    className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] bg-[rgba(255,_255,_255,_0.03)]"
+                    className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] bg-[rgba(255,_255,_255,_0.03)] bg-none"
                     key={t.rank + t.teamName}
                   >
                     <div className="flex items-center gap-2 min-w-0">

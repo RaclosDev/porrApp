@@ -130,7 +130,7 @@ function PredictionViewer({
     const rightContent =
       slotPoints !== null ? (
         <span
-          className={`ml-1 text-[0.85em] font-bold py-0.5 px-1 rounded-[4px] ${slotPoints === '0' ? 'text-[#e74c3c]' : 'text-[#2ecc71]'} ${slotPoints === '0' ? 'bg-[rgba(231,76,60,0.1)]' : 'bg-[rgba(46,204,113,0.1)]'}`}
+          className={`ml-1 text-[0.85em] font-bold py-0.5 px-1 rounded-[4px] ${slotPoints === '0' ? 'text-[#e74c3c]' : 'text-[#2ecc71]'} ${slotPoints === '0' ? 'bg-[rgba(231,76,60,0.1)] bg-none' : 'bg-[rgba(46,204,113,0.1)] bg-none'}`}
         >
           {slotPoints}
         </span>
@@ -174,7 +174,7 @@ function PredictionViewer({
     }
 
     return (
-      <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] inline-block py-0.5 px-2 rounded-[4px] pointer-events-none">
+      <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] bg-none inline-block py-0.5 px-2 rounded-[4px] pointer-events-none">
         +{total} pts
       </div>
     );
@@ -205,7 +205,7 @@ function PredictionViewer({
             🏆 Final 🏆
           </div>
           {centerTotal > 0 ? (
-            <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] inline-block py-0.5 px-2 rounded-[4px]">
+            <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] bg-none inline-block py-0.5 px-2 rounded-[4px]">
               +{centerTotal} pts
             </div>
           ) : (
@@ -230,7 +230,7 @@ function PredictionViewer({
             🏆 Campeón
           </div>
           <div className="champion-display">
-            <div className="team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none border-[#fbbf24] bg-[rgba(251,191,36,0.15)] text-[#fbbf24]">
+            <div className="team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none border-[#fbbf24] bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24]">
               <Flag
                 team={champName || ''}
                 size="w40"
@@ -271,7 +271,7 @@ function PredictionViewer({
                 Ganador 3er Puesto:
               </div>
               <div className="champion-display inline-block w-full">
-                <div className="team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none border-[#cd7f32] bg-[rgba(205,_127,_50,_0.15)] text-[#e0a96d]">
+                <div className="team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none border-[#cd7f32] bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d]">
                   <Flag
                     team={thirdWinnerName || ''}
                     size="w40"
@@ -311,7 +311,7 @@ function PredictionViewer({
     if (status === 5) {
       blueDot = (
         <span
-          className="w-2 h-2 bg-[#3498db] rounded-full ml-1.5 shrink-0 inline-block"
+          className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1.5 shrink-0 inline-block"
           title="Clasificado Matemáticamente"
           aria-label="Clasificado Matemáticamente"
         ></span>
@@ -362,7 +362,7 @@ function PredictionViewer({
           {blueDot}
         </span>
         {teamPts > 0 && (
-          <span className="ml-1.5 text-[0.85em] font-bold text-[rgba(0,_210,_211,_0.9)] bg-[rgba(0,_210,_211,_0.15)] py-px px-[5px] rounded-[4px]">
+          <span className="ml-1.5 text-[0.85em] font-bold text-[rgba(0,_210,_211,_0.9)] bg-[rgba(0,_210,_211,_0.15)] bg-none py-px px-[5px] rounded-[4px]">
             +{teamPts}
           </span>
         )}
@@ -407,7 +407,7 @@ function PredictionViewer({
   if (error) {
     if (inline) {
       return (
-        <div className="text-center py-10 px-5 bg-[rgba(231,76,60,0.1)] rounded-[16px] border border-[rgba(231,76,60,0.3)]">
+        <div className="text-center py-10 px-5 bg-[rgba(231,76,60,0.1)] bg-none rounded-[16px] border border-[rgba(231,76,60,0.3)]">
           <div className="text-[2.5rem] mb-3">🔒</div>
           <h3 className="text-[#e74c3c] mb-2.5">Porra no disponible</h3>
           <p className="text-muted leading-[1.5]">{error}</p>

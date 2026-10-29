@@ -75,7 +75,7 @@ export default function OfficialGroupsView() {
           if (team.stats.status === 5) {
             statusDot = (
               <span
-                className="w-2 h-2 bg-[#3498db] rounded-full ml-1 shrink-0 inline-block"
+                className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
                 title="Clasificado Matemáticamente"
                 aria-label="Clasificado Matemáticamente"
               />
@@ -83,7 +83,7 @@ export default function OfficialGroupsView() {
           } else if (team.stats.status === -1) {
             statusDot = (
               <span
-                className="w-2 h-2 bg-[#ff4757] rounded-full ml-1 shrink-0 inline-block"
+                className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"
                 title="Eliminado Matemáticamente"
                 aria-label="Eliminado Matemáticamente"
               />
@@ -92,7 +92,7 @@ export default function OfficialGroupsView() {
 
           return (
             <div
-              className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)]' : 'bg-transparent'}`}
+              className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)] bg-none' : 'bg-transparent bg-none'}`}
               key={team.name}
             >
               <span className="w-4.5 font-bold text-muted text-[0.85em] shrink-0">{idx + 1}</span>

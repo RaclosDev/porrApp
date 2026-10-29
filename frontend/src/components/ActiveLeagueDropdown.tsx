@@ -78,7 +78,7 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => navigate('/mis-ligas')}
-        className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-8.5 rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.6)] bg-[rgba(0,_210,_211,_0.1)] text-[#00d2d3] cursor-pointer text-[0.82rem] font-bold"
+        className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-8.5 rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.6)] bg-[rgba(0,_210,_211,_0.1)] bg-none text-[#00d2d3] cursor-pointer text-[0.82rem] font-bold"
         title="Crear o unirse a una liga"
       >
         <span>➕</span>
@@ -102,7 +102,7 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => setIsOpen(!isOpen)}
-        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-9.5 rounded-[10px] border border-[rgba(0,_210,_211,_0.4)] text-main cursor-pointer font-semibold text-[0.88rem] [transition:all_0.2s_ease] ${isOpen ? 'bg-[rgba(0,_210,_211,_0.15)]' : 'bg-[rgba(15,_23,_42,_0.75)]'} ${isOpen ? 'shadow-[0_0_15px_rgba(0,_210,_211,_0.25)]' : 'shadow-none'}`}
+        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-9.5 rounded-[10px] border border-[rgba(0,_210,_211,_0.4)] text-main cursor-pointer font-semibold text-[0.88rem] [transition:all_0.2s_ease] ${isOpen ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(15,_23,_42,_0.75)] bg-none'} ${isOpen ? 'shadow-[0_0_15px_rgba(0,_210,_211,_0.25)]' : 'shadow-none'}`}
         aria-expanded={isOpen}
         aria-haspopup="true"
         title="Cambiar de liga o peña"
@@ -126,7 +126,7 @@ export default function ActiveLeagueDropdown() {
       {isOpen && (
         <div
           role="menu"
-          className="active-league-menu absolute top-[calc(100%_+_8px)] bg-[#111827] border border-[rgba(0,_210,_211,_0.35)] rounded-[12px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.75),_0_0_20px_rgba(0,_210,_211,_0.15)] [backdrop-filter:blur(12px)] p-2 flex flex-col gap-1 [animation:fadeIn_0.15s_ease-out]"
+          className="active-league-menu absolute top-[calc(100%_+_8px)] bg-[#111827] bg-none border border-[rgba(0,_210,_211,_0.35)] rounded-[12px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.75),_0_0_20px_rgba(0,_210,_211,_0.15)] [backdrop-filter:blur(12px)] p-2 flex flex-col gap-1 [animation:fadeIn_0.15s_ease-out]"
         >
           <div className="py-1.5 px-2.5 text-[0.75rem] font-bold tracking-[0.5px] text-muted uppercase border-b border-b-[rgba(255,_255,_255,_0.08)] mb-1 flex justify-between items-center">
             <span>Mis Ligas</span>
@@ -142,7 +142,7 @@ export default function ActiveLeagueDropdown() {
                 const gBadge = getCompetitionBadge(g.competitionName);
                 return (
                   <button
-                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(0,_210,_211,_0.12)]' : 'bg-transparent'} ${isSelected ? 'text-[#00d2d3]' : 'text-white'}`}
+                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(0,_210,_211,_0.12)] bg-none' : 'bg-transparent bg-none'} ${isSelected ? 'text-[#00d2d3]' : 'text-white'}`}
                     key={g.id}
                     type="button"
                     onClick={() => {
@@ -189,7 +189,7 @@ export default function ActiveLeagueDropdown() {
 
           <div className="border-t border-t-[rgba(255,_255,_255,_0.08)] pt-1.5 mt-1">
             <button
-              className="w-full py-2 px-2.5 rounded-[8px] border border-dashed border-[rgba(0,_210,_211,_0.35)] bg-[rgba(0,_210,_211,_0.05)] text-[#00d2d3] text-[0.82rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 [transition:all_0.15s_ease]"
+              className="w-full py-2 px-2.5 rounded-[8px] border border-dashed border-[rgba(0,_210,_211,_0.35)] bg-[rgba(0,_210,_211,_0.05)] bg-none text-[#00d2d3] text-[0.82rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 [transition:all_0.15s_ease]"
               type="button"
               onClick={() => {
                 setIsOpen(false);

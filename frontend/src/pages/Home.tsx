@@ -132,7 +132,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           if (team.stats.status === 5) {
             statusDot = (
               <span
-                className="w-2 h-2 bg-[#3498db] rounded-full ml-1 shrink-0 inline-block"
+                className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
                 title="Clasificado Matemáticamente"
                 aria-label="Clasificado Matemáticamente"
               />
@@ -140,7 +140,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           } else if (team.stats.status === -1) {
             statusDot = (
               <span
-                className="w-2 h-2 bg-[#ff4757] rounded-full ml-1 shrink-0 inline-block"
+                className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"
                 title="Eliminado Matemáticamente"
                 aria-label="Eliminado Matemáticamente"
               />
@@ -149,7 +149,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
 
           return (
             <div
-              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)]' : 'bg-transparent'}`}
+              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)] bg-none' : 'bg-transparent bg-none'}`}
               key={team.name}
               style={{ borderLeft: borderLeftStyle, borderRadius: '0 6px 6px 0' }}
             >
@@ -172,7 +172,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
                 >
                   {team.stats.fp || 0}
                 </span>
-                <span className="font-bold bg-[rgba(255,255,255,0.08)] py-0.5 px-1.5 rounded-[4px] text-white w-6 text-center">
+                <span className="font-bold bg-[rgba(255,255,255,0.08)] bg-none py-0.5 px-1.5 rounded-[4px] text-white w-6 text-center">
                   {team.stats.pts}
                 </span>
               </div>

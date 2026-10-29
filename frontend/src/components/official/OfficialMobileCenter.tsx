@@ -44,7 +44,7 @@ export default function OfficialMobileCenter({
         </div>
         <div className="champion-display">
           <div
-            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.champion) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
+            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.champion) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
           >
             <Flag
               team={getName(part.champion) || ''}
@@ -84,7 +84,7 @@ export default function OfficialMobileCenter({
           </div>
           <div className="champion-display">
             <div
-              className={`team-slot h-10.5 text-[1rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.thirdPlaceWinner) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
+              className={`team-slot h-10.5 text-[1rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.thirdPlaceWinner) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
             >
               <Flag
                 team={getName(part.thirdPlaceWinner) || ''}

@@ -66,7 +66,7 @@ function CustomDropdown({
   return (
     <div className="relative w-full max-w-100" ref={dropdownRef}>
       <div
-        className={`w-full py-[15px] px-5 bg-[rgba(20,20,35,0.9)] flex items-center justify-between [cursor:text] [transition:all_0.2s] ${isOpen ? 'shadow-[0_4px_12px_rgba(0,0,0,0.4)]' : 'shadow-none'}`}
+        className={`w-full py-[15px] px-5 bg-[rgba(20,20,35,0.9)] bg-none flex items-center justify-between [cursor:text] [transition:all_0.2s] ${isOpen ? 'shadow-[0_4px_12px_rgba(0,0,0,0.4)]' : 'shadow-none'}`}
         onClick={() => {
           setIsOpen(true);
           inputRef.current?.focus();
@@ -92,7 +92,7 @@ function CustomDropdown({
             />
           )}
           <input
-            className="bg-transparent border-none text-white [outline:none] text-[1.1rem] w-full"
+            className="bg-transparent bg-none border-none text-white [outline:none] text-[1.1rem] w-full"
             ref={inputRef}
             type="text"
             value={isOpen ? searchTerm : displayLabel}
@@ -126,7 +126,7 @@ function CustomDropdown({
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[rgba(20,20,35,0.95)] border border-[rgba(255,255,255,0.1)] rounded-[12px] max-h-75 overflow-y-auto z-[100] shadow-[0_10px_30px_rgba(0,0,0,0.8)] [backdrop-filter:blur(10px)]">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[rgba(20,20,35,0.95)] bg-none border border-[rgba(255,255,255,0.1)] rounded-[12px] max-h-75 overflow-y-auto z-[100] shadow-[0_10px_30px_rgba(0,0,0,0.8)] [backdrop-filter:blur(10px)]">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((opt) => {
               const val = optionValue(opt);
@@ -134,7 +134,7 @@ function CustomDropdown({
               const icon = optionIcon(opt);
               return (
                 <div
-                  className={`py-3 px-5 flex items-center gap-2.5 cursor-pointer [transition:background_0.2s] text-white ${value === val ? 'bg-[rgba(0,_210,_211,_0.2)]' : 'bg-transparent'}`}
+                  className={`py-3 px-5 flex items-center gap-2.5 cursor-pointer [transition:background_0.2s] text-white ${value === val ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : 'bg-transparent bg-none'}`}
                   key={val}
                   role="option"
                   tabIndex={0}
@@ -270,15 +270,15 @@ function Search() {
       </div>
 
       <div className="flex justify-center mb-[35px]">
-        <div className="flex bg-[rgba(15,_23,_42,_0.8)] p-[5px] rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1.5">
+        <div className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-[5px] rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1.5">
           <button
-            className={`py-2.5 px-7.5 font-extrabold text-[1.05rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-2 tracking-[0.5px] ${searchMode === 'team' ? 'bg-accent' : 'bg-transparent'} ${searchMode === 'team' ? 'text-white' : 'text-muted'} ${searchMode === 'team' ? 'shadow-[0_4px_12px_rgba(0,_0,_0,_0.25)]' : 'shadow-none'}`}
+            className={`py-2.5 px-7.5 font-extrabold text-[1.05rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-2 tracking-[0.5px] ${searchMode === 'team' ? 'bg-accent bg-none' : 'bg-transparent bg-none'} ${searchMode === 'team' ? 'text-white' : 'text-muted'} ${searchMode === 'team' ? 'shadow-[0_4px_12px_rgba(0,_0,_0,_0.25)]' : 'shadow-none'}`}
             onClick={() => setSearchMode('team')}
           >
             🔍 Por Equipo
           </button>
           <button
-            className={`py-2.5 px-7.5 font-extrabold text-[1.05rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-2 tracking-[0.5px] ${searchMode === 'user' ? 'bg-cyan' : 'bg-transparent'} ${searchMode === 'user' ? 'text-black' : 'text-muted'} ${searchMode === 'user' ? 'shadow-[0_4px_12px_rgba(0,_0,_0,_0.25)]' : 'shadow-none'}`}
+            className={`py-2.5 px-7.5 font-extrabold text-[1.05rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-2 tracking-[0.5px] ${searchMode === 'user' ? 'bg-cyan bg-none' : 'bg-transparent bg-none'} ${searchMode === 'user' ? 'text-black' : 'text-muted'} ${searchMode === 'user' ? 'shadow-[0_4px_12px_rgba(0,_0,_0,_0.25)]' : 'shadow-none'}`}
             onClick={() => setSearchMode('user')}
           >
             🧠 Perfil de Jugador
@@ -287,7 +287,7 @@ function Search() {
       </div>
 
       {searchMode === 'team' && (
-        <div className="bg-[rgba(20,20,35,0.8)] border border-[rgba(243,_104,_224,_0.3)] p-10 rounded-[16px]">
+        <div className="bg-[rgba(20,20,35,0.8)] bg-none border border-[rgba(243,_104,_224,_0.3)] p-10 rounded-[16px]">
           <div className="flex flex-wrap gap-5 mb-10 justify-center">
             <div className="flex-[1_1_300px] flex flex-col items-center">
               <label className="block mb-[15px] text-muted font-bold text-[1.1rem]">
@@ -315,7 +315,7 @@ function Search() {
           </div>
 
           {selectedTeam && teamResults && (
-            <div className="bg-[rgba(0,0,0,0.3)] rounded-[16px] p-7.5 border border-[rgba(255,255,255,0.05)]">
+            <div className="bg-[rgba(0,0,0,0.3)] bg-none rounded-[16px] p-7.5 border border-[rgba(255,255,255,0.05)]">
               <div className="flex items-center justify-center gap-[15px] mb-[25px]">
                 <Flag
                   team={selectedTeam}
@@ -335,9 +335,9 @@ function Search() {
                   <strong className="text-[#f368e0] text-[2rem]">{teamPercentage}%</strong> del
                   grupo piensa esto ({teamResults.length} de {totalVotes})
                 </div>
-                <div className="w-full max-w-125 mt-[15px] mb-0 mx-auto bg-[rgba(255,255,255,0.1)] h-4 rounded-[8px] overflow-hidden">
+                <div className="w-full max-w-125 mt-[15px] mb-0 mx-auto bg-[rgba(255,255,255,0.1)] bg-none h-4 rounded-[8px] overflow-hidden">
                   <div
-                    className="bg-[#f368e0] h-full [transition:width_1.5s_cubic-bezier(0.4,_0,_0.2,_1)]"
+                    className="bg-[#f368e0] bg-none h-full [transition:width_1.5s_cubic-bezier(0.4,_0,_0.2,_1)]"
                     style={{ width: `${teamPercentage}%` }}
                   ></div>
                 </div>
@@ -347,7 +347,7 @@ function Search() {
                 <div className="flex flex-wrap gap-3 justify-center">
                   {teamResults.map((r) => (
                     <div
-                      className="cursor-pointer bg-[rgba(243,_104,_224,_0.1)] border border-[rgba(243,_104,_224,_0.3)] py-2.5 px-5 rounded-[10px] flex items-center gap-2.5 text-[1.1rem] [transition:transform_0.2s,_boxShadow_0.2s]"
+                      className="cursor-pointer bg-[rgba(243,_104,_224,_0.1)] bg-none border border-[rgba(243,_104,_224,_0.3)] py-2.5 px-5 rounded-[10px] flex items-center gap-2.5 text-[1.1rem] [transition:transform_0.2s,_boxShadow_0.2s]"
                       key={r.id}
                       role="button"
                       tabIndex={0}
@@ -368,7 +368,7 @@ function Search() {
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      <span className="bg-[#f368e0] text-white w-6 h-6 rounded-full flex items-center justify-center text-[0.9rem] font-bold">
+                      <span className="bg-[#f368e0] bg-none text-white w-6 h-6 rounded-full flex items-center justify-center text-[0.9rem] font-bold">
                         {r.name.charAt(0).toUpperCase()}
                       </span>
                       {r.name}
@@ -377,7 +377,7 @@ function Search() {
                   {teamNegativeResults &&
                     teamNegativeResults.map((r) => (
                       <div
-                        className="cursor-pointer bg-[rgba(255,_255,_255,_0.03)] border border-dashed border-[rgba(255,_255,_255,_0.2)] py-2.5 px-5 rounded-[10px] flex items-center gap-2.5 text-[1.05rem] text-muted opacity-[0.45] [transition:all_0.2s_cubic-bezier(0.4,_0,_0.2,_1)]"
+                        className="cursor-pointer bg-[rgba(255,_255,_255,_0.03)] bg-none border border-dashed border-[rgba(255,_255,_255,_0.2)] py-2.5 px-5 rounded-[10px] flex items-center gap-2.5 text-[1.05rem] text-muted opacity-[0.45] [transition:all_0.2s_cubic-bezier(0.4,_0,_0.2,_1)]"
                         key={r.id}
                         role="button"
                         tabIndex={0}
@@ -404,7 +404,7 @@ function Search() {
                           e.currentTarget.style.color = 'var(--text-muted)';
                         }}
                       >
-                        <span className="bg-[rgba(255,_255,_255,_0.1)] text-[#ff6b6b] w-6 h-6 rounded-full flex items-center justify-center text-[0.8rem] font-bold">
+                        <span className="bg-[rgba(255,_255,_255,_0.1)] bg-none text-[#ff6b6b] w-6 h-6 rounded-full flex items-center justify-center text-[0.8rem] font-bold">
                           ✕
                         </span>
                         <span className="line-through">{r.name}</span>
@@ -420,7 +420,7 @@ function Search() {
               <div className="flex justify-center mt-[35px]">
                 <button
                   onClick={handleShareTeam}
-                  className="glass-btn py-2.5 px-[25px] rounded-[10px] bg-[#25D366] text-white border border-[#25D366] flex items-center gap-2.5 text-[1.1rem]"
+                  className="glass-btn py-2.5 px-[25px] rounded-[10px] bg-[#25D366] bg-none text-white border border-[#25D366] flex items-center gap-2.5 text-[1.1rem]"
                 >
                   <WhatsAppIcon size={20} /> Compartir Búsqueda
                 </button>
@@ -431,7 +431,7 @@ function Search() {
       )}
 
       {searchMode === 'user' && (
-        <div className="bg-[rgba(20,20,35,0.8)] border border-[rgba(0,_210,_211,_0.3)] p-10 rounded-[16px]">
+        <div className="bg-[rgba(20,20,35,0.8)] bg-none border border-[rgba(0,_210,_211,_0.3)] p-10 rounded-[16px]">
           <div className="mb-10 flex flex-col items-center">
             <label className="block mb-[15px] text-muted font-bold text-[1.1rem]">
               Selecciona Jugador para ver su Perfil:
@@ -445,14 +445,14 @@ function Search() {
           </div>
 
           {selectedUser && userStats && (
-            <div className="bg-[rgba(0,0,0,0.3)] rounded-[16px] p-7.5 border border-[rgba(255,255,255,0.05)]">
+            <div className="bg-[rgba(0,0,0,0.3)] bg-none rounded-[16px] p-7.5 border border-[rgba(255,255,255,0.05)]">
               <div className="flex flex-col items-center mb-7.5">
                 <h3 className="mt-0 mb-2.5 mx-0 text-[#00d2d3] text-[2rem] text-center">
                   Perfil de {selectedUser}
                 </h3>
 
                 {userName && userName !== selectedUser && (
-                  <div className="flex items-center gap-2.5 bg-[rgba(0,_210,_211,_0.1)] py-2.5 px-5 rounded-[20px] border border-[rgba(0,_210,_211,_0.3)]">
+                  <div className="flex items-center gap-2.5 bg-[rgba(0,_210,_211,_0.1)] bg-none py-2.5 px-5 rounded-[20px] border border-[rgba(0,_210,_211,_0.3)]">
                     <span className="text-[1.5rem]">🎯</span>
                     <span className="text-[1.1rem]">
                       Similitud con tu porra: <strong>{userStats.similarity}%</strong>
@@ -460,7 +460,7 @@ function Search() {
                   </div>
                 )}
                 {userName === selectedUser && (
-                  <div className="flex items-center gap-2.5 bg-[rgba(241,_196,_15,_0.1)] py-2.5 px-5 rounded-[20px] border border-[rgba(241,_196,_15,_0.3)] text-[#f1c40f]">
+                  <div className="flex items-center gap-2.5 bg-[rgba(241,_196,_15,_0.1)] bg-none py-2.5 px-5 rounded-[20px] border border-[rgba(241,_196,_15,_0.3)] text-[#f1c40f]">
                     <span className="text-[1.5rem]">👑</span>
                     <span className="text-[1.1rem]">Este eres tú. ¡Mucha suerte!</span>
                   </div>
@@ -469,14 +469,14 @@ function Search() {
                   {userStats.id && (
                     <button
                       onClick={() => setViewerPredictionId(userStats.id)}
-                      className="glass-btn primary-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[rgba(0,_210,_211,_0.2)] border border-[#00d2d3] text-[#00d2d3] flex items-center gap-2"
+                      className="glass-btn primary-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[rgba(0,_210,_211,_0.2)] bg-none border border-[#00d2d3] text-[#00d2d3] flex items-center gap-2"
                     >
                       👁️ Ver Porra Completa
                     </button>
                   )}
                   <button
                     onClick={handleShareUser}
-                    className="glass-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[#25D366] text-white border border-[#25D366] flex items-center gap-2"
+                    className="glass-btn py-2 px-[25px] rounded-[10px] text-[1.1rem] bg-[#25D366] bg-none text-white border border-[#25D366] flex items-center gap-2"
                   >
                     <WhatsAppIcon size={20} /> Compartir Perfil
                   </button>
@@ -484,7 +484,7 @@ function Search() {
               </div>
 
               <div className="grid grid-cols-[repeat(auto-fit,_minmax(220px,_1fr))] gap-5 mb-7.5">
-                <div className="bg-[rgba(255,255,255,0.03)] p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
+                <div className="bg-[rgba(255,255,255,0.03)] bg-none p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
                   <div className="text-[2.5rem] mb-2.5">🏆</div>
                   <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">Campeón</div>
                   <div className="font-bold text-[1.3rem] flex items-center justify-center gap-2.5 mt-2.5">
@@ -498,7 +498,7 @@ function Search() {
                 </div>
 
                 {activeGroupPichichi && (
-                  <div className="bg-[rgba(255,255,255,0.03)] p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
+                  <div className="bg-[rgba(255,255,255,0.03)] bg-none p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
                     <div className="text-[2.5rem] mb-2.5">👟</div>
                     <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">
                       Pichichi
@@ -509,7 +509,7 @@ function Search() {
                   </div>
                 )}
 
-                <div className="bg-[rgba(255,255,255,0.03)] p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
+                <div className="bg-[rgba(255,255,255,0.03)] bg-none p-5 rounded-[12px] text-center border border-[rgba(255,255,255,0.05)]">
                   <div className="text-[2.5rem] mb-2.5">⚔️</div>
                   <div className="text-muted text-[0.9rem] uppercase tracking-[1px]">Su Final</div>
                   <div className="font-bold text-[1.1rem] flex items-center justify-center gap-2.5 mt-2.5">
@@ -536,7 +536,7 @@ function Search() {
 
               {/* Psicología */}
               <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-5">
-                <div className="bg-[rgba(232,_67,_147,_0.1)] border border-[rgba(232,_67,_147,_0.3)] p-5 rounded-[12px]">
+                <div className="bg-[rgba(232,_67,_147,_0.1)] bg-none border border-[rgba(232,_67,_147,_0.3)] p-5 rounded-[12px]">
                   <h4 className="text-[#e84393] mt-0 flex items-center gap-2.5 text-[1.2rem]">
                     🦄 Sus "Locuras"
                   </h4>
@@ -547,7 +547,7 @@ function Search() {
                     <div className="flex flex-wrap gap-2.5">
                       {userStats.madness.map((t) => (
                         <div
-                          className="flex items-center gap-1.5 bg-[rgba(0,0,0,0.4)] py-1.5 px-3 rounded-[15px] text-[0.95rem]"
+                          className="flex items-center gap-1.5 bg-[rgba(0,0,0,0.4)] bg-none py-1.5 px-3 rounded-[15px] text-[0.95rem]"
                           key={t}
                         >
                           <Flag
@@ -569,7 +569,7 @@ function Search() {
                   )}
                 </div>
 
-                <div className="bg-[rgba(155,_89,_182,_0.1)] border border-[rgba(155,_89,_182,_0.3)] p-5 rounded-[12px]">
+                <div className="bg-[rgba(155,_89,_182,_0.1)] bg-none border border-[rgba(155,_89,_182,_0.3)] p-5 rounded-[12px]">
                   <h4 className="text-[#9b59b6] mt-0 flex items-center gap-2.5 text-[1.2rem]">
                     💀 Sus "Haters"
                   </h4>
@@ -580,7 +580,7 @@ function Search() {
                     <div className="flex flex-wrap gap-2.5">
                       {userStats.haters.map((t) => (
                         <div
-                          className="flex items-center gap-1.5 bg-[rgba(0,0,0,0.4)] py-1.5 px-3 rounded-[15px] text-[0.95rem]"
+                          className="flex items-center gap-1.5 bg-[rgba(0,0,0,0.4)] bg-none py-1.5 px-3 rounded-[15px] text-[0.95rem]"
                           key={t}
                         >
                           <Flag
@@ -604,7 +604,7 @@ function Search() {
                   )}
                 </div>
 
-                <div className="bg-[rgba(231,_76,_60,_0.1)] border border-[rgba(231,_76,_60,_0.3)] p-5 rounded-[12px]">
+                <div className="bg-[rgba(231,_76,_60,_0.1)] bg-none border border-[rgba(231,_76,_60,_0.3)] p-5 rounded-[12px]">
                   <h4 className="text-[#e74c3c] mt-0 flex items-center gap-2.5 text-[1.2rem]">
                     🏥 ¡Al Psiquiatra!
                   </h4>
@@ -616,7 +616,7 @@ function Search() {
                     <div className="flex flex-col gap-3">
                       {userStats.asylum.map((item) => (
                         <div
-                          className="bg-[rgba(0,0,0,0.4)] p-2.5 rounded-[10px] text-[0.9rem]"
+                          className="bg-[rgba(0,0,0,0.4)] bg-none p-2.5 rounded-[10px] text-[0.9rem]"
                           key={item.team}
                         >
                           <div className="flex items-center gap-1.5 font-bold text-[#e74c3c] mb-1">

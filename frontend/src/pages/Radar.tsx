@@ -120,13 +120,13 @@ function Radar() {
 
         <div className="radar-tabs hide-on-desktop flex justify-center gap-2.5 mb-2.5">
           <button
-            className={`glass-btn flex-1 max-w-50 ${activeTab === 'proximos' ? 'bg-[rgba(0,_210,_211,_0.2)]' : ''} ${activeTab === 'proximos' ? 'border border-cyan' : ''}`}
+            className={`glass-btn flex-1 max-w-50 ${activeTab === 'proximos' ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : ''} ${activeTab === 'proximos' ? 'border border-cyan' : ''}`}
             onClick={() => setActiveTab('proximos')}
           >
             Próximos Partidos
           </button>
           <button
-            className={`glass-btn flex-1 max-w-50 ${activeTab === 'ultimos' ? 'bg-[rgba(0,_210,_211,_0.2)]' : ''} ${activeTab === 'ultimos' ? 'border border-cyan' : ''}`}
+            className={`glass-btn flex-1 max-w-50 ${activeTab === 'ultimos' ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : ''} ${activeTab === 'ultimos' ? 'border border-cyan' : ''}`}
             onClick={() => setActiveTab('ultimos')}
           >
             Últimos Resultados

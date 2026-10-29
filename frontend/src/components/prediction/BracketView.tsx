@@ -96,7 +96,7 @@ export default function BracketView({
               {/* Puntos del centro */}
               {centerTotal > 0 && (
                 <div className="text-center">
-                  <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] inline-block py-1 px-3 rounded-[6px]">
+                  <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] bg-none inline-block py-1 px-3 rounded-[6px]">
                     +{centerTotal} pts
                   </div>
                 </div>

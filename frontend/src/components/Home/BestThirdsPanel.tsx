@@ -62,10 +62,10 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
 
   return (
     <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
-      <div className="text-center text-[#00cec9] text-[1rem] font-bold p-1.5 bg-[rgba(0,_206,_201,_0.1)] border border-[rgba(0,_206,_201,_0.3)] rounded-[12px]">
+      <div className="text-center text-[#00cec9] text-[1rem] font-bold p-1.5 bg-[rgba(0,_206,_201,_0.1)] bg-none border border-[rgba(0,_206,_201,_0.3)] rounded-[12px]">
         🥉 MEJORES TERCEROS
       </div>
-      <div className="bg-(color:--bg-card) rounded-[12px] border border-[rgba(255,255,255,0.05)] p-2.5">
+      <div className="bg-(color:--bg-card) bg-none rounded-[12px] border border-[rgba(255,255,255,0.05)] p-2.5">
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-4">
           <div className="flex flex-col">
             <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-[rgba(255,255,255,0.1)] text-[0.75rem] text-muted font-bold text-center">
@@ -96,7 +96,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                         {t.name}
                       </span>
                     </div>
-                    <span className="font-bold text-center bg-[rgba(255,255,255,0.08)] rounded-[4px]">
+                    <span className="font-bold text-center bg-[rgba(255,255,255,0.08)] bg-none rounded-[4px]">
                       {t.pts}
                     </span>
                     <span className="text-center text-muted">
@@ -146,7 +146,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                         {t.name}
                       </span>
                     </div>
-                    <span className="font-bold text-center bg-[rgba(255,255,255,0.08)] rounded-[4px]">
+                    <span className="font-bold text-center bg-[rgba(255,255,255,0.08)] bg-none rounded-[4px]">
                       {t.pts}
                     </span>
                     <span className="text-center text-muted">

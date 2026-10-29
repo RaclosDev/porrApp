@@ -428,7 +428,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       {/* Alertas de éxito o error */}
       {saveSuccessMsg && (
         <div
-          className="bg-[rgba(0,_184,_148,_0.2)] border border-[#00b894] text-[#55efc4] py-3 px-4 rounded-[10px] mb-4 text-[0.95rem] flex items-center gap-2"
+          className="bg-[rgba(0,_184,_148,_0.2)] bg-none border border-[#00b894] text-[#55efc4] py-3 px-4 rounded-[10px] mb-4 text-[0.95rem] flex items-center gap-2"
           role="status"
           aria-live="polite"
         >
@@ -438,7 +438,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
 
       {saveErrorMsg && (
         <div
-          className="bg-[rgba(231,_76,_60,_0.2)] border border-[#e74c3c] text-[#ff7675] py-3 px-4 rounded-[10px] mb-4 text-[0.95rem] flex items-center gap-2"
+          className="bg-[rgba(231,_76,_60,_0.2)] bg-none border border-[#e74c3c] text-[#ff7675] py-3 px-4 rounded-[10px] mb-4 text-[0.95rem] flex items-center gap-2"
           role="alert"
         >
           <span>⚠️</span> {saveErrorMsg}
@@ -642,7 +642,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
                 fixture.pointsAwarded !== null &&
                 fixture.pointsAwarded !== undefined && (
                   <div
-                    className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${fixture.pointsAwarded > 0 ? 'bg-[rgba(46,_204,_113,_0.12)]' : 'bg-[rgba(255,255,255,0.03)]'} ${fixture.pointsAwarded > 0 ? 'border border-[rgba(46,_204,_113,_0.3)]' : 'border border-[rgba(255,255,255,0.06)]'}`}
+                    className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${fixture.pointsAwarded > 0 ? 'bg-[rgba(46,_204,_113,_0.12)] bg-none' : 'bg-[rgba(255,255,255,0.03)] bg-none'} ${fixture.pointsAwarded > 0 ? 'border border-[rgba(46,_204,_113,_0.3)]' : 'border border-[rgba(255,255,255,0.06)]'}`}
                   >
                     <span
                       className={`${fixture.pointsAwarded > 0 ? 'text-[#2ecc71]' : 'text-muted'}`}
@@ -667,7 +667,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
           <button
             onClick={handleSaveAll}
             disabled={saveMutation.isPending || activeGroupIsLocked}
-            className="glass-btn primary-btn py-3 px-6 font-extrabold text-[1rem] rounded-[30px] bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] text-black border-none flex items-center gap-2 cursor-pointer"
+            className="glass-btn primary-btn py-3 px-6 font-extrabold text-[1rem] rounded-[30px] bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] bg-transparent text-black border-none flex items-center gap-2 cursor-pointer"
           >
             <span>💾</span>
             <span>

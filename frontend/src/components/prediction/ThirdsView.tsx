@@ -15,7 +15,7 @@ export default function ThirdsView({
 }: ThirdsViewProps) {
   return (
     <div className="mt-2.5">
-      <div className="py-4 px-5 bg-[rgba(255,_255,_255,_0.04)] border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] mb-5 text-center">
+      <div className="py-4 px-5 bg-[rgba(255,_255,_255,_0.04)] bg-none border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] mb-5 text-center">
         <h4 className="mt-0 mb-1.5 mx-0 text-[#a29bfe] text-[1.1rem]">
           Mejores Terceros Seleccionados ({advancingThirds.length}/8 a Dieciseisavos)
         </h4>
@@ -39,11 +39,11 @@ export default function ThirdsView({
 
             return (
               <div
-                className={`flex items-center justify-between py-3 px-4 rounded-[10px] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.08)]' : 'bg-[rgba(255,_255,_255,_0.03)]'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.08)]'} ${isAdvancing ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]' : 'shadow-none'}`}
+                className={`flex items-center justify-between py-3 px-4 rounded-[10px] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.08)] bg-none' : 'bg-[rgba(255,_255,_255,_0.03)] bg-none'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.08)]'} ${isAdvancing ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]' : 'shadow-none'}`}
                 key={group}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <span className="text-[0.75rem] font-extrabold py-[3px] px-2 rounded-[6px] bg-[rgba(255,_255,_255,_0.08)] text-muted tracking-[0.5px]">
+                  <span className="text-[0.75rem] font-extrabold py-[3px] px-2 rounded-[6px] bg-[rgba(255,_255,_255,_0.08)] bg-none text-muted tracking-[0.5px]">
                     G.{group}
                   </span>
                   <Flag
@@ -65,13 +65,13 @@ export default function ThirdsView({
                   </span>
                   {status === 5 && (
                     <span
-                      className="w-2 h-2 bg-[#3498db] rounded-full inline-block shrink-0"
+                      className="w-2 h-2 bg-[#3498db] bg-none rounded-full inline-block shrink-0"
                       title="Clasificado Matemáticamente"
                     />
                   )}
                 </div>
                 <span
-                  className={`inline-flex items-center justify-center shrink-0 w-6.5 h-6.5 ml-2 rounded-full text-[0.95rem] font-extrabold leading-[1] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.16)]' : 'bg-[rgba(255,_255,_255,_0.05)]'} ${isAdvancing ? 'text-[#00d2d3]' : 'text-muted'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.12)]'}`}
+                  className={`inline-flex items-center justify-center shrink-0 w-6.5 h-6.5 ml-2 rounded-full text-[0.95rem] font-extrabold leading-[1] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.16)] bg-none' : 'bg-[rgba(255,_255,_255,_0.05)] bg-none'} ${isAdvancing ? 'text-[#00d2d3]' : 'text-muted'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.12)]'}`}
                   role="img"
                   title={
                     isAdvancing

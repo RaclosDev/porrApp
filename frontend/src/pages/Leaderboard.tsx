@@ -146,22 +146,22 @@ function Leaderboard() {
   return (
     <section id="view-leaderboard" className="view-section block">
       <div className="flex justify-center items-center gap-2.5 flex-nowrap mb-[25px] mt-2.5 max-w-full">
-        <div className="flex bg-[rgba(15,_23,_42,_0.8)] p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1">
+        <div className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1">
           <button
-            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'table' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)]' : 'bg-transparent'} ${activeTab === 'table' ? 'text-black' : 'text-muted'} ${activeTab === 'table' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
+            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'table' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'table' ? 'text-black' : 'text-muted'} ${activeTab === 'table' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
             onClick={() => setActiveTab('table')}
           >
             Ranking
           </button>
           <button
-            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'evolution' ? 'bg-[linear-gradient(135deg,_#ff9f43,_#ffaf60)]' : 'bg-transparent'} ${activeTab === 'evolution' ? 'text-black' : 'text-muted'} ${activeTab === 'evolution' ? 'shadow-[0_4px_15px_rgba(255,_159,_67,_0.4)]' : 'shadow-none'}`}
+            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'evolution' ? 'bg-[linear-gradient(135deg,_#ff9f43,_#ffaf60)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'evolution' ? 'text-black' : 'text-muted'} ${activeTab === 'evolution' ? 'shadow-[0_4px_15px_rgba(255,_159,_67,_0.4)]' : 'shadow-none'}`}
             onClick={() => setActiveTab('evolution')}
           >
             Gráfica
           </button>
         </div>
         <button
-          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] text-white border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-10.5 min-w-10.5 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] bg-transparent text-white border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-10.5 min-w-10.5 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}
@@ -342,7 +342,7 @@ function Leaderboard() {
 
                             {r.id != null && (
                               <button
-                                className="glass-btn bg-[rgba(56,_173,_246,_0.2)] text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-8.5 min-h-8.5 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
+                                className="glass-btn bg-[rgba(56,_173,_246,_0.2)] bg-none text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-8.5 min-h-8.5 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (isMatchday) {
@@ -399,7 +399,7 @@ function Leaderboard() {
 
       {/* SHARE IMAGE TEMPLATE (Hidden) */}
       <div
-        className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 bg-[#0f0f1a] text-white box-border rounded-[15px]"
+        className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 bg-[#0f0f1a] bg-none text-white box-border rounded-[15px]"
         id="share-image-template"
         style={{ fontFamily: "'Outfit', sans-serif" }}
       >
@@ -420,7 +420,7 @@ function Leaderboard() {
               const isMe = r.name === userName;
               return (
                 <div
-                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)]' : 'bg-[rgba(255,255,255,0.05)]'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
+                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
@@ -443,7 +443,7 @@ function Leaderboard() {
               const isMe = r.name === userName;
               return (
                 <div
-                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)]' : 'bg-[rgba(255,255,255,0.05)]'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
+                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">

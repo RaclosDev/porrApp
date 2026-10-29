@@ -26,11 +26,11 @@ export default function ViewerHeader({
       </h3>
       <div className="flex gap-2.5 items-center flex-wrap">
         {part.scorer && (
-          <div className="bg-[rgba(255,159,67,0.15)] border border-[rgba(255,159,67,0.4)] py-1 px-2.5 rounded-[8px] text-[#ff9f43] font-bold text-[0.85rem]">
+          <div className="bg-[rgba(255,159,67,0.15)] bg-none border border-[rgba(255,159,67,0.4)] py-1 px-2.5 rounded-[8px] text-[#ff9f43] font-bold text-[0.85rem]">
             ⚽ Pichichi: {part.scorer}
           </div>
         )}
-        <div className="bg-[rgba(0,210,211,0.12)] border border-[rgba(0,210,211,0.4)] py-1 px-2.5 rounded-[8px] text-cyan font-extrabold text-[0.95rem]">
+        <div className="bg-[rgba(0,210,211,0.12)] bg-none border border-[rgba(0,210,211,0.4)] py-1 px-2.5 rounded-[8px] text-cyan font-extrabold text-[0.95rem]">
           🏆 Total: {points.total} pts
         </div>
         {inline && onEdit ? (
@@ -45,7 +45,7 @@ export default function ViewerHeader({
           <button
             type="button"
             onClick={handleClose}
-            className="glass-btn py-[5px] px-3.5 text-[0.88rem] rounded-[8px] font-bold cursor-pointer border border-[rgba(255,_255,_255,_0.2)] bg-[rgba(255,_255,_255,_0.08)] text-white"
+            className="glass-btn py-[5px] px-3.5 text-[0.88rem] rounded-[8px] font-bold cursor-pointer border border-[rgba(255,_255,_255,_0.2)] bg-[rgba(255,_255,_255,_0.08)] bg-none text-white"
           >
             ✕ Cerrar
           </button>
