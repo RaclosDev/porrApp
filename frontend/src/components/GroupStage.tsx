@@ -238,14 +238,20 @@ export default function GroupStage({
       </div>
 
       {/* Pestañas para móvil */}
-      <div className="mb-tabs hide-on-desktop">
+      <div className="mb-tabs hide-on-desktop" role="tablist" aria-label="Fase de grupos">
         <button
+          type="button"
+          role="tab"
+          aria-selected={mobileStep === 'groups'}
           className={`mb-tab ${mobileStep === 'groups' ? 'mb-tab-active' : ''}`}
           onClick={() => setMobileStep('groups')}
         >
           Grupos
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={mobileStep === 'thirds'}
           className={`mb-tab ${mobileStep === 'thirds' ? 'mb-tab-active' : ''}`}
           onClick={() => setMobileStep('thirds')}
         >

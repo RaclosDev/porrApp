@@ -38,10 +38,10 @@ export default function CreateLeagueWizard({
         <div className="flex justify-between items-center">
           <h3 className="m-0 text-accent-text flex items-center gap-2.5">🏆 Crear Nueva Liga</h3>
           <button
-            className="bg-none bg-transparent border-none text-muted cursor-pointer text-[1.2rem] min-w-10 min-h-10 flex items-center justify-center"
+            className="bg-none bg-transparent border-none text-muted cursor-pointer text-[1.2rem] min-w-11 min-h-11 flex items-center justify-center"
             type="button"
             onClick={() => setShowCreateModal(false)}
-            aria-label="Cerrar modal"
+            aria-label="Cerrar"
             title="Cerrar"
           >
             ✕
@@ -50,22 +50,29 @@ export default function CreateLeagueWizard({
 
         <form className="flex flex-col gap-3.5" onSubmit={handleCreate}>
           <div>
-            <label className="block text-[0.8rem] text-muted mb-1">Nombre de tu Liga:</label>
+            <label htmlFor="new-league-name" className="block text-[0.8rem] text-muted mb-1">
+              Nombre de tu Liga:
+            </label>
             <input
+              id="new-league-name"
               type="text"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               placeholder="Ej: Amigos del Barrio, Porra Oficina 2026..."
-              aria-label="Nombre del nuevo grupo"
               className="glass-input w-full"
             />
           </div>
 
           <div className="flex gap-2.5 flex-wrap">
             <div className="flex-[1_1_200px]">
-              <label className="block text-[0.8rem] text-muted mb-1">Competición Deportiva:</label>
+              <label
+                htmlFor="new-league-competition"
+                className="block text-[0.8rem] text-muted mb-1"
+              >
+                Competición Deportiva:
+              </label>
               <select
-                aria-label="Seleccionar competición deportiva"
+                id="new-league-competition"
                 value={selectedCompetition}
                 onChange={(e) => setSelectedCompetition(e.target.value)}
                 className="glass-input w-full"
@@ -79,9 +86,11 @@ export default function CreateLeagueWizard({
             </div>
 
             <div className="flex-[1_1_200px]">
-              <label className="block text-[0.8rem] text-muted mb-1">Modalidad / Formato:</label>
+              <label htmlFor="new-league-format" className="block text-[0.8rem] text-muted mb-1">
+                Modalidad / Formato:
+              </label>
               <select
-                aria-label="Seleccionar formato de porra"
+                id="new-league-format"
                 value={selectedPoolFormat}
                 onChange={(e) => setSelectedPoolFormat(e.target.value as PoolFormat)}
                 className="glass-input w-full"
