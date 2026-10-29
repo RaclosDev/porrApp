@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -67,15 +67,23 @@ function MatchdayLeague({ context }) {
   const draftRef = useRef(null);
   const draftKey = `draft_matchday_${activeGroupId}`;
 
-  const persistDraft = (draft) => {
-    draftRef.current = draft;
-    try {
-      if (Object.keys(draft).length) localStorage.setItem(draftKey, JSON.stringify(draft));
-      else localStorage.removeItem(draftKey);
-    } catch {
-      /* ignore */
-    }
-  };
+  const persistDraft = useCallback(
+    (draft) => {
+      draftRef.current = draft;
+      try {
+        if (Object.keys(draft).length) localStorage.setItem(draftKey, JSON.stringify(draft));
+        else localStorage.removeItem(draftKey);
+      } catch {
+        /* ignore */
+      }
+    },
+    [draftKey],
+  );
+
+  // Al cambiar de liga, el borrador en memoria pertenece a la anterior: se relee del almacenamiento.
+  useEffect(() => {
+    draftRef.current = null;
+  }, [draftKey]);
 
   // Redirigir a mis-ligas si no hay liga seleccionada, o al inicio si no es modalidad por jornadas (ej. Mundial)
   useEffect(() => {
@@ -141,7 +149,7 @@ function MatchdayLeague({ context }) {
       persistDraft(openDraft);
       setHasUnsavedChanges(Object.keys(openDraft).length > 0);
     }
-  }, [fixtures]);
+  }, [fixtures, draftKey, persistDraft]);
 
   // Jornadas disponibles en orden y jornada actual (la primera con partidos sin finalizar).
   const { availableRounds, currentRound } = useMemo(() => {
@@ -343,7 +351,7 @@ function MatchdayLeague({ context }) {
   }, [roundFixtures]);
 
   const displayedFixtures = useMemo(() => {
-    let list = roundFixtures;
+    const list = roundFixtures;
     if (statusFilter === 'PENDING') {
       return list.filter(
         (f) => !f.locked && !activeGroupIsLocked && !hasPrediction(localPredictions[f.matchId]),
@@ -557,17 +565,17 @@ function MatchdayLeague({ context }) {
                   >
                     <span aria-hidden="true">👥</span>
                   </button>
-                {fixture.finished ? (
-                  <span className="md-badge is-finished">
-                    Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
-                  </span>
-                ) : isMatchLocked ? (
-                  <span className="md-badge is-locked" title={fixture.lockReason}>
-                    🔒 Bloqueado
-                  </span>
-                ) : (
-                  <span className="md-badge is-open">⏱️ Abierto</span>
-                )}
+                  {fixture.finished ? (
+                    <span className="md-badge is-finished">
+                      Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
+                    </span>
+                  ) : isMatchLocked ? (
+                    <span className="md-badge is-locked" title={fixture.lockReason}>
+                      🔒 Bloqueado
+                    </span>
+                  ) : (
+                    <span className="md-badge is-open">⏱️ Abierto</span>
+                  )}
                 </div>
               </div>
 

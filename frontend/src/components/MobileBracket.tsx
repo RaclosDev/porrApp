@@ -27,6 +27,17 @@ const ALL_TABS = [
  * @param {number} [props.defaultTab=0] - Pestaña activa por defecto.
  * @returns {JSX.Element} El bracket móvil con pestañas.
  */
+const getTabs = (hasR32) => (hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32'));
+
+const resolveTabIndex = (tabs, target) => {
+  if (typeof target === 'number') {
+    const byRound = tabs.findIndex((t) => t.roundIndex === target);
+    if (byRound !== -1) return byRound;
+    if (target >= 0 && target < tabs.length) return target;
+  }
+  return 0;
+};
+
 export default function MobileBracket({
   leftRounds,
   rightRounds,
@@ -35,25 +46,16 @@ export default function MobileBracket({
   defaultTab = 0,
 }) {
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
-  const tabs = hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32');
+  const tabs = getTabs(hasR32);
 
-  const resolveTabIndex = (target) => {
-    if (typeof target === 'number') {
-      const byRound = tabs.findIndex((t) => t.roundIndex === target);
-      if (byRound !== -1) return byRound;
-      if (target >= 0 && target < tabs.length) return target;
-    }
-    return 0;
-  };
-
-  const [activeTab, setActiveTab] = useState(() => resolveTabIndex(defaultTab));
+  const [activeTab, setActiveTab] = useState(() => resolveTabIndex(tabs, defaultTab));
   const [slideDir, setSlideDir] = useState('right');
   const [animKey, setAnimKey] = useState(0);
   const hasUserNavigated = useRef(false);
 
   useEffect(() => {
     if (!hasUserNavigated.current) {
-      setActiveTab(resolveTabIndex(defaultTab));
+      setActiveTab(resolveTabIndex(getTabs(hasR32), defaultTab));
     }
   }, [defaultTab, hasR32]);
 
