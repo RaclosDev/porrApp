@@ -570,7 +570,7 @@ export function usePredictionViewerData(
         n === 'EEUU' ? 'Estados Unidos' : n === 'Estados Unidos' ? 'EEUU' : n;
       const altName = resolveName(name);
 
-      const matchesLog = (l, stage, extra) => {
+      const matchesLog = (l, stage, extra?) => {
         if (!l || l.stage !== stage) return false;
         const hasTeam = l.msg.includes(name) || l.msg.includes(altName);
         if (!hasTeam) return false;

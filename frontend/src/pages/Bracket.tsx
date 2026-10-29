@@ -54,10 +54,9 @@ function Bracket() {
   const myPred = participantsHashes?.find(
     (h) =>
       (userName && h.participantName?.toLowerCase() === userName.toLowerCase()) ||
-      h.isCaller ||
       (userId && h.userId?.toString() === userId?.toString()),
   );
-  const effectivePredictionId = savedPredictionId || myPred?.key || myPred?.id;
+  const effectivePredictionId = savedPredictionId || myPred?.key;
 
   if (loadingGroup)
     return (

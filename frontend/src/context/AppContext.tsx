@@ -17,11 +17,13 @@ import {
 } from '../services/api';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
-import type { Group } from '../types/api';
+import type { Group, MatchRadar } from '../types/api';
 
-const EMPTY_OBJECT = Object.freeze({});
-const EMPTY_ARRAY = Object.freeze([]);
-const EMPTY_RADAR = Object.freeze({ live: [], last: [], next: [] });
+// Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
+// se unan sin fricción con el tipo de cada consulta.
+const EMPTY_OBJECT = Object.freeze({}) as Record<string, never>;
+const EMPTY_ARRAY = Object.freeze([]) as never[];
+const EMPTY_RADAR = Object.freeze({ live: [], last: [], next: [] }) as MatchRadar;
 
 const loadCachedJson = (key) => {
   try {

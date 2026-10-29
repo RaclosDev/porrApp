@@ -49,7 +49,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
         {showStatsButton && (
           <div style={{ textAlign: 'center' }}>
             <button
-              onClick={() => openStats(m.home, m.away)}
+              onClick={() => openStats()}
               aria-label={`Ver estadísticas de ${m.home} contra ${m.away}`}
               style={{
                 background: '#1e272e',
@@ -97,7 +97,9 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }) {
           borderRadius: '12px',
         }}
       >
-        <div style={{ fontSize: '1.6rem', marginBottom: '8px' }} aria-hidden="true">📅</div>
+        <div style={{ fontSize: '1.6rem', marginBottom: '8px' }} aria-hidden="true">
+          📅
+        </div>
         <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary, #fff)' }}>
           No hay próximos partidos
         </p>

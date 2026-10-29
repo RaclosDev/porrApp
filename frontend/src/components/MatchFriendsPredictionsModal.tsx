@@ -120,7 +120,7 @@ export default function MatchFriendsPredictionsModal({ groupId, match, onClose }
 
         <div className="friends-predictions-match">
           <div className="friends-predictions-team">
-            <TeamCrest team={match.homeTeam} logo={match.homeTeamLogo} />
+            <TeamCrest logo={match.homeTeamLogo} />
             <span>{match.homeTeam}</span>
           </div>
           <div className="friends-predictions-center">
@@ -131,7 +131,7 @@ export default function MatchFriendsPredictionsModal({ groupId, match, onClose }
           </div>
           <div className="friends-predictions-team is-away">
             <span>{match.awayTeam}</span>
-            <TeamCrest team={match.awayTeam} logo={match.awayTeamLogo} />
+            <TeamCrest logo={match.awayTeamLogo} />
           </div>
         </div>
 

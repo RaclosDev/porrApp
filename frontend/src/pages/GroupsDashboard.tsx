@@ -5,6 +5,7 @@ import LeagueRulesModal from '../components/LeagueRulesModal';
 import { LeagueAvatar } from '../components/Avatar';
 import { GoogleLogin } from '@react-oauth/google';
 import { POOL_FORMATS, useGroupsDashboard } from '../hooks/useGroupsDashboard';
+import type { PoolFormat } from '../types/api';
 
 /**
  * Vista del listado y gestión de grupos/ligas disponibles.
@@ -144,7 +145,7 @@ export default function GroupsDashboard() {
             }}
           />
         ) : (
-          <LeagueAvatar name={pendingInvite?.name || 'Invitación'} size={64} />
+          <LeagueAvatar url={null} size={64} />
         )}
         <div style={{ minWidth: 0, flex: '1 1 auto' }}>
           <h2
@@ -631,7 +632,7 @@ export default function GroupsDashboard() {
                   <select
                     aria-label="Seleccionar formato de porra"
                     value={selectedPoolFormat}
-                    onChange={(e) => setSelectedPoolFormat(e.target.value)}
+                    onChange={(e) => setSelectedPoolFormat(e.target.value as PoolFormat)}
                     className="glass-input"
                     style={{ width: '100%' }}
                   >

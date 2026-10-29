@@ -18,13 +18,22 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PoolFormat } from '../types/api';
 
-export const POOL_FORMATS = [
+export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
   { id: 'MATCH_DAY', label: 'Por Jornadas (1X2 y Marcador Exacto)' },
   { id: 'FULL_BRACKET', label: 'Completa (Fase de grupos y cruces)' },
   { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
 ];
 
-export const PRESET_TEMPLATES = [
+export const PRESET_TEMPLATES: {
+  id: string;
+  name: string;
+  icon: string;
+  badge: string;
+  poolFormat: PoolFormat;
+  pichichi: boolean;
+  tagline: string;
+  description: string;
+}[] = [
   {
     id: 'MATCH_DAY_LEAGUE',
     name: 'Liga Jornada a Jornada',

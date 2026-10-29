@@ -62,7 +62,7 @@ function Stats() {
     name,
     usersArray,
     total,
-    icon,
+    icon = null,
     isFinals = false,
     color = 'var(--accent-color)',
     overridePercentage,

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
@@ -13,8 +13,6 @@ import OfficialGroupsView from '../components/Home/OfficialGroupsView';
  * Calcula y resuelve en vivo qué equipos avanzan con la lógica de clasificación de terceros.
  *
  * @component
- * @param {Object} props
- * @param {boolean} [props.hideTitle] - Oculta el título del componente si es true.
  * @returns {JSX.Element} La vista del bracket oficial.
  */
 function OfficialBracket() {
@@ -78,15 +76,10 @@ function OfficialBracketView() {
   const featuredMatch = useMemo(() => {
     if (!allGames || allGames.length === 0) return null;
     const koUnfinished = allGames
-      .filter(
-        (g) =>
-          g &&
-          isKnockoutMatch(g) &&
-          !g.finished &&
-          !g.winner &&
-          (g.home_score === null || g.home_score === undefined || g.home_score === ''),
-      )
-      .sort((a, b) => new Date(a.date || Infinity) - new Date(b.date || Infinity));
+      .filter((g) => g && isKnockoutMatch(g) && !g.finished && !g.winner && g.home_score == null)
+      .sort(
+        (a, b) => new Date(a.date || Infinity).getTime() - new Date(b.date || Infinity).getTime(),
+      );
     return koUnfinished[0] || null;
   }, [allGames]);
 
@@ -148,7 +141,7 @@ function OfficialBracketView() {
     const name = isObj ? teamOrObj.name : teamOrObj;
     const isProv = isObj ? teamOrObj.isProvisional : false;
 
-    let style = isProv
+    let style: CSSProperties = isProv
       ? {
           border: '1px dashed #ff4757',
           animation: 'provisional-pulse 1.5s infinite',
@@ -206,12 +199,7 @@ function OfficialBracketView() {
 
       if (m && m.home_score != null && m.away_score != null) {
         const isHomeInMatch = matchTeamNames(m.home, name);
-        let score = isHomeInMatch ? m.home_score : m.away_score;
-        const isPenalties = m.home_penalty != null && m.away_penalty != null;
-        if (isPenalties) {
-          const penScore = isHomeInMatch ? m.home_penalty : m.away_penalty;
-          score = `${score} (${penScore})`;
-        }
+        const score = isHomeInMatch ? m.home_score : m.away_score;
 
         // Determine if this team won the match
         let isWinner = false;

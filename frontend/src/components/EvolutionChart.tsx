@@ -1,4 +1,40 @@
 import React, { useState, useMemo } from 'react';
+import type { LeaderboardRow } from '../hooks/useLeaderboard';
+import type { Match } from '../types/api';
+
+/** Punto del eje X: una ronda o un partido de eliminatoria. */
+interface ChartStage {
+  key: string;
+  label: string;
+  roundName: string;
+  showLabel: boolean;
+  isRoundBoundary: boolean;
+  matchTitle?: string;
+  matchTime?: string;
+  /** Campo de ParticipantScore con los puntos de la ronda. */
+  prop?: string;
+  home?: string;
+  away?: string;
+  /** Índice del partido de eliminatoria (0-31). */
+  mIdx?: number;
+}
+
+/** Serie de un participante en el gráfico. */
+interface ChartUser {
+  key: number | string;
+  name: string;
+  isMe: boolean;
+  color: string;
+  pointsEvolution: number[];
+  rankEvolution: number[];
+  totalPoints: number;
+}
+
+interface EvolutionChartProps {
+  validResults: LeaderboardRow[];
+  userName: string;
+  allGames: Match[];
+}
 
 const STAGES = [
   { key: 'r1', label: 'F.Grupos', prop: 'r1' },
@@ -31,7 +67,7 @@ const PALETTE = [
   '#ff6348',
 ];
 
-export default function EvolutionChart({ validResults, userName, allGames }) {
+export default function EvolutionChart({ validResults, userName, allGames }: EvolutionChartProps) {
   const [mode, setMode] = useState('rank'); // 'rank' | 'points'
   const [timeScale, setTimeScale] = useState('rounds'); // 'rounds' | 'matches'
   const [hoveredUser, setHoveredUser] = useState(null);
@@ -87,7 +123,7 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
 
   // Build active stages array depending on timeScale.
   // CRITICAL: Never include Inicio (r0). Always end EXACTLY at the last round/match actually played/scored.
-  const activeStages = useMemo(() => {
+  const activeStages = useMemo((): ChartStage[] => {
     if (timeScale === 'rounds') {
       const allRounds = STAGES.map((st) => ({
         ...st,
@@ -116,33 +152,25 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
             hasMatches = allGames.some(
               (g) =>
                 (g.round === 'r32' || g.round === 'r16' || g.round === '32' || g.round === '16') &&
-                (g.finished ||
-                  g.winner ||
-                  (g.home_score !== null && g.home_score !== undefined && g.home_score !== '')),
+                (g.finished || g.winner || g.home_score != null),
             );
           } else if (st.key === 'qf') {
             hasMatches = allGames.some(
               (g) =>
                 (g.round === 'qf' || g.round === 'quarter') &&
-                (g.finished ||
-                  g.winner ||
-                  (g.home_score !== null && g.home_score !== undefined && g.home_score !== '')),
+                (g.finished || g.winner || g.home_score != null),
             );
           } else if (st.key === 'sf') {
             hasMatches = allGames.some(
               (g) =>
                 (g.round === 'sf' || g.round === 'semi') &&
-                (g.finished ||
-                  g.winner ||
-                  (g.home_score !== null && g.home_score !== undefined && g.home_score !== '')),
+                (g.finished || g.winner || g.home_score != null),
             );
           } else if (st.key === 'finals' || st.key === 'total') {
             hasMatches = allGames.some(
               (g) =>
                 (g.round === 'final' || g.round === 'third') &&
-                (g.finished ||
-                  g.winner ||
-                  (g.home_score !== null && g.home_score !== undefined && g.home_score !== '')),
+                (g.finished || g.winner || g.home_score != null),
             );
           }
         }
@@ -155,7 +183,7 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
     }
 
     // Match-by-match mode starting directly at Grupos (sin Inicio)
-    const list = [
+    const list: ChartStage[] = [
       {
         key: 'r1',
         label: 'Grupos',
@@ -169,18 +197,15 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
 
     const ko = (allGames || [])
       .filter((g) => g && g.round !== 'group' && g.round !== 'r1')
-      .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+      .sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
 
     // Find the last played knockout match index without buggy date checks
     let lastPlayedKoIdx = -1;
     const maxKo = Math.max(ko.length, 32);
     for (let i = 0; i < maxKo; i++) {
       if (i >= ko.length) break;
-      const g = ko[i] || {};
-      const isPlayed =
-        g.finished ||
-        g.winner ||
-        (g.home_score !== null && g.home_score !== undefined && g.home_score !== '');
+      const g = ko[i];
+      const isPlayed = g.finished || g.winner || g.home_score != null;
       if (isPlayed) {
         lastPlayedKoIdx = i;
       }
@@ -191,7 +216,7 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
 
     for (let i = 0; i < limitKo; i++) {
       if (i >= ko.length) break;
-      const g = ko[i] || {};
+      const g = ko[i];
 
       let realRoundName = '1/16 de Final';
       let shortLabel = '1/16';
@@ -279,7 +304,7 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
     if (!validResults || validResults.length === 0)
       return { users: [], yMin: 0, yMax: 100, yGridLines: [0, 25, 50, 75, 100], maxRank: 1 };
 
-    const usersMap = {};
+    const usersMap: Record<string, ChartUser> = {};
     validResults.forEach((r, idx) => {
       usersMap[r.key] = {
         key: r.key,
@@ -932,7 +957,6 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
                     <text
                       x={padding.left - 10}
                       y={y + 4}
-                      fill="var(--text-muted)"
                       fontSize="11"
                       textAnchor="end"
                       fontWeight={rk === 1 ? 'bold' : 'normal'}

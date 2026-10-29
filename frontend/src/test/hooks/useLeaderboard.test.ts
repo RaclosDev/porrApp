@@ -7,6 +7,12 @@ vi.mock('../../context/AppContext', () => ({
   useAppContext: vi.fn(),
 }));
 
+// El hook solo lee una parte del contexto; los mocks rellenan esa parte.
+const mockAppContext = (value: Record<string, unknown>) =>
+  vi
+    .mocked(AppContextModule.useAppContext)
+    .mockReturnValue(value as unknown as ReturnType<typeof AppContextModule.useAppContext>);
+
 describe('useLeaderboard hook', () => {
   const mockLeaderboardData = [
     {
@@ -40,7 +46,7 @@ describe('useLeaderboard hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    AppContextModule.useAppContext.mockReturnValue({
+    mockAppContext({
       leaderboardData: mockLeaderboardData,
       loading: false,
       activeGroupName: 'Liga Amigos',
@@ -92,7 +98,7 @@ describe('useLeaderboard hook', () => {
   });
 
   it('carga los puntos de la jornada actual y permite navegar entre jornadas', () => {
-    AppContextModule.useAppContext.mockReturnValue({
+    mockAppContext({
       leaderboardData: mockLeaderboardData,
       leaderboardMatchdays: [
         {

@@ -44,7 +44,7 @@ async function decodeImage(file) {
 
   const objectUrl = URL.createObjectURL(file);
   try {
-    const image = await new Promise((resolve, reject) => {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const element = new Image();
       element.onload = () => resolve(element);
       element.onerror = () => reject(new Error('No se pudo decodificar la imagen.'));
@@ -83,8 +83,9 @@ export async function prepareImageForUpload(file, size = OUTPUT_SIZE) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Tu navegador no puede procesar la imagen.');
 
-    const keepsAlpha = (file.type || '').toLowerCase() === 'image/png'
-      || (!file.type && file.name?.toLowerCase().endsWith('.png'));
+    const keepsAlpha =
+      (file.type || '').toLowerCase() === 'image/png' ||
+      (!file.type && file.name?.toLowerCase().endsWith('.png'));
     if (!keepsAlpha) {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, target, target);
@@ -92,7 +93,7 @@ export async function prepareImageForUpload(file, size = OUTPUT_SIZE) {
     ctx.drawImage(decoded.source, sx, sy, side, side, 0, 0, target, target);
 
     const mime = keepsAlpha ? 'image/png' : 'image/jpeg';
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, mime, 0.88));
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, 0.88));
     if (!blob) throw new Error('No se pudo procesar la imagen.');
     if (blob.size > MAX_IMAGE_BYTES) throw new Error('La imagen supera el tamaño máximo de 3 MB.');
     return blob;

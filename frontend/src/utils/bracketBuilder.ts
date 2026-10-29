@@ -1,4 +1,10 @@
-export function buildBracketData(officialPoints, groupOdds, allGames) {
+import type { GroupOdds, GroupStandings, Match } from '../types/api';
+
+export function buildBracketData(
+  officialPoints: GroupStandings,
+  groupOdds: GroupOdds,
+  allGames: Match[],
+) {
   const points = officialPoints || {};
 
   const fallbackR32 = [
@@ -71,10 +77,10 @@ export function buildBracketData(officialPoints, groupOdds, allGames) {
 
   const explicitR32 = safeGames
     .filter((m) => matchRound(m, 'r32', '32', '16avo'))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const allR16 = safeGames
     .filter((m) => matchRound(m, 'r16', 'octav'))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const realR32Matches = explicitR32.length > 0 ? explicitR32.slice(0, 16) : allR16.slice(0, 16);
 
   const opponentMap = {};
@@ -159,10 +165,10 @@ export function buildBracketData(officialPoints, groupOdds, allGames) {
 
   const realQF = safeGames
     .filter((m) => matchRound(m, 'qf', 'quarter', 'cuart'))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const realSF = safeGames
     .filter((m) => matchRound(m, 'sf', 'semi'))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const realFinal = safeGames.filter(
     (m) =>
       matchRound(m, 'final') &&

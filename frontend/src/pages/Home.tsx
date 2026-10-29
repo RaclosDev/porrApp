@@ -82,7 +82,7 @@ function Home({ defaultMode = 'bracket' }) {
 
   // Si estamos en modo bracket, delegamos directamente en OfficialBracket sin mostrar nunca el skeleton de grupos
   if (viewMode === 'bracket') {
-    return <OfficialBracket hideTitle />;
+    return <OfficialBracket />;
   }
 
   const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;

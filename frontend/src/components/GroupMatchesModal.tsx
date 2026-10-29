@@ -22,7 +22,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
   const groupMatches = allGames.filter(
     (g) => groupNames.includes(g.home) && groupNames.includes(g.away),
   );
-  groupMatches.sort((a, b) => new Date(a.date) - new Date(b.date));
+  groupMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return createPortal(
     <>
@@ -84,11 +84,11 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
                   key={m.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => openStats(m.home, m.away)}
+                  onClick={() => openStats()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      openStats(m.home, m.away);
+                      openStats();
                     }
                   }}
                   aria-label={`Ver estadísticas de ${m.home} contra ${m.away}`}

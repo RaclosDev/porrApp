@@ -2,6 +2,25 @@ import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
+import type { ParticipantScore } from '../types/api';
+
+/** Fila de la clasificación tal como la pinta la interfaz. */
+export interface LeaderboardRow {
+  /** id del pronóstico, o `member-<userId>` para miembros sin pronóstico. */
+  key: number | string;
+  id: number;
+  userId: number | null;
+  name: string;
+  predictionName: string;
+  avatarUrl: string;
+  points: ParticipantScore & { matchday: number };
+  matchdayPoints: number;
+  paid: boolean;
+  thirdPlaceMatch: string[] | null;
+  thirdPlaceWinner: string | null;
+  /** Posición entre los que han pagado; '-' si no cuenta. */
+  rank?: number | '-';
+}
 
 const EMPTY_MATCHDAYS = [];
 
@@ -58,7 +77,7 @@ export function useLeaderboard() {
       return Number(value) || 0;
     };
 
-    const list = (leaderboardData || []).map((backendScore) => {
+    const list: LeaderboardRow[] = (leaderboardData || []).map((backendScore: ParticipantScore) => {
       const matchdayPoints = getMatchdayPoints(backendScore);
       return {
         key: backendScore.id ?? `member-${backendScore.userId}`,

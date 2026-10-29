@@ -6,6 +6,22 @@ import { useAppContext } from '../context/AppContext';
 import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
 import Flag from '../components/Flag';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
+import type { MatchdayPredictionInput, MatchdaySubmissionResult } from '../types/api';
+
+/** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
+interface DraftPrediction {
+  homeScore: string;
+  awayScore: string;
+  sign: string;
+}
+
+type Draft = Record<string, DraftPrediction>;
+
+interface SaveVariables {
+  groupId: string;
+  items: MatchdayPredictionInput[];
+  savedMatchIds: number[];
+}
 
 const EMPTY_FIXTURES = [];
 const roundLabelFor = (fixture) =>
@@ -62,10 +78,10 @@ function MatchdayLeague({ context }) {
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'FINISHED'
   const [selectedMatchForFriends, setSelectedMatchForFriends] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [localPredictions, setLocalPredictions] = useState({});
+  const [localPredictions, setLocalPredictions] = useState<Draft>({});
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
-  const draftRef = useRef(null);
+  const draftRef = useRef<Draft | null>(null);
   const draftKey = `draft_matchday_${activeGroupId}`;
 
   const persistDraft = useCallback(
@@ -193,7 +209,7 @@ function MatchdayLeague({ context }) {
   }, [selectedRound, fixtures, currentRound, availableRounds]);
 
   // Mutación para guardar pronósticos
-  const saveMutation = useMutation({
+  const saveMutation = useMutation<MatchdaySubmissionResult, Error, SaveVariables>({
     mutationFn: ({ groupId, items }) => submitMatchdayPredictions(groupId, items),
     onSuccess: (data, { groupId, savedMatchIds }) => {
       setSaveSuccessMsg(data.message || '¡Pronósticos guardados correctamente!');
@@ -286,7 +302,7 @@ function MatchdayLeague({ context }) {
     }
 
     const roundMatchIds = new Set(roundFixtures.map((f) => f.matchId));
-    const payload = [];
+    const payload: MatchdayPredictionInput[] = [];
     let incomplete = false;
     Object.entries(draftRef.current || {}).forEach(([matchIdStr, pred]) => {
       const matchId = Number(matchIdStr);

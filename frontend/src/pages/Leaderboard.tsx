@@ -6,6 +6,15 @@ const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import WhatsAppIcon from '../components/WhatsAppIcon';
 import { UserAvatar } from '../components/Avatar';
 
+/** Medalla para el podio, tortuga para el último que ha pagado y número para el resto. */
+function rankLabel(rank: number | '-' | undefined, lowestPaidRank: number): string | number {
+  if (rank === 1) return '🥇';
+  if (rank === 2) return '🥈';
+  if (rank === 3) return '🥉';
+  if (rank === lowestPaidRank && lowestPaidRank > 3) return '🐢';
+  return rank ?? '-';
+}
+
 const compactMatchdayLabel = (label) => {
   if (!label) return '';
   const jornada = /^jornada\s+(\d+)$/i.exec(label);
@@ -125,7 +134,7 @@ function Leaderboard() {
     return sortDirection === 'desc' ? ' ▼' : ' ▲';
   };
 
-  const thStyle = (colKey) => ({
+  const thStyle = (colKey: string): React.CSSProperties => ({
     cursor: 'pointer',
     userSelect: 'none',
     whiteSpace: 'nowrap',
@@ -374,12 +383,7 @@ function Leaderboard() {
                 </thead>
                 <tbody id="leaderboard-body-tab">
                   {results.map((r) => {
-                    let rankDisplay = r.rank;
-                    if (r.rank === 1) rankDisplay = '🥇';
-                    else if (r.rank === 2) rankDisplay = '🥈';
-                    else if (r.rank === 3) rankDisplay = '🥉';
-                    else if (r.paid && r.rank === lowestPaidRank && lowestPaidRank > 3)
-                      rankDisplay = '🐢';
+                    const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
                     const isPending = !r.paid;
                     const isMe = r.userId?.toString() === userId?.toString() || r.name === userName;
@@ -580,11 +584,7 @@ function Leaderboard() {
             style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}
           >
             {validResults.slice(0, mid).map((r) => {
-              let rankDisplay = r.rank;
-              if (r.rank === 1) rankDisplay = '🥇';
-              else if (r.rank === 2) rankDisplay = '🥈';
-              else if (r.rank === 3) rankDisplay = '🥉';
-              else if (r.rank === lowestPaidRank && lowestPaidRank > 3) rankDisplay = '🐢';
+              const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
               const isMe = r.name === userName;
               return (
@@ -628,11 +628,7 @@ function Leaderboard() {
             style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}
           >
             {validResults.slice(mid).map((r) => {
-              let rankDisplay = r.rank;
-              if (r.rank === 1) rankDisplay = '🥇';
-              else if (r.rank === 2) rankDisplay = '🥈';
-              else if (r.rank === 3) rankDisplay = '🥉';
-              else if (r.rank === lowestPaidRank && lowestPaidRank > 3) rankDisplay = '🐢';
+              const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
               const isMe = r.name === userName;
               return (

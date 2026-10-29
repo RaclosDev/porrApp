@@ -104,7 +104,7 @@ function Radar() {
         {showStatsButton && (
           <div style={{ textAlign: 'center', marginTop: '10px' }}>
             <button
-              onClick={() => openStats(m.home, m.away)}
+              onClick={() => openStats()}
               className="glass-btn"
               style={{
                 padding: '8px 18px',

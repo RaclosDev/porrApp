@@ -1,7 +1,8 @@
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, type ReactNode } from 'react';
 import { getCountryCode } from '../utils/constants';
 import Flag from './Flag';
 import MobileBracket from './MobileBracket';
+import type { BracketTeam } from '../store/useAppStore';
 
 // Vertical layout constants
 export const SLOT_H = 36;
@@ -95,7 +96,14 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }) {
  * @param {ReactNode} [props.rightContent] - Elemento a renderizar en la derecha (puntos).
  * @returns {JSX.Element} La casilla del bracket.
  */
-export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }) {
+interface TeamSlotProps {
+  name: string | null | undefined;
+  onClick?: () => void;
+  slotStyle?: React.CSSProperties;
+  rightContent?: React.ReactNode;
+}
+
+export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }: TeamSlotProps) {
   const isEmpty = !name;
   const lower = name?.toLowerCase() || '';
   const isCombined = !isEmpty && name.includes(' / ');
@@ -224,15 +232,38 @@ function computeActiveTab(leftRounds, rightRounds) {
  * que colapsan hacia una columna central (La Final y Tercer Puesto).
  *
  * @component
- * @param {Object} props
- * @param {Array[]} props.leftRounds - Array 2D (4 rondas) con partidos para el lado izquierdo.
- * @param {Array[]} props.rightRounds - Array 2D (4 rondas) con partidos para el lado derecho.
- * @param {Function} props.renderSlot - Función inyectada que dice CÓMO pintar un Slot (inyecta lógica de clics o coloreado).
- * @param {Function} props.renderCenter - Función que dibuja el centro (Final/Tercer puesto).
- * @param {Object} [props.hiddenRounds={}] - Mapa (0:true) indicando qué columnas deben ocultarse en móvil/filtrado.
- * @param {Function} [props.renderRoundFooter] - Función opcional que pinta el pie de cada columna (para sumar puntos por ronda).
- * @returns {JSX.Element} El lienzo del bracket de eliminatorias.
  */
+type SlotTeam = BracketTeam | string | null;
+
+interface CanvasMatch {
+  home?: SlotTeam;
+  away?: SlotTeam;
+}
+
+interface SlotContext {
+  side: 'left' | 'right';
+  roundIndex: number;
+  matchIndex: number;
+  isHome: boolean;
+}
+
+interface BracketCanvasProps {
+  /** 4 rondas de partidos del lado izquierdo. */
+  leftRounds: CanvasMatch[][];
+  /** 4 rondas de partidos del lado derecho. */
+  rightRounds: CanvasMatch[][];
+  /** Pinta un hueco del cuadro (inyecta la lógica de clics o coloreado). */
+  renderSlot: (team: SlotTeam, context: SlotContext) => ReactNode;
+  /** Dibuja el centro (final y tercer puesto) con el ancho de columna calculado. */
+  renderCenter: (colW: number) => ReactNode;
+  /** Columnas ocultas en móvil o al filtrar, indexadas por ronda. */
+  hiddenRounds?: Record<number, boolean>;
+  /** Pie opcional de cada columna (p. ej. puntos por ronda). */
+  renderRoundFooter?: (roundIndex: number, side: 'left' | 'right') => ReactNode;
+  /** Centro alternativo para la vista móvil. */
+  mobileCenter?: () => ReactNode;
+}
+
 export default function BracketCanvas({
   leftRounds,
   rightRounds,
@@ -241,7 +272,7 @@ export default function BracketCanvas({
   hiddenRounds = {},
   renderRoundFooter,
   mobileCenter,
-}) {
+}: BracketCanvasProps) {
   const wrapperRef = useRef(null);
   const [colW, setColW] = useState(DEFAULT_COL);
   const [scale, setScale] = useState(1);

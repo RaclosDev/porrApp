@@ -5,7 +5,7 @@ import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/
 import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
 import { isGlobalLeagueId } from '../utils/constants';
-import { defaultBracketState } from '../store/useAppStore';
+import { defaultBracketState, type BracketTeam } from '../store/useAppStore';
 
 export const WORLD_CUP_2026_GROUPS = {
   A: ['México', 'Sudáfrica', 'Corea del Sur', 'Chequia'],
@@ -22,7 +22,18 @@ export const WORLD_CUP_2026_GROUPS = {
   L: ['Inglaterra', 'Croacia', 'Ghana', 'Panamá'],
 };
 
-export function hasValidGroupSelections(groups) {
+/** Nombre de un equipo del cuadro; los borradores antiguos guardan el nombre como texto. */
+const teamName = (team: BracketTeam | string | null | undefined): string | null =>
+  (typeof team === 'string' ? team : team?.name) || null;
+
+/** Posiciones elegidas por el usuario en un grupo ('' si el hueco está vacío). */
+export interface GroupSelection {
+  first: string;
+  second: string;
+  third: string;
+}
+
+export function hasValidGroupSelections(groups: unknown): boolean {
   if (!groups || typeof groups !== 'object') return false;
   return Object.values(groups).some((g) => {
     if (!g) return false;
@@ -37,13 +48,14 @@ export function hasValidGroupSelections(groups) {
       );
     }
     if (typeof g === 'object') {
+      const sel = g as Partial<GroupSelection>;
       const isReal = (t) =>
         typeof t === 'string' &&
         t.trim() !== '' &&
         !t.includes('º') &&
         t !== 'Por definir' &&
         t !== '???';
-      return isReal(g.first) || isReal(g.second) || isReal(g.third);
+      return isReal(sel.first) || isReal(sel.second) || isReal(sel.third);
     }
     return false;
   });
@@ -52,9 +64,9 @@ export function hasValidGroupSelections(groups) {
 /**
  * Reconstruye el árbol completo de bracketState a partir del DTO plano de la base de datos.
  */
-export function normalizeGroupsDraft(groups) {
+export function normalizeGroupsDraft(groups): Record<string, GroupSelection> {
   if (!groups || typeof groups !== 'object') return {};
-  const res = {};
+  const res: Record<string, GroupSelection> = {};
   Object.keys(groups).forEach((g) => {
     const val = groups[g];
     if (Array.isArray(val)) {
@@ -75,8 +87,8 @@ export function normalizeGroupsDraft(groups) {
 }
 
 export function extractGroupsFromR32(r32, groupOdds = {}) {
-  const groups = {};
-  const thirds = [];
+  const groups: Record<string, GroupSelection> = {};
+  const thirds: string[] = [];
   if (!r32) return { groups, thirds };
 
   // Normalize r32 into 16 match pairs: [[home, away], ...]
@@ -516,8 +528,7 @@ export function useBracket() {
             current = participantsHashes.find(
               (p) =>
                 (userId && p.userId?.toString() === userId?.toString()) ||
-                (userName && p.participantName?.toLowerCase() === userName.toLowerCase()) ||
-                p.isCaller,
+                (userName && p.participantName?.toLowerCase() === userName.toLowerCase()),
             );
           }
 
@@ -788,7 +799,7 @@ export function useBracket() {
         const aName = typeof a === 'object' && a ? a.name : a;
         return hName && aName ? [hName, aName] : null;
       })(),
-      champion: bracketState.champion?.name || bracketState.champion || null,
+      champion: teamName(bracketState.champion),
       thirdPlaceMatch: (() => {
         const h =
           bracketState.thirdPlaceMatch?.home?.name ||
@@ -802,8 +813,7 @@ export function useBracket() {
         const aName = typeof a === 'object' && a ? a.name : a;
         return hName && aName ? [hName, aName] : null;
       })(),
-      thirdPlaceWinner:
-        bracketState.thirdPlaceWinner?.name || bracketState.thirdPlaceWinner || null,
+      thirdPlaceWinner: teamName(bracketState.thirdPlaceWinner),
       scorer: topScorer,
       isOfficial: false,
       groups: isKnockoutsOnly ? {} : formattedGroups,

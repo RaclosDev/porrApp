@@ -72,8 +72,8 @@ export default function GroupMembersModal({
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
-  const panelRef = useRef(null);
-  const copyTimeoutRef = useRef(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const isDirty = name.trim() !== (groupName || '').trim() || rulesText !== (initialRules || '');
 
@@ -121,11 +121,11 @@ export default function GroupMembersModal({
       if (event.key !== 'Tab') return;
       // Mantiene el foco dentro del diálogo activo (o de su confirmación).
       const scope = leaveConfirmOpen
-        ? panelRef.current?.querySelector('.league-admin-confirm-dialog')
+        ? panelRef.current?.querySelector<HTMLElement>('.league-admin-confirm-dialog')
         : panelRef.current;
       if (!scope) return;
       const focusables = Array.from(
-        scope.querySelectorAll(
+        scope.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
       ).filter((element) => element.offsetParent !== null || element === document.activeElement);

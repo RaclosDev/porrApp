@@ -2,21 +2,11 @@ import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import Flag from './Flag';
 import CustomSelect from './CustomSelect';
-import { hasValidGroupSelections } from '../hooks/useBracket';
-
-const normalizeSelections = (data) => {
-  if (!data || typeof data !== 'object') return {};
-  const res = {};
-  Object.keys(data).forEach((g) => {
-    const val = data[g];
-    if (Array.isArray(val)) {
-      res[g] = { first: val[0] || '', second: val[1] || '', third: val[2] || '' };
-    } else if (val && typeof val === 'object') {
-      res[g] = { first: val.first || '', second: val.second || '', third: val.third || '' };
-    }
-  });
-  return res;
-};
+import {
+  hasValidGroupSelections,
+  normalizeGroupsDraft as normalizeSelections,
+  type GroupSelection,
+} from '../hooks/useBracket';
 
 const getSavedSelections = (groupId) => {
   try {
@@ -57,7 +47,7 @@ export default function GroupStage({
   initialSelections,
   initialThirds,
 }) {
-  const [selections, setSelections] = useState(() => {
+  const [selections, setSelections] = useState<Record<string, GroupSelection>>(() => {
     if (hasValidGroupSelections(initialSelections)) {
       return normalizeSelections(initialSelections);
     }

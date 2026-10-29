@@ -3,18 +3,19 @@
  * Mantienen el layout estable y solo anuncian el estado a lectores de pantalla.
  */
 
-/**
- * @typedef {Object} SkeletonProps
- * @property {string|number} [width]
- * @property {string|number} [height]
- * @property {string|number} [radius]
- * @property {string} [className]
- */
+interface SkeletonProps {
+  width?: string | number;
+  height?: string | number;
+  radius?: string | number;
+  className?: string;
+}
 
-/**
- * @param {SkeletonProps} props
- */
-export function Skeleton({ width = '100%', height = 16, radius = 8, className = '' }) {
+export function Skeleton({
+  width = '100%',
+  height = 16,
+  radius = 8,
+  className = '',
+}: SkeletonProps) {
   return (
     <span
       aria-hidden="true"

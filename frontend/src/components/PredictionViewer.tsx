@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAppContext } from '../context/AppContext';
 import Flag from './Flag';
 import { usePredictionViewerData } from '../hooks/usePredictionViewerData';
@@ -34,7 +34,7 @@ function PredictionViewer({ inline = false, predictionId = null, onEdit = null, 
   const initialPart = useMemo(() => {
     if (!effectivePredictionId) return null;
     const match = (participantsHashes || []).find(
-      (h) => String(h?.key ?? h?.id ?? '') === String(effectivePredictionId),
+      (h) => String(h?.key ?? '') === String(effectivePredictionId),
     );
     return match?.data || null;
   }, [effectivePredictionId, participantsHashes]);
@@ -77,15 +77,10 @@ function PredictionViewer({ inline = false, predictionId = null, onEdit = null, 
   const featuredMatch = useMemo(() => {
     if (!allGames || allGames.length === 0) return null;
     const koUnfinished = allGames
-      .filter(
-        (g) =>
-          g &&
-          isKnockoutMatch(g) &&
-          !g.finished &&
-          !g.winner &&
-          (g.home_score === null || g.home_score === undefined || g.home_score === ''),
-      )
-      .sort((a, b) => new Date(a.date || Infinity) - new Date(b.date || Infinity));
+      .filter((g) => g && isKnockoutMatch(g) && !g.finished && !g.winner && g.home_score == null)
+      .sort(
+        (a, b) => new Date(a.date || Infinity).getTime() - new Date(b.date || Infinity).getTime(),
+      );
     return koUnfinished[0] || null;
   }, [allGames]);
 
@@ -134,11 +129,14 @@ function PredictionViewer({ inline = false, predictionId = null, onEdit = null, 
    * @param {Object} ctx - Contexto del slot (side, roundIndex, matchIndex, isHome).
    * @returns {JSX.Element} Un TeamSlot configurado.
    */
-  const renderSlot = (slotItem, { roundIndex }) => {
+  const renderSlot = (
+    slotItem,
+    { roundIndex }: { roundIndex: number | string; isHome?: boolean },
+  ) => {
     const name = typeof slotItem === 'object' && slotItem !== null ? slotItem.name : slotItem;
     const { isWinner, slotPoints } = getSlotDetails(name, roundIndex);
 
-    let style = isWinner
+    let style: React.CSSProperties = isWinner
       ? { borderLeft: '3px solid #2ecc71', background: 'rgba(46, 204, 113, 0.1)' }
       : {};
     const rightContent =
