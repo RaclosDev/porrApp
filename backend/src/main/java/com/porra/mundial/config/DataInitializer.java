@@ -60,7 +60,7 @@ public class DataInitializer implements CommandLineRunner {
         seedCompetitionIfMissing("UEFA Champions League", "uefa.champions", "LEAGUE");
         seedCompetitionIfMissing("Premier League", "eng.1", "LEAGUE");
 
-        seedWorldCupTeamsIfEmpty();
+        seedWorldCupTeamsIfMissing();
 
         CompletableFuture.runAsync(this::runInitialSync);
     }
@@ -76,9 +76,10 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    private void seedWorldCupTeamsIfEmpty() {
-        // El equipo comodín "Por definir" puede existir sin que se hayan cargado los reales.
-        if (teamRepository.count() > 1) {
+    private void seedWorldCupTeamsIfMissing() {
+        // Se mira si ya hay equipos con grupo, no si la tabla está vacía: en una base nueva existen
+        // el comodín "Por definir" y los equipos que crean las migraciones de datos (V33.1).
+        if (teamRepository.existsByGroupNameIsNotNullAndGroupNameNot("-")) {
             return;
         }
         List<TeamSeed> seeds = readTeamSeeds();

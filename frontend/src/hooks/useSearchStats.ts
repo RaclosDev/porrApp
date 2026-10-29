@@ -7,6 +7,7 @@ export interface SearchMatch {
   name: string;
   /** Clave del pronóstico, para abrirlo en el visor. */
   id: string;
+  userId: number | null;
 }
 
 const topTeams = [
@@ -118,9 +119,9 @@ export function useSearchStats(
       }
 
       if (match) {
-        matches.push({ name: uName, id: p.key });
+        matches.push({ name: uName, id: p.key, userId: p.userId });
       } else {
-        nonMatches.push({ name: uName, id: p.key });
+        nonMatches.push({ name: uName, id: p.key, userId: p.userId });
       }
     });
 

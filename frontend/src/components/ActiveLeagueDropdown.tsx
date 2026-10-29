@@ -108,11 +108,11 @@ export default function ActiveLeagueDropdown() {
         title="Cambiar de liga o peña"
       >
         <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
-        <div className="flex flex-col items-start text-left leading-[1.15]">
-          <span className="max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-white">
+        <div className="flex flex-col items-start text-left leading-[1.15] min-w-0">
+          <span className="w-full max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-white">
             {displayLeagueName}
           </span>
-          <span className="text-[0.7rem] text-accent font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="w-full text-[0.7rem] text-accent font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
             {displayCompName}
           </span>
         </div>

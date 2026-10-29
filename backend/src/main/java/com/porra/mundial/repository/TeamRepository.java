@@ -27,4 +27,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
      * "Búscame a un equipo por su ID raro externo de la API (para no duplicarlo al sincronizar)"
      */
     Optional<Team> findByExternalId(String externalId);
+
+    /** Hay algún equipo con grupo asignado ("-" marca los que no juegan fase de grupos). */
+    boolean existsByGroupNameIsNotNullAndGroupNameNot(String excludedGroup);
 }

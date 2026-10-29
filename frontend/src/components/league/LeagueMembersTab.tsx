@@ -298,7 +298,12 @@ export default function LeagueMembersTab({
                 className={`league-admin-member ${confirmingKick ? 'is-confirming' : ''}`}
               >
                 <div className="league-admin-member-main">
-                  <UserAvatar url={member.avatarUrl} name={member.participantName} size={38} />
+                  <UserAvatar
+                    url={member.avatarUrl}
+                    userId={member.userId}
+                    name={member.participantName}
+                    size={38}
+                  />
                   <div className="league-admin-member-info">
                     <div className="league-admin-member-name">
                       <span>{member.participantName}</span>
