@@ -261,4 +261,37 @@ class GroupServiceTest {
         assertEquals(code, league.getJoinCode());
         verify(leagueRepository).save(league);
     }
+
+    @Test
+    @DisplayName("Quien no es miembro de una liga privada solo ve los datos de la vista previa")
+    void nonMemberGetsOnlyPreviewOfPrivateLeague() {
+        league.setRules("Reglas internas");
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
+        when(membershipRepository.existsById(new Membership.MembershipId(3L, 10L))).thenReturn(false);
+
+        var dto = groupService.findGroupResponse(10L, "stranger@test.com").orElseThrow();
+
+        assertEquals("Liga Privada", dto.getName());
+        assertNull(dto.getJoinCode());
+        assertNull(dto.getAdminParticipantName());
+        assertNull(dto.getAdminUserId());
+        assertNull(dto.getRules());
+        assertNull(groupService.findGroupResponse(10L, null).orElseThrow().getAdminUserId());
+    }
+
+    @Test
+    @DisplayName("Un miembro ve la liga completa con su código")
+    void memberGetsFullLeague() {
+        league.setRules("Reglas internas");
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(membershipRepository.existsById(new Membership.MembershipId(2L, 10L))).thenReturn(true);
+
+        var dto = groupService.findGroupResponse(10L, "member@test.com").orElseThrow();
+
+        assertEquals("AMIGOS", dto.getJoinCode());
+        assertEquals("Reglas internas", dto.getRules());
+        assertEquals(1L, dto.getAdminUserId());
+    }
 }

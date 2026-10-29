@@ -336,4 +336,38 @@ class PredictionServiceTest {
                 predictionService.updatePrediction(1L, "owner@test.com", null, "OFFICIAL", null));
         verify(predictionRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("Quien no es miembro no ve un pronóstico de una liga privada ni tras el cierre")
+    void nonMemberCannotGetPrivateLeaguePredictionAfterLock() {
+        edition.setStatus("LOCKED");
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
+        when(membershipRepository.existsById(new Membership.MembershipId(30L, 100L))).thenReturn(false);
+
+        assertThrows(SecurityException.class, () -> predictionService.getPredictionData(1L, "stranger@test.com"));
+        assertThrows(SecurityException.class, () -> predictionService.getPredictionData(1L, null));
+    }
+
+    @Test
+    @DisplayName("Un miembro ve los pronósticos de su liga tras el cierre")
+    void memberCanGetPrivateLeaguePredictionAfterLock() {
+        edition.setStatus("LOCKED");
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(groupAdmin));
+        when(membershipRepository.existsById(new Membership.MembershipId(20L, 100L))).thenReturn(true);
+
+        assertNotNull(predictionService.getPredictionData(1L, "admin@test.com"));
+    }
+
+    @Test
+    @DisplayName("Los pronósticos de la Porra Global los ve cualquiera tras el cierre")
+    void globalLeaguePredictionIsPublicAfterLock() {
+        League global = League.builder().id(League.GLOBAL_ID).joinCode(League.GLOBAL_JOIN_CODE).build();
+        edition.setLeague(global);
+        edition.setStatus("LOCKED");
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+
+        assertNotNull(predictionService.getPredictionData(1L, null));
+    }
 }

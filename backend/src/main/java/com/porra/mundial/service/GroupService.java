@@ -423,10 +423,19 @@ public class GroupService {
         return GroupResponseDTO.of(league, edition, includeJoinCode);
     }
 
-    /** Detalle de una liga; solo sus miembros ven el código de invitación. */
+    /**
+     * Detalle de una liga. Quien no es miembro de una liga privada solo ve lo mismo que en la
+     * vista previa de una invitación; solo los miembros ven el código de invitación.
+     */
     @Transactional(readOnly = true)
     public Optional<GroupResponseDTO> findGroupResponse(Long id, String viewerEmail) {
-        return getGroupById(id).map(league -> toResponse(league, isUserMemberOrAdmin(id, viewerEmail)));
+        return getGroupById(id).map(league -> {
+            boolean member = isUserMemberOrAdmin(id, viewerEmail);
+            if (member || League.isGlobalId(id) || league.isGlobal()) {
+                return toResponse(league, member);
+            }
+            return GroupResponseDTO.preview(league, editionRepository.findByLeagueIdAndStatus(id, "ACTIVE").orElse(null));
+        });
     }
 
     /** Datos públicos para previsualizar una invitación sin unirse a la liga. */

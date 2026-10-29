@@ -259,7 +259,11 @@ public class PredictionService {
     public PredictionDataDTO getPredictionData(Long id, String requesterEmail) {
         Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-        
+
+        if (!isOwner && !pred.isOfficial()) {
+            assertMemberOfPredictionLeague(pred, requesterEmail);
+        }
+
         boolean isOfficial = pred.isOfficial();
         boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
 
@@ -268,6 +272,21 @@ public class PredictionService {
         }
 
         return getPredictionData(id);
+    }
+
+    /** Los pronósticos de una liga privada solo los ven sus miembros; los de la Porra Global, todos. */
+    private void assertMemberOfPredictionLeague(Prediction pred, String requesterEmail) {
+        League league = pred.getEdition() != null ? pred.getEdition().getLeague() : null;
+        if (league == null || league.isGlobal() || League.isGlobalId(league.getId())) {
+            return;
+        }
+        boolean member = requesterEmail != null && !requesterEmail.isBlank()
+                && userAccountRepository.findByGoogleEmail(requesterEmail)
+                        .map(user -> membershipRepository.existsById(new Membership.MembershipId(user.getId(), league.getId())))
+                        .orElse(false);
+        if (!member) {
+            throw new SecurityException("No perteneces a esta liga privada");
+        }
     }
 
     @Transactional(readOnly = true)
