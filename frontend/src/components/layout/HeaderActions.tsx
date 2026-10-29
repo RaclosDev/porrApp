@@ -14,6 +14,7 @@ interface HeaderActionsProps {
   setUserName: (name: string) => void;
   showProfileMenu: boolean;
   userAvatarUrl: string;
+  userId: string;
   userName: string;
 }
 
@@ -30,6 +31,7 @@ export default function HeaderActions({
   setUserName,
   showProfileMenu,
   userAvatarUrl,
+  userId,
   userName,
 }: HeaderActionsProps) {
   return (
@@ -71,17 +73,13 @@ export default function HeaderActions({
             title="Menú de Usuario"
             aria-label="Menú de Usuario"
           >
-            {userAvatarUrl ? (
-              <UserAvatar url={userAvatarUrl} name={userName} size={34} />
-            ) : (
-              <span className="text-[1.1rem] leading-[1]">👤</span>
-            )}
+            <UserAvatar url={userAvatarUrl} userId={userId} name={userName} size={34} />
           </button>
 
           {showProfileMenu && (
             <div className="absolute top-full right-0 bg-[#151525] bg-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] p-3 mt-2.5 z-[100] min-w-50 flex flex-col gap-2.5">
               <div className="border-b border-b-[rgba(255,_255,_255,_0.08)] pb-2 flex items-center gap-2">
-                <UserAvatar url={userAvatarUrl} name={userName} size={32} />
+                <UserAvatar url={userAvatarUrl} userId={userId} name={userName} size={32} />
                 <div className="overflow-hidden">
                   <div className="font-bold text-white text-[0.9rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     {userName || 'Usuario'}

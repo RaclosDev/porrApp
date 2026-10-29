@@ -51,6 +51,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
+  const userId = useAppStore((state) => state.userId);
 
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -262,6 +263,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             setUserName={setUserName}
             showProfileMenu={showProfileMenu}
             userAvatarUrl={userAvatarUrl}
+            userId={userId}
             userName={userName}
           />
         )}

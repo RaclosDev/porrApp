@@ -198,10 +198,8 @@ export default function MatchFriendsPredictionsModal({
                   className={`friends-prediction${prediction.isCaller ? ' is-caller' : ''}`}
                 >
                   <UserAvatar
-                    url={
-                      prediction.avatarUrl ||
-                      (prediction.userId ? `/api/users/${prediction.userId}/avatar` : '')
-                    }
+                    url={prediction.avatarUrl}
+                    userId={prediction.userId}
                     name={prediction.participantName}
                     size={40}
                   />
