@@ -78,7 +78,7 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => navigate('/mis-ligas')}
-        className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-8.5 rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.6)] bg-[rgba(0,_210,_211,_0.1)] bg-none text-[#00d2d3] cursor-pointer text-[0.82rem] font-bold"
+        className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-11 rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.6)] bg-[rgba(0,_210,_211,_0.1)] bg-none text-[#00d2d3] cursor-pointer text-[0.82rem] font-bold"
         title="Crear o unirse a una liga"
       >
         <span>➕</span>
@@ -102,7 +102,7 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => setIsOpen(!isOpen)}
-        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-9.5 rounded-[10px] border border-[rgba(0,_210,_211,_0.4)] text-main cursor-pointer font-semibold text-[0.88rem] [transition:all_0.2s_ease] ${isOpen ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(15,_23,_42,_0.75)] bg-none'} ${isOpen ? 'shadow-[0_0_15px_rgba(0,_210,_211,_0.25)]' : 'shadow-none'}`}
+        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] border border-[rgba(0,_210,_211,_0.4)] text-main cursor-pointer font-semibold text-[0.88rem] [transition:all_0.2s_ease] ${isOpen ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(15,_23,_42,_0.75)] bg-none'} ${isOpen ? 'shadow-[0_0_15px_rgba(0,_210,_211,_0.25)]' : 'shadow-none'}`}
         aria-expanded={isOpen}
         aria-haspopup="true"
         title="Cambiar de liga o peña"

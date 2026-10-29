@@ -1260,7 +1260,7 @@
       flex-wrap: nowrap !important;
       justify-content: space-between !important;
       align-items: center !important;
-      padding: 8px 12px !important;
+      padding: 6px 12px !important;
       gap: 8px !important;
       width: 100% !important;
       height: 56px !important;
@@ -1305,12 +1305,19 @@
       display: none !important;
     }
 
+    /* Por debajo de 360 px el texto "Demo" se montaba sobre el logo: queda solo el icono */
+    @media (max-width: 359px) {
+      .header-demo-label {
+        display: none;
+      }
+    }
+
     #btn-profile-menu {
-      width: 36px !important;
-      height: 36px !important;
+      width: 44px !important;
+      height: 44px !important;
       padding: 0 !important;
       border-radius: 50% !important;
-      min-width: 36px !important;
+      min-width: 44px !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -1321,7 +1328,7 @@
       max-width: 175px !important;
       padding: 4px 8px !important;
       font-size: 0.82rem !important;
-      min-height: 34px !important;
+      min-height: 44px !important;
     }
 
     .header-center {
@@ -1702,7 +1709,7 @@
 
   /* Ensure comfortable tap target on mobile slots without truncating names */
   .mb-match-card .team-slot {
-    min-height: 40px !important;
+    min-height: 44px !important;
     padding: 6px 8px !important;
     font-size: 0.82rem !important;
     border-radius: 0 !important;
@@ -1722,7 +1729,7 @@
   }
 
   .mb-match-next .team-slot {
-    min-height: 38px !important;
+    min-height: 44px !important;
     padding: 4px 6px !important;
     font-size: 0.78rem !important;
   }
@@ -2413,7 +2420,7 @@
   .md-score-input {
     flex-shrink: 0;
     width: 52px;
-    height: 42px;
+    height: 44px;
     padding: 0;
     text-align: center;
     font-family: inherit;
@@ -2447,7 +2454,7 @@
   }
 
   .md-sign-btn {
-    min-height: 38px;
+    min-height: 44px;
     padding: 0;
     border-radius: 8px;
     font-family: inherit;
@@ -2482,7 +2489,7 @@
   }
 
   .md-predictions-btn {
-    min-height: 36px;
+    min-height: 44px;
     padding: 0 12px;
     border-radius: 8px;
     font-family: inherit;
@@ -2526,12 +2533,8 @@
 
     .md-score-input {
       width: 44px;
-      height: 40px;
+      height: 44px;
       font-size: 1.05rem;
-    }
-
-    .md-sign-btn {
-      min-height: 38px;
     }
   }
 
