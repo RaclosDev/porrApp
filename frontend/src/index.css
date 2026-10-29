@@ -46,6 +46,21 @@
   }
 }
 
+/*
+ * Sin capa a propósito: tiene que ganar a las animaciones de los componentes y
+ * de las utilidades de Tailwind cuando el sistema pide reducir el movimiento.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer components {
   /* Accessible Focus Ring */
   :focus-visible {
