@@ -1,34 +1,51 @@
 package com.porra.mundial.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.ErrorCode;
+import org.flywaydb.core.api.output.ValidateOutput;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+import java.util.Set;
+
 /**
- * Configuración de la librería de migraciones de Base de Datos Flyway.
+ * Migración con validación estricta y una única excepción documentada.
+ *
+ * <p>La V38 de producción se aplicó con una versión anterior del script; las diferencias de esquema
+ * las corrigen V39 y V40, pero el checksum registrado no coincide con el fichero actual. Si las únicas
+ * discrepancias son de checksum en {@link #KNOWN_CHECKSUM_DRIFT}, se actualiza el historial con
+ * {@code repair()}. Cualquier otra migración editada o fallida detiene el arranque.
  */
 @Configuration
+@Slf4j
 public class FlywayConfig {
 
-    /**
-     * Sobrescribe el comportamiento por defecto de Flyway.
-     * En caso de encontrar checksums inválidos por manipulación manual o cambios 
-     * abruptos en las migraciones en desarrollo, ejecuta un `repair()` antes de intentar migrar.
-     * Esto evita que la aplicación casque impidiendo el inicio de Spring Boot.
-     * 
-     * @return Estrategia personalizada de migración.
-     */
+    static final Set<String> KNOWN_CHECKSUM_DRIFT = Set.of("38");
+
     @Bean
     public FlywayMigrationStrategy flywayMigrationStrategy() {
         return flyway -> {
-            try {
-                flyway.migrate(); // Aplica migraciones directamente
-            } catch (Exception e) {
-                // Si hay fallo o checksum inconsistente, repara y reintenta
+            if (onlyKnownChecksumDrift(flyway)) {
+                log.warn("Checksum de migraciones {} distinto del registrado: se actualiza el historial de Flyway.",
+                        KNOWN_CHECKSUM_DRIFT);
                 flyway.repair();
-                flyway.migrate();
             }
+            flyway.migrate();
         };
+    }
+
+    private static boolean onlyKnownChecksumDrift(Flyway flyway) {
+        // Las migraciones pendientes también salen como inválidas aquí; migrate() las aplica después.
+        List<ValidateOutput> problems = flyway.validateWithResult().invalidMigrations.stream()
+                .filter(m -> m.errorDetails == null
+                        || m.errorDetails.errorCode != ErrorCode.RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED)
+                .toList();
+        return !problems.isEmpty() && problems.stream().allMatch(m ->
+                m.errorDetails != null
+                        && m.errorDetails.errorCode == ErrorCode.CHECKSUM_MISMATCH
+                        && KNOWN_CHECKSUM_DRIFT.contains(m.version));
     }
 }
