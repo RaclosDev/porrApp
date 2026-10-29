@@ -15,6 +15,7 @@ import {
   fetchMyGroups,
   updateUserPreferences,
 } from '../services/api';
+import { isApiError } from '../services/apiError';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
 import type { Group, MatchRadar } from '../types/api';
@@ -301,13 +302,12 @@ export const useAppContext = () => {
       activeGroupId &&
       !isGlobalLeagueId(activeGroupId)
     ) {
-      const msg = predictionsError.message || '';
-      if (msg.includes('403') || msg.includes('No perteneces')) {
+      if (isApiError(predictionsError, 403)) {
         // No cambiar silenciosamente a la liga global: eso hace que parezca
         // que la liga recién seleccionada se ha sustituido por el Mundial.
         console.warn('No se pudieron cargar los pronósticos de la liga activa', {
           activeGroupId,
-          message: msg,
+          message: predictionsError.message,
         });
         queryClient.invalidateQueries({ queryKey: ['myGroups'] });
       }

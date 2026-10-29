@@ -34,6 +34,7 @@ import type {
   TopScorer,
   UserPreferences,
 } from '../types/api';
+import { ApiError, NETWORK_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE } from './apiError';
 
 const API_BASE = '/api';
 
@@ -56,23 +57,56 @@ interface RequestOptions {
   /** Se envía como multipart (el navegador pone el boundary). */
   form?: FormData;
   signal?: AbortSignal;
+  /** Tiempo máximo de espera; por defecto {@link DEFAULT_TIMEOUT_MS}. */
+  timeoutMs?: number;
   /** Mensaje si el servidor no explica el error. */
   fallbackError?: string;
 }
 
+const DEFAULT_TIMEOUT_MS = 20_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+/** Señal que se aborta al agotarse el tiempo o cuando lo pide quien llama. */
+function requestSignal(
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): AbortSignal | undefined {
+  if (typeof AbortSignal.timeout !== 'function') return signal;
+  const timeout = AbortSignal.timeout(timeoutMs);
+  if (!signal) return timeout;
+  return typeof AbortSignal.any === 'function' ? AbortSignal.any([signal, timeout]) : signal;
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', json, form, signal, fallbackError } = options;
+  const {
+    method = 'GET',
+    json,
+    form,
+    signal,
+    fallbackError,
+    timeoutMs = form ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
+  } = options;
   const token = getAuthToken();
   const headers: Record<string, string> = {};
   if (json !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: form ?? (json !== undefined ? JSON.stringify(json) : undefined),
-    signal,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: form ?? (json !== undefined ? JSON.stringify(json) : undefined),
+      signal: requestSignal(signal, timeoutMs),
+    });
+  } catch (err) {
+    // Una cancelación pedida por quien llama (p. ej. TanStack Query) se propaga tal cual.
+    if (signal?.aborted) throw err;
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new ApiError(0, TIMEOUT_ERROR_MESSAGE);
+    }
+    throw new ApiError(0, NETWORK_ERROR_MESSAGE);
+  }
 
   if (!res.ok) {
     // Un 401 de una petición lanzada con un token anterior no debe cerrar la sesión nueva.
@@ -84,7 +118,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       window.dispatchEvent(new Event('auth-expired'));
     }
     const body = await res.json?.().catch(() => ({}));
-    throw new Error(
+    throw new ApiError(
+      res.status,
       body?.error || body?.message || fallbackError || `HTTP error! status: ${res.status}`,
     );
   }
@@ -118,8 +153,7 @@ export const fetchMatchRadar = (competitionId: number | null = null) =>
 export const fetchTeamOdds = () => request<GroupOdds>('/teams/odds');
 
 // Evita que el panel Pichichi se quede cargando indefinidamente si el backend no responde.
-export const fetchTopScorers = () =>
-  request<TopScorer[]>('/scorers', { signal: AbortSignal.timeout(12_000) });
+export const fetchTopScorers = () => request<TopScorer[]>('/scorers', { timeoutMs: 12_000 });
 
 export const fetchCompetitionStandings = async (
   competitionId: number | null,
