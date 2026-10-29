@@ -1,4 +1,3 @@
-import { setAuthToken } from '../../services/api';
 import { UserAvatar } from '../Avatar';
 import type { NavigateFunction } from 'react-router-dom';
 
@@ -7,11 +6,10 @@ interface HeaderActionsProps {
   isLanding: boolean;
   isUserLoggedIn: boolean;
   navigate: NavigateFunction;
-  setIsAuthenticated: (value: boolean) => void;
+  onLogout: () => void;
   setShowMyPredictionModal: (show: boolean) => void;
   setShowProfileMenu: (show: boolean) => void;
   setShowProfileSettings: (show: boolean) => void;
-  setUserName: (name: string) => void;
   showProfileMenu: boolean;
   userAvatarUrl: string;
   userId: string;
@@ -24,11 +22,10 @@ export default function HeaderActions({
   isLanding,
   isUserLoggedIn,
   navigate,
-  setIsAuthenticated,
+  onLogout,
   setShowMyPredictionModal,
   setShowProfileMenu,
   setShowProfileSettings,
-  setUserName,
   showProfileMenu,
   userAvatarUrl,
   userId,
@@ -103,14 +100,8 @@ export default function HeaderActions({
               <button
                 className="bg-[rgba(255,_71,_87,_0.12)] bg-none border border-[rgba(255,_71,_87,_0.4)] text-[#ff4757] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"
                 onClick={() => {
-                  setAuthToken(null);
-                  setIsAuthenticated?.(false);
-                  setUserName('');
-                  localStorage.removeItem('my_prediction_name');
-                  localStorage.removeItem('my_user_id');
-                  localStorage.removeItem('my_avatar_url');
-                  localStorage.removeItem('token');
-                  window.location.href = '/';
+                  setShowProfileMenu(false);
+                  onLogout();
                 }}
               >
                 🚪 Cerrar Sesión

@@ -109,11 +109,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!res.ok) {
     // Un 401 de una petición lanzada con un token anterior no debe cerrar la sesión nueva.
+    // El token se borra ya para que no salgan más peticiones con él; el resto de la limpieza
+    // la hace logout() en el store, que escucha este evento (AppProvider).
     if (res.status === 401 && token && getAuthToken() === token) {
       setAuthToken(null);
-      localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_user_id');
-      localStorage.removeItem('my_avatar_url');
       window.dispatchEvent(new Event('auth-expired'));
     }
     const body = await res.json?.().catch(() => ({}));

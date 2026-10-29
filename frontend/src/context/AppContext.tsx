@@ -64,23 +64,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const isDemoMode = useAppStore((state) => state.isDemoMode);
 
   const setUserName = useAppStore((state) => state.setUserName);
-  const setUserId = useAppStore((state) => state.setUserId);
   const setUserAvatarUrl = useAppStore((state) => state.setUserAvatarUrl);
   const changeGroup = useAppStore((state) => state.changeGroup);
-  const setIsAuthenticated = useAppStore((state) => state.setIsAuthenticated);
+  const logout = useAppStore((state) => state.logout);
   const isUserAuthed = useAppStore((state) => state.isAuthenticated);
 
   useWebSocket(userName, queryClient);
 
+  // api.ts avisa con este evento cuando el token actual recibe un 401.
   useEffect(() => {
-    const handleAuthExpired = () => {
-      setIsAuthenticated(false);
-      setUserName('');
-      setUserId('');
-    };
-    window.addEventListener('auth-expired', handleAuthExpired);
-    return () => window.removeEventListener('auth-expired', handleAuthExpired);
-  }, [setIsAuthenticated, setUserName, setUserId]);
+    window.addEventListener('auth-expired', logout);
+    return () => window.removeEventListener('auth-expired', logout);
+  }, [logout]);
 
   useEffect(() => {
     // La demo pública es de solo lectura: no persistir borradores locales.
@@ -96,18 +91,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, 300);
     return () => clearTimeout(timer);
   }, [bracketState, activeGroupId, userId, isDemoMode]);
-
-  useEffect(() => {
-    if (!isUserAuthed) {
-      setTimeout(() => {
-        setUserName('');
-        setUserId('');
-      }, 0);
-      localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_user_id');
-      localStorage.removeItem('my_avatar_url');
-    }
-  }, [isUserAuthed, setUserName, setUserId]);
 
   useEffect(() => {
     let isCancelled = false;

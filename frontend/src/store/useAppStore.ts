@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { updateUserPreferences } from '../services/api';
+import { setAuthToken, updateUserPreferences } from '../services/api';
+import { queryClient } from '../services/queryClient';
 import { GLOBAL_LEAGUE_ID, DEMO_COMPETITION_ID } from '../utils/constants';
-import { readJsonDraft, writeDraft } from '../utils/drafts';
+import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
 
 /** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
 export interface BracketTeam {
@@ -55,6 +56,12 @@ interface AppState {
   setIsDemoMode: (isDemoMode: boolean) => void;
   enterDemoMode: () => void;
   exitDemoMode: () => void;
+  /**
+   * Cierra la sesión: borra el token, los datos del usuario, la liga activa y los borradores
+   * de localStorage, vacía la caché de consultas y deja el store como recién abierto.
+   * Es la única forma de cerrar sesión (menú de perfil, token caducado y salida de la demo).
+   */
+  logout: () => void;
   /** Cambia de liga guardando el borrador del cuadro de la anterior. */
   changeGroup: (groupId: string | number | null) => void;
 }
@@ -126,6 +133,21 @@ export const readGroupVisits = (): Record<string, number> => {
     return {};
   }
 };
+
+/** Claves de localStorage que pertenecen a la sesión del usuario. */
+const SESSION_KEYS = [
+  'my_prediction_name',
+  'my_user_id',
+  'my_avatar_url',
+  'activeGroupId',
+  'activeCompetitionId',
+  'isDemoMode',
+];
+
+// Sin token, los datos de un usuario anterior no son de nadie.
+if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
+  ['my_prediction_name', 'my_user_id', 'my_avatar_url'].forEach((k) => localStorage.removeItem(k));
+}
 
 const initialGroupId =
   typeof window !== 'undefined' ? localStorage.getItem('activeGroupId') || '' : '';
@@ -218,18 +240,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   exitDemoMode: () => {
-    localStorage.removeItem('isDemoMode');
+    get().logout();
     localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
-    localStorage.removeItem('activeCompetitionId');
-    localStorage.removeItem('my_prediction_name');
-    localStorage.removeItem('my_user_id');
+    set({ activeGroupId: GLOBAL_LEAGUE_ID });
+  },
+
+  logout: () => {
+    setAuthToken(null);
+    SESSION_KEYS.forEach((k) => localStorage.removeItem(k));
+    clearAllDrafts();
+    queryClient.clear();
     set({
-      isDemoMode: false,
       isAuthenticated: false,
+      isDemoMode: false,
       userName: '',
       userId: '',
-      activeGroupId: GLOBAL_LEAGUE_ID,
+      userAvatarUrl: '',
+      activeGroupId: '',
       activeCompetitionId: null,
+      bracketState: defaultBracketState,
+      topScorer: '',
       viewerPredictionId: null,
     });
   },
