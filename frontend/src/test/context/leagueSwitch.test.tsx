@@ -86,6 +86,26 @@ describe('league switching', () => {
     expect(api.fetchMatches).not.toHaveBeenCalledWith(null);
   });
 
+  it('fetchData only invalidates the active league queries', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useAppContext(), {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
+    });
+    await act(() => result.current.fetchData());
+    const keys = invalidate.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(keys).not.toContain(undefined);
+    expect(keys).toContainEqual(['predictions', '10']);
+    expect(keys).toContainEqual(['leaderboard', '10']);
+    expect(keys.some((k) => ['standings', 'matches', 'odds', 'topScorers'].includes(k[0]))).toBe(
+      false,
+    );
+  });
+
   it('flushes the outgoing bracket draft and resets league-specific selections immediately', () => {
     const bracket = { ...defaultBracketState, champion: { name: 'España' } };
     useAppStore.setState({

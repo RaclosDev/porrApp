@@ -389,7 +389,19 @@ export const useAppContext = () => {
     loading,
     loadingGroup,
     groupError,
-    fetchData: () => queryClient.invalidateQueries(),
+    /** Recarga los datos de la liga activa (tras guardar, aceptar o borrar un pronóstico). */
+    fetchData: () =>
+      Promise.all(
+        [
+          queryKeys.group(activeGroupId),
+          queryKeys.groupMembers(activeGroupId),
+          queryKeys.predictions(activeGroupId),
+          queryKeys.leaderboard(activeGroupId),
+          queryKeys.leaderboardMatchdays(activeGroupId),
+          queryKeys.matchdayFixtures(activeGroupId),
+          queryKeys.predictionScore(),
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      ),
     onlineUsers: EMPTY_ARRAY,
     activeGroupName,
     activeGroupAdmin,
