@@ -19,7 +19,14 @@ import { isApiError } from '../services/apiError';
 import { queryKeys } from '../services/queryKeys';
 import { myGroupsQuery } from '../services/queries';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
+import {
+  useAppStore,
+  defaultBracketState,
+  getInitialBracketState,
+  readGroupVisits,
+  type BracketState,
+} from '../store/useAppStore';
+import { readJsonDraft, writeDraft } from '../utils/drafts';
 import type { Group, MatchRadar } from '../types/api';
 
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
@@ -53,6 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const userName = useAppStore((state) => state.userName);
   const activeGroupId = useAppStore((state) => state.activeGroupId);
   const bracketState = useAppStore((state) => state.bracketState);
+  const userId = useAppStore((state) => state.userId);
   const isDemoMode = useAppStore((state) => state.isDemoMode);
 
   const setUserName = useAppStore((state) => state.setUserName);
@@ -79,27 +87,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (isDemoMode || !activeGroupId) return;
     // Evitar sobreescribir un draft guardado si bracketState coincide con defaultBracketState vacío
     if (bracketState === defaultBracketState) {
-      try {
-        const existing = localStorage.getItem(`draft_bracket_${activeGroupId}`);
-        if (existing) {
-          const parsed = JSON.parse(existing);
-          if (parsed?.r32 && !parsed.r32.left[0]?.home?.name?.includes('º')) {
-            return;
-          }
-        }
-      } catch {
-        /* ignore */
-      }
+      const existing = readJsonDraft('bracket', activeGroupId, userId) as
+        Partial<BracketState> | undefined;
+      if (existing?.r32 && !existing.r32.left[0]?.home?.name?.includes('º')) return;
     }
     const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(`draft_bracket_${activeGroupId}`, JSON.stringify(bracketState));
-      } catch {
-        /* ignore */
-      }
+      writeDraft('bracket', activeGroupId, userId, bracketState);
     }, 300);
     return () => clearTimeout(timer);
-  }, [bracketState, activeGroupId, isDemoMode]);
+  }, [bracketState, activeGroupId, userId, isDemoMode]);
 
   useEffect(() => {
     if (!isUserAuthed) {
@@ -146,17 +142,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // El usuario ya tiene una liga válida seleccionada en esta sesión (respetar en F5)
             const currentBracket = useAppStore.getState().bracketState;
             if (currentBracket === defaultBracketState) {
-              const savedDraft = localStorage.getItem(`draft_bracket_${currentStoreGroup}`);
-              if (savedDraft) {
-                try {
-                  const parsed = JSON.parse(savedDraft);
-                  if (parsed && parsed.r32) {
-                    useAppStore.getState().setBracketState(parsed);
-                  }
-                } catch {
-                  /* ignore */
-                }
-              }
+              const saved = getInitialBracketState(
+                currentStoreGroup,
+                useAppStore.getState().userId,
+              );
+              if (saved !== defaultBracketState) useAppStore.getState().setBracketState(saved);
             }
             // Si difiere de la preferencia en BD, sincronizamos la BD sin cambiar la selección local
             if (dbGroupId !== currentStoreGroup) {

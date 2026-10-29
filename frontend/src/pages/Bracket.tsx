@@ -271,6 +271,7 @@ function Bracket() {
           groupOdds={groupOdds}
           onComplete={handleGroupStageComplete}
           activeGroupId={activeGroupId}
+          userId={userId}
           initialSelections={savedGroupsDraft}
           initialThirds={savedThirdsDraft}
         />

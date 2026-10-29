@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { updateUserPreferences } from '../services/api';
 import { GLOBAL_LEAGUE_ID, DEMO_COMPETITION_ID } from '../utils/constants';
+import { readJsonDraft, writeDraft } from '../utils/drafts';
 
 /** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
 export interface BracketTeam {
@@ -107,20 +108,11 @@ export const defaultBracketState: BracketState = {
   thirdPlaceWinner: null,
 };
 
-export const getInitialBracketState = (groupId: string): BracketState => {
+/** Borrador del cuadro de este usuario en esta liga, o el cuadro vacío. */
+export const getInitialBracketState = (groupId: string, userId: string): BracketState => {
   if (!groupId || typeof window === 'undefined') return defaultBracketState;
-  try {
-    const saved = localStorage.getItem(`draft_bracket_${groupId}`);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && typeof parsed === 'object' && parsed.r32) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.warn('Error parsing bracket from localStorage, using default:', e);
-  }
-  return defaultBracketState;
+  const parsed = readJsonDraft('bracket', groupId, userId) as BracketState | undefined;
+  return parsed && typeof parsed === 'object' && parsed.r32 ? parsed : defaultBracketState;
 };
 
 /** Mapa local liga -> timestamp de la última vez que se abrió, para ordenar "Mis Ligas". */
@@ -137,6 +129,7 @@ export const readGroupVisits = (): Record<string, number> => {
 
 const initialGroupId =
   typeof window !== 'undefined' ? localStorage.getItem('activeGroupId') || '' : '';
+const initialUserId = typeof window !== 'undefined' ? localStorage.getItem('my_user_id') || '' : '';
 
 export const useAppStore = create<AppState>((set, get) => ({
   userName: localStorage.getItem('my_prediction_name') || '',
@@ -159,8 +152,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ userAvatarUrl: userAvatarUrl || '' });
   },
 
-  userId: localStorage.getItem('my_user_id') || '',
-  setUserId: (userId) => set({ userId }),
+  userId: initialUserId,
+  setUserId: (userId) => {
+    const current = get();
+    if (current.userId === userId) return;
+    // El borrador del cuadro es de cada usuario: al cambiar de usuario se carga el suyo.
+    set({ userId, bracketState: getInitialBracketState(current.activeGroupId, userId) });
+  },
 
   activeGroupId: initialGroupId,
   setActiveGroupId: (activeGroupId) => {
@@ -185,7 +183,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ activeCompetitionId });
   },
 
-  bracketState: getInitialBracketState(initialGroupId),
+  bracketState: getInitialBracketState(initialGroupId, initialUserId),
   setBracketState: (bracketState) => set({ bracketState }),
 
   topScorer: '',
@@ -241,14 +239,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const current = get();
     if (current.activeGroupId === nextGroupId) return;
     if (current.activeGroupId) {
-      try {
-        localStorage.setItem(
-          `draft_bracket_${current.activeGroupId}`,
-          JSON.stringify(current.bracketState),
-        );
-      } catch {
-        /* ignore */
-      }
+      writeDraft('bracket', current.activeGroupId, current.userId, current.bracketState);
     }
     localStorage.removeItem('activeCompetitionId');
     if (groupId) {
@@ -272,7 +263,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       localStorage.removeItem('activeGroupId');
     }
 
-    const parsedBracket = getInitialBracketState(groupId ? groupId.toString() : '');
+    const parsedBracket = getInitialBracketState(nextGroupId, current.userId);
     set({
       activeGroupId: groupId ? groupId.toString() : '',
       activeCompetitionId: null,

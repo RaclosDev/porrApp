@@ -95,7 +95,7 @@ describe('league switching', () => {
       topScorer: 'Player',
     });
     useAppStore.getState().changeGroup('20');
-    expect(JSON.parse(localStorage.getItem('draft_bracket_10')).champion.name).toBe('España');
+    expect(JSON.parse(localStorage.getItem('draft_bracket_u7_g10')).champion.name).toBe('España');
     expect(useAppStore.getState()).toMatchObject({
       activeCompetitionId: null,
       viewerPredictionId: null,

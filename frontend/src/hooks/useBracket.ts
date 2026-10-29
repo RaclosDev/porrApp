@@ -25,6 +25,7 @@ const matchPair = (m: BracketMatch | null): string[] | undefined => {
   return home && away ? [home, away] : undefined;
 };
 import { errorMessage } from '../utils/errors';
+import { readGroupsDraft, readThirdsDraft, removeDraft, writeDraft } from '../utils/drafts';
 import {
   extractGroupsFromR32,
   hasValidGroupSelections,
@@ -66,24 +67,12 @@ export function useBracket() {
 
   const [predictionName, setPredictionName] = useState('');
   const [savedPredictionId, setSavedPredictionId] = useState<string | null>(null);
-  const [savedGroupsDraft, setSavedGroupsDraft] = useState<Record<string, GroupSelection>>(() => {
-    try {
-      const raw = localStorage.getItem(`draft_groups_${activeGroupId}`);
-      if (!raw) return {};
-      const parsed = normalizeGroupsDraft(JSON.parse(raw));
-      return hasValidGroupSelections(parsed) ? parsed : {};
-    } catch {
-      return {};
-    }
-  });
-  const [savedThirdsDraft, setSavedThirdsDraft] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(`draft_advancing_${activeGroupId}`);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [savedGroupsDraft, setSavedGroupsDraft] = useState<Record<string, GroupSelection>>(() =>
+    readGroupsDraft(activeGroupId, userId),
+  );
+  const [savedThirdsDraft, setSavedThirdsDraft] = useState<string[]>(() =>
+    readThirdsDraft(activeGroupId, userId),
+  );
   const navigate = useNavigate();
 
   const isKnockoutsOnly = activeGroupPoolFormat === 'KNOCKOUTS_ONLY';
@@ -204,22 +193,11 @@ export function useBracket() {
 
               if (hasValidGroupSelections(norm)) {
                 setSavedGroupsDraft(norm);
-                try {
-                  localStorage.setItem(`draft_groups_${activeGroupId}`, JSON.stringify(norm));
-                } catch {
-                  /* ignore */
-                }
+                writeDraft('groups', activeGroupId, userId, norm);
               }
               if (normThirds.length > 0) {
                 setSavedThirdsDraft(normThirds);
-                try {
-                  localStorage.setItem(
-                    `draft_advancing_${activeGroupId}`,
-                    JSON.stringify(normThirds),
-                  );
-                } catch {
-                  /* ignore */
-                }
+                writeDraft('advancing', activeGroupId, userId, normThirds);
               }
               const hydrated = reconstructBracketState(currentData);
               if (hydrated) {
@@ -264,24 +242,13 @@ export function useBracket() {
     const extracted = extractGroupsFromR32(bracketState.r32, groupOdds);
     if (hasValidGroupSelections(extracted.groups)) {
       setSavedGroupsDraft(extracted.groups);
-      try {
-        localStorage.setItem(`draft_groups_${activeGroupId}`, JSON.stringify(extracted.groups));
-      } catch {
-        /* ignore */
-      }
+      writeDraft('groups', activeGroupId, userId, extracted.groups);
       if (extracted.thirds && extracted.thirds.length > 0) {
         setSavedThirdsDraft(extracted.thirds);
-        try {
-          localStorage.setItem(
-            `draft_advancing_${activeGroupId}`,
-            JSON.stringify(extracted.thirds),
-          );
-        } catch {
-          /* ignore */
-        }
+        writeDraft('advancing', activeGroupId, userId, extracted.thirds);
       }
     }
-  }, [bracketState, savedGroupsDraft, groupOdds, activeGroupId]);
+  }, [bracketState, savedGroupsDraft, groupOdds, activeGroupId, userId]);
 
   const setR32Team = (teamName: string, side: Side, matchIndex: number, isHome: boolean) => {
     const ns = cloneBracket(bracketState);
@@ -417,20 +384,8 @@ export function useBracket() {
     const qf = [...getTeamPairs(bracketState.qf.left), ...getTeamPairs(bracketState.qf.right)];
     const sf = [...getTeamPairs(bracketState.sf.left), ...getTeamPairs(bracketState.sf.right)];
 
-    let groupsRaw: Record<string, GroupSelection> = {};
-    let advancingThirds: string[] = [];
-    try {
-      const savedGroups = localStorage.getItem('draft_groups_' + activeGroupId);
-      if (savedGroups) groupsRaw = JSON.parse(savedGroups);
-    } catch {
-      groupsRaw = {};
-    }
-    try {
-      const savedThirds = localStorage.getItem('draft_advancing_' + activeGroupId);
-      if (savedThirds) advancingThirds = JSON.parse(savedThirds);
-    } catch {
-      advancingThirds = [];
-    }
+    const groupsRaw = readGroupsDraft(activeGroupId, userId);
+    const advancingThirds = readThirdsDraft(activeGroupId, userId);
 
     const formattedGroups: Record<string, string[]> = {};
     Object.keys(groupsRaw).forEach((g) => {
@@ -508,30 +463,15 @@ export function useBracket() {
       const extracted = extractGroupsFromR32(bracketState.r32, groupOdds);
       if (hasValidGroupSelections(extracted.groups)) {
         setSavedGroupsDraft(extracted.groups);
-        try {
-          localStorage.setItem(`draft_groups_${activeGroupId}`, JSON.stringify(extracted.groups));
-        } catch {
-          /* ignore */
-        }
+        writeDraft('groups', activeGroupId, userId, extracted.groups);
         if (extracted.thirds && extracted.thirds.length > 0) {
           setSavedThirdsDraft(extracted.thirds);
-          try {
-            localStorage.setItem(
-              `draft_advancing_${activeGroupId}`,
-              JSON.stringify(extracted.thirds),
-            );
-          } catch {
-            /* ignore */
-          }
+          writeDraft('advancing', activeGroupId, userId, extracted.thirds);
         }
       }
     }
     setBracketState(defaultBracketState);
-    try {
-      localStorage.removeItem(`draft_bracket_${activeGroupId}`);
-    } catch {
-      /* ignore */
-    }
+    removeDraft('bracket', activeGroupId, userId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -550,6 +490,7 @@ export function useBracket() {
     isInitialState,
     isAuthenticated,
     activeGroupId,
+    userId,
     groupOdds,
     activeGroupPichichi,
     activeGroupIsLocked,

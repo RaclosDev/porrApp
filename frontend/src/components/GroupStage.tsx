@@ -8,28 +8,13 @@ import {
   type GroupSelection,
 } from '../utils/bracketDraft';
 import type { GroupOdds } from '../types/api';
+import {
+  readGroupsDraft as getSavedSelections,
+  readThirdsDraft as getSavedThirds,
+  writeDraft,
+} from '../utils/drafts';
 
 type Selections = Record<string, GroupSelection>;
-
-const getSavedSelections = (groupId: string): Selections => {
-  try {
-    const saved = localStorage.getItem('draft_groups_' + groupId);
-    if (!saved) return {};
-    const parsed = normalizeSelections(JSON.parse(saved));
-    return hasValidGroupSelections(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-};
-
-const getSavedThirds = (groupId: string): string[] => {
-  try {
-    const saved = localStorage.getItem('draft_advancing_' + groupId);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-};
 
 /**
  * Componente interactivo para que el usuario prediga la Fase de Grupos.
@@ -40,6 +25,7 @@ export default function GroupStage({
   groupOdds,
   onComplete,
   activeGroupId,
+  userId,
   initialSelections,
   initialThirds,
 }: {
@@ -48,6 +34,8 @@ export default function GroupStage({
   onComplete: (selections: Selections, thirds: string[]) => void;
   /** Liga activa; separa los borradores en localStorage. */
   activeGroupId: string;
+  /** Usuario actual; los borradores son de cada usuario. */
+  userId: string;
   initialSelections?: unknown;
   initialThirds?: string[];
 }) {
@@ -55,7 +43,7 @@ export default function GroupStage({
     if (hasValidGroupSelections(initialSelections)) {
       return normalizeSelections(initialSelections);
     }
-    const saved = getSavedSelections(activeGroupId);
+    const saved = getSavedSelections(activeGroupId, userId);
     if (hasValidGroupSelections(saved)) {
       return saved;
     }
@@ -66,7 +54,7 @@ export default function GroupStage({
     if (initialThirds && Array.isArray(initialThirds) && initialThirds.length > 0) {
       return initialThirds;
     }
-    return getSavedThirds(activeGroupId);
+    return getSavedThirds(activeGroupId, userId);
   });
 
   const [mobileStep, setMobileStep] = useState('groups'); // 'groups' | 'thirds'
@@ -89,7 +77,7 @@ export default function GroupStage({
         return merged;
       });
     } else {
-      const saved = getSavedSelections(activeGroupId);
+      const saved = getSavedSelections(activeGroupId, userId);
       if (hasValidGroupSelections(saved)) {
         setSelections((prev) => {
           const merged = { ...prev };
@@ -104,18 +92,18 @@ export default function GroupStage({
         });
       }
     }
-  }, [initialSelections, activeGroupId]);
+  }, [initialSelections, activeGroupId, userId]);
 
   useEffect(() => {
     if (initialThirds && Array.isArray(initialThirds) && initialThirds.length > 0) {
       setAdvancingThirds(initialThirds);
     } else {
-      const saved = getSavedThirds(activeGroupId);
+      const saved = getSavedThirds(activeGroupId, userId);
       if (saved && saved.length > 0) {
         setAdvancingThirds(saved);
       }
     }
-  }, [initialThirds, activeGroupId]);
+  }, [initialThirds, activeGroupId, userId]);
 
   /**
    * Inicializa la estructura vacía de selecciones para grupos nuevos sin sobreescribir lo ya rellenado.
@@ -141,15 +129,15 @@ export default function GroupStage({
    */
   useEffect(() => {
     if (hasValidGroupSelections(selections) && activeGroupId) {
-      localStorage.setItem('draft_groups_' + activeGroupId, JSON.stringify(selections));
+      writeDraft('groups', activeGroupId, userId, selections);
     }
-  }, [selections, activeGroupId]);
+  }, [selections, activeGroupId, userId]);
 
   useEffect(() => {
     if (advancingThirds && advancingThirds.length > 0 && activeGroupId) {
-      localStorage.setItem('draft_advancing_' + activeGroupId, JSON.stringify(advancingThirds));
+      writeDraft('advancing', activeGroupId, userId, advancingThirds);
     }
-  }, [advancingThirds, activeGroupId]);
+  }, [advancingThirds, activeGroupId, userId]);
 
   /**
    * Si el usuario desmarca a un tercero en un grupo, elimina a ese equipo de

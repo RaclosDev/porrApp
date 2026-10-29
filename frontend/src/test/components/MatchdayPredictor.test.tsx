@@ -70,7 +70,7 @@ describe('matchday editing and navigation', () => {
     view.rerender(tree());
     expect(await screen.findByLabelText('Goles de Equipo B')).toHaveValue(null);
     expect(screen.queryByLabelText('Goles de Equipo A')).not.toBeInTheDocument();
-    expect(localStorage.getItem('draft_matchday_20')).toBeNull();
+    expect(localStorage.getItem('draft_matchday_u7_g20')).toBeNull();
     context = { ...context, activeGroupId: '10' };
     view.rerender(tree());
     await waitFor(() => expect(screen.getByLabelText('Goles de Equipo A')).toHaveValue(2));
@@ -142,7 +142,7 @@ describe('matchday editing and navigation', () => {
     fireEvent.change(await screen.findByLabelText('Goles de Equipo B'), { target: { value: '4' } });
     await act(async () => finishSave({ message: 'Guardado A' }));
     expect(screen.getByLabelText('Goles de Equipo B')).toHaveValue(4);
-    expect(JSON.parse(localStorage.getItem('draft_matchday_20'))['201'].homeScore).toBe('4');
+    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g20'))['201'].homeScore).toBe('4');
     expect(screen.queryByText('Guardado A')).not.toBeInTheDocument();
   });
 
