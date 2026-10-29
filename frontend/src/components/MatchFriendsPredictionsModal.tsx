@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
 import { UserAvatar } from './Avatar';
+import type { MatchdayFixture } from '../types/api';
 
-function TeamCrest({ logo }) {
+function TeamCrest({ logo }: { logo: string | null }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => setFailed(false), [logo]);
@@ -31,7 +32,7 @@ function TeamCrest({ logo }) {
   );
 }
 
-const formatTimestamp = (dateStr) => {
+const formatTimestamp = (dateStr: string | null) => {
   if (!dateStr) return null;
   try {
     const date = new Date(dateStr);
@@ -47,7 +48,15 @@ const formatTimestamp = (dateStr) => {
   }
 };
 
-export default function MatchFriendsPredictionsModal({ groupId, match, onClose }) {
+export default function MatchFriendsPredictionsModal({
+  groupId,
+  match,
+  onClose,
+}: {
+  groupId: string;
+  match: MatchdayFixture | null;
+  onClose: () => void;
+}) {
   const matchId = match?.matchId;
   const {
     data: predictions = [],
@@ -55,14 +64,14 @@ export default function MatchFriendsPredictionsModal({ groupId, match, onClose }
     error,
   } = useQuery({
     queryKey: ['matchFriendPredictions', groupId, matchId],
-    queryFn: () => fetchMatchdayFriendPredictions(groupId, matchId),
+    queryFn: () => fetchMatchdayFriendPredictions(groupId, matchId!),
     enabled: Boolean(groupId && matchId),
   });
 
   useEffect(() => {
     if (!match) return undefined;
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     const previousOverflow = document.body.style.overflow;
@@ -220,14 +229,14 @@ export default function MatchFriendsPredictionsModal({ groupId, match, onClose }
                         </div>
                         {hasPoints && (
                           <span
-                            className={`friends-prediction-points${prediction.pointsAwarded > 0 ? '' : ' is-zero'}`}
+                            className={`friends-prediction-points${(prediction.pointsAwarded ?? 0) > 0 ? '' : ' is-zero'}`}
                           >
                             {prediction.isExactScore
                               ? '🎯 '
                               : prediction.isCorrectSign
                                 ? '✅ '
                                 : ''}
-                            {prediction.pointsAwarded > 0
+                            {(prediction.pointsAwarded ?? 0) > 0
                               ? `+${prediction.pointsAwarded} pts`
                               : '0 pts'}
                           </span>

@@ -5,12 +5,13 @@ import { updateMyProfile, uploadMyAvatar, deleteMyAvatar } from '../services/api
 import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
 import { UserAvatar } from './Avatar';
+import { errorMessage } from '../utils/errors';
 
 /**
  * Ajustes de cuenta: nombre público y foto de perfil.
  * No cambia el correo ni el nombre de Google ni la vinculación de la cuenta.
  */
-export default function ProfileSettingsModal({ onClose }) {
+export default function ProfileSettingsModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const userName = useAppStore((s) => s.userName);
   const avatarUrl = useAppStore((s) => s.userAvatarUrl);
@@ -22,7 +23,7 @@ export default function ProfileSettingsModal({ onClose }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -44,7 +45,7 @@ export default function ProfileSettingsModal({ onClose }) {
       refreshEverywhere();
       toast.success('Nombre actualizado');
     } catch (err) {
-      setError(err.message || 'No se pudo guardar el nombre');
+      setError(errorMessage(err, 'No se pudo guardar el nombre'));
     } finally {
       setSaving(false);
     }

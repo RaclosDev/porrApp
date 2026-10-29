@@ -79,7 +79,13 @@ const DemoPage = () => {
   return <Home />;
 };
 
-const ProtectedRoute = ({ children, guestAllowed = false }) => {
+const ProtectedRoute = ({
+  children,
+  guestAllowed = false,
+}: {
+  children: React.ReactNode;
+  guestAllowed?: boolean;
+}) => {
   const { isAuthenticated, userName, isDemoMode } = useAppContext();
   const isAuthed = isAuthenticated && Boolean(userName);
   const location = useLocation();

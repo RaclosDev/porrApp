@@ -17,6 +17,7 @@ import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PoolFormat } from '../types/api';
+import { errorMessage } from '../utils/errors';
 
 export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
   { id: 'MATCH_DAY', label: 'Por Jornadas (1X2 y Marcador Exacto)' },
@@ -190,7 +191,7 @@ export function useGroupsDashboard() {
         if (!cancelled) setPendingInvite(preview);
       })
       .catch((e) => {
-        if (!cancelled) setError(e.message || 'No se ha encontrado esta invitación');
+        if (!cancelled) setError(errorMessage(e, 'No se ha encontrado esta invitación'));
       });
     return () => {
       cancelled = true;
@@ -234,7 +235,7 @@ export function useGroupsDashboard() {
       toast.success(`¡Te has unido a "${fullGroup.name || group.name}"!`);
       navigate('/', { replace: true });
     } catch (e) {
-      setError(e.message || 'No se ha podido aceptar la invitación');
+      setError(errorMessage(e, 'No se ha podido aceptar la invitación'));
     } finally {
       setIsJoiningInvite(false);
     }
@@ -276,7 +277,7 @@ export function useGroupsDashboard() {
       changeGroup(group.id.toString());
       loadGroupsAndCompetitions();
     } catch (e) {
-      setError(e.message || 'Error al crear el grupo');
+      setError(errorMessage(e, 'Error al crear el grupo'));
     } finally {
       setIsCreating(false);
     }
@@ -298,7 +299,7 @@ export function useGroupsDashboard() {
       loadGroupsAndCompetitions();
       return true;
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e, 'Ha ocurrido un error'));
       return false;
     }
   };
@@ -346,7 +347,7 @@ export function useGroupsDashboard() {
       toast.success(`La liga "${groupName}" ha sido eliminada.`);
       return true;
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e, 'Ha ocurrido un error'));
       return false;
     }
   };
@@ -380,7 +381,7 @@ export function useGroupsDashboard() {
       // La portada adapta automáticamente el contenido al formato de esta liga.
       navigate('/', { replace: true });
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e, 'Ha ocurrido un error'));
     }
   };
 
@@ -411,7 +412,7 @@ export function useGroupsDashboard() {
       loadGroupsAndCompetitions();
       toast.success(`Has abandonado la liga "${groupName}".`);
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e, 'Ha ocurrido un error'));
     }
   };
 

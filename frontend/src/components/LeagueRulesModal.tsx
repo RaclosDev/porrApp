@@ -4,7 +4,13 @@ import React from 'react';
  * Modal de solo lectura con las reglas personalizadas de una liga.
  * Cada liga define las suyas desde el panel de administración.
  */
-export default function LeagueRulesModal({ group, onClose }) {
+export default function LeagueRulesModal({
+  group,
+  onClose,
+}: {
+  group: { name?: string; rules?: string | null } | null | undefined;
+  onClose: () => void;
+}) {
   const rules = (group?.rules || '').trim();
 
   return (

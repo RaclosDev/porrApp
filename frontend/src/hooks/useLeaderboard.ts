@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
 import type { ParticipantScore } from '../types/api';
+import { errorMessage } from '../utils/errors';
 
 /** Fila de la clasificación tal como la pinta la interfaz. */
 export interface LeaderboardRow {
@@ -205,7 +206,7 @@ export function useLeaderboard() {
       await acceptGroupPrediction(activeGroupId, predictionId);
       state.fetchData();
     } catch (e) {
-      toast.error(e.message);
+      toast.error(errorMessage(e, 'Ha ocurrido un error'));
     } finally {
       setActionLoading(false);
     }
@@ -219,7 +220,7 @@ export function useLeaderboard() {
       await deleteGroupPrediction(activeGroupId, predictionId);
       state.fetchData();
     } catch (e) {
-      toast.error(e.message);
+      toast.error(errorMessage(e, 'Ha ocurrido un error'));
     } finally {
       setActionLoading(false);
     }

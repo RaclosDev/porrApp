@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { normalizeCountryName, isGlobalLeagueId } from '../utils/constants';
 import {
@@ -25,7 +25,7 @@ const EMPTY_OBJECT = Object.freeze({}) as Record<string, never>;
 const EMPTY_ARRAY = Object.freeze([]) as never[];
 const EMPTY_RADAR = Object.freeze({ live: [], last: [], next: [] }) as MatchRadar;
 
-const loadCachedJson = (key) => {
+const loadCachedJson = (key: string) => {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return undefined;
@@ -35,7 +35,7 @@ const loadCachedJson = (key) => {
   }
 };
 
-const saveCachedJson = (key, data) => {
+const saveCachedJson = (key: string, data: unknown) => {
   if (!data) return;
   try {
     localStorage.setItem(key, JSON.stringify(data));
@@ -44,7 +44,7 @@ const saveCachedJson = (key, data) => {
   }
 };
 
-export function AppProvider({ children }) {
+export function AppProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   const userName = useAppStore((state) => state.userName);
@@ -389,13 +389,11 @@ export const useAppContext = () => {
     if (!Array.isArray(matches)) {
       return EMPTY_OBJECT;
     }
-    return (
-      matches.reduce((acc, m) => {
-        if (m?.home && m?.home_team_id != null) acc[m.home] = m.home_team_id;
-        if (m?.away && m?.away_team_id != null) acc[m.away] = m.away_team_id;
-        return acc;
-      }, {}) || EMPTY_OBJECT
-    );
+    return matches.reduce<Record<string, number>>((acc, m) => {
+      if (m?.home && m?.home_team_id != null) acc[m.home] = m.home_team_id;
+      if (m?.away && m?.away_team_id != null) acc[m.away] = m.away_team_id;
+      return acc;
+    }, {});
   }, [matches]);
 
   const loading = loadingGroup || (loadingStandings && !standings) || (loadingMatches && !matches);

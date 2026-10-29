@@ -14,7 +14,20 @@ import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCa
  * @component
  * @returns {JSX.Element|null} El modal del visor de porras, o null si no hay porra seleccionada.
  */
-function PredictionViewer({ inline = false, predictionId = null, onEdit = null, onClose = null }) {
+interface PredictionViewerProps {
+  /** Se pinta dentro de la página en vez de como modal. */
+  inline?: boolean;
+  predictionId?: string | number | null;
+  onEdit?: (() => void) | null;
+  onClose?: (() => void) | null;
+}
+
+function PredictionViewer({
+  inline = false,
+  predictionId = null,
+  onEdit = null,
+  onClose = null,
+}: PredictionViewerProps) {
   const state = useAppContext();
   const {
     viewerPredictionId,

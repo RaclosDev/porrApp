@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
 import { LeagueAvatar } from '../components/Avatar';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { POOL_FORMATS, useGroupsDashboard } from '../hooks/useGroupsDashboard';
 import type { PoolFormat } from '../types/api';
 
@@ -74,41 +75,10 @@ export default function GroupsDashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setNewlyCreatedGroup]);
 
-  const handleDirectGoogleLogin = async (credentialResponse) => {
-    try {
-      const res = await fetch('/api/auth/google/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
-      });
-      const data = await res.json();
-      if (data.status === 'requires_name') {
-        const name = prompt('¡Bienvenido! Elige tu apodo para la porra:') || '';
-        if (!name.trim()) return;
-        const res2 = await fetch('/api/auth/google/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            credential: credentialResponse.credential,
-            participantName: name.trim(),
-          }),
-        });
-        const data2 = await res2.json();
-        if (data2.token) {
-          localStorage.setItem('token', data2.token);
-          localStorage.setItem('my_prediction_name', data2.participantName);
-          if (data2.userId) localStorage.setItem('my_user_id', data2.userId);
-          window.location.reload();
-        }
-      } else if (data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('my_prediction_name', data.participantName);
-        if (data.userId) localStorage.setItem('my_user_id', data.userId);
-        window.location.reload();
-      }
-    } catch (err) {
-      toast.error('Error al iniciar sesión con Google: ' + err.message);
-    }
+  const signInWithGoogle = useGoogleSignIn();
+  const handleDirectGoogleLogin = async (credentialResponse: CredentialResponse) => {
+    // Recarga para que el resto de la página se monte ya con la sesión.
+    if (await signInWithGoogle(credentialResponse)) window.location.reload();
   };
 
   const inviteSummary = pendingJoinCodeNotice ? (

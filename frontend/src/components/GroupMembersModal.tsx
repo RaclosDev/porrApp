@@ -29,6 +29,7 @@ import {
 import ImagePicker from './ImagePicker';
 import { LeagueAvatar, UserAvatar } from './Avatar';
 import type { PaymentStatus } from '../types/api';
+import { errorMessage } from '../utils/errors';
 
 const PAYMENT_FILTERS = [
   { id: 'ALL', label: 'Todos' },
@@ -188,7 +189,7 @@ export default function GroupMembersModal({
       if (context?.previous) {
         queryClient.setQueryData(['groupMembers', groupId], context.previous);
       }
-      const message = err.message || 'No se pudo actualizar el estado de pago.';
+      const message = errorMessage(err, 'No se pudo actualizar el estado de pago.');
       setActionError(message);
       toast.error(message);
     },
@@ -213,7 +214,7 @@ export default function GroupMembersModal({
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
     },
     onError: (err) => {
-      const message = err.message || 'No se pudo expulsar al miembro.';
+      const message = errorMessage(err, 'No se pudo expulsar al miembro.');
       setActionError(message);
       toast.error(message);
     },
@@ -231,7 +232,7 @@ export default function GroupMembersModal({
       toast.success('Código de invitación regenerado');
     },
     onError: (err) => {
-      const message = err.message || 'No se pudo regenerar el código.';
+      const message = errorMessage(err, 'No se pudo regenerar el código.');
       setActionError(message);
       toast.error(message);
     },
@@ -294,7 +295,7 @@ export default function GroupMembersModal({
       setNotice('Cambios guardados');
       toast.success('Liga actualizada');
     } catch (err) {
-      setActionError(err.message || 'No se pudieron guardar los cambios.');
+      setActionError(errorMessage(err, 'No se pudieron guardar los cambios.'));
     } finally {
       setSavingConfig(false);
     }
@@ -318,7 +319,7 @@ export default function GroupMembersModal({
         setActionError('No se pudo eliminar la liga. Inténtalo de nuevo.');
       }
     } catch (err) {
-      const message = err.message || 'No se pudo eliminar la liga.';
+      const message = errorMessage(err, 'No se pudo eliminar la liga.');
       setActionError(message);
       toast.error(message);
     } finally {

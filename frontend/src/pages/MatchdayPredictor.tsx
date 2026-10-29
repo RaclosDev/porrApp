@@ -7,6 +7,7 @@ import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/ap
 import Flag from '../components/Flag';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 import type { MatchdayPredictionInput, MatchdaySubmissionResult } from '../types/api';
+import { errorMessage } from '../utils/errors';
 
 /** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
 interface DraftPrediction {
@@ -233,7 +234,7 @@ function MatchdayLeague({ context }) {
       setTimeout(() => setSaveSuccessMsg(''), 4000);
     },
     onError: (err) => {
-      setSaveErrorMsg(err.message || 'Error al guardar pronósticos');
+      setSaveErrorMsg(errorMessage(err, 'Error al guardar pronósticos'));
       setSaveSuccessMsg('');
     },
   });

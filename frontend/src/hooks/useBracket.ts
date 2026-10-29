@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
 import { isGlobalLeagueId } from '../utils/constants';
 import { defaultBracketState, type BracketTeam } from '../store/useAppStore';
+import { errorMessage } from '../utils/errors';
 
 export const WORLD_CUP_2026_GROUPS = {
   A: ['México', 'Sudáfrica', 'Corea del Sur', 'Chequia'],
@@ -828,7 +829,7 @@ export function useBracket() {
       toast.success('¡Porra guardada correctamente en la liga!');
       fetchData();
     } catch (e) {
-      toast.error(e.message || 'Hubo un error al guardar la porra.');
+      toast.error(errorMessage(e, 'Hubo un error al guardar la porra.'));
     }
   };
 

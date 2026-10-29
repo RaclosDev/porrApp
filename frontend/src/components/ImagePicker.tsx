@@ -1,5 +1,22 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, type ChangeEvent, type ReactNode } from 'react';
 import { prepareImageForUpload, validateImageFile } from '../utils/image';
+import { errorMessage } from '../utils/errors';
+
+interface ImagePickerProps {
+  currentUrl: string | null | undefined;
+  renderPreview: (url: string | null | undefined) => ReactNode;
+  onUpload: (blob: Blob) => Promise<unknown>;
+  onRemove: () => Promise<unknown>;
+  disabled?: boolean;
+  idPrefix?: string;
+}
+
+/** Imagen elegida y aún sin subir; `blob` llega cuando termina el recorte. */
+interface PendingImage {
+  blob: Blob | null;
+  url: string;
+  processing: boolean;
+}
 
 /**
  * Selector de imagen con vista previa local inmediata.
@@ -12,10 +29,10 @@ export default function ImagePicker({
   onRemove,
   disabled = false,
   idPrefix = 'image-picker',
-}) {
-  const inputRef = useRef(null);
+}: ImagePickerProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const selectionId = useRef(0);
-  const [pending, setPending] = useState(null); // { blob, url, processing }
+  const [pending, setPending] = useState<PendingImage | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,7 +46,7 @@ export default function ImagePicker({
     };
   }, [pending?.url]);
 
-  const handleFile = async (e) => {
+  const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // permite volver a elegir el mismo archivo
     if (!file) return;
@@ -57,7 +74,7 @@ export default function ImagePicker({
     } catch (err) {
       if (selectionId.current !== currentSelection) return;
       setPending((previous) => (previous?.url === previewUrl ? null : previous));
-      setError(err.message || 'No se pudo leer la imagen.');
+      setError(errorMessage(err, 'No se pudo leer la imagen.'));
     }
   };
 
@@ -69,7 +86,7 @@ export default function ImagePicker({
       await onUpload(pending.blob);
       setPending(null);
     } catch (err) {
-      setError(err.message || 'No se pudo subir la imagen.');
+      setError(errorMessage(err, 'No se pudo subir la imagen.'));
     } finally {
       setBusy(false);
     }
@@ -82,7 +99,7 @@ export default function ImagePicker({
       await onRemove();
       setPending(null);
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar la imagen.');
+      setError(errorMessage(err, 'No se pudo eliminar la imagen.'));
     } finally {
       setBusy(false);
     }
@@ -112,7 +129,9 @@ export default function ImagePicker({
       >
         {renderPreview(shownUrl)}
         {pending && (
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#00d2d3', textAlign: 'center' }}>
+          <span
+            style={{ fontSize: '0.68rem', fontWeight: 700, color: '#00d2d3', textAlign: 'center' }}
+          >
             Vista previa
           </span>
         )}

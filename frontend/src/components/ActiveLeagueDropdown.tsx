@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { readGroupVisits } from '../store/useAppStore';
 import { LeagueAvatar } from './Avatar';
 
-function getCompetitionBadge(competitionName) {
+function getCompetitionBadge(competitionName: string | null | undefined) {
   if (!competitionName) return '🏆';
   const lower = competitionName.toLowerCase();
   if (lower.includes('laliga') || lower.includes('copa del rey') || lower.includes('españa'))
@@ -34,7 +34,7 @@ export default function ActiveLeagueDropdown() {
   } = useAppContext();
 
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   // La liga activa primero y, después, las visitadas más recientemente.
@@ -54,12 +54,12 @@ export default function ActiveLeagueDropdown() {
   }, [userGroups, activeGroupId]);
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
-    function handleKeyDown(event) {
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setIsOpen(false);
       }

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { fetchOfficialBracket, fetchPredictionScore, getAuthToken } from '../services/api';
 import { compareTeams } from '../utils/points';
 import { extractGroupsFromR32, hasValidGroupSelections, buildR32FromGroups } from './useBracket';
+import { errorMessage } from '../utils/errors';
 
 /**
  * Hook personalizado que carga y procesa los datos necesarios para visualizar la porra de un usuario.
@@ -305,7 +306,7 @@ export function usePredictionViewerData(
       .catch((err) => {
         if (cancelled) return;
         console.error(err);
-        setError(err.message);
+        setError(errorMessage(err, 'Ha ocurrido un error'));
         setLoading(false);
       });
 

@@ -11,6 +11,7 @@ import type {
   GroupOdds,
   GroupStandings,
   JoinCodeResponse,
+  LoginResponse,
   LeagueImageResponse,
   LeagueStanding,
   Match,
@@ -323,6 +324,13 @@ export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId
   );
 
 // --- Usuario ---
+
+export const loginWithGoogle = (credential: string) =>
+  request<LoginResponse>('/auth/google/login', {
+    method: 'POST',
+    json: { credential },
+    fallbackError: 'Error al iniciar sesión con Google',
+  });
 
 export const fetchMe = () => request<Me>('/users/me');
 

@@ -2,14 +2,26 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Flag from './Flag';
 import { openStats } from '../utils/navigation';
+import type { Match } from '../types/api';
+
+export interface SelectedGroup {
+  name: string;
+  teams: { name: string }[];
+}
+
+interface GroupMatchesModalProps {
+  selectedGroup: SelectedGroup | null;
+  allGames: Match[];
+  onClose: () => void;
+}
 
 /**
  * Modal flotante que muestra la lista de partidos de un grupo específico.
  */
-const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
+const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesModalProps) => {
   useEffect(() => {
     if (!selectedGroup) return;
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -22,7 +34,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
   const groupMatches = allGames.filter(
     (g) => groupNames.includes(g.home) && groupNames.includes(g.away),
   );
-  groupMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  groupMatches.sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
 
   return createPortal(
     <>
@@ -74,7 +86,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
             </p>
           ) : (
             groupMatches.map((m) => {
-              const d = new Date(m.date);
+              const d = new Date(m.date ?? 0);
               const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
               const hasStarted = new Date() >= d;
               const hasFinished = m.finished === true;
