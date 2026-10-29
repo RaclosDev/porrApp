@@ -44,6 +44,7 @@ public class SyncService {
     private final KnockoutBracketService knockoutBracketService;
     private final StandingsService standingsService;
     private final WebSocketService webSocketService;
+    private final ScoreInvalidationService scoreInvalidationService;
 
     private final ReentrantLock syncLock = new ReentrantLock();
 
@@ -124,6 +125,9 @@ public class SyncService {
 
             int matchesUpdated = batch.matchesUpdated() + knockoutBracketService.propagateKnockoutWinners();
             standingsService.recalculateStandingsFromMatches();
+            if (batch.resultsChanged()) {
+                scoreInvalidationService.invalidateCompetition(competition.getId());
+            }
             recordStatus("success", matchesUpdated, batch.teamsUpdated(), null);
             log.info("Sincronización de {} con {}: {} equipos y {} partidos actualizados en {} ms",
                     competition.getName(), provider.getProviderName(), batch.teamsUpdated(), matchesUpdated,
@@ -187,6 +191,9 @@ public class SyncService {
 
         knockoutBracketService.propagateKnockoutWinners();
         standingsService.recalculateStandingsFromMatches();
+        if (batch.resultsChanged()) {
+            scoreInvalidationService.invalidateCompetition(competition.getId());
+        }
         log.info("Importados {} equipos y {} partidos de {}", importedTeams, batch.matchesUpdated(), competition.getName());
         return new ImportResult(competition.getName(), importedTeams, batch.matchesUpdated());
     }

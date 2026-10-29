@@ -51,6 +51,7 @@ public class MatchEventProcessor {
         private final Competition competition;
         private int teamsUpdated;
         private int matchesUpdated;
+        private boolean resultsChanged;
 
         public Batch(Competition competition) {
             this.competition = competition;
@@ -62,6 +63,11 @@ public class MatchEventProcessor {
 
         public int matchesUpdated() {
             return matchesUpdated;
+        }
+
+        /** Si ha cambiado algún resultado (equipos, marcador final, ganador o fin del partido). */
+        public boolean resultsChanged() {
+            return resultsChanged;
         }
     }
 
@@ -301,13 +307,15 @@ public class MatchEventProcessor {
             match.setCompetition(batch.competition);
             updated = true;
         }
-        updated |= setIfChanged(match.getHomeTeam(), home, match::setHomeTeam);
-        updated |= setIfChanged(match.getAwayTeam(), away, match::setAwayTeam);
-        updated |= setIfChanged(match.getWinnerTeam(), scores.winner(), match::setWinnerTeam);
+        boolean homeChanged = setTeamIfChanged(match.getHomeTeam(), home, match::setHomeTeam);
+        boolean awayChanged = setTeamIfChanged(match.getAwayTeam(), away, match::setAwayTeam);
+        boolean winnerChanged = setTeamIfChanged(match.getWinnerTeam(), scores.winner(), match::setWinnerTeam);
+        updated |= homeChanged | awayChanged | winnerChanged;
         updated |= setIfChanged(match.getHomeScore(), scores.home(), match::setHomeScore);
         updated |= setIfChanged(match.getAwayScore(), scores.away(), match::setAwayScore);
         updated |= setIfChanged(match.getMatchDate(), date, match::setMatchDate);
-        updated |= setIfChanged(match.getFinished(), status.finished(), match::setFinished);
+        boolean finishedChanged = setIfChanged(match.getFinished(), status.finished(), match::setFinished);
+        updated |= finishedChanged;
         updated |= setIfChanged(match.getDisplayClock(), status.displayClock(), match::setDisplayClock);
         if (meta.groupName() != null) {
             updated |= setIfChanged(match.getGroupName(), meta.groupName(), match::setGroupName);
@@ -340,6 +348,9 @@ public class MatchEventProcessor {
         if (!updated) return;
         matchRepository.save(match);
         batch.matchesUpdated++;
+        if (homeChanged || awayChanged || winnerChanged || finishedChanged || (status.finished() && scoreChanged)) {
+            batch.resultsChanged = true;
+        }
         if (scoreChanged) {
             webSocketService.broadcastMatchScore(
                     match.getId(),
@@ -353,6 +364,19 @@ public class MatchEventProcessor {
 
     private static <T> boolean setIfChanged(T current, T value, Consumer<T> setter) {
         if (Objects.equals(current, value)) return false;
+        setter.accept(value);
+        return true;
+    }
+
+    /**
+     * Compara equipos por id: el partido se carga en cada pasada con instancias nuevas de sus equipos,
+     * distintas de las de la caché, y compararlas por referencia daría siempre un cambio.
+     */
+    private static boolean setTeamIfChanged(Team current, Team value, Consumer<Team> setter) {
+        boolean same = current == value
+                || (current != null && value != null && current.getId() != null
+                        && current.getId().equals(value.getId()));
+        if (same) return false;
         setter.accept(value);
         return true;
     }

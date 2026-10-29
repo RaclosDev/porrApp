@@ -9,14 +9,21 @@ import com.porra.mundial.repository.TeamRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +37,9 @@ class StandingsServiceTest {
 
     @Mock
     private TeamRepository teamRepository;
+
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
 
     @InjectMocks
     private StandingsService standingsService;
@@ -145,5 +155,33 @@ class StandingsServiceTest {
         
         assertEquals(-1, result.get("L").get("T3_L").get("status"));
         assertEquals(-1, result.get("I").get("T3_I").get("status"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recalculationInvalidatesBracketScoresOnlyWhenTheStandingsChange() {
+        Team spain = Team.builder().id(1L).name("España").groupName("H").build();
+        Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
+        Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
+                .homeScore(2).awayScore(0).finished(true).matchDate(LocalDateTime.of(2026, 6, 15, 21, 0)).build();
+        when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
+        when(matchRepository.findAll()).thenReturn(List.of(played));
+        when(standingRepository.findAll()).thenReturn(List.of());
+
+        standingsService.recalculateStandingsFromMatches();
+
+        verify(scoreInvalidationService).invalidateWorldCup();
+        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
+        verify(standingRepository).saveAll(saved.capture());
+        assertEquals(3, saved.getValue().get(0).getPoints());
+
+        // Mismos partidos sobre la clasificación ya guardada: nada que recalcular.
+        clearInvocations(scoreInvalidationService, standingRepository);
+        when(standingRepository.findAll()).thenReturn(new ArrayList<>(saved.getValue()));
+
+        standingsService.recalculateStandingsFromMatches();
+
+        verify(standingRepository).saveAll(anyList());
+        verify(scoreInvalidationService, never()).invalidateWorldCup();
     }
 }

@@ -37,6 +37,7 @@ public class PredictionService {
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
+    private final ScoreInvalidationService scoreInvalidationService;
 
     /** Nombre que el cuadro oficial usaba antes de existir {@code is_official}; queda reservado. */
     static final String RESERVED_OFFICIAL_NAME = "official";
@@ -177,9 +178,17 @@ public class PredictionService {
 
         if (participantName != null) prediction.setParticipantName(participantName);
         if (predictionName != null) prediction.setName(predictionName);
-        if (predictionData != null) prediction.setBracketData(predictionData);
+        if (predictionData != null) {
+            prediction.setBracketData(predictionData);
+            prediction.setScoreCalculatedAt(null);
+        }
 
-        return predictionRepository.save(prediction);
+        Prediction saved = predictionRepository.save(prediction);
+        if (predictionData != null && prediction.isOfficial()) {
+            // El cuadro oficial puntúa las porras de todos.
+            scoreInvalidationService.invalidateWorldCup();
+        }
+        return saved;
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)

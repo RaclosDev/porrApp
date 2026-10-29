@@ -33,16 +33,19 @@ public class TopScorerService {
     private final WebSocketService webSocketService;
     private final HttpClient httpClient;
     private final SportsDataProvider sportsDataProvider;
+    private final ScoreInvalidationService scoreInvalidationService;
 
     public TopScorerService(
             ObjectMapper objectMapper,
             WebSocketService webSocketService,
             HttpClient httpClient,
-            @Qualifier("espnSportsDataProvider") SportsDataProvider sportsDataProvider) {
+            @Qualifier("espnSportsDataProvider") SportsDataProvider sportsDataProvider,
+            ScoreInvalidationService scoreInvalidationService) {
         this.objectMapper = objectMapper;
         this.webSocketService = webSocketService;
         this.httpClient = httpClient;
         this.sportsDataProvider = sportsDataProvider;
+        this.scoreInvalidationService = scoreInvalidationService;
     }
 
     // Date range covering the entire World Cup
@@ -85,8 +88,17 @@ public class TopScorerService {
             processEvents(events, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams, playerImages);
 
             List<TopScorerDTO> scorers = buildScorersList(playerGoals, playerShortNames, playerPositions, playerIds, playerTeams, playerImages);
-            
+            List<TopScorerDTO> previous = cachedScorers.get();
+            if (scorers.isEmpty() && !previous.isEmpty()) {
+                // Los goles no se pierden: una lista vacía tras tener goleadores es que ESPN no ha respondido.
+                log.warn("TopScorerService: ESPN no ha devuelto goleadores; se conservan los {} anteriores", previous.size());
+                return;
+            }
             cachedScorers.set(scorers);
+            if (!scorers.equals(previous)) {
+                // El pichichi puntúa los cuadros.
+                scoreInvalidationService.invalidateWorldCup();
+            }
             log.info("TopScorerService: Refreshed {} scorers from ESPN. Leader: {} ({} goals)",
                     scorers.size(),
                     scorers.isEmpty() ? "none" : scorers.get(0).name(),

@@ -28,6 +28,7 @@ public class StandingsService {
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
     private final TeamRepository teamRepository;
+    private final ScoreInvalidationService scoreInvalidationService;
 
     /**
      * Obtiene la clasificación completa de todos los grupos ya ordenada.
@@ -285,6 +286,8 @@ public class StandingsService {
         Map<Long, GroupStanding> existingByTeam = standingRepository.findAll().stream()
                 .filter(gs -> gs.getTeam() != null && gs.getTeam().getId() != null)
                 .collect(Collectors.toMap(gs -> gs.getTeam().getId(), gs -> gs, (a, b) -> a));
+        Map<Long, List<Object>> previousStandings = new HashMap<>();
+        existingByTeam.forEach((teamId, gs) -> previousStandings.put(teamId, scoringFields(gs)));
 
         List<Team> allTeams = teamRepository.findAll();
         Map<String, List<GroupStanding>> standingsByGroup = new TreeMap<>();
@@ -377,5 +380,17 @@ public class StandingsService {
         }
 
         standingRepository.saveAll(allSortedStandings);
+
+        boolean changed = allSortedStandings.stream()
+                .anyMatch(gs -> !scoringFields(gs).equals(previousStandings.get(gs.getTeam().getId())));
+        if (changed) {
+            scoreInvalidationService.invalidateWorldCup();
+        }
+    }
+
+    /** Datos de la clasificación que puntúan los cuadros: si cambia alguno, hay que recalcular las porras. */
+    private static List<Object> scoringFields(GroupStanding gs) {
+        return Arrays.asList(gs.getGroupName(), gs.getPoints(), gs.getGoalDiff(), gs.getGoalsFor(),
+                gs.getMatchesPlayed(), gs.getFairPlayPoints(), gs.getPosition(), gs.getStatus());
     }
 }

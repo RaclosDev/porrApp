@@ -35,13 +35,17 @@ class TopScorerServiceTest {
     @Mock
     private SportsDataProvider sportsDataProvider;
 
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
+
     private ObjectMapper objectMapper;
     private TopScorerService topScorerService;
 
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        topScorerService = new TopScorerService(objectMapper, webSocketService, httpClient, sportsDataProvider);
+        topScorerService = new TopScorerService(objectMapper, webSocketService, httpClient, sportsDataProvider,
+                scoreInvalidationService);
     }
 
     @Test
@@ -142,6 +146,43 @@ class TopScorerServiceTest {
         verify(webSocketService, times(1)).invalidateAndNotify();
     }
 
+    private JsonNode goalBy(String player) throws Exception {
+        return objectMapper.readTree("""
+                [{"competitions": [{
+                  "competitors": [{"id": "1", "team": {"displayName": "France"}}],
+                  "details": [{"scoringPlay": true, "ownGoal": false, "team": {"id": "1"},
+                               "athletesInvolved": [{"id": "10", "displayName": "%s", "shortName": "%s", "position": "FW"}]}]
+                }]}]
+                """.formatted(player, player));
+    }
+
+    @Test
+    @DisplayName("Invalida las puntuaciones de los cuadros solo cuando cambian los goleadores")
+    void refresh_invalidatesBracketScoresOnlyWhenScorersChange() throws Exception {
+        JsonNode events = goalBy("Kylian Mbappé");
+        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(events);
+
+        topScorerService.refresh();
+        topScorerService.refresh();
+
+        verify(scoreInvalidationService, times(1)).invalidateWorldCup();
+    }
+
+    @Test
+    @DisplayName("Conserva los goleadores si ESPN deja de devolverlos")
+    void refresh_keepsScorersWhenProviderReturnsNoEvents() throws Exception {
+        JsonNode events = goalBy("Kylian Mbappé");
+        when(sportsDataProvider.fetchScoreboardEvents(anyString()))
+                .thenReturn(events)
+                .thenReturn(objectMapper.createArrayNode());
+
+        topScorerService.refresh();
+        topScorerService.refresh();
+
+        assertEquals(1, topScorerService.getTopScorers().size());
+        verify(scoreInvalidationService, times(1)).invalidateWorldCup();
+    }
+
     @Test
     @DisplayName("Debe manejar fallos del proveedor sin propagar excepcion")
     void refresh_handlesExceptionGracefully() throws Exception {
@@ -188,6 +229,11 @@ class TopScorerServiceTest {
         @Bean
         public HttpClient httpClient() {
             return mock(HttpClient.class);
+        }
+
+        @Bean
+        public ScoreInvalidationService scoreInvalidationService() {
+            return mock(ScoreInvalidationService.class);
         }
     }
 }

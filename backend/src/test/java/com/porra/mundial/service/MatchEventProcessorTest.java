@@ -151,4 +151,47 @@ class MatchEventProcessorTest {
         verify(matchRepository, never()).save(any());
         assertEquals(0, second.matchesUpdated());
     }
+
+    @Test
+    @DisplayName("Un gol en directo no cambia los resultados que puntúan los cuadros; el final del partido, sí")
+    void flagsResultChangesOnlyWhenTheResultCounts() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        processor.process(event("in", false, "Round of 16", "1", "0", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+        Match stored = savedMatch();
+        stored.setId(10L);
+        reset(matchRepository);
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.of(stored));
+
+        MatchEventProcessor.Batch goal = new MatchEventProcessor.Batch(worldCup);
+        processor.process(event("in", false, "Round of 16", "2", "0", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, goal);
+        assertEquals(1, goal.matchesUpdated());
+        assertFalse(goal.resultsChanged());
+
+        MatchEventProcessor.Batch fullTime = new MatchEventProcessor.Batch(worldCup);
+        processor.process(event("post", true, "Round of 16", "2", "0", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, fullTime);
+        assertTrue(fullTime.resultsChanged());
+    }
+
+    @Test
+    @DisplayName("Los equipos cargados de nuevo con el partido no cuentan como cambio")
+    void comparesTeamsById() throws Exception {
+        JsonNode e = event("post", true, "Group H", "2", "1", "Spain", "164", "Uruguay", "212", "[]");
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        processor.process(e, cache, new MatchEventProcessor.Batch(worldCup));
+        Match stored = savedMatch();
+        stored.setId(10L);
+        stored.setHomeTeam(Team.builder().id(spain.getId()).name(spain.getName()).build());
+        stored.setAwayTeam(Team.builder().id(uruguay.getId()).name(uruguay.getName()).build());
+
+        reset(matchRepository);
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.of(stored));
+        MatchEventProcessor.Batch second = new MatchEventProcessor.Batch(worldCup);
+        processor.process(e, cache, second);
+
+        verify(matchRepository, never()).save(any());
+        assertFalse(second.resultsChanged());
+    }
 }

@@ -24,6 +24,9 @@ class KnockoutBracketServiceTest {
     @Mock
     private MatchRepository matchRepository;
 
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
+
     @InjectMocks
     private KnockoutBracketService service;
 
@@ -71,6 +74,7 @@ class KnockoutBracketServiceTest {
         assertSame(france, third.getHomeTeam());
         assertSame(brazil, third.getAwayTeam());
         verify(matchRepository, times(4)).save(any(Match.class));
+        verify(scoreInvalidationService).invalidateWorldCup();
     }
 
     @Test
@@ -82,6 +86,7 @@ class KnockoutBracketServiceTest {
 
         assertEquals(0, service.propagateKnockoutWinners());
         verify(matchRepository, never()).save(any());
+        verify(scoreInvalidationService, never()).invalidateWorldCup();
     }
 
     @Test

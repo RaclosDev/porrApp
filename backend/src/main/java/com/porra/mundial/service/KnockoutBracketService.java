@@ -26,6 +26,7 @@ public class KnockoutBracketService {
     private final MatchRepository matchRepository;
     private final PredictionRepository predictionRepository;
     private final PredictionService predictionService;
+    private final ScoreInvalidationService scoreInvalidationService;
 
     /** Partidos de las últimas rondas, ya clasificados. */
     record FinalRounds(List<Match> semis, Match finalMatch, Match thirdPlaceMatch) {
@@ -48,6 +49,9 @@ public class KnockoutBracketService {
                 String slot = i == 0 ? "home" : "away";
                 if (placeTeam(rounds.finalMatch(), winnerOf(semi), slot)) updated++;
                 if (placeTeam(rounds.thirdPlaceMatch(), loserOf(semi), slot)) updated++;
+            }
+            if (updated > 0) {
+                scoreInvalidationService.invalidateWorldCup();
             }
             return updated;
         } catch (Exception e) {
