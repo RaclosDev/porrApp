@@ -407,6 +407,12 @@ public class GroupService {
                 .collect(Collectors.toList());
     }
 
+    /** Edición activa (la que se está jugando) de una liga. */
+    @Transactional(readOnly = true)
+    public Optional<Edition> findActiveEdition(Long leagueId) {
+        return editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE");
+    }
+
     /** Liga con su edición activa; el código de invitación solo se incluye si se indica. */
     @Transactional(readOnly = true)
     public GroupResponseDTO toResponse(League league, boolean includeJoinCode) {
@@ -430,6 +436,20 @@ public class GroupService {
     @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
     public Optional<League> getGroupById(Long id) {
         return leagueRepository.findById(id);
+    }
+
+    /**
+     * Comprueba que el usuario puede ver los datos de una liga: la Porra Global es pública,
+     * el resto solo para sus miembros.
+     *
+     * @throws SecurityException si la liga es privada y el usuario no pertenece a ella
+     */
+    @Transactional(readOnly = true)
+    public void assertCanView(Long groupId, String email) {
+        if (groupId == null || League.isGlobalId(groupId)) return;
+        if (!isUserMemberOrAdmin(groupId, email)) {
+            throw new SecurityException("No perteneces a esta liga privada");
+        }
     }
 
     @Transactional(readOnly = true)

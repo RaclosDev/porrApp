@@ -224,4 +224,28 @@ class GroupServiceTest {
         assertEquals("ad***@test.com", members.get(0).getGoogleEmail(), "El email ajeno debe estar ofuscado para miembros no administradores");
         assertEquals("member@test.com", members.get(1).getGoogleEmail(), "El miembro ve su propio email sin ofuscar");
     }
+    @Test
+    void assertCanView_GlobalLeagueIsPublic() {
+        assertDoesNotThrow(() -> groupService.assertCanView(League.GLOBAL_ID, null));
+    }
+
+    @Test
+    void assertCanView_RejectsNonMembersOfPrivateLeague() {
+        UserAccount stranger = UserAccount.builder().id(7L).googleEmail("stranger@test.com").build();
+        when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
+        when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
+
+        SecurityException e = assertThrows(SecurityException.class, () -> groupService.assertCanView(10L, "stranger@test.com"));
+        assertEquals("No perteneces a esta liga privada", e.getMessage());
+        assertThrows(SecurityException.class, () -> groupService.assertCanView(10L, null));
+    }
+
+    @Test
+    void assertCanView_AllowsMembers() {
+        UserAccount member = UserAccount.builder().id(8L).googleEmail("member@test.com").build();
+        when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(membershipRepository.existsById(new Membership.MembershipId(8L, 10L))).thenReturn(true);
+
+        assertDoesNotThrow(() -> groupService.assertCanView(10L, "member@test.com"));
+    }
 }

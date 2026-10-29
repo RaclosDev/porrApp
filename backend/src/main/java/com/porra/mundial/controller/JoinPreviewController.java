@@ -2,8 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
-import com.porra.mundial.repository.EditionRepository;
-import com.porra.mundial.repository.LeagueRepository;
+import com.porra.mundial.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
@@ -42,8 +41,7 @@ public class JoinPreviewController {
     private static final int IMAGE_WIDTH = 1200;
     private static final int IMAGE_HEIGHT = 360;
 
-    private final LeagueRepository leagueRepository;
-    private final EditionRepository editionRepository;
+    private final GroupService groupService;
 
     @GetMapping(value = "/join/{code}", produces = MediaType.TEXT_HTML_VALUE)
     public String preview(@PathVariable String code) throws IOException {
@@ -67,7 +65,7 @@ public class JoinPreviewController {
             imageAlt = leagueName;
             description = "Porra de fútbol";
 
-            Optional<Edition> activeEdition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE");
+            Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
             if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
                 String competitionName = activeEdition.get().getCompetition().getName();
                 String format = activeEdition.get().getPoolFormat() != null
@@ -118,7 +116,7 @@ public class JoinPreviewController {
             League league = leagueOptional.get();
             name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
             leagueImageUrl = league.getImageUrl();
-            Optional<Edition> activeEdition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE");
+            Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
             if (activeEdition.isPresent()) {
                 Edition edition = activeEdition.get();
                 if (edition.getCompetition() != null && edition.getCompetition().getName() != null) {
@@ -228,7 +226,7 @@ public class JoinPreviewController {
     }
 
     private Optional<League> findLeague(String code) {
-        return leagueRepository.findByJoinCode(code.trim().toUpperCase());
+        return groupService.getGroupByJoinCode(code.trim().toUpperCase());
     }
 
     private void drawPill(Graphics2D graphics, String text, int x, int y,

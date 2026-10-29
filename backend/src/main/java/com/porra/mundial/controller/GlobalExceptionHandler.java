@@ -1,154 +1,115 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
- * Gestor Global de Excepciones para la API REST.
- * Actúa como una red de seguridad (@ControllerAdvice) que intercepta los errores lanzados 
- * en cualquier punto de los Controladores y los transforma en respuestas JSON estructuradas, 
- * evitando la fuga de trazas internas o datos sensibles hacia el cliente.
+ * Traduce las excepciones a respuestas {@code {"error": "..."}} con el código HTTP adecuado,
+ * sin exponer trazas internas al cliente.
+ * <ul>
+ *   <li>{@link IllegalArgumentException}: 400, dato de entrada no válido.</li>
+ *   <li>{@link SecurityException}: 403, sin permiso sobre el recurso.</li>
+ *   <li>{@link NoSuchElementException}: 404.</li>
+ *   <li>{@link IllegalStateException}: 409, la operación no es posible en el estado actual (p. ej. porra cerrada).</li>
+ * </ul>
  */
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
-    /**
-     * Maneja excepciones de estado HTTP explícitas lanzadas por controladores Spring.
-     */
-    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
-    public ResponseEntity<Map<String, String>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getReason() != null ? ex.getReason() : "Error en la solicitud");
-        return ResponseEntity.status(ex.getStatusCode()).body(error);
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+        return error(ex.getStatusCode(), ex.getReason() != null ? ex.getReason() : "Error en la solicitud");
     }
 
-    /**
-     * Maneja errores de acceso denegado por seguridad Spring.
-     */
-    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-    public ResponseEntity<Map<String, String>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage() != null ? ex.getMessage() : "Acceso denegado");
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        return error(HttpStatus.FORBIDDEN, ex.getMessage() != null ? ex.getMessage() : "Acceso denegado");
     }
 
-    /**
-     * Archivo subido por encima del límite configurado (spring.servlet.multipart.max-file-size).
-     */
-    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
-    public ResponseEntity<Map<String, String>> handleMaxUploadSize(org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "La imagen supera el tamaño máximo de 3 MB.");
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
+    /** Archivo por encima de spring.servlet.multipart.max-file-size. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "La imagen supera el tamaño máximo de 3 MB.");
     }
 
-    /**
-     * Petición multipart sin el campo "file" o mal formada.
-     */
-    @ExceptionHandler({org.springframework.web.multipart.support.MissingServletRequestPartException.class,
-            org.springframework.web.multipart.MultipartException.class})
-    public ResponseEntity<Map<String, String>> handleMultipartProblems(Exception ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "No se ha recibido ningún archivo válido.");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    /** Petición multipart sin el campo "file" o mal formada. */
+    @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
+    public ResponseEntity<ErrorResponse> handleMultipartProblems(Exception ex) {
+        return error(HttpStatus.BAD_REQUEST, "No se ha recibido ningún archivo válido.");
     }
 
-    /**
-     * Maneja errores de validación de negocio (ej. "El plazo para enviar pronósticos ha finalizado").
-     */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error); // Devuelve código HTTP 400
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    /**
-     * Maneja errores cuando se busca en BD una entidad que no existe (ej. Grupo borrado o pronóstico Borrada).
-     */
     @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<Map<String, String>> handleNoSuchElementException(NoSuchElementException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage() != null ? ex.getMessage() : "Recurso no encontrado");
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error); // Devuelve código HTTP 404
+    public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException ex) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage() != null ? ex.getMessage() : "Recurso no encontrado");
     }
 
-    /**
-     * Maneja errores de permisos (ej. "Solo el administrador de este grupo puede borrarlo").
-     */
     @ExceptionHandler(SecurityException.class)
-    public ResponseEntity<Map<String, String>> handleSecurityException(SecurityException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error); // Devuelve código HTTP 403
+    public ResponseEntity<ErrorResponse> handleSecurity(SecurityException ex) {
+        return error(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
-    /**
-     * Maneja errores de estado o plazos vencidos (ej. porra bloqueada tras el cierre).
-     */
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalStateException(IllegalStateException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
+        return error(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    /**
-     * Maneja violaciones de integridad relacional o restricciones de unicidad concurrentes.
-     */
+    /** Restricciones de unicidad o integridad violadas, normalmente por peticiones concurrentes. */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, String>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
-        log.warn("Violación de integridad de datos en base de datos: {}", ex.getMessage());
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Conflicto con los datos existentes o registro duplicado.");
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Violación de integridad de datos: {}", ex.getMessage());
+        return error(HttpStatus.CONFLICT, "Conflicto con los datos existentes o registro duplicado.");
     }
 
-    /**
-     * Maneja errores de validación de JSON en entrada de Spring (@Valid en los DTOs).
-     */
+    /** Validación de los DTOs con @Valid: se devuelve el primer mensaje de error. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
-                .map(org.springframework.validation.FieldError::getDefaultMessage)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
                 .findFirst()
                 .orElse("Datos inválidos");
-        errors.put("error", errorMessage);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+        return error(HttpStatus.BAD_REQUEST, message);
     }
 
-    /**
-     * Manejador de fallback o comodín sanitizado.
-     * Atrapa cualquier otra excepción no contemplada evitando exponer detalles internos de BD o Tomcat.
-     */
-    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
-            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
-    public ResponseEntity<Map<String, String>> handleMalformedRequest(Exception ex) {
-        return ResponseEntity.badRequest().body(Map.of("error", "La petición no tiene un formato válido."));
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ErrorResponse> handleMalformedRequest(Exception ex) {
+        return error(HttpStatus.BAD_REQUEST, "La petición no tiene un formato válido.");
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
+    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
         // Errores del propio Spring MVC (ruta inexistente, método no permitido...) conservan su código HTTP.
-        if (ex instanceof org.springframework.web.ErrorResponse errorResponse) {
-            return ResponseEntity.status(errorResponse.getStatusCode())
-                    .body(Map.of("error", errorResponse.getBody().getDetail() != null
-                            ? errorResponse.getBody().getDetail() : "Error en la solicitud"));
+        if (ex instanceof org.springframework.web.ErrorResponse springError) {
+            String detail = springError.getBody().getDetail();
+            return error(springError.getStatusCode(), detail != null ? detail : "Error en la solicitud");
         }
         log.error("Excepción no controlada en el servidor: ", ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Ha ocurrido un error inesperado en el servidor.");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Ha ocurrido un error inesperado en el servidor.");
+    }
+
+    private static ResponseEntity<ErrorResponse> error(HttpStatusCode status, String message) {
+        return ResponseEntity.status(status).body(new ErrorResponse(message));
     }
 }

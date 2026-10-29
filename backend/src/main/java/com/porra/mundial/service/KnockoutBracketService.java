@@ -4,6 +4,7 @@ import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.repository.PredictionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,8 @@ import java.util.Objects;
 public class KnockoutBracketService {
 
     private final MatchRepository matchRepository;
+    private final PredictionRepository predictionRepository;
+    private final PredictionService predictionService;
 
     /** Partidos de las últimas rondas, ya clasificados. */
     record FinalRounds(List<Match> semis, Match finalMatch, Match thirdPlaceMatch) {
@@ -92,6 +95,19 @@ public class KnockoutBracketService {
         } catch (Exception e) {
             log.warn("No se pudo completar el cuadro oficial con los partidos: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Cuadro oficial: el pronóstico marcado como oficial (si existe) completado con los
+     * resultados reales de las rondas finales.
+     */
+    public PredictionDataDTO officialBracket() {
+        PredictionDataDTO bracket = predictionRepository.findByIsOfficialTrue()
+                .or(() -> predictionRepository.findByName("official"))
+                .map(official -> predictionService.getPredictionData(official.getId()))
+                .orElseGet(PredictionDataDTO::new);
+        enrichPredictionDataWithMatches(bracket);
+        return bracket;
     }
 
     private FinalRounds findFinalRounds() {

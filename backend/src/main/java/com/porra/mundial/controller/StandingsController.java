@@ -1,58 +1,32 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.PredictionDataDTO;
-import com.porra.mundial.model.Prediction;
-import com.porra.mundial.repository.PredictionRepository;
-import com.porra.mundial.service.LeaderboardService;
-import com.porra.mundial.service.PredictionService;
-import com.porra.mundial.service.StandingsService;
 import com.porra.mundial.service.KnockoutBracketService;
+import com.porra.mundial.service.StandingsService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-import java.util.Optional;
 
-/**
- * Controlador de Clasificaciones Oficiales, Cuadro Oficial y Exportacion.
- */
+/** Clasificaciones de la fase de grupos y cuadro oficial del torneo. */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/standings")
 @RequiredArgsConstructor
 public class StandingsController {
 
     private final StandingsService standingsService;
     private final KnockoutBracketService knockoutBracketService;
-    private final PredictionRepository predictionRepository;
-    private final PredictionService predictionService;
-    private final LeaderboardService leaderboardService;
-    private final com.porra.mundial.service.GroupService groupService;
 
-    @GetMapping("/standings")
+    /** Puntos de cada equipo por grupo: grupo -> equipo -> estadística (pts, diff, gls, mp...). */
+    @GetMapping
     public Map<String, Map<String, Map<String, Integer>>> getStandings() {
         return standingsService.getOfficialPoints();
     }
 
-    @GetMapping("/standings/official-bracket")
-    public ResponseEntity<?> getOfficialBracket() {
-        Optional<Prediction> officialPrediction = predictionRepository.findByIsOfficialTrue()
-                .or(() -> predictionRepository.findByName("official"));
-
-        if (officialPrediction.isPresent()) {
-            try {
-                PredictionDataDTO dto = predictionService.getPredictionData(officialPrediction.get().getId());
-                knockoutBracketService.enrichPredictionDataWithMatches(dto);
-                return ResponseEntity.ok(dto);
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Map.of("error", "Error construyendo el cuadro oficial"));
-            }
-        }
-
-        PredictionDataDTO fallbackDto = new PredictionDataDTO();
-        knockoutBracketService.enrichPredictionDataWithMatches(fallbackDto);
-        return ResponseEntity.ok(fallbackDto);
+    @GetMapping("/official-bracket")
+    public PredictionDataDTO getOfficialBracket() {
+        return knockoutBracketService.officialBracket();
     }
 }
