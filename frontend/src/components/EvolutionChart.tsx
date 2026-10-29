@@ -434,7 +434,7 @@ export default function EvolutionChart({ validResults, userName, allGames }) {
     else if (rawRange <= 600) step = 100;
     else step = 200;
 
-    let yMin = Math.floor(minPts / step) * step;
+    const yMin = Math.floor(minPts / step) * step;
     let yMax = Math.ceil(maxPts / step) * step;
     if (yMax <= yMin) yMax = yMin + step;
 
