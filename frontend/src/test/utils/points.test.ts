@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { compareTeams } from '../../utils/points';
+import { game } from '../fixtures';
 
 describe('compareTeams in points.ts', () => {
   const teamA = { name: 'España' };
@@ -64,14 +65,7 @@ describe('compareTeams in points.ts', () => {
     };
 
     const nameToId = { España: 1, Alemania: 2 };
-    const allGames = [
-      {
-        home_team_id: 1,
-        away_team_id: 2,
-        home_score: '2',
-        away_score: '1',
-      },
-    ];
+    const allGames = [game({ home_team_id: 1, away_team_id: 2, home_score: 2, away_score: 1 })];
 
     const result = compareTeams(teamA, teamB, 'Grupo A', officialPoints, allGames, nameToId);
     expect(result).toBeLessThan(0);

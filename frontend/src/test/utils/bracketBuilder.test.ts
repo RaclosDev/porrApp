@@ -1,32 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildBracketData } from '../../utils/bracketBuilder';
-import type { Match } from '../../types/api';
-
-/** Partido con valores neutros; cada test fija solo los campos que le importan. */
-const game = (fields: Partial<Match>): Match => ({
-  id: 0,
-  home: '',
-  away: '',
-  home_team_id: null,
-  away_team_id: null,
-  homeLogo: null,
-  awayLogo: null,
-  homeTeamLogo: null,
-  awayTeamLogo: null,
-  homeScore: null,
-  awayScore: null,
-  home_score: null,
-  away_score: null,
-  date: null,
-  finished: false,
-  round: '',
-  groupName: null,
-  winner: null,
-  displayClock: null,
-  isStartingSoon: false,
-  status: '',
-  ...fields,
-});
+import { game } from '../fixtures';
 
 describe('bracketBuilder', () => {
   it('does not mistake finished group matches for the tournament final or 3rd place match', () => {

@@ -8,34 +8,34 @@ describe('reconstructBracketState', () => {
       final: ['España', 'Brasil'],
       champion: 'España',
     });
-    expect(state1.final.home.name).toBe('España');
-    expect(state1.final.away.name).toBe('Brasil');
-    expect(state1.champion.name).toBe('España');
+    expect(state1?.final?.home?.name).toBe('España');
+    expect(state1?.final?.away?.name).toBe('Brasil');
+    expect(state1?.champion?.name).toBe('España');
 
     // Object with home/away strings
     const state2 = reconstructBracketState({
       final: { home: 'Paraguay', away: 'Suiza' },
       champion: 'Paraguay',
     });
-    expect(state2.final.home.name).toBe('Paraguay');
-    expect(state2.final.away.name).toBe('Suiza');
+    expect(state2?.final?.home?.name).toBe('Paraguay');
+    expect(state2?.final?.away?.name).toBe('Suiza');
 
     // Object with home/away { name } objects
     const state3 = reconstructBracketState({
       final: { home: { name: 'Francia' }, away: { name: 'Alemania' } },
       champion: { name: 'Francia' },
     });
-    expect(state3.final.home.name).toBe('Francia');
-    expect(state3.final.away.name).toBe('Alemania');
-    expect(state3.champion.name).toBe('Francia');
+    expect(state3?.final?.home?.name).toBe('Francia');
+    expect(state3?.final?.away?.name).toBe('Alemania');
+    expect(state3?.champion?.name).toBe('Francia');
 
     // finalMatch key
     const state4 = reconstructBracketState({
       finalMatch: ['Argentina', 'Portugal'],
       champion: 'Argentina',
     });
-    expect(state4.final.home.name).toBe('Argentina');
-    expect(state4.final.away.name).toBe('Portugal');
+    expect(state4?.final?.home?.name).toBe('Argentina');
+    expect(state4?.final?.away?.name).toBe('Portugal');
   });
 
   it('correctly populates r32 from r1 fallback or groups fallback', () => {
@@ -44,10 +44,10 @@ describe('reconstructBracketState', () => {
     const stateFromR1 = reconstructBracketState({
       r1: dummyR1,
     });
-    expect(stateFromR1.r32.left).toHaveLength(8);
-    expect(stateFromR1.r32.right).toHaveLength(8);
-    expect(stateFromR1.r32.left[0].home.name).toBe('Home0');
-    expect(stateFromR1.r32.right[0].home.name).toBe('Home8');
+    expect(stateFromR1?.r32.left).toHaveLength(8);
+    expect(stateFromR1?.r32.right).toHaveLength(8);
+    expect(stateFromR1?.r32.left[0].home?.name).toBe('Home0');
+    expect(stateFromR1?.r32.right[0].home?.name).toBe('Home8');
 
     // From groups fallback
     const mockGroups = {
@@ -77,10 +77,10 @@ describe('reconstructBracketState', () => {
         'Arabia Saudí',
       ],
     });
-    expect(stateFromGroups.r32.left).toHaveLength(8);
-    expect(stateFromGroups.r32.right).toHaveLength(8);
-    expect(stateFromGroups.r32.left[0].home.name).toBe('Alemania'); // 1E
-    expect(stateFromGroups.r32.left[2].home.name).toBe('Países Bajos'); // 1F
-    expect(stateFromGroups.r32.left[2].away.name).toBe('Marruecos'); // 2C
+    expect(stateFromGroups?.r32.left).toHaveLength(8);
+    expect(stateFromGroups?.r32.right).toHaveLength(8);
+    expect(stateFromGroups?.r32.left[0].home?.name).toBe('Alemania'); // 1E
+    expect(stateFromGroups?.r32.left[2].home?.name).toBe('Países Bajos'); // 1F
+    expect(stateFromGroups?.r32.left[2].away?.name).toBe('Marruecos'); // 2C
   });
 });
