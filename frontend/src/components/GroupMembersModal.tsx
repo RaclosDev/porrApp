@@ -1,3 +1,5 @@
+import { LeagueAvatar } from './Avatar';
+import { Check, Loader2, Settings2, TriangleAlert, Users, X } from 'lucide-react';
 import {
   useEffect,
   useMemo,
@@ -8,42 +10,19 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
-  Check,
-  Clock3,
-  Copy,
-  Crown,
-  Loader2,
-  Link2,
-  RefreshCw,
-  Search,
-  Settings2,
-  Share2,
-  ShieldCheck,
-  Trash2,
-  TriangleAlert,
-  UserMinus,
-  Users,
-  Wallet,
-  X,
-} from 'lucide-react';
-import {
   fetchGroupMembers,
   toggleGroupMemberPayment,
   kickGroupMember,
   regenerateGroupJoinCode,
 } from '../services/api';
-import ImagePicker from './ImagePicker';
-import { LeagueAvatar, UserAvatar } from './Avatar';
+import LeagueMembersTab from './league/LeagueMembersTab';
+import LeagueSettingsTab from './league/LeagueSettingsTab';
+import LeaveConfirmDialog from './league/LeaveConfirmDialog';
 import type { PaymentStatus } from '../types/api';
 import { errorMessage } from '../utils/errors';
 
-type CopyTarget = 'code' | 'link';
-
-const PAYMENT_FILTERS = [
-  { id: 'ALL', label: 'Todos' },
-  { id: 'PAID', label: 'Pagados' },
-  { id: 'PENDING', label: 'Pendientes' },
-];
+export type CopyTarget = 'code' | 'link';
+export type PaymentFilter = 'ALL' | 'PAID' | 'PENDING';
 
 /**
  * Administración de una liga: ajustes, invitaciones y control de pagos.
@@ -89,7 +68,7 @@ export default function GroupMembersModal({
   const [rulesText, setRulesText] = useState(initialRules || '');
   const [savingConfig, setSavingConfig] = useState(false);
   const [search, setSearch] = useState('');
-  const [paymentFilter, setPaymentFilter] = useState('ALL');
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('ALL');
   const [kickTargetId, setKickTargetId] = useState<number | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -467,493 +446,56 @@ export default function GroupMembersModal({
           )}
 
           {currentTab === 'members' && (
-            <div
-              id="league-admin-panel-members"
-              className="league-admin-panel-section"
-              role={isAdmin ? 'tabpanel' : undefined}
-              aria-labelledby={isAdmin ? 'league-admin-tab-members' : undefined}
-            >
-              <section className="league-admin-card">
-                <div className="league-admin-card-head">
-                  <h3>
-                    <Wallet size={14} aria-hidden="true" />
-                    Resumen de pagos
-                  </h3>
-                  <span className="league-admin-card-meta">
-                    {paidCount}/{members.length} pagados
-                  </span>
-                </div>
-                <div className="league-admin-stats">
-                  <div className="league-admin-stat">
-                    <span>
-                      <Users size={12} aria-hidden="true" />
-                      Miembros
-                    </span>
-                    <strong>{members.length}</strong>
-                  </div>
-                  <div className="league-admin-stat is-paid">
-                    <span>
-                      <Wallet size={12} aria-hidden="true" />
-                      Pagados
-                    </span>
-                    <strong>{paidCount}</strong>
-                  </div>
-                  <div className="league-admin-stat is-pending">
-                    <span>
-                      <Clock3 size={12} aria-hidden="true" />
-                      Pendientes
-                    </span>
-                    <strong>{pendingCount}</strong>
-                  </div>
-                </div>
-                <div className="league-admin-progress" aria-hidden="true">
-                  <span style={{ width: `${paidPercent}%` }} />
-                </div>
-                <p className="league-admin-progress-label">
-                  {paidPercent}% de los participantes han pagado
-                </p>
-              </section>
-
-              <section className="league-admin-card">
-                <div className="league-admin-card-head">
-                  <h3>
-                    <Link2 size={14} aria-hidden="true" />
-                    Invitar a la liga
-                  </h3>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      className="league-admin-text-btn"
-                      onClick={() => setConfirmRegenerate((open) => !open)}
-                    >
-                      <RefreshCw size={13} aria-hidden="true" />
-                      Regenerar código
-                    </button>
-                  )}
-                </div>
-                <p className="league-admin-muted">
-                  Comparte el código o el enlace. Quien lo tenga podrá unirse a la liga.
-                </p>
-                <div className="league-admin-invite">
-                  <button
-                    type="button"
-                    className="league-admin-code"
-                    onClick={() => copyText(activeCode, 'code', 'Código copiado')}
-                    disabled={!activeCode}
-                    title="Copiar código de invitación"
-                    aria-label={`Copiar código de invitación ${activeCode}`}
-                  >
-                    <span>{activeCode || 'Sin código'}</span>
-                    {copiedTarget === 'code' ? (
-                      <Check size={15} aria-hidden="true" />
-                    ) : (
-                      <Copy size={15} aria-hidden="true" />
-                    )}
-                  </button>
-                  <div className="league-admin-invite-actions">
-                    <button
-                      type="button"
-                      className={`league-admin-btn ${copiedTarget === 'link' ? 'is-success' : ''}`}
-                      onClick={() => copyText(inviteLink, 'link', 'Enlace de invitación copiado')}
-                      disabled={!activeCode}
-                    >
-                      {copiedTarget === 'link' ? (
-                        <Check size={15} aria-hidden="true" />
-                      ) : (
-                        <Copy size={15} aria-hidden="true" />
-                      )}
-                      {copiedTarget === 'link' ? 'Copiado' : 'Copiar enlace'}
-                    </button>
-                    <button
-                      type="button"
-                      className="league-admin-btn is-primary"
-                      onClick={handleShare}
-                      disabled={!activeCode}
-                    >
-                      <Share2 size={15} aria-hidden="true" />
-                      Compartir
-                    </button>
-                  </div>
-                </div>
-
-                {isAdmin && confirmRegenerate && (
-                  <div className="league-admin-confirm-box">
-                    <span>
-                      <TriangleAlert size={14} aria-hidden="true" />
-                      El código actual dejará de funcionar para nuevas altas.
-                    </span>
-                    <div>
-                      <button
-                        type="button"
-                        className="league-admin-btn is-danger"
-                        onClick={() => regenerateMutation.mutate()}
-                        disabled={regenerateMutation.isPending}
-                      >
-                        {regenerateMutation.isPending ? (
-                          <Loader2 className="league-admin-spin" size={14} aria-hidden="true" />
-                        ) : (
-                          <RefreshCw size={14} aria-hidden="true" />
-                        )}
-                        {regenerateMutation.isPending ? 'Regenerando…' : 'Regenerar'}
-                      </button>
-                      <button
-                        type="button"
-                        className="league-admin-btn is-ghost"
-                        onClick={() => setConfirmRegenerate(false)}
-                        disabled={regenerateMutation.isPending}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              <div className="league-admin-toolbar">
-                <div className="league-admin-search">
-                  <Search size={15} aria-hidden="true" />
-                  <input
-                    type="search"
-                    className="glass-input"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Buscar participante…"
-                    aria-label="Buscar participante"
-                  />
-                </div>
-                <div className="league-admin-filter" role="group" aria-label="Filtrar por pago">
-                  {PAYMENT_FILTERS.map((filter) => (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      className={paymentFilter === filter.id ? 'is-active' : ''}
-                      aria-pressed={paymentFilter === filter.id}
-                      onClick={() => setPaymentFilter(filter.id)}
-                    >
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="league-admin-member-list">
-                {isLoading &&
-                  [0, 1, 2].map((row) => (
-                    <div key={row} className="league-admin-member-skeleton skeleton" />
-                  ))}
-
-                {error && (
-                  <div className="league-admin-empty">
-                    <TriangleAlert size={20} aria-hidden="true" />
-                    <strong>No se pudieron cargar los miembros</strong>
-                    <span>Vuelve a abrir la liga para intentarlo de nuevo.</span>
-                  </div>
-                )}
-
-                {!isLoading && !error && visibleMembers.length === 0 && (
-                  <div className="league-admin-empty">
-                    <Users size={20} aria-hidden="true" />
-                    <strong>
-                      {members.length === 0 ? 'Aún no hay miembros' : 'Sin resultados'}
-                    </strong>
-                    <span>
-                      {members.length === 0
-                        ? 'Comparte el código de invitación para que se una el primer participante.'
-                        : 'Prueba con otro nombre o cambia el filtro de pago.'}
-                    </span>
-                  </div>
-                )}
-
-                {!isLoading &&
-                  !error &&
-                  visibleMembers.map((member) => {
-                    const isPaid = member.paymentStatus === 'PAID';
-                    const isSelf =
-                      currentUserId != null && String(member.userId) === String(currentUserId);
-                    const rowPaymentPending =
-                      paymentMutation.isPending &&
-                      String(paymentMutation.variables?.userId) === String(member.userId);
-                    const rowKickPending =
-                      kickMutation.isPending &&
-                      String(kickMutation.variables) === String(member.userId);
-                    const confirmingKick = String(kickTargetId) === String(member.userId);
-                    const canManage = isAdmin && !member.isAdmin;
-
-                    return (
-                      <article
-                        key={member.userId}
-                        className={`league-admin-member ${confirmingKick ? 'is-confirming' : ''}`}
-                      >
-                        <div className="league-admin-member-main">
-                          <UserAvatar
-                            url={member.avatarUrl}
-                            name={member.participantName}
-                            size={38}
-                          />
-                          <div className="league-admin-member-info">
-                            <div className="league-admin-member-name">
-                              <span>{member.participantName}</span>
-                              {member.isAdmin && (
-                                <span className="league-admin-badge">
-                                  <Crown size={10} aria-hidden="true" />
-                                  Admin
-                                </span>
-                              )}
-                              {isSelf && <span className="league-admin-badge is-you">Tú</span>}
-                            </div>
-                            <span
-                              className={`league-admin-member-status ${
-                                isPaid ? 'is-paid' : 'is-pending'
-                              }`}
-                            >
-                              {isPaid ? 'Pago recibido' : 'Pago pendiente'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="league-admin-member-actions">
-                          {canManage ? (
-                            <button
-                              type="button"
-                              className={`league-admin-pay ${isPaid ? 'is-paid' : 'is-pending'}`}
-                              onClick={() => {
-                                setActionError('');
-                                paymentMutation.mutate({
-                                  userId: member.userId,
-                                  status: isPaid ? 'PENDING' : 'PAID',
-                                });
-                              }}
-                              disabled={rowPaymentPending}
-                              aria-label={
-                                isPaid
-                                  ? `Marcar el pago de ${member.participantName} como pendiente`
-                                  : `Marcar el pago de ${member.participantName} como recibido`
-                              }
-                              title={isPaid ? 'Marcar como pendiente' : 'Marcar como pagado'}
-                            >
-                              {rowPaymentPending ? (
-                                <Loader2
-                                  className="league-admin-spin"
-                                  size={13}
-                                  aria-hidden="true"
-                                />
-                              ) : (
-                                <span className="league-admin-pay-dot" aria-hidden="true" />
-                              )}
-                              {isPaid ? 'Pagado' : 'Pendiente'}
-                            </button>
-                          ) : (
-                            <span
-                              className={`league-admin-pay is-readonly ${
-                                isPaid ? 'is-paid' : 'is-pending'
-                              }`}
-                            >
-                              <span className="league-admin-pay-dot" aria-hidden="true" />
-                              {isPaid ? 'Pagado' : 'Pendiente'}
-                            </span>
-                          )}
-
-                          {canManage &&
-                            (confirmingKick ? (
-                              <div
-                                className="league-admin-inline-confirm"
-                                role="group"
-                                aria-label={`Confirmar expulsión de ${member.participantName}`}
-                              >
-                                <span>¿Expulsar?</span>
-                                <button
-                                  type="button"
-                                  className="league-admin-mini-btn is-danger"
-                                  onClick={() => kickMutation.mutate(member.userId)}
-                                  disabled={rowKickPending}
-                                >
-                                  {rowKickPending ? (
-                                    <Loader2
-                                      className="league-admin-spin"
-                                      size={12}
-                                      aria-hidden="true"
-                                    />
-                                  ) : (
-                                    'Sí'
-                                  )}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="league-admin-mini-btn"
-                                  onClick={() => setKickTargetId(null)}
-                                  disabled={rowKickPending}
-                                >
-                                  No
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                className="league-admin-icon-btn is-danger"
-                                onClick={() => setKickTargetId(member.userId)}
-                                title={`Expulsar a ${member.participantName}`}
-                                aria-label={`Expulsar a ${member.participantName}`}
-                              >
-                                <UserMinus size={16} aria-hidden="true" />
-                              </button>
-                            ))}
-                        </div>
-                      </article>
-                    );
-                  })}
-              </div>
-            </div>
+            <LeagueMembersTab
+              members={members}
+              isLoading={isLoading}
+              error={error}
+              activeCode={activeCode}
+              confirmRegenerate={confirmRegenerate}
+              copiedTarget={copiedTarget}
+              copyText={copyText}
+              currentUserId={currentUserId}
+              handleShare={handleShare}
+              inviteLink={inviteLink}
+              isAdmin={isAdmin}
+              kickMutation={kickMutation}
+              kickTargetId={kickTargetId}
+              paidCount={paidCount}
+              paidPercent={paidPercent}
+              paymentFilter={paymentFilter}
+              paymentMutation={paymentMutation}
+              pendingCount={pendingCount}
+              regenerateMutation={regenerateMutation}
+              search={search}
+              setActionError={setActionError}
+              setConfirmRegenerate={setConfirmRegenerate}
+              setKickTargetId={setKickTargetId}
+              setPaymentFilter={setPaymentFilter}
+              setSearch={setSearch}
+              visibleMembers={visibleMembers}
+            />
           )}
 
           {currentTab === 'settings' && (
-            <div
-              id="league-admin-panel-settings"
-              className="league-admin-panel-section"
-              role="tabpanel"
-              aria-labelledby="league-admin-tab-settings"
-            >
-              <section className="league-admin-card">
-                <div className="league-admin-card-head">
-                  <h3>
-                    <ShieldCheck size={14} aria-hidden="true" />
-                    Identidad de la liga
-                  </h3>
-                </div>
-                <p className="league-admin-muted">
-                  La imagen se actualiza al instante, aunque tengas otros cambios sin guardar.
-                </p>
-                <div className="league-admin-image-row">
-                  <ImagePicker
-                    idPrefix="league-image-picker"
-                    currentUrl={imageUrl}
-                    renderPreview={(url) => <LeagueAvatar url={url} size={72} />}
-                    onUpload={async (blob) => {
-                      await onUploadImage?.(blob);
-                    }}
-                    onRemove={async () => {
-                      await onRemoveImage?.();
-                    }}
-                  />
-                </div>
-                <div className="league-admin-field">
-                  <label htmlFor="league-admin-name">Nombre de la liga</label>
-                  <input
-                    id="league-admin-name"
-                    className="glass-input"
-                    value={name}
-                    maxLength={120}
-                    onChange={(event) => {
-                      setName(event.target.value);
-                      setNotice('');
-                    }}
-                    placeholder="Nombre de la liga"
-                    autoComplete="off"
-                  />
-                  <span className={`league-admin-hint ${isNameValid ? '' : 'is-error'}`}>
-                    {isNameValid
-                      ? `${name.length}/120 caracteres`
-                      : 'El nombre no puede estar vacío.'}
-                  </span>
-                </div>
-              </section>
-
-              <section className="league-admin-card">
-                <div className="league-admin-card-head">
-                  <h3>
-                    <Settings2 size={14} aria-hidden="true" />
-                    Reglas de la liga
-                  </h3>
-                  <span className="league-admin-card-meta">{rulesText.length}/8000</span>
-                </div>
-                <p className="league-admin-muted">
-                  Cuota, plazos de pago, criterios de desempate o premios. Se muestran a todos los
-                  participantes.
-                </p>
-                <textarea
-                  id="league-admin-rules"
-                  className="glass-input league-admin-textarea"
-                  value={rulesText}
-                  maxLength={8000}
-                  rows={7}
-                  onChange={(event) => {
-                    setRulesText(event.target.value);
-                    setNotice('');
-                  }}
-                  placeholder="Ej.: Cuota de 10 €. El pago se cierra el 10 de junio. En caso de empate gana quien acierte más marcadores exactos…"
-                  aria-label="Reglas de la liga"
-                />
-                {notice && (
-                  <p className="league-admin-notice" role="status">
-                    <Check size={14} aria-hidden="true" />
-                    {notice}
-                  </p>
-                )}
-              </section>
-
-              <section className="league-admin-card is-danger">
-                <div className="league-admin-card-head">
-                  <h3>
-                    <TriangleAlert size={14} aria-hidden="true" />
-                    Zona de peligro
-                  </h3>
-                </div>
-                <p className="league-admin-muted">
-                  Eliminar la liga borra todos sus pronósticos y participantes. Esta acción no se
-                  puede deshacer.
-                </p>
-                {!deleteOpen ? (
-                  <button
-                    type="button"
-                    className="league-admin-btn is-danger league-admin-danger-action"
-                    onClick={() => setDeleteOpen(true)}
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                    Eliminar liga
-                  </button>
-                ) : (
-                  <div className="league-admin-delete">
-                    <label htmlFor="league-admin-delete-name">
-                      Escribe <strong>{groupName}</strong> para confirmar
-                    </label>
-                    <div className="league-admin-delete-row">
-                      <input
-                        id="league-admin-delete-name"
-                        className="glass-input"
-                        value={deleteConfirmName}
-                        onChange={(event) => setDeleteConfirmName(event.target.value)}
-                        placeholder={groupName}
-                        autoComplete="off"
-                        disabled={deleting}
-                      />
-                      <button
-                        type="button"
-                        className="league-admin-btn is-danger"
-                        onClick={handleDelete}
-                        disabled={deleting || deleteConfirmName.trim() !== (groupName || '').trim()}
-                      >
-                        {deleting ? (
-                          <Loader2 className="league-admin-spin" size={15} aria-hidden="true" />
-                        ) : (
-                          <Trash2 size={15} aria-hidden="true" />
-                        )}
-                        {deleting ? 'Eliminando…' : 'Eliminar definitivamente'}
-                      </button>
-                      <button
-                        type="button"
-                        className="league-admin-btn is-ghost"
-                        onClick={() => {
-                          setDeleteOpen(false);
-                          setDeleteConfirmName('');
-                        }}
-                        disabled={deleting}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </section>
-            </div>
+            <LeagueSettingsTab
+              deleteConfirmName={deleteConfirmName}
+              deleteOpen={deleteOpen}
+              deleting={deleting}
+              groupName={groupName}
+              handleDelete={handleDelete}
+              imageUrl={imageUrl}
+              isNameValid={isNameValid}
+              name={name}
+              notice={notice}
+              onRemoveImage={onRemoveImage}
+              onUploadImage={onUploadImage}
+              rulesText={rulesText}
+              setDeleteConfirmName={setDeleteConfirmName}
+              setDeleteOpen={setDeleteOpen}
+              setName={setName}
+              setNotice={setNotice}
+              setRulesText={setRulesText}
+            />
           )}
         </div>
 
@@ -990,33 +532,7 @@ export default function GroupMembersModal({
         )}
 
         {leaveConfirmOpen && (
-          <div
-            className="league-admin-confirm-overlay"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="league-admin-leave-title"
-          >
-            <div className="league-admin-confirm-dialog">
-              <span className="league-admin-confirm-icon">
-                <TriangleAlert size={20} aria-hidden="true" />
-              </span>
-              <h3 id="league-admin-leave-title">¿Descartar los cambios?</h3>
-              <p>Tienes cambios sin guardar en el nombre o en las reglas de la liga.</p>
-              <div className="league-admin-confirm-actions">
-                <button
-                  type="button"
-                  className="league-admin-btn is-ghost"
-                  onClick={() => setLeaveConfirmOpen(false)}
-                  autoFocus
-                >
-                  Seguir editando
-                </button>
-                <button type="button" className="league-admin-btn is-danger" onClick={onClose}>
-                  Descartar y cerrar
-                </button>
-              </div>
-            </div>
-          </div>
+          <LeaveConfirmDialog onClose={onClose} setLeaveConfirmOpen={setLeaveConfirmOpen} />
         )}
       </div>
     </div>
