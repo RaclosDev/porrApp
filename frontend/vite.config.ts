@@ -110,8 +110,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      // API_PROXY_TARGET permite usar otra API (p. ej. la de producción en modo demo).
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
       // Permite probar la imagen de invitación contra el backend local.
