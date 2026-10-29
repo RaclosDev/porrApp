@@ -28,7 +28,6 @@ class FlywayFreshDatabaseTest {
         MigrateResult result = Flyway.configure()
                 .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
                 .locations("classpath:db/migration")
-                .outOfOrder(true)
                 .load()
                 .migrate();
 
