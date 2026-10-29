@@ -205,7 +205,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             </NavLink>
 
             {isLanding || isInviteAuthScreen ? null : isDemo ? (
-              <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-[16px] bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.4)] text-cyan text-[0.8rem] font-bold whitespace-nowrap">
+              <span className="inline-block min-w-0 truncate py-1 px-2.5 rounded-[16px] bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.4)] text-cyan text-[0.8rem] font-bold">
                 🌍 Mundial 2026
               </span>
             ) : (
@@ -220,8 +220,11 @@ function Layout({ children }: { children: React.ReactNode }) {
                     className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
                     onClick={() => navigate('/jornadas')}
                     disabled={isNavLocked}
+                    aria-label="Pronosticar jornada"
+                    title="Pronosticar jornada"
                   >
-                    ⚽ Pronosticar Jornada
+                    <span aria-hidden="true">⚽</span>
+                    <span className="header-porra-cta-label"> Pronosticar Jornada</span>
                   </button>
                 ) : userName &&
                   participantsHashes.find((h) => h.participantName === userName) ? null : (
@@ -230,8 +233,11 @@ function Layout({ children }: { children: React.ReactNode }) {
                     className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
                     onClick={() => navigate('/prediction')}
                     disabled={isNavLocked}
+                    aria-label="Completar mi porra"
+                    title="Completar mi porra"
                   >
-                    ✍️ Completar Mi Porra
+                    <span aria-hidden="true">✍️</span>
+                    <span className="header-porra-cta-label"> Completar Mi Porra</span>
                   </button>
                 )}
               </>
