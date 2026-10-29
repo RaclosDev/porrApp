@@ -71,6 +71,18 @@ describe('GroupMembersModal', () => {
     expect(screen.getByRole('tab', { name: /Miembros/i })).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('no muestra pagos cuando la liga no los tiene (Porra Global)', async () => {
+    api.fetchGroupMembers.mockResolvedValue(
+      MEMBERS.map((member) => ({ ...member, paymentStatus: null })),
+    );
+    setup({ isAdmin: false });
+
+    expect(await screen.findByText('Bruno')).toBeInTheDocument();
+    expect(screen.queryByText('Resumen de pagos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pago pendiente')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
+  });
+
   it('guarda nombre y reglas en una sola acción desde Ajustes', async () => {
     const { onSaveSettings } = setup();
     await screen.findByText('Bruno');

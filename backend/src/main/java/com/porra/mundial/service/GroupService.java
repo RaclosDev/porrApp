@@ -578,16 +578,20 @@ public class GroupService {
             boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
                     || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
 
-            String displayEmail = (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
-                    ? u.getGoogleEmail()
-                    : maskEmail(u.getGoogleEmail());
+            // La Porra Global es pública y no tiene pagos: ni emails ni estado de pago.
+            String displayEmail = isGlobal ? null
+                    : (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
+                            ? u.getGoogleEmail()
+                            : maskEmail(u.getGoogleEmail());
+            String paymentStatus = isGlobal ? null
+                    : m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING";
 
             list.add(GroupMemberDTO.builder()
                     .userId(u.getId())
                     .participantName(u.getParticipantName())
                     .googleEmail(displayEmail)
                     .role(m.getRole())
-                    .paymentStatus(m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING")
+                    .paymentStatus(paymentStatus)
                     .joinedAt(m.getJoinedAt())
                     .isAdmin(isAdmin)
                     .avatarUrl(u.getAvatarUrl())

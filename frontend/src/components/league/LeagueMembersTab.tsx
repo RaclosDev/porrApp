@@ -83,6 +83,9 @@ export default function LeagueMembersTab({
   setSearch,
   visibleMembers,
 }: LeagueMembersTabProps) {
+  // La Porra Global no tiene pagos: el backend no manda estado de pago.
+  const tracksPayments = members.length === 0 || members.some((m) => m.paymentStatus != null);
+
   return (
     <div
       id="league-admin-panel-members"
@@ -90,46 +93,48 @@ export default function LeagueMembersTab({
       role={isAdmin ? 'tabpanel' : undefined}
       aria-labelledby={isAdmin ? 'league-admin-tab-members' : undefined}
     >
-      <section className="league-admin-card">
-        <div className="league-admin-card-head">
-          <h3>
-            <Wallet size={14} aria-hidden="true" />
-            Resumen de pagos
-          </h3>
-          <span className="league-admin-card-meta">
-            {paidCount}/{members.length} pagados
-          </span>
-        </div>
-        <div className="league-admin-stats">
-          <div className="league-admin-stat">
-            <span>
-              <Users size={12} aria-hidden="true" />
-              Miembros
+      {tracksPayments && (
+        <section className="league-admin-card">
+          <div className="league-admin-card-head">
+            <h3>
+              <Wallet size={14} aria-hidden="true" />
+              Resumen de pagos
+            </h3>
+            <span className="league-admin-card-meta">
+              {paidCount}/{members.length} pagados
             </span>
-            <strong>{members.length}</strong>
           </div>
-          <div className="league-admin-stat is-paid">
-            <span>
-              <Wallet size={12} aria-hidden="true" />
-              Pagados
-            </span>
-            <strong>{paidCount}</strong>
+          <div className="league-admin-stats">
+            <div className="league-admin-stat">
+              <span>
+                <Users size={12} aria-hidden="true" />
+                Miembros
+              </span>
+              <strong>{members.length}</strong>
+            </div>
+            <div className="league-admin-stat is-paid">
+              <span>
+                <Wallet size={12} aria-hidden="true" />
+                Pagados
+              </span>
+              <strong>{paidCount}</strong>
+            </div>
+            <div className="league-admin-stat is-pending">
+              <span>
+                <Clock3 size={12} aria-hidden="true" />
+                Pendientes
+              </span>
+              <strong>{pendingCount}</strong>
+            </div>
           </div>
-          <div className="league-admin-stat is-pending">
-            <span>
-              <Clock3 size={12} aria-hidden="true" />
-              Pendientes
-            </span>
-            <strong>{pendingCount}</strong>
+          <div className="league-admin-progress" aria-hidden="true">
+            <span style={{ width: `${paidPercent}%` }} />
           </div>
-        </div>
-        <div className="league-admin-progress" aria-hidden="true">
-          <span style={{ width: `${paidPercent}%` }} />
-        </div>
-        <p className="league-admin-progress-label">
-          {paidPercent}% de los participantes han pagado
-        </p>
-      </section>
+          <p className="league-admin-progress-label">
+            {paidPercent}% de los participantes han pagado
+          </p>
+        </section>
+      )}
 
       <section className="league-admin-card">
         <div className="league-admin-card-head">
@@ -238,19 +243,21 @@ export default function LeagueMembersTab({
             aria-label="Buscar participante"
           />
         </div>
-        <div className="league-admin-filter" role="group" aria-label="Filtrar por pago">
-          {PAYMENT_FILTERS.map((filter) => (
-            <button
-              key={filter.id}
-              type="button"
-              className={paymentFilter === filter.id ? 'is-active' : ''}
-              aria-pressed={paymentFilter === filter.id}
-              onClick={() => setPaymentFilter(filter.id)}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
+        {tracksPayments && (
+          <div className="league-admin-filter" role="group" aria-label="Filtrar por pago">
+            {PAYMENT_FILTERS.map((filter) => (
+              <button
+                key={filter.id}
+                type="button"
+                className={paymentFilter === filter.id ? 'is-active' : ''}
+                aria-pressed={paymentFilter === filter.id}
+                onClick={() => setPaymentFilter(filter.id)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="league-admin-member-list">
@@ -315,16 +322,18 @@ export default function LeagueMembersTab({
                       )}
                       {isSelf && <span className="league-admin-badge is-you">Tú</span>}
                     </div>
-                    <span
-                      className={`league-admin-member-status ${isPaid ? 'is-paid' : 'is-pending'}`}
-                    >
-                      {isPaid ? 'Pago recibido' : 'Pago pendiente'}
-                    </span>
+                    {tracksPayments && (
+                      <span
+                        className={`league-admin-member-status ${isPaid ? 'is-paid' : 'is-pending'}`}
+                      >
+                        {isPaid ? 'Pago recibido' : 'Pago pendiente'}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="league-admin-member-actions">
-                  {canManage ? (
+                  {!tracksPayments ? null : canManage ? (
                     <button
                       type="button"
                       className={`league-admin-pay ${isPaid ? 'is-paid' : 'is-pending'}`}

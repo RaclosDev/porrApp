@@ -294,4 +294,24 @@ class GroupServiceTest {
         assertEquals("Reglas internas", dto.getRules());
         assertEquals(1L, dto.getAdminUserId());
     }
+
+    @Test
+    @DisplayName("En la Porra Global los miembros salen sin email ni estado de pago")
+    void globalLeagueMembersHideEmailAndPayment() {
+        League global = League.builder().id(League.GLOBAL_ID).name(League.GLOBAL_NAME)
+                .joinCode(League.GLOBAL_JOIN_CODE).adminUser(admin).build();
+        when(leagueRepository.findById(League.GLOBAL_ID)).thenReturn(Optional.of(global));
+        Membership mem = Membership.builder()
+                .id(new Membership.MembershipId(member.getId(), League.GLOBAL_ID))
+                .user(member).league(global).role("MEMBER").paymentStatus("PAID").build();
+        when(membershipRepository.findByLeagueId(League.GLOBAL_ID)).thenReturn(List.of(mem));
+
+        for (String viewer : new String[] {null, "member@test.com", "admin@test.com"}) {
+            List<GroupMemberDTO> members = groupService.getGroupMembers(League.GLOBAL_ID, viewer);
+            assertEquals(1, members.size());
+            assertNull(members.get(0).getGoogleEmail());
+            assertNull(members.get(0).getPaymentStatus());
+            assertEquals("Miembro Regular", members.get(0).getParticipantName());
+        }
+    }
 }
