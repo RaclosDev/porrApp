@@ -16,6 +16,7 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../services/queryKeys';
 import type { Competition, Group, PoolFormat } from '../types/api';
 
 type GroupId = number | string;
@@ -129,8 +130,8 @@ export function useGroupsDashboard() {
         }
       }
       setGroups(myGroups);
-      queryClient.setQueryData(['myGroups', isAuthenticated], myGroups);
-      queryClient.invalidateQueries({ queryKey: ['group'] });
+      queryClient.setQueryData(queryKeys.myGroups(isAuthenticated), myGroups);
+      queryClient.invalidateQueries({ queryKey: queryKeys.group() });
     } catch (e) {
       console.error(e);
       setError('Error al cargar datos');
@@ -178,13 +179,13 @@ export function useGroupsDashboard() {
       }
       const groupId = group.id.toString();
       const fullGroup = await fetchGroup(groupId).catch(() => group);
-      queryClient.setQueryData(['group', groupId], fullGroup);
+      queryClient.setQueryData(queryKeys.group(groupId), fullGroup);
       // El alta afecta a la tarjeta, al listado de miembros y al ranking de esta liga.
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['myGroups'] }),
-        queryClient.invalidateQueries({ queryKey: ['group', groupId] }),
-        queryClient.invalidateQueries({ queryKey: ['groupMembers', groupId] }),
-        queryClient.invalidateQueries({ queryKey: ['leaderboard', groupId] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) }),
       ]);
       localStorage.removeItem('pendingJoinCode');
       setPendingJoinCodeNotice('');
@@ -250,7 +251,7 @@ export function useGroupsDashboard() {
   const handleUploadGroupImage = async (groupId: GroupId, blob: Blob) => {
     const res = await uploadGroupImage(groupId, blob);
     await loadGroupsAndCompetitions();
-    queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
     toast.success('Imagen de la liga actualizada');
     return res.imageUrl || null;
   };
@@ -258,7 +259,7 @@ export function useGroupsDashboard() {
   const handleRemoveGroupImage = async (groupId: GroupId) => {
     await deleteGroupImage(groupId);
     await loadGroupsAndCompetitions();
-    queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
     toast.success('Imagen de la liga eliminada');
   };
 
@@ -314,13 +315,13 @@ export function useGroupsDashboard() {
 
       const groupId = group.id.toString();
       const fullGroup = await fetchGroup(groupId).catch(() => group);
-      queryClient.setQueryData(['group', groupId], fullGroup);
+      queryClient.setQueryData(queryKeys.group(groupId), fullGroup);
       // El alta afecta a la tarjeta, al listado de miembros y al ranking de esta liga.
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['myGroups'] }),
-        queryClient.invalidateQueries({ queryKey: ['group', groupId] }),
-        queryClient.invalidateQueries({ queryKey: ['groupMembers', groupId] }),
-        queryClient.invalidateQueries({ queryKey: ['leaderboard', groupId] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) }),
       ]);
       setJoinCode('');
       changeGroup(groupId);

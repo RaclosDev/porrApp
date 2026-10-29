@@ -1,6 +1,23 @@
 import { useEffect } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type { Match } from '../types/api';
+import { queryKeys } from '../services/queryKeys';
+
+/** Consultas que cambian cuando cambia un resultado. */
+const SCORE_DEPENDENT_KEYS = [
+  queryKeys.radar(),
+  queryKeys.standings(),
+  queryKeys.leaderboard(),
+  queryKeys.leaderboardMatchdays(),
+  queryKeys.matchdayFixtures(),
+  queryKeys.matchFriendPredictions(),
+  queryKeys.competitionStandings(),
+  queryKeys.officialBracket(),
+];
+
+const invalidateAll = (queryClient: QueryClient, keys: readonly (readonly unknown[])[]) => {
+  keys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+};
 
 export function useWebSocket(userName: string, queryClient: QueryClient) {
   useEffect(() => {
@@ -28,20 +45,15 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === 'DATA_UPDATED') {
-            queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-            queryClient.invalidateQueries({ queryKey: ['leaderboardMatchdays'] });
-            queryClient.invalidateQueries({ queryKey: ['predictions'] });
-            queryClient.invalidateQueries({ queryKey: ['myPredictions'] });
-            queryClient.invalidateQueries({ queryKey: ['standings'] });
-            queryClient.invalidateQueries({ queryKey: ['matches'] });
-            queryClient.invalidateQueries({ queryKey: ['radar'] });
-            queryClient.invalidateQueries({ queryKey: ['matchdayFixtures'] });
-            queryClient.invalidateQueries({ queryKey: ['missingRoundUsers'] });
-            queryClient.invalidateQueries({ queryKey: ['competitionStandings'] });
+            invalidateAll(queryClient, [
+              ...SCORE_DEPENDENT_KEYS,
+              queryKeys.predictions(),
+              queryKeys.matches(),
+            ]);
           } else if (msg.type === 'MATCH_SCORE_UPDATED') {
             if (msg.matchId) {
               queryClient.setQueriesData(
-                { queryKey: ['matches'] },
+                { queryKey: queryKeys.matches() },
                 (oldMatches: Match[] | undefined) => {
                   if (!Array.isArray(oldMatches)) return oldMatches;
                   return oldMatches.map((m) =>
@@ -60,13 +72,7 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
                 },
               );
             }
-            queryClient.invalidateQueries({ queryKey: ['radar'] });
-            queryClient.invalidateQueries({ queryKey: ['matchRadar'] });
-            queryClient.invalidateQueries({ queryKey: ['standings'] });
-            queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-            queryClient.invalidateQueries({ queryKey: ['leaderboardMatchdays'] });
-            queryClient.invalidateQueries({ queryKey: ['matchdayFixtures'] });
-            queryClient.invalidateQueries({ queryKey: ['competitionStandings'] });
+            invalidateAll(queryClient, SCORE_DEPENDENT_KEYS);
           }
         } catch {
           // Ignore malformed payloads

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
 import Flag from '../components/Flag';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 import type {
@@ -127,7 +128,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['matchdayFixtures', activeGroupId, userId || userName],
+    queryKey: queryKeys.matchdayFixtures(activeGroupId, userId || userName),
     queryFn: () => fetchMatchdayFixtures(activeGroupId, ''),
     enabled: Boolean(activeGroupId && isMatchDay),
     refetchInterval: 30_000,
@@ -234,9 +235,8 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         /* ignore */
       }
       setSaveErrorMsg('');
-      queryClient.invalidateQueries({ queryKey: ['matchdayFixtures', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['leaderboard', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['missingRoundUsers', groupId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.matchdayFixtures(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
       setTimeout(() => setSaveSuccessMsg(''), 4000);
     },
     onError: (err) => {

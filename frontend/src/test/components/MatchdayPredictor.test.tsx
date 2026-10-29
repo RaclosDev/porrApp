@@ -10,7 +10,6 @@ vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../services/api', () => ({
   fetchMatchdayFixtures: vi.fn(),
   submitMatchdayPredictions: vi.fn(),
-  fetchMissingRoundUsers: vi.fn(),
 }));
 vi.mock('../../components/Flag', () => ({ default: () => null }));
 vi.mock('../../components/MatchFriendsPredictionsModal', () => ({ default: () => null }));

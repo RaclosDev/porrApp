@@ -256,13 +256,6 @@ export interface JoinCodeResponse {
   joinCode: string;
 }
 
-export interface MissingMembers {
-  round: string;
-  totalMembers: number;
-  missingCount: number;
-  missingUsers: { userId: number; participantName: string }[];
-}
-
 export interface LeagueImageResponse {
   status: string;
   imageUrl: string | null;

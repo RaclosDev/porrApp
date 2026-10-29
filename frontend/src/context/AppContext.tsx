@@ -16,6 +16,7 @@ import {
   updateUserPreferences,
 } from '../services/api';
 import { isApiError } from '../services/apiError';
+import { queryKeys } from '../services/queryKeys';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
 import type { Group, MatchRadar } from '../types/api';
@@ -212,7 +213,7 @@ export const useAppContext = () => {
     isFetched: userGroupsFetched,
     isError: userGroupsError,
   } = useQuery({
-    queryKey: ['myGroups', isUserAuthed],
+    queryKey: queryKeys.myGroups(isUserAuthed),
     queryFn: () => (isUserAuthed ? fetchMyGroups() : Promise.resolve([])),
     staleTime: 60_000,
   });
@@ -222,7 +223,7 @@ export const useAppContext = () => {
     isPending: groupPending,
     error: groupError,
   } = useQuery<Partial<Group>>({
-    queryKey: ['group', activeGroupId],
+    queryKey: queryKeys.group(activeGroupId),
     queryFn: () =>
       activeGroupId
         ? fetchGroup(activeGroupId)
@@ -266,7 +267,7 @@ export const useAppContext = () => {
   }, [groupInfo?.competitionId, storeCompetitionId, setActiveCompetitionId]);
 
   const { data: standings, isLoading: loadingStandings } = useQuery({
-    queryKey: ['standings'],
+    queryKey: queryKeys.standings(),
     queryFn: async () => {
       const data = await fetchStandings();
       saveCachedJson('cached_official_standings', data);
@@ -281,13 +282,13 @@ export const useAppContext = () => {
   });
 
   const { data: radar } = useQuery({
-    queryKey: ['radar', activeCompetitionId],
+    queryKey: queryKeys.radar(activeCompetitionId),
     queryFn: () => fetchMatchRadar(activeCompetitionId),
     enabled: competitionReady,
   });
 
   const { data: predictions, error: predictionsError } = useQuery({
-    queryKey: ['predictions', activeGroupId],
+    queryKey: queryKeys.predictions(activeGroupId),
     queryFn: () => fetchPredictions(activeGroupId),
     enabled: Boolean(activeGroupId),
     retry: 1,
@@ -309,13 +310,13 @@ export const useAppContext = () => {
           activeGroupId,
           message: predictionsError.message,
         });
-        queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
       }
     }
   }, [predictionsError, activeGroupId, queryClient, store.isDemoMode]);
 
   const { data: odds } = useQuery({
-    queryKey: ['odds'],
+    queryKey: queryKeys.odds(),
     queryFn: async () => {
       const data = await fetchTeamOdds();
       saveCachedJson('cached_official_odds', data);
@@ -330,7 +331,7 @@ export const useAppContext = () => {
   });
 
   const { data: leaderboard } = useQuery({
-    queryKey: ['leaderboard', activeGroupId],
+    queryKey: queryKeys.leaderboard(activeGroupId),
     queryFn: () => fetchLeaderboard(activeGroupId),
     enabled: Boolean(activeGroupId),
   });
@@ -339,14 +340,14 @@ export const useAppContext = () => {
     groupInfo?.poolFormat === 'MATCH_DAY' || groupInfo?.formatType === 'LEAGUE';
 
   const { data: leaderboardMatchdays } = useQuery({
-    queryKey: ['leaderboardMatchdays', activeGroupId],
+    queryKey: queryKeys.leaderboardMatchdays(activeGroupId),
     queryFn: () => fetchLeaderboardMatchdays(activeGroupId),
     enabled: Boolean(activeGroupId && isMatchdayPool),
     staleTime: 60_000,
   });
 
   const { data: matches, isLoading: loadingMatches } = useQuery({
-    queryKey: ['matches', activeCompetitionId],
+    queryKey: queryKeys.matches(activeCompetitionId),
     enabled: competitionReady,
     queryFn: async () => {
       const data = await fetchMatches(activeCompetitionId);
@@ -370,7 +371,7 @@ export const useAppContext = () => {
     isError: topScorersError,
     refetch: refreshTopScorers,
   } = useQuery({
-    queryKey: ['topScorers'],
+    queryKey: queryKeys.topScorers(),
     queryFn: fetchTopScorers,
     enabled: activeGroupPichichi,
     staleTime: 300_000,

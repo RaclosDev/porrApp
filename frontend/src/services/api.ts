@@ -21,7 +21,6 @@ import type {
   MatchdayPredictionInput,
   MatchdaySubmissionResult,
   Me,
-  MissingMembers,
   ParticipantScore,
   PaymentStatus,
   PaymentStatusResponse,
@@ -327,9 +326,6 @@ export const regenerateGroupJoinCode = (groupId: number | string) =>
     method: 'POST',
     fallbackError: 'Error al regenerar código',
   });
-
-export const fetchMissingRoundUsers = (groupId: number | string, round = '') =>
-  request<MissingMembers>(`/groups/${groupId}/missing-users${query({ round })}`);
 
 export const uploadGroupImage = (groupId: number | string, blob: Blob) =>
   request<LeagueImageResponse>(`/groups/${groupId}/image`, {
