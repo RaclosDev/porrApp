@@ -18,8 +18,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     
     List<Match> findByFinishedFalseOrderByMatchDateAsc();
     
-    List<Match> findByRoundOrderByMatchDateAsc(String round);
-    
     Optional<Match> findByExternalId(String externalId);
 
     List<Match> findByCompetitionId(Long competitionId);

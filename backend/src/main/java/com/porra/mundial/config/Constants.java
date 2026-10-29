@@ -1,6 +1,5 @@
 package com.porra.mundial.config;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -91,14 +90,5 @@ public class Constants {
      */
     public static String getLocalName(String apiName) {
         return API_TO_LOCAL.getOrDefault(apiName, apiName);
-    }
-
-    /**
-     * Recupera el mapa completo de traducciones. Es de solo lectura.
-     * 
-     * @return Mapa no modificable de API Name -> Local Name.
-     */
-    public static Map<String, String> getApiToLocalMap() {
-        return Collections.unmodifiableMap(API_TO_LOCAL);
     }
 }

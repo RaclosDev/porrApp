@@ -23,6 +23,7 @@ public class PredictionDataDTO {
     @NotBlank(message = "El nombre de usuario o porra es obligatorio")
     private String user;
     
+    // "bet" se mantiene para leer pronósticos guardados antes del renombrado a "prediction".
     @JsonAlias({"bet", "predictionName", "name"})
     private String prediction;
     
@@ -85,14 +86,6 @@ public class PredictionDataDTO {
         if (this.r32 == null) {
             this.r32 = r1;
         }
-    }
-
-    public String getBet() {
-        return prediction;
-    }
-
-    public void setBet(String bet) {
-        this.prediction = bet;
     }
 
     @com.fasterxml.jackson.annotation.JsonIgnore

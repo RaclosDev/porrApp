@@ -43,7 +43,7 @@ public class StandingsService {
         }
 
         List<GroupStanding> standings = raw.stream()
-                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !Team.PLACEHOLDER_NAME.equalsIgnoreCase(gs.getTeam().getName())))
                 .collect(Collectors.toList());
 
         boolean hasPositions = !standings.isEmpty() && standings.stream().anyMatch(gs -> gs.getPosition() != null && gs.getPosition() > 0);
@@ -64,29 +64,6 @@ public class StandingsService {
             sorted.addAll(sortGroupStandings(byGroup.get(group), groupMatches));
         });
         return sorted;
-    }
-
-    /**
-     * Obtiene la clasificación ordenada de un grupo específico.
-     */
-    public List<GroupStanding> getStandingsByGroup(String groupName) {
-        if (groupName == null || "-".equals(groupName)) return Collections.emptyList();
-        String cleanGroup = groupName.toUpperCase().trim();
-        List<GroupStanding> standings = standingRepository.findByGroupName(cleanGroup);
-        if (standings.isEmpty()) standings = standingRepository.findByGroupName(cleanGroup.toLowerCase());
-        standings = standings.stream()
-                .filter(gs -> gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName()))
-                .collect(Collectors.toList());
-
-        boolean hasPositions = !standings.isEmpty() && standings.stream().anyMatch(gs -> gs.getPosition() != null && gs.getPosition() > 0);
-        if (hasPositions) {
-            standings.sort(Comparator.comparing(gs -> gs.getPosition() != null && gs.getPosition() > 0 ? gs.getPosition() : 999));
-            return standings;
-        }
-
-        List<Match> matches = matchRepository.findByGroupNameOrderByMatchDateAsc(cleanGroup);
-        if (matches.isEmpty()) matches = matchRepository.findByGroupNameOrderByMatchDateAsc(cleanGroup.toLowerCase());
-        return sortGroupStandings(standings, matches);
     }
 
     /**
@@ -181,7 +158,7 @@ public class StandingsService {
 
         List<GroupStanding> thirdPlaceTeams = new ArrayList<>();
         Map<String, List<GroupStanding>> groupedStandings = allStandings.stream()
-                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !Team.PLACEHOLDER_NAME.equalsIgnoreCase(gs.getTeam().getName())))
                 .collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
 
         for (Map.Entry<String, List<GroupStanding>> entry : groupedStandings.entrySet()) {
@@ -243,32 +220,6 @@ public class StandingsService {
         }
 
         return result;
-    }
-
-    /**
-     * Actualiza la tabla de posiciones de un equipo tras un sincronizado.
-     */
-    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard", "matches"}, allEntries = true)
-    public void updateStanding(Team team, String groupName, int points, int goalDiff, int goalsFor, int matchesPlayed, int fairPlayPoints) {
-        if (groupName == null || "-".equals(groupName) || team == null || "Por definir".equalsIgnoreCase(team.getName())) {
-            return;
-        }
-        String cleanGroup = groupName.toUpperCase().trim();
-        GroupStanding standing = standingRepository.findByTeamIdAndGroupName(team.getId(), cleanGroup)
-                .orElseGet(() -> GroupStanding.builder().team(team).groupName(cleanGroup).build());
-
-        standing.setGroupName(cleanGroup);
-        standing.setPoints(points);
-        standing.setGoalDiff(goalDiff);
-        standing.setGoalsFor(goalsFor);
-        standing.setMatchesPlayed(matchesPlayed);
-        standing.setFairPlayPoints(fairPlayPoints);
-        standingRepository.save(standing);
-    }
-
-    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard", "matches"}, allEntries = true)
-    public void clearAll() {
-        standingRepository.deleteAll();
     }
 
     /**
@@ -339,7 +290,7 @@ public class StandingsService {
         Map<String, List<GroupStanding>> standingsByGroup = new TreeMap<>();
 
         for (Team team : allTeams) {
-            if (team.getGroupName() == null || "-".equals(team.getGroupName()) || "Por definir".equalsIgnoreCase(team.getName())) {
+            if (team.getGroupName() == null || "-".equals(team.getGroupName()) || Team.PLACEHOLDER_NAME.equalsIgnoreCase(team.getName())) {
                 continue;
             }
             String groupName = team.getGroupName().toUpperCase().trim();

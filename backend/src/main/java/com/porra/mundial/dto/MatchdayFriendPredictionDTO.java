@@ -1,5 +1,6 @@
 package com.porra.mundial.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MatchdayFriendBetDTO {
+public class MatchdayFriendPredictionDTO {
     private Long userId;
     private String participantName;
     private String avatarUrl;
@@ -27,6 +28,8 @@ public class MatchdayFriendBetDTO {
     private Boolean isCorrectSign;
     private String scoringDetails;
     private LocalDateTime updatedAt;
+    // Sin @JsonProperty, Lombok genera isCaller() y Jackson lo publicaría como "caller".
+    @JsonProperty("isCaller")
     private boolean isCaller;
     private boolean hasPredicted;
 }

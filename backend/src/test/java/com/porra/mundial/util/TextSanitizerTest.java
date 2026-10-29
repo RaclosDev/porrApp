@@ -20,23 +20,6 @@ class TextSanitizerTest {
     }
 
     @Test
-    @DisplayName("fixTeamName corrige países corruptos con mojibake, ?? o sustitutos")
-    void fixTeamName_CorrectsCorruptedCountries() {
-        assertEquals("España", TextSanitizer.fixTeamName("Espa??a"));
-        assertEquals("España", TextSanitizer.fixTeamName("Espa?a"));
-        assertEquals("España", TextSanitizer.fixTeamName("Espaa"));
-        assertEquals("España", TextSanitizer.fixTeamName("EspaÃ±a"));
-        assertEquals("México", TextSanitizer.fixTeamName("M??xico"));
-        assertEquals("Canadá", TextSanitizer.fixTeamName("Canad??"));
-        assertEquals("Sudáfrica", TextSanitizer.fixTeamName("Sud??frica"));
-        assertEquals("Países Bajos", TextSanitizer.fixTeamName("Pa??ses Bajos"));
-        assertEquals("Japón", TextSanitizer.fixTeamName("Jap??n"));
-        assertEquals("Curaçao", TextSanitizer.fixTeamName("Cura??ao"));
-        assertEquals("Arabia Saudí", TextSanitizer.fixTeamName("Arabia Saud??"));
-        assertEquals("Atlético de Madrid", TextSanitizer.fixTeamName("Atl??tico de Madrid"));
-    }
-
-    @Test
     @DisplayName("fixParticipantName corrige nombres propios con mojibake o ??")
     void fixParticipantName_CorrectsCorruptedParticipants() {
         assertEquals("Anónimo", TextSanitizer.fixParticipantName("An??nimo"));

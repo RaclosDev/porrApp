@@ -1,70 +1,34 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.model.UserAccount;
-import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.dto.MeResponse;
+import com.porra.mundial.dto.StatusResponse;
+import com.porra.mundial.dto.UserPreferencesRequest;
+import com.porra.mundial.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.Map;
-import java.util.Optional;
 
 /**
- * Controlador REST para el perfil de Usuario Autenticado.
- * Permite al usuario consultar su propia información y guardar preferencias
- * en la base de datos que deben persistir entre sesiones (ej: su grupo activo favorito).
+ * Información del usuario autenticado y preferencias que deben persistir entre sesiones
+ * (por ejemplo, la última liga abierta). Todas las rutas exigen sesión.
  */
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserAccountRepository userAccountRepository;
+    private final UserService userService;
 
-    /**
-     * Guarda preferencias de interfaz del usuario (ej: El último grupo que tenía seleccionado en el dashboard).
-     * 
-     * @param payload JSON con las preferencias a actualizar.
-     * @param principal Identidad inyectada automáticamente desde el JWT por Spring Security.
-     * @return Status 200 OK en caso de éxito.
-     */
-    @PutMapping("/me/preferences")
-    public ResponseEntity<?> updatePreferences(@RequestBody Map<String, Object> payload, Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
-        Optional<UserAccount> userOpt = userAccountRepository.findByGoogleEmail(principal.getName()).or(() -> userAccountRepository.findByParticipantNameIgnoreCase(principal.getName()));
-        if (userOpt.isPresent()) {
-            UserAccount user = userOpt.get();
-            if (payload.containsKey("lastSelectedGroupId")) {
-                Number groupId = (Number) payload.get("lastSelectedGroupId");
-                user.setLastSelectedGroupId(groupId != null ? groupId.longValue() : null);
-                userAccountRepository.save(user);
-            }
-            return ResponseEntity.ok(Map.of("status", "success"));
-        }
-        return ResponseEntity.notFound().build();
-    }
-    
-    /**
-     * Obtiene el perfil público e interno del propio usuario logueado.
-     * Útil para que la SPA en React sepa "Quién soy" cuando arranca
-     * con un token válido guardado en LocalStorage.
-     * 
-     * @param principal Identidad inyectada automáticamente desde el JWT.
-     * @return JSON con nombre de participante y últimas preferencias.
-     */
+    /** "Quién soy": lo usa la SPA al arrancar con un token guardado. */
     @GetMapping("/me")
-    public ResponseEntity<?> getMe(Principal principal) {
-         if (principal == null) return ResponseEntity.status(401).build();
-         Optional<UserAccount> userOpt = userAccountRepository.findByGoogleEmail(principal.getName()).or(() -> userAccountRepository.findByParticipantNameIgnoreCase(principal.getName()));
-         if (userOpt.isPresent()) {
-              UserAccount user = userOpt.get();
-              Map<String, Object> body = new java.util.LinkedHashMap<>();
-              body.put("participantName", com.porra.mundial.util.TextSanitizer.fixParticipantName(user.getParticipantName()));
-              body.put("lastSelectedGroupId", user.getLastSelectedGroupId());
-              body.put("avatarUrl", user.getAvatarUrl());
-              return ResponseEntity.ok(body);
-         }
-         return ResponseEntity.notFound().build();
+    public MeResponse getMe(Principal principal) {
+        return userService.getMe(principal.getName());
+    }
+
+    @PutMapping("/me/preferences")
+    public StatusResponse updatePreferences(@RequestBody UserPreferencesRequest payload, Principal principal) {
+        userService.updateLastSelectedGroup(principal.getName(), payload.lastSelectedGroupId());
+        return StatusResponse.success();
     }
 }

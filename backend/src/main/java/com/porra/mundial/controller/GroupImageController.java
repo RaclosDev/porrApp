@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.dto.LeagueImageResponse;
 import com.porra.mundial.model.League;
 import com.porra.mundial.service.ProfileImageService;
 import com.porra.mundial.service.WebSocketService;
@@ -12,8 +13,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Imagen de una liga.
@@ -39,27 +38,18 @@ public class GroupImageController {
     }
 
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadImage(@PathVariable Long id,
-                                         @RequestParam("file") MultipartFile file,
-                                         Principal principal) throws IOException {
-        if (principal == null) return ResponseEntity.status(401).build();
+    public LeagueImageResponse uploadImage(@PathVariable Long id,
+                                           @RequestParam("file") MultipartFile file,
+                                           Principal principal) throws IOException {
         League league = profileImageService.saveLeagueImage(id, principal.getName(), file.getBytes());
         webSocketService.invalidateAndNotify();
-        return ResponseEntity.ok(response(league));
+        return LeagueImageResponse.of(league);
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deleteImage(@PathVariable Long id, Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
+    public LeagueImageResponse deleteImage(@PathVariable Long id, Principal principal) {
         League league = profileImageService.deleteLeagueImage(id, principal.getName());
         webSocketService.invalidateAndNotify();
-        return ResponseEntity.ok(response(league));
-    }
-
-    private Map<String, Object> response(League league) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", "success");
-        body.put("imageUrl", league.getImageUrl());
-        return body;
+        return LeagueImageResponse.of(league);
     }
 }

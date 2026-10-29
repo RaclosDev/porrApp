@@ -1,8 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { normalizeCountryName } from '../utils/constants';
+import { normalizeCountryName, isGlobalLeagueId } from '../utils/constants';
 import {
-  getAuthToken,
   fetchStandings,
   fetchMatches,
   fetchMatchRadar,
@@ -103,7 +102,6 @@ export function AppProvider({ children }) {
         setUserId('');
       }, 0);
       localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_bet_name');
       localStorage.removeItem('my_user_id');
       localStorage.removeItem('my_avatar_url');
     }
@@ -237,13 +235,13 @@ export const useAppContext = () => {
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
           formatType: fromList.formatType,
-          betMode: fromList.poolFormat || fromList.betMode,
           poolFormat: fromList.poolFormat,
           pichichi: fromList.pichichi,
           isLocked: fromList.isLocked,
           lockDate: fromList.lockDate,
           adminParticipantName: fromList.adminParticipantName,
           adminUserId: fromList.adminUserId,
+          rules: fromList.rules,
         };
       }
       return undefined;
@@ -294,7 +292,12 @@ export const useAppContext = () => {
   });
 
   useEffect(() => {
-    if (!store.isDemoMode && predictionsError && activeGroupId && String(activeGroupId) !== '1') {
+    if (
+      !store.isDemoMode &&
+      predictionsError &&
+      activeGroupId &&
+      !isGlobalLeagueId(activeGroupId)
+    ) {
       const msg = predictionsError.message || '';
       if (msg.includes('403') || msg.includes('No perteneces')) {
         // No cambiar silenciosamente a la liga global: eso hace que parezca
@@ -375,8 +378,7 @@ export const useAppContext = () => {
   const activeGroupName = groupInfo?.name || 'Ninguna Liga Seleccionada';
   const activeGroupAdmin = groupInfo?.adminParticipantName || null;
   const activeGroupAdminId = groupInfo?.adminUserId || null;
-  const activeGroupBetMode =
-    groupInfo?.poolFormat || groupInfo?.betMode || (activeGroupId ? null : 'FULL_BRACKET');
+  const activeGroupPoolFormat = groupInfo?.poolFormat || (activeGroupId ? null : 'FULL_BRACKET');
   const activeGroupIsLocked = Boolean(groupInfo?.isLocked);
   const activeGroupLockDate = groupInfo?.lockDate || null;
 
@@ -394,25 +396,6 @@ export const useAppContext = () => {
   }, [matches]);
 
   const loading = loadingGroup || (loadingStandings && !standings) || (loadingMatches && !matches);
-
-  const isRaclos = useMemo(() => {
-    const token = getAuthToken();
-    if (!token) return false;
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return false;
-      const payload = JSON.parse(atob(parts[1]));
-      if (
-        payload.email &&
-        ['raclosdev@gmail.com', 'raclosnegocios@gmail.com'].includes(payload.email.toLowerCase())
-      ) {
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }, [store.isAuthenticated]);
 
   return {
     ...store,
@@ -436,20 +419,23 @@ export const useAppContext = () => {
     groupError,
     fetchData: () => queryClient.invalidateQueries(),
     onlineUsers: EMPTY_ARRAY,
-    isRaclos,
     activeGroupName,
     activeGroupAdmin,
     activeGroupAdminId,
-    activeGroupPoolFormat: activeGroupBetMode,
-    activeGroupBetMode,
+    activeGroupPoolFormat,
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,
+    activeGroupRules: groupInfo?.rules || '',
     activeCompetitionId,
     activeCompetitionName: groupInfo?.competitionName || null,
     activeCompetitionFormatType:
       groupInfo?.formatType ||
-      (activeGroupBetMode ? (activeGroupBetMode === 'MATCH_DAY' ? 'LEAGUE' : 'TOURNAMENT') : null),
+      (activeGroupPoolFormat
+        ? activeGroupPoolFormat === 'MATCH_DAY'
+          ? 'LEAGUE'
+          : 'TOURNAMENT'
+        : null),
     userGroups: Array.isArray(userGroups) ? userGroups : EMPTY_ARRAY,
     userGroupsLoaded: !isUserAuthed || (userGroupsFetched && !userGroupsError),
     topScorers: Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,

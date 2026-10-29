@@ -53,7 +53,7 @@ class LeaderboardServiceTest {
     private MatchRepository matchRepository;
 
     @Mock
-    private SyncService syncService;
+    private KnockoutBracketService knockoutBracketService;
 
     @Mock
     private MatchPredictionRepository matchPredictionRepository;

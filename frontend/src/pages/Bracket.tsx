@@ -24,8 +24,8 @@ function Bracket() {
     setUserName,
     topScorer,
     setTopScorer,
-    betName,
-    setBetName,
+    predictionName,
+    setPredictionName,
     isKnockoutsOnly,
     isMatchDay,
     allTeams,
@@ -38,12 +38,12 @@ function Bracket() {
     setR32Team,
     advanceTeam,
     handleGroupStageComplete,
-    generateBetData,
+    generatePredictionData,
     getTeamStatus,
     handleResetToGroupStage,
     savedGroupsDraft,
     savedThirdsDraft,
-    savedBetId,
+    savedPredictionId,
     loadingGroup,
     groupError,
   } = useBracket();
@@ -57,7 +57,7 @@ function Bracket() {
       h.isCaller ||
       (userId && h.userId?.toString() === userId?.toString()),
   );
-  const effectiveBetId = savedBetId || myPred?.key || myPred?.id;
+  const effectivePredictionId = savedPredictionId || myPred?.key || myPred?.id;
 
   if (loadingGroup)
     return (
@@ -75,11 +75,11 @@ function Bracket() {
     return <Navigate to="/jornadas" replace />;
   }
 
-  if (effectiveBetId && !isEditing) {
+  if (effectivePredictionId && !isEditing) {
     return (
       <PredictionViewer
         inline={true}
-        betId={effectiveBetId}
+        predictionId={effectivePredictionId}
         onEdit={!activeGroupIsLocked ? () => setIsEditing(true) : undefined}
       />
     );
@@ -264,7 +264,7 @@ function Bracket() {
 
   return (
     <section id="view-bracket" className="view-section" style={{ display: 'block' }}>
-      {effectiveBetId && (
+      {effectivePredictionId && (
         <div
           style={{
             display: 'flex',
@@ -505,8 +505,8 @@ function Bracket() {
                 type="text"
                 placeholder="Nombre de la Porra (ej: Mi Porra 1)"
                 aria-label="Nombre de la Porra"
-                value={betName}
-                onChange={(e) => setBetName(e.target.value)}
+                value={predictionName}
+                onChange={(e) => setPredictionName(e.target.value)}
                 className="glass-input"
                 style={{ flex: 1, minWidth: 200 }}
               />
@@ -540,7 +540,7 @@ function Bracket() {
             )}
             <button
               className="glass-btn primary-btn"
-              onClick={generateBetData}
+              onClick={generatePredictionData}
               disabled={activeGroupIsLocked}
               style={activeGroupIsLocked ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
             >

@@ -1,11 +1,11 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
 import Flag from '../components/Flag';
-import MatchFriendsBetsModal from '../components/MatchFriendsBetsModal';
+import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 
 const EMPTY_FIXTURES = [];
 const roundLabelFor = (fixture) =>
@@ -43,7 +43,7 @@ function MatchdayLeague({ context }) {
     activeGroupId,
     activeGroupName,
     activeGroupIsLocked,
-    activeGroupBetMode,
+    activeGroupPoolFormat,
     activeCompetitionFormatType,
     userId,
     userName,
@@ -52,7 +52,8 @@ function MatchdayLeague({ context }) {
     groupError,
   } = context;
 
-  const isMatchDay = activeGroupBetMode === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+  const isMatchDay =
+    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -67,15 +68,23 @@ function MatchdayLeague({ context }) {
   const draftRef = useRef(null);
   const draftKey = `draft_matchday_${activeGroupId}`;
 
-  const persistDraft = (draft) => {
-    draftRef.current = draft;
-    try {
-      if (Object.keys(draft).length) localStorage.setItem(draftKey, JSON.stringify(draft));
-      else localStorage.removeItem(draftKey);
-    } catch {
-      /* ignore */
-    }
-  };
+  const persistDraft = useCallback(
+    (draft) => {
+      draftRef.current = draft;
+      try {
+        if (Object.keys(draft).length) localStorage.setItem(draftKey, JSON.stringify(draft));
+        else localStorage.removeItem(draftKey);
+      } catch {
+        /* ignore */
+      }
+    },
+    [draftKey],
+  );
+
+  // Al cambiar de liga, el borrador en memoria pertenece a la anterior: se relee del almacenamiento.
+  useEffect(() => {
+    draftRef.current = null;
+  }, [draftKey]);
 
   // Redirigir a mis-ligas si no hay liga seleccionada, o al inicio si no es modalidad por jornadas (ej. Mundial)
   useEffect(() => {
@@ -83,10 +92,10 @@ function MatchdayLeague({ context }) {
       navigate('/mis-ligas');
       return;
     }
-    if (activeGroupBetMode && !isMatchDay) {
+    if (activeGroupPoolFormat && !isMatchDay) {
       navigate('/');
     }
-  }, [activeGroupId, activeGroupBetMode, isMatchDay, isAuthenticated, navigate]);
+  }, [activeGroupId, activeGroupPoolFormat, isMatchDay, isAuthenticated, navigate]);
 
   // Carga de partidos de la jornada
   const {
@@ -141,7 +150,7 @@ function MatchdayLeague({ context }) {
       persistDraft(openDraft);
       setHasUnsavedChanges(Object.keys(openDraft).length > 0);
     }
-  }, [fixtures]);
+  }, [fixtures, draftKey, persistDraft]);
 
   // Jornadas disponibles en orden y jornada actual (la primera con partidos sin finalizar).
   const { availableRounds, currentRound } = useMemo(() => {
@@ -343,7 +352,7 @@ function MatchdayLeague({ context }) {
   }, [roundFixtures]);
 
   const displayedFixtures = useMemo(() => {
-    let list = roundFixtures;
+    const list = roundFixtures;
     if (statusFilter === 'PENDING') {
       return list.filter(
         (f) => !f.locked && !activeGroupIsLocked && !hasPrediction(localPredictions[f.matchId]),
@@ -367,7 +376,7 @@ function MatchdayLeague({ context }) {
         No se pudo cargar la liga. Inténtalo de nuevo.
       </p>
     );
-  if (activeGroupBetMode && !isMatchDay) {
+  if (activeGroupPoolFormat && !isMatchDay) {
     return <Navigate to="/" replace />;
   }
 
@@ -550,24 +559,24 @@ function MatchdayLeague({ context }) {
                 <div className="md-match-status-actions">
                   <button
                     type="button"
-                    className="md-bets-btn md-bets-icon-btn"
+                    className="md-predictions-btn md-predictions-icon-btn"
                     onClick={() => setSelectedMatchForFriends(fixture)}
                     aria-label={`Ver pronósticos de ${fixture.homeTeam} vs ${fixture.awayTeam}`}
                     title="Ver pronósticos de amigos"
                   >
                     <span aria-hidden="true">👥</span>
                   </button>
-                {fixture.finished ? (
-                  <span className="md-badge is-finished">
-                    Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
-                  </span>
-                ) : isMatchLocked ? (
-                  <span className="md-badge is-locked" title={fixture.lockReason}>
-                    🔒 Bloqueado
-                  </span>
-                ) : (
-                  <span className="md-badge is-open">⏱️ Abierto</span>
-                )}
+                  {fixture.finished ? (
+                    <span className="md-badge is-finished">
+                      Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
+                    </span>
+                  ) : isMatchLocked ? (
+                    <span className="md-badge is-locked" title={fixture.lockReason}>
+                      🔒 Bloqueado
+                    </span>
+                  ) : (
+                    <span className="md-badge is-open">⏱️ Abierto</span>
+                  )}
                 </div>
               </div>
 
@@ -730,7 +739,7 @@ function MatchdayLeague({ context }) {
       )}
 
       {/* Modal para ver pronósticos de amigos en un partido */}
-      <MatchFriendsBetsModal
+      <MatchFriendsPredictionsModal
         groupId={activeGroupId}
         match={selectedMatchForFriends}
         onClose={() => setSelectedMatchForFriends(null)}

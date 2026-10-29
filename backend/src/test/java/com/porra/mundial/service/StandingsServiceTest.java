@@ -51,10 +51,9 @@ class StandingsServiceTest {
         GroupStanding gsB = GroupStanding.builder().team(teamB).points(6).build();
         GroupStanding gsC = GroupStanding.builder().team(teamC).points(0).build();
 
-        when(standingRepository.findByGroupName("A")).thenReturn(new java.util.ArrayList<>(Arrays.asList(gsA, gsB, gsC)));
-        when(matchRepository.findByGroupNameOrderByMatchDateAsc("A")).thenReturn(List.of());
 
-        List<GroupStanding> sorted = standingsService.getStandingsByGroup("A");
+        List<GroupStanding> sorted = standingsService.sortGroupStandings(
+                new java.util.ArrayList<>(Arrays.asList(gsA, gsB, gsC)), List.of());
 
         assertEquals("TeamB", sorted.get(0).getTeam().getName());
         assertEquals("TeamA", sorted.get(1).getTeam().getName());
@@ -66,10 +65,9 @@ class StandingsServiceTest {
         GroupStanding gsA = GroupStanding.builder().team(teamA).points(3).goalDiff(2).build();
         GroupStanding gsB = GroupStanding.builder().team(teamB).points(3).goalDiff(5).build();
 
-        when(standingRepository.findByGroupName("A")).thenReturn(new java.util.ArrayList<>(Arrays.asList(gsA, gsB)));
-        when(matchRepository.findByGroupNameOrderByMatchDateAsc("A")).thenReturn(List.of());
 
-        List<GroupStanding> sorted = standingsService.getStandingsByGroup("A");
+        List<GroupStanding> sorted = standingsService.sortGroupStandings(
+                new java.util.ArrayList<>(Arrays.asList(gsA, gsB)), List.of());
 
         assertEquals("TeamB", sorted.get(0).getTeam().getName(), "Mayor diferencia de goles gana");
     }
@@ -79,10 +77,9 @@ class StandingsServiceTest {
         GroupStanding gsA = GroupStanding.builder().team(teamA).points(3).goalDiff(2).goalsFor(2).build();
         GroupStanding gsB = GroupStanding.builder().team(teamB).points(3).goalDiff(2).goalsFor(4).build();
 
-        when(standingRepository.findByGroupName("A")).thenReturn(new java.util.ArrayList<>(Arrays.asList(gsA, gsB)));
-        when(matchRepository.findByGroupNameOrderByMatchDateAsc("A")).thenReturn(List.of());
 
-        List<GroupStanding> sorted = standingsService.getStandingsByGroup("A");
+        List<GroupStanding> sorted = standingsService.sortGroupStandings(
+                new java.util.ArrayList<>(Arrays.asList(gsA, gsB)), List.of());
 
         assertEquals("TeamB", sorted.get(0).getTeam().getName(), "Mayores goles a favor gana");
     }
@@ -100,10 +97,9 @@ class StandingsServiceTest {
                 .finished(true)
                 .build();
 
-        when(standingRepository.findByGroupName("A")).thenReturn(new java.util.ArrayList<>(Arrays.asList(gsB, gsA)));
-        when(matchRepository.findByGroupNameOrderByMatchDateAsc("A")).thenReturn(List.of(h2hMatch));
 
-        List<GroupStanding> sorted = standingsService.getStandingsByGroup("A");
+        List<GroupStanding> sorted = standingsService.sortGroupStandings(
+                new java.util.ArrayList<>(Arrays.asList(gsB, gsA)), List.of(h2hMatch));
 
         assertEquals("TeamA", sorted.get(0).getTeam().getName(), "TeamA gana por enfrentamiento directo");
     }
@@ -120,10 +116,9 @@ class StandingsServiceTest {
                 .finished(true)
                 .build();
 
-        when(standingRepository.findByGroupName("A")).thenReturn(new java.util.ArrayList<>(Arrays.asList(gsA, gsB)));
-        when(matchRepository.findByGroupNameOrderByMatchDateAsc("A")).thenReturn(List.of(h2hMatch));
 
-        List<GroupStanding> sorted = standingsService.getStandingsByGroup("A");
+        List<GroupStanding> sorted = standingsService.sortGroupStandings(
+                new java.util.ArrayList<>(Arrays.asList(gsA, gsB)), List.of(h2hMatch));
 
         assertEquals("TeamB", sorted.get(0).getTeam().getName(), "TeamB gana por desempate de Fair Play (menos puntos negativos)");
     }

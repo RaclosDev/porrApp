@@ -12,6 +12,18 @@ import lombok.*;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Team {
 
+    /** Equipo comodín para los huecos del calendario que aún no tienen rival definido. */
+    public static final String PLACEHOLDER_NAME = "Por definir";
+    public static final String PLACEHOLDER_NAME_EN = "TBD";
+
+    /** @return true si el equipo no existe o es el comodín "Por definir". */
+    public static boolean isPlaceholder(Team team) {
+        return team == null
+                || PLACEHOLDER_NAME.equalsIgnoreCase(team.getName())
+                || PLACEHOLDER_NAME_EN.equalsIgnoreCase(team.getName())
+                || PLACEHOLDER_NAME_EN.equalsIgnoreCase(team.getNameEn());
+    }
+
     /** Identificador único numérico de la base de datos local. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

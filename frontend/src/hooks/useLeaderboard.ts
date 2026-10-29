@@ -11,12 +11,10 @@ export function useLeaderboard() {
     leaderboardData,
     leaderboardMatchdays,
     loading,
-    isRaclos,
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
     activeGroupPoolFormat,
-    activeGroupBetMode,
     activeGroupAdminId,
     userId,
     userName,
@@ -67,7 +65,7 @@ export function useLeaderboard() {
         id: backendScore.id,
         userId: backendScore.userId,
         name: backendScore.name || 'Anónimo',
-        betName: backendScore.betName || '',
+        predictionName: backendScore.predictionName || '',
         avatarUrl: backendScore.avatarUrl || '',
         points: { ...backendScore, matchday: matchdayPoints },
         matchdayPoints,
@@ -193,7 +191,6 @@ export function useLeaderboard() {
       setActionLoading(false);
     }
   };
-  const handleAcceptBet = handleAcceptPrediction;
 
   const handleDeletePrediction = async (predictionId) => {
     if (!window.confirm('¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.'))
@@ -208,7 +205,6 @@ export function useLeaderboard() {
       setActionLoading(false);
     }
   };
-  const handleDeleteBet = handleDeletePrediction;
 
   const handleSort = (column) => {
     if (sortColumn === column) {
@@ -234,12 +230,10 @@ export function useLeaderboard() {
     state,
     results,
     loading,
-    isRaclos,
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
-    activeGroupPoolFormat: activeGroupPoolFormat || activeGroupBetMode,
-    activeGroupBetMode,
+    activeGroupPoolFormat,
     userId,
     userName,
     isLeagueAdmin,
@@ -247,8 +241,6 @@ export function useLeaderboard() {
     sharing,
     actionLoading,
     handleShare,
-    handleAcceptBet,
-    handleDeleteBet,
     handleAcceptPrediction,
     handleDeletePrediction,
     validResults: results.filter((r) => r.paid),

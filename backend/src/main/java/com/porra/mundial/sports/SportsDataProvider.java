@@ -6,13 +6,13 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Puerto de integración con proveedores de datos deportivos (ESPN, API-Football, Sportmonks).
+ * Puerto de integración con proveedores de datos deportivos (ESPN).
  * Permite desacoplar el motor de sincronización de una API concreta.
  */
 public interface SportsDataProvider {
 
     /**
-     * Nombre identificativo del proveedor activo (ej. "ESPN", "API-Football").
+     * Nombre identificativo del proveedor activo (ej. "ESPN").
      */
     String getProviderName();
 

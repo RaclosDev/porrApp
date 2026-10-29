@@ -36,12 +36,4 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
      * Comprueba si otro usuario distinto del indicado ya usa ese nombre (sin distinguir mayúsculas).
      */
     boolean existsByParticipantNameIgnoreCaseAndIdNot(String participantName, Long id);
-
-    /**
-     * Obtener todos los nombres reclamados.
-     * Se filtran las cuentas "autogeneradas" que se crean temporalmente antes de que
-     * un usuario haga login por primera vez.
-     */
-    @org.springframework.data.jpa.repository.Query("SELECT u.participantName FROM UserAccount u WHERE u.googleEmail NOT LIKE '%@auto.generated'")
-    java.util.List<String> findAllClaimedNames();
 }

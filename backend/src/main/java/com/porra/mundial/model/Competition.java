@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Competition {
 
+    /** Identificador del Mundial 2026 en ESPN. */
+    public static final String WORLD_CUP_EXTERNAL_ID = "fifa.world";
+
     /** Identificador autogenerado. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

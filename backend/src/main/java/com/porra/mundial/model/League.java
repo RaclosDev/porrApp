@@ -16,6 +16,24 @@ import java.time.LocalDateTime;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class League {
 
+    /**
+     * La Porra Global es la liga pública por defecto (demo, entrada desde LinkedIn y usuarios sin liga).
+     * {@code GroupService#initDefaultGroup} garantiza al arrancar que existe con este id y este código.
+     */
+    public static final Long GLOBAL_ID = 1L;
+    public static final String GLOBAL_JOIN_CODE = "GLOBAL";
+    public static final String GLOBAL_NAME = "Porra Global";
+
+    /** @return true si el id corresponde a la Porra Global. */
+    public static boolean isGlobalId(Long leagueId) {
+        return GLOBAL_ID.equals(leagueId);
+    }
+
+    /** @return true si esta liga es la Porra Global. */
+    public boolean isGlobal() {
+        return GLOBAL_JOIN_CODE.equalsIgnoreCase(joinCode);
+    }
+
     /** Identificador autogenerado de la liga. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

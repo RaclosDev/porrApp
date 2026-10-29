@@ -2,6 +2,7 @@ package com.porra.mundial.scoring;
 
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
+import com.porra.mundial.dto.TopScorerDTO;
 import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
@@ -139,17 +140,17 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
         boolean scorerAwarded = false;
 
         if (ctx.allScorers() != null && !ctx.allScorers().isEmpty()) {
-            int maxGoals = (int) ctx.allScorers().get(0).get("goals");
+            int maxGoals = ctx.allScorers().get(0).goals();
             if (maxGoals > 0) {
-                List<Map<String, Object>> topScorers = ctx.allScorers().stream()
-                        .filter(s -> (int) s.get("goals") == maxGoals)
+                List<TopScorerDTO> topScorers = ctx.allScorers().stream()
+                        .filter(s -> s.goals() == maxGoals)
                         .collect(Collectors.toList());
 
                 long validScorersCount = topScorers.size();
                 if (validScorersCount > 0) {
                     int points = (int) (rules.getTopScorerPoints() / validScorersCount);
                     boolean isMatch = topScorers.stream()
-                            .anyMatch(s -> isScorerMatch(ctx.part().getScorer(), (String) s.get("name"), (String) s.get("shortName")));
+                            .anyMatch(s -> isScorerMatch(ctx.part().getScorer(), s.name(), s.shortName()));
 
                     if (isMatch) {
                         String msg = validScorersCount > 1

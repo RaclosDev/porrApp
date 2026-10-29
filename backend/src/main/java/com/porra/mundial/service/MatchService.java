@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.model.Team;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.repository.MatchRepository;
@@ -37,14 +38,6 @@ public class MatchService {
      */
     public List<Match> getMatchesByCompetition(Long competitionId) {
         return matchRepository.findByCompetitionIdOrderByMatchDateAsc(competitionId);
-    }
-
-    /**
-     * @param groupName La letra del grupo ("A", "B").
-     * @return Todos los partidos disputados o por disputar en ese grupo, ordenados cronológicamente.
-     */
-    public List<Match> getMatchesByGroup(String groupName) {
-        return matchRepository.findByGroupNameOrderByMatchDateAsc(groupName);
     }
 
     /**
@@ -109,12 +102,8 @@ public class MatchService {
         if (m.getHomeTeam() == null || m.getAwayTeam() == null) {
             return false;
         }
-        boolean homeBogus = "Por definir".equalsIgnoreCase(m.getHomeTeam().getName())
-                || "TBD".equalsIgnoreCase(m.getHomeTeam().getName())
-                || "TBD".equalsIgnoreCase(m.getHomeTeam().getNameEn());
-        boolean awayBogus = "Por definir".equalsIgnoreCase(m.getAwayTeam().getName())
-                || "TBD".equalsIgnoreCase(m.getAwayTeam().getName())
-                || "TBD".equalsIgnoreCase(m.getAwayTeam().getNameEn());
+        boolean homeBogus = Team.isPlaceholder(m.getHomeTeam());
+        boolean awayBogus = Team.isPlaceholder(m.getAwayTeam());
         return homeBogus && awayBogus;
     }
 
@@ -128,7 +117,7 @@ public class MatchService {
     /**
      * Guarda o actualiza un partido en base de datos.
      */
-    @org.springframework.cache.annotation.CacheEvict(value = {"matches", "matchRadar", "standings", "officialPoints", "leaderboard", "rebuiltBetData", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"matches", "matchRadar", "standings", "officialPoints", "leaderboard"}, allEntries = true)
     @Transactional
     public Match save(Match match) {
         return matchRepository.save(match);

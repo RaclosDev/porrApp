@@ -1,14 +1,14 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.dto.MatchRadarDTO;
 import com.porra.mundial.dto.MatchResponseDTO;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.service.MatchService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Controlador REST para los Partidos Oficiales (Matches).
@@ -31,84 +31,24 @@ public class MatchController {
         List<Match> matches = competitionId != null
                 ? matchService.getMatchesByCompetition(competitionId)
                 : matchService.getAllMatches();
-        return matches.stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * @param competitionId (Opcional) Filtrar por competición.
-     * @return Los partidos que se están jugando en este momento exacto.
-     */
-    @GetMapping("/live")
-    public List<MatchResponseDTO> getLiveMatches(@RequestParam(required = false) Long competitionId) {
-        List<Match> matches = competitionId != null
-                ? matchService.getLiveMatches(competitionId)
-                : matchService.getLiveMatches();
-        return matches.stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * @param limit Número máximo de partidos a devolver.
-     * @param competitionId (Opcional) Filtrar por competición.
-     * @return Los últimos N partidos que ya han finalizado.
-     */
-    @GetMapping("/last")
-    public List<MatchResponseDTO> getLastMatches(@RequestParam(defaultValue = "5") int limit,
-                                                @RequestParam(required = false) Long competitionId) {
-        List<Match> matches = competitionId != null
-                ? matchService.getLastMatches(limit, competitionId)
-                : matchService.getLastMatches(limit);
-        return matches.stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * @param limit Número máximo de partidos a devolver.
-     * @param competitionId (Opcional) Filtrar por competición.
-     * @return Los próximos N partidos agendados en el calendario.
-     */
-    @GetMapping("/next")
-    public List<MatchResponseDTO> getNextMatches(@RequestParam(defaultValue = "5") int limit,
-                                                @RequestParam(required = false) Long competitionId) {
-        List<Match> matches = competitionId != null
-                ? matchService.getNextMatches(limit, competitionId)
-                : matchService.getNextMatches(limit);
-        return matches.stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * @param group La letra del grupo (Ej: "A").
-     * @return Partidos pertenecientes a un grupo de la fase de grupos.
-     */
-    @GetMapping("/group/{group}")
-    public List<MatchResponseDTO> getGroupMatches(@PathVariable String group) {
-        return matchService.getMatchesByGroup(group.toUpperCase()).stream()
-                .map(MatchResponseDTO::fromEntity)
-                .collect(Collectors.toList());
+        return toDtos(matches);
     }
 
     /**
      * Agregador conveniente para la pantalla de inicio del Frontend ("El Radar").
      * @param competitionId (Opcional) Filtrar radar por competición activa.
-     * @return Mapa combinado con partidos en vivo, finalizados recientemente y los próximos.
+     * @return partidos en juego, los últimos terminados y los próximos.
      */
     @GetMapping("/radar")
-    @org.springframework.cache.annotation.Cacheable(value = "matchRadar", key = "#competitionId != null ? #competitionId : 'all'")
-    public Map<String, List<MatchResponseDTO>> getMatchRadar(@RequestParam(required = false) Long competitionId) {
+    @Cacheable(value = "matchRadar", key = "#competitionId != null ? #competitionId : 'all'")
+    public MatchRadarDTO getMatchRadar(@RequestParam(required = false) Long competitionId) {
         List<Match> live = competitionId != null ? matchService.getLiveMatches(competitionId) : matchService.getLiveMatches();
         List<Match> last = competitionId != null ? matchService.getLastMatches(5, competitionId) : matchService.getLastMatches(5);
         List<Match> next = competitionId != null ? matchService.getNextMatches(5, competitionId) : matchService.getNextMatches(5);
+        return new MatchRadarDTO(toDtos(live), toDtos(last), toDtos(next));
+    }
 
-        Map<String, List<MatchResponseDTO>> radar = new java.util.LinkedHashMap<>();
-        radar.put("live", live.stream().map(MatchResponseDTO::fromEntity).collect(Collectors.toList()));
-        radar.put("last", last.stream().map(MatchResponseDTO::fromEntity).collect(Collectors.toList()));
-        radar.put("next", next.stream().map(MatchResponseDTO::fromEntity).collect(Collectors.toList()));
-        return radar;
+    private static List<MatchResponseDTO> toDtos(List<Match> matches) {
+        return matches.stream().map(MatchResponseDTO::fromEntity).toList();
     }
 }

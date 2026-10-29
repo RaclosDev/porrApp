@@ -1,7 +1,5 @@
 package com.porra.mundial.dto;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -20,25 +18,10 @@ public class GroupCreateDTO {
     @NotNull(message = "Competición es obligatoria")
     private Long competitionId;
     
-    /** Formato o modalidad de la porra (acepta betMode o poolFormat). */
-    @JsonAlias("poolFormat")
-    private String betMode;
-
-    /** Campo explícito para clientes que envían poolFormat. */
+    /** Formato o modalidad de la porra (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY). */
+    @NotBlank(message = "El formato de porra (poolFormat) es obligatorio")
     private String poolFormat;
     
     /** Indica si el grupo tendrá premio o clasificación específica para el Pichichi. */
     private Boolean pichichi = true;
-
-    @AssertTrue(message = "El formato de porra (poolFormat o betMode) es obligatorio")
-    public boolean isValidFormat() {
-        return (betMode != null && !betMode.isBlank()) || (poolFormat != null && !poolFormat.isBlank());
-    }
-
-    public String resolveFormat() {
-        if (poolFormat != null && !poolFormat.isBlank()) {
-            return poolFormat;
-        }
-        return betMode;
-    }
 }

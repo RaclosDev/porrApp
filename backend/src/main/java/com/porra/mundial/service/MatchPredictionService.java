@@ -2,7 +2,7 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
-import com.porra.mundial.dto.MatchdayFriendBetDTO;
+import com.porra.mundial.dto.MatchdayFriendPredictionDTO;
 import com.porra.mundial.model.*;
 import com.porra.mundial.repository.*;
 import com.porra.mundial.scoring.MatchScoreResult;
@@ -42,7 +42,7 @@ public class MatchPredictionService {
      */
     @Transactional(readOnly = true)
     public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(String email, Long groupId, String round) {
-        if (groupId != null && Long.valueOf(1L).equals(groupId)) {
+        if (League.isGlobalId(groupId)) {
             return java.util.Collections.emptyList();
         }
         if (groupId != null) {
@@ -84,8 +84,8 @@ public class MatchPredictionService {
         matches = matches.stream()
                 .filter(m -> {
                     if (m.getHomeTeam() == null || m.getAwayTeam() == null) return true;
-                    boolean h = "Por definir".equalsIgnoreCase(m.getHomeTeam().getName()) || "TBD".equalsIgnoreCase(m.getHomeTeam().getNameEn());
-                    boolean a = "Por definir".equalsIgnoreCase(m.getAwayTeam().getName()) || "TBD".equalsIgnoreCase(m.getAwayTeam().getNameEn());
+                    boolean h = Team.isPlaceholder(m.getHomeTeam());
+                    boolean a = Team.isPlaceholder(m.getAwayTeam());
                     return !(h && a);
                 })
                 .collect(Collectors.toList());
@@ -156,8 +156,8 @@ public class MatchPredictionService {
 
             result.add(MatchdayFixturePredictionDTO.builder()
                     .matchId(match.getId())
-                    .homeTeam(match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Por definir")
-                    .awayTeam(match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Por definir")
+                    .homeTeam(match.getHomeTeam() != null ? match.getHomeTeam().getName() : Team.PLACEHOLDER_NAME)
+                    .awayTeam(match.getAwayTeam() != null ? match.getAwayTeam().getName() : Team.PLACEHOLDER_NAME)
                     .homeTeamId(match.getHomeTeam() != null ? match.getHomeTeam().getId() : null)
                     .awayTeamId(match.getAwayTeam() != null ? match.getAwayTeam().getId() : null)
                     .homeTeamLogo(match.getHomeTeam() != null ? match.getHomeTeam().getLogoUrl() : null)
@@ -188,7 +188,7 @@ public class MatchPredictionService {
      * Guarda o actualiza los pronósticos de una lista de partidos comprobando los plazos individuales.
      */
     @Transactional
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public int saveMatchdayPredictions(String email, Long groupId, List<MatchPredictionItemDTO> items) {
         if (email == null || email.isBlank()) {
             throw new SecurityException("Usuario no autenticado");
@@ -216,7 +216,7 @@ public class MatchPredictionService {
 
         // Asegurar membresía previa en ligas privadas
         Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-        boolean isGlobal = edition.getLeague() != null && "GLOBAL".equalsIgnoreCase(edition.getLeague().getJoinCode());
+        boolean isGlobal = edition.getLeague() != null && edition.getLeague().isGlobal();
         if (!membershipRepository.existsById(memId) && !isGlobal) {
             throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
         }
@@ -311,7 +311,7 @@ public class MatchPredictionService {
      * Evalúa y actualiza los puntos de todos los pronósticos de un partido que acaba de finalizar.
      */
     @Transactional
-    @CacheEvict(value = {"leaderboard", "rebuiltBetData", "allBetsDto", "allPredictionsDto"}, allEntries = true)
+    @CacheEvict(value = "leaderboard", allEntries = true)
     public void evaluatePredictionsForMatch(Match match) {
         if (match == null || !Boolean.TRUE.equals(match.getFinished()) || match.getId() == null || match.getHomeScore() == null || match.getAwayScore() == null) {
             return;
@@ -360,7 +360,7 @@ public class MatchPredictionService {
      * Si el partido está abierto, los resultados de otros usuarios permanecen ocultos para evitar copias.
      */
     @Transactional(readOnly = true)
-    public List<MatchdayFriendBetDTO> getFriendBetsForMatch(String email, Long groupId, Long matchId) {
+    public List<MatchdayFriendPredictionDTO> getFriendPredictionsForMatch(String email, Long groupId, Long matchId) {
         if (groupId == null || matchId == null) {
             throw new IllegalArgumentException("El grupo y el partido son obligatorios");
         }
@@ -376,7 +376,7 @@ public class MatchPredictionService {
                     .orElse(null)
                 : null;
 
-        if (!Long.valueOf(1L).equals(groupId)) {
+        if (!League.isGlobalId(groupId)) {
             boolean isMember = false;
             if (caller != null) {
                     Membership.MembershipId memId = new Membership.MembershipId(caller.getId(), groupId);
@@ -417,12 +417,12 @@ public class MatchPredictionService {
             }
         }
 
-        List<MatchdayFriendBetDTO> list = new ArrayList<>();
+        List<MatchdayFriendPredictionDTO> list = new ArrayList<>();
         for (UserAccount member : memberMap.values()) {
             boolean isCaller = caller != null && caller.getId().equals(member.getId());
             MatchPrediction mp = userPredMap.get(member.getId());
 
-            MatchdayFriendBetDTO.MatchdayFriendBetDTOBuilder builder = MatchdayFriendBetDTO.builder()
+            MatchdayFriendPredictionDTO.MatchdayFriendPredictionDTOBuilder builder = MatchdayFriendPredictionDTO.builder()
                     .userId(member.getId())
                     .participantName(member.getParticipantName() != null ? member.getParticipantName() : "Anónimo")
                     .avatarUrl(member.getAvatarUrl())

@@ -110,7 +110,7 @@ class GroupServiceTest {
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(legacy));
         when(competitionRepository.findByExternalId("uefa.champions")).thenReturn(Optional.of(canonical));
         when(matchRepository.countByCompetitionId(5L)).thenReturn(0L);
-        when(syncService.importCompetitionData(5L)).thenReturn(java.util.Map.of());
+        when(syncService.importCompetitionData(5L)).thenReturn(new SyncService.ImportResult("LaLiga", 0, 0));
         when(leagueRepository.save(any(League.class))).thenAnswer(invocation -> {
             League saved = invocation.getArgument(0);
             saved.setId(99L);
@@ -137,11 +137,11 @@ class GroupServiceTest {
         when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(Membership.builder().user(member).build()));
         when(matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(2L, 10L))
                 .thenReturn(List.of(MatchPrediction.builder().match(first).homeScore(1).awayScore(0).build()));
-        assertEquals(1, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").get("missingCount"));
+        assertEquals(1, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").missingCount());
         when(matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(2L, 10L))
                 .thenReturn(List.of(MatchPrediction.builder().match(first).predictionSign("1").build(),
                         MatchPrediction.builder().match(second).predictionSign("X").build()));
-        assertEquals(0, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").get("missingCount"));
+        assertEquals(0, groupService.getMissingMembersForRound(10L, "admin@test.com", "Grupo A").missingCount());
     }
 
     @Test
@@ -223,5 +223,29 @@ class GroupServiceTest {
         assertEquals(2, members.size());
         assertEquals("ad***@test.com", members.get(0).getGoogleEmail(), "El email ajeno debe estar ofuscado para miembros no administradores");
         assertEquals("member@test.com", members.get(1).getGoogleEmail(), "El miembro ve su propio email sin ofuscar");
+    }
+    @Test
+    void assertCanView_GlobalLeagueIsPublic() {
+        assertDoesNotThrow(() -> groupService.assertCanView(League.GLOBAL_ID, null));
+    }
+
+    @Test
+    void assertCanView_RejectsNonMembersOfPrivateLeague() {
+        UserAccount stranger = UserAccount.builder().id(7L).googleEmail("stranger@test.com").build();
+        when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
+        when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
+
+        SecurityException e = assertThrows(SecurityException.class, () -> groupService.assertCanView(10L, "stranger@test.com"));
+        assertEquals("No perteneces a esta liga privada", e.getMessage());
+        assertThrows(SecurityException.class, () -> groupService.assertCanView(10L, null));
+    }
+
+    @Test
+    void assertCanView_AllowsMembers() {
+        UserAccount member = UserAccount.builder().id(8L).googleEmail("member@test.com").build();
+        when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(membershipRepository.existsById(new Membership.MembershipId(8L, 10L))).thenReturn(true);
+
+        assertDoesNotThrow(() -> groupService.assertCanView(10L, "member@test.com"));
     }
 }

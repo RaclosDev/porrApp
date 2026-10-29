@@ -57,9 +57,9 @@ function Radar() {
 
   const renderMatchCard = (m, type) => {
     const d = new Date(m.date);
-    let dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-    let isActuallyLive = type === 'live' && new Date(m.date) <= new Date();
-    let statusLabel = isActuallyLive ? m.displayClock || 'En Juego' : dateFormatted;
+    const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    const isActuallyLive = type === 'live' && new Date(m.date) <= new Date();
+    const statusLabel = isActuallyLive ? m.displayClock || 'En Juego' : dateFormatted;
 
     const isPlaceholder = (t) =>
       !t ||

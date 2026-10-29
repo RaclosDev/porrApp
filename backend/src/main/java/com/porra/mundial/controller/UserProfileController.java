@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.dto.ProfileResponse;
 import com.porra.mundial.dto.ProfileUpdateDTO;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.ProfileImageService;
@@ -14,8 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * Perfil del usuario autenticado: nombre público y foto.
@@ -31,28 +30,25 @@ public class UserProfileController {
     private final WebSocketService webSocketService;
 
     @PutMapping("/me/profile")
-    public ResponseEntity<?> updateProfile(@Valid @RequestBody ProfileUpdateDTO payload, Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
+    public ProfileResponse updateProfile(@Valid @RequestBody ProfileUpdateDTO payload, Principal principal) {
         UserAccount user = profileImageService.updateParticipantName(principal.getName(), payload.getParticipantName());
         webSocketService.invalidateAndNotify();
-        return ResponseEntity.ok(profileResponse(user));
+        return ProfileResponse.of(user);
     }
 
     @PutMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal)
+    public ProfileResponse uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal)
             throws IOException {
-        if (principal == null) return ResponseEntity.status(401).build();
         UserAccount user = profileImageService.saveAvatar(principal.getName(), file.getBytes());
         webSocketService.invalidateAndNotify();
-        return ResponseEntity.ok(profileResponse(user));
+        return ProfileResponse.of(user);
     }
 
     @DeleteMapping("/me/avatar")
-    public ResponseEntity<?> deleteAvatar(Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
+    public ProfileResponse deleteAvatar(Principal principal) {
         UserAccount user = profileImageService.deleteAvatar(principal.getName());
         webSocketService.invalidateAndNotify();
-        return ResponseEntity.ok(profileResponse(user));
+        return ProfileResponse.of(user);
     }
 
     /** Foto de perfil pública (se carga desde etiquetas &lt;img&gt;). La URL lleva versión para poder cachearla. */
@@ -61,13 +57,5 @@ public class UserProfileController {
         return profileImageService.getAvatar(userId)
                 .map(img -> ImageResponses.serve(img, request))
                 .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    private Map<String, Object> profileResponse(UserAccount user) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("status", "success");
-        body.put("participantName", user.getParticipantName());
-        body.put("avatarUrl", user.getAvatarUrl());
-        return body;
     }
 }

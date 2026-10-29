@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAppContext } from '../context/AppContext';
 import Flag from './Flag';
-import { useBetViewerData } from '../hooks/useBetViewerData';
+import { usePredictionViewerData } from '../hooks/usePredictionViewerData';
 import { PredictionSkeleton } from './Skeleton';
 import { extractGroupsFromR32 } from '../hooks/useBracket';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCanvas';
@@ -14,20 +14,30 @@ import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCa
  * @component
  * @returns {JSX.Element|null} El modal del visor de porras, o null si no hay porra seleccionada.
  */
-function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose = null }) {
+function PredictionViewer({ inline = false, predictionId = null, onEdit = null, onClose = null }) {
   const state = useAppContext();
-  const { viewerBetId, setViewerBetId, officialPoints, groupOdds, allGames, nameToIdMap } = state;
+  const {
+    viewerPredictionId,
+    setViewerPredictionId,
+    officialPoints,
+    groupOdds,
+    allGames,
+    nameToIdMap,
+  } = state;
   const { participantsHashes } = state;
-  const effectiveBetId = betId || viewerBetId;
-  const handleClose = onClose || (() => setViewerBetId(null));
+  const effectivePredictionId = predictionId || viewerPredictionId;
+  const handleClose = useCallback(
+    () => (onClose ? onClose() : setViewerPredictionId(null)),
+    [onClose, setViewerPredictionId],
+  );
 
   const initialPart = useMemo(() => {
-    if (!effectiveBetId) return null;
+    if (!effectivePredictionId) return null;
     const match = (participantsHashes || []).find(
-      (h) => String(h?.key ?? h?.id ?? '') === String(effectiveBetId),
+      (h) => String(h?.key ?? h?.id ?? '') === String(effectivePredictionId),
     );
     return match?.data || null;
-  }, [effectiveBetId, participantsHashes]);
+  }, [effectivePredictionId, participantsHashes]);
 
   const {
     part,
@@ -41,8 +51,8 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     getRoundFooterTotal,
     getCenterPointsTotal,
     getGroupTeamData,
-  } = useBetViewerData(
-    effectiveBetId,
+  } = usePredictionViewerData(
+    effectivePredictionId,
     officialPoints,
     state.leaderboardData,
     groupOdds,
@@ -102,11 +112,11 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') handleClose();
     };
-    if (effectiveBetId && !inline) {
+    if (effectivePredictionId && !inline) {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [effectiveBetId, handleClose, inline]);
+  }, [effectivePredictionId, handleClose, inline]);
 
   useEffect(() => {
     if (initialSection === 'knockout') {
@@ -114,7 +124,7 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     } else if (initialSection === 'groups') {
       setActiveTab('groups');
     }
-  }, [initialSection, effectiveBetId]);
+  }, [initialSection, effectivePredictionId]);
 
   /**
    * Función inyectada a BracketCanvas para pintar un "Slot" de un equipo en eliminatorias.
@@ -131,7 +141,7 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     let style = isWinner
       ? { borderLeft: '3px solid #2ecc71', background: 'rgba(46, 204, 113, 0.1)' }
       : {};
-    let rightContent =
+    const rightContent =
       slotPoints !== null ? (
         <span
           style={{
@@ -441,8 +451,9 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
    * Renderiza un equipo dentro de su tabla de grupo.
    */
   const renderGroupTeam = (groupName, teamName, expectedPos, defaultColor, medal) => {
-    let { color, status } = getGroupTeamData(groupName, teamName, expectedPos);
-    if (color === 'inherit') color = defaultColor;
+    const groupTeam = getGroupTeamData(groupName, teamName, expectedPos);
+    const { status } = groupTeam;
+    const color = groupTeam.color === 'inherit' ? defaultColor : groupTeam.color;
 
     let blueDot = null;
     if (status === 5) {
@@ -567,7 +578,7 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     return list;
   }, [part?.groups]);
 
-  if (!effectiveBetId) return null;
+  if (!effectivePredictionId) return null;
 
   if (error) {
     if (inline) {
@@ -942,7 +953,8 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
                 <div
                   key={g}
                   style={{
-                    background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.88))',
+                    background:
+                      'linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.88))',
                     border: '1px solid rgba(148, 163, 184, 0.18)',
                     padding: '14px',
                     borderRadius: '12px',

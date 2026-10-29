@@ -47,7 +47,7 @@ const prefetchRoute = (path) => {
 /**
  * Componente Layout principal que envuelve a todas las rutas.
  * Contiene la barra de navegación superior (Header), el manejo de autenticación global (Google Login),
- * el banner de instalación PWA, y el visor global de porras (BetViewer).
+ * el banner de instalación PWA, y el visor global de porras (PredictionViewer).
  *
  * @component
  * @param {Object} props
@@ -59,8 +59,7 @@ function Layout({ children }) {
     participantsHashes,
     userName,
     setUserName,
-    viewerBetId,
-    isRaclos,
+    viewerPredictionId,
     setIsAuthenticated,
     activeGroupPoolFormat,
     activeCompetitionFormatType,
@@ -73,7 +72,7 @@ function Layout({ children }) {
     userGroupsLoaded,
   } = useAppContext();
   const navigate = useNavigate();
-  const [showMyBetModal, setShowMyBetModal] = useState(false);
+  const [showMyPredictionModal, setShowMyPredictionModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
@@ -81,7 +80,7 @@ function Layout({ children }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  const isUserLoggedIn = (Boolean(getAuthToken()) && Boolean(userName)) || isRaclos;
+  const isUserLoggedIn = Boolean(getAuthToken()) && Boolean(userName);
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
@@ -97,12 +96,7 @@ function Layout({ children }) {
   // Con sesión iniciada pero sin ninguna liga, la navegación queda bloqueada:
   // solo se puede crear o unirse a una liga desde Mis Ligas.
   const isNavLocked =
-    isAuthenticated &&
-    userGroupsLoaded &&
-    userGroups.length === 0 &&
-    !isLanding &&
-    !isDemo &&
-    !isRaclos;
+    isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isLanding && !isDemo;
 
   // Un usuario autenticado sin ninguna liga solo puede crear o unirse a una.
   const isNoLeagueAllowedPath =
@@ -130,7 +124,7 @@ function Layout({ children }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setShowMyBetModal(false);
+        setShowMyPredictionModal(false);
         setShowProfileMenu(false);
       }
     };
@@ -139,7 +133,7 @@ function Layout({ children }) {
   }, []);
 
   useEffect(() => {
-    const handleOpenLogin = () => setShowMyBetModal(true);
+    const handleOpenLogin = () => setShowMyPredictionModal(true);
     window.addEventListener('open-login-modal', handleOpenLogin);
     return () => window.removeEventListener('open-login-modal', handleOpenLogin);
   }, []);
@@ -150,7 +144,7 @@ function Layout({ children }) {
    */
   useEffect(() => {
     if (location.state?.requireLogin) {
-      setShowMyBetModal(true);
+      setShowMyPredictionModal(true);
     }
   }, [location.state]);
 
@@ -206,7 +200,6 @@ function Layout({ children }) {
         setIsAuthenticated?.(true);
         setUserName(data.participantName);
         localStorage.setItem('my_prediction_name', data.participantName);
-        localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
         const store = useAppStore.getState();
         if (data.userId) store.setUserId(String(data.userId));
@@ -215,7 +208,7 @@ function Layout({ children }) {
           // Pasar por changeGroup para que el store quede sincronizado con localStorage.
           store.changeGroup(data.lastSelectedGroupId);
         }
-        setShowMyBetModal(false);
+        setShowMyPredictionModal(false);
         toast.success(`¡Bienvenido, ${data.participantName}!`);
         if (!localStorage.getItem('activeGroupId')) {
           navigate('/mis-ligas');
@@ -268,7 +261,7 @@ function Layout({ children }) {
           <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => setShowMyBetModal(true)}
+              onClick={() => setShowMyPredictionModal(true)}
               style={{
                 background: 'var(--accent-cyan, #00d2d3)',
                 color: '#0f172a',
@@ -367,7 +360,7 @@ function Layout({ children }) {
                 {/* Botón Ver Mi Porra / Pronosticar Jornada */}
                 {loading ? null : isMatchDayLeague ? (
                   <button
-                    id="btn-complete-my-bet-header"
+                    id="btn-complete-my-prediction-header"
                     className="glass-btn primary-btn header-porra-cta"
                     style={{
                       padding: '6px 14px',
@@ -387,7 +380,7 @@ function Layout({ children }) {
                 ) : userName &&
                   participantsHashes.find((h) => h.participantName === userName) ? null : (
                   <button
-                    id="btn-complete-my-bet-header"
+                    id="btn-complete-my-prediction-header"
                     className="glass-btn primary-btn header-porra-cta"
                     style={{
                       padding: '6px 14px',
@@ -545,215 +538,216 @@ function Layout({ children }) {
           </div>
         )}
 
-        {!isInviteAuthScreen && <div
-          className="header-right"
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            gap: '10px',
-            position: 'relative',
-          }}
-        >
-          {!isUserLoggedIn ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {isLanding && (
-                <button
-                  id="btn-header-demo"
-                  type="button"
-                  onClick={() => {
-                    if (enterDemoMode) enterDemoMode();
-                    navigate('/demo');
-                  }}
-                  className="glass-btn"
-                  style={{
-                    height: '38px',
-                    padding: '0 12px',
-                    fontSize: '0.82rem',
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#e2e8f0',
-                  }}
-                  title="Probar Demo del Mundial"
-                >
-                  <span>🚀</span>
-                  <span>Demo</span>
-                </button>
-              )}
-              <button
-                id="btn-login-header"
-                type="button"
-                onClick={() => setShowMyBetModal(true)}
-                className="glass-btn"
-                style={{
-                  height: '38px',
-                  padding: '0 16px',
-                  fontSize: '0.88rem',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  background: 'rgba(0, 210, 211, 0.12)',
-                  border: '1px solid rgba(0, 210, 211, 0.45)',
-                  color: '#00d2d3',
-                  boxShadow: '0 4px 15px rgba(0, 210, 211, 0.15)',
-                }}
-                title="Iniciar Sesión"
-              >
-                <span style={{ fontSize: '1.05rem' }}>👤</span>
-                <span>Iniciar Sesión</span>
-              </button>
-            </div>
-          ) : (
-            <>
-              <button
-                id="btn-profile-menu"
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="glass-btn"
-                style={{
-                  height: '36px',
-                  width: '36px',
-                  minWidth: '36px',
-                  maxWidth: '36px',
-                  minHeight: '36px',
-                  maxHeight: '36px',
-                  aspectRatio: '1 / 1',
-                  borderRadius: '50%',
-                  padding: '0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-                title="Menú de Usuario"
-                aria-label="Menú de Usuario"
-              >
-                {userAvatarUrl ? (
-                  <UserAvatar url={userAvatarUrl} name={userName} size={34} />
-                ) : (
-                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>👤</span>
-                )}
-              </button>
-
-              {showProfileMenu && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: '0',
-                    background: '#151525',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    marginTop: '10px',
-                    zIndex: 100,
-                    minWidth: '200px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                  }}
-                >
-                  <div
-                    style={{
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                      paddingBottom: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <UserAvatar url={userAvatarUrl} name={userName} size={32} />
-                    <div style={{ overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          fontWeight: 'bold',
-                          color: '#fff',
-                          fontSize: '0.9rem',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {userName || 'Usuario'}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Conectado
-                      </div>
-                    </div>
-                  </div>
-
+        {!isInviteAuthScreen && (
+          <div
+            className="header-right"
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '10px',
+              position: 'relative',
+            }}
+          >
+            {!isUserLoggedIn ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {isLanding && (
                   <button
+                    id="btn-header-demo"
                     type="button"
                     onClick={() => {
-                      setShowProfileMenu(false);
-                      setShowProfileSettings(true);
+                      if (enterDemoMode) enterDemoMode();
+                      navigate('/demo');
                     }}
                     className="glass-btn"
                     style={{
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '0.88rem',
-                      fontWeight: 700,
-                      width: '100%',
+                      height: '38px',
+                      padding: '0 12px',
+                      fontSize: '0.82rem',
+                      borderRadius: '10px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
+                      gap: '6px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: '#e2e8f0',
                     }}
+                    title="Probar Demo del Mundial"
                   >
-                    ⚙️ Ajustes de cuenta
+                    <span>🚀</span>
+                    <span>Demo</span>
                   </button>
+                )}
+                <button
+                  id="btn-login-header"
+                  type="button"
+                  onClick={() => setShowMyPredictionModal(true)}
+                  className="glass-btn"
+                  style={{
+                    height: '38px',
+                    padding: '0 16px',
+                    fontSize: '0.88rem',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    background: 'rgba(0, 210, 211, 0.12)',
+                    border: '1px solid rgba(0, 210, 211, 0.45)',
+                    color: '#00d2d3',
+                    boxShadow: '0 4px 15px rgba(0, 210, 211, 0.15)',
+                  }}
+                  title="Iniciar Sesión"
+                >
+                  <span style={{ fontSize: '1.05rem' }}>👤</span>
+                  <span>Iniciar Sesión</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  id="btn-profile-menu"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="glass-btn"
+                  style={{
+                    height: '36px',
+                    width: '36px',
+                    minWidth: '36px',
+                    maxWidth: '36px',
+                    minHeight: '36px',
+                    maxHeight: '36px',
+                    aspectRatio: '1 / 1',
+                    borderRadius: '50%',
+                    padding: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  title="Menú de Usuario"
+                  aria-label="Menú de Usuario"
+                >
+                  {userAvatarUrl ? (
+                    <UserAvatar url={userAvatarUrl} name={userName} size={34} />
+                  ) : (
+                    <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>👤</span>
+                  )}
+                </button>
 
-                  <button
-                    onClick={() => {
-                      setAuthToken(null);
-                      setIsAuthenticated?.(false);
-                      setUserName('');
-                      localStorage.removeItem('my_prediction_name');
-                      localStorage.removeItem('my_bet_name');
-                      localStorage.removeItem('my_user_id');
-                      localStorage.removeItem('my_avatar_url');
-                      localStorage.removeItem('token');
-                      window.location.href = '/';
-                    }}
+                {showProfileMenu && (
+                  <div
                     style={{
-                      background: 'rgba(255, 71, 87, 0.12)',
-                      border: '1px solid rgba(255, 71, 87, 0.4)',
-                      color: '#ff4757',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '0.88rem',
+                      position: 'absolute',
+                      top: '100%',
+                      right: '0',
+                      background: '#151525',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      marginTop: '10px',
+                      zIndex: 100,
+                      minWidth: '200px',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontWeight: 700,
-                      width: '100%',
-                      justifyContent: 'center',
-                      transition: 'all 0.15s ease',
+                      flexDirection: 'column',
+                      gap: '10px',
                     }}
                   >
-                    🚪 Cerrar Sesión
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>}
+                    <div
+                      style={{
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                        paddingBottom: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <UserAvatar url={userAvatarUrl} name={userName} size={32} />
+                      <div style={{ overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            fontWeight: 'bold',
+                            color: '#fff',
+                            fontSize: '0.9rem',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {userName || 'Usuario'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          Conectado
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowProfileSettings(true);
+                      }}
+                      className="glass-btn"
+                      style={{
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      ⚙️ Ajustes de cuenta
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setAuthToken(null);
+                        setIsAuthenticated?.(false);
+                        setUserName('');
+                        localStorage.removeItem('my_prediction_name');
+                        localStorage.removeItem('my_user_id');
+                        localStorage.removeItem('my_avatar_url');
+                        localStorage.removeItem('token');
+                        window.location.href = '/';
+                      }}
+                      style={{
+                        background: 'rgba(255, 71, 87, 0.12)',
+                        border: '1px solid rgba(255, 71, 87, 0.4)',
+                        color: '#ff4757',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.88rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 700,
+                        width: '100%',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      🚪 Cerrar Sesión
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Contenido Principal */}
@@ -824,12 +818,12 @@ function Layout({ children }) {
 
       {/* Modal de Autenticación / Registro */}
       <div
-        id="my-bet-modal"
+        id="my-prediction-modal"
         className="modal"
         role="dialog"
         aria-modal="true"
         aria-label="Identificación de usuario"
-        style={{ display: showMyBetModal ? 'flex' : 'none', zIndex: 999999 }}
+        style={{ display: showMyPredictionModal ? 'flex' : 'none', zIndex: 999999 }}
       >
         <div
           className="modal-content glass-panel"
@@ -881,7 +875,7 @@ function Layout({ children }) {
                 width: '100%',
               }}
               onClick={() => {
-                setShowMyBetModal(false);
+                setShowMyPredictionModal(false);
                 if (isDemo) {
                   exitDemoMode?.();
                 }
@@ -895,7 +889,7 @@ function Layout({ children }) {
       </div>
 
       {/* Visor Global de Porras (Portal Inyectado) */}
-      {viewerBetId && (
+      {viewerPredictionId && (
         <Suspense fallback={null}>
           <PredictionViewer />
         </Suspense>
