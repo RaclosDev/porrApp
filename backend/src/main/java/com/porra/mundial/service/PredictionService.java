@@ -206,10 +206,6 @@ public class PredictionService {
         return predictionRepository.save(prediction);
     }
 
-    public Prediction markAsPaid(Long id) {
-        return markAsPaid(id, null);
-    }
-
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public void deletePrediction(Long id, String requesterEmail) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
