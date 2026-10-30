@@ -90,7 +90,7 @@ cd backend && ./mvnw -B test   # en Windows: .\mvnw.cmd -B test
 
 `npm run lint` incluye la comprobación de tipos (`tsc --noEmit` en modo `strict`). En el backend, los tests de migraciones y el de arranque completo levantan un PostgreSQL real con Testcontainers (se saltan si no hay Docker). La cobertura queda en `frontend/coverage/` y `backend/target/site/jacoco/`.
 
-El workflow de [GitHub Actions](.github/workflows/ci.yml) ejecuta lo mismo en cada push a `main`, publica la cobertura de las dos partes en el resumen de la ejecución y construye la imagen Docker. Railway solo despliega cuando la CI pasa.
+El workflow de [GitHub Actions](.github/workflows/ci.yml) ejecuta lo mismo en cada PR y en cada push a `main`, pero solo los jobs de la parte que cambia (lo decide `.github/scripts/detect-changes.sh`): el frontend si cambia `frontend/`, el backend si cambia `backend/` y la imagen Docker si cambian el `Dockerfile` o los manifiestos de dependencias. Un cambio en la propia CI, la ejecución semanal y la manual lo pasan todo. La cobertura de las dos partes queda en el resumen de la ejecución. Railway solo despliega cuando la CI pasa.
 
 ## Estructura
 
