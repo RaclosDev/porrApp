@@ -44,7 +44,7 @@ export default function LeagueStandings() {
   }
 
   return (
-    <section className="standings-page">
+    <section className="standings-page paper-panel album-sheet">
       <header className="standings-head">
         <div className="standings-head-copy">
           <span className="standings-eyebrow">Clasificación</span>

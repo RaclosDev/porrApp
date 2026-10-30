@@ -38,7 +38,7 @@ export default function LeagueRulesModal({
 
   return (
     <div
-      className="fixed inset-0 bg-[rgba(0,_0,_0,_0.75)] bg-none [backdrop-filter:blur(8px)] flex items-center justify-center z-[10000] p-4"
+      className="paper-dialog-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="league-rules-title"
@@ -48,7 +48,7 @@ export default function LeagueRulesModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="paper-panel landing-tape relative w-full max-w-130 max-h-[85dvh] rounded-[6px] flex flex-col shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.7)]">
+      <div className="paper-panel landing-tape paper-dialog">
         <div className="py-4 px-5 border-b border-b-[rgba(17,_24,_39,_0.15)] flex flex-col gap-3">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
