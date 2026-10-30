@@ -82,11 +82,11 @@ class LeaderboardServiceTest {
                 .scoreCalculatedAt(null)
                 .build();
 
-        MatchPrediction mp1 = MatchPrediction.builder().id(1L).pointsAwarded(3).scoringDetails("Exacto 2-1").build();
-        MatchPrediction mp2 = MatchPrediction.builder().id(2L).pointsAwarded(1).scoringDetails("Signo 1").build();
+        MatchPrediction mp1 = MatchPrediction.builder().id(1L).prediction(pred).pointsAwarded(3).scoringDetails("Exacto 2-1").build();
+        MatchPrediction mp2 = MatchPrediction.builder().id(2L).prediction(pred).pointsAwarded(1).scoringDetails("Signo 1").build();
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
-        when(matchPredictionRepository.findByPredictionId(100L)).thenReturn(List.of(mp1, mp2));
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(100L))).thenReturn(List.of(mp1, mp2));
         when(standingsService.getAllStandings()).thenReturn(Collections.emptyList());
 
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
@@ -97,6 +97,9 @@ class LeaderboardServiceTest {
         assertEquals(4, first.getTotal(), "total debe incluir los matchPoints (4)");
         assertEquals(4, pred.getMatchPoints(), "La entidad Prediction debe recibir el valor calculado de matchPoints");
         assertEquals(4, pred.getTotalPoints(), "La entidad Prediction debe recibir el valor calculado de totalPoints");
+        // Una sola consulta para todos los participantes, no una por participante.
+        org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.times(1)).findWithMatchByPredictionIdIn(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.never()).findByPredictionId(org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test

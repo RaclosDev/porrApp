@@ -2,8 +2,11 @@ package com.porra.mundial.repository;
 
 import com.porra.mundial.model.MatchPrediction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +17,12 @@ import java.util.Optional;
 public interface MatchPredictionRepository extends JpaRepository<MatchPrediction, Long> {
 
     List<MatchPrediction> findByPredictionId(Long predictionId);
+
+    /** Los pronósticos por partido de varias porras en una sola consulta, con el partido y sus equipos. */
+    @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.match m"
+            + " LEFT JOIN FETCH m.homeTeam LEFT JOIN FETCH m.awayTeam"
+            + " WHERE mp.prediction.id IN :predictionIds")
+    List<MatchPrediction> findWithMatchByPredictionIdIn(@Param("predictionIds") Collection<Long> predictionIds);
 
     Optional<MatchPrediction> findByPredictionIdAndMatchId(Long predictionId, Long matchId);
 

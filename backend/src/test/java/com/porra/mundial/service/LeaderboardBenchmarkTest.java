@@ -22,7 +22,6 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -106,7 +105,7 @@ class LeaderboardBenchmarkTest {
 
         when(predictionRepository.findAll()).thenReturn(participants);
         when(predictionRepository.findAllWithUserAndEdition()).thenReturn(participants);
-        when(matchPredictionRepository.findByPredictionId(anyLong())).thenReturn(Collections.emptyList());
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(org.mockito.ArgumentMatchers.any())).thenReturn(Collections.emptyList());
 
         long startTime = System.currentTimeMillis();
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(null);
