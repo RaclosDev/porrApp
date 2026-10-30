@@ -18,6 +18,7 @@ interface StickerCardProps {
   /** Texto bajo los puntos, por ejemplo el campeón que eligió. */
   caption?: string | null;
   className?: string;
+  compact?: boolean;
 }
 
 /** Los puntos suben de 0 al total la primera vez que el cromo se ve. */
@@ -50,6 +51,7 @@ export default function StickerCard({
   featured = false,
   caption = null,
   className = '',
+  compact = false,
 }: StickerCardProps) {
   const { reduced } = useLandingMotion();
   const pointerX = useMotionValue(0.5);
@@ -76,7 +78,7 @@ export default function StickerCard({
     pointerY.set(0.5);
   };
 
-  const size = featured ? 96 : 56;
+  const size = compact ? (featured ? 64 : 44) : featured ? 96 : 56;
 
   return (
     <motion.div

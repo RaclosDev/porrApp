@@ -313,13 +313,13 @@ function Leaderboard() {
           )}
 
           {podium.length === 3 && (
-            <ul
-              className="flex flex-wrap justify-center items-start gap-3 mb-6 list-none p-0"
-              aria-label="Podio"
-            >
+            <ul className="ranking-podium" aria-label="Podio">
               {podium.map((row) => (
-                <li key={row.rank}>
-                  <StickerCard leader={row} featured={row.rank === 1} />
+                <li
+                  key={row.rank}
+                  className={`ranking-podium-place ranking-podium-place-${row.rank}`}
+                >
+                  <StickerCard leader={row} featured={row.rank === 1} compact />
                 </li>
               ))}
             </ul>
