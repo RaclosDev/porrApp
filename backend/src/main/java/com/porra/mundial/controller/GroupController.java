@@ -96,14 +96,6 @@ public class GroupController {
         return StatusResponse.success();
     }
 
-    /** Revoca el pago de un pronóstico. Solo el administrador. */
-    @PutMapping("/{id}/predictions/{predictionId}/reject")
-    public StatusResponse rejectPrediction(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
-        groupService.togglePredictionPaymentStatus(id, predictionId, principal.getName(), false);
-        webSocketService.notifyLeagueChanged(id);
-        return StatusResponse.success();
-    }
-
     /** Miembros de la liga con su rol y estado de pago. */
     @GetMapping("/{id}/members")
     public List<GroupMemberDTO> getMembers(@PathVariable Long id, Principal principal) {

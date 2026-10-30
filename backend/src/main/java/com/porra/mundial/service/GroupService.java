@@ -481,19 +481,6 @@ public class GroupService {
         }
     }
 
-    @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
-    public Prediction togglePredictionPaymentStatus(Long groupId, Long predictionId, String email, boolean paid) {
-        verifyGroupAdmin(groupId, email);
-        Prediction pred = predictionRepository.findById(predictionId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Pronóstico no encontrado"));
-        if (!groupId.equals(pred.getGroupId())) {
-            throw new IllegalArgumentException("El pronóstico no pertenece a esta liga");
-        }
-        pred.setPaid(paid);
-        return predictionRepository.save(pred);
-    }
-
     /**
      * Obtiene los miembros de una liga con su rol y estado de pago.
      */
