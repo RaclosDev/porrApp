@@ -11,6 +11,7 @@ const SCORE_DEPENDENT_KEYS = [
   queryKeys.leaderboardMatchdays(),
   queryKeys.matchdayFixtures(),
   queryKeys.matchFriendPredictions(),
+  queryKeys.matchdayStats(),
   queryKeys.competitionStandings(),
   queryKeys.officialBracket(),
   queryKeys.predictionScore(),
@@ -25,6 +26,7 @@ const leagueKeys = (leagueId: string | number) => [
   queryKeys.leaderboardMatchdays(leagueId),
   queryKeys.matchdayFixtures(leagueId),
   queryKeys.matchFriendPredictions(leagueId),
+  queryKeys.matchdayStats(leagueId),
   queryKeys.predictionScore(),
   // Las tarjetas de "Mis ligas" muestran miembros e imagen.
   queryKeys.myGroups(),

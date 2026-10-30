@@ -318,3 +318,41 @@ export interface FriendPrediction {
   isCaller: boolean;
   hasPredicted: boolean;
 }
+
+// --- Estadísticas de las ligas por jornadas ---
+
+/** Marcador pronosticado y cuántos lo han puesto. */
+export interface ScoreCount {
+  home: number;
+  away: number;
+  count: number;
+}
+
+/** Reparto de los pronósticos de la liga en un partido que ya ha empezado. */
+export interface MatchStats {
+  matchId: number;
+  round: string;
+  matchDate: string | null;
+  homeTeam: string;
+  awayTeam: string;
+  homeTeamLogo: string | null;
+  awayTeamLogo: string | null;
+  finished: boolean;
+  live: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
+  predictions: number;
+  homeWins: number;
+  draws: number;
+  awayWins: number;
+  topScores: ScoreCount[];
+  /** null mientras el partido no ha terminado. */
+  exactHits: number | null;
+  signHits: number | null;
+}
+
+/** Estadísticas de una liga por jornadas (`/api/predictions/matchday/stats`). */
+export interface MatchdayStats {
+  members: number;
+  matches: MatchStats[];
+}
