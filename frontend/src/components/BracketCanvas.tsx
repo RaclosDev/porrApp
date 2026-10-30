@@ -242,6 +242,16 @@ export type RenderSlot<T extends SlotTeam = SlotTeam> = (
   context: SlotContext,
 ) => ReactNode;
 
+/** Huecos de la final y del tercer puesto, que la página pinta fuera del lienzo. */
+export interface CenterSlotContext {
+  side: 'center';
+  roundIndex: 'final' | 'thirdPlaceMatch';
+  isHome: boolean;
+  matchIndex?: number;
+}
+
+export type OfficialSlotContext = SlotContext | CenterSlotContext;
+
 export interface SlotContext {
   side: 'left' | 'right';
   roundIndex: number;
