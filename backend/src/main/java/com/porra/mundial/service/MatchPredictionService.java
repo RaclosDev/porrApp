@@ -71,13 +71,18 @@ public class MatchPredictionService {
         if (edition.getCompetition() == null) {
             throw new IllegalStateException("La liga no tiene una competición configurada.");
         }
-        List<Match> matches = matchRepository.findByCompetitionIdOrderByMatchDateAsc(edition.getCompetition().getId());
-
+        Long competitionId = edition.getCompetition().getId();
+        List<Match> matches;
         if (round != null && !round.isBlank()) {
+            // La jornada se filtra en SQL; el filtro en Java solo afina lo que la consulta deja pasar.
             final String cleanRound = round.trim();
-            matches = matches.stream()
+            MatchRound.Lookup lookup = MatchRound.lookup(cleanRound);
+            matches = matchRepository.findRoundCandidates(competitionId, lookup.names(), lookup.dayStart(),
+                            lookup.dayEnd(), lookup.undated()).stream()
                     .filter(m -> MatchRound.matches(m, cleanRound))
                     .collect(Collectors.toList());
+        } else {
+            matches = matchRepository.findByCompetitionIdOrderByMatchDateAsc(competitionId);
         }
 
         // Excluir partidos fantasma donde ambos equipos son 'Por definir'
@@ -96,8 +101,11 @@ public class MatchPredictionService {
         }
 
         Map<Long, MatchPrediction> predictionMap = new HashMap<>();
-        if (userPrediction != null) {
-            List<MatchPrediction> userPredictions = matchPredictionRepository.findByPredictionId(userPrediction.getId());
+        if (userPrediction != null && !matches.isEmpty()) {
+            // Solo los pronósticos de los partidos que se devuelven, no los de toda la temporada.
+            List<Long> matchIds = matches.stream().map(Match::getId).toList();
+            List<MatchPrediction> userPredictions =
+                    matchPredictionRepository.findByPredictionIdAndMatchIdIn(userPrediction.getId(), matchIds);
             for (MatchPrediction mp : userPredictions) {
                 if (mp.getMatch() != null) {
                     predictionMap.put(mp.getMatch().getId(), mp);
