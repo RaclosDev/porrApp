@@ -156,7 +156,7 @@ public class MatchEventProcessor {
 
         MatchStatus status = parseStatus(competition);
         Scores scores = parseScores(home, away, homeTeam, awayTeam, status);
-        MatchMetadata metadata = parseMetadata(competition, batch.competition);
+        MatchMetadata metadata = parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fairPlayPoints(competition, home, away, homeTeam, awayTeam);
 
         upsertMatch(eventId, homeTeam, awayTeam, scores, fairPlay, parseDate(event.path("date").asText(null)),
@@ -262,10 +262,27 @@ public class MatchEventProcessor {
         return new Scores(homeScore, awayScore, winner);
     }
 
-    /** Grupo y ronda a partir de las notas del evento. Las competiciones de liga no tienen ronda. */
-    private MatchMetadata parseMetadata(JsonNode competition, Competition comp) {
+    /** Ronda que ESPN indica en {@code season.slug}; null si el evento no la trae o no se reconoce. */
+    static String roundFromSlug(String slug) {
+        return switch (slug == null ? "" : slug.toLowerCase()) {
+            case "group-stage" -> "group";
+            case "round-of-32" -> "r32";
+            case "round-of-16" -> "r16";
+            case "quarterfinals" -> "qf";
+            case "semifinals" -> "sf";
+            case "3rd-place-match", "third-place-match" -> "third";
+            case "final" -> "final";
+            default -> null;
+        };
+    }
+
+    /**
+     * Grupo y ronda del evento. La ronda sale del {@code season.slug} de ESPN y, si no lo trae,
+     * de sus notas ("3rd-Place Match" se lee igual que "3rd place match"). Las ligas no tienen ronda.
+     */
+    private MatchMetadata parseMetadata(JsonNode competition, String seasonSlug, Competition comp) {
         String altNote = competition.path("altGameNote").asText("");
-        String note = (altNote + " " + competition.path("notes")).toLowerCase();
+        String note = (altNote + " " + competition.path("notes")).toLowerCase().replace('-', ' ');
 
         String group = null;
         if (altNote.contains("Group ")) {
@@ -277,7 +294,10 @@ public class MatchEventProcessor {
             return new MatchMetadata(group, null);
         }
 
-        String round;
+        String round = roundFromSlug(seasonSlug);
+        if (round != null) {
+            return new MatchMetadata(group, round);
+        }
         if (group != null || note.contains("group ") || note.contains("grupo ")) {
             round = "group";
         } else if (note.contains("round of 32") || note.contains("16avo") || note.contains("dieciseis")) {

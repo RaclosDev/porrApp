@@ -124,6 +124,43 @@ class MatchEventProcessorTest {
     }
 
     @Test
+    @DisplayName("El partido por el tercer puesto sale de season.slug, no como partido de grupo")
+    void parsesThirdPlaceFromSeasonSlug() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        JsonNode event = event("pre", false, "FIFA World Cup, 3rd-Place Match", "", "", "Spain", "164", "Uruguay", "212", "[]");
+        ((tools.jackson.databind.node.ObjectNode) event).putObject("season").put("slug", "3rd-place-match");
+
+        processor.process(event, cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertEquals("third", savedMatch().getRound());
+    }
+
+    @Test
+    @DisplayName("Sin season.slug, la nota \"3rd-Place Match\" también se reconoce como tercer puesto")
+    void parsesHyphenatedThirdPlaceNote() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(event("pre", false, "FIFA World Cup, 3rd-Place Match", "", "", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertEquals("third", savedMatch().getRound());
+    }
+
+    @Test
+    @DisplayName("Cada season.slug de ESPN se traduce a su ronda")
+    void mapsEverySeasonSlug() {
+        assertEquals("group", MatchEventProcessor.roundFromSlug("group-stage"));
+        assertEquals("r32", MatchEventProcessor.roundFromSlug("round-of-32"));
+        assertEquals("r16", MatchEventProcessor.roundFromSlug("round-of-16"));
+        assertEquals("qf", MatchEventProcessor.roundFromSlug("quarterfinals"));
+        assertEquals("sf", MatchEventProcessor.roundFromSlug("semifinals"));
+        assertEquals("third", MatchEventProcessor.roundFromSlug("3rd-place-match"));
+        assertEquals("final", MatchEventProcessor.roundFromSlug("final"));
+        assertNull(MatchEventProcessor.roundFromSlug("league-phase"));
+        assertNull(MatchEventProcessor.roundFromSlug(null));
+    }
+
+    @Test
     @DisplayName("Descarta huecos del calendario sin ningún equipo conocido")
     void skipsEventsWithoutKnownTeams() throws Exception {
         Team placeholder = Team.builder().id(99L).name(Team.PLACEHOLDER_NAME).nameEn(Team.PLACEHOLDER_NAME_EN).build();
