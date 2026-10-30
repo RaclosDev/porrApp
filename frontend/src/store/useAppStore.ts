@@ -180,6 +180,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setUserId: (userId) => {
     const current = get();
     if (current.userId === userId) return;
+    // Copia local para cargar los borradores al arrancar; la fuente es /api/users/me.
+    if (userId) {
+      localStorage.setItem('my_user_id', userId);
+    } else {
+      localStorage.removeItem('my_user_id');
+    }
     // El borrador del cuadro es de cada usuario: al cambiar de usuario se carga el suyo.
     set({ userId, bracketState: getInitialBracketState(current.activeGroupId, userId) });
   },

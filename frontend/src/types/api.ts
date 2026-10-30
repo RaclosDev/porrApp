@@ -29,6 +29,7 @@ export interface LoginResponse {
 }
 
 export interface Me {
+  userId: number;
   participantName: string;
   lastSelectedGroupId: number | null;
   avatarUrl: string | null;
