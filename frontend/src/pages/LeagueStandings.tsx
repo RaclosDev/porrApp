@@ -156,7 +156,8 @@ export default function LeagueStandings() {
                                 loading="lazy"
                                 onError={(event) => {
                                   event.currentTarget.style.display = 'none';
-                                  const fallback = event.currentTarget.nextElementSibling;
+                                  const fallback = event.currentTarget
+                                    .nextElementSibling as HTMLElement | null;
                                   if (fallback) fallback.hidden = false;
                                 }}
                               />

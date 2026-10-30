@@ -2,7 +2,63 @@ import { create } from 'zustand';
 import { updateUserPreferences } from '../services/api';
 import { GLOBAL_LEAGUE_ID, DEMO_COMPETITION_ID } from '../utils/constants';
 
-export const defaultBracketState = {
+/** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
+export interface BracketTeam {
+  name: string;
+  [extra: string]: unknown;
+}
+
+export interface BracketMatch {
+  id: string;
+  home: BracketTeam | null;
+  away: BracketTeam | null;
+}
+
+export interface BracketSide {
+  left: BracketMatch[];
+  right: BracketMatch[];
+}
+
+/** Cuadro de eliminatorias que rellena el usuario. */
+export interface BracketState {
+  r32: BracketSide;
+  r16: BracketSide;
+  qf: BracketSide;
+  sf: BracketSide;
+  final: BracketMatch | null;
+  champion: BracketTeam | null;
+  thirdPlaceMatch: BracketMatch | null;
+  thirdPlaceWinner: BracketTeam | null;
+}
+
+interface AppState {
+  userName: string;
+  setUserName: (userName: string) => void;
+  userAvatarUrl: string;
+  setUserAvatarUrl: (url: string | null) => void;
+  userId: string;
+  setUserId: (userId: string) => void;
+  activeGroupId: string;
+  setActiveGroupId: (groupId: string | null) => void;
+  activeCompetitionId: number | null;
+  setActiveCompetitionId: (competitionId: number | null) => void;
+  bracketState: BracketState;
+  setBracketState: (bracketState: BracketState) => void;
+  topScorer: string;
+  setTopScorer: (topScorer: string) => void;
+  viewerPredictionId: string | number | null;
+  setViewerPredictionId: (id: string | number | null) => void;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (isAuthenticated: boolean) => void;
+  isDemoMode: boolean;
+  setIsDemoMode: (isDemoMode: boolean) => void;
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
+  /** Cambia de liga guardando el borrador del cuadro de la anterior. */
+  changeGroup: (groupId: string | number | null) => void;
+}
+
+export const defaultBracketState: BracketState = {
   r32: {
     left: [
       { home: { name: '1º Grupo E' }, away: { name: '3º A/B/C/D/F' }, id: 'L1' },
@@ -51,7 +107,7 @@ export const defaultBracketState = {
   thirdPlaceWinner: null,
 };
 
-export const getInitialBracketState = (groupId) => {
+export const getInitialBracketState = (groupId: string): BracketState => {
   if (!groupId || typeof window === 'undefined') return defaultBracketState;
   try {
     const saved = localStorage.getItem(`draft_bracket_${groupId}`);
@@ -68,7 +124,7 @@ export const getInitialBracketState = (groupId) => {
 };
 
 /** Mapa local liga -> timestamp de la última vez que se abrió, para ordenar "Mis Ligas". */
-export const readGroupVisits = () => {
+export const readGroupVisits = (): Record<string, number> => {
   if (typeof window === 'undefined') return {};
   try {
     const raw = localStorage.getItem('group_last_visited');
@@ -82,7 +138,7 @@ export const readGroupVisits = () => {
 const initialGroupId =
   typeof window !== 'undefined' ? localStorage.getItem('activeGroupId') || '' : '';
 
-export const useAppStore = create((set, get) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   userName: localStorage.getItem('my_prediction_name') || '',
   setUserName: (userName) => {
     if (userName) {
@@ -174,7 +230,7 @@ export const useAppStore = create((set, get) => ({
       isAuthenticated: false,
       userName: '',
       userId: '',
-      activeGroupId: '1',
+      activeGroupId: GLOBAL_LEAGUE_ID,
       activeCompetitionId: null,
       viewerPredictionId: null,
     });

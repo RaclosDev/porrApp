@@ -1,22 +1,24 @@
 import { useState } from 'react';
 import Flag from '../Flag';
+import type { TopScorer } from '../../types/api';
 
-/**
- * Componente que muestra la lista de máximos goleadores (Pichichi) del torneo.
- *
- * @component
- * @param {Object} props
- * @param {Array} props.topScorers - Lista de los máximos goleadores.
- * @returns {JSX.Element} Panel renderizado.
- */
+interface TopScorersPanelProps {
+  topScorers: TopScorer[];
+  hideTitle?: boolean;
+  loading?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
+}
+
+/** Máximos goleadores (Pichichi) del torneo. */
 function TopScorersPanel({
   topScorers,
   hideTitle = false,
   loading = false,
   error = false,
   onRetry,
-}) {
-  const [imgErrors, setImgErrors] = useState({});
+}: TopScorersPanelProps) {
+  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
 
   if (loading || error || !topScorers || topScorers.length === 0) {
     return (
@@ -88,7 +90,7 @@ function TopScorersPanel({
   const right = topScorers.slice(2, 4);
 
   const uniqueGoals = [...new Set(topScorers.slice(0, 4).map((s) => s.goals))];
-  const getMedal = (goals, idx) => {
+  const getMedal = (goals: number, idx: number) => {
     const rank = uniqueGoals.indexOf(goals);
     if (rank === 0) return '👑';
     if (rank === 1) return '🥈';
@@ -96,7 +98,7 @@ function TopScorersPanel({
     return idx + 1;
   };
 
-  const renderScorer = (s, idx) => {
+  const renderScorer = (s: TopScorer, idx: number) => {
     const isLeader = s.goals === maxGoals;
     const isVinicius =
       (s.name || s.shortName || '').toLowerCase().includes('vinicius') ||

@@ -1,6 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 
-function Img({ src, size, radius, fallback, label = '' }) {
+interface ImgProps {
+  src: string | null | undefined;
+  size: number;
+  radius: number | string;
+  fallback: ReactNode;
+  label?: string;
+}
+
+function Img({ src, size, radius, fallback, label = '' }: ImgProps) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
   const box = {
@@ -31,7 +39,15 @@ function Img({ src, size, radius, fallback, label = '' }) {
 }
 
 /** Foto de perfil con inicial como respaldo. `alt` vacío por defecto: es decorativa junto al nombre. */
-export function UserAvatar({ url, name, size = 32 }) {
+export function UserAvatar({
+  url,
+  name,
+  size = 32,
+}: {
+  url: string | null | undefined;
+  name?: string | null;
+  size?: number;
+}) {
   return (
     <Img
       src={url}
@@ -59,7 +75,15 @@ export function UserAvatar({ url, name, size = 32 }) {
 }
 
 /** Imagen de liga con un emoji (insignia de la competición) como respaldo. */
-export function LeagueAvatar({ url, badge = '🏆', size = 32 }) {
+export function LeagueAvatar({
+  url,
+  badge = '🏆',
+  size = 32,
+}: {
+  url: string | null | undefined;
+  badge?: string;
+  size?: number;
+}) {
   return (
     <Img
       src={url}

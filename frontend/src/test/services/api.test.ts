@@ -44,12 +44,9 @@ describe('api.ts service', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await fetchMatches('laliga-2026');
+    await fetchMatches(7);
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/api/matches?competitionId=laliga-2026',
-      expect.anything(),
-    );
+    expect(mockFetch).toHaveBeenCalledWith('/api/matches?competitionId=7', expect.anything());
   });
 
   it('lanza un error si la respuesta HTTP no es ok (4xx/5xx)', async () => {

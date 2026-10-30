@@ -3,7 +3,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { getAuthToken, setAuthToken } from '../services/api';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 import ProfileSettingsModal from './ProfileSettingsModal';
 import { UserAvatar } from './Avatar';
@@ -12,7 +13,13 @@ import MobileBottomNav from './MobileBottomNav';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
-const prefetchRoute = (path) => {
+/** Evento de instalación de la PWA (solo Chromium; no está en los tipos del DOM). */
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+const prefetchRoute = (path: string) => {
   switch (path) {
     case '/ranking':
       import('../pages/Leaderboard');
@@ -50,11 +57,8 @@ const prefetchRoute = (path) => {
  * el banner de instalación PWA, y el visor global de porras (PredictionViewer).
  *
  * @component
- * @param {Object} props
- * @param {ReactNode} props.children - El contenido de la ruta actual.
- * @returns {JSX.Element} Layout de la aplicación.
  */
-function Layout({ children }) {
+function Layout({ children }: { children: React.ReactNode }) {
   const {
     participantsHashes,
     userName,
@@ -77,7 +81,7 @@ function Layout({ children }) {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
 
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   const isUserLoggedIn = Boolean(getAuthToken()) && Boolean(userName);
@@ -122,7 +126,7 @@ function Layout({ children }) {
   };
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setShowMyPredictionModal(false);
         setShowProfileMenu(false);
@@ -153,9 +157,9 @@ function Layout({ children }) {
       setShowInstallBanner(true);
     }
 
-    const handleBeforeInstallPrompt = (e) => {
+    const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       if (localStorage.getItem('pwa_banner_dismissed') !== 'true') {
         setShowInstallBanner(true);
       }
@@ -183,42 +187,9 @@ function Layout({ children }) {
     setShowInstallBanner(false);
   };
 
-  /**
-   * Callback tras loguearse correctamente en Google.
-   * Valida el credential con el backend.
-   */
-  const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      const res = await fetch('/api/auth/google/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
-      });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        setAuthToken(data.token);
-        setIsAuthenticated?.(true);
-        setUserName(data.participantName);
-        localStorage.setItem('my_prediction_name', data.participantName);
-        if (data.userId) localStorage.setItem('my_user_id', data.userId);
-        const store = useAppStore.getState();
-        if (data.userId) store.setUserId(String(data.userId));
-        store.setUserAvatarUrl(data.avatarUrl || '');
-        if (data.lastSelectedGroupId && data.lastSelectedGroupId > 0) {
-          // Pasar por changeGroup para que el store quede sincronizado con localStorage.
-          store.changeGroup(data.lastSelectedGroupId);
-        }
-        setShowMyPredictionModal(false);
-        toast.success(`¡Bienvenido, ${data.participantName}!`);
-        if (!localStorage.getItem('activeGroupId')) {
-          navigate('/mis-ligas');
-        }
-      } else {
-        toast.error(data.error || 'Error al iniciar sesión con Google');
-      }
-    } catch (e) {
-      toast.error('Error conectando con Google: ' + e.message);
-    }
+  const signInWithGoogle = useGoogleSignIn();
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (await signInWithGoogle(credentialResponse)) setShowMyPredictionModal(false);
   };
 
   return (

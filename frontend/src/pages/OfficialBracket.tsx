@@ -1,9 +1,27 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
 import Flag from '../components/Flag';
-import { buildBracketData } from '../utils/bracketBuilder';
+import {
+  buildBracketData,
+  isMatchInRound,
+  matchTeamNames,
+  nextKnockoutMatch,
+  slotName,
+  type BracketSlot,
+} from '../utils/bracketBuilder';
+import type { CanvasMatch, SlotContext } from '../components/BracketCanvas';
+
+/** Huecos de la final y del tercer puesto, que la página pinta fuera del lienzo. */
+interface CenterSlotContext {
+  side: 'center';
+  roundIndex: 'final' | 'thirdPlaceMatch';
+  isHome: boolean;
+  matchIndex?: number;
+}
+
+type OfficialSlotContext = SlotContext | CenterSlotContext;
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
 import OfficialGroupsView from '../components/Home/OfficialGroupsView';
@@ -13,8 +31,6 @@ import OfficialGroupsView from '../components/Home/OfficialGroupsView';
  * Calcula y resuelve en vivo qué equipos avanzan con la lógica de clasificación de terceros.
  *
  * @component
- * @param {Object} props
- * @param {boolean} [props.hideTitle] - Oculta el título del componente si es true.
  * @returns {JSX.Element} La vista del bracket oficial.
  */
 function OfficialBracket() {
@@ -56,7 +72,7 @@ function OfficialBracketView() {
     activeGroupPichichi,
   } = useAppContext();
 
-  const [activePanel, setActivePanel] = useState(null); // 'live', 'scorers', null
+  const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
   const [activeTab, setActiveTab] = useState('cuadro'); // 'cuadro' | 'grupos'
 
   // Build bracket data
@@ -65,49 +81,11 @@ function OfficialBracketView() {
     [officialPoints, groupOdds, allGames],
   );
 
-  const isKnockoutMatch = (m) => {
-    if (!m) return false;
-    if (m.groupName && m.groupName !== '-' && m.groupName.trim() !== '') return false;
-    const r = (m.round || '').toLowerCase().trim();
-    if (r === 'group' || r.startsWith('group') || r.includes('grupo') || r.includes('jornada'))
-      return false;
-    return true;
-  };
-
   // Featured upcoming match
-  const featuredMatch = useMemo(() => {
-    if (!allGames || allGames.length === 0) return null;
-    const koUnfinished = allGames
-      .filter(
-        (g) =>
-          g &&
-          isKnockoutMatch(g) &&
-          !g.finished &&
-          !g.winner &&
-          (g.home_score === null || g.home_score === undefined || g.home_score === ''),
-      )
-      .sort((a, b) => new Date(a.date || Infinity) - new Date(b.date || Infinity));
-    return koUnfinished[0] || null;
-  }, [allGames]);
-
-  const isMatchInRound = (match, ctx) => {
-    if (!match || !ctx) return true;
-    if (!isKnockoutMatch(match)) return false;
-    const r = (match.round || '').toLowerCase();
-    const idx = ctx.roundIndex;
-    if (idx === 0) return r === 'r32' || r === '32' || r.includes('32') || r.includes('16avo');
-    if (idx === 1) return r === 'r16' || r === '16' || r.includes('16') || r.includes('octav');
-    if (idx === 2) return r === 'qf' || r.includes('quart') || r.includes('cuart');
-    if (idx === 3) return r === 'sf' || r.includes('semi') || r.includes('semis');
-    if (idx === 'final') return r === 'final' || r.includes('final');
-    if (idx === 'thirdPlaceMatch')
-      return r === 'third' || r.includes('tercer') || r.includes('3rd') || r.includes('3er');
-    return true;
-  };
+  const featuredMatch = useMemo(() => nextKnockoutMatch(allGames), [allGames]);
 
   const { leftRounds, rightRounds } = useMemo(() => {
-    if (!part) return { leftRounds: [], rightRounds: [] };
-    const toMatches = (arr) =>
+    const toMatches = (arr: BracketSlot[][] | undefined): CanvasMatch<BracketSlot>[] =>
       (arr || []).map((m) => ({ home: m?.[0] || null, away: m?.[1] || null }));
 
     return {
@@ -143,12 +121,12 @@ function OfficialBracketView() {
   }
 
   // Render slot
-  const renderSlot = (teamOrObj, context) => {
+  const renderSlot = (teamOrObj: BracketSlot | undefined, context?: OfficialSlotContext) => {
     const isObj = typeof teamOrObj === 'object' && teamOrObj !== null;
-    const name = isObj ? teamOrObj.name : teamOrObj;
+    const name = slotName(teamOrObj);
     const isProv = isObj ? teamOrObj.isProvisional : false;
 
-    let style = isProv
+    let style: CSSProperties = isProv
       ? {
           border: '1px dashed #ff4757',
           animation: 'provisional-pulse 1.5s infinite',
@@ -156,7 +134,7 @@ function OfficialBracketView() {
       : {};
 
     let scoreContent = null;
-    let oppName = null;
+    let oppName: string | null = null;
     if (context && name && !name.includes('º') && name !== 'Por definir') {
       const { side, roundIndex, matchIndex, isHome } = context;
       let opponent = null;
@@ -174,19 +152,11 @@ function OfficialBracketView() {
           opponent = isHome ? part.thirdPlaceMatch?.[1] : part.thirdPlaceMatch?.[0];
       }
 
-      oppName = typeof opponent === 'object' && opponent ? opponent.name : opponent;
-
-      const matchTeamNames = (a, b) => {
-        if (!a || !b) return false;
-        if (a === b) return true;
-        if ((a === 'EEUU' && b === 'Estados Unidos') || (a === 'Estados Unidos' && b === 'EEUU'))
-          return true;
-        return a.trim().toLowerCase() === b.trim().toLowerCase();
-      };
+      oppName = slotName(opponent);
 
       const m = (allGames || []).find((g) => {
         if (!g) return false;
-        if (!isMatchInRound(g, context)) return false;
+        if (!isMatchInRound(g, context?.roundIndex)) return false;
         if (oppName && !oppName.includes('º') && oppName !== 'Por definir') {
           if (
             (matchTeamNames(g.home, name) && matchTeamNames(g.away, oppName)) ||
@@ -206,12 +176,7 @@ function OfficialBracketView() {
 
       if (m && m.home_score != null && m.away_score != null) {
         const isHomeInMatch = matchTeamNames(m.home, name);
-        let score = isHomeInMatch ? m.home_score : m.away_score;
-        const isPenalties = m.home_penalty != null && m.away_penalty != null;
-        if (isPenalties) {
-          const penScore = isHomeInMatch ? m.home_penalty : m.away_penalty;
-          score = `${score} (${penScore})`;
-        }
+        const score = isHomeInMatch ? m.home_score : m.away_score;
 
         // Determine if this team won the match
         let isWinner = false;
@@ -242,7 +207,7 @@ function OfficialBracketView() {
     let isFeatured = false;
     let isLive = false;
     if (featuredMatch && name && !name.includes('º') && name !== 'Por definir' && name !== '???') {
-      if (isMatchInRound(featuredMatch, context)) {
+      if (isMatchInRound(featuredMatch, context?.roundIndex)) {
         if (featuredMatch.home === name || featuredMatch.away === name) {
           isFeatured = true;
           if (featuredMatch.date && new Date(featuredMatch.date) <= new Date()) {
@@ -283,10 +248,11 @@ function OfficialBracketView() {
   // Center content
   const finalTopY = matchTop(3, 0);
 
-  const getName = (t) => (typeof t === 'object' && t ? t.name : t);
-  const getIsProv = (t) => (typeof t === 'object' && t ? t.isProvisional : false);
+  const getName = slotName;
+  const getIsProv = (t: BracketSlot | undefined) =>
+    typeof t === 'object' && t ? t.isProvisional : false;
 
-  const centerContent = (colW) => (
+  const centerContent = (colW: number) => (
     <div style={{ display: 'block' }}>
       {/* FINAL */}
       <div
