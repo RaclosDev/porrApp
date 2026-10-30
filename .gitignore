@@ -6,8 +6,6 @@ dist/
 dev-dist/
 .vite/
 *.tsbuildinfo
-playwright-report/
-test-results/
 coverage/
 
 # ==============================================================================
@@ -15,6 +13,8 @@ coverage/
 # ==============================================================================
 backend/target/
 backend/data/
+# La build del frontend se copia aquí en el Dockerfile; no se versiona
+backend/src/main/resources/static/
 !backend/src/
 
 # ==============================================================================
