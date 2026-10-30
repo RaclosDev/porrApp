@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
@@ -93,7 +94,7 @@ export default function MatchFriendsPredictionsModal({
   const hasFinalScore =
     match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
 
-  return (
+  return createPortal(
     <div
       className="friends-predictions-overlay"
       onClick={(event) => {
@@ -101,7 +102,7 @@ export default function MatchFriendsPredictionsModal({
       }}
     >
       <div
-        className="friends-predictions-panel"
+        className="friends-predictions-panel paper-panel landing-tape paper-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="friends-predictions-title"
@@ -255,6 +256,7 @@ export default function MatchFriendsPredictionsModal({
           <span>Los pronósticos se revelan al empezar el partido.</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

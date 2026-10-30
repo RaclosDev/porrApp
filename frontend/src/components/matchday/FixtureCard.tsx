@@ -1,4 +1,5 @@
 import Flag from '../Flag';
+import { CalendarDays, Users } from 'lucide-react';
 import type { MatchdayFixture } from '../../types/api';
 import { formatMatchDate, type DraftPrediction, type MatchSign } from '../../utils/matchday';
 
@@ -48,27 +49,21 @@ export default function FixtureCard({
   return (
     <div className={`md-match${locked ? ' is-locked' : ''}`}>
       <div className="md-match-top">
-        <span>📅 {formatMatchDate(fixture.matchDate)}</span>
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarDays size={12} aria-hidden="true" />
+          {formatMatchDate(fixture.matchDate)}
+        </span>
         <div className="md-match-status-actions">
-          <button
-            type="button"
-            className="md-predictions-btn md-predictions-icon-btn"
-            onClick={() => onShowFriends(fixture)}
-            aria-label={`Ver pronósticos de ${fixture.homeTeam} vs ${fixture.awayTeam}`}
-            title="Ver pronósticos de amigos"
-          >
-            <span aria-hidden="true">👥</span>
-          </button>
           {fixture.finished ? (
             <span className="md-badge is-finished">
               Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
             </span>
           ) : locked ? (
             <span className="md-badge is-locked" title={fixture.lockReason ?? undefined}>
-              🔒 Bloqueado
+              Cerrado
             </span>
           ) : (
-            <span className="md-badge is-open">⏱️ Abierto</span>
+            <span className="md-badge is-open">Abierto</span>
           )}
         </div>
       </div>
@@ -114,6 +109,16 @@ export default function FixtureCard({
           );
         })}
       </div>
+
+      <button
+        type="button"
+        className="md-friends-link"
+        onClick={() => onShowFriends(fixture)}
+        aria-label={`Ver pronósticos de ${fixture.homeTeam} vs ${fixture.awayTeam}`}
+        title="Ver pronósticos de amigos"
+      >
+        <Users size={16} aria-hidden="true" /> Ver pronósticos
+      </button>
 
       {/* Desglose de puntos si el partido ya ha finalizado */}
       {fixture.finished && points !== null && points !== undefined && (

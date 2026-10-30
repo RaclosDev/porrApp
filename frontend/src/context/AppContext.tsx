@@ -111,6 +111,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isCancelled = false;
     const autoSelectGroup = async () => {
+      const selectedAtStart = useAppStore.getState().activeGroupId;
       if (isDemoMode || !isUserAuthed) return;
       try {
         let dbGroupId = null;
@@ -127,7 +128,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
 
         const myGroups = await fetchMyGroups();
-        if (isCancelled) return;
+        if (
+          isCancelled ||
+          localStorage.getItem('pendingJoinCode') ||
+          useAppStore.getState().activeGroupId !== selectedAtStart
+        )
+          return;
 
         if (!myGroups || myGroups.length === 0) {
           localStorage.removeItem('activeGroupId');

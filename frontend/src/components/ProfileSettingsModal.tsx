@@ -54,7 +54,7 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
 
   return (
     <div
-      className="fixed inset-0 bg-[rgba(0,_0,_0,_0.75)] bg-none [backdrop-filter:blur(8px)] flex items-center justify-center z-[1000] p-4"
+      className="paper-dialog-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-settings-title"
@@ -62,75 +62,77 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
       tabIndex={-1}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-115 bg-[#151525] bg-none border border-[rgba(255,255,255,0.1)] rounded-[16px] p-5 flex flex-col gap-4.5 max-h-[90dvh] overflow-y-auto">
-        <div className="flex justify-between items-center">
-          <h3 className="m-0 text-white text-[1.2rem]" id="profile-settings-title">
-            Ajustes de cuenta
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="glass-btn w-11 h-11 p-0 rounded-full cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-
-        <section className="flex flex-col gap-2">
-          <span className="text-[0.8rem] font-bold text-muted">Foto de perfil</span>
-          <ImagePicker
-            idPrefix="avatar-picker"
-            currentUrl={avatarUrl}
-            renderPreview={(url) => (
-              <UserAvatar url={url} userId={userId} name={userName} size={72} />
-            )}
-            onUpload={async (blob) => {
-              const res = await uploadMyAvatar(blob);
-              setUserAvatarUrl(res.avatarUrl || '');
-              refreshEverywhere();
-              toast.success('Foto actualizada');
-            }}
-            onRemove={async () => {
-              await deleteMyAvatar();
-              setUserAvatarUrl('');
-              refreshEverywhere();
-              toast.success('Foto eliminada');
-            }}
-          />
-        </section>
-
-        <section className="flex flex-col gap-2">
-          <label className="text-[0.8rem] font-bold text-muted" htmlFor="profile-name-input">
-            Nombre público
-          </label>
-          <div className="flex gap-2">
-            <input
-              id="profile-name-input"
-              className="glass-input flex-1 min-w-0"
-              value={name}
-              maxLength={30}
-              onChange={(e) => setName(e.target.value)}
-            />
+      <div className="paper-panel landing-tape paper-dialog">
+        <div className="paper-dialog-body flex flex-col gap-4.5">
+          <div className="flex justify-between items-center">
+            <h3 className="m-0 poster-title text-main text-[1.2rem]" id="profile-settings-title">
+              Ajustes de cuenta
+            </h3>
             <button
               type="button"
-              className="glass-btn py-1.5 px-3.5 font-bold rounded-[8px] bg-[rgba(0,_210,_211,_0.15)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] cursor-pointer"
-              onClick={saveName}
-              disabled={saving || unchanged || name.trim().length < 2}
+              onClick={onClose}
+              aria-label="Cerrar"
+              className="glass-btn w-11 h-11 p-0 rounded-full cursor-pointer"
             >
-              {saving ? 'Guardando…' : 'Guardar'}
+              ✕
             </button>
           </div>
-          {error && (
-            <span className="text-[0.8rem] text-[#ff6b7a]" role="alert">
-              {error}
+
+          <section className="flex flex-col gap-2">
+            <span className="text-[0.8rem] font-bold text-muted">Foto de perfil</span>
+            <ImagePicker
+              idPrefix="avatar-picker"
+              currentUrl={avatarUrl}
+              renderPreview={(url) => (
+                <UserAvatar url={url} userId={userId} name={userName} size={72} />
+              )}
+              onUpload={async (blob) => {
+                const res = await uploadMyAvatar(blob);
+                setUserAvatarUrl(res.avatarUrl || '');
+                refreshEverywhere();
+                toast.success('Foto actualizada');
+              }}
+              onRemove={async () => {
+                await deleteMyAvatar();
+                setUserAvatarUrl('');
+                refreshEverywhere();
+                toast.success('Foto eliminada');
+              }}
+            />
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <label className="text-[0.8rem] font-bold text-muted" htmlFor="profile-name-input">
+              Nombre público
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="profile-name-input"
+                className="glass-input flex-1 min-w-0"
+                value={name}
+                maxLength={30}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <button
+                type="button"
+                className="glass-btn py-1.5 px-3.5 font-bold rounded-[8px] bg-[rgba(0,_210,_211,_0.15)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-cyan cursor-pointer"
+                onClick={saveName}
+                disabled={saving || unchanged || name.trim().length < 2}
+              >
+                {saving ? 'Guardando…' : 'Guardar'}
+              </button>
+            </div>
+            {error && (
+              <span className="text-[0.8rem] text-[#b91c1c]" role="alert">
+                {error}
+              </span>
+            )}
+            <span className="text-[0.74rem] text-muted">
+              Es el nombre que ven tus amigos en clasificaciones y ligas. Tu cuenta de Google y su
+              vinculación no cambian.
             </span>
-          )}
-          <span className="text-[0.74rem] text-muted">
-            Es el nombre que ven tus amigos en clasificaciones y ligas. Tu cuenta de Google y su
-            vinculación no cambian.
-          </span>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   );

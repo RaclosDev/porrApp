@@ -10,7 +10,7 @@ import { errorMessage } from '../utils/errors';
  * y lleva a "Mis ligas" si el usuario aún no ha elegido ninguna.
  * Devuelve si el inicio de sesión ha ido bien.
  */
-export function useGoogleSignIn() {
+export function useGoogleSignIn({ navigateAfterLogin = true } = {}) {
   const navigate = useNavigate();
 
   return async (credentialResponse: CredentialResponse): Promise<boolean> => {
@@ -33,7 +33,11 @@ export function useGoogleSignIn() {
       }
 
       toast.success(`¡Bienvenido, ${data.participantName}!`);
-      if (!localStorage.getItem('activeGroupId')) navigate('/mis-ligas');
+      if (navigateAfterLogin) {
+        const pendingCode = localStorage.getItem('pendingJoinCode');
+        if (pendingCode) navigate(`/join/${encodeURIComponent(pendingCode)}`, { replace: true });
+        else if (!localStorage.getItem('activeGroupId')) navigate('/mis-ligas');
+      }
       return true;
     } catch (err) {
       toast.error(errorMessage(err, 'Error al iniciar sesión con Google'));

@@ -67,7 +67,9 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
   // En la pantalla de acceso/invitación no mostrar la navegación global: la propia
   // pantalla ya contiene el acceso con Google y el contexto de la invitación.
-  const isInviteAuthScreen = !isUserLoggedIn && location.pathname === '/mis-ligas';
+  const isInviteAuthScreen =
+    location.pathname.startsWith('/join/') ||
+    (!isUserLoggedIn && location.pathname === '/mis-ligas');
 
   // Con sesión iniciada pero sin ninguna liga, la navegación queda bloqueada:
   // solo se puede crear o unirse a una liga desde Mis Ligas.

@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
-import { LeagueAvatar } from '../components/Avatar';
+import { Navigate } from 'react-router-dom';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
@@ -36,10 +36,6 @@ export default function GroupsDashboard() {
     setIncludePichichi,
     newlyCreatedGroup,
     setNewlyCreatedGroup,
-    pendingJoinCodeNotice,
-    pendingInvite,
-    handleAcceptPendingInvite,
-    isJoiningInvite,
     joinCode,
     setJoinCode,
     isCreating,
@@ -85,105 +81,31 @@ export default function GroupsDashboard() {
 
   const signInWithGoogle = useGoogleSignIn();
   const handleDirectGoogleLogin = async (credentialResponse: CredentialResponse) => {
-    // Recarga para que el resto de la página se monte ya con la sesión.
-    if (await signInWithGoogle(credentialResponse)) window.location.reload();
+    await signInWithGoogle(credentialResponse);
   };
 
-  const inviteSummary = pendingJoinCodeNotice ? (
-    <div className="paper-panel album-sheet invite-summary-card max-w-130 w-full mt-0 mb-6 mx-auto box-border p-5 flex flex-col gap-3 text-left">
-      <div className="flex items-center gap-3.5 min-h-16">
-        {pendingInvite?.imageUrl ? (
-          <img
-            className="block w-16 h-16 flex-[0_0_64px] rounded-[12px] object-cover"
-            src={pendingInvite.imageUrl}
-            alt={pendingInvite.name ? `Imagen de ${pendingInvite.name}` : 'Imagen de la liga'}
-          />
-        ) : (
-          <LeagueAvatar url={null} size={64} />
-        )}
-        <div className="min-w-0 flex-[1_1_auto]">
-          <h2
-            className="poster-title text-[1.3rem] leading-[1.2] mt-0 mb-1 mx-0 overflow-hidden text-ellipsis whitespace-nowrap"
-            title={pendingInvite?.name || 'Cargando liga…'}
-          >
-            {pendingInvite?.name || 'Cargando liga…'}
-          </h2>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(162,_155,_254,_0.14)] bg-none border border-[rgba(162,_155,_254,_0.35)] text-[#a29bfe]">
-          {pendingInvite?.competitionName || 'Fútbol'}
-        </span>
-        <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(0,_210,_211,_0.1)] bg-none border border-[rgba(0,_210,_211,_0.3)] text-[#00d2d3]">
-          {pendingInvite?.poolFormat === 'MATCH_DAY'
-            ? 'Jornadas'
-            : pendingInvite?.poolFormat === 'KNOCKOUTS_ONLY'
-              ? 'Eliminatorias'
-              : pendingInvite?.poolFormat === 'FULL_BRACKET'
-                ? 'Cuadro completo'
-                : 'Porra de fútbol'}
-        </span>
-      </div>
-      {userName ? (
-        <button
-          className={`w-full mt-0.5 border-none rounded-[10px] py-2.5 px-3.5 bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] bg-transparent text-[#0f172a] font-extrabold text-[0.9rem] ${pendingInvite && !isJoiningInvite ? 'cursor-pointer' : '[cursor:wait]'} ${pendingInvite && !isJoiningInvite ? 'opacity-[1]' : 'opacity-[0.65]'}`}
-          type="button"
-          onClick={handleAcceptPendingInvite}
-          disabled={!pendingInvite || isJoiningInvite}
-        >
-          {isJoiningInvite ? 'Uniéndote…' : 'Unirme a la liga'}
-        </button>
-      ) : (
-        <div className="flex justify-center mt-0.5">
-          <GoogleLogin
-            onSuccess={handleDirectGoogleLogin}
-            onError={() => toast.error('Inicio de sesión cancelado')}
-            theme="filled_black"
-            shape="pill"
-            text="continue_with"
-          />
-        </div>
-      )}
-    </div>
-  ) : null;
+  const pendingCode = localStorage.getItem('pendingJoinCode');
+  if (pendingCode) return <Navigate to={`/join/${encodeURIComponent(pendingCode)}`} replace />;
 
   if (!userName) {
     return (
-      <div
-        className={
-          pendingJoinCodeNotice ? 'join-auth-screen has-pending-invite' : 'join-auth-screen'
-        }
-        style={{
-          textAlign: 'center',
-          padding: 'clamp(16px, 4vw, 32px)',
-          color: 'white',
-          width: '100%',
-          boxSizing: 'border-box',
-        }}
-      >
-        {inviteSummary}
-
-        {!pendingJoinCodeNotice && (
-          <>
-            <h2 className="text-[1.5rem] mb-5">Inicia sesión para crear o unirte a una liga</h2>
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleDirectGoogleLogin}
-                onError={() => toast.error('Inicio de sesión cancelado')}
-                theme="filled_black"
-                shape="pill"
-                text="continue_with"
-              />
-            </div>
-          </>
-        )}
+      <div className="join-auth-screen text-center p-6">
+        <h2 className="poster-title text-2xl mb-5">Inicia sesión para crear o unirte a una liga</h2>
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={handleDirectGoogleLogin}
+            onError={() => toast.error('Inicio de sesión cancelado')}
+            theme="outline"
+            shape="rectangular"
+            text="continue_with"
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <section className="view-section active">
-      {inviteSummary}
       {newlyCreatedGroup && (
         <CreatedLeagueModal
           newlyCreatedGroup={newlyCreatedGroup}
