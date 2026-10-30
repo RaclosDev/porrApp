@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAppContext } from '../context/AppContext';
 import Flag from './Flag';
-import { useBetViewerData } from '../hooks/useBetViewerData';
+import { usePredictionViewerData } from '../hooks/usePredictionViewerData';
 import { PredictionSkeleton } from './Skeleton';
 import { extractGroupsFromR32 } from '../hooks/useBracket';
 import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCanvas';
@@ -14,23 +14,30 @@ import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from './BracketCa
  * @component
  * @returns {JSX.Element|null} El modal del visor de porras, o null si no hay porra seleccionada.
  */
-function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose = null }) {
+function PredictionViewer({ inline = false, predictionId = null, onEdit = null, onClose = null }) {
   const state = useAppContext();
-  const { viewerBetId, setViewerBetId, officialPoints, groupOdds, allGames, nameToIdMap } = state;
+  const {
+    viewerPredictionId,
+    setViewerPredictionId,
+    officialPoints,
+    groupOdds,
+    allGames,
+    nameToIdMap,
+  } = state;
   const { participantsHashes } = state;
-  const effectiveBetId = betId || viewerBetId;
+  const effectivePredictionId = predictionId || viewerPredictionId;
   const handleClose = useCallback(
-    () => (onClose ? onClose() : setViewerBetId(null)),
-    [onClose, setViewerBetId],
+    () => (onClose ? onClose() : setViewerPredictionId(null)),
+    [onClose, setViewerPredictionId],
   );
 
   const initialPart = useMemo(() => {
-    if (!effectiveBetId) return null;
+    if (!effectivePredictionId) return null;
     const match = (participantsHashes || []).find(
-      (h) => String(h?.key ?? h?.id ?? '') === String(effectiveBetId),
+      (h) => String(h?.key ?? h?.id ?? '') === String(effectivePredictionId),
     );
     return match?.data || null;
-  }, [effectiveBetId, participantsHashes]);
+  }, [effectivePredictionId, participantsHashes]);
 
   const {
     part,
@@ -44,8 +51,8 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     getRoundFooterTotal,
     getCenterPointsTotal,
     getGroupTeamData,
-  } = useBetViewerData(
-    effectiveBetId,
+  } = usePredictionViewerData(
+    effectivePredictionId,
     officialPoints,
     state.leaderboardData,
     groupOdds,
@@ -105,11 +112,11 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') handleClose();
     };
-    if (effectiveBetId && !inline) {
+    if (effectivePredictionId && !inline) {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [effectiveBetId, handleClose, inline]);
+  }, [effectivePredictionId, handleClose, inline]);
 
   useEffect(() => {
     if (initialSection === 'knockout') {
@@ -117,7 +124,7 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     } else if (initialSection === 'groups') {
       setActiveTab('groups');
     }
-  }, [initialSection, effectiveBetId]);
+  }, [initialSection, effectivePredictionId]);
 
   /**
    * Función inyectada a BracketCanvas para pintar un "Slot" de un equipo en eliminatorias.
@@ -571,7 +578,7 @@ function PredictionViewer({ inline = false, betId = null, onEdit = null, onClose
     return list;
   }, [part?.groups]);
 
-  if (!effectiveBetId) return null;
+  if (!effectivePredictionId) return null;
 
   if (error) {
     if (inline) {

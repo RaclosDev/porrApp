@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.model.League;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
@@ -7,7 +8,6 @@ import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.WebSocketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +18,10 @@ import java.util.Map;
 
 /**
  * Controlador REST para la gestion de Pronosticos y Porras (Prediction).
- * Expone rutas bajo /api/predictions y /api/bets para total compatibilidad.
+ * Expone las rutas bajo /api/predictions.
  */
 @RestController
-@RequestMapping({"/api/predictions", "/api/bets"})
+@RequestMapping("/api/predictions")
 @RequiredArgsConstructor
 public class PredictionController {
 
@@ -45,16 +45,11 @@ public class PredictionController {
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<PredictionResponseDTO> getAllPredictions(@RequestParam(required = false) Long groupId, Principal principal) {
         String email = getRequesterEmail(principal);
-        Long targetGroupId = groupId != null ? groupId : 1L;
-
-        if (!Long.valueOf(1L).equals(targetGroupId)) {
-            if (email == null || !groupService.isUserMemberOrAdmin(targetGroupId, email)) {
-                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "No perteneces a esta liga privada");
-            }
-            return predictionService.toPredictionDtoList(predictionService.getPredictionsByGroupId(targetGroupId), email);
-        } else {
-            return predictionService.toPredictionDtoList(predictionService.getPredictionsByGroupId(1L), email);
+        Long targetGroupId = groupId != null ? groupId : League.GLOBAL_ID;
+        if (!League.isGlobalId(targetGroupId) && (email == null || !groupService.isUserMemberOrAdmin(targetGroupId, email))) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "No perteneces a esta liga privada");
         }
+        return predictionService.toPredictionDtoList(predictionService.getPredictionsByGroupId(targetGroupId), email);
     }
 
     @GetMapping("/mine")
@@ -72,8 +67,8 @@ public class PredictionController {
                                                                  @RequestParam(required = false) Long groupId,
                                                                  Principal principal) {
         String email = getRequesterEmail(principal);
-        Long effectiveGroupId = groupId != null ? groupId : 1L;
-        if (!Long.valueOf(1L).equals(effectiveGroupId) && (email == null || !groupService.isUserMemberOrAdmin(effectiveGroupId, email))) {
+        Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
+        if (!League.isGlobalId(effectiveGroupId) && (email == null || !groupService.isUserMemberOrAdmin(effectiveGroupId, email))) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "No perteneces a esta liga privada");
         }
         String name = body.getPrediction() != null ? body.getPrediction() : body.getUser();

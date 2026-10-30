@@ -21,5 +21,6 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
 
     List<MatchPrediction> findByMatchId(Long matchId);
 
-    List<MatchPrediction> findByPredictionUserIdAndPredictionEditionLeagueId(Long userId, Long leagueId);
+    boolean existsByMatchIdAndPointsAwardedIsNull(Long matchId);
+
 }

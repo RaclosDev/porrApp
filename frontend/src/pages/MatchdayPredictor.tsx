@@ -5,7 +5,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
 import Flag from '../components/Flag';
-import MatchFriendsBetsModal from '../components/MatchFriendsBetsModal';
+import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 
 const EMPTY_FIXTURES = [];
 const roundLabelFor = (fixture) =>
@@ -43,7 +43,7 @@ function MatchdayLeague({ context }) {
     activeGroupId,
     activeGroupName,
     activeGroupIsLocked,
-    activeGroupBetMode,
+    activeGroupPoolFormat,
     activeCompetitionFormatType,
     userId,
     userName,
@@ -52,7 +52,8 @@ function MatchdayLeague({ context }) {
     groupError,
   } = context;
 
-  const isMatchDay = activeGroupBetMode === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+  const isMatchDay =
+    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -91,10 +92,10 @@ function MatchdayLeague({ context }) {
       navigate('/mis-ligas');
       return;
     }
-    if (activeGroupBetMode && !isMatchDay) {
+    if (activeGroupPoolFormat && !isMatchDay) {
       navigate('/');
     }
-  }, [activeGroupId, activeGroupBetMode, isMatchDay, isAuthenticated, navigate]);
+  }, [activeGroupId, activeGroupPoolFormat, isMatchDay, isAuthenticated, navigate]);
 
   // Carga de partidos de la jornada
   const {
@@ -375,7 +376,7 @@ function MatchdayLeague({ context }) {
         No se pudo cargar la liga. Inténtalo de nuevo.
       </p>
     );
-  if (activeGroupBetMode && !isMatchDay) {
+  if (activeGroupPoolFormat && !isMatchDay) {
     return <Navigate to="/" replace />;
   }
 
@@ -558,7 +559,7 @@ function MatchdayLeague({ context }) {
                 <div className="md-match-status-actions">
                   <button
                     type="button"
-                    className="md-bets-btn md-bets-icon-btn"
+                    className="md-predictions-btn md-predictions-icon-btn"
                     onClick={() => setSelectedMatchForFriends(fixture)}
                     aria-label={`Ver pronósticos de ${fixture.homeTeam} vs ${fixture.awayTeam}`}
                     title="Ver pronósticos de amigos"
@@ -738,7 +739,7 @@ function MatchdayLeague({ context }) {
       )}
 
       {/* Modal para ver pronósticos de amigos en un partido */}
-      <MatchFriendsBetsModal
+      <MatchFriendsPredictionsModal
         groupId={activeGroupId}
         match={selectedMatchForFriends}
         onClose={() => setSelectedMatchForFriends(null)}

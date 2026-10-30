@@ -29,8 +29,8 @@ export default function GroupsDashboard() {
     setNewGroupName,
     selectedCompetition,
     setSelectedCompetition,
-    selectedBetMode,
-    setSelectedBetMode,
+    selectedPoolFormat,
+    setSelectedPoolFormat,
     includePichichi,
     setIncludePichichi,
     newlyCreatedGroup,
@@ -96,14 +96,12 @@ export default function GroupsDashboard() {
         if (data2.token) {
           localStorage.setItem('token', data2.token);
           localStorage.setItem('my_prediction_name', data2.participantName);
-          localStorage.setItem('my_bet_name', data2.participantName);
           if (data2.userId) localStorage.setItem('my_user_id', data2.userId);
           window.location.reload();
         }
       } else if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('my_prediction_name', data.participantName);
-        localStorage.setItem('my_bet_name', data.participantName);
         if (data.userId) localStorage.setItem('my_user_id', data.userId);
         window.location.reload();
       }
@@ -632,8 +630,8 @@ export default function GroupsDashboard() {
                   </label>
                   <select
                     aria-label="Seleccionar formato de porra"
-                    value={selectedBetMode}
-                    onChange={(e) => setSelectedBetMode(e.target.value)}
+                    value={selectedPoolFormat}
+                    onChange={(e) => setSelectedPoolFormat(e.target.value)}
                     className="glass-input"
                     style={{ width: '100%' }}
                   >

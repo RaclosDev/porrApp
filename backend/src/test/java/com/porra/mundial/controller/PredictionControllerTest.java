@@ -147,21 +147,6 @@ class PredictionControllerTest {
     }
 
     @Test
-    void getAllBets_LegacyRoute_ReturnsList() throws Exception {
-        PredictionResponseDTO dto = PredictionResponseDTO.builder()
-                .key("1")
-                .participantName("Carlos")
-                .build();
-
-        Mockito.when(predictionService.getPredictionsByGroupId(1L)).thenReturn(List.of());
-        Mockito.when(predictionService.toPredictionDtoList(any(), any())).thenReturn(List.of(dto));
-
-        mockMvc.perform(get("/api/bets"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].participantName").value("Carlos"));
-    }
-
-    @Test
     void getAllPredictions_Forbidden_WhenNotMemberOfPrivateGroup() throws Exception {
         Mockito.when(groupService.isUserMemberOrAdmin(Mockito.eq(6L), any())).thenReturn(false);
 

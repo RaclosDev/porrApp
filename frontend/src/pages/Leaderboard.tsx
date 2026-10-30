@@ -473,7 +473,7 @@ function Leaderboard() {
                                   if (isMatchday) {
                                     navigate('/jornadas');
                                   } else {
-                                    state.setViewerBetId(r.id);
+                                    state.setViewerPredictionId(r.id);
                                   }
                                 }}
                                 style={{

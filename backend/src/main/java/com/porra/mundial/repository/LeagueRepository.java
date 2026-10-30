@@ -20,13 +20,6 @@ public interface LeagueRepository extends JpaRepository<League, Long> {
      * @return Opcional de la liga encontrada.
      */
     Optional<League> findByJoinCode(String joinCode);
-    
-    /**
-     * Busca todas las ligas administradas por un usuario específico.
-     * @param adminParticipantName El participantName del usuario administrador.
-     * @return Lista de ligas que administra.
-     */
-    List<League> findByAdminUserParticipantName(String adminParticipantName);
 
     /**
      * Busca ligas por nombre y usuario administrador.

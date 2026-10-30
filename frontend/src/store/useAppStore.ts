@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { updateUserPreferences } from '../services/api';
+import { GLOBAL_LEAGUE_ID, DEMO_COMPETITION_ID } from '../utils/constants';
 
 export const defaultBracketState = {
   r32: {
@@ -82,13 +83,12 @@ const initialGroupId =
   typeof window !== 'undefined' ? localStorage.getItem('activeGroupId') || '' : '';
 
 export const useAppStore = create((set, get) => ({
-  userName: localStorage.getItem('my_prediction_name') || localStorage.getItem('my_bet_name') || '',
+  userName: localStorage.getItem('my_prediction_name') || '',
   setUserName: (userName) => {
     if (userName) {
       localStorage.setItem('my_prediction_name', userName);
     } else {
       localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_bet_name');
     }
     set({ userName });
   },
@@ -136,10 +136,7 @@ export const useAppStore = create((set, get) => ({
   setTopScorer: (topScorer) => set({ topScorer }),
 
   viewerPredictionId: null,
-  setViewerPredictionId: (id) => set({ viewerPredictionId: id, viewerBetId: id }),
-
-  viewerBetId: null,
-  setViewerBetId: (id) => set({ viewerPredictionId: id, viewerBetId: id }),
+  setViewerPredictionId: (id) => set({ viewerPredictionId: id }),
 
   isAuthenticated: !!localStorage.getItem('token'),
   setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
@@ -156,23 +153,21 @@ export const useAppStore = create((set, get) => ({
 
   enterDemoMode: () => {
     localStorage.setItem('isDemoMode', 'true');
-    localStorage.setItem('activeGroupId', '1');
-    localStorage.setItem('activeCompetitionId', '2');
+    localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
+    localStorage.setItem('activeCompetitionId', String(DEMO_COMPETITION_ID));
     set({
       isDemoMode: true,
-      activeGroupId: '1',
-      activeCompetitionId: 2,
-      viewerBetId: null,
+      activeGroupId: GLOBAL_LEAGUE_ID,
+      activeCompetitionId: DEMO_COMPETITION_ID,
       viewerPredictionId: null,
     });
   },
 
   exitDemoMode: () => {
     localStorage.removeItem('isDemoMode');
-    localStorage.setItem('activeGroupId', '1');
+    localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
     localStorage.removeItem('activeCompetitionId');
     localStorage.removeItem('my_prediction_name');
-    localStorage.removeItem('my_bet_name');
     localStorage.removeItem('my_user_id');
     set({
       isDemoMode: false,
@@ -181,7 +176,6 @@ export const useAppStore = create((set, get) => ({
       userId: '',
       activeGroupId: '1',
       activeCompetitionId: null,
-      viewerBetId: null,
       viewerPredictionId: null,
     });
   },
@@ -228,7 +222,6 @@ export const useAppStore = create((set, get) => ({
       activeCompetitionId: null,
       bracketState: parsedBracket,
       topScorer: '',
-      viewerBetId: null,
       viewerPredictionId: null,
     });
   },

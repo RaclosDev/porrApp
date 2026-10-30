@@ -1,6 +1,5 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.model.Team;
 import com.porra.mundial.service.TeamService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -11,6 +10,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,13 +30,13 @@ class TeamControllerTest {
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
     @Test
-    void getAllTeams_ReturnsList() throws Exception {
-        Team t = Team.builder().id(1L).name("España").groupName("E").build();
-        Mockito.when(teamService.getAllTeams()).thenReturn(List.of(t));
+    void getGroupOdds_ReturnsTeamsGroupedByGroup() throws Exception {
+        Mockito.when(teamService.getGroupOdds())
+                .thenReturn(Map.of("E", List.of(Map.of("name", "Spain", "winOdds", 4.5))));
 
-        mockMvc.perform(get("/api/teams"))
+        mockMvc.perform(get("/api/teams/odds"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("España"))
-                .andExpect(jsonPath("$[0].groupName").value("E"));
+                .andExpect(jsonPath("$.E[0].name").value("Spain"))
+                .andExpect(jsonPath("$.E[0].winOdds").value(4.5));
     }
 }

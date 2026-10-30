@@ -21,12 +21,4 @@ public class PredictionResponseDTO {
     private String predictionName;
     private Long groupId;
     private PredictionDataDTO data;
-
-    public String getBetName() {
-        return predictionName;
-    }
-
-    public void setBetName(String betName) {
-        this.predictionName = betName;
-    }
 }

@@ -13,7 +13,7 @@ vi.mock('../../services/api', () => ({
   fetchMissingRoundUsers: vi.fn(),
 }));
 vi.mock('../../components/Flag', () => ({ default: () => null }));
-vi.mock('../../components/MatchFriendsBetsModal', () => ({ default: () => null }));
+vi.mock('../../components/MatchFriendsPredictionsModal', () => ({ default: () => null }));
 
 const fixture = (matchId, round, homeTeam) => ({
   matchId,
@@ -44,7 +44,7 @@ describe('matchday editing and navigation', () => {
     context = {
       activeGroupId: '10',
       activeGroupName: 'Liga A',
-      activeGroupBetMode: 'MATCH_DAY',
+      activeGroupPoolFormat: 'MATCH_DAY',
       activeCompetitionFormatType: 'LEAGUE',
       isAuthenticated: true,
       userId: '7',

@@ -3,7 +3,7 @@ package com.porra.mundial.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
-import com.porra.mundial.dto.MatchdayFriendBetDTO;
+import com.porra.mundial.dto.MatchdayFriendPredictionDTO;
 import com.porra.mundial.dto.MatchdaySubmissionDTO;
 import com.porra.mundial.service.MatchPredictionService;
 import com.porra.mundial.service.WebSocketService;
@@ -128,9 +128,9 @@ class MatchPredictionControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/predictions/matchday/matches/{matchId}/bets devuelve los pronósticos de los miembros")
-    void getMatchdayFriendBets_ReturnsList() throws Exception {
-        MatchdayFriendBetDTO friendBet = MatchdayFriendBetDTO.builder()
+    @DisplayName("GET /api/predictions/matchday/matches/{matchId}/predictions devuelve los pronósticos de los miembros")
+    void getMatchdayFriendPredictions_ReturnsList() throws Exception {
+        MatchdayFriendPredictionDTO friendPrediction = MatchdayFriendPredictionDTO.builder()
                 .userId(1L)
                 .participantName("Carlos")
                 .homeScore(2)
@@ -141,10 +141,10 @@ class MatchPredictionControllerTest {
                 .hasPredicted(true)
                 .build();
 
-        Mockito.when(matchPredictionService.getFriendBetsForMatch(eq("user@test.com"), eq(10L), eq(101L)))
-                .thenReturn(List.of(friendBet));
+        Mockito.when(matchPredictionService.getFriendPredictionsForMatch(eq("user@test.com"), eq(10L), eq(101L)))
+                .thenReturn(List.of(friendPrediction));
 
-        mockMvc.perform(get("/api/predictions/matchday/matches/101/bets")
+        mockMvc.perform(get("/api/predictions/matchday/matches/101/predictions")
                         .param("groupId", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].participantName").value("Carlos"))
