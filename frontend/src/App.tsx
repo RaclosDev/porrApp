@@ -115,13 +115,22 @@ function App() {
       <Toaster
         position="top-center"
         toastOptions={{
+          className: 'paper-panel landing-tape paper-toast',
+          iconTheme: { primary: '#111827', secondary: '#f3ecdc' },
+          success: { iconTheme: { primary: '#15803d', secondary: '#f3ecdc' } },
+          error: { iconTheme: { primary: '#b91c1c', secondary: '#f3ecdc' } },
           style: {
-            background: '#f3ecdc',
+            background: 'var(--paper)',
+            backgroundImage:
+              'repeating-linear-gradient(0deg, rgba(17, 24, 39, 0.025) 0 1px, transparent 1px 3px)',
             color: '#111827',
-            border: '1px solid #111827',
+            border: '1.5px solid #111827',
             borderRadius: '4px',
             fontSize: '0.95rem',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+            fontFamily: "'Outfit', sans-serif",
+            padding: '14px 18px',
+            maxWidth: 'min(380px, calc(100vw - 32px))',
+            boxShadow: '4px 4px 0 rgba(0, 0, 0, 0.2)',
           },
         }}
       />

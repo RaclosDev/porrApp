@@ -6039,3 +6039,13 @@
 .paper-panel .scoring-row-error {
   color: var(--miss);
 }
+
+.paper-toast {
+  position: relative;
+}
+
+.paper-toast.landing-tape::after {
+  top: -8px;
+  width: 54px;
+  height: 18px;
+}
