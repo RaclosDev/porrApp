@@ -1,6 +1,6 @@
 # Arquitectura del backend
 
-Spring Boot 4 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La base de datos es PostgreSQL y el esquema sale entero de las migraciones Flyway de `src/main/resources/db/migration/`.
+Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La base de datos es PostgreSQL y el esquema sale entero de las migraciones Flyway de `src/main/resources/db/migration/`.
 
 ## Paquetes
 
@@ -23,28 +23,38 @@ Spring Boot 4 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La b
 
 1. Pide los partidos de cada competición a su proveedor a través de `SportsDataProviderRegistry` (hoy, `EspnSportsDataProvider`).
 2. `MatchEventProcessor` aplica los cambios de marcador y estado a cada `Match`.
-3. `KnockoutBracketService` coloca a los clasificados en los cruces de eliminatorias.
-4. `StandingsService` recalcula la clasificación de grupos y `MathematicalStatusCalculator` marca a los equipos ya clasificados o eliminados.
-5. `WebSocketService` avisa a los clientes (`DATA_UPDATED` o `MATCH_SCORE_UPDATED`) y el frontend invalida las consultas afectadas.
+3. Al final de la pasada, y solo si cambió algún resultado del Mundial (o falló el recálculo anterior), se cargan una vez sus partidos y se recalcula todo lo que depende de ellos:
+   - `KnockoutBracketService` coloca a los ganadores y perdedores de semifinales en la final y en el partido por el tercer puesto.
+   - `StandingsService` recalcula la clasificación de grupos y `MathematicalStatusCalculator` marca a los equipos ya clasificados o eliminados.
+4. `WebSocketService` avisa a los clientes (`DATA_UPDATED`, `LEAGUE_UPDATED` o `MATCH_SCORE_UPDATED`) y el frontend invalida las consultas afectadas.
 
 `TopScorerService` refresca la tabla de goleadores cada 30 minutos de forma independiente.
+
+### Resultados oficiales y desempates
+
+`OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados. `GroupTiebreaker` ordena a los equipos empatados a puntos según el artículo 13 del reglamento del Mundial 2026: primero los partidos entre los empatados, luego la diferencia de goles y los goles de todo el grupo y después el fair play. La app no guarda el ranking FIFA, así que los empates que llegan a ese criterio se ordenan por nombre. Lo usan la clasificación de cada grupo, el estado matemático y el orden de los mejores terceros.
 
 ### Puntuación
 
 `ScoringStrategy` define cómo se puntúa un pronóstico y `ScoringRuleSet` guarda los valores de cada regla. `WorldCup2026ScoringStrategy` puntúa los cuadros completos (grupos, cruces, campeón, pichichi) y `MatchScoringCalculator` los pronósticos jornada a jornada (signo 1X2, marcador exacto y bonus por diferencia de goles). `LeaderboardService` reúne esos resultados en la clasificación de cada liga.
+
+Cada liga tiene sus propios valores, guardados en su edición activa. El administrador los cambia con `PUT /api/groups/{id}/scoring` (`LeagueScoringService`; la Porra Global no se puede cambiar); cada regla es un entero entre 0 y 1000. Si cambian, se vuelven a puntuar los partidos terminados y se invalidan las puntuaciones guardadas para que la clasificación se recalcule con `ScoringStrategy#withRules`.
+
+El pichichi elegido se resuelve a un único jugador entre todos los goleadores de ESPN y solo puntúa si ese jugador es el máximo goleador. Acepta tildes, mayúsculas, nombre completo o corto, "Inicial. Apellido" y erratas pequeñas; un apellido o nombre corto que comparten varios goleadores no puntúa.
 
 ### Ligas y pronósticos
 
 - `GroupService` gestiona las ligas (`League`), sus miembros (`Membership`), los códigos de invitación y los pagos. La Porra Global usa un id fijo (`League.GLOBAL_ID`).
 - `PredictionService` guarda los cuadros completos; `MatchPredictionService`, los pronósticos por partido, con cierre individual cuando empieza cada encuentro.
 - El formato de cada liga (`PoolFormat`) decide qué se pronostica: `FULL_BRACKET`, `KNOCKOUTS_ONLY` o `MATCH_DAY`.
+- `MatchdayStatsService` (`GET /api/predictions/matchday/stats`) da, para cada partido ya empezado de una liga por jornadas, el reparto 1X2, los marcadores más repetidos y, al terminar, cuántos acertaron. Solo lo leen los miembros de la liga. Más elegidos y Buscador, en las ligas de cuadro, se calculan en el frontend (`utils/bracketStats.ts`) con los cuadros visibles de la liga.
 
 ## Seguridad
 
 - Inicio de sesión con Google: `AuthService` valida el ID token e identifica la cuenta por su `sub` (las cuentas antiguas se asocian por email la primera vez; si el email de la cuenta de Google cambia, se actualiza).
 - Sesión (`SessionService`): access token JWT de 15 minutos, que el frontend guarda solo en memoria y `JwtAuthFilter` valida en cada petición, y refresh token opaco en una cookie `HttpOnly`, `Secure`, `SameSite=Strict` con `Path=/api/auth/session`. Cada refresco rota el refresh token; si llega uno ya rotado se revoca la sesión entera (su familia). La sesión caduca a los 30 días del inicio de sesión y el logout la revoca en el servidor. En la base solo se guarda el SHA-256 del refresh token.
 - Las rutas de `/api/auth/` usan la cookie, así que `CsrfOriginFilter` exige además que la petición venga de la propia aplicación (cabecera `Origin` o `Sec-Fetch-Site`). El resto de la API se autentica con la cabecera `Authorization` y no necesita protección CSRF.
-- `SecurityConfig` deja públicas solo las lecturas que necesita la demo (partidos, clasificación, goleadores, pronósticos de la Porra Global) y el login; todo lo demás requiere sesión, y los permisos de cada liga se comprueban en el servicio (`assertCanView` y similares).
+- `SecurityConfig` deja públicas las lecturas GET (partidos, clasificación, goleadores, pronósticos, ligas, competiciones y avatares) y el login; el resto de la API requiere sesión. Los controladores y servicios filtran los datos de las ligas privadas (`assertCanView` y similares).
 - `RateLimitingFilter` limita las peticiones por IP, con un límite más estricto en el login.
 
 ## Despliegue
