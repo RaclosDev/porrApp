@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MatchdayFixture } from '../../types/api';
+import type { MatchdayFixture, MatchdayPoints } from '../../types/api';
 import {
   buildSubmission,
   filterFixtures,
@@ -8,6 +8,7 @@ import {
   resolveRound,
   roundLabelFor,
   roundsFromFixtures,
+  roundsFromMatchdays,
   withScore,
   withSign,
   withoutSaved,
@@ -72,6 +73,14 @@ describe('round lists', () => {
     expect(roundsFromFixtures([])).toEqual({ rounds: [], current: null });
   });
 
+  it('reads the rounds and the current one from the league summary', () => {
+    const day = (label: string, current: boolean) => ({ label, current }) as MatchdayPoints;
+    expect(roundsFromMatchdays([day('J1', false), day('J2', true), day('J3', false)])).toEqual({
+      rounds: ['J1', 'J2', 'J3'],
+      current: 'J2',
+    });
+  });
+
   it('keeps a valid selection and otherwise shows the current round', () => {
     const list = { rounds: ['J1', 'J2'], current: 'J2' };
     expect(resolveRound('J1', list)).toBe('J1');
@@ -109,10 +118,10 @@ describe('mergeDraftWithServer', () => {
     expect(kept).toEqual({ 1: pred('2', '1', '1') });
   });
 
-  it('drops the draft of matches that did not arrive', () => {
+  it('keeps the draft of matches that did not arrive (other rounds)', () => {
     const draft: Draft = { 1: pred('1', '1', 'X'), 99: pred('2', '0', '1') };
     const { draft: kept } = mergeDraftWithServer([fixture(1)], draft);
-    expect(kept).toEqual({ 1: pred('1', '1', 'X') });
+    expect(kept).toEqual(draft);
   });
 
   it('fills missing fields of an old draft entry', () => {

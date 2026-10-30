@@ -2,7 +2,7 @@
  * Lógica pura de la pantalla de jornadas: etiquetas de jornada, borradores locales y el envío
  * de pronósticos. Sin React ni red, para poder probarla aparte.
  */
-import type { MatchdayFixture, MatchdayPredictionInput } from '../types/api';
+import type { MatchdayFixture, MatchdayPoints, MatchdayPredictionInput } from '../types/api';
 
 /** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
 export interface DraftPrediction {
@@ -71,6 +71,13 @@ export function roundsFromFixtures(fixtures: MatchdayFixture[]): RoundList {
   return { rounds, current: rounds[activeIndex] };
 }
 
+/** Jornadas del resumen por jornada de la liga (`/leaderboard/matchdays`). */
+export function roundsFromMatchdays(matchdays: MatchdayPoints[]): RoundList {
+  const rounds = matchdays.map((m) => m.label);
+  const current = matchdays.find((m) => m.current)?.label ?? rounds[rounds.length - 1] ?? null;
+  return { rounds, current };
+}
+
 /** Jornada que se muestra: la elegida si existe; si no, la actual o la primera. */
 export const resolveRound = (selected: string | null, { rounds, current }: RoundList) =>
   selected && rounds.includes(selected) ? selected : (current ?? rounds[0] ?? null);
@@ -88,7 +95,7 @@ const scoreText = (score: number | null | undefined) =>
 export interface MergedDraft {
   /** Lo que muestran los inputs de cada partido recibido. */
   predictions: Draft;
-  /** Borrador que se conserva: el de los partidos abiertos. */
+  /** Borrador que se conserva: el de los partidos abiertos y el de los que no han llegado. */
   draft: Draft;
 }
 
@@ -96,15 +103,16 @@ export interface MergedDraft {
  * Combina los partidos del servidor con el borrador local.
  *
  * En un partido abierto manda el borrador; en uno bloqueado, lo guardado en el servidor, y su
- * borrador se descarta.
+ * borrador se descarta. El borrador de los partidos que no vienen en `fixtures` (otras jornadas)
+ * se conserva tal cual.
  */
 export function mergeDraftWithServer(fixtures: MatchdayFixture[], draft: Draft): MergedDraft {
   const predictions: Draft = {};
-  const kept: Draft = {};
+  const kept: Draft = { ...draft };
   fixtures.forEach((f) => {
     const d = draft[f.matchId];
     const useDraft = !f.locked && Boolean(d) && typeof d === 'object';
-    if (useDraft) kept[f.matchId] = d;
+    if (!useDraft) delete kept[f.matchId];
     predictions[f.matchId] = useDraft
       ? { homeScore: d.homeScore ?? '', awayScore: d.awayScore ?? '', sign: d.sign || '' }
       : {

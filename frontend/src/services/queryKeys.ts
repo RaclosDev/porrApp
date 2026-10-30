@@ -28,7 +28,8 @@ export const queryKeys = {
   myPredictions: () => key('myPredictions'),
   leaderboard: (groupId?: Id) => key('leaderboard', asText(groupId)),
   leaderboardMatchdays: (groupId?: Id) => key('leaderboardMatchdays', asText(groupId)),
-  matchdayFixtures: (groupId?: Id, user?: Id) => key('matchdayFixtures', asText(groupId), user),
+  matchdayFixtures: (groupId?: Id, user?: Id, round?: string) =>
+    key('matchdayFixtures', asText(groupId), user, round),
   matchFriendPredictions: (groupId?: Id, matchId?: Id) =>
     key('matchFriendPredictions', asText(groupId), matchId),
   matchdayStats: (groupId?: Id) => key('matchdayStats', asText(groupId)),

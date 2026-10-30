@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { useAppContext } from '../context/AppContext';
 import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
+import { leaderboardMatchdaysQuery } from '../services/queries';
 import { queryKeys } from '../services/queryKeys';
 import type {
   MatchdayFixture,
@@ -24,6 +25,7 @@ import {
   resolveRound,
   roundLabelFor,
   roundsFromFixtures,
+  roundsFromMatchdays,
   withScore,
   withSign,
   withoutSaved,
@@ -41,7 +43,13 @@ interface SaveVariables {
 
 const EMPTY_FIXTURES: MatchdayFixture[] = [];
 
-/** Estado, consultas y acciones de la pantalla de jornadas de una liga. */
+/**
+ * Estado, consultas y acciones de la pantalla de jornadas de una liga.
+ *
+ * Las jornadas salen del resumen por jornada de la liga y solo se piden los partidos de la
+ * jornada elegida. Si el resumen falla o viene vacío, se pide la temporada entera y las
+ * jornadas se sacan de los partidos.
+ */
 export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) {
   const {
     activeGroupId,
@@ -102,10 +110,22 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     }
   }, [activeGroupId, activeGroupPoolFormat, isMatchDay, isAuthenticated, navigate]);
 
+  const enabled = Boolean(activeGroupId && isMatchDay);
+
+  // Jornadas de la liga; es la misma consulta que usa el ranking, así que suele estar en caché.
+  const matchdaysQuery = useQuery({ ...leaderboardMatchdaysQuery(activeGroupId), enabled });
+  const summaryRounds = useMemo(
+    () => (matchdaysQuery.data?.length ? roundsFromMatchdays(matchdaysQuery.data) : null),
+    [matchdaysQuery.data],
+  );
+  const wholeSeason =
+    matchdaysQuery.isError || (matchdaysQuery.isSuccess && !matchdaysQuery.data.length);
+  const requestedRound = summaryRounds ? resolveRound(selectedRound, summaryRounds) : null;
+
   const fixturesQuery = useQuery({
-    queryKey: queryKeys.matchdayFixtures(activeGroupId, draftUser),
-    queryFn: () => fetchMatchdayFixtures(activeGroupId, ''),
-    enabled: Boolean(activeGroupId && isMatchDay),
+    queryKey: queryKeys.matchdayFixtures(activeGroupId, draftUser, requestedRound ?? ''),
+    queryFn: () => fetchMatchdayFixtures(activeGroupId, requestedRound ?? ''),
+    enabled: enabled && (requestedRound !== null || wholeSeason),
     // El WebSocket ya invalida al cambiar un resultado; el sondeo solo cubre los partidos en
     // juego (reloj y marcador en directo) por si se pierde un mensaje.
     refetchInterval: (query) => (hasLiveMatch(query.state.data) ? 30_000 : false),
@@ -129,7 +149,10 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     setHasUnsavedChanges(Object.keys(merged.draft).length > 0);
   }, [fixtures, storageKey, activeGroupId, draftUser, persistDraft]);
 
-  const roundList = useMemo(() => roundsFromFixtures(fixtures), [fixtures]);
+  const roundList = useMemo(
+    () => summaryRounds ?? roundsFromFixtures(fixtures),
+    [summaryRounds, fixtures],
+  );
   const availableRounds = roundList.rounds;
   const activeRound = resolveRound(selectedRound, roundList);
   const roundIndex = selectedRound ? availableRounds.indexOf(selectedRound) : -1;
@@ -225,7 +248,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   return {
     isMatchDay,
     fixtures,
-    isLoading: fixturesQuery.isLoading,
+    isLoading: matchdaysQuery.isLoading || fixturesQuery.isLoading,
     isError: fixturesQuery.isError,
     refetch: fixturesQuery.refetch,
     availableRounds,
