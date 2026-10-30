@@ -4510,3 +4510,219 @@
     }
   }
 }
+
+/*
+ * Portada: un cartel de papel sobre el fondo oscuro de la app, con los participantes como cromos
+ * de álbum. Las letras de cartel (Anton) y de rotulador (Permanent Marker) solo se cargan aquí.
+ * El cartel es el único elemento con sombra: es lo que está «pegado» por encima de la pared.
+ */
+@layer components {
+  .landing-page {
+    --paper: #f3ecdc;
+    --ink: #111827;
+    --marker-ink: #0b5f74;
+  }
+
+  .landing-display {
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+
+  .landing-marker {
+    font-family: 'Permanent Marker', 'Outfit', cursive;
+    font-weight: 400;
+    color: var(--marker-ink);
+  }
+
+  .landing-poster {
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 4px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  /* Grano del papel: líneas muy finas que se multiplican sobre el color base. */
+  .landing-poster::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.03) 0 1px,
+      transparent 1px 3px
+    );
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+
+  /* Trozo de cinta adhesiva que sujeta el cartel por arriba. */
+  .landing-tape::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    width: 120px;
+    height: 28px;
+    transform: translateX(-50%) rotate(-3deg);
+    background: rgba(255, 230, 140, 0.8);
+    border-left: 1px dashed rgba(0, 0, 0, 0.15);
+    border-right: 1px dashed rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+  }
+
+  .landing-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 10px 22px;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink);
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .landing-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .landing-btn-ink {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .landing-btn:not(.landing-btn-ink):hover {
+    background: rgba(17, 24, 39, 0.08);
+  }
+
+  .landing-link {
+    color: var(--marker-ink);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .landing-link-light {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* Cromo: borde blanco grueso, como el de un cromo de verdad. */
+  .landing-sticker {
+    --marker-ink: #0b5f74;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 180px;
+    padding: 20px 14px 16px;
+    background: #fffdf7;
+    color: var(--ink);
+    border: 6px solid #ffffff;
+    outline: 1px solid rgba(17, 24, 39, 0.25);
+    border-radius: 10px;
+    overflow: hidden;
+    transform-style: preserve-3d;
+  }
+
+  /* El líder lleva el borde dorado de cromo especial. */
+  .landing-sticker-featured {
+    width: 260px;
+    padding: 28px 18px 22px;
+    border-color: var(--champion-gold);
+    outline-color: #b45309;
+  }
+
+  .landing-sticker-rank {
+    position: absolute;
+    top: 6px;
+    left: 10px;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    color: #4b5563;
+  }
+
+  /* Reflejo que sigue al puntero cuando el cromo se inclina. */
+  .landing-sticker-glare {
+    position: absolute;
+    top: -40%;
+    width: 50%;
+    height: 180%;
+    transform: translateX(-50%) rotate(20deg);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    pointer-events: none;
+  }
+
+  /* Rótulo pintado en la pared detrás de cada sección. */
+  .landing-ghost {
+    position: absolute;
+    inset-inline: 0;
+    top: -0.05em;
+    text-align: center;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: clamp(5rem, 22vw, 16rem);
+    line-height: 1;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.04);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .landing-net {
+    color: rgba(255, 255, 255, 0.2);
+    margin: 28px 0;
+  }
+
+  /* Sello de tinta sobre el papel. */
+  .landing-stamp {
+    display: inline-block;
+    padding: 6px 14px;
+    border: 3px solid #b91c1c;
+    border-radius: 8px;
+    color: #b91c1c;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transform: rotate(-4deg);
+    background: var(--paper);
+  }
+
+  .landing-pick {
+    min-width: 44px;
+    min-height: 44px;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink);
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .landing-pick:hover {
+    background: var(--ink);
+    color: #ffffff;
+  }
+}
