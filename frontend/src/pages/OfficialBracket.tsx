@@ -208,7 +208,7 @@ function OfficialBracketView() {
   const centerContent = (colW: number) => (
     <div className="block">
       <div
-        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase"
+        className="absolute text-center text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase"
         style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
       >
         Final
@@ -230,7 +230,7 @@ function OfficialBracketView() {
         </div>
         <div className="champion-display">
           <div
-            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'}`}
+            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(146,_64,_14,_0.1)] bg-none text-gold ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-gold'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'}`}
           >
             <Flag
               team={getName(part.champion) || ''}
@@ -268,12 +268,12 @@ function OfficialBracketView() {
           })}
         </div>
         <div className="mt-2 text-center">
-          <div className="text-[0.65rem] font-bold text-[#cd7f32] tracking-[0.5px] uppercase mb-1">
+          <div className="text-[0.65rem] font-bold text-[#9a3412] tracking-[0.5px] uppercase mb-1">
             Ganador del tercer puesto
           </div>
           <div className="champion-display">
             <div
-              className={`team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'}`}
+              className={`team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none bg-[rgba(154,_52,_18,_0.1)] bg-none text-[#9a3412] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#9a3412]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'}`}
             >
               <Flag
                 team={getName(part.thirdPlaceWinner) || ''}
@@ -324,21 +324,23 @@ function OfficialBracketView() {
             )}
           </div>
 
-          <BracketCanvas
-            leftRounds={leftRounds}
-            rightRounds={rightRounds}
-            renderSlot={renderSlot}
-            renderCenter={centerContent}
-            hiddenRounds={hiddenRounds}
-            mobileCenter={() => (
-              <OfficialMobileCenter
-                part={part}
-                getName={getName}
-                getIsProv={getIsProv}
-                renderSlot={renderSlot}
-              />
-            )}
-          />
+          <div className="paper-panel landing-tape album-sheet">
+            <BracketCanvas
+              leftRounds={leftRounds}
+              rightRounds={rightRounds}
+              renderSlot={renderSlot}
+              renderCenter={centerContent}
+              hiddenRounds={hiddenRounds}
+              mobileCenter={() => (
+                <OfficialMobileCenter
+                  part={part}
+                  getName={getName}
+                  getIsProv={getIsProv}
+                  renderSlot={renderSlot}
+                />
+              )}
+            />
+          </div>
         </>
       )}
     </section>

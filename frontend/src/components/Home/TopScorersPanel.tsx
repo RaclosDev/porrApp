@@ -22,12 +22,8 @@ function TopScorersPanel({
 
   if (loading || error || !topScorers || topScorers.length === 0) {
     return (
-      <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
-        {!hideTitle && (
-          <div className="text-center text-[#00d2d3] text-[1rem] font-bold p-1.5 bg-[rgba(0,_210,_211,_0.08)] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[12px]">
-            Pichichi
-          </div>
-        )}
+      <div className="paper-panel landing-tape album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
+        {!hideTitle && <h3 className="album-sheet-title">Pichichi</h3>}
         <div className="text-center text-muted p-5 text-[0.9rem]">
           {loading
             ? 'Cargando goleadores…'
@@ -76,11 +72,11 @@ function TopScorersPanel({
     return (
       <div className="flex items-center gap-2.5 py-2.5 px-0 border-b-0" key={s.playerId || idx}>
         <span
-          className={`w-5.5 text-center font-bold text-[1rem] shrink-0 ${isLeader ? 'text-[#ffd32a]' : 'text-muted'}`}
+          className={`w-5.5 text-center font-bold text-[1rem] shrink-0 ${isLeader ? 'text-gold' : 'text-muted'}`}
         >
           {medal}
         </span>
-        <div className="w-11 h-11 rounded-full bg-[rgba(255,255,255,0.08)] bg-none shrink-0 overflow-hidden flex items-center justify-center">
+        <div className="w-11 h-11 rounded-full bg-[rgba(17,24,39,0.08)] bg-none shrink-0 overflow-hidden flex items-center justify-center">
           {imageUrl && !imgErrors[s.playerId] ? (
             <div className="w-full h-full overflow-hidden flex items-start justify-center">
               <img
@@ -91,7 +87,7 @@ function TopScorersPanel({
               />
             </div>
           ) : (
-            <span className="text-[1rem] font-bold text-[#ffd32a]">
+            <span className="text-[1rem] font-bold text-gold">
               {(s.shortName || s.name || '?')[0].toUpperCase()}
             </span>
           )}
@@ -103,7 +99,7 @@ function TopScorersPanel({
           </div>
         </div>
         <div
-          className={`font-bold text-[1.2rem] min-w-6 text-right ${isLeader ? 'text-[#ffd32a]' : 'text-main'}`}
+          className={`font-bold text-[1.2rem] min-w-6 text-right ${isLeader ? 'text-gold' : 'text-main'}`}
         >
           {s.goals}
         </div>
@@ -112,12 +108,8 @@ function TopScorersPanel({
   };
 
   return (
-    <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
-      {!hideTitle && (
-        <div className="text-center text-[#00d2d3] text-[1rem] font-bold p-1.5 bg-[rgba(0,_210,_211,_0.08)] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[12px]">
-          Pichichi
-        </div>
-      )}
+    <div className="paper-panel landing-tape album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
+      {!hideTitle && <h3 className="album-sheet-title">Pichichi</h3>}
       <div className="glass-panel p-2.5 rounded-[16px]">
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-[0_16px]">
           <div className="flex flex-col">{left.map((s, idx) => renderScorer(s, idx))}</div>

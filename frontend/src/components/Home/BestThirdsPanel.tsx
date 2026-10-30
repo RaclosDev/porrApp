@@ -61,14 +61,12 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
   if (thirds.length === 0) return null;
 
   return (
-    <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
-      <div className="text-center text-[#00d2d3] text-[1rem] font-bold p-1.5 bg-[rgba(0,_210,_211,_0.08)] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[12px]">
-        Mejores terceros
-      </div>
-      <div className="bg-(color:--bg-card) bg-none rounded-[12px] border border-[rgba(255,255,255,0.05)] p-2.5">
+    <div className="paper-panel landing-tape album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
+      <h3 className="album-sheet-title">Mejores terceros</h3>
+      <div className="p-0.5">
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-4">
           <div className="flex flex-col">
-            <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-[rgba(255,255,255,0.1)] text-[0.75rem] text-muted font-bold text-center">
+            <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-line text-[0.75rem] text-muted font-bold text-center">
               <span>#</span>
               <span className="text-left">Equipo</span>
               <span>PT</span>
@@ -86,7 +84,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                     key={t.name}
                   >
                     <span
-                      className={`font-bold text-center ${isTop8 ? 'text-[#00b894]' : 'text-muted'}`}
+                      className={`font-bold text-center ${isTop8 ? 'text-[var(--hit)]' : 'text-muted'}`}
                     >
                       {rank}
                     </span>
@@ -96,7 +94,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                         {t.name}
                       </span>
                     </div>
-                    <span className="font-bold text-center bg-[rgba(255,255,255,0.08)] bg-none rounded-[4px]">
+                    <span className="font-bold text-center bg-[rgba(17,24,39,0.06)] bg-none rounded-[4px]">
                       {t.pts}
                     </span>
                     <span className="text-center text-muted">
@@ -115,7 +113,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
           </div>
 
           <div className="flex flex-col">
-            <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-[rgba(255,255,255,0.1)] text-[0.75rem] text-muted font-bold text-center">
+            <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-line text-[0.75rem] text-muted font-bold text-center">
               <span>#</span>
               <span className="text-left">Equipo</span>
               <span>PT</span>
@@ -136,7 +134,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                     style={{ opacity: isTop8 ? 1 : hasPlayed ? 0.5 : 0.3 }}
                   >
                     <span
-                      className={`font-bold text-center ${isTop8 ? 'text-[#00b894]' : 'text-muted'}`}
+                      className={`font-bold text-center ${isTop8 ? 'text-[var(--hit)]' : 'text-muted'}`}
                     >
                       {rank}
                     </span>
@@ -146,7 +144,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
                         {t.name}
                       </span>
                     </div>
-                    <span className="font-bold text-center bg-[rgba(255,255,255,0.08)] bg-none rounded-[4px]">
+                    <span className="font-bold text-center bg-[rgba(17,24,39,0.06)] bg-none rounded-[4px]">
                       {t.pts}
                     </span>
                     <span className="text-center text-muted">

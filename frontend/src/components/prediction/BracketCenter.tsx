@@ -34,13 +34,9 @@ export default function BracketCenter({
         className="absolute flex flex-col items-center gap-0.5 pointer-events-none"
         style={{ top: finalTopY - 44, left: COL_GAP, width: colW }}
       >
-        <div className="text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase">
-          Final
-        </div>
+        <div className="text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase">Final</div>
         {centerTotal > 0 ? (
-          <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] bg-none inline-block py-0.5 px-2 rounded-[4px]">
-            +{centerTotal} pts
-          </div>
+          <div className="marker-ink text-[1rem] inline-block">+{centerTotal} pts</div>
         ) : (
           <div className="text-[0.85rem] font-bold text-muted">0 pts</div>
         )}
@@ -62,7 +58,7 @@ export default function BracketCenter({
           Campeón
         </div>
         <div className="champion-display">
-          <div className="team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none border-[#fbbf24] bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24]">
+          <div className="team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none border-gold bg-[rgba(146,_64,_14,_0.1)] bg-none text-gold">
             <Flag
               team={champName || ''}
               size="w40"
@@ -96,7 +92,7 @@ export default function BracketCenter({
               Ganador del tercer puesto
             </div>
             <div className="champion-display inline-block w-full">
-              <div className="team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none border-[#cd7f32] bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d]">
+              <div className="team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none border-[#9a3412] bg-[rgba(154,_52,_18,_0.1)] bg-none text-[#9a3412]">
                 <Flag
                   team={thirdWinnerName || ''}
                   size="w40"

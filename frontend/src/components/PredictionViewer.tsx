@@ -236,14 +236,18 @@ function PredictionViewer({
   );
 
   if (inline) {
-    return <div className="prediction-viewer-inline w-full max-w-450 my-0 mx-auto">{content}</div>;
+    return (
+      <div className="prediction-viewer-inline paper-panel landing-tape album-sheet w-full max-w-450 my-0 mx-auto">
+        {content}
+      </div>
+    );
   }
 
   return (
     <ViewerModal
       dialogRef={dialogRef}
       onClose={handleClose}
-      className="modal-content w-[98vw] max-w-475 text-left max-h-[95dvh] overflow-y-auto pt-[25px]"
+      className="modal-content paper-panel album-sheet w-[98vw] max-w-475 text-left max-h-[95dvh] overflow-y-auto pt-[25px]"
     >
       {content}
     </ViewerModal>

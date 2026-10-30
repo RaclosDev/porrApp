@@ -48,7 +48,7 @@ export default function BracketView({
           return (
             <div className="flex flex-col gap-5">
               <div>
-                <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase text-center mb-2">
+                <div className="text-[0.75rem] font-bold text-gold tracking-[0.5px] uppercase text-center mb-2">
                   Final
                 </div>
                 <div className="mb-match-card">

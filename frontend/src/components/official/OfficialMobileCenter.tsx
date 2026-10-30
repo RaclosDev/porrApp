@@ -20,7 +20,7 @@ export default function OfficialMobileCenter({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase text-center mb-2">
+        <div className="text-[0.75rem] font-bold text-gold tracking-[0.5px] uppercase text-center mb-2">
           Final
         </div>
         <div className="mb-match-card">
@@ -42,7 +42,7 @@ export default function OfficialMobileCenter({
         </div>
         <div className="champion-display">
           <div
-            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'}`}
+            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(146,_64,_14,_0.1)] bg-none text-gold ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-gold'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'}`}
           >
             <Flag
               team={getName(part.champion) || ''}
@@ -76,12 +76,12 @@ export default function OfficialMobileCenter({
           })}
         </div>
         <div className="text-center mt-2.5">
-          <div className="text-[0.75rem] font-bold text-[#cd7f32] tracking-[0.5px] uppercase mb-1.5">
+          <div className="text-[0.75rem] font-bold text-[#9a3412] tracking-[0.5px] uppercase mb-1.5">
             Ganador del tercer puesto
           </div>
           <div className="champion-display">
             <div
-              className={`team-slot h-10.5 text-[1rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'}`}
+              className={`team-slot h-10.5 text-[1rem] font-bold justify-center pointer-events-none bg-[rgba(154,_52,_18,_0.1)] bg-none text-[#9a3412] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#9a3412]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'}`}
             >
               <Flag
                 team={getName(part.thirdPlaceWinner) || ''}

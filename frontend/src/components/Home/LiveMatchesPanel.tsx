@@ -52,7 +52,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
         {showStatsButton && (
           <div className="text-center">
             <button
-              className="bg-[#1e272e] bg-none text-[#00d2d3] border border-[rgba(0,210,211,0.3)] rounded-[8px] min-h-11 py-2.5 px-4.5 text-[0.9rem] font-bold cursor-pointer inline-flex items-center justify-center gap-[5px] shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+              className="glass-btn min-h-11 py-2.5 px-4.5 text-[0.9rem] rounded-[8px]"
               onClick={() => openStats()}
             >
               Ver en Sofascore
@@ -72,7 +72,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
   if (!hasLive && nextMatches.length === 0) {
     return (
       <div
-        className="glass-panel w-full max-w-120 mt-0 mb-5 mx-auto p-6 text-center text-muted rounded-[12px]"
+        className="paper-panel landing-tape album-sheet w-full max-w-120 mt-0 mb-5 mx-auto p-6 text-center text-muted"
         role="status"
       >
         <div className="text-[1.6rem] mb-2" aria-hidden="true">
@@ -89,7 +89,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
   }
 
   return (
-    <div className="w-full max-w-120 mt-0 mb-5 mx-auto flex flex-col gap-4">
+    <div className="paper-panel landing-tape album-sheet w-full max-w-120 mt-0 mb-5 mx-auto flex flex-col gap-4">
       {hasLive && (
         <div className="flex flex-col gap-2">
           <div className="text-center">
@@ -107,9 +107,9 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
 
       {nextMatches.length > 0 && (
         <div className="flex flex-col gap-2">
-          <div className="text-center text-[#00d2d3] text-[1rem] font-bold p-1.5 bg-[rgba(0,_210,_211,_0.08)] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[12px]">
+          <h3 className="album-sheet-title">
             {nextMatches.length === 1 ? 'Próximo partido' : 'Próximos partidos'}
-          </div>
+          </h3>
           <div className="last-matches-grid grid-cols-[1fr] gap-2.5">
             {nextMatches.map((m) => renderLiveMatch(m))}
           </div>

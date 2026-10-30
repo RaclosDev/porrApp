@@ -323,7 +323,7 @@ function Leaderboard() {
             </ul>
           )}
           <div className="flex gap-5 items-start flex-wrap justify-center w-full">
-            <div className="table-container flex-1 min-w-75 max-w-350 my-0 mx-auto">
+            <div className="table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto">
               <table className="leaderboard-table">
                 <thead>
                   <tr>

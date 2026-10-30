@@ -23,6 +23,10 @@
   --marker-ink: var(--accent-cyan);
   --stamp-red: #f87171;
   --stamp-ink: var(--accent-cyan);
+  /* Acierto exacto, pasa de ronda y fallo, en el cuadro y en los grupos. */
+  --hit: #2ecc71;
+  --pass: #3498db;
+  --miss: #e74c3c;
 }
 
 /*
@@ -4757,10 +4761,156 @@
     letter-spacing: 0.01em;
   }
 
-  /* Panel de papel para lo que se lee: reglas y normas de la liga. */
+  /*
+   * Hoja de papel. Los tokens de color cambian aquí, así que las clases de siempre (text-muted,
+   * border-line, .team-slot, .leaderboard-table…) salen en tinta sin tocar cada componente.
+   */
   .paper-panel {
     background: var(--paper);
     color: var(--ink);
+    --text-main: #111827;
+    --text-primary: #111827;
+    --text-muted: #4b5563;
+    --border-color: rgba(17, 24, 39, 0.18);
+    --panel-bg: #fffdf7;
+    --panel-bg-translucent: rgba(255, 253, 247, 0.92);
+    --bg-card: #fffdf7;
+    --accent-cyan: #0b5f74;
+    --accent-text: #0b5f74;
+    --champion-gold: #92400e;
+    --hit: #15803d;
+    --pass: #1d4ed8;
+    --miss: #b91c1c;
+  }
+
+  /* Hoja del álbum: un panel de datos pegado con cinta y un pelín torcido, como un cromo. */
+  .album-sheet {
+    position: relative;
+    padding: 18px 16px;
+    border-radius: 4px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .album-sheet:nth-child(even) {
+    transform: rotate(0.4deg);
+  }
+
+  .album-sheet:nth-child(odd) {
+    transform: rotate(-0.4deg);
+  }
+
+  .album-sheet-title {
+    margin: 0 0 10px;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    font-size: 1.3rem;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+
+  .paper-panel .group-card {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  .paper-panel .table-container,
+  .paper-panel .glass-panel,
+  .paper-panel .last-match-card {
+    background: transparent;
+    border-color: var(--border-color);
+  }
+
+  .paper-panel .table-container {
+    border: none;
+  }
+
+  .paper-panel .leaderboard-table th {
+    background: transparent;
+    color: var(--ink);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .paper-panel .leaderboard-table tbody tr:hover {
+    background: rgba(17, 24, 39, 0.05) !important;
+  }
+
+  /* Casillas del cuadro como pegatinas blancas con borde de tinta. */
+  .paper-panel .team-slot {
+    background: #fffdf7;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .team-slot:hover {
+    background: #ffffff;
+    border-color: var(--accent-cyan);
+  }
+
+  .paper-panel .team-slot.winner {
+    background: rgba(21, 128, 61, 0.1);
+    border-color: var(--hit);
+  }
+
+  .paper-panel .team-slot.loser {
+    background: rgba(185, 28, 28, 0.06);
+    border-color: rgba(185, 28, 28, 0.4);
+  }
+
+  .paper-panel .team-slot.empty {
+    border-style: dashed;
+    border-color: rgba(17, 24, 39, 0.35);
+  }
+
+  .paper-panel .champion-display .team-slot,
+  .paper-panel .mb-final-content .champion-display .team-slot {
+    background: rgba(146, 64, 14, 0.1) !important;
+    border-color: var(--champion-gold) !important;
+    color: var(--champion-gold) !important;
+  }
+
+  /* Cuadro en móvil: pestañas y tarjetas de cruce sobre el papel. */
+  .paper-panel .mb-tabs {
+    background: rgba(17, 24, 39, 0.06);
+  }
+
+  .paper-panel .mb-tab-active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  .paper-panel .mb-match-card {
+    background: #fffdf7;
+    border: 1.5px solid var(--ink);
+  }
+
+  .paper-panel .mb-match-placeholder {
+    border-color: rgba(17, 24, 39, 0.35);
+  }
+
+  .paper-panel .mb-next-btn {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .paper-panel .glass-btn {
+    background: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .glass-btn:hover {
+    background: rgba(17, 24, 39, 0.08);
+  }
+
+  .paper-panel .glass-btn.active,
+  .paper-panel .primary-btn {
+    background: var(--ink) !important;
+    border-color: var(--ink) !important;
+    color: var(--paper) !important;
   }
 
   .paper-panel .rules-tabs {

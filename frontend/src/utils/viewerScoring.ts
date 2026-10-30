@@ -229,9 +229,9 @@ export function groupTeamData(
     const isPassed =
       points.passedTeams &&
       (points.passedTeams[teamName] || points.passedTeams[teamAlias(teamName)]);
-    if (isExact) color = '#2ecc71';
-    else if (isPassed) color = '#3498db';
-    else color = '#e74c3c';
+    if (isExact) color = 'var(--hit)';
+    else if (isPassed) color = 'var(--pass)';
+    else color = 'var(--miss)';
   }
   return { color, mp, status };
 }

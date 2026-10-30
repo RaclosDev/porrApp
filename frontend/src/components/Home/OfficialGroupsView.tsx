@@ -40,7 +40,7 @@ export default function OfficialGroupsView() {
     return (
       <div
         key={groupName}
-        className={`group-card relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
+        className={`group-card paper-panel landing-tape album-sheet relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
         role="button"
         tabIndex={0}
         aria-label={`Ver detalles del Grupo ${groupName}`}
@@ -58,12 +58,7 @@ export default function OfficialGroupsView() {
         }}
       >
         <div className="flex justify-between items-center mb-2.5">
-          <h3
-            className="m-0 text-[1rem] leading-[1.25] font-extrabold tracking-[-0.01em] text-left"
-            style={{ fontFamily: 'inherit' }}
-          >
-            Grupo {groupName}
-          </h3>
+          <h3 className="album-sheet-title mb-0 text-left">Grupo {groupName}</h3>
           <div className="flex gap-2 text-[0.75em] font-bold text-muted pr-1.5">
             <span className="w-5 text-center">DG</span>
             <span className="w-4 text-center">GF</span>
@@ -90,7 +85,7 @@ export default function OfficialGroupsView() {
 
           return (
             <div
-              className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)] bg-none' : 'bg-transparent bg-none'}`}
+              className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${idx < 2 ? 'bg-[rgba(17,_24,_39,_0.04)] bg-none' : 'bg-transparent bg-none'}`}
               key={team.name}
             >
               <span className="w-4.5 font-bold text-muted text-[0.85em] shrink-0">{idx + 1}</span>
@@ -108,7 +103,11 @@ export default function OfficialGroupsView() {
                   className="w-5 text-center"
                   style={{
                     color:
-                      team.stats.diff > 0 ? '#2ecc71' : team.stats.diff < 0 ? '#ff7675' : 'inherit',
+                      team.stats.diff > 0
+                        ? 'var(--hit)'
+                        : team.stats.diff < 0
+                          ? 'var(--miss)'
+                          : 'inherit',
                   }}
                 >
                   {team.stats.diff > 0 ? `+${team.stats.diff}` : team.stats.diff}
