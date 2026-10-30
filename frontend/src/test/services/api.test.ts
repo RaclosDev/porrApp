@@ -64,7 +64,7 @@ describe('api.ts service', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(fetchStandings()).rejects.toThrow('HTTP error! status: 404');
+    await expect(fetchStandings()).rejects.toThrow('Error del servidor (404)');
   });
 
   it('mantiene la sesión ante un 403 de una liga y muestra el motivo', async () => {

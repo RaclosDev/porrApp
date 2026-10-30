@@ -258,7 +258,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     const body = await res.json?.().catch(() => ({}));
     throw new ApiError(
       res.status,
-      body?.error || body?.message || options.fallbackError || `HTTP error! status: ${res.status}`,
+      body?.error || body?.message || options.fallbackError || `Error del servidor (${res.status})`,
     );
   }
   return res.json();
@@ -389,18 +389,6 @@ export const leaveGroup = (id: number | string) =>
   request<StatusResponse>(`/groups/${id}/leave`, {
     method: 'DELETE',
     fallbackError: 'Error al abandonar el grupo',
-  });
-
-export const acceptGroupPrediction = (groupId: number | string, predictionId: number | string) =>
-  request<StatusResponse>(`/groups/${groupId}/predictions/${predictionId}/accept`, {
-    method: 'PUT',
-    fallbackError: 'Error al confirmar la porra',
-  });
-
-export const deleteGroupPrediction = (groupId: number | string, predictionId: number | string) =>
-  request<StatusResponse>(`/groups/${groupId}/predictions/${predictionId}`, {
-    method: 'DELETE',
-    fallbackError: 'Error al eliminar la porra',
   });
 
 /** Reglas de puntuación de la liga, las de por defecto y si quien consulta puede cambiarlas. */

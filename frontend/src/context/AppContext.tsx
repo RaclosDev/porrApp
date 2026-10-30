@@ -215,9 +215,9 @@ export const useAppContext = () => {
     queryFn: () =>
       activeGroupId
         ? fetchGroup(activeGroupId)
-        : Promise.resolve({ name: 'Ninguna Liga Seleccionada' }),
+        : Promise.resolve({ name: 'Ninguna liga seleccionada' }),
     placeholderData: () => {
-      if (!activeGroupId) return { name: 'Ninguna Liga Seleccionada' };
+      if (!activeGroupId) return { name: 'Ninguna liga seleccionada' };
       const fromList = Array.isArray(userGroups)
         ? userGroups.find((g) => g.id.toString() === activeGroupId.toString())
         : null;
@@ -363,7 +363,7 @@ export const useAppContext = () => {
     placeholderData: keepPreviousData,
   });
 
-  const activeGroupName = groupInfo?.name || 'Ninguna Liga Seleccionada';
+  const activeGroupName = groupInfo?.name || 'Ninguna liga seleccionada';
   const activeGroupAdmin = groupInfo?.adminParticipantName || null;
   const activeGroupAdminId = groupInfo?.adminUserId || null;
   const activeGroupPoolFormat = groupInfo?.poolFormat || (activeGroupId ? null : 'FULL_BRACKET');
@@ -417,7 +417,6 @@ export const useAppContext = () => {
           queryKeys.predictionScore(),
         ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
       ),
-    onlineUsers: EMPTY_ARRAY,
     activeGroupName,
     activeGroupAdmin,
     activeGroupAdminId,

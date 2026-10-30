@@ -92,7 +92,7 @@ export interface TeamStanding {
   mp: number;
   fp: number;
   pos: number;
-  /** 5 = clasificado matemáticamente, -1 = eliminado, 0 = en juego. */
+  /** 0 en juego, 1-4 puesto asegurado, 5 entre los dos primeros, -1 eliminado. */
   status: number;
 }
 
