@@ -4821,6 +4821,37 @@
     max-width: 640px;
   }
 
+  .landing-sticker-album {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 20px 16px 28px;
+    scroll-snap-type: x proximity;
+    overflow-y: hidden;
+  }
+
+  .landing-sticker-album > li {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+  }
+
+  .landing-sticker-album:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
+
+  .landing-hero-podium .ranking-podium {
+    padding-inline: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .landing-sticker-album {
+      justify-content: center;
+      gap: 0;
+      overflow: visible;
+    }
+  }
+
   .ranking-podium-place {
     position: relative;
     min-width: 0;
@@ -6048,4 +6079,33 @@
   top: -8px;
   width: 54px;
   height: 18px;
+}
+
+@layer utilities {
+  .landing-hero-podium .poster-title {
+    font-size: clamp(0.8rem, 1.6vw, 1.1rem);
+  }
+
+  .landing-hero-podium .sticker-featured .poster-title {
+    font-size: clamp(1rem, 2vw, 1.4rem);
+  }
+
+  @media (max-width: 600px) {
+    .landing-hero-podium .poster-title {
+      font-size: 0.75rem;
+    }
+
+    .landing-hero-podium .sticker-featured .poster-title {
+      font-size: 0.9rem;
+    }
+
+    .landing-hero-podium .marker-ink {
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .landing-hero-podium .sticker-featured .marker-ink {
+      font-size: 0.9rem;
+    }
+  }
 }

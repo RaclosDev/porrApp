@@ -68,16 +68,26 @@ export default function Landing() {
         </div>
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 40, rotate: 0 }}
-          animate={{ opacity: 1, y: 0, rotate: 4 }}
+          animate={{ opacity: 1, y: 0, rotate: 0 }}
           transition={{ duration: 0.7, delay: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-          className="justify-self-center"
+          className="landing-hero-podium min-w-0 w-full justify-self-center"
         >
           {leader ? (
-            <StickerCard
-              leader={leader}
-              featured
-              caption={`Va primero de ${participants} en la Porra Global`}
-            />
+            <div>
+              <ul className="ranking-podium" aria-label="Podio de la Porra Global">
+                {leaders.slice(0, 3).map((row) => (
+                  <li
+                    key={row.userId ?? row.name}
+                    className={`ranking-podium-place ranking-podium-place-${row.rank}`}
+                  >
+                    <StickerCard leader={row} featured={row.rank === 1} compact />
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[#4b5563] text-sm text-center">
+                Va primero de {participants} en la Porra Global
+              </p>
+            </div>
           ) : (
             <p className="text-[#4b5563] text-sm" role="status">
               {error
@@ -103,7 +113,9 @@ export default function Landing() {
             initial={initial}
             whileInView="show"
             viewport={inViewOnce}
-            className="flex flex-wrap justify-center gap-4 lg:gap-0 lg:flex-nowrap mt-10 list-none"
+            className="landing-sticker-album mt-10 list-none"
+            aria-label="Cromos de la Porra Global"
+            tabIndex={0}
           >
             {leaders.map((row, index) => (
               <motion.li
