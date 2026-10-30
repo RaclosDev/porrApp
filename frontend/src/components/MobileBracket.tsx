@@ -27,7 +27,7 @@ const ALL_TABS: Tab[] = [
   { key: 'r32', label: '16avos', roundIndex: 0 },
   { key: 'r16', label: 'Octavos', roundIndex: 1 },
   { key: 'qf', label: 'Cuartos', roundIndex: 2 },
-  { key: 'final', label: 'Final', roundIndex: -1 },
+  { key: 'final', label: 'Semis y final', roundIndex: -1 },
 ];
 
 const getTabs = (hasR32: boolean) => (hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32'));
@@ -53,7 +53,7 @@ export default function MobileBracket<T extends SlotTeam>({
   leftRounds: CanvasMatch<T>[][];
   rightRounds: CanvasMatch<T>[][];
   renderSlot: RenderSlot<T>;
-  /** Contenido de la pestaña "Final". */
+  /** Contenido de la pestaña "Semis y final". */
   renderFinal?: () => ReactNode;
   defaultTab?: number;
   renderRoundFooter?: (roundIndex: number, side: Side) => ReactNode;

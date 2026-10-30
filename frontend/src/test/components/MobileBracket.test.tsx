@@ -38,7 +38,10 @@ describe('MobileBracket', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Pasar a España' })[0]);
 
     expect(onPick).toHaveBeenCalledWith('España');
-    expect(screen.getByRole('tab', { name: 'Final' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Semis y final' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
     expect(screen.getByText('Contenido de la final')).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Semis' })).not.toBeInTheDocument();
   });
@@ -59,7 +62,10 @@ describe('MobileBracket', () => {
     expect(screen.getByRole('tab', { name: 'Cuartos' })).toHaveAttribute('aria-selected', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente ronda →' }));
-    expect(screen.getByRole('tab', { name: 'Final' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Semis y final' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
     expect(screen.getByText('Contenido de la final')).toBeInTheDocument();
   });
 });
