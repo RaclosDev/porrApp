@@ -102,12 +102,15 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => setIsOpen(!isOpen)}
-        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem] ${isOpen ? 'bg-[rgba(243,236,220,0.12)] bg-none' : ''}`}
+        className="glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem]"
         aria-expanded={isOpen}
         title="Cambiar de liga"
       >
         <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
-        <div className="flex flex-col items-start text-left leading-[1.15] min-w-0">
+        <div
+          key={activeGroupId}
+          className="league-selection flex flex-col items-start text-left leading-[1.15] min-w-0"
+        >
           <span className="poster-title w-full max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-main text-[0.95rem] tracking-[0.02em]">
             {displayLeagueName}
           </span>

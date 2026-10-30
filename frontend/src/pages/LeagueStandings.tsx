@@ -96,6 +96,16 @@ export default function LeagueStandings() {
               <caption className="sr-only">
                 Clasificación de {activeCompetitionName || 'la competición'}
               </caption>
+              <colgroup>
+                <col className="standings-position-column" />
+                <col className="standings-team-column" />
+                <col className="standings-stat-column" />
+                <col className="standings-stat-column" />
+                {showComplete &&
+                  Array.from({ length: 6 }, (_, i) => (
+                    <col key={i} className="standings-stat-column" />
+                  ))}
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col" className="standings-pos-col">
@@ -145,7 +155,7 @@ export default function LeagueStandings() {
                       </td>
 
                       <td className="standings-team-cell" aria-label={`Equipo: ${row.teamName}`}>
-                        <div className={`standings-team${showComplete ? ' is-crest-only' : ''}`}>
+                        <div className="standings-team">
                           {row.teamLogo ? (
                             <>
                               <img

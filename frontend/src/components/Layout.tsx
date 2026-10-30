@@ -196,19 +196,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               <>
                 <ActiveLeagueDropdown />
 
-                {loading ? null : isMatchDayLeague ? (
-                  <button
-                    id="btn-complete-my-prediction-header"
-                    className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
-                    onClick={() => navigate('/jornadas')}
-                    disabled={isNavLocked}
-                    aria-label="Pronosticar jornada"
-                    title="Pronosticar jornada"
-                  >
-                    <span aria-hidden="true">⚽</span>
-                    <span className="header-porra-cta-label"> Pronosticar jornada</span>
-                  </button>
-                ) : userName && myPrediction ? null : (
+                {loading || isMatchDayLeague || (userName && myPrediction) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
                     className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}

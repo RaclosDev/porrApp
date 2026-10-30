@@ -168,7 +168,7 @@ function Leaderboard() {
 
   return (
     <section id="view-leaderboard" className="view-section block">
-      <div className="flex justify-center items-center gap-2.5 flex-nowrap mb-[25px] mt-2.5 max-w-full">
+      <div hidden style={{ display: 'none' }} aria-hidden="true">
         <div
           role="tablist"
           aria-label="Vista de la clasificación"

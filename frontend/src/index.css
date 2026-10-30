@@ -5271,7 +5271,7 @@
   }
 
   .paper-panel .lb-matchday-select {
-    background: #ffffff;
+    background: var(--paper);
     border-color: var(--ink);
   }
 
@@ -5481,5 +5481,83 @@
 
   .mobile-bottom-nav .mobile-nav-indicator {
     border-radius: 3px;
+  }
+}
+
+@layer components {
+  #btn-active-league-dropdown {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .top-bar #btn-active-league-dropdown[aria-expanded='true'] {
+    background: var(--paper);
+    transform: translateY(-2px);
+    box-shadow:
+      3px 5px 0 #d8cfb9,
+      0 8px 18px rgba(0, 0, 0, 0.2);
+  }
+
+  .league-selection,
+  .active-league-menu {
+    animation: league-paper-arrive 180ms ease-out;
+    transform-origin: top center;
+  }
+
+  @keyframes league-paper-arrive {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .paper-panel .lb-matchday-select option {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .paper-panel .standings-title,
+  .paper-panel .standings-empty-title {
+    color: var(--ink);
+  }
+
+  .standings-table {
+    table-layout: fixed;
+  }
+
+  .standings-position-column {
+    width: 52px;
+  }
+  .standings-stat-column {
+    width: 58px;
+  }
+  .standings-table.is-complete .standings-team-column {
+    width: 64px;
+  }
+  .standings-table.is-complete col:last-child {
+    width: auto;
+  }
+
+  .standings-table.is-complete .standings-team-cell,
+  .standings-table .standings-team-cell {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  @media (max-width: 760px) {
+    .paper-panel .standings-table.is-complete th:nth-child(2),
+    .paper-panel .standings-table.is-complete td:nth-child(2) {
+      left: 52px;
+      background: var(--paper);
+    }
+
+    .paper-panel .standings-table.is-complete .standings-row:hover td:nth-child(2) {
+      background: #e7dfce;
+    }
   }
 }
