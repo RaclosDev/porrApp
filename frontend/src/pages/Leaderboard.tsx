@@ -12,6 +12,7 @@ interface LeaderboardColumn {
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import WhatsAppIcon from '../components/WhatsAppIcon';
 import { UserAvatar } from '../components/Avatar';
+import StickerCard, { type StickerLeader } from '../components/StickerCard';
 
 /** Medalla para el podio, tortuga para el último que ha pagado y número para el resto. */
 function rankLabel(rank: number | '-' | undefined, lowestPaidRank: number): string | number {
@@ -69,6 +70,22 @@ function Leaderboard() {
     handleSelectMatchday,
     handleStepMatchday,
   } = useLeaderboard();
+
+  // Los tres primeros como cromos, igual que en la portada; el resto sigue en la tabla.
+  const podium = React.useMemo<StickerLeader[]>(
+    () =>
+      results
+        .filter((r) => typeof r.rank === 'number' && r.rank <= 3)
+        .sort((a, b) => (a.rank as number) - (b.rank as number))
+        .map((r) => ({
+          rank: r.rank as number,
+          userId: r.userId,
+          name: r.name,
+          avatarUrl: r.avatarUrl,
+          total: r.points.total,
+        })),
+    [results],
+  );
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('table'); // 'table' | 'evolution'
@@ -293,6 +310,18 @@ function Leaderboard() {
             </div>
           )}
 
+          {podium.length === 3 && (
+            <ul
+              className="flex flex-wrap justify-center items-start gap-3 mb-6 list-none p-0"
+              aria-label="Podio"
+            >
+              {podium.map((row) => (
+                <li key={row.rank}>
+                  <StickerCard leader={row} featured={row.rank === 1} />
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="flex gap-5 items-start flex-wrap justify-center w-full">
             <div className="table-container flex-1 min-w-75 max-w-350 my-0 mx-auto">
               <table className="leaderboard-table">
