@@ -42,7 +42,6 @@ export default function CreatedLeagueModal({
         >
           ✕
         </button>
-        <div className="text-[2.5rem] mb-2.5">🎉 🏆</div>
         <h2 id="created-league-title" className="text-[#00d2d3] mt-0 mb-2 mx-0 text-[1.5rem]">
           ¡Tu liga está lista!
         </h2>
@@ -55,7 +54,7 @@ export default function CreatedLeagueModal({
         </p>
 
         <div className="bg-[rgba(0,_0,_0,_0.4)] bg-none border border-dashed border-[#00d2d3] rounded-[12px] p-4 mb-5">
-          <div className="text-[0.8rem] text-muted mb-1">CÓDIGO DE INVITACIÓN</div>
+          <div className="text-[0.8rem] text-muted mb-1">Código de invitación</div>
           <div className="text-[2rem] font-black tracking-[6px] text-[#fbc531] mb-2.5">
             {newlyCreatedGroup.joinCode}
           </div>
@@ -65,14 +64,14 @@ export default function CreatedLeagueModal({
               onClick={() => handleCopyCode(newlyCreatedGroup.joinCode)}
               className="glass-btn text-[0.85rem] py-1.5 px-3.5"
             >
-              📋 Copiar Código
+              Copiar código
             </button>
             <button
               type="button"
               onClick={() => handleCopyLink(newlyCreatedGroup.joinCode)}
               className="glass-btn text-[0.85rem] py-1.5 px-3.5"
             >
-              🔗 Copiar Enlace
+              Copiar enlace
             </button>
           </div>
         </div>
@@ -84,7 +83,7 @@ export default function CreatedLeagueModal({
             onClick={() => handleShareWhatsApp(newlyCreatedGroup)}
             aria-label="Compartir en WhatsApp"
           >
-            <span aria-hidden="true">💬</span> Compartir en WhatsApp
+            Compartir en WhatsApp
           </button>
 
           <button
@@ -100,7 +99,9 @@ export default function CreatedLeagueModal({
             }}
             className="glass-btn primary-btn w-full p-3 text-[0.95rem] bg-[#00d2d3] bg-none text-[#0f172a] font-bold"
           >
-            Comenzar mis Pronósticos ➜
+            {newlyCreatedGroup.poolFormat === 'MATCH_DAY'
+              ? 'Pronosticar la jornada'
+              : 'Rellenar mi porra'}
           </button>
         </div>
       </div>

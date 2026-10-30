@@ -59,7 +59,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
             <div className="space-y-2">
               <h1 className="text-xl font-bold tracking-tight text-white">
-                Algo no ha salido como esperábamos
+                Esta pantalla ha fallado
               </h1>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Ha ocurrido un problema inesperado en la aplicación. Puedes intentar recargar la
@@ -76,7 +76,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <div className="space-y-2 pt-2">
               <button
                 onClick={this.handleReload}
-                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30"
+                className="glass-btn primary-btn w-full flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 Recargar página
@@ -92,7 +92,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
               <button
                 onClick={this.handleResetStorage}
-                className="w-full py-2 px-3 text-xs text-slate-500 hover:text-slate-300 transition flex items-center justify-center gap-1.5"
+                className="w-full min-h-11 py-2 px-3 text-xs text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Limpiar datos locales y reiniciar

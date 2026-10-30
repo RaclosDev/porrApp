@@ -48,13 +48,11 @@ export default function LeagueRulesModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="glass-panel w-full max-w-130 max-h-[85vh] bg-[#0f172a] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[20px] flex flex-col shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.7)] overflow-hidden">
+      <div className="glass-panel w-full max-w-130 max-h-[85dvh] bg-[#0f172a] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[20px] flex flex-col shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.7)] overflow-hidden">
         <div className="py-4 px-5 border-b border-b-[rgba(255,_255,_255,_0.08)] flex flex-col gap-3">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
-              <div className="text-[0.72rem] font-bold text-[#00d2d3] uppercase tracking-[1px]">
-                📖 Reglas de la liga
-              </div>
+              <div className="text-[0.8rem] font-bold text-[#00d2d3]">Reglas de la liga</div>
               <h2
                 className="m-0 text-[1.15rem] text-white font-extrabold overflow-hidden text-ellipsis whitespace-nowrap"
                 id="league-rules-title"

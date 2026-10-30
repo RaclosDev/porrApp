@@ -166,7 +166,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* Banner flotante de Modo Demo */}
       {isDemo && !isUserLoggedIn && (
         <DemoBanner
           exitDemoMode={exitDemoMode}
@@ -178,7 +177,6 @@ function Layout({ children }: { children: React.ReactNode }) {
       <header className={`top-bar${isLanding ? ' top-bar--landing' : ''}`}>
         <div className="header-left">
           <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
-            {/* Logo de PorrApp */}
             <NavLink
               to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
               className="header-brand-link"
@@ -207,14 +205,12 @@ function Layout({ children }: { children: React.ReactNode }) {
 
             {isLanding || isInviteAuthScreen ? null : isDemo ? (
               <span className="inline-block min-w-0 truncate py-1 px-2.5 rounded-[16px] bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.4)] text-cyan text-[0.8rem] font-bold">
-                🌍 Mundial 2026
+                Mundial 2026
               </span>
             ) : (
               <>
-                {/* Selector Global de Liga Activa */}
                 <ActiveLeagueDropdown />
 
-                {/* Botón Ver Mi Porra / Pronosticar Jornada */}
                 {loading ? null : isMatchDayLeague ? (
                   <button
                     id="btn-complete-my-prediction-header"
@@ -225,7 +221,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                     title="Pronosticar jornada"
                   >
                     <span aria-hidden="true">⚽</span>
-                    <span className="header-porra-cta-label"> Pronosticar Jornada</span>
+                    <span className="header-porra-cta-label"> Pronosticar jornada</span>
                   </button>
                 ) : userName && myPrediction ? null : (
                   <button
@@ -237,7 +233,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                     title="Completar mi porra"
                   >
                     <span aria-hidden="true">✍️</span>
-                    <span className="header-porra-cta-label"> Completar Mi Porra</span>
+                    <span className="header-porra-cta-label"> Completar mi porra</span>
                   </button>
                 )}
               </>
@@ -270,7 +266,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         )}
       </header>
 
-      {/* Contenido Principal */}
       <main className={`app-container ${!isLanding ? 'has-mobile-bottom-nav' : ''}`}>
         {isNavLocked && !isNoLeagueAllowedPath ? null : children}
       </main>
@@ -279,10 +274,8 @@ function Layout({ children }: { children: React.ReactNode }) {
         <ProfileSettingsModal onClose={() => setShowProfileSettings(false)} />
       )}
 
-      {/* Barra de navegación inferior fija para móviles */}
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}
 
-      {/* Banner PWA */}
       {showInstallBanner && (
         <InstallBanner
           handleDismissBanner={handleDismissBanner}
@@ -291,7 +284,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Modal de Autenticación / Registro */}
       <LoginModal
         exitDemoMode={exitDemoMode}
         handleGoogleSuccess={handleGoogleSuccess}
@@ -301,7 +293,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         showMyPredictionModal={showMyPredictionModal}
       />
 
-      {/* Visor Global de Porras (Portal Inyectado) */}
       {viewerPredictionId && (
         <Suspense fallback={null}>
           <PredictionViewer />

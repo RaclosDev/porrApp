@@ -85,7 +85,7 @@ describe('MatchFriendsPredictionsModal', () => {
     expect(screen.getAllByTestId('avatar-generated')).toHaveLength(2);
 
     expect(screen.getByText('🔒 Oculto')).toBeInTheDocument();
-    expect(screen.getByText('Sin pronosticar')).toBeInTheDocument();
+    expect(screen.getByText('Pendiente')).toBeInTheDocument();
     expect(screen.getByText('2 - 1')).toBeInTheDocument();
     expect(screen.getByText('Tú')).toBeInTheDocument();
   });
@@ -105,7 +105,7 @@ describe('MatchFriendsPredictionsModal', () => {
 
     renderModal({ locked: true });
 
-    expect(await screen.findByText('Sin pronóstico')).toBeInTheDocument();
-    expect(screen.queryByText('Sin pronosticar')).not.toBeInTheDocument();
+    expect(await screen.findByText('No pronosticó')).toBeInTheDocument();
+    expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
   });
 });

@@ -82,7 +82,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
                       openStats();
                     }
                   }}
-                  aria-label={`Ver estadísticas de ${m.home} contra ${m.away}`}
+                  aria-label={`${m.home} contra ${m.away}. Ver en Sofascore`}
                 >
                   <div className="text-muted text-[0.75rem]">
                     {hasFinished ? 'Final' : 'Próx'} {dateFormatted}
