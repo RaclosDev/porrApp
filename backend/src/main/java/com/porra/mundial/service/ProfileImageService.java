@@ -162,10 +162,8 @@ public class ProfileImageService {
             throw new IllegalArgumentException(
                     "El nombre solo puede contener letras, números, espacios y los símbolos . _ ' -");
         }
-        // "Admin" está reservado (la clasificación oculta a ese participante) y "official"
-        // también, porque es el nombre que identificaba al cuadro oficial.
-        String lower = name.toLowerCase(Locale.ROOT);
-        if (lower.equals("admin") || lower.equals("official")) {
+        // "Admin" está reservado: es el nombre de la cuenta que administra la Porra Global.
+        if (name.toLowerCase(Locale.ROOT).equals("admin")) {
             throw new IllegalArgumentException("Ese nombre no está disponible.");
         }
         return name;

@@ -233,7 +233,6 @@ public class MatchPredictionService {
                             .user(user)
                             .edition(edition)
                             .name(predName)
-                            .isOfficial(false)
                             .paymentStatus(paymentStatus)
                             .createdAt(LocalDateTime.now())
                             .build());

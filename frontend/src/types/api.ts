@@ -153,7 +153,6 @@ export interface PredictionData {
   thirdPlaceWinner?: string | null;
   thirdPlaceMatch?: string[];
   scorer?: string | null;
-  isOfficial?: boolean;
 }
 
 export interface PredictionSummary {

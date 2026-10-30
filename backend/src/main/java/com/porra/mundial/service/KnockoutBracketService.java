@@ -6,7 +6,6 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.PredictionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +17,7 @@ import java.util.Objects;
 
 /**
  * Cuadro de eliminatorias oficial: coloca a los ganadores de semifinales en la final y a los
- * perdedores en el tercer puesto, y completa el cuadro oficial con los partidos reales.
+ * perdedores en el tercer puesto, y rellena final, campeón y tercer puesto con los partidos reales.
  */
 @Service
 @RequiredArgsConstructor
@@ -27,8 +26,6 @@ public class KnockoutBracketService {
 
     private final MatchRepository matchRepository;
     private final CompetitionRepository competitionRepository;
-    private final PredictionRepository predictionRepository;
-    private final PredictionService predictionService;
     private final ScoreInvalidationService scoreInvalidationService;
 
     /** Partidos de las últimas rondas, ya clasificados. */
@@ -102,18 +99,6 @@ public class KnockoutBracketService {
         } catch (Exception e) {
             log.warn("No se pudo completar el cuadro oficial con los partidos: {}", e.getMessage());
         }
-    }
-
-    /**
-     * Cuadro oficial: el pronóstico marcado como oficial (si existe) completado con los
-     * resultados reales de las rondas finales.
-     */
-    public PredictionDataDTO officialBracket() {
-        PredictionDataDTO bracket = predictionRepository.findByIsOfficialTrue()
-                .map(official -> predictionService.getPredictionData(official.getId()))
-                .orElseGet(PredictionDataDTO::new);
-        enrichPredictionDataWithMatches(bracket);
-        return bracket;
     }
 
     /** Partidos del Mundial, el único torneo con cuadro oficial; los de otras competiciones no cuentan. */
