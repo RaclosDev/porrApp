@@ -14,38 +14,23 @@ export default function ThirdsView({
   getGroupTeamData,
 }: ThirdsViewProps) {
   return (
-    <div style={{ marginTop: '10px' }}>
-      <div
-        style={{
-          padding: '16px 20px',
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          textAlign: 'center',
-        }}
-      >
-        <h4 style={{ margin: '0 0 6px 0', color: '#a29bfe', fontSize: '1.1rem' }}>
+    <div className="mt-2.5">
+      <div className="py-4 px-5 bg-[rgba(255,_255,_255,_0.04)] bg-none border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] mb-5 text-center">
+        <h4 className="mt-0 mb-1.5 mx-0 text-[#a29bfe] text-[1.1rem]">
           Mejores Terceros Seleccionados ({advancingThirds.length}/8 a Dieciseisavos)
         </h4>
-        <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+        <p className="m-0 text-[0.88rem] text-muted">
           De los 12 equipos situados en 3ª posición en la fase de grupos, estos son los 8 que
           elegiste para avanzar al cuadro.
         </p>
       </div>
 
       {allThirdTeams.length === 0 ? (
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '30px' }}>
+        <p className="text-center text-muted p-7.5">
           No se han encontrado equipos clasificados en 3ª posición.
         </p>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: '12px',
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(260px,_1fr))] gap-3">
           {allThirdTeams.map(({ group, team }) => {
             const isAdvancing = advancingThirds.includes(team);
             const { color, status } = getGroupTeamData(group, team, 3);
@@ -54,40 +39,11 @@ export default function ThirdsView({
 
             return (
               <div
+                className={`flex items-center justify-between py-3 px-4 rounded-[10px] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.08)] bg-none' : 'bg-[rgba(255,_255,_255,_0.03)] bg-none'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.08)]'} ${isAdvancing ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]' : 'shadow-none'}`}
                 key={group}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  borderRadius: '10px',
-                  background: isAdvancing ? 'rgba(0, 210, 211, 0.08)' : 'rgba(255, 255, 255, 0.03)',
-                  border: isAdvancing
-                    ? '1px solid rgba(0, 210, 211, 0.4)'
-                    : '1px solid rgba(255, 255, 255, 0.08)',
-                  boxShadow: isAdvancing ? '0 4px 15px rgba(0, 210, 211, 0.15)' : 'none',
-                }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    minWidth: 0,
-                    flex: 1,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      color: 'var(--text-muted)',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <span className="text-[0.75rem] font-extrabold py-[3px] px-2 rounded-[6px] bg-[rgba(255,_255,_255,_0.08)] bg-none text-muted tracking-[0.5px]">
                     G.{group}
                   </span>
                   <Flag
@@ -102,32 +58,20 @@ export default function ThirdsView({
                     }}
                   />
                   <span
-                    style={{
-                      fontWeight: 700,
-                      fontSize: '0.95rem',
-                      color: displayColor,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
+                    className="font-bold text-[0.95rem] overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{ color: displayColor }}
                   >
                     {team}
                   </span>
                   {status === 5 && (
                     <span
+                      className="w-2 h-2 bg-[#3498db] bg-none rounded-full inline-block shrink-0"
                       title="Clasificado Matemáticamente"
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        background: '#3498db',
-                        borderRadius: '50%',
-                        display: 'inline-block',
-                        flexShrink: 0,
-                      }}
                     />
                   )}
                 </div>
                 <span
+                  className={`inline-flex items-center justify-center shrink-0 w-6.5 h-6.5 ml-2 rounded-full text-[0.95rem] font-extrabold leading-[1] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.16)] bg-none' : 'bg-[rgba(255,_255,_255,_0.05)] bg-none'} ${isAdvancing ? 'text-[#00d2d3]' : 'text-muted'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.12)]'}`}
                   role="img"
                   title={
                     isAdvancing
@@ -139,26 +83,6 @@ export default function ThirdsView({
                       ? 'Seleccionado para avanzar a R32'
                       : 'No seleccionado para avanzar a R32'
                   }
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    width: '26px',
-                    height: '26px',
-                    marginLeft: '8px',
-                    borderRadius: '50%',
-                    fontSize: '0.95rem',
-                    fontWeight: 800,
-                    lineHeight: 1,
-                    background: isAdvancing
-                      ? 'rgba(0, 210, 211, 0.16)'
-                      : 'rgba(255, 255, 255, 0.05)',
-                    color: isAdvancing ? '#00d2d3' : 'var(--text-muted)',
-                    border: isAdvancing
-                      ? '1px solid rgba(0, 210, 211, 0.4)'
-                      : '1px solid rgba(255, 255, 255, 0.12)',
-                  }}
                 >
                   {isAdvancing ? '✓' : '×'}
                 </span>

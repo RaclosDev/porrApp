@@ -33,18 +33,9 @@ export default function HeaderActions({
   userName,
 }: HeaderActionsProps) {
   return (
-    <div
-      className="header-right"
-      style={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        gap: '10px',
-        position: 'relative',
-      }}
-    >
+    <div className="header-right flex justify-end items-center gap-2.5 relative">
       {!isUserLoggedIn ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex items-center gap-2">
           {isLanding && (
             <button
               id="btn-header-demo"
@@ -53,22 +44,7 @@ export default function HeaderActions({
                 if (enterDemoMode) enterDemoMode();
                 navigate('/demo');
               }}
-              className="glass-btn"
-              style={{
-                height: '38px',
-                padding: '0 12px',
-                fontSize: '0.82rem',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#e2e8f0',
-              }}
+              className="glass-btn h-9.5 py-0 px-3 text-[0.82rem] rounded-[10px] flex items-center gap-1.5 font-bold cursor-pointer whitespace-nowrap bg-[rgba(255,_255,_255,_0.06)] bg-none border border-[rgba(255,_255,_255,_0.15)] text-[#e2e8f0]"
               title="Probar Demo del Mundial"
             >
               <span>🚀</span>
@@ -79,27 +55,10 @@ export default function HeaderActions({
             id="btn-login-header"
             type="button"
             onClick={() => setShowMyPredictionModal(true)}
-            className="glass-btn"
-            style={{
-              height: '38px',
-              padding: '0 16px',
-              fontSize: '0.88rem',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              background: 'rgba(0, 210, 211, 0.12)',
-              border: '1px solid rgba(0, 210, 211, 0.45)',
-              color: '#00d2d3',
-              boxShadow: '0 4px 15px rgba(0, 210, 211, 0.15)',
-            }}
+            className="glass-btn h-9.5 py-0 px-4 text-[0.88rem] rounded-[10px] flex items-center justify-center gap-2 font-bold cursor-pointer whitespace-nowrap bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]"
             title="Iniciar Sesión"
           >
-            <span style={{ fontSize: '1.05rem' }}>👤</span>
+            <span className="text-[1.05rem]">👤</span>
             <span>Iniciar Sesión</span>
           </button>
         </div>
@@ -108,76 +67,26 @@ export default function HeaderActions({
           <button
             id="btn-profile-menu"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="glass-btn"
-            style={{
-              height: '36px',
-              width: '36px',
-              minWidth: '36px',
-              maxWidth: '36px',
-              minHeight: '36px',
-              maxHeight: '36px',
-              aspectRatio: '1 / 1',
-              borderRadius: '50%',
-              padding: '0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
+            className="glass-btn h-9 w-9 min-w-9 max-w-9 min-h-9 max-h-9 [aspect-ratio:1_/_1] rounded-full p-0 flex items-center justify-center cursor-pointer shrink-0"
             title="Menú de Usuario"
             aria-label="Menú de Usuario"
           >
             {userAvatarUrl ? (
               <UserAvatar url={userAvatarUrl} name={userName} size={34} />
             ) : (
-              <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>👤</span>
+              <span className="text-[1.1rem] leading-[1]">👤</span>
             )}
           </button>
 
           {showProfileMenu && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: '0',
-                background: '#151525',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '12px',
-                padding: '12px',
-                marginTop: '10px',
-                zIndex: 100,
-                minWidth: '200px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-              }}
-            >
-              <div
-                style={{
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                  paddingBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
+            <div className="absolute top-full right-0 bg-[#151525] bg-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] p-3 mt-2.5 z-[100] min-w-50 flex flex-col gap-2.5">
+              <div className="border-b border-b-[rgba(255,_255,_255,_0.08)] pb-2 flex items-center gap-2">
                 <UserAvatar url={userAvatarUrl} name={userName} size={32} />
-                <div style={{ overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      fontWeight: 'bold',
-                      color: '#fff',
-                      fontSize: '0.9rem',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
+                <div className="overflow-hidden">
+                  <div className="font-bold text-white text-[0.9rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     {userName || 'Usuario'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Conectado</div>
+                  <div className="text-[0.75rem] text-muted">Conectado</div>
                 </div>
               </div>
 
@@ -187,24 +96,13 @@ export default function HeaderActions({
                   setShowProfileMenu(false);
                   setShowProfileSettings(true);
                 }}
-                className="glass-btn"
-                style={{
-                  padding: '9px 12px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                }}
+                className="glass-btn py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] font-bold w-full flex items-center justify-center gap-2"
               >
                 ⚙️ Ajustes de cuenta
               </button>
 
               <button
+                className="bg-[rgba(255,_71,_87,_0.12)] bg-none border border-[rgba(255,_71,_87,_0.4)] text-[#ff4757] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"
                 onClick={() => {
                   setAuthToken(null);
                   setIsAuthenticated?.(false);
@@ -214,22 +112,6 @@ export default function HeaderActions({
                   localStorage.removeItem('my_avatar_url');
                   localStorage.removeItem('token');
                   window.location.href = '/';
-                }}
-                style={{
-                  background: 'rgba(255, 71, 87, 0.12)',
-                  border: '1px solid rgba(255, 71, 87, 0.4)',
-                  color: '#ff4757',
-                  padding: '9px 12px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontWeight: 700,
-                  width: '100%',
-                  justifyContent: 'center',
-                  transition: 'all 0.15s ease',
                 }}
               >
                 🚪 Cerrar Sesión

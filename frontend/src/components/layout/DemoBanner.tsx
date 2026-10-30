@@ -15,52 +15,19 @@ export default function DemoBanner({
   return (
     <div
       id="demo-mode-banner"
-      style={{
-        background:
-          'linear-gradient(90deg, rgba(0, 210, 211, 0.2) 0%, rgba(37, 99, 235, 0.22) 100%)',
-        borderBottom: '1px solid rgba(0, 210, 211, 0.35)',
-        padding: '6px 12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '8px',
-        fontSize: '0.8rem',
-        color: '#f8fafc',
-        position: 'sticky',
-        top: 0,
-        zIndex: 110,
-        backdropFilter: 'blur(8px)',
-      }}
+      className="sticky top-0 z-[110] flex items-center justify-between gap-2 border-b border-cyan/35 bg-gradient-to-r from-cyan/20 to-accent/20 px-3 py-1.5 text-[0.8rem] text-main backdrop-blur-sm"
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          minWidth: 0,
-          overflow: 'hidden',
-        }}
-      >
-        <span style={{ fontSize: '0.9rem' }}>✨</span>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+        <span className="text-[0.9rem]">✨</span>
+        <span className="truncate">
           <strong>Modo Demo:</strong> Cuadro, resultados y participantes reales
         </span>
       </div>
-      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+      <div className="inline-flex shrink-0 items-center gap-1.5">
         <button
           type="button"
           onClick={() => setShowMyPredictionModal(true)}
-          style={{
-            background: 'var(--accent-cyan, #00d2d3)',
-            color: '#0f172a',
-            border: 'none',
-            borderRadius: '6px',
-            padding: '4px 10px',
-            fontWeight: 800,
-            fontSize: '0.75rem',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
+          className="cursor-pointer whitespace-nowrap rounded-md border-none bg-cyan px-2.5 py-1 text-xs font-extrabold text-app"
         >
           Jugar
         </button>
@@ -70,16 +37,7 @@ export default function DemoBanner({
             exitDemoMode?.();
             navigate('/', { replace: true });
           }}
-          style={{
-            background: 'transparent',
-            color: '#94a3b8',
-            border: 'none',
-            textDecoration: 'underline',
-            fontSize: '0.75rem',
-            cursor: 'pointer',
-            padding: '2px 4px',
-            whiteSpace: 'nowrap',
-          }}
+          className="cursor-pointer whitespace-nowrap border-none bg-transparent px-1 py-0.5 text-xs text-muted underline"
         >
           Salir
         </button>

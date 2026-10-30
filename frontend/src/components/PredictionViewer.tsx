@@ -130,15 +130,7 @@ function PredictionViewer({
     const rightContent =
       slotPoints !== null ? (
         <span
-          style={{
-            marginLeft: '4px',
-            fontSize: '0.85em',
-            fontWeight: 'bold',
-            color: slotPoints === '0' ? '#e74c3c' : '#2ecc71',
-            background: slotPoints === '0' ? 'rgba(231,76,60,0.1)' : 'rgba(46,204,113,0.1)',
-            padding: '2px 4px',
-            borderRadius: '4px',
-          }}
+          className={`ml-1 text-[0.85em] font-bold py-0.5 px-1 rounded-[4px] ${slotPoints === '0' ? 'text-[#e74c3c]' : 'text-[#2ecc71]'} ${slotPoints === '0' ? 'bg-[rgba(231,76,60,0.1)] bg-none' : 'bg-[rgba(46,204,113,0.1)] bg-none'}`}
         >
           {slotPoints}
         </span>
@@ -175,32 +167,14 @@ function PredictionViewer({
 
     if (total === 0) {
       return (
-        <div
-          style={{
-            fontSize: '0.85rem',
-            fontWeight: 'bold',
-            color: 'rgba(255,255,255,0.3)',
-            pointerEvents: 'none',
-          }}
-        >
+        <div className="text-[0.85rem] font-bold text-[rgba(255,255,255,0.3)] pointer-events-none">
           0 pts
         </div>
       );
     }
 
     return (
-      <div
-        style={{
-          fontSize: '0.85rem',
-          fontWeight: 'bold',
-          color: '#00d2d3',
-          background: 'rgba(0, 210, 211, 0.1)',
-          display: 'inline-block',
-          padding: '2px 8px',
-          borderRadius: '4px',
-          pointerEvents: 'none',
-        }}
-      >
+      <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] bg-none inline-block py-0.5 px-2 rounded-[4px] pointer-events-none">
         +{total} pts
       </div>
     );
@@ -221,58 +195,27 @@ function PredictionViewer({
   const renderCenter = (colW: number) => {
     const centerTotal = getCenterPointsTotal();
     return (
-      <div style={{ display: 'block' }}>
+      <div className="block">
         {/* FINAL HEADER & POINTS */}
         <div
-          style={{
-            position: 'absolute',
-            top: finalTopY - 44,
-            left: COL_GAP,
-            width: colW,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 2,
-            pointerEvents: 'none',
-          }}
+          className="absolute flex flex-col items-center gap-0.5 pointer-events-none"
+          style={{ top: finalTopY - 44, left: COL_GAP, width: colW }}
         >
-          <div
-            style={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: 'rgba(251,191,36,0.9)',
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-            }}
-          >
+          <div className="text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase">
             🏆 Final 🏆
           </div>
           {centerTotal > 0 ? (
-            <div
-              style={{
-                fontSize: '0.85rem',
-                fontWeight: 'bold',
-                color: '#00d2d3',
-                background: 'rgba(0, 210, 211, 0.1)',
-                display: 'inline-block',
-                padding: '2px 8px',
-                borderRadius: '4px',
-              }}
-            >
+            <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] bg-none inline-block py-0.5 px-2 rounded-[4px]">
               +{centerTotal} pts
             </div>
           ) : (
-            <div
-              style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.3)' }}
-            >
-              0 pts
-            </div>
+            <div className="text-[0.85rem] font-bold text-[rgba(255,255,255,0.3)]">0 pts</div>
           )}
         </div>
 
         <div
-          className="match final-match"
-          style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}
+          className="match final-match absolute"
+          style={{ top: finalTopY, left: COL_GAP, width: colW }}
         >
           {renderSlot(finalHome, { roundIndex: 'final', isHome: true })}
           {renderSlot(finalAway, { roundIndex: 'final', isHome: false })}
@@ -280,40 +223,14 @@ function PredictionViewer({
 
         {/* CAMPEÓN */}
         <div
-          style={{
-            position: 'absolute',
-            top: finalTopY + MATCH_H + 16,
-            left: COL_GAP,
-            width: colW,
-            textAlign: 'center',
-          }}
+          className="absolute text-center"
+          style={{ top: finalTopY + MATCH_H + 16, left: COL_GAP, width: colW }}
         >
-          <div
-            style={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: 'var(--champion-gold)',
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              marginBottom: 4,
-            }}
-          >
+          <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1">
             🏆 Campeón
           </div>
           <div className="champion-display">
-            <div
-              className="team-slot"
-              style={{
-                height: 50,
-                fontSize: '1.1rem',
-                fontWeight: 'bold',
-                justifyContent: 'center',
-                pointerEvents: 'none',
-                borderColor: '#fbbf24',
-                background: 'rgba(251,191,36,0.15)',
-                color: '#fbbf24',
-              }}
-            >
+            <div className="team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none border-[#fbbf24] bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24]">
               <Flag
                 team={champName || ''}
                 size="w40"
@@ -332,24 +249,10 @@ function PredictionViewer({
 
         {/* TERCER PUESTO */}
         <div
-          style={{
-            position: 'absolute',
-            top: finalTopY + MATCH_H + 16 + MATCH_H + 36,
-            left: COL_GAP,
-            width: colW,
-            textAlign: 'center',
-          }}
+          className="absolute text-center"
+          style={{ top: finalTopY + MATCH_H + 16 + MATCH_H + 36, left: COL_GAP, width: colW }}
         >
-          <div
-            style={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: 'var(--text-muted)',
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              marginBottom: 4,
-            }}
-          >
+          <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1">
             🥉 Tercer Puesto
           </div>
           <div className="match third-place">
@@ -363,33 +266,12 @@ function PredictionViewer({
             })}
           </div>
           {thirdWinnerName && (
-            <div style={{ marginTop: 8, textAlign: 'center' }}>
-              <div
-                style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                  marginBottom: 4,
-                }}
-              >
+            <div className="mt-2 text-center">
+              <div className="text-[0.65rem] font-bold text-muted tracking-[1.5px] uppercase mb-1">
                 Ganador 3er Puesto:
               </div>
-              <div className="champion-display" style={{ display: 'inline-block', width: '100%' }}>
-                <div
-                  className="team-slot"
-                  style={{
-                    height: 38,
-                    fontSize: '0.95rem',
-                    fontWeight: 'bold',
-                    justifyContent: 'center',
-                    pointerEvents: 'none',
-                    borderColor: '#cd7f32',
-                    background: 'rgba(205, 127, 50, 0.15)',
-                    color: '#e0a96d',
-                  }}
-                >
+              <div className="champion-display inline-block w-full">
+                <div className="team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none border-[#cd7f32] bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d]">
                   <Flag
                     team={thirdWinnerName || ''}
                     size="w40"
@@ -429,17 +311,9 @@ function PredictionViewer({
     if (status === 5) {
       blueDot = (
         <span
+          className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1.5 shrink-0 inline-block"
           title="Clasificado Matemáticamente"
           aria-label="Clasificado Matemáticamente"
-          style={{
-            width: '8px',
-            height: '8px',
-            background: '#3498db',
-            borderRadius: '50%',
-            marginLeft: '6px',
-            flexShrink: 0,
-            display: 'inline-block',
-          }}
         ></span>
       );
     }
@@ -470,7 +344,7 @@ function PredictionViewer({
           alignItems: 'center',
         }}
       >
-        <span style={{ marginRight: '4px' }}>{medal}</span>{' '}
+        <span className="mr-1">{medal}</span>{' '}
         <Flag
           team={teamName}
           size="w40"
@@ -483,31 +357,12 @@ function PredictionViewer({
             flexShrink: 0,
           }}
         />{' '}
-        <span
-          style={{
-            flexGrow: 1,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
+        <span className="grow whitespace-nowrap overflow-hidden text-ellipsis flex items-center">
           {teamName}
           {blueDot}
         </span>
         {teamPts > 0 && (
-          <span
-            style={{
-              marginLeft: '6px',
-              fontSize: '0.85em',
-              fontWeight: 'bold',
-              color: 'rgba(0, 210, 211, 0.9)',
-              background: 'rgba(0, 210, 211, 0.15)',
-              padding: '1px 5px',
-              borderRadius: '4px',
-            }}
-          >
+          <span className="ml-1.5 text-[0.85em] font-bold text-[rgba(0,_210,_211,_0.9)] bg-[rgba(0,_210,_211,_0.15)] bg-none py-px px-[5px] rounded-[4px]">
             +{teamPts}
           </span>
         )}
@@ -552,45 +407,31 @@ function PredictionViewer({
   if (error) {
     if (inline) {
       return (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '40px 20px',
-            background: 'rgba(231,76,60,0.1)',
-            borderRadius: '16px',
-            border: '1px solid rgba(231,76,60,0.3)',
-          }}
-        >
-          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔒</div>
-          <h3 style={{ color: '#e74c3c', marginBottom: '10px' }}>Porra no disponible</h3>
-          <p style={{ color: 'var(--text-muted)', lineHeight: '1.5' }}>{error}</p>
+        <div className="text-center py-10 px-5 bg-[rgba(231,76,60,0.1)] bg-none rounded-[16px] border border-[rgba(231,76,60,0.3)]">
+          <div className="text-[2.5rem] mb-3">🔒</div>
+          <h3 className="text-[#e74c3c] mb-2.5">Porra no disponible</h3>
+          <p className="text-muted leading-[1.5]">{error}</p>
         </div>
       );
     }
     return (
       <div
         id="points-breakdown-modal"
-        className="modal"
+        className="modal flex z-[999999]"
         role="dialog"
         aria-modal="true"
         aria-label="Visor de porra"
-        style={{ display: 'flex', zIndex: 999999 }}
         onClick={handleClose}
       >
         <div
-          className="modal-content"
-          style={{ width: '95vw', maxWidth: '600px', textAlign: 'center', padding: '50px' }}
+          className="modal-content w-[95vw] max-w-150 text-center p-12.5"
           role="presentation"
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔒</div>
-          <h3 style={{ color: '#e74c3c', marginBottom: '10px' }}>Porra no disponible</h3>
-          <p style={{ color: 'var(--text-muted)', lineHeight: '1.5' }}>{error}</p>
-          <button
-            onClick={handleClose}
-            className="glass-btn primary-btn"
-            style={{ marginTop: '20px' }}
-          >
+          <div className="text-[2.5rem] mb-3">🔒</div>
+          <h3 className="text-[#e74c3c] mb-2.5">Porra no disponible</h3>
+          <p className="text-muted leading-[1.5]">{error}</p>
+          <button onClick={handleClose} className="glass-btn primary-btn mt-5">
             Cerrar
           </button>
         </div>
@@ -605,25 +446,19 @@ function PredictionViewer({
     return (
       <div
         id="points-breakdown-modal"
-        className="modal"
+        className="modal flex z-[999999]"
         role="dialog"
         aria-modal="true"
         aria-label="Visor de porra"
-        style={{ display: 'flex', zIndex: 999999 }}
         onClick={handleClose}
       >
         <div
-          className="modal-content"
-          style={{ width: '95vw', maxWidth: '600px', padding: '28px 24px' }}
+          className="modal-content w-[95vw] max-w-150 py-7 px-6"
           role="presentation"
           onClick={(e) => e.stopPropagation()}
         >
           <PredictionSkeleton compact />
-          <button
-            onClick={handleClose}
-            className="glass-btn"
-            style={{ marginTop: '8px', width: '100%' }}
-          >
+          <button onClick={handleClose} className="glass-btn mt-2 w-full">
             Cancelar
           </button>
         </div>
@@ -634,41 +469,31 @@ function PredictionViewer({
   if (!part) {
     if (inline) {
       return (
-        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>⚠️</div>
-          <h3 style={{ color: 'var(--text-color)', marginBottom: '10px' }}>Porra no encontrada</h3>
-          <p style={{ color: 'var(--text-muted)' }}>
-            No se encontraron los datos de la porra seleccionada.
-          </p>
+        <div className="text-center py-10 px-5">
+          <div className="text-[2.5rem] mb-3">⚠️</div>
+          <h3 className="text-(color:--text-color) mb-2.5">Porra no encontrada</h3>
+          <p className="text-muted">No se encontraron los datos de la porra seleccionada.</p>
         </div>
       );
     }
     return (
       <div
         id="points-breakdown-modal"
-        className="modal"
+        className="modal flex z-[999999]"
         role="dialog"
         aria-modal="true"
         aria-label="Visor de porra"
-        style={{ display: 'flex', zIndex: 999999 }}
         onClick={handleClose}
       >
         <div
-          className="modal-content"
-          style={{ width: '95vw', maxWidth: '600px', textAlign: 'center', padding: '50px' }}
+          className="modal-content w-[95vw] max-w-150 text-center p-12.5"
           role="presentation"
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>⚠️</div>
-          <h3 style={{ color: 'var(--text-color)', marginBottom: '10px' }}>Porra no encontrada</h3>
-          <p style={{ color: 'var(--text-muted)' }}>
-            No se encontraron los datos de la porra seleccionada.
-          </p>
-          <button
-            onClick={handleClose}
-            className="glass-btn primary-btn"
-            style={{ marginTop: '20px' }}
-          >
+          <div className="text-[2.5rem] mb-3">⚠️</div>
+          <h3 className="text-(color:--text-color) mb-2.5">Porra no encontrada</h3>
+          <p className="text-muted">No se encontraron los datos de la porra seleccionada.</p>
+          <button onClick={handleClose} className="glass-btn primary-btn mt-5">
             Cerrar
           </button>
         </div>
@@ -692,7 +517,7 @@ function PredictionViewer({
         <ViewerTabs activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col">
         {/* VISTA 1: FASE DE GRUPOS */}
         {part.groups && Object.keys(part.groups).length > 0 && activeTab === 'groups' && (
           <GroupsView part={part} points={points} renderGroupTeam={renderGroupTeam} />
@@ -730,36 +555,20 @@ function PredictionViewer({
   );
 
   if (inline) {
-    return (
-      <div
-        className="prediction-viewer-inline"
-        style={{ width: '100%', maxWidth: '1800px', margin: '0 auto' }}
-      >
-        {content}
-      </div>
-    );
+    return <div className="prediction-viewer-inline w-full max-w-450 my-0 mx-auto">{content}</div>;
   }
 
   return (
     <div
       id="points-breakdown-modal"
-      className="modal"
+      className="modal flex z-[999999]"
       role="dialog"
       aria-modal="true"
       aria-label="Visor de porra"
-      style={{ display: 'flex', zIndex: 999999 }}
       onClick={handleClose}
     >
       <div
-        className="modal-content"
-        style={{
-          width: '98vw',
-          maxWidth: '1900px',
-          textAlign: 'left',
-          maxHeight: '95vh',
-          overflowY: 'auto',
-          paddingTop: '25px',
-        }}
+        className="modal-content w-[98vw] max-w-475 text-left max-h-[95vh] overflow-y-auto pt-[25px]"
         role="presentation"
         onClick={(e) => e.stopPropagation()}
       >

@@ -21,136 +21,49 @@ export default function ChartToolbar({
   setHoveredStageIdx,
 }: ChartToolbarProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '15px',
-        marginBottom: '16px',
-        padding: '0 4px',
-      }}
-    >
+    <div className="flex justify-between items-center flex-wrap gap-[15px] mb-4 py-0 px-1">
       <div>
-        <h3
-          style={{
-            margin: 0,
-            fontSize: '1.4rem',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
+        <h3 className="m-0 text-[1.4rem] text-white flex items-center gap-2">
           <span>📈 Gráfica de Evolución</span>
           {mode === 'rank' && (
-            <span
-              style={{
-                fontSize: '0.8rem',
-                background: 'rgba(0, 210, 211, 0.2)',
-                color: '#00d2d3',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                border: '1px solid #00d2d3',
-              }}
-            >
+            <span className="text-[0.8rem] bg-[rgba(0,_210,_211,_0.2)] bg-none text-[#00d2d3] py-0.5 px-2 rounded-[12px] border border-[#00d2d3]">
               Ranking
             </span>
           )}
           {mode === 'points' && (
-            <span
-              style={{
-                fontSize: '0.8rem',
-                background: 'rgba(255, 159, 67, 0.2)',
-                color: '#ff9f43',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                border: '1px solid #ff9f43',
-              }}
-            >
+            <span className="text-[0.8rem] bg-[rgba(255,_159,_67,_0.2)] bg-none text-[#ff9f43] py-0.5 px-2 rounded-[12px] border border-[#ff9f43]">
               Puntos
             </span>
           )}
         </h3>
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="flex gap-2.5 flex-wrap items-center">
         {/* Horizontal Zoom Controls */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '2px',
-            background: 'rgba(255, 255, 255, 0.04)',
-            padding: '3px',
-            borderRadius: '25px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            alignItems: 'center',
-          }}
-        >
+        <div className="flex gap-0.5 bg-[rgba(255,_255,_255,_0.04)] bg-none p-[3px] rounded-[25px] border border-[rgba(255,_255,_255,_0.1)] items-center">
           <button
+            className={`py-[5px] px-2.5 rounded-[16px] border-none bg-transparent bg-none font-bold text-[0.9rem] [transition:all_0.2s] ${zoomLevel <= 0.75 ? 'cursor-not-allowed' : 'cursor-pointer'} ${zoomLevel <= 0.75 ? 'text-[#555]' : 'text-white'}`}
             onClick={() => setZoomLevel((prev) => Math.max(prev - 0.25, 0.75))}
             disabled={zoomLevel <= 0.75}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '16px',
-              border: 'none',
-              cursor: zoomLevel <= 0.75 ? 'not-allowed' : 'pointer',
-              background: 'transparent',
-              color: zoomLevel <= 0.75 ? '#555' : '#fff',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              transition: 'all 0.2s',
-            }}
             title="Reducir zoom horizontal"
           >
             🔍-
           </button>
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: '#ccc',
-              padding: '0 4px',
-              fontWeight: 'bold',
-              minWidth: '42px',
-              textAlign: 'center',
-              userSelect: 'none',
-            }}
-          >
+          <span className="text-[0.75rem] text-[#ccc] py-0 px-1 font-bold min-w-10.5 text-center select-none">
             {Math.round(zoomLevel * 100)}%
           </span>
           <button
+            className={`py-[5px] px-2.5 rounded-[16px] border-none bg-transparent bg-none font-bold text-[0.9rem] [transition:all_0.2s] ${zoomLevel >= 3.5 ? 'cursor-not-allowed' : 'cursor-pointer'} ${zoomLevel >= 3.5 ? 'text-[#555]' : 'text-white'}`}
             onClick={() => setZoomLevel((prev) => Math.min(prev + 0.35, 3.5))}
             disabled={zoomLevel >= 3.5}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '16px',
-              border: 'none',
-              cursor: zoomLevel >= 3.5 ? 'not-allowed' : 'pointer',
-              background: 'transparent',
-              color: zoomLevel >= 3.5 ? '#555' : '#fff',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              transition: 'all 0.2s',
-            }}
             title="Aumentar zoom horizontal"
           >
             🔍+
           </button>
           {zoomLevel !== 1 && (
             <button
+              className="py-[3px] px-2 rounded-[12px] border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.1)] bg-none text-white text-[0.7rem] cursor-pointer ml-0.5 [transition:all_0.2s]"
               onClick={() => setZoomLevel(1)}
-              style={{
-                padding: '3px 8px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: 'rgba(255,255,255,0.1)',
-                color: '#fff',
-                fontSize: '0.7rem',
-                cursor: 'pointer',
-                marginLeft: '2px',
-                transition: 'all 0.2s',
-              }}
               title="Restaurar zoom al 100%"
             >
               100%
@@ -159,50 +72,21 @@ export default function ChartToolbar({
         </div>
 
         {/* Time Scale Selector */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '4px',
-            background: 'rgba(255, 255, 255, 0.04)',
-            padding: '4px',
-            borderRadius: '25px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
+        <div className="flex gap-1 bg-[rgba(255,_255,_255,_0.04)] bg-none p-1 rounded-[25px] border border-[rgba(255,_255,_255,_0.1)]">
           <button
+            className={`py-1.5 px-3.5 rounded-[20px] border-none cursor-pointer font-bold text-[0.8rem] [transition:all_0.2s] ${timeScale === 'rounds' ? 'bg-[#70a1ff] bg-none' : 'bg-transparent bg-none'} ${timeScale === 'rounds' ? 'text-black' : 'text-white'}`}
             onClick={() => {
               setTimeScale('rounds');
               setHoveredStageIdx(null);
-            }}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '20px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.8rem',
-              transition: 'all 0.2s',
-              background: timeScale === 'rounds' ? '#70a1ff' : 'transparent',
-              color: timeScale === 'rounds' ? '#000' : '#fff',
             }}
           >
             🔄 Rondas
           </button>
           <button
+            className={`py-1.5 px-3.5 rounded-[20px] border-none cursor-pointer font-bold text-[0.8rem] [transition:all_0.2s] ${timeScale === 'matches' ? 'bg-[#2ecc71] bg-none' : 'bg-transparent bg-none'} ${timeScale === 'matches' ? 'text-black' : 'text-white'}`}
             onClick={() => {
               setTimeScale('matches');
               setHoveredStageIdx(null);
-            }}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '20px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.8rem',
-              transition: 'all 0.2s',
-              background: timeScale === 'matches' ? '#2ecc71' : 'transparent',
-              color: timeScale === 'matches' ? '#000' : '#fff',
             }}
           >
             ⏱️ Partido a Partido
@@ -210,45 +94,16 @@ export default function ChartToolbar({
         </div>
 
         {/* Mode Selector */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '4px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            padding: '4px',
-            borderRadius: '25px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
+        <div className="flex gap-1 bg-[rgba(255,_255,_255,_0.05)] bg-none p-1 rounded-[25px] border border-[rgba(255,_255,_255,_0.1)]">
           <button
+            className={`py-1.5 px-4 rounded-[20px] border-none cursor-pointer font-bold text-[0.85rem] [transition:all_0.2s] ${mode === 'rank' ? 'bg-[#00d2d3] bg-none' : 'bg-transparent bg-none'} ${mode === 'rank' ? 'text-black' : 'text-white'}`}
             onClick={() => setMode('rank')}
-            style={{
-              padding: '6px 16px',
-              borderRadius: '20px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
-              transition: 'all 0.2s',
-              background: mode === 'rank' ? '#00d2d3' : 'transparent',
-              color: mode === 'rank' ? '#000' : '#fff',
-            }}
           >
             🏆 Posición
           </button>
           <button
+            className={`py-1.5 px-4 rounded-[20px] border-none cursor-pointer font-bold text-[0.85rem] [transition:all_0.2s] ${mode === 'points' ? 'bg-[#ff9f43] bg-none' : 'bg-transparent bg-none'} ${mode === 'points' ? 'text-black' : 'text-white'}`}
             onClick={() => setMode('points')}
-            style={{
-              padding: '6px 16px',
-              borderRadius: '20px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
-              transition: 'all 0.2s',
-              background: mode === 'points' ? '#ff9f43' : 'transparent',
-              color: mode === 'points' ? '#000' : '#fff',
-            }}
           >
             📈 Puntos
           </button>

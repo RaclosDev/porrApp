@@ -45,26 +45,17 @@ export default function ChartCanvas({
 }: ChartCanvasProps) {
   return (
     <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        paddingBottom: '8px',
-      }}
+      className="relative w-full overflow-x-auto pb-2"
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <svg
+        className="w-full h-auto block overflow-visible [transition:min-width_0.3s_cubic-bezier(0.2,_0.8,_0.2,_1)]"
         viewBox={`0 0 ${width} ${height}`}
         style={{
-          width: '100%',
           minWidth:
             timeScale === 'rounds'
               ? `${Math.max(100, zoomLevel * 100)}%`
               : `${Math.max(750, zoomLevel * 750)}px`,
-          height: 'auto',
-          display: 'block',
-          overflow: 'visible',
-          transition: 'min-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
         }}
         onClick={() => {
           setHoveredStageIdx(null);
@@ -144,8 +135,8 @@ export default function ChartCanvas({
           const colWidth = chartW / Math.max(activeStages.length, 1);
           return (
             <g
+              className="cursor-pointer"
               key={st.key}
-              style={{ cursor: 'pointer' }}
               onMouseEnter={() => setHoveredStageIdx(idx)}
               onClick={(e) => {
                 e.stopPropagation();
@@ -153,12 +144,12 @@ export default function ChartCanvas({
               }}
             >
               <rect
+                className="[transition:fill_0.2s]"
                 x={x - colWidth / 2}
                 y={padding.top}
                 width={colWidth}
                 height={chartH}
                 fill={isHovered ? 'rgba(0, 210, 211, 0.12)' : 'transparent'}
-                style={{ transition: 'fill 0.2s' }}
               />
               <line
                 x1={x}
@@ -210,12 +201,8 @@ export default function ChartCanvas({
 
           return (
             <g
+              className={`[transition:opacity_0.2s] cursor-pointer ${isOtherHovered ? 'opacity-[0.15]' : 'opacity-[1]'}`}
               key={u.key}
-              style={{
-                opacity: isOtherHovered ? 0.15 : 1,
-                transition: 'opacity 0.2s',
-                cursor: 'pointer',
-              }}
               onMouseEnter={() => setHoveredUser(u.key)}
               onMouseLeave={() => setHoveredUser(null)}
               onClick={(e) => {
@@ -225,6 +212,7 @@ export default function ChartCanvas({
             >
               <polyline fill="none" stroke="transparent" strokeWidth="20" points={points} />
               <polyline
+                className="[transition:all_0.2s]"
                 fill="none"
                 stroke={u.color}
                 strokeWidth={isHovered || u.isMe ? 3.5 : 2}
@@ -233,7 +221,6 @@ export default function ChartCanvas({
                 strokeDasharray={u.isMe && !isHovered ? 'none' : undefined}
                 points={points}
                 filter={isHovered || u.isMe ? 'url(#line-glow)' : undefined}
-                style={{ transition: 'all 0.2s' }}
               />
               {activeStages.map((st, idx) => {
                 let val = mode === 'rank' ? u.rankEvolution[idx] : u.pointsEvolution[idx];
@@ -252,6 +239,7 @@ export default function ChartCanvas({
                 const dotRadius = isHovered || isStageHovered ? 6 : u.isMe ? 4 : 3;
                 return (
                   <circle
+                    className="[transition:all_0.2s]"
                     key={idx}
                     cx={cx}
                     cy={cy}
@@ -259,7 +247,6 @@ export default function ChartCanvas({
                     fill={u.color}
                     stroke="#0f0f1a"
                     strokeWidth="2"
-                    style={{ transition: 'all 0.2s' }}
                   />
                 );
               })}

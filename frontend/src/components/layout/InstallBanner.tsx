@@ -11,48 +11,22 @@ export default function InstallBanner({
   isIos,
 }: InstallBannerProps) {
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: 'rgba(15, 23, 42, 0.95)',
-        border: '1px solid var(--accent-color)',
-        borderRadius: '12px',
-        padding: '15px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '10px',
-        boxShadow: '0 10px 30px rgba(0,210,211,0.3)',
-        zIndex: 999999,
-        backdropFilter: 'blur(10px)',
-        width: '90%',
-        maxWidth: '350px',
-      }}
-    >
-      <p style={{ margin: 0, fontWeight: 'bold', color: 'white', textAlign: 'center' }}>
+    <div className="fixed bottom-5 left-1/2 z-[999999] flex w-[90%] max-w-[350px] -translate-x-1/2 flex-col items-center gap-2.5 rounded-xl border border-accent bg-app/95 px-5 py-[15px] shadow-[0_10px_30px_rgba(0,210,211,0.3)] backdrop-blur-md">
+      <p className="m-0 text-center font-bold text-white">
         {isIos()
           ? 'Para instalar la app, pulsa Compartir y luego "Añadir a la pantalla de inicio".'
           : 'Para instalar la app, toca los 3 puntos de tu navegador y selecciona "Instalar aplicación", o pulsa abajo.'}
       </p>
-      <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+      <div className="mt-[5px] flex gap-2.5">
         {!isIos() && (
           <button
             onClick={handleInstallClick}
-            className="glass-btn"
-            style={{
-              background: 'var(--accent-color)',
-              color: 'black',
-              fontWeight: 'bold',
-              padding: '8px 15px',
-            }}
+            className="glass-btn bg-accent px-[15px] py-2 font-bold text-black"
           >
             Sí, Instalar
           </button>
         )}
-        <button onClick={handleDismissBanner} className="glass-btn" style={{ padding: '8px 15px' }}>
+        <button onClick={handleDismissBanner} className="glass-btn px-[15px] py-2">
           {isIos() ? 'Entendido' : 'No, gracias'}
         </button>
       </div>
