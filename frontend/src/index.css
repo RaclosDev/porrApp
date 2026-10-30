@@ -4505,7 +4505,7 @@
     content: '';
     position: absolute;
     top: var(--tape-top, -12px);
-    left: var(--tape-x, 46%);
+    left: var(--tape-x, 50%);
     width: var(--tape-width, 104px);
     height: 28px;
     transform: translateX(-50%) rotate(var(--tape-angle, -5deg));
@@ -4790,7 +4790,7 @@
     content: '';
     position: absolute;
     top: var(--tape-top, -9px);
-    left: var(--tape-x, 43%);
+    left: var(--tape-x, 50%);
     width: var(--tape-width, 64px);
     height: 19px;
     background: rgba(255, 230, 140, 0.8);
@@ -6008,47 +6008,47 @@
   padding: 24px 12px;
 }
 
-/* Variantes estables: la cinta acompaña a la hoja sin saltar al actualizar datos. */
+/* Posiciones próximas al centro, con variaciones simétricas entre hojas. */
 .landing-tape:nth-child(3n + 2),
 .group-card.album-sheet:nth-child(3n + 2) {
-  --tape-x: 64%;
-  --tape-angle: 7deg;
+  --tape-x: 54%;
+  --tape-angle: 4deg;
   --tape-width: 88px;
 }
 
 .landing-tape:nth-child(3n),
 .group-card.album-sheet:nth-child(3n) {
-  --tape-x: 32%;
-  --tape-angle: -8deg;
+  --tape-x: 46%;
+  --tape-angle: -4deg;
   --tape-width: 96px;
 }
 
-.bracket-sheet-left {
-  --tape-x: 38%;
-  --tape-angle: -7deg;
+.bracket-sheet.bracket-sheet-left {
+  --tape-x: 46%;
+  --tape-angle: -4deg;
   --tape-width: 92px;
 }
-.bracket-sheet-center {
-  --tape-x: 61%;
-  --tape-angle: 5deg;
+.bracket-sheet.bracket-sheet-center {
+  --tape-x: 50%;
+  --tape-angle: 0deg;
   --tape-width: 108px;
 }
-.bracket-sheet-right {
-  --tape-x: 72%;
-  --tape-angle: -3deg;
-  --tape-width: 84px;
+.bracket-sheet.bracket-sheet-right {
+  --tape-x: 54%;
+  --tape-angle: 4deg;
+  --tape-width: 92px;
 }
 .md-page.album-sheet {
-  --tape-x: 37%;
-  --tape-angle: 6deg;
+  --tape-x: 46%;
+  --tape-angle: -4deg;
 }
 .table-container.album-sheet {
-  --tape-x: 68%;
-  --tape-angle: -7deg;
+  --tape-x: 54%;
+  --tape-angle: 4deg;
 }
 .invite-summary-card.album-sheet {
-  --tape-x: 62%;
-  --tape-angle: 5deg;
+  --tape-x: 50%;
+  --tape-angle: 0deg;
 }
 
 .header-paper-action {
