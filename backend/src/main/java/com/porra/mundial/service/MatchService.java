@@ -28,14 +28,17 @@ public class MatchService {
         return matchRepository.findByCompetitionIdOrderByMatchDateAsc(competitionId);
     }
 
-    /** Partidos en juego o que empiezan en los próximos 20 minutos. */
+    /** Minutos antes del inicio en que un partido cuenta como «empieza pronto». */
+    public static final int STARTING_SOON_MINUTES = 20;
+
+    /** Partidos en juego o que empiezan en los próximos {@link #STARTING_SOON_MINUTES} minutos. */
     public List<Match> getLiveMatches() {
         return getLiveMatches(null);
     }
 
     public List<Match> getLiveMatches(Long competitionId) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime soonThreshold = now.plusMinutes(20);
+        LocalDateTime soonThreshold = now.plusMinutes(STARTING_SOON_MINUTES);
         LocalDateTime pastThreshold = now.minusHours(3).minusMinutes(30);
 
         return matchRepository.findAll().stream()
