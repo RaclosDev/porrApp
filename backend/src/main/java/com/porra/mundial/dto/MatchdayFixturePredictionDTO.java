@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO que representa un partido del calendario junto con el pronóstico del usuario y su estado de bloqueo y puntos.
- */
 @Data
 @Builder
 @NoArgsConstructor

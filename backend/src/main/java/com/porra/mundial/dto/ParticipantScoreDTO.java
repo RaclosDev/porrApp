@@ -6,21 +6,13 @@ import lombok.Data;
 import java.util.List;
 import java.util.Map;
 
-/**
- * DTO que representa la Puntuación Final calculada de un participante.
- * Se genera dinámicamente y se envía al Frontend para pintar la tabla de clasificación.
- * Contiene un desglose detallado de dónde provienen los puntos.
- */
+/** Puntos de una porra por fase, con su desglose. */
 @Data
 @Builder
 public class ParticipantScoreDTO {
-    /** Identificador del pronóstico evaluado. */
     private Long id;
-    /** Identificador de la cuenta de usuario propietaria del pronóstico. */
     private Long userId;
-    /** Nombre público del participante en el ranking. */
     private String name;
-    /** Título/Nombre de su pronóstico. */
     private String predictionName;
     /** URL versionada de la foto de perfil del participante, o null si no tiene. */
     private String avatarUrl;
@@ -46,19 +38,18 @@ public class ParticipantScoreDTO {
     private int scorer;
     /** Puntos obtenidos en pronósticos de partidos directos y jornadas (1X2 y marcador). */
     private int matchPoints;
-    /** Suma total de puntos acumulados. */
     private int total;
     
     /** Historial de mensajes detallando exactamente por qué se otorgó cada punto (Ej: "+1 por acertar a España en cuartos"). */
     private List<LogEntry> log;
     
-    /** Mapa auxiliar indicando con verde exacto equipos que acertó en su posición original del bracket. */
+    /** Posiciones de grupo acertadas exactamente. */
     private Map<String, Object> exactMatches;
     
     /** Mapa auxiliar de equipos que simplemente acertó que pasaban de ronda, sin importar por dónde. */
     private Map<String, Boolean> passedTeams;
     
-    /** Indicador visual en UI si el pronóstico tiene el pago pendiente. */
+    /** Pago pendiente: no cuenta en la clasificación. */
     private boolean pending;
 
     /**

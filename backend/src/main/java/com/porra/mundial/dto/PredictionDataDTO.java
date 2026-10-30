@@ -12,10 +12,6 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * DTO Principal para las Predicciones (PredictionData).
- * Representa la estructura de la porra: elecciones de fase de grupos hasta la final.
- */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PredictionDataDTO {

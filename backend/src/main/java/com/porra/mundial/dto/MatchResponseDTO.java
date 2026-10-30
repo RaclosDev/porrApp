@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 
 /**
  * Record DTO para enviar la información de los Partidos Reales (ESPN).
- * Es un record de Java 14+ que proporciona inmutabilidad y un constructor compacto.
  * Contiene alias snake_case y camelCase para compatibilidad con código Frontend antiguo.
  */
 public record MatchResponseDTO(
@@ -42,10 +41,8 @@ public record MatchResponseDTO(
      */
     public static MatchResponseDTO fromEntity(Match m) {
         boolean isStartingSoon = false;
-        // Si el partido tiene fecha y aún no ha terminado, calculamos cuánto falta.
         if (m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())) {
             long diffMs = java.time.Duration.between(LocalDateTime.now(), m.getMatchDate()).toMillis();
-            // Está en la franja de los próximos 30 minutos
             isStartingSoon = diffMs > 0 && diffMs <= 30 * 60 * 1000;
         }
 

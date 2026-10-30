@@ -10,11 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Controlador REST para los Partidos Oficiales (Matches).
- * Exposición de solo-lectura de la base de datos de partidos sincronizada desde la API de ESPN.
- * Usado por la aplicación React para pintar los resultados reales en la interfaz.
- */
+/** Partidos sincronizados de ESPN (solo lectura). */
 @RestController
 @RequestMapping("/api/matches")
 @RequiredArgsConstructor
@@ -34,11 +30,7 @@ public class MatchController {
         return toDtos(matches);
     }
 
-    /**
-     * Agregador conveniente para la pantalla de inicio del Frontend ("El Radar").
-     * @param competitionId (Opcional) Filtrar radar por competición activa.
-     * @return partidos en juego, los últimos terminados y los próximos.
-     */
+    /** En juego, últimos terminados y próximos. */
     @GetMapping("/radar")
     @Cacheable(value = "matchRadar", key = "#competitionId != null ? #competitionId : 'all'")
     public MatchRadarDTO getMatchRadar(@RequestParam(required = false) Long competitionId) {
