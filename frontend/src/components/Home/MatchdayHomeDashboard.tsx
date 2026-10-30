@@ -8,6 +8,7 @@ import { queryKeys } from '../../services/queryKeys';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
 import type { Match } from '../../types/api';
+import InkStamp from '../InkStamp';
 
 function formatKickOff(date: string | null) {
   if (!date) return 'VS';
@@ -175,7 +176,7 @@ export default function MatchdayHomeDashboard() {
                 >
                   <div className="home-match-meta">
                     <span>{formatMatchDate(m.date)}</span>
-                    {isLive && <span className="home-live-badge">En directo</span>}
+                    {isLive && <InkStamp size="sm">En directo</InkStamp>}
                   </div>
 
                   <div className="home-match-teams">

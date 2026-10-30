@@ -1,6 +1,7 @@
 import { type ViewerData } from './viewerTypes';
 import Flag from '../Flag';
 import { isMathematicallyQualified } from '../../utils/groupStatus';
+import InkStamp from '../InkStamp';
 
 interface ThirdsViewProps {
   advancingThirds: string[];
@@ -65,14 +66,9 @@ export default function ThirdsView({
                     {team}
                   </span>
                   {isMathematicallyQualified(status) && (
-                    <>
-                      <span
-                        className="w-2 h-2 bg-[#3498db] bg-none rounded-full inline-block shrink-0"
-                        title="Clasificado matemáticamente"
-                        aria-hidden="true"
-                      />
-                      <span className="sr-only">Clasificado matemáticamente</span>
-                    </>
+                    <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente">
+                      Clas.
+                    </InkStamp>
                   )}
                 </div>
                 <span

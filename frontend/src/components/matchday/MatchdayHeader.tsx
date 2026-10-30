@@ -1,3 +1,4 @@
+import InkStamp from '../InkStamp';
 interface MatchdayHeaderProps {
   title: string;
   isLocked: boolean;
@@ -26,7 +27,7 @@ export default function MatchdayHeader({
         <div className="min-w-0">
           <h1>{title}</h1>
           <p className="md-page-sub">
-            {isLocked ? '🔒 Porra cerrada' : `${predicted}/${total} pronosticados`}
+            {isLocked ? <InkStamp>Porra cerrada</InkStamp> : `${predicted}/${total} pronosticados`}
           </p>
         </div>
 

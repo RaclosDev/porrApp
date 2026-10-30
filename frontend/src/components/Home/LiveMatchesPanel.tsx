@@ -1,6 +1,7 @@
 import Flag from '../Flag';
 import { openStats } from '../../utils/navigation';
 import type { Match, MatchRadar } from '../../types/api';
+import InkStamp from '../InkStamp';
 
 interface LiveMatchesPanelProps {
   liveMatches: Match[];
@@ -91,14 +92,12 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
     <div className="w-full max-w-120 mt-0 mb-5 mx-auto flex flex-col gap-4">
       {hasLive && (
         <div className="flex flex-col gap-2">
-          <div
-            className={
-              isActuallyLive
-                ? 'text-center text-[#ff4757] text-[1rem] font-bold p-1.5 bg-[rgba(255,_71,_87,_0.1)] bg-none border border-[rgba(255,_71,_87,_0.3)] rounded-[12px]'
-                : 'text-center text-[#00d2d3] text-[1rem] font-bold p-1.5 bg-[rgba(0,_210,_211,_0.08)] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[12px]'
-            }
-          >
-            {isActuallyLive ? '🔴 En directo' : 'A punto de empezar'}
+          <div className="text-center">
+            {isActuallyLive ? (
+              <InkStamp>En directo</InkStamp>
+            ) : (
+              <InkStamp tone="ink">A punto de empezar</InkStamp>
+            )}
           </div>
           <div className="last-matches-grid grid-cols-[1fr] gap-2.5">
             {liveMatches.map((m) => renderLiveMatch(m))}

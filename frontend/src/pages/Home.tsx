@@ -11,6 +11,7 @@ import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
 import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
+import InkStamp from '../components/InkStamp';
 
 /**
  * Página principal: estado del torneo oficial, clasificación por grupos en vivo,
@@ -132,19 +133,15 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           let statusDot = null;
           if (isMathematicallyQualified(team.stats.status)) {
             statusDot = (
-              <span
-                className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Clasificado matemáticamente"
-                aria-label="Clasificado matemáticamente"
-              />
+              <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente" className="ml-1">
+                Clas.
+              </InkStamp>
             );
           } else if (isMathematicallyEliminated(team.stats.status)) {
             statusDot = (
-              <span
-                className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Eliminado matemáticamente"
-                aria-label="Eliminado matemáticamente"
-              />
+              <InkStamp size="sm" label="Eliminado matemáticamente" className="ml-1">
+                Elim.
+              </InkStamp>
             );
           }
 

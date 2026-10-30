@@ -15,6 +15,7 @@ import { useBracket } from '../hooks/useBracket';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { isMathematicallyQualified } from '../utils/groupStatus';
+import InkStamp from '../components/InkStamp';
 
 /**
  * Porra de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
@@ -137,11 +138,9 @@ function Bracket() {
         const teamStatus = getTeamStatus(name);
         if (isMathematicallyQualified(teamStatus)) {
           statusIndicator = (
-            <span
-              className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
-              title="Clasificado matemáticamente"
-              aria-label="Clasificado matemáticamente"
-            />
+            <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente" className="ml-1">
+              Clas.
+            </InkStamp>
           );
         }
       }
@@ -265,7 +264,7 @@ function Bracket() {
       ) : (
         <>
           <div className="section-header mb-7.5 text-center">
-            <h2 className="m-0">Paso 2: Eliminatorias</h2>
+            <h2 className="m-0 poster-title">Paso 2: Eliminatorias</h2>
             <p className="text-muted mt-2 text-[0.9rem]">
               Pulsa un equipo para pasarlo a la siguiente ronda
             </p>
@@ -439,9 +438,10 @@ function Bracket() {
               <p className="text-muted mt-0 mb-[15px] text-[0.9rem]">Inicia sesión para guardar.</p>
             )}
             {activeGroupIsLocked && (
-              <div className="py-2.5 px-3.5 bg-[rgba(239,_68,_68,_0.15)] bg-none border border-[rgba(239,_68,_68,_0.4)] rounded-[8px] text-[#fca5a5] mb-[15px] text-[0.9rem]">
-                🔒 <b>Porra cerrada:</b> el plazo para enviarla o cambiarla ha terminado.
-              </div>
+              <p className="flex items-center gap-3 mb-[15px] text-[0.9rem] text-muted">
+                <InkStamp>Porra cerrada</InkStamp>
+                El plazo para enviarla o cambiarla ha terminado.
+              </p>
             )}
             <button
               className="glass-btn primary-btn"

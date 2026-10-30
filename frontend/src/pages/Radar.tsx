@@ -3,6 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import { openStats } from '../utils/navigation';
 import Flag from '../components/Flag';
 import type { Match } from '../types/api';
+import InkStamp from '../components/InkStamp';
 
 /** Partidos en directo, próximos y últimos resultados de la competición. */
 function Radar() {
@@ -91,9 +92,7 @@ function Radar() {
   return (
     <section id="view-radar" className="view-section active block">
       <div className="section-header mb-5 text-center">
-        <h2 className="m-0" style={{ fontFamily: "'Outfit', sans-serif" }}>
-          Partidos
-        </h2>
+        <h2 className="m-0 poster-title">Partidos</h2>
       </div>
 
       <div className="radar-container flex flex-col gap-7.5">
@@ -102,10 +101,10 @@ function Radar() {
             const isActuallyLive = liveMatches.some((m) => new Date(m.date ?? 0) <= new Date());
             return (
               <div className="radar-column w-full max-w-150 my-0 mx-auto mb-2.5">
-                <h3
-                  className={`text-center mb-[15px] ${isActuallyLive ? 'text-[#ff4757]' : 'text-[#ffa502]'}`}
-                >
-                  {isActuallyLive ? 'En directo' : 'A punto de comenzar'}
+                <h3 className="text-center mb-[15px]">
+                  <InkStamp tone={isActuallyLive ? 'red' : 'ink'}>
+                    {isActuallyLive ? 'En directo' : 'A punto de comenzar'}
+                  </InkStamp>
                 </h3>
                 <div className="last-matches-grid grid-cols-[1fr]">
                   {liveMatches.map((m) => renderMatchCard(m, 'live'))}
