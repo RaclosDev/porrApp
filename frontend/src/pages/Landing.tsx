@@ -14,7 +14,6 @@ import {
 } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
 
-const REPO_URL = 'https://github.com/RaclosDev/porrApp';
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
 
 /**
@@ -191,10 +190,6 @@ export default function Landing() {
 
       <footer className="mt-10 pt-5 border-t border-t-[rgba(255,255,255,0.08)] flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-[#94a3b8] text-[0.85rem]">
         <strong className="text-white">PorrApp</strong>
-        <span aria-hidden="true">·</span>
-        <a href={REPO_URL} className="landing-link-light" target="_blank" rel="noreferrer">
-          Código en GitHub
-        </a>
       </footer>
     </div>
   );
