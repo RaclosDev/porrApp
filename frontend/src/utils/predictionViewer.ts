@@ -57,7 +57,8 @@ export type ViewerPoints = Pick<
   | 'log'
   | 'exactMatches'
   | 'passedTeams'
->;
+> &
+  Partial<Pick<ParticipantScore, 'userId' | 'avatarUrl'>>;
 
 /** Ronda de un hueco: índice del lienzo o uno de los huecos centrales. */
 export type RoundRef = number | 'final' | 'champion' | 'thirdPlaceMatch';
