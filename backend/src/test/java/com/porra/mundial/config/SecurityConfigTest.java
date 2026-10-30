@@ -40,6 +40,15 @@ class SecurityConfigTest {
     }
 
     @Test
+    void contentSecurityPolicyAllowsLocalImagePreviews() throws Exception {
+        when(topScorerService.getTopScorers()).thenReturn(List.of());
+        // La vista previa de una foto elegida es una URL blob: hasta que se sube.
+        mockMvc.perform(get("/api/scorers"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Content-Security-Policy", org.hamcrest.Matchers.containsString("img-src 'self' data: blob: https:")));
+    }
+
+    @Test
     void healthProbeUsedByRailwayIsPublic() throws Exception {
         int status = mockMvc.perform(get("/actuator/health/liveness")).andReturn().getResponse().getStatus();
         org.junit.jupiter.api.Assertions.assertNotEquals(401, status);

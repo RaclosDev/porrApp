@@ -72,7 +72,8 @@ public class SecurityConfig {
                             "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://pagead2.googlesyndication.com; " +
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                             "font-src 'self' https://fonts.gstatic.com; " +
-                            "img-src 'self' data: https:; " +
+                            // blob: para la vista previa local de una foto antes de subirla.
+                            "img-src 'self' data: blob: https:; " +
                             "connect-src 'self' ws: wss: https://accounts.google.com https://site.api.espn.com https://a.espncdn.com; " +
                             "frame-src 'self' https://accounts.google.com https://googleads.g.doubleclick.net;")
                 )
