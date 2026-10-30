@@ -19,7 +19,7 @@ export default function OfficialBracketTabs({
     <div className="flex justify-center items-center gap-[clamp(2px,_0.7vw,_8px)] mb-5 mt-[5px] flex-nowrap">
       {activeTab === 'cuadro' && (
         <button
-          className={`glass-btn [padding:clamp(4px,_1.1vw,_6px)_clamp(5px,_1.5vw,_10px)] text-[clamp(0.75rem,_2.4vw,_0.8rem)] font-bold min-h-auto self-stretch rounded-[12px] [transition:all_0.2s] cursor-pointer whitespace-nowrap ${activePanel === 'live' ? 'bg-[rgba(255,_71,_87,_0.18)] bg-none' : 'bg-transparent bg-none'} ${activePanel === 'live' ? 'border-[#ff4757]' : 'border-line'} ${activePanel === 'live' ? 'text-[#ff4757]' : 'text-muted'}`}
+          className={`glass-btn [padding:clamp(4px,_1.1vw,_6px)_clamp(5px,_1.5vw,_10px)] text-[clamp(0.75rem,_2.4vw,_0.8rem)] font-bold min-h-11 self-stretch rounded-[12px] [transition:all_0.2s] cursor-pointer whitespace-nowrap ${activePanel === 'live' ? 'bg-[rgba(255,_71,_87,_0.18)] bg-none' : 'bg-transparent bg-none'} ${activePanel === 'live' ? 'border-[#ff4757]' : 'border-line'} ${activePanel === 'live' ? 'text-[#ff4757]' : 'text-muted'}`}
           onClick={() => setActivePanel((p) => (p === 'live' ? null : 'live'))}
         >
           <span className="results-toggle-icon">🔴</span> Partidos
@@ -53,7 +53,7 @@ export default function OfficialBracketTabs({
       </div>
       {activeTab === 'cuadro' && activeGroupPichichi && (
         <button
-          className={`glass-btn [padding:clamp(4px,_1.1vw,_6px)_clamp(5px,_1.5vw,_10px)] text-[clamp(0.75rem,_2.4vw,_0.8rem)] font-bold min-h-auto self-stretch rounded-[12px] [transition:all_0.2s] cursor-pointer whitespace-nowrap ${activePanel === 'scorers' ? 'bg-[rgba(255,_211,_42,_0.18)] bg-none' : 'bg-transparent bg-none'} ${activePanel === 'scorers' ? 'border-[#ffd32a]' : 'border-line'} ${activePanel === 'scorers' ? 'text-[#ffd32a]' : 'text-muted'}`}
+          className={`glass-btn [padding:clamp(4px,_1.1vw,_6px)_clamp(5px,_1.5vw,_10px)] text-[clamp(0.75rem,_2.4vw,_0.8rem)] font-bold min-h-11 self-stretch rounded-[12px] [transition:all_0.2s] cursor-pointer whitespace-nowrap ${activePanel === 'scorers' ? 'bg-[rgba(255,_211,_42,_0.18)] bg-none' : 'bg-transparent bg-none'} ${activePanel === 'scorers' ? 'border-[#ffd32a]' : 'border-line'} ${activePanel === 'scorers' ? 'text-[#ffd32a]' : 'text-muted'}`}
           onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
         >
           <span className="results-toggle-icon">🏆</span> Pichichi
