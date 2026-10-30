@@ -4504,11 +4504,11 @@
   .landing-tape::after {
     content: '';
     position: absolute;
-    top: -12px;
-    left: 50%;
-    width: 120px;
+    top: var(--tape-top, -12px);
+    left: var(--tape-x, 46%);
+    width: var(--tape-width, 104px);
     height: 28px;
-    transform: translateX(-50%) rotate(-3deg);
+    transform: translateX(-50%) rotate(var(--tape-angle, -5deg));
     background: rgba(255, 230, 140, 0.8);
     border-left: 1px dashed rgba(0, 0, 0, 0.15);
     border-right: 1px dashed rgba(0, 0, 0, 0.15);
@@ -4789,13 +4789,13 @@
   .invite-summary-card.album-sheet::after {
     content: '';
     position: absolute;
-    top: -9px;
-    left: calc(50% - 32px);
-    width: 64px;
+    top: var(--tape-top, -9px);
+    left: var(--tape-x, 43%);
+    width: var(--tape-width, 64px);
     height: 19px;
     background: rgba(255, 230, 140, 0.8);
     border-inline: 1px dashed rgba(17, 24, 39, 0.15);
-    rotate: -3deg;
+    transform: translateX(-50%) rotate(var(--tape-angle, -5deg));
     pointer-events: none;
   }
 
@@ -6006,4 +6006,47 @@
 .modal-content.viewer-with-bracket {
   background: var(--bg-color);
   padding: 24px 12px;
+}
+
+/* Variantes estables: la cinta acompaña a la hoja sin saltar al actualizar datos. */
+.landing-tape:nth-child(3n + 2),
+.group-card.album-sheet:nth-child(3n + 2) {
+  --tape-x: 64%;
+  --tape-angle: 7deg;
+  --tape-width: 88px;
+}
+
+.landing-tape:nth-child(3n),
+.group-card.album-sheet:nth-child(3n) {
+  --tape-x: 32%;
+  --tape-angle: -8deg;
+  --tape-width: 96px;
+}
+
+.bracket-sheet-left {
+  --tape-x: 38%;
+  --tape-angle: -7deg;
+  --tape-width: 92px;
+}
+.bracket-sheet-center {
+  --tape-x: 61%;
+  --tape-angle: 5deg;
+  --tape-width: 108px;
+}
+.bracket-sheet-right {
+  --tape-x: 72%;
+  --tape-angle: -3deg;
+  --tape-width: 84px;
+}
+.md-page.album-sheet {
+  --tape-x: 37%;
+  --tape-angle: 6deg;
+}
+.table-container.album-sheet {
+  --tape-x: 68%;
+  --tape-angle: -7deg;
+}
+.invite-summary-card.album-sheet {
+  --tape-x: 62%;
+  --tape-angle: 5deg;
 }
