@@ -30,7 +30,7 @@ export default function Landing() {
 
   return (
     <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
-      <section className="landing-poster landing-tape -rotate-1 mt-6 px-6 py-10 sm:px-10 sm:py-14 grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-center">
+      <section className="landing-poster landing-tape mt-6 px-6 py-10 sm:px-10 sm:py-14 grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-center">
         <div className="flex flex-col gap-6">
           <MarkerHeading
             as="h1"
@@ -173,7 +173,7 @@ export default function Landing() {
             initial={initial}
             whileInView="show"
             viewport={inViewOnce}
-            className="landing-poster landing-tape -rotate-1 p-6 sm:p-8 flex flex-col gap-4"
+            className="landing-poster landing-tape p-6 sm:p-8 flex flex-col gap-4"
           >
             <h3 className="poster-title text-4xl">Jornadas</h3>
             <p className="text-[#1f2937] leading-snug">

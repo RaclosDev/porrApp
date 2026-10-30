@@ -336,131 +336,133 @@ function Leaderboard() {
               >
                 {showDetail ? 'Ocultar desglose' : 'Ver desglose por fase'}
               </button>
-              <table className="leaderboard-table">
-                <thead>
-                  <tr>
-                    <th>Pos</th>
-                    <th>Participante</th>
-                    {columns.map((col) => (
-                      <th
-                        key={col.key}
-                        className={columnClass(col)}
-                        style={thStyle(col.key)}
-                        onClick={() => handleSort(col.key)}
-                        title={`Ordenar por ${col.label}`}
-                        aria-label={col.shortLabel ? `Ordenar por ${col.label}` : undefined}
-                      >
-                        {col.shortLabel || col.label}
-                        {sortIndicator(col.key)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody id="leaderboard-body-tab">
-                  {results.map((r) => {
-                    const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+              <div className="ranking-table-scroll">
+                <table className="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Pos</th>
+                      <th>Participante</th>
+                      {columns.map((col) => (
+                        <th
+                          key={col.key}
+                          className={columnClass(col)}
+                          style={thStyle(col.key)}
+                          onClick={() => handleSort(col.key)}
+                          title={`Ordenar por ${col.label}`}
+                          aria-label={col.shortLabel ? `Ordenar por ${col.label}` : undefined}
+                        >
+                          {col.shortLabel || col.label}
+                          {sortIndicator(col.key)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody id="leaderboard-body-tab">
+                    {results.map((r) => {
+                      const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
-                    const isPending = !r.paid;
-                    const isMe = isOwnRow(r, userId, userName);
-                    const bgStyle = isMe
-                      ? 'rgba(0, 210, 211, 0.15)'
-                      : isPending
-                        ? 'rgba(255, 165, 0, 0.05)'
-                        : 'transparent';
+                      const isPending = !r.paid;
+                      const isMe = isOwnRow(r, userId, userName);
+                      const bgStyle = isMe
+                        ? 'rgba(0, 210, 211, 0.15)'
+                        : isPending
+                          ? 'rgba(255, 165, 0, 0.05)'
+                          : 'transparent';
 
-                    const rowStyle = {
-                      background: bgStyle,
-                      boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
-                    };
+                      const rowStyle = {
+                        background: bgStyle,
+                        boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
+                      };
 
-                    return (
-                      <tr key={r.key} style={rowStyle}>
-                        <td className="text-[1.2em] text-center">{rankDisplay}</td>
-                        <td>
-                          <div className="flex justify-start items-center flex-nowrap gap-1.5">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <UserAvatar
-                                url={r.avatarUrl}
-                                userId={r.userId}
-                                name={r.name}
-                                size={28}
-                              />
-                              <div className="flex items-center flex-wrap gap-1.5 min-w-0">
-                                <span className="text-[1.1em]">
-                                  <strong>
-                                    {r.name}
-                                    {isMe && (
-                                      <span className="text-accent-text ml-[5px] text-[0.8em]">
-                                        (Tú)
-                                      </span>
-                                    )}
-                                  </strong>
-                                </span>
-                                {isPending && (
-                                  <span
-                                    className="lb-unpaid-badge"
-                                    title="Pago pendiente. El administrador debe marcarlo como pagado para mostrar sus puntos."
-                                  >
-                                    Sin pagar
+                      return (
+                        <tr key={r.key} style={rowStyle}>
+                          <td className="text-[1.2em] text-center">{rankDisplay}</td>
+                          <td>
+                            <div className="flex justify-start items-center flex-nowrap gap-1.5">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <UserAvatar
+                                  url={r.avatarUrl}
+                                  userId={r.userId}
+                                  name={r.name}
+                                  size={28}
+                                />
+                                <div className="flex items-center flex-wrap gap-1.5 min-w-0">
+                                  <span className="text-[1.1em]">
+                                    <strong>
+                                      {r.name}
+                                      {isMe && (
+                                        <span className="text-accent-text ml-[5px] text-[0.8em]">
+                                          (Tú)
+                                        </span>
+                                      )}
+                                    </strong>
                                   </span>
-                                )}
+                                  {isPending && (
+                                    <span
+                                      className="lb-unpaid-badge"
+                                      title="Pago pendiente. El administrador debe marcarlo como pagado para mostrar sus puntos."
+                                    >
+                                      Sin pagar
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
 
-                            {r.id != null && (
-                              <button
-                                className="glass-btn bg-[rgba(56,_173,_246,_0.2)] bg-none text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (isMatchday) {
-                                    navigate('/jornadas');
-                                  } else {
-                                    state.setViewerPredictionId(r.id);
-                                  }
-                                }}
-                                title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
-                              >
-                                <span aria-hidden="true" className="poster-title text-[0.75rem]">
-                                  Ver
-                                </span>
-                                <span className="sr-only">
-                                  {isMatchday ? 'Ver jornadas' : 'Ver porra'}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        {columns.map((col) => (
-                          <td
-                            key={col.key}
-                            className={columnClass(col)}
-                            style={
-                              col.kind === 'total'
-                                ? {
-                                    color: 'var(--accent-text)',
-                                    fontWeight: 'bold',
-                                    fontSize: '1.1em',
-                                    textAlign: 'center',
-                                  }
-                                : undefined
-                            }
-                          >
-                            {col.kind === 'total' ? (
-                              <span className="lb-total-value">
-                                {r.paid ? `${r.points.total ?? 0} pts` : '-'}
-                              </span>
-                            ) : r.paid ? (
-                              `${r.points[col.key] ?? 0}`
-                            ) : (
-                              '-'
-                            )}
+                              {r.id != null && (
+                                <button
+                                  className="glass-btn bg-[rgba(56,_173,_246,_0.2)] bg-none text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isMatchday) {
+                                      navigate('/jornadas');
+                                    } else {
+                                      state.setViewerPredictionId(r.id);
+                                    }
+                                  }}
+                                  title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
+                                >
+                                  <span aria-hidden="true" className="poster-title text-[0.75rem]">
+                                    Ver
+                                  </span>
+                                  <span className="sr-only">
+                                    {isMatchday ? 'Ver jornadas' : 'Ver porra'}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
                           </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          {columns.map((col) => (
+                            <td
+                              key={col.key}
+                              className={columnClass(col)}
+                              style={
+                                col.kind === 'total'
+                                  ? {
+                                      color: 'var(--accent-text)',
+                                      fontWeight: 'bold',
+                                      fontSize: '1.1em',
+                                      textAlign: 'center',
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {col.kind === 'total' ? (
+                                <span className="lb-total-value">
+                                  {r.paid ? `${r.points.total ?? 0} pts` : '-'}
+                                </span>
+                              ) : r.paid ? (
+                                `${r.points[col.key] ?? 0}`
+                              ) : (
+                                '-'
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </>

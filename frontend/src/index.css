@@ -4529,25 +4529,10 @@
 
   .landing-poster {
     position: relative;
-    background: var(--paper);
+    isolation: isolate;
+    --paper-angle: -1deg;
     color: var(--ink);
     border-radius: 4px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-  }
-
-  /* Grano del papel: líneas muy finas que se multiplican sobre el color base. */
-  .landing-poster::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-image: repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.03) 0 1px,
-      transparent 1px 3px
-    );
-    mix-blend-mode: multiply;
-    pointer-events: none;
   }
 
   /* Trozo de cinta adhesiva que sujeta el cartel por arriba. */
@@ -4775,35 +4760,64 @@
     --connector: rgba(17, 24, 39, 0.55);
   }
 
-  /* El giro pertenece a la hoja completa, para que fondo, borde y sombra coincidan. */
+  /* El papel se dibuja por separado: el contenido nunca hereda su giro. */
   .album-sheet {
     position: relative;
+    isolation: isolate;
     padding: 18px 16px;
     border-radius: 4px;
-    box-shadow:
-      4px 5px 0 #d8cfb9,
-      5px 6px 0 rgba(17, 24, 39, 0.25),
-      0 10px 24px rgba(0, 0, 0, 0.35);
-    rotate: -0.4deg;
+    --paper-angle: -0.4deg;
+  }
+
+  .paper-panel.album-sheet,
+  .landing-poster {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .album-sheet::before,
+  .landing-poster::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--paper);
     background-image: repeating-linear-gradient(
       0deg,
       rgba(17, 24, 39, 0.025) 0 1px,
       transparent 1px 3px
     );
+    transform: skewY(var(--paper-angle));
+    box-shadow:
+      4px 5px 0 #d8cfb9,
+      5px 6px 0 rgba(17, 24, 39, 0.25),
+      0 10px 24px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+  }
+
+  .table-container.album-sheet,
+  #view-leaderboard .table-container.album-sheet,
+  #view-leaderboard .table-container.album-sheet.show-detail {
+    overflow: visible;
+  }
+
+  .ranking-table-scroll {
+    overflow-x: auto;
   }
 
   .md-page.album-sheet,
   .lb-matchday-panel.album-sheet {
-    rotate: 0.35deg;
+    --paper-angle: 0.35deg;
   }
 
   .group-card.album-sheet:nth-child(even) {
-    rotate: 0.8deg;
+    --paper-angle: 0.8deg;
   }
 
   .group-card.album-sheet:nth-child(odd),
   .invite-summary-card.album-sheet {
-    rotate: -0.8deg;
+    --paper-angle: -0.8deg;
   }
 
   .group-card.album-sheet::after,
@@ -4823,12 +4837,12 @@
   @media (max-width: 600px) {
     /* Las hojas largas necesitan menos giro para no acercarse al borde de la pantalla. */
     .album-sheet {
-      rotate: -0.2deg;
+      --paper-angle: -0.2deg;
     }
 
     .md-page.album-sheet,
     .lb-matchday-panel.album-sheet {
-      rotate: 0.2deg;
+      --paper-angle: 0.2deg;
     }
   }
 
@@ -4982,7 +4996,7 @@
   }
 
   .paper-dialog-body > .album-sheet {
-    rotate: none;
+    --paper-angle: 0deg;
     box-shadow: none;
     padding: 0;
     margin: 0;
@@ -5397,5 +5411,75 @@
   .landing-pick:hover {
     background: var(--ink);
     color: #ffffff;
+  }
+}
+
+@layer components {
+  .top-bar {
+    background: var(--bg-color);
+    backdrop-filter: none;
+    border-bottom: 2px solid rgba(243, 236, 220, 0.22);
+  }
+
+  .header-brand-link {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--paper);
+    text-decoration: none;
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+  }
+
+  .header-brand-link:hover {
+    color: var(--accent-cyan);
+  }
+
+  .top-bar .glass-btn {
+    background: transparent;
+    border-color: rgba(243, 236, 220, 0.3);
+    border-radius: 4px;
+    box-shadow: none;
+  }
+
+  .top-bar .nav-links a {
+    border: 1px solid transparent;
+    color: var(--paper);
+  }
+
+  .top-bar .nav-links a.active {
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+    border-color: var(--paper) !important;
+    border-radius: 3px !important;
+  }
+
+  .top-bar #btn-active-league-dropdown {
+    --text-main: #111827;
+    --text-muted: #4b5563;
+    background: var(--paper);
+    color: var(--ink);
+    border-color: var(--paper);
+    box-shadow: 2px 2px 0 #d8cfb9;
+  }
+
+  .paper-dialog-body > .album-sheet::before {
+    display: none;
+  }
+}
+
+@layer components {
+  .mobile-bottom-nav {
+    background: var(--bg-color);
+    border: 1px solid rgba(243, 236, 220, 0.3);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .mobile-bottom-nav .mobile-nav-indicator {
+    border-radius: 3px;
   }
 }

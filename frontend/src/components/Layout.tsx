@@ -184,23 +184,8 @@ function Layout({ children }: { children: React.ReactNode }) {
                 if (isNavLocked) e.preventDefault();
               }}
               aria-disabled={isNavLocked || undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                textDecoration: 'none',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: '1.25rem',
-                fontFamily: "'Outfit', sans-serif",
-                letterSpacing: '-0.3px',
-                flexShrink: 0,
-              }}
             >
-              <span className="brand-ball-icon text-[1.35rem]">⚽</span>
-              <span>
-                Porr<span className="text-cyan">App</span>
-              </span>
+              <span>PorrApp</span>
             </NavLink>
 
             {isLanding || isInviteAuthScreen ? null : isDemo ? (
