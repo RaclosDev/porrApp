@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.Set;
 import com.porra.mundial.dto.GroupMemberDTO;
+import com.porra.mundial.dto.GroupResponseDTO;
+import com.porra.mundial.dto.MissingMembersResponse;
 import com.porra.mundial.dto.MissingUserNudgeDTO;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.MatchRepository;
@@ -21,10 +23,12 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Membership;
+import com.porra.mundial.util.JoinCodeGenerator;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -32,7 +36,6 @@ import java.util.ArrayList;
 import java.time.LocalDateTime;
 import com.porra.mundial.model.MatchPrediction;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -56,15 +59,14 @@ public class GroupService {
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
     private final MatchPredictionRepository matchPredictionRepository;
-    @org.springframework.context.annotation.Lazy
-    private final SyncService syncService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.admins:Admin}")
     private List<String> appAdmins;
 
     /**
      * Script de inicialización que corre al arrancar el backend.
-     * Crea automáticamente la "Porra Global" oficial si no existe,
+     * Crea automáticamente la League.GLOBAL_NAME oficial si no existe,
      * para asegurar que los usuarios sin grupo puedan participar en algo.
      */
     @PostConstruct
@@ -77,15 +79,15 @@ public class GroupService {
                         .participantName("Admin")
                         .build()));
 
-        League globalGroup = leagueRepository.findById(1L).orElse(null);
+        League globalGroup = leagueRepository.findById(League.GLOBAL_ID).orElse(null);
 
         if (globalGroup == null) {
             // Find if any group has code GLOBAL
-            globalGroup = leagueRepository.findByJoinCode("GLOBAL").orElse(null);
+            globalGroup = leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).orElse(null);
             if (globalGroup == null) {
                 globalGroup = League.builder()
-                        .name("Porra Global")
-                        .joinCode("GLOBAL")
+                        .name(League.GLOBAL_NAME)
+                        .joinCode(League.GLOBAL_JOIN_CODE)
                         .adminUser(adminUser)
                         .build();
                 globalGroup = leagueRepository.save(globalGroup);
@@ -98,24 +100,24 @@ public class GroupService {
                     || "admin@local".equalsIgnoreCase(currentAdminEmail)
                     || (currentAdminEmail != null && currentAdminEmail.toLowerCase(java.util.Locale.ROOT).endsWith("@auto.generated"));
 
-            boolean metadataNeedsUpdate = !"GLOBAL".equals(globalGroup.getJoinCode())
-                    || !"Porra Global".equals(globalGroup.getName());
+            boolean metadataNeedsUpdate = !League.GLOBAL_JOIN_CODE.equals(globalGroup.getJoinCode())
+                    || !League.GLOBAL_NAME.equals(globalGroup.getName());
             boolean adminNeedsUpdate = currentAdminIsPlaceholder
                     && (currentAdmin == null || !adminUser.getId().equals(currentAdmin.getId()));
 
             if (metadataNeedsUpdate || adminNeedsUpdate) {
                 try {
                     // Avoid a unique-code conflict if another league currently uses GLOBAL.
-                    leagueRepository.findByJoinCode("GLOBAL").ifPresent(other -> {
-                        if (!other.getId().equals(1L)) {
+                    leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).ifPresent(other -> {
+                        if (!League.isGlobalId(other.getId())) {
                             log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
-                            other.setJoinCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+                            other.setJoinCode(JoinCodeGenerator.next());
                             leagueRepository.saveAndFlush(other);
                         }
                     });
 
-                    globalGroup.setJoinCode("GLOBAL");
-                    globalGroup.setName("Porra Global");
+                    globalGroup.setJoinCode(League.GLOBAL_JOIN_CODE);
+                    globalGroup.setName(League.GLOBAL_NAME);
                     if (adminNeedsUpdate) {
                         log.info("Replacing placeholder administrator of Porra Global with the default Admin account.");
                         globalGroup.setAdminUser(adminUser);
@@ -130,11 +132,11 @@ public class GroupService {
         final League finalGlobalGroup = globalGroup;
 
         // Ensure competition exists (siempre la canónica con proveedor externo)
-        Competition comp = competitionRepository.findByExternalId("fifa.world")
+        Competition comp = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
             .or(() -> competitionRepository.findByName("FIFA World Cup 2026"))
             .orElseGet(() -> competitionRepository.save(Competition.builder()
                     .name("FIFA World Cup 2026")
-                    .externalId("fifa.world")
+                    .externalId(Competition.WORLD_CUP_EXTERNAL_ID)
                     .formatType("TOURNAMENT")
                     .build()));
 
@@ -188,41 +190,21 @@ public class GroupService {
         }
     }
 
-    /**
-     * Crea un nuevo grupo privado.
-     * @param name Nombre elegido para el grupo.
-     * @param email Email del creador (pasará a ser Admin del grupo).
-     * @param competitionId Competición asociada (ej. Mundial 2026).
-     * @param betMode Modo de la porra (Brackets o Fase de Grupos).
-     */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "groupById", "groupByCode", "groupResponse", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode) {
-        return createGroup(name, email, competitionId, betMode != null ? betMode.toPoolFormat() : com.porra.mundial.model.PoolFormat.FULL_BRACKET, true);
-    }
-
-    @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat) {
         return createGroup(name, email, competitionId, poolFormat, true);
-    }
-
-    @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.BetMode betMode, boolean pichichi) {
-        return createGroup(name, email, competitionId, betMode != null ? betMode.toPoolFormat() : com.porra.mundial.model.PoolFormat.FULL_BRACKET, pichichi);
     }
 
     /**
      * Sobrecarga de creación de grupo para especificar si la predicción de Pichichi está activa.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
         String joinCode;
-        // Genera un código de 6 caracteres aleatorio
         do {
-            joinCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            joinCode = JoinCodeGenerator.next();
         } while (leagueRepository.findByJoinCode(joinCode).isPresent());
 
         UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
@@ -267,14 +249,10 @@ public class GroupService {
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
 
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
-            if (matchRepository.countByCompetitionId(comp.getId()) == 0) {
-                try {
-                    syncService.importCompetitionData(comp.getId());
-                } catch (Exception e) {
-                    log.warn("Auto-importación de datos para {} falló: {}", comp.getName(), e.getMessage());
-                }
-            }
+        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()
+                && matchRepository.countByCompetitionId(comp.getId()) == 0) {
+            // Se importa tras confirmar la liga: si ESPN falla, la liga ya está creada.
+            eventPublisher.publishEvent(new CompetitionImportRequestedEvent(comp.getId()));
         }
 
         return group;
@@ -297,7 +275,7 @@ public class GroupService {
         } else if (name.contains("laliga") || name.contains("la liga")) {
             slug = "esp.1";
         } else if (name.contains("mundial") || name.contains("world cup")) {
-            slug = "fifa.world";
+            slug = Competition.WORLD_CUP_EXTERNAL_ID;
         }
         if (slug == null) {
             return comp;
@@ -309,7 +287,7 @@ public class GroupService {
      * Vincula a un usuario (Miembro) con un Grupo a través del JoinCode.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void joinGroupMembership(Long groupId, String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user == null) return;
@@ -332,7 +310,7 @@ public class GroupService {
      * Permite a un Admin renombrar su propia liga.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League updateGroup(Long groupId, String newName, String newRules, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
@@ -361,10 +339,10 @@ public class GroupService {
     }
 
     /**
-     * Permite a un Admin eliminar toda la liga, incluyendo usuarios, membresías y apuestas dentro.
+     * Permite a un Admin eliminar toda la liga, incluyendo usuarios, membresías y pronósticos dentro.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         
@@ -380,7 +358,9 @@ public class GroupService {
         leagueRepository.deleteById(groupId);
     }
 
-    @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode")
+    // Solo se cachean los aciertos: un código inexistente no debe quedarse en memoria
+    // (ni hacer crecer la caché con cada intento) ni ocultar una liga creada después.
+    @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode", unless = "#result == null")
     public Optional<League> getGroupByJoinCode(String joinCode) {
         return leagueRepository.findByJoinCode(joinCode);
     }
@@ -409,7 +389,7 @@ public class GroupService {
      */
     @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "userGroups", key = "#email")
-    public List<com.porra.mundial.dto.GroupResponseDTO> getUserGroupDTOs(String email) {
+    public List<GroupResponseDTO> getUserGroupDTOs(String email) {
         List<League> groups = getUserGroups(email);
         if (groups.isEmpty()) return List.of();
 
@@ -419,32 +399,63 @@ public class GroupService {
         java.util.Map<Long, Edition> editionMap = activeEditions.stream()
                 .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e, (e1, e2) -> e1));
 
-        return groups.stream().map(g -> {
-            Edition e = editionMap.get(g.getId());
-            return com.porra.mundial.dto.GroupResponseDTO.builder()
-                    .id(g.getId())
-                    .name(g.getName())
-                    .joinCode(g.getJoinCode())
-                    .adminParticipantName(g.getAdminParticipantName())
-                    .adminUserId(g.getAdminUserId())
-                    .createdAt(g.getCreatedAt())
-                    .competitionId(e != null && e.getCompetition() != null ? e.getCompetition().getId() : null)
-                    .competitionName(e != null && e.getCompetition() != null ? e.getCompetition().getName() : null)
-                    .formatType(e != null && e.getCompetition() != null ? e.getCompetition().getFormatType() : null)
-                    .betMode(e != null && e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
-                    .poolFormat(e != null && e.getPoolFormat() != null ? e.getPoolFormat().name() : null)
-                    .pichichi(e != null ? e.isPichichi() : null)
-                    .lockDate(e != null ? e.getLockDate() : null)
-                    .isLocked(e != null && e.isLocked())
-                    .rules(g.getRules())
-                    .imageUrl(g.getImageUrl())
-                    .build();
-        }).collect(Collectors.toList());
+        return groups.stream()
+                .map(g -> GroupResponseDTO.of(g, editionMap.get(g.getId()), true))
+                .collect(Collectors.toList());
+    }
+
+    /** Edición activa (la que se está jugando) de una liga. */
+    @Transactional(readOnly = true)
+    public Optional<Edition> findActiveEdition(Long leagueId) {
+        return editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE");
+    }
+
+    /** Liga con su edición activa; el código de invitación solo se incluye si se indica. */
+    @Transactional(readOnly = true)
+    public GroupResponseDTO toResponse(League league, boolean includeJoinCode) {
+        Edition edition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null);
+        return GroupResponseDTO.of(league, edition, includeJoinCode);
+    }
+
+    /**
+     * Detalle de una liga. Quien no es miembro de una liga privada solo ve lo mismo que en la
+     * vista previa de una invitación; solo los miembros ven el código de invitación.
+     */
+    @Transactional(readOnly = true)
+    public Optional<GroupResponseDTO> findGroupResponse(Long id, String viewerEmail) {
+        return getGroupById(id).map(league -> {
+            boolean member = isUserMemberOrAdmin(id, viewerEmail);
+            if (member || League.isGlobalId(id) || league.isGlobal()) {
+                return toResponse(league, member);
+            }
+            return GroupResponseDTO.preview(league, editionRepository.findByLeagueIdAndStatus(id, "ACTIVE").orElse(null));
+        });
+    }
+
+    /** Datos públicos para previsualizar una invitación sin unirse a la liga. */
+    @Transactional(readOnly = true)
+    public Optional<GroupResponseDTO> findInvitationPreview(String joinCode) {
+        return getGroupByJoinCode(joinCode).map(league -> GroupResponseDTO.preview(
+                league, editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null)));
     }
 
     @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
     public Optional<League> getGroupById(Long id) {
         return leagueRepository.findById(id);
+    }
+
+    /**
+     * Comprueba que el usuario puede ver los datos de una liga: la Porra Global es pública,
+     * el resto solo para sus miembros.
+     *
+     * @throws SecurityException si la liga es privada y el usuario no pertenece a ella
+     */
+    @Transactional(readOnly = true)
+    public void assertCanView(Long groupId, String email) {
+        if (groupId == null || League.isGlobalId(groupId)) return;
+        if (!isUserMemberOrAdmin(groupId, email)) {
+            throw new SecurityException("No perteneces a esta liga privada");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -464,7 +475,7 @@ public class GroupService {
      * Permite a un miembro normal (No-Admin) abandonar la liga por su cuenta.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void leaveGroup(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
             .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
@@ -499,22 +510,11 @@ public class GroupService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public List<Prediction> getGroupPredictionsForAdmin(Long groupId, String email) {
-        verifyGroupAdmin(groupId, email);
-        return predictionRepository.findByEditionLeagueId(groupId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Prediction> getGroupBetsForAdmin(Long groupId, String email) {
-        return getGroupPredictionsForAdmin(groupId, email);
-    }
-
     /**
      * Cambiar el estado de pago de un pronostico concreto dentro del grupo.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction togglePredictionPaymentStatus(Long groupId, Long predictionId, String email, boolean paid) {
         verifyGroupAdmin(groupId, email);
         Prediction pred = predictionRepository.findById(predictionId)
@@ -527,13 +527,7 @@ public class GroupService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public Prediction toggleBetPaymentStatus(Long groupId, Long betId, String email, boolean paid) {
-        return togglePredictionPaymentStatus(groupId, betId, email, paid);
-    }
-
-    @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public void deletePrediction(Long groupId, Long predictionId, String email) {
         verifyGroupAdmin(groupId, email);
         Prediction pred = predictionRepository.findById(predictionId)
@@ -542,12 +536,6 @@ public class GroupService {
             throw new IllegalArgumentException("El pronostico no pertenece a este grupo");
         }
         predictionRepository.delete(pred);
-    }
-
-    @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public void deleteBet(Long groupId, Long betId, String email) {
-        deletePrediction(groupId, betId, email);
     }
 
 
@@ -559,7 +547,7 @@ public class GroupService {
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
 
-        boolean isGlobal = "GLOBAL".equalsIgnoreCase(group.getJoinCode());
+        boolean isGlobal = group.isGlobal();
         boolean callerIsAdmin = false;
 
         if (email != null && !email.isBlank()) {
@@ -584,16 +572,20 @@ public class GroupService {
             boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
                     || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
 
-            String displayEmail = (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
-                    ? u.getGoogleEmail()
-                    : maskEmail(u.getGoogleEmail());
+            // La Porra Global es pública y no tiene pagos: ni emails ni estado de pago.
+            String displayEmail = isGlobal ? null
+                    : (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
+                            ? u.getGoogleEmail()
+                            : maskEmail(u.getGoogleEmail());
+            String paymentStatus = isGlobal ? null
+                    : m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING";
 
             list.add(GroupMemberDTO.builder()
                     .userId(u.getId())
                     .participantName(u.getParticipantName())
                     .googleEmail(displayEmail)
                     .role(m.getRole())
-                    .paymentStatus(m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING")
+                    .paymentStatus(paymentStatus)
                     .joinedAt(m.getJoinedAt())
                     .isAdmin(isAdmin)
                     .avatarUrl(u.getAvatarUrl())
@@ -621,7 +613,7 @@ public class GroupService {
      * Cambia el estado de pago de un miembro en la liga y sincroniza su pronóstico.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public void toggleMemberPayment(Long groupId, Long targetUserId, String email, String status) {
         verifyGroupAdmin(groupId, email);
 
@@ -648,7 +640,7 @@ public class GroupService {
      * Expulsa a un participante de la liga eliminando sus pronósticos y membresía.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public void kickMember(Long groupId, Long targetUserId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
@@ -674,13 +666,16 @@ public class GroupService {
      * Regenera el código de invitación de la liga si se ha filtrado.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "groupResponse", "leaderboard", "allPredictionsDto", "allBetsDto", "myPredictionsDto", "myBetsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public String regenerateJoinCode(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
 
-        String newCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String newCode;
+        do {
+            newCode = JoinCodeGenerator.next();
+        } while (leagueRepository.findByJoinCode(newCode).isPresent());
         group.setJoinCode(newCode);
         leagueRepository.save(group);
         return newCode;
@@ -690,16 +685,16 @@ public class GroupService {
      * Herramienta del Administrador: devuelve la lista de participantes que aún NO han pronosticado la jornada.
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> getMissingMembersForRound(Long groupId, String email, String round) {
+    public MissingMembersResponse getMissingMembersForRound(Long groupId, String email, String round) {
         verifyGroupAdmin(groupId, email);
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
         if (edition == null || edition.getCompetition() == null) {
-            return Map.of("round", "", "totalMembers", 0, "missingCount", 0, "missingUsers", List.of());
+            return MissingMembersResponse.empty();
         }
 
         List<Match> matches = matchRepository.findByCompetitionIdOrderByMatchDateAsc(edition.getCompetition().getId());
         if (matches.isEmpty()) {
-            return Map.of("round", "", "totalMembers", 0, "missingCount", 0, "missingUsers", List.of());
+            return MissingMembersResponse.empty();
         }
 
         String targetRound = round;
@@ -744,11 +739,6 @@ public class GroupService {
             }
         }
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("round", finalRound);
-        response.put("totalMembers", memberships.size());
-        response.put("missingCount", missingList.size());
-        response.put("missingUsers", missingList);
-        return response;
+        return new MissingMembersResponse(finalRound, memberships.size(), missingList.size(), missingList);
     }
 }

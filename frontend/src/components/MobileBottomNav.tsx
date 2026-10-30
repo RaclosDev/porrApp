@@ -15,13 +15,11 @@ export default function MobileBottomNav() {
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
-    isRaclos,
     isDemoMode,
   } = useAppContext();
 
   const isDemo = isDemoMode;
-  const isNavLocked =
-    isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo && !isRaclos;
+  const isNavLocked = isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo;
   const isMatchDay =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
