@@ -59,6 +59,7 @@ describe('useWebSocket', () => {
     expect(invalidated).toContainEqual(['leaderboard', '10']);
     expect(invalidated).toContainEqual(['groupMembers', '10']);
     expect(invalidated).toContainEqual(['predictions', '10']);
+    expect(invalidated).toContainEqual(['myPredictions']);
     expect(invalidated).toContainEqual(['myGroups']);
     // Nada global: ni otras ligas ni partidos, clasificaciones o cuadro oficial.
     expect(invalidated).not.toContainEqual(['leaderboard']);

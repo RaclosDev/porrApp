@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
-import { fetchPredictions } from '../services/api';
-import { officialBracketQuery } from '../services/queries';
-import { queryKeys } from '../services/queryKeys';
+import { leaguePredictionsQuery, officialBracketQuery } from '../services/queries';
 import { buildOfficialState, toBracketEntries } from '../utils/bracketStats';
 
 /**
@@ -22,13 +20,7 @@ export function useBracketInsights() {
     setViewerPredictionId,
   } = useAppContext();
 
-  // Misma consulta que AppContext (comparten caché); aquí hace falta saber si sigue cargando.
-  const predictions = useQuery({
-    queryKey: queryKeys.predictions(activeGroupId),
-    queryFn: () => fetchPredictions(activeGroupId),
-    enabled: Boolean(activeGroupId),
-    retry: 1,
-  });
+  const predictions = useQuery(leaguePredictionsQuery(activeGroupId));
   const official = useQuery(officialBracketQuery());
 
   const summaries = useMemo(() => predictions.data ?? [], [predictions.data]);
