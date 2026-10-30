@@ -218,7 +218,7 @@ export default function GroupStage({
   return (
     <div className="w-full">
       <div className="text-center mb-7.5">
-        <h2 className="text-accent-text mt-0 mb-2.5 mx-0">Paso 1: fase de grupos</h2>
+        <h2 className="poster-title text-accent-text mt-0 mb-2.5 mx-0">Paso 1: fase de grupos</h2>
         <p className="text-muted">
           Selecciona 1º y 2º en cada grupo. Puedes marcar todos los 3º que quieras, y luego elegir a
           los 8 mejores abajo.

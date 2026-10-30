@@ -18,7 +18,7 @@ export default function InsightsHeader({ leagueName, summary, withSearch }: Insi
   return (
     <header className="mb-5 flex flex-col items-center gap-3 text-center">
       <div>
-        <h2 className="m-0 text-[1.5rem] font-extrabold text-main sm:text-[1.9rem]">
+        <h2 className="m-0 poster-title text-[1.7rem] text-main sm:text-[2.1rem]">
           Estadísticas de la liga
         </h2>
         <p className="mt-1 text-[0.95rem] text-muted">
