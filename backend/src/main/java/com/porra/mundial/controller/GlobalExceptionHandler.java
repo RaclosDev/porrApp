@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Maneja errores de validación de negocio (ej. "El grupo no permite más apuestas").
+     * Maneja errores de validación de negocio (ej. "El plazo para enviar pronósticos ha finalizado").
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
@@ -74,7 +74,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Maneja errores cuando se busca en BD una entidad que no existe (ej. Grupo Borrado o Apuesta Borrada).
+     * Maneja errores cuando se busca en BD una entidad que no existe (ej. Grupo borrado o pronóstico Borrada).
      */
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, String>> handleNoSuchElementException(NoSuchElementException ex) {

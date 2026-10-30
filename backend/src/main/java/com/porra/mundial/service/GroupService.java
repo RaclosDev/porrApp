@@ -6,11 +6,8 @@ import java.util.Objects;
 import java.util.Set;
 import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
-import com.porra.mundial.dto.MissingMembersResponse;
-import com.porra.mundial.dto.MissingUserNudgeDTO;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.LeagueRepository;
@@ -58,7 +55,6 @@ public class GroupService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
-    private final MatchPredictionRepository matchPredictionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.admins:Admin}")
@@ -679,66 +675,5 @@ public class GroupService {
         group.setJoinCode(newCode);
         leagueRepository.save(group);
         return newCode;
-    }
-
-    /**
-     * Herramienta del Administrador: devuelve la lista de participantes que aún NO han pronosticado la jornada.
-     */
-    @Transactional(readOnly = true)
-    public MissingMembersResponse getMissingMembersForRound(Long groupId, String email, String round) {
-        verifyGroupAdmin(groupId, email);
-        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
-        if (edition == null || edition.getCompetition() == null) {
-            return MissingMembersResponse.empty();
-        }
-
-        List<Match> matches = matchRepository.findByCompetitionIdOrderByMatchDateAsc(edition.getCompetition().getId());
-        if (matches.isEmpty()) {
-            return MissingMembersResponse.empty();
-        }
-
-        String targetRound = round;
-        if (targetRound == null || targetRound.isBlank()) {
-            LocalDateTime now = LocalDateTime.now();
-            targetRound = matches.stream()
-                    .filter(m -> !Boolean.TRUE.equals(m.getFinished()) && (m.getMatchDate() == null || m.getMatchDate().isAfter(now)))
-                    .map(com.porra.mundial.util.MatchRound::label)
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(com.porra.mundial.util.MatchRound.label(matches.get(0)));
-        }
-
-        final String finalRound = targetRound;
-        List<Match> roundMatches = matches.stream()
-                .filter(m -> com.porra.mundial.util.MatchRound.matches(m, finalRound))
-                .collect(Collectors.toList());
-
-        Set<Long> matchIds = roundMatches.stream().map(Match::getId).collect(Collectors.toSet());
-
-        List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
-        List<MissingUserNudgeDTO> missingList = new ArrayList<>();
-
-        for (Membership m : memberships) {
-            UserAccount u = m.getUser();
-            if (u == null) continue;
-
-            // Comprobar si el usuario tiene predicción para algún partido de esta jornada
-            List<MatchPrediction> userPreds = matchPredictionRepository.findByPredictionUserIdAndPredictionEditionLeagueId(u.getId(), groupId);
-            Set<Long> predictedIds = userPreds.stream()
-                    .filter(mp -> mp.getMatch() != null && ((mp.getHomeScore() != null && mp.getAwayScore() != null)
-                            || (mp.getPredictionSign() != null && !mp.getPredictionSign().isBlank())))
-                    .map(mp -> mp.getMatch().getId())
-                    .collect(Collectors.toSet());
-            boolean hasPredForRound = predictedIds.containsAll(matchIds);
-
-            if (!hasPredForRound) {
-                missingList.add(MissingUserNudgeDTO.builder()
-                        .userId(u.getId())
-                        .participantName(u.getParticipantName())
-                        .build());
-            }
-        }
-
-        return new MissingMembersResponse(finalRound, memberships.size(), missingList.size(), missingList);
     }
 }

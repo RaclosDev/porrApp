@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MatchdayFriendBetDTO {
+public class MatchdayFriendPredictionDTO {
     private Long userId;
     private String participantName;
     private String avatarUrl;

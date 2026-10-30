@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { GLOBAL_LEAGUE_ID } from '../utils/constants';
 
 /**
  * Componente temporal que maneja el redireccionamiento para usuarios que
@@ -17,12 +18,11 @@ import { useAppContext } from '../context/AppContext';
  *
  * Al montar este componente:
  *  Activa el "guest_mode" en localStorage (permite navegar sin login).
- *  Fuerza la liga activa a la Porra Global (id = 1).
+ *  Fuerza la liga activa a la Porra Global.
  *  Redirige automáticamente a la Clasificación.
  *
  * La URL de compartir en LinkedIn sería: https://porra.raclos.es/linkedin
  */
-const GLOBAL_LEAGUE_ID = '1';
 
 export default function LinkedInEntry() {
   const navigate = useNavigate();

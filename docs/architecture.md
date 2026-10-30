@@ -96,7 +96,7 @@ public record MatchResponseDTO(
 
 Los controladores gestionan las peticiones HTTP y delegan el trabajo pesado a los servicios. Responden exclusivamente con JSON.
 
-*   **`MatchController`**: Expone endpoints como `/api/matches/live` o `/api/matches/radar`. Intercepta peticiones, invoca a `MatchService` y mapea entidades a `MatchResponseDTO`.
+*   **`MatchController`**: Expone endpoints como `/api/matches` o `/api/matches/radar`. Intercepta peticiones, invoca a `MatchService` y mapea entidades a `MatchResponseDTO`.
 *   **`PredictionController`**: Permite crear, listar y borrar pronosticos. Valida los payloads usando Jakarta Validation (`@Valid` en `PredictionDataDTO`).
 *   **`StandingsController`**: Devuelve la clasificación oficial de los grupos generada algorítmicamente.
 *   **`LeaderboardController`**: Devuelve el ranking de los usuarios basado en los aciertos de sus predicciones frente a la realidad.

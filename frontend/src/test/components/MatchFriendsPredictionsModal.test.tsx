@@ -1,11 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import MatchFriendsBetsModal from '../../components/MatchFriendsBetsModal';
-import { fetchMatchdayFriendBets } from '../../services/api';
+import MatchFriendsPredictionsModal from '../../components/MatchFriendsPredictionsModal';
+import { fetchMatchdayFriendPredictions } from '../../services/api';
 
 vi.mock('../../services/api', () => ({
-  fetchMatchdayFriendBets: vi.fn(),
+  fetchMatchdayFriendPredictions: vi.fn(),
 }));
 
 const match = {
@@ -24,18 +24,22 @@ function renderModal(overrides = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MatchFriendsBetsModal groupId={1} match={{ ...match, ...overrides }} onClose={() => {}} />
+      <MatchFriendsPredictionsModal
+        groupId={1}
+        match={{ ...match, ...overrides }}
+        onClose={() => {}}
+      />
     </QueryClientProvider>,
   );
 }
 
-describe('MatchFriendsBetsModal', () => {
+describe('MatchFriendsPredictionsModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('muestra los avatares y diferencia pronósticos ocultos de pendientes', async () => {
-    fetchMatchdayFriendBets.mockResolvedValue([
+    fetchMatchdayFriendPredictions.mockResolvedValue([
       {
         userId: 1,
         participantName: 'Toto',
@@ -86,7 +90,7 @@ describe('MatchFriendsBetsModal', () => {
   });
 
   it('marca como sin pronóstico los partidos ya bloqueados', async () => {
-    fetchMatchdayFriendBets.mockResolvedValue([
+    fetchMatchdayFriendPredictions.mockResolvedValue([
       {
         userId: 2,
         participantName: 'Raclos',

@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio de Sincronización Automática con Proveedores Deportivos (Fase 4).
- * Soporta múltiples competiciones y adaptadores (ESPN, API-Football),
+ * Soporta múltiples competiciones y adaptadores (ESPN),
  * con trazabilidad en auditoría, estados canónicos normalizados y recálculo automático.
  */
 @Service
@@ -215,68 +215,6 @@ public class SyncService {
         return result;
     }
 
-
-    /**
-     * Corrección manual auditada de un partido por un administrador.
-     */
-    @Transactional
-    public Match overrideMatchResult(Long matchId, Integer homeScore, Integer awayScore, MatchStatusNormalized status, String adminUser) {
-        return overrideMatchResult(matchId, homeScore, awayScore, null, null, status, adminUser);
-    }
-
-    @Transactional
-    public Match overrideMatchResult(Long matchId, Integer homeScore, Integer awayScore, Integer homeFairPlay, Integer awayFairPlay, MatchStatusNormalized status, String adminUser) {
-        Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new IllegalArgumentException("Partido no encontrado con ID: " + matchId));
-
-        match.setHomeScore(homeScore);
-        match.setAwayScore(awayScore);
-        if (homeFairPlay != null) match.setHomeFairPlay(homeFairPlay);
-        if (awayFairPlay != null) match.setAwayFairPlay(awayFairPlay);
-        MatchStatusNormalized finalStatus = status != null ? status : MatchStatusNormalized.FINISHED;
-        match.setStatus(finalStatus);
-        match.setFinished(finalStatus.isFinished());
-
-        if (homeScore != null && awayScore != null) {
-            if (homeScore > awayScore) match.setWinnerTeam(match.getHomeTeam());
-            else if (awayScore > homeScore) match.setWinnerTeam(match.getAwayTeam());
-            else match.setWinnerTeam(null);
-        }
-
-        Match saved = matchRepository.save(match);
-        try {
-            matchPredictionService.evaluatePredictionsForMatch(saved);
-        } catch (Exception e) {
-            log.warn("Evaluation failed during manual override", e);
-        }
-
-        if ("group".equalsIgnoreCase(saved.getRound()) || saved.getGroupName() != null) {
-            try {
-                standingsService.recalculateStandingsFromMatches();
-            } catch (Exception e) {
-                log.warn("Standings recalculation failed during manual override", e);
-            }
-        }
-
-        webSocketService.broadcastMatchScore(
-                saved.getId(),
-                saved.getHomeTeam() != null ? saved.getHomeTeam().getName() : "Local",
-                saved.getAwayTeam() != null ? saved.getAwayTeam().getName() : "Visitante",
-                saved.getHomeScore(),
-                saved.getAwayScore(),
-                saved.getStatus().name()
-        );
-        webSocketService.invalidateAndNotify();
-
-        log.info("Admin {} manually overrode result for match {} ({} {} - {} {}) with status {}",
-                adminUser, matchId,
-                saved.getHomeTeam() != null ? saved.getHomeTeam().getName() : "",
-                homeScore, awayScore,
-                saved.getAwayTeam() != null ? saved.getAwayTeam().getName() : "",
-                finalStatus);
-
-        return saved;
-    }
 
     /**
      * Importa el catálogo completo de equipos (con escudos oficiales) y los partidos próximos de una competición vía ESPN.
@@ -877,10 +815,6 @@ public class SyncService {
         } catch (Exception e) {
             log.warn("Could not enrich PredictionDataDTO with matches: {}", e.getMessage());
         }
-    }
-
-    public void enrichBetDataWithMatches(PredictionDataDTO dto) {
-        enrichPredictionDataWithMatches(dto);
     }
 
     private Team getLoserTeam(Match m) {

@@ -67,16 +67,4 @@ class StandingsControllerTest {
                 .andExpect(jsonPath("$.A.España.pts").value(9))
                 .andExpect(jsonPath("$.A.España.diff").value(5));
     }
-
-    @Test
-    void exportStandingsCsv_ReturnsCsvContent() throws Exception {
-        Mockito.when(leaderboardService.exportLeaderboardCsv(1L))
-                .thenReturn("Posicion,Participante,Nombre Porra,Puntos Totales\n1,Carlos,Mi Porra,100\n");
-
-        mockMvc.perform(get("/api/standings/export/csv?groupId=1"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", "attachment; filename=\"clasificacion-porra.csv\""))
-                .andExpect(content().contentType("text/csv;charset=UTF-8"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Carlos")));
-    }
 }

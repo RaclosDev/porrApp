@@ -40,14 +40,6 @@ public class MatchService {
     }
 
     /**
-     * @param groupName La letra del grupo ("A", "B").
-     * @return Todos los partidos disputados o por disputar en ese grupo, ordenados cronológicamente.
-     */
-    public List<Match> getMatchesByGroup(String groupName) {
-        return matchRepository.findByGroupNameOrderByMatchDateAsc(groupName);
-    }
-
-    /**
      * Devuelve los partidos que se están jugando AHORA MISMO,
      * o que están a punto de empezar en los próximos 20 minutos.
      */
@@ -128,7 +120,7 @@ public class MatchService {
     /**
      * Guarda o actualiza un partido en base de datos.
      */
-    @org.springframework.cache.annotation.CacheEvict(value = {"matches", "matchRadar", "standings", "officialPoints", "leaderboard", "rebuiltBetData", "allBetsDto", "allPredictionsDto", "myBetsDto", "allPredictionsDto", "myPredictionsDto"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"matches", "matchRadar", "standings", "officialPoints", "leaderboard"}, allEntries = true)
     @Transactional
     public Match save(Match match) {
         return matchRepository.save(match);

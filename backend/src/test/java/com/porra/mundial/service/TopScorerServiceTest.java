@@ -2,7 +2,6 @@ package com.porra.mundial.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.porra.mundial.sports.ApiFootballSportsDataProvider;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,12 +44,11 @@ class TopScorerServiceTest {
     }
 
     @Test
-    @DisplayName("Debe resolver la inyeccion de Spring sin ambiguedad teniendo Espn y ApiFootball registrados")
+    @DisplayName("Debe resolver la inyeccion de Spring con el proveedor ESPN registrado")
     void springContext_resolvesSportsDataProviderWithoutAmbiguity() {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
         context.register(TestContextConfig.class);
         context.register(EspnSportsDataProvider.class);
-        context.register(ApiFootballSportsDataProvider.class);
         context.register(TopScorerService.class);
         context.refresh();
 

@@ -13,12 +13,6 @@ import java.util.List;
 public interface MembershipRepository extends JpaRepository<Membership, Membership.MembershipId> {
     
     /**
-     * @param participantName El apodo del usuario.
-     * @return Todas las membresías a grupos de ese usuario.
-     */
-    List<Membership> findByUserParticipantName(String participantName);
-    
-    /**
      * @param leagueId El ID del grupo (liga).
      * @return Todos los miembros de ese grupo.
      */

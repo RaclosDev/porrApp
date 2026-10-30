@@ -71,7 +71,7 @@ El repositorio se organiza en dos aplicaciones principales:
 - **Frontend (`frontend/`)**: interfaz React/TypeScript, navegación, predicciones, cuadros, paneles de estadísticas y cliente de la API.
 - **Backend (`backend/`)**: API REST, autenticación y autorización, lógica de negocio, persistencia, cálculo de puntos, sincronización deportiva y comunicación en tiempo real.
 
-El backend sigue una estructura por capas y separa la lógica de puntuación en el paquete `scoring/`. El paquete `sports/` abstrae proveedores de datos deportivos, con implementaciones para ESPN y API-Football.
+El backend sigue una estructura por capas y separa la lógica de puntuación en el paquete `scoring/`. El paquete `sports/` abstrae proveedores de datos deportivos, con ESPN como implementación actual.
 
 La base de datos se versiona mediante migraciones Flyway ubicadas en `backend/src/main/resources/db/migration/`. En el despliegue Docker, el frontend se compila y sus archivos estáticos se incorporan al artefacto de Spring Boot, por lo que la aplicación y la API se sirven desde el mismo servicio.
 

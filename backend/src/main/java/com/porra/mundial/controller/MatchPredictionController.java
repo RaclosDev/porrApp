@@ -1,7 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
-import com.porra.mundial.dto.MatchdayFriendBetDTO;
+import com.porra.mundial.dto.MatchdayFriendPredictionDTO;
 import com.porra.mundial.dto.MatchdaySubmissionDTO;
 import com.porra.mundial.service.MatchPredictionService;
 import com.porra.mundial.service.WebSocketService;
@@ -20,7 +20,7 @@ import java.util.Map;
  * Controlador REST para pronósticos por jornada y partido a partido (1X2 y marcador).
  */
 @RestController
-@RequestMapping({"/api/predictions/matchday", "/api/bets/matchday"})
+@RequestMapping("/api/predictions/matchday")
 @RequiredArgsConstructor
 public class MatchPredictionController {
 
@@ -76,14 +76,14 @@ public class MatchPredictionController {
      * Obtiene los pronósticos de todos los miembros del grupo para un partido específico.
      * Solo revela resultados de otros usuarios si el partido ya ha comenzado o finalizado.
      */
-    @GetMapping("/matches/{matchId}/bets")
-    public ResponseEntity<List<MatchdayFriendBetDTO>> getMatchdayFriendBets(
+    @GetMapping("/matches/{matchId}/predictions")
+    public ResponseEntity<List<MatchdayFriendPredictionDTO>> getMatchdayFriendPredictions(
             @PathVariable Long matchId,
             @RequestParam Long groupId,
             Principal principal) {
 
         String email = getRequesterEmail(principal);
-        List<MatchdayFriendBetDTO> bets = matchPredictionService.getFriendBetsForMatch(email, groupId, matchId);
-        return ResponseEntity.ok(bets);
+        List<MatchdayFriendPredictionDTO> predictions = matchPredictionService.getFriendPredictionsForMatch(email, groupId, matchId);
+        return ResponseEntity.ok(predictions);
     }
 }
