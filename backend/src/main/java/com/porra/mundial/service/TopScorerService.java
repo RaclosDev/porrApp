@@ -98,13 +98,12 @@ public class TopScorerService {
             if (!scorers.equals(previous)) {
                 // El pichichi puntúa los cuadros.
                 scoreInvalidationService.invalidateWorldCup();
+                webSocketService.broadcastUpdate("DATA_UPDATED");
             }
             log.info("TopScorerService: Refreshed {} scorers from ESPN. Leader: {} ({} goals)",
                     scorers.size(),
                     scorers.isEmpty() ? "none" : scorers.get(0).name(),
                     scorers.isEmpty() ? 0 : scorers.get(0).goals());
-
-            webSocketService.invalidateAndNotify();
 
         } catch (Exception e) {
             log.error("TopScorerService: Failed to fetch scorers from ESPN: {}", e.getMessage());

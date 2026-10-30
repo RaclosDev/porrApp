@@ -105,4 +105,71 @@ class WebSocketServiceTest {
 
         verify(session, never()).sendMessage(any());
     }
+
+    private static String sentPayload(WebSocketSession session) throws IOException {
+        var captor = org.mockito.ArgumentCaptor.forClass(WebSocketMessage.class);
+        verify(session).sendMessage(captor.capture());
+        return (String) captor.getValue().getPayload();
+    }
+
+    @Test
+    @DisplayName("Un cambio en una liga borra solo sus entradas y avisa con su id")
+    void leagueChangeOnlyTouchesThatLeague() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        caches.getCache("leaderboard").put(20L, "ranking 20");
+        caches.getCache("groupById").put(10L, "liga 10");
+        caches.getCache("competitionStandings").put(4L, "tabla de ESPN");
+        caches.getCache("userGroups").put("a@test.com", "mis ligas");
+        service = new WebSocketService(caches, new ObjectMapper());
+        WebSocketSession session = openSession("s1");
+        service.addSession(session);
+
+        service.notifyLeagueChanged(10L);
+
+        assertEquals(null, caches.getCache("leaderboard").get(10L));
+        assertEquals("ranking 20", caches.getCache("leaderboard").get(20L).get());
+        assertEquals(null, caches.getCache("groupById").get(10L));
+        assertEquals("tabla de ESPN", caches.getCache("competitionStandings").get(4L).get(),
+                "las clasificaciones de ESPN no dependen de la liga");
+        assertEquals(null, caches.getCache("userGroups").get("a@test.com"));
+        var message = new ObjectMapper().readTree(sentPayload(session));
+        assertEquals("LEAGUE_UPDATED", message.get("type").asString());
+        assertEquals(10L, message.get("leagueId").asLong());
+    }
+
+    @Test
+    @DisplayName("Un cambio de resultados no borra las cachés de las ligas")
+    void resultsChangeKeepsLeagueCaches() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("matches").put("all", "partidos");
+        caches.getCache("userGroups").put("a@test.com", "mis ligas");
+        caches.getCache("competitions").put("all", "competiciones");
+        service = new WebSocketService(caches, new ObjectMapper());
+        WebSocketSession session = openSession("s1");
+        service.addSession(session);
+
+        service.notifyResultsChanged();
+
+        assertEquals(null, caches.getCache("matches").get("all"));
+        assertEquals("mis ligas", caches.getCache("userGroups").get("a@test.com").get());
+        assertEquals("competiciones", caches.getCache("competitions").get("all").get());
+        assertEquals("DATA_UPDATED", new ObjectMapper().readTree(sentPayload(session)).get("type").asString());
+    }
+
+    @Test
+    @DisplayName("Un cambio de perfil borra las clasificaciones y las ligas de todos")
+    void profileChangeClearsEveryLeague() {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        caches.getCache("leaderboard").put(20L, "ranking 20");
+        caches.getCache("matches").put("all", "partidos");
+        service = new WebSocketService(caches, new ObjectMapper());
+
+        service.notifyProfileChanged();
+
+        assertEquals(null, caches.getCache("leaderboard").get(10L));
+        assertEquals(null, caches.getCache("leaderboard").get(20L));
+        assertEquals("partidos", caches.getCache("matches").get("all").get());
+    }
 }

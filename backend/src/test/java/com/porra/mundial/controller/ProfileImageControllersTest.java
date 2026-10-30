@@ -54,7 +54,7 @@ class ProfileImageControllersTest {
                         .principal(user("admin@test.com")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.startsWith("/api/groups/10/image?v=")));
-        Mockito.verify(webSocketService).invalidateAndNotify();
+        Mockito.verify(webSocketService).notifyLeagueChanged(10L);
     }
 
     @Test

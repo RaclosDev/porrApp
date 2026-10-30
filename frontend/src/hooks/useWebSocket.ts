@@ -16,6 +16,20 @@ const SCORE_DEPENDENT_KEYS = [
   queryKeys.predictionScore(),
 ];
 
+/** Consultas de una liga concreta: solo se vuelven a pedir si están en pantalla. */
+const leagueKeys = (leagueId: string | number) => [
+  queryKeys.group(leagueId),
+  queryKeys.groupMembers(leagueId),
+  queryKeys.predictions(leagueId),
+  queryKeys.leaderboard(leagueId),
+  queryKeys.leaderboardMatchdays(leagueId),
+  queryKeys.matchdayFixtures(leagueId),
+  queryKeys.matchFriendPredictions(leagueId),
+  queryKeys.predictionScore(),
+  // Las tarjetas de "Mis ligas" muestran miembros e imagen.
+  queryKeys.myGroups(),
+];
+
 const invalidateAll = (queryClient: QueryClient, keys: readonly (readonly unknown[])[]) => {
   keys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
 };
@@ -50,7 +64,10 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
               ...SCORE_DEPENDENT_KEYS,
               queryKeys.predictions(),
               queryKeys.matches(),
+              queryKeys.topScorers(),
             ]);
+          } else if (msg.type === 'LEAGUE_UPDATED') {
+            if (msg.leagueId != null) invalidateAll(queryClient, leagueKeys(msg.leagueId));
           } else if (msg.type === 'MATCH_SCORE_UPDATED') {
             if (msg.matchId) {
               queryClient.setQueriesData(

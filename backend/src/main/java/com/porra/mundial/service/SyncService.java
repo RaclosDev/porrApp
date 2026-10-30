@@ -155,7 +155,7 @@ public class SyncService {
                     System.currentTimeMillis() - start);
 
             if (matchesUpdated > 0 || batch.teamsUpdated() > 0) {
-                webSocketService.invalidateAndNotify();
+                webSocketService.notifyResultsChanged();
             }
             // Si el breaker se ha abierto durante la pasada, las respuestas vacías no eran datos reales.
             boolean available = provider.isAvailable();

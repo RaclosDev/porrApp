@@ -58,12 +58,49 @@ public class WebSocketService {
         }
     }
 
-    public void invalidateAndNotify() {
-        for (String cacheName : cacheManager.getCacheNames()) {
+    /** Cachés que dependen de los datos de una liga (miembros, pagos, pronósticos, imagen). */
+    static final List<String> LEAGUE_CACHES = List.of("userGroups", "groupByCode");
+    /** Cachés que dependen de los resultados y equipos que llegan de la sincronización. */
+    static final List<String> RESULT_CACHES = List.of(
+            "matches", "matchRadar", "standings", "officialPoints", "leaderboard",
+            "competitionStandings", "allTeams", "groupOdds");
+
+    /**
+     * Algo ha cambiado en una liga: se borran solo sus entradas de caché y se avisa con su id,
+     * para que cada cliente recargue únicamente si está viendo esa liga.
+     */
+    public void notifyLeagueChanged(Long leagueId) {
+        evictKey("leaderboard", leagueId);
+        evictKey("groupById", leagueId);
+        clearCaches(LEAGUE_CACHES);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "LEAGUE_UPDATED");
+        payload.put("leagueId", leagueId);
+        broadcastJson(payload);
+    }
+
+    /** El nombre o la foto de un usuario salen en todas sus ligas. */
+    public void notifyProfileChanged() {
+        clearCaches(List.of("leaderboard", "groupById", "userGroups"));
+        broadcastUpdate("DATA_UPDATED");
+    }
+
+    /** Han cambiado resultados o equipos: las ligas y las competiciones no se tocan. */
+    public void notifyResultsChanged() {
+        clearCaches(RESULT_CACHES);
+        broadcastUpdate("DATA_UPDATED");
+    }
+
+    private void evictKey(String cacheName, Object key) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null && key != null) cache.evict(key);
+    }
+
+    private void clearCaches(List<String> cacheNames) {
+        for (String cacheName : cacheNames) {
             Cache cache = cacheManager.getCache(cacheName);
             if (cache != null) cache.clear();
         }
-        broadcastUpdate("DATA_UPDATED");
     }
 
     public void broadcastMatchScore(Long matchId, String homeTeam, String awayTeam, Integer homeScore, Integer awayScore, String status) {
@@ -103,8 +140,11 @@ public class WebSocketService {
     }
 
     public void broadcastUpdate(String eventType) {
+        broadcastJson(Map.of("type", eventType != null ? eventType : "DATA_UPDATED"));
+    }
+
+    private void broadcastJson(Map<String, ?> payload) {
         try {
-            Map<String, String> payload = Map.of("type", eventType != null ? eventType : "DATA_UPDATED");
             broadcastRaw(objectMapper.writeValueAsString(payload));
         } catch (Exception e) {
             log.warn("Error serializando actualización en WebSocket: {}", e.getMessage());

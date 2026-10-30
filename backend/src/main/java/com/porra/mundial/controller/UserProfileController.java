@@ -32,7 +32,7 @@ public class UserProfileController {
     @PutMapping("/me/profile")
     public ProfileResponse updateProfile(@Valid @RequestBody ProfileUpdateDTO payload, Principal principal) {
         UserAccount user = profileImageService.updateParticipantName(principal.getName(), payload.getParticipantName());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyProfileChanged();
         return ProfileResponse.of(user);
     }
 
@@ -40,14 +40,14 @@ public class UserProfileController {
     public ProfileResponse uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal)
             throws IOException {
         UserAccount user = profileImageService.saveAvatar(principal.getName(), file.getBytes());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyProfileChanged();
         return ProfileResponse.of(user);
     }
 
     @DeleteMapping("/me/avatar")
     public ProfileResponse deleteAvatar(Principal principal) {
         UserAccount user = profileImageService.deleteAvatar(principal.getName());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyProfileChanged();
         return ProfileResponse.of(user);
     }
 

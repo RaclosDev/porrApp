@@ -52,6 +52,21 @@ describe('useWebSocket', () => {
     },
   );
 
+  it('LEAGUE_UPDATED invalida solo las consultas de esa liga', () => {
+    renderHook(() => useWebSocket('Ana', client));
+    send({ type: 'LEAGUE_UPDATED', leagueId: 10 });
+
+    expect(invalidated).toContainEqual(['leaderboard', '10']);
+    expect(invalidated).toContainEqual(['groupMembers', '10']);
+    expect(invalidated).toContainEqual(['predictions', '10']);
+    expect(invalidated).toContainEqual(['myGroups']);
+    // Nada global: ni otras ligas ni partidos, clasificaciones o cuadro oficial.
+    expect(invalidated).not.toContainEqual(['leaderboard']);
+    expect(invalidated).not.toContainEqual(['matches']);
+    expect(invalidated).not.toContainEqual(['standings']);
+    expect(invalidated).not.toContainEqual(['officialBracket']);
+  });
+
   it('actualiza el marcador en la caché de partidos', () => {
     client.setQueryData(['matches', 2], [{ id: 1, homeScore: 0, awayScore: 0 }]);
     renderHook(() => useWebSocket('Ana', client));
