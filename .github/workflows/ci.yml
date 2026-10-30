@@ -5,16 +5,46 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  # Semanal: construye la imagen y pasa todo aunque nadie haya tocado el repo (dependencias, imágenes base).
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# En un PR, un push nuevo cancela la ejecución anterior. En main no: cada push solo prueba lo que
+# cambia respecto al anterior, así que cancelar uno dejaría sus cambios sin probar.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      frontend: ${{ steps.diff.outputs.frontend }}
+      backend: ${{ steps.diff.outputs.backend }}
+      docker: ${{ steps.diff.outputs.docker }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Detect changed areas
+        id: diff
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        # shell: bash activa pipefail; sin él un fallo del script quedaría oculto tras el tee.
+        shell: bash
+        run: bash .github/scripts/detect-changes.sh | tee -a "$GITHUB_OUTPUT"
+
   frontend-check:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -47,6 +77,8 @@ jobs:
         run: npm run build
 
   backend-test:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -71,10 +103,13 @@ jobs:
             printf "| lines | %.1f %% | %d / %d |\n", 100*lc/(lm+lc), lc, lm+lc;
             printf "| branches | %.1f %% | %d / %d |\n", 100*bc/(bm+bc), bc, bm+bc }' target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
 
+  # En paralelo con los tests: Railway espera a la CI antes de desplegar y construye esta misma imagen,
+  # así que encadenarla detrás de los tests solo retrasaba el despliegue.
   docker-build:
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [ frontend-check, backend-test ]
     steps:
       - uses: actions/checkout@v7
       - name: Set up Docker Buildx
