@@ -2,13 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
 import { BracketFinalMatch } from '../components/BracketFinale';
-import BracketCanvas, {
-  TeamSlot,
-  matchTop,
-  MATCH_H,
-  COL_GAP,
-  type SlotContext,
-} from '../components/BracketCanvas';
+import BracketCanvas, { TeamSlot, type SlotContext } from '../components/BracketCanvas';
 import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
 import { PredictionSkeleton } from '../components/Skeleton';
@@ -163,83 +157,6 @@ function Bracket() {
     );
   };
 
-  const finalTopY = matchTop(3, 0);
-
-  const renderCenter = (colW: number) => (
-    <>
-      <div
-        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase"
-        style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
-      >
-        Final
-      </div>
-      <div
-        className="match final-match absolute"
-        style={{ top: finalTopY, left: COL_GAP, width: colW }}
-      >
-        <TeamSlot
-          name={bracketState.final?.home?.name}
-          pressed={isPicked(bracketState.final?.home, 'center', 4, 0)}
-          onClick={() =>
-            bracketState.final?.home && advanceTeam(bracketState.final.home, 'center', 4, 0)
-          }
-        />
-        <TeamSlot
-          name={bracketState.final?.away?.name}
-          pressed={isPicked(bracketState.final?.away, 'center', 4, 0)}
-          onClick={() =>
-            bracketState.final?.away && advanceTeam(bracketState.final.away, 'center', 4, 0)
-          }
-        />
-      </div>
-
-      <div
-        className="absolute text-center"
-        style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
-      >
-        <div className="text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase mb-1.5">
-          Campeón
-        </div>
-        <div className="champion-display">
-          <TeamSlot name={bracketState.champion?.name} />
-        </div>
-      </div>
-
-      <div
-        className="absolute"
-        style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
-      >
-        <div className="text-[0.65rem] font-bold text-muted tracking-[0.5px] uppercase mb-1.5 text-center">
-          Tercer puesto
-        </div>
-        <div className="match third-place">
-          <TeamSlot
-            name={bracketState.thirdPlaceMatch?.home?.name}
-            pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
-            onClick={() =>
-              bracketState.thirdPlaceMatch?.home &&
-              advanceTeam(bracketState.thirdPlaceMatch.home, 'center', 5, 0)
-            }
-          />
-          <TeamSlot
-            name={bracketState.thirdPlaceMatch?.away?.name}
-            pressed={isPicked(bracketState.thirdPlaceMatch?.away, 'center', 5, 0)}
-            onClick={() =>
-              bracketState.thirdPlaceMatch?.away &&
-              advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
-            }
-          />
-        </div>
-        {bracketState.thirdPlaceWinner && (
-          <div className="mt-2.5 text-center">
-            <div className="text-[0.65rem] text-muted mb-1">Ganador del tercer puesto</div>
-            <TeamSlot name={bracketState.thirdPlaceWinner?.name} />
-          </div>
-        )}
-      </div>
-    </>
-  );
-
   return (
     <section id="view-bracket" className="view-section block">
       {effectivePredictionId && (
@@ -316,9 +233,9 @@ function Bracket() {
                 bracketState.sf.right,
               ]}
               renderSlot={renderSlot}
-              renderCenter={renderCenter}
-              renderFinal={() => (
+              renderFinal={(expandedThirdPlace) => (
                 <BracketFinalMatch
+                  expandedThirdPlace={expandedThirdPlace}
                   editable
                   home={
                     <TeamSlot

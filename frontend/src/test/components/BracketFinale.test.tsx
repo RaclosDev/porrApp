@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import BracketCanvas, { TeamSlot } from '../../components/BracketCanvas';
 import { BracketFinalMatch } from '../../components/BracketFinale';
@@ -26,39 +26,35 @@ describe('Bracket finale', () => {
     expect(pickThird).toHaveBeenCalledOnce();
   });
 
-  it('lets desktop users switch between the complete tree and the combined finale', () => {
-    vi.stubGlobal(
-      'ResizeObserver',
-      class {
-        observe() {}
-        disconnect() {}
-      },
+  it('shows the whole bracket on three sheets without a view selector', () => {
+    const pick = vi.fn();
+    const rounds = [
+      [{ home: 'España', away: 'Italia' }],
+      [{ home: 'España', away: 'Alemania' }],
+      [{ home: 'España', away: 'Portugal' }],
+      [{ home: 'España', away: 'Francia' }],
+    ];
+    render(
+      <BracketCanvas
+        leftRounds={rounds}
+        rightRounds={rounds}
+        renderSlot={(name, context) => <TeamSlot name={name} onClick={() => pick(context)} />}
+        renderFinal={() => <p>Final destacada y tercer puesto</p>}
+      />,
     );
-    try {
-      const rounds = [[], [], [], [{ home: 'España', away: 'Francia' }]];
-      render(
-        <BracketCanvas
-          leftRounds={rounds}
-          rightRounds={rounds}
-          renderSlot={(name) => <TeamSlot name={name} />}
-          renderCenter={() => <p>Árbol completo</p>}
-          renderFinal={() => <p>Final destacada</p>}
-        />,
-      );
-      const final = screen.getByRole('button', { name: 'Final', exact: true });
-      fireEvent.click(final);
-      expect(final).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByRole('heading', { name: 'Semifinal 1' })).toBeInTheDocument();
-      expect(screen.getByText('Árbol completo').closest('.desktop-bracket-wrapper')).toHaveClass(
-        'finale-full-hidden',
-      );
-      fireEvent.click(screen.getByRole('button', { name: 'Cuadro completo' }));
-      expect(final).toHaveAttribute('aria-pressed', 'false');
-      expect(
-        screen.getByText('Árbol completo').closest('.desktop-bracket-wrapper'),
-      ).not.toHaveClass('finale-full-hidden');
-    } finally {
-      vi.unstubAllGlobals();
-    }
+    const left = within(screen.getByRole('region', { name: 'Cruces del lado izquierdo' }));
+    const right = within(screen.getByRole('region', { name: 'Cruces del lado derecho' }));
+    const center = within(
+      screen.getByRole('region', { name: 'Semifinales, final y tercer puesto' }),
+    );
+    expect(left.getByText('Italia')).toBeInTheDocument();
+    expect(right.getByText('Portugal')).toBeInTheDocument();
+    expect(center.getByText('Final destacada y tercer puesto')).toBeInTheDocument();
+    expect(center.getByRole('heading', { name: 'Semifinal 1' })).toBeInTheDocument();
+    expect(center.getByRole('heading', { name: 'Semifinal 2' })).toBeInTheDocument();
+    expect(left.queryByText('Francia')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cuadro completo' })).not.toBeInTheDocument();
+    fireEvent.click(left.getAllByRole('button', { name: 'Pasar a España' })[0]);
+    expect(pick).toHaveBeenCalledWith({ side: 'left', roundIndex: 0, matchIndex: 0, isHome: true });
   });
 });

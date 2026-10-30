@@ -1,8 +1,7 @@
 import { useState, useMemo, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import BracketCanvas, { TeamSlot, matchTop, MATCH_H, COL_GAP } from '../components/BracketCanvas';
-import Flag from '../components/Flag';
+import BracketCanvas, { TeamSlot } from '../components/BracketCanvas';
 import {
   buildBracketData,
   isMatchInRound,
@@ -199,100 +198,9 @@ function OfficialBracketView() {
     3: false,
   };
 
-  const finalTopY = matchTop(3, 0);
-
   const getName = slotName;
   const getIsProv = (t: BracketSlot | undefined) =>
     typeof t === 'object' && t ? t.isProvisional : false;
-
-  const centerContent = (colW: number) => (
-    <div className="block">
-      <div
-        className="absolute text-center text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase"
-        style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
-      >
-        Final
-      </div>
-      <div
-        className="match final-match absolute"
-        style={{ top: finalTopY, left: COL_GAP, width: colW }}
-      >
-        {renderSlot(part.final?.[0], { side: 'center', roundIndex: 'final', isHome: true })}
-        {renderSlot(part.final?.[1], { side: 'center', roundIndex: 'final', isHome: false })}
-      </div>
-
-      <div
-        className="absolute text-center"
-        style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
-      >
-        <div className="text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase mb-1.5">
-          Campeón
-        </div>
-        <div className="champion-display">
-          <div
-            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(146,_64,_14,_0.1)] bg-none text-gold ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-gold'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'}`}
-          >
-            <Flag
-              team={getName(part.champion) || ''}
-              size="w40"
-              style={{
-                width: 24,
-                height: 18,
-                borderRadius: 2,
-                marginRight: 8,
-                verticalAlign: 'middle',
-              }}
-            />
-            {getName(part.champion) || '???'}
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="absolute"
-        style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
-      >
-        <div className="text-[0.65rem] font-bold text-muted tracking-[0.5px] uppercase mb-1.5 text-center">
-          Tercer puesto
-        </div>
-        <div className="match third-place">
-          {renderSlot(part.thirdPlaceMatch?.[0], {
-            side: 'center',
-            roundIndex: 'thirdPlaceMatch',
-            isHome: true,
-          })}
-          {renderSlot(part.thirdPlaceMatch?.[1], {
-            side: 'center',
-            roundIndex: 'thirdPlaceMatch',
-            isHome: false,
-          })}
-        </div>
-        <div className="mt-2 text-center">
-          <div className="text-[0.65rem] font-bold text-[#9a3412] tracking-[0.5px] uppercase mb-1">
-            Ganador del tercer puesto
-          </div>
-          <div className="champion-display">
-            <div
-              className={`team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none bg-[rgba(154,_52,_18,_0.1)] bg-none text-[#9a3412] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#9a3412]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'}`}
-            >
-              <Flag
-                team={getName(part.thirdPlaceWinner) || ''}
-                size="w40"
-                style={{
-                  width: 20,
-                  height: 15,
-                  borderRadius: 2,
-                  marginRight: 6,
-                  verticalAlign: 'middle',
-                }}
-              />
-              {getName(part.thirdPlaceWinner) || '???'}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <section className="view-section block pt-0 relative">
@@ -324,15 +232,15 @@ function OfficialBracketView() {
             )}
           </div>
 
-          <div className="paper-panel landing-tape album-sheet">
+          <div>
             <BracketCanvas
               leftRounds={leftRounds}
               rightRounds={rightRounds}
               renderSlot={renderSlot}
-              renderCenter={centerContent}
               hiddenRounds={hiddenRounds}
-              renderFinal={() => (
+              renderFinal={(expandedThirdPlace) => (
                 <OfficialMobileCenter
+                  expandedThirdPlace={expandedThirdPlace}
                   part={part}
                   getName={getName}
                   getIsProv={getIsProv}

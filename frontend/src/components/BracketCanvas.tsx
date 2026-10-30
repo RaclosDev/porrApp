@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { getCountryCode } from '../utils/constants';
 import Flag from './Flag';
 import MobileBracket from './MobileBracket';
@@ -20,13 +20,7 @@ export function matchTop(r: number, i: number): number {
   return (matchTop(r - 1, i * 2) + matchTop(r - 1, i * 2 + 1)) / 2;
 }
 
-export const CANVAS_H = leafTop(7) + MATCH_H;
-
 const GAP = 20; // px between adjacent columns (fixed)
-const DEFAULT_COL = 155;
-
-export const COL_GAP = GAP;
-
 const ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
 
 interface ConnectorsProps {
@@ -37,11 +31,10 @@ interface ConnectorsProps {
   childBTop: number;
   /** Hacia dónde crecen las ramas. */
   dir: 'left' | 'right';
-  colW: number;
 }
 
 /** Líneas SVG que unen dos partidos de una ronda con el de la siguiente. */
-function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsProps) {
+function Connectors({ parentTop, childATop, childBTop, dir }: ConnectorsProps) {
   const pMid = parentTop + MATCH_H / 2;
   const aMid = childATop + MATCH_H / 2;
   const bMid = childBTop + MATCH_H / 2;
@@ -52,7 +45,7 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsPr
 
   // dir='right': children to the LEFT  → SVG in the gap LEFT  of this column
   // dir='left':  children to the RIGHT → SVG in the gap RIGHT of this column
-  const svgLeft = dir === 'right' ? -GAP : colW;
+  const svgLeft = dir === 'right' ? -GAP : '100%';
   const childX = dir === 'right' ? 0 : GAP;
   const parentX = dir === 'right' ? GAP : 0;
   const midX = dir === 'right' ? stub : GAP - stub;
@@ -247,254 +240,100 @@ interface BracketCanvasProps<T extends SlotTeam> {
   rightRounds: CanvasMatch<T>[][];
   /** Pinta un hueco del cuadro (inyecta la lógica de clics o coloreado). */
   renderSlot: RenderSlot<T>;
-  /** Dibuja el centro (final y tercer puesto) con el ancho de columna calculado. */
-  renderCenter: (colW: number) => ReactNode;
   /** Columnas ocultas en móvil o al filtrar, indexadas por ronda. */
   hiddenRounds?: Record<number, boolean>;
   /** Pie opcional de cada columna (p. ej. puntos por ronda). */
   renderRoundFooter?: (roundIndex: number, side: 'left' | 'right') => ReactNode;
   /** Final destacada compartida entre móvil y escritorio. */
-  renderFinal?: () => ReactNode;
+  renderFinal?: (expandedThirdPlace?: boolean) => ReactNode;
 }
 
-/** Cuadro de eliminatorias en dos mitades que convergen en la final. */
+/** Tres hojas: dos ramas de cruces y el desenlace en la hoja central. */
 export default function BracketCanvas<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
-  renderCenter,
   hiddenRounds = {},
   renderRoundFooter,
   renderFinal,
 }: BracketCanvasProps<T>) {
-  const [desktopView, setDesktopView] = useState<'full' | 'final' | null>(null);
-  const showFinale =
-    desktopView === 'final' ||
-    (desktopView === null && computeActiveTab(leftRounds, rightRounds) === -1);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [colW, setColW] = useState(DEFAULT_COL);
-  const [scale, setScale] = useState(1);
-  const [isOverflowX, setIsOverflowX] = useState(false);
-
-  const leftVis = [0, 1, 2, 3].filter((i) => !hiddenRounds[i]);
-  const rightVis = [3, 2, 1, 0].filter((i) => !hiddenRounds[i]);
-  const totalCols = leftVis.length + rightVis.length + 1; // +1 center
-
-  useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-    const compute = () => {
-      const w = el.clientWidth || window.innerWidth;
-      const leftGaps = Math.max(0, leftVis.length - 1);
-      const rightGaps = Math.max(0, rightVis.length - 1);
-      const totalGaps = leftGaps + 4 + rightGaps;
-
-      const availableW = w - 20;
-      const totalGapsW = totalGaps * GAP + 32;
-
-      // En PC de escritorio permitimos que las columnas se estiren hasta 195px para que no quede estrecho
-      let targetColW = 150;
-      if (availableW > totalCols * 150 + totalGapsW) {
-        targetColW = Math.min(195, Math.floor((availableW - totalGapsW) / totalCols));
-      }
-
-      const requiredW = totalCols * targetColW + totalGapsW;
-
-      let scaleX = 1;
-      if (requiredW > availableW && availableW > 400) {
-        scaleX = availableW / requiredW;
-      }
-
-      const wrapperH = CANVAS_H + 40;
-      const availableH = window.innerHeight - 150;
-      let scaleY = 1;
-      if (wrapperH > availableH && availableH > 300) {
-        scaleY = availableH / wrapperH;
-      }
-
-      let actualScale = Math.min(1, scaleX, scaleY);
-      actualScale = Math.max(0.45, actualScale);
-
-      setScale(actualScale);
-      setColW(targetColW);
-
-      const vw = requiredW * actualScale;
-      setIsOverflowX(vw > (el.clientWidth || window.innerWidth) + 15);
-    };
-    compute();
-    const ro = new ResizeObserver(compute);
-    ro.observe(el);
-    window.addEventListener('resize', compute);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', compute);
-    };
-  }, [leftVis.length, rightVis.length, totalCols]);
-
-  const leftGaps = Math.max(0, leftVis.length - 1);
-  const rightGaps = Math.max(0, rightVis.length - 1);
-  const totalGaps = leftGaps + 4 + rightGaps;
-
-  // Tamaño ya escalado: sin él, el contenedor no reserva el alto y el cuadro se solapa.
-  const visualWidth = (totalCols * colW + totalGaps * GAP + 32) * scale;
-  const visualHeight = (CANVAS_H + 50) * scale;
-
-  const sfMidY = matchTop(3, 0) + MATCH_H / 2;
-  const centerW = colW + GAP * 2;
-
-  const renderRoundCol = (
-    rounds: CanvasMatch<T>[][],
-    roundIndex: number,
-    side: 'left' | 'right',
-    connDir: 'left' | 'right' | null,
-  ) => {
-    if (hiddenRounds[roundIndex]) return null;
-    const matches = rounds[roundIndex];
-    if (!matches) return null;
+  const renderSide = (rounds: CanvasMatch<T>[][], side: 'left' | 'right') => {
+    const visible = [0, 1, 2].filter((round) => !hiddenRounds[round] && rounds[round]?.length);
+    const firstRound = visible[0] ?? 0;
+    const height = leafTop(Math.max(0, (rounds[firstRound]?.length ?? 1) - 1)) + MATCH_H;
+    const order = side === 'left' ? visible : [...visible].reverse();
 
     return (
-      <div
-        className="relative shrink-0"
-        key={`${side}-${roundIndex}`}
-        style={{ width: colW, height: CANVAS_H }}
+      <section
+        className={`bracket-sheet bracket-sheet-${side} paper-panel landing-tape album-sheet`}
+        aria-label={`Cruces del lado ${side === 'left' ? 'izquierdo' : 'derecho'}`}
       >
-        <div className="absolute -top-8.5 left-0 w-full text-center text-[0.7rem] font-bold text-muted tracking-[0.5px] uppercase">
-          {ROUND_LABELS[roundIndex]}
-        </div>
-
-        {renderRoundFooter && (
-          <div className="absolute -top-5 left-0 w-full text-center pointer-events-none">
-            {renderRoundFooter(roundIndex, side)}
+        {visible.length === 0 ? (
+          <p className="text-center text-muted">Cruces por definir</p>
+        ) : (
+          <div className="bracket-tree-columns" style={{ height }}>
+            {order.map((roundIndex) => (
+              <div className="bracket-tree-column" key={roundIndex}>
+                <h3 className="bracket-round-title">{ROUND_LABELS[roundIndex]}</h3>
+                {renderRoundFooter && (
+                  <div className="bracket-round-points">{renderRoundFooter(roundIndex, side)}</div>
+                )}
+                {rounds[roundIndex].map((match, matchIndex) => (
+                  <div
+                    className="match bracket-tree-match"
+                    key={matchIndex}
+                    style={{ top: matchTop(roundIndex - firstRound, matchIndex) }}
+                  >
+                    {renderSlot(match.home, { side, roundIndex, matchIndex, isHome: true })}
+                    {renderSlot(match.away, { side, roundIndex, matchIndex, isHome: false })}
+                  </div>
+                ))}
+                {visible.includes(roundIndex - 1) &&
+                  rounds[roundIndex].map((_, matchIndex) => (
+                    <Connectors
+                      key={`connector-${matchIndex}`}
+                      parentTop={matchTop(roundIndex - firstRound, matchIndex)}
+                      childATop={matchTop(roundIndex - firstRound - 1, matchIndex * 2)}
+                      childBTop={matchTop(roundIndex - firstRound - 1, matchIndex * 2 + 1)}
+                      dir={side === 'left' ? 'right' : 'left'}
+                    />
+                  ))}
+              </div>
+            ))}
           </div>
         )}
-
-        {matches.map((match, i) => (
-          <div
-            key={i}
-            className="match absolute left-0 w-full"
-            style={{ top: matchTop(roundIndex, i) }}
-          >
-            {renderSlot(match.home, { side, roundIndex, matchIndex: i, isHome: true })}
-            {renderSlot(match.away, { side, roundIndex, matchIndex: i, isHome: false })}
-          </div>
-        ))}
-
-        {connDir &&
-          roundIndex > 0 &&
-          !hiddenRounds[roundIndex - 1] &&
-          matches.map((_, i) => (
-            <Connectors
-              key={`c-${i}`}
-              parentTop={matchTop(roundIndex, i)}
-              childATop={matchTop(roundIndex - 1, i * 2)}
-              childBTop={matchTop(roundIndex - 1, i * 2 + 1)}
-              dir={connDir}
-              colW={colW}
-            />
-          ))}
-      </div>
+      </section>
     );
   };
 
   return (
     <>
-      <MobileBracket
-        leftRounds={leftRounds}
-        rightRounds={rightRounds}
-        renderSlot={renderSlot}
-        renderFinal={renderFinal}
-        defaultTab={computeActiveTab(leftRounds, rightRounds)}
-        renderRoundFooter={renderRoundFooter}
-      />
-
-      <div className="finale-desktop-switch paper-tabs" role="group" aria-label="Vista del cuadro">
-        <button
-          type="button"
-          className={`paper-tab ${!showFinale ? 'is-active' : ''}`}
-          aria-pressed={!showFinale}
-          onClick={() => setDesktopView('full')}
-        >
-          Cuadro completo
-        </button>
-        <button
-          type="button"
-          className={`paper-tab ${showFinale ? 'is-active' : ''}`}
-          aria-pressed={showFinale}
-          onClick={() => setDesktopView('final')}
-        >
-          Final
-        </button>
+      <div className="bracket-mobile-sheet paper-panel landing-tape album-sheet">
+        <MobileBracket
+          leftRounds={leftRounds}
+          rightRounds={rightRounds}
+          renderSlot={renderSlot}
+          renderFinal={renderFinal}
+          defaultTab={computeActiveTab(leftRounds, rightRounds)}
+          renderRoundFooter={renderRoundFooter}
+        />
       </div>
-      {showFinale && (
-        <div className="finale-desktop">
-          <BracketFinale
-            leftRounds={leftRounds}
-            rightRounds={rightRounds}
-            renderSlot={renderSlot}
-            center={renderFinal}
-            renderRoundFooter={renderRoundFooter}
-          />
-        </div>
-      )}
-      <div
-        ref={wrapperRef}
-        className={`${showFinale ? 'finale-full-hidden' : ''} desktop-bracket-wrapper w-full pb-2.5 flex ${isOverflowX ? 'justify-start' : 'justify-center'}`}
-      >
-        <div className="shrink-0 relative" style={{ width: visualWidth, height: visualHeight }}>
-          <div
-            className="absolute top-0 left-0 inline-flex items-start pt-10 pb-2.5 px-4 gap-0 [transform-origin:0_0]"
-            style={{ transform: `scale(${scale})` }}
+      <div className="bracket-desktop-scroll">
+        <div className="bracket-paper-board">
+          {renderSide(leftRounds, 'left')}
+          <section
+            className="bracket-sheet bracket-sheet-center paper-panel landing-tape album-sheet"
+            aria-label="Semifinales, final y tercer puesto"
           >
-            <div className="flex shrink-0" style={{ gap: GAP, height: CANVAS_H }}>
-              {[0, 1, 2, 3].map((rIdx) =>
-                renderRoundCol(leftRounds, rIdx, 'left', rIdx > 0 ? 'right' : null),
-              )}
-            </div>
-
-            {!hiddenRounds[3] && (
-              <svg
-                className="shrink-0 overflow-visible pointer-events-none"
-                style={{ width: GAP, height: CANVAS_H }}
-              >
-                <line
-                  x1={0}
-                  y1={sfMidY}
-                  x2={GAP}
-                  y2={sfMidY}
-                  stroke="rgba(251,191,36,0.6)"
-                  strokeWidth={1.5}
-                  strokeDasharray="5 3"
-                />
-              </svg>
-            )}
-
-            <div className="relative shrink-0" style={{ width: centerW, height: CANVAS_H }}>
-              {renderCenter(colW)}
-            </div>
-
-            {!hiddenRounds[3] && (
-              <svg
-                className="shrink-0 overflow-visible pointer-events-none"
-                style={{ width: GAP, height: CANVAS_H }}
-              >
-                <line
-                  x1={0}
-                  y1={sfMidY}
-                  x2={GAP}
-                  y2={sfMidY}
-                  stroke="rgba(251,191,36,0.6)"
-                  strokeWidth={1.5}
-                  strokeDasharray="5 3"
-                />
-              </svg>
-            )}
-
-            <div className="flex shrink-0" style={{ gap: GAP, height: CANVAS_H }}>
-              {[3, 2, 1, 0].map((rIdx) =>
-                renderRoundCol(rightRounds, rIdx, 'right', rIdx > 0 ? 'left' : null),
-              )}
-            </div>
-          </div>
+            <BracketFinale
+              leftRounds={leftRounds}
+              rightRounds={rightRounds}
+              renderSlot={renderSlot}
+              center={renderFinal ? () => renderFinal(true) : undefined}
+              renderRoundFooter={renderRoundFooter}
+            />
+          </section>
+          {renderSide(rightRounds, 'right')}
         </div>
       </div>
     </>

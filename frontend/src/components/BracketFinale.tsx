@@ -48,6 +48,7 @@ export function BracketFinalMatch({
   footer,
   editable = false,
   description,
+  expandedThirdPlace = false,
 }: {
   home: ReactNode;
   away: ReactNode;
@@ -57,6 +58,7 @@ export function BracketFinalMatch({
   footer?: ReactNode;
   editable?: boolean;
   description?: string;
+  expandedThirdPlace?: boolean;
 }) {
   return (
     <>
@@ -77,7 +79,7 @@ export function BracketFinalMatch({
         </div>
         {footer}
       </section>
-      <details className="finale-third">
+      <details className="finale-third" open={expandedThirdPlace}>
         <summary>
           <span>Tercer puesto</span>
           {thirdWinner && <strong>{thirdWinner}</strong>}

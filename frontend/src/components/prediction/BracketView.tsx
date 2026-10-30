@@ -14,7 +14,6 @@ interface BracketViewProps {
   hiddenRounds: Record<number, boolean>;
   leftRounds: ViewerData['leftRounds'];
   rightRounds: ViewerData['rightRounds'];
-  renderCenter: (colW: number) => ReactNode;
   renderRoundFooter: (roundIndex: number, side: 'left' | 'right') => ReactNode;
   renderSlot: RenderViewerSlot;
 }
@@ -31,7 +30,6 @@ export default function BracketView({
   hiddenRounds,
   leftRounds,
   rightRounds,
-  renderCenter,
   renderRoundFooter,
   renderSlot,
 }: BracketViewProps) {
@@ -41,13 +39,13 @@ export default function BracketView({
         leftRounds={leftRounds}
         rightRounds={rightRounds}
         renderSlot={renderSlot}
-        renderCenter={renderCenter}
         hiddenRounds={hiddenRounds}
         renderRoundFooter={renderRoundFooter}
-        renderFinal={() => {
+        renderFinal={(expandedThirdPlace) => {
           const centerTotal = getCenterPointsTotal();
           return (
             <BracketFinalMatch
+              expandedThirdPlace={expandedThirdPlace}
               description="Puntos obtenidos por tu predicción"
               home={renderSlot(finalHome, { roundIndex: 'final', isHome: true })}
               away={renderSlot(finalAway, { roundIndex: 'final', isHome: false })}

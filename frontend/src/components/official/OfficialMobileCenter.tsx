@@ -4,6 +4,7 @@ import { BracketFinalMatch } from '../BracketFinale';
 import type { ReactNode } from 'react';
 
 interface OfficialMobileCenterProps {
+  expandedThirdPlace?: boolean;
   part: ReturnType<typeof buildBracketData>;
   getName: typeof slotName;
   getIsProv: (t: BracketSlot | undefined) => boolean;
@@ -11,6 +12,7 @@ interface OfficialMobileCenterProps {
 }
 
 export default function OfficialMobileCenter({
+  expandedThirdPlace,
   part,
   getName,
   getIsProv,
@@ -18,6 +20,7 @@ export default function OfficialMobileCenter({
 }: OfficialMobileCenterProps) {
   return (
     <BracketFinalMatch
+      expandedThirdPlace={expandedThirdPlace}
       home={renderSlot(part.final?.[0], { side: 'center', roundIndex: 'final', isHome: true })}
       away={renderSlot(part.final?.[1], { side: 'center', roundIndex: 'final', isHome: false })}
       champion={
