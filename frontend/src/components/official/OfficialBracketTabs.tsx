@@ -16,22 +16,20 @@ export default function OfficialBracketTabs({
   activeGroupPichichi,
 }: OfficialBracketTabsProps) {
   return (
-    <div className="flex justify-center items-center gap-[clamp(2px,_0.7vw,_8px)] mb-5 mt-[5px] flex-nowrap">
+    <div className="paper-tabs max-w-130 mx-auto mb-5 mt-[5px]">
       {activeTab === 'cuadro' && (
         <button
-          className={`glass-btn [padding:clamp(4px,_1.1vw,_6px)_clamp(5px,_1.5vw,_10px)] text-[clamp(0.75rem,_2.4vw,_0.8rem)] font-bold min-h-11 self-stretch rounded-[12px] [transition:all_0.2s] cursor-pointer whitespace-nowrap ${activePanel === 'live' ? 'bg-[rgba(255,_71,_87,_0.18)] bg-none' : 'bg-transparent bg-none'} ${activePanel === 'live' ? 'border-[#ff4757]' : 'border-line'} ${activePanel === 'live' ? 'text-[#ff4757]' : 'text-muted'}`}
+          className={`paper-tab ${activePanel === 'live' ? 'is-active' : ''}`}
+          type="button"
+          aria-pressed={activePanel === 'live'}
           onClick={() => setActivePanel((p) => (p === 'live' ? null : 'live'))}
         >
           <span className="results-toggle-icon">🔴</span> Partidos
         </button>
       )}
-      <div
-        role="tablist"
-        aria-label="Vista del cuadro oficial"
-        className="inline-flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] gap-1"
-      >
+      <div role="tablist" aria-label="Vista del cuadro oficial" className="contents">
         <button
-          className={`[padding:clamp(7px,_1.6vw,_8px)_clamp(9px,_2.6vw,_22px)] font-extrabold text-[clamp(0.76rem,_3vw,_0.95rem)] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'cuadro' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'cuadro' ? 'text-black' : 'text-muted'} ${activeTab === 'cuadro' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
+          className={`paper-tab ${activeTab === 'cuadro' ? 'is-active' : ''}`}
           type="button"
           onClick={() => setActiveTab('cuadro')}
           role="tab"
@@ -41,7 +39,7 @@ export default function OfficialBracketTabs({
           Cuadro
         </button>
         <button
-          className={`[padding:clamp(7px,_1.6vw,_8px)_clamp(9px,_2.6vw,_22px)] font-extrabold text-[clamp(0.76rem,_3vw,_0.95rem)] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'grupos' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'grupos' ? 'text-black' : 'text-muted'} ${activeTab === 'grupos' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
+          className={`paper-tab ${activeTab === 'grupos' ? 'is-active' : ''}`}
           type="button"
           onClick={() => setActiveTab('grupos')}
           role="tab"
@@ -53,7 +51,9 @@ export default function OfficialBracketTabs({
       </div>
       {activeTab === 'cuadro' && activeGroupPichichi && (
         <button
-          className={`glass-btn [padding:clamp(4px,_1.1vw,_6px)_clamp(5px,_1.5vw,_10px)] text-[clamp(0.75rem,_2.4vw,_0.8rem)] font-bold min-h-11 self-stretch rounded-[12px] [transition:all_0.2s] cursor-pointer whitespace-nowrap ${activePanel === 'scorers' ? 'bg-[rgba(255,_211,_42,_0.18)] bg-none' : 'bg-transparent bg-none'} ${activePanel === 'scorers' ? 'border-[#ffd32a]' : 'border-line'} ${activePanel === 'scorers' ? 'text-[#ffd32a]' : 'text-muted'}`}
+          className={`paper-tab ${activePanel === 'scorers' ? 'is-active' : ''}`}
+          type="button"
+          aria-pressed={activePanel === 'scorers'}
           onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
         >
           <span className="results-toggle-icon">🏆</span> Pichichi

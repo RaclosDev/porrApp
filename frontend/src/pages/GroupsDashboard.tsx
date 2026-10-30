@@ -90,7 +90,7 @@ export default function GroupsDashboard() {
   };
 
   const inviteSummary = pendingJoinCodeNotice ? (
-    <div className="glass-panel invite-summary-card max-w-130 w-full mt-0 mb-6 mx-auto box-border rounded-[16px] p-5 flex flex-col gap-3 text-left bg-[linear-gradient(160deg,_rgba(255,255,255,0.05),_rgba(255,255,255,0.015))] bg-transparent border border-line shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
+    <div className="paper-panel landing-tape album-sheet invite-summary-card max-w-130 w-full mt-0 mb-6 mx-auto box-border p-5 flex flex-col gap-3 text-left">
       <div className="flex items-center gap-3.5 min-h-16">
         {pendingInvite?.imageUrl ? (
           <img
@@ -103,7 +103,7 @@ export default function GroupsDashboard() {
         )}
         <div className="min-w-0 flex-[1_1_auto]">
           <h2
-            className="text-[1.15rem] leading-[1.2] mt-0 mb-1 mx-0 text-[color:var(--text-primary,_#fff)] overflow-hidden text-ellipsis whitespace-nowrap"
+            className="poster-title text-[1.3rem] leading-[1.2] mt-0 mb-1 mx-0 overflow-hidden text-ellipsis whitespace-nowrap"
             title={pendingInvite?.name || 'Cargando liga…'}
           >
             {pendingInvite?.name || 'Cargando liga…'}
@@ -276,8 +276,8 @@ export default function GroupsDashboard() {
       {loading ? (
         <div className="text-center text-muted py-10 px-0">Cargando tus ligas...</div>
       ) : groupsError && groups.length === 0 ? null : groups.length === 0 ? (
-        <div className="glass-panel text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.4)] bg-[rgba(0,_210,_211,_0.04)] bg-none">
-          <h3 className="text-white mt-0 mb-2 mx-0 text-[1.3rem] font-extrabold">
+        <div className="paper-panel landing-tape album-sheet text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto">
+          <h3 className="poster-title mt-0 mb-2 mx-0 text-[1.5rem]">
             Aún no te has unido a ninguna liga privada
           </h3>
           <p className="text-muted text-[0.92rem] max-w-105 mt-0 mb-6 mx-auto leading-[1.5]">

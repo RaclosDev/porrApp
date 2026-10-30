@@ -27,6 +27,11 @@
   --hit: #2ecc71;
   --pass: #3498db;
   --miss: #e74c3c;
+  /* Pestañas: sobre el fondo oscuro la activa es una pegatina de papel; sobre papel, tinta. */
+  --tab-active-bg: var(--paper);
+  --tab-active-fg: var(--ink);
+  --tab-border: rgba(255, 255, 255, 0.18);
+  --connector: rgba(96, 165, 250, 0.55);
 }
 
 /*
@@ -1291,50 +1296,69 @@
     }
   }
 
+  /*
+   * Pestañas de toda la app, como las de la portada: borde de tinta, letra de cartel y la activa
+   * rellena. .mb-tabs es el mismo estilo en las pantallas de móvil.
+   */
+  .paper-tabs,
   .mb-tabs {
     display: flex;
     gap: 4px;
-    padding: 6px;
-    background: rgba(0, 0, 0, 0.35);
-    border-radius: 12px;
-    margin-bottom: 16px;
-    justify-content: stretch;
+    padding: 4px;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    border: 1.5px solid var(--tab-border);
+    border-radius: 10px;
+    background: transparent;
     overflow-x: auto;
     scrollbar-width: none;
-    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
+  .mb-tabs {
+    margin-bottom: 16px;
+  }
+
+  .paper-tabs::-webkit-scrollbar,
   .mb-tabs::-webkit-scrollbar {
     display: none;
   }
 
+  .paper-tab,
   .mb-tab {
     flex: 1 1 0;
     min-width: 0;
-    padding: 10px 4px;
     min-height: 44px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 6px;
+    border: none;
+    border-radius: 7px;
     background: transparent;
     color: var(--text-muted);
-    font-weight: 600;
-    font-size: clamp(0.62rem, 2.6vw, 0.85rem);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    font-size: clamp(0.8rem, 3vw, 1rem);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     white-space: nowrap;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
   }
 
-  .mb-tab-active {
-    background: rgba(0, 210, 211, 0.18);
-    border-color: var(--accent-cyan);
-    color: var(--accent-cyan);
+  .paper-tab:hover,
+  .mb-tab:hover {
+    color: var(--text-main);
+  }
+
+  .paper-tab.is-active,
+  .mb-tab.mb-tab-active {
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
   }
 
   .mb-content {
@@ -4781,6 +4805,10 @@
     --hit: #15803d;
     --pass: #1d4ed8;
     --miss: #b91c1c;
+    --tab-active-bg: var(--ink);
+    --tab-active-fg: var(--paper);
+    --tab-border: rgba(17, 24, 39, 0.3);
+    --connector: rgba(17, 24, 39, 0.55);
   }
 
   /* Hoja del álbum: un panel de datos pegado con cinta y un pelín torcido, como un cromo. */
@@ -4872,16 +4900,6 @@
   }
 
   /* Cuadro en móvil: pestañas y tarjetas de cruce sobre el papel. */
-  .paper-panel .mb-tabs {
-    background: rgba(17, 24, 39, 0.06);
-  }
-
-  .paper-panel .mb-tab-active {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: var(--paper);
-  }
-
   .paper-panel .mb-match-card {
     background: #fffdf7;
     border: 1.5px solid var(--ink);
@@ -4894,6 +4912,58 @@
   .paper-panel .mb-next-btn {
     background: var(--ink);
     color: var(--paper);
+  }
+
+  /* Líneas del cuadro entre un cruce y el siguiente. */
+  .bracket-connector {
+    color: var(--connector);
+  }
+
+  /* Grupo dentro del visor: una pegatina por grupo sobre la hoja. */
+  .viewer-group {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--ink);
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .paper-panel .glass-input {
+    background: #ffffff;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  /* En móvil el ranking esconde el desglose por fase; este botón lo despliega con scroll. */
+  .lb-detail-toggle {
+    display: none;
+  }
+
+  @media (max-width: 600px) {
+    .lb-detail-toggle {
+      display: inline-flex;
+      margin: 0 0 10px;
+    }
+
+    #view-leaderboard .table-container.show-detail {
+      overflow-x: auto;
+    }
+
+    #view-leaderboard .table-container.show-detail .leaderboard-table {
+      min-width: 640px !important;
+      table-layout: auto;
+    }
+
+    #view-leaderboard .table-container.show-detail .leaderboard-mobile-detail {
+      display: table-cell;
+    }
+
+    #view-leaderboard .table-container.show-detail .leaderboard-table th:nth-child(2),
+    #view-leaderboard .table-container.show-detail .leaderboard-table td:nth-child(2) {
+      min-width: 150px;
+      white-space: nowrap;
+    }
   }
 
   .paper-panel .glass-btn {

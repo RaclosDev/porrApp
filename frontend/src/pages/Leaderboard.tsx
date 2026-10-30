@@ -89,6 +89,8 @@ function Leaderboard() {
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('table'); // 'table' | 'evolution'
+  // En móvil el desglose por fase va oculto hasta que se pide.
+  const [showDetail, setShowDetail] = useState(false);
 
   if (loading)
     return (
@@ -323,7 +325,17 @@ function Leaderboard() {
             </ul>
           )}
           <div className="flex gap-5 items-start flex-wrap justify-center w-full">
-            <div className="table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto">
+            <div
+              className={`table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto ${showDetail ? 'show-detail' : ''}`}
+            >
+              <button
+                type="button"
+                className="lb-detail-toggle glass-btn py-1.5 px-3 text-[0.8rem]"
+                aria-pressed={showDetail}
+                onClick={() => setShowDetail((v) => !v)}
+              >
+                {showDetail ? 'Ocultar desglose' : 'Ver desglose por fase'}
+              </button>
               <table className="leaderboard-table">
                 <thead>
                   <tr>

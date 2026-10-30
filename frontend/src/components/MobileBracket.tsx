@@ -276,18 +276,16 @@ function BracketGroup<T extends SlotTeam>({
         </div>
       </div>
 
-      <svg className="mb-connector" width="18" height={totalH} viewBox={`0 0 18 ${totalH}`}>
-        <line x1="0" y1={midA} x2="9" y2={midA} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        <line x1="0" y1={midB} x2="9" y2={midB} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        <line x1="9" y1={midA} x2="9" y2={midB} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        <line
-          x1="9"
-          y1={center}
-          x2="18"
-          y2={center}
-          stroke="rgba(255,255,255,0.15)"
-          strokeWidth="1.5"
-        />
+      <svg
+        className="mb-connector bracket-connector"
+        width="18"
+        height={totalH}
+        viewBox={`0 0 18 ${totalH}`}
+      >
+        <line x1="0" y1={midA} x2="9" y2={midA} stroke="currentColor" strokeWidth="2" />
+        <line x1="0" y1={midB} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
+        <line x1="9" y1={midA} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
+        <line x1="9" y1={center} x2="18" y2={center} stroke="currentColor" strokeWidth="2" />
       </svg>
 
       <div className="mb-next">

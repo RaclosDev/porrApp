@@ -45,8 +45,8 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsPr
   const aMid = childATop + MATCH_H / 2;
   const bMid = childBTop + MATCH_H / 2;
   const stub = GAP / 2;
-  const color = 'rgba(59,130,246,0.5)';
-  const sw = 1.5;
+  const color = 'currentColor';
+  const sw = 2;
   const svgH = Math.max(bMid, pMid) + 4;
 
   // dir='right': children to the LEFT  → SVG in the gap LEFT  of this column
@@ -58,7 +58,7 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsPr
 
   return (
     <svg
-      className="absolute top-0 overflow-visible pointer-events-none"
+      className="bracket-connector absolute top-0 overflow-visible pointer-events-none"
       style={{ left: svgLeft, width: GAP, height: svgH }}
     >
       <line x1={childX} y1={aMid} x2={midX} y2={aMid} stroke={color} strokeWidth={sw} />

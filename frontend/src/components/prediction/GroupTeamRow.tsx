@@ -49,11 +49,7 @@ export default function GroupTeamRow({
           </InkStamp>
         ) : null}
       </span>
-      {points > 0 && (
-        <span className="ml-1.5 text-[0.85em] font-bold text-[rgba(0,_210,_211,_0.9)] bg-[rgba(0,_210,_211,_0.15)] bg-none py-px px-[5px] rounded-[4px]">
-          +{points}
-        </span>
-      )}
+      {points > 0 && <span className="ml-1.5 marker-ink text-[0.9em]">+{points}</span>}
     </div>
   );
 }

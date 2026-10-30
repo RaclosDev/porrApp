@@ -17,13 +17,15 @@ export default function ThirdsView({
 }: ThirdsViewProps) {
   return (
     <div className="mt-2.5">
-      <div className="py-4 px-5 bg-[rgba(255,_255,_255,_0.04)] bg-none border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] mb-5 text-center">
-        <h4 className="mt-0 mb-1.5 mx-0 text-[#a29bfe] text-[1.1rem]">
-          Mejores Terceros Seleccionados ({advancingThirds.length}/8 a Dieciseisavos)
+      <div className="mb-5">
+        <h4 className="album-sheet-title mb-1">
+          Mejores terceros{' '}
+          <span className="marker-ink normal-case">
+            {advancingThirds.length} de 8 a dieciseisavos
+          </span>
         </h4>
-        <p className="m-0 text-[0.88rem] text-muted">
-          De los 12 equipos situados en 3ª posición en la fase de grupos, estos son los 8 que
-          elegiste para avanzar al cuadro.
+        <p className="m-0 text-[0.9rem] text-muted">
+          De los 12 terceros de grupo, estos son los 8 que elegiste para pasar al cuadro.
         </p>
       </div>
 
@@ -37,17 +39,15 @@ export default function ThirdsView({
             const isAdvancing = advancingThirds.includes(team);
             const { color, status } = getGroupTeamData(group, team, 3);
             const displayColor =
-              color === 'inherit' ? (isAdvancing ? '#00d2d3' : 'var(--text-muted)') : color;
+              color === 'inherit' ? (isAdvancing ? 'var(--ink)' : 'var(--text-muted)') : color;
 
             return (
               <div
-                className={`flex items-center justify-between py-3 px-4 rounded-[10px] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.08)] bg-none' : 'bg-[rgba(255,_255,_255,_0.03)] bg-none'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.08)]'} ${isAdvancing ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]' : 'shadow-none'}`}
+                className={`viewer-group flex items-center justify-between py-3 px-4 ${isAdvancing ? 'border-[var(--hit)] bg-[rgba(21,_128,_61,_0.06)]' : 'border-line bg-transparent'}`}
                 key={group}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <span className="text-[0.75rem] font-extrabold py-[3px] px-2 rounded-[6px] bg-[rgba(255,_255,_255,_0.08)] bg-none text-muted tracking-[0.5px]">
-                    G.{group}
-                  </span>
+                  <span className="poster-title text-[0.85rem] text-muted">G.{group}</span>
                   <Flag
                     team={team}
                     size="w40"
@@ -71,22 +71,18 @@ export default function ThirdsView({
                     </InkStamp>
                   )}
                 </div>
-                <span
-                  className={`inline-flex items-center justify-center shrink-0 w-6.5 h-6.5 ml-2 rounded-full text-[0.95rem] font-extrabold leading-[1] ${isAdvancing ? 'bg-[rgba(0,_210,_211,_0.16)] bg-none' : 'bg-[rgba(255,_255,_255,_0.05)] bg-none'} ${isAdvancing ? 'text-[#00d2d3]' : 'text-muted'} ${isAdvancing ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-[rgba(255,_255,_255,_0.12)]'}`}
-                  role="img"
-                  title={
+                <InkStamp
+                  tone={isAdvancing ? 'ink' : 'red'}
+                  size="sm"
+                  label={
                     isAdvancing
                       ? 'Seleccionado para pasar a dieciseisavos'
                       : 'No seleccionado para pasar a dieciseisavos'
                   }
-                  aria-label={
-                    isAdvancing
-                      ? 'Seleccionado para pasar a dieciseisavos'
-                      : 'No seleccionado para pasar a dieciseisavos'
-                  }
+                  className="ml-2 shrink-0"
                 >
-                  {isAdvancing ? '✓' : '×'}
-                </span>
+                  {isAdvancing ? 'Pasa' : 'No'}
+                </InkStamp>
               </div>
             );
           })}

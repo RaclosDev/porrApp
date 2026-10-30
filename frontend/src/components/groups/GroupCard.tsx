@@ -1,6 +1,7 @@
 import type { GroupsDashboardState } from '../../hooks/useGroupsDashboard';
 import type { Group } from '../../types/api';
 import { LeagueAvatar } from '../Avatar';
+import InkStamp from '../InkStamp';
 
 interface GroupCardProps {
   group: Group;
@@ -31,13 +32,13 @@ export default function GroupCard({
   return (
     <div
       key={group.id}
-      className={`glass-panel flex-1 min-w-70 max-w-90 p-5 relative flex flex-col gap-3 rounded-[16px] bg-[linear-gradient(160deg,_rgba(255,255,255,0.05),_rgba(255,255,255,0.015))] bg-transparent ${isSelected ? 'border-2 border-[#00d2d3]' : 'border border-line'} ${isSelected ? 'shadow-[0_8px_24px_rgba(0,_210,_211,_0.18)]' : 'shadow-[0_4px_14px_rgba(0,_0,_0,_0.25)]'}`}
+      className={`paper-panel landing-tape album-sheet flex-1 min-w-70 max-w-90 p-5 flex flex-col gap-3 ${isSelected ? '[outline:2px_solid_var(--accent-cyan)] outline-offset-2' : ''}`}
     >
       <div className="flex items-center gap-3.5 min-h-16">
         <LeagueAvatar url={group.imageUrl} size={64} />
         <div className="min-w-0">
           <h3
-            className="text-[1.15rem] mt-0 mb-1 mx-0 overflow-hidden text-ellipsis whitespace-nowrap"
+            className="poster-title text-[1.35rem] mt-0 mb-1 mx-0 overflow-hidden text-ellipsis whitespace-nowrap"
             title={group.name}
           >
             {group.name}
@@ -49,27 +50,26 @@ export default function GroupCard({
       </div>
       <div className="flex flex-wrap gap-1.5">
         {isCreator && (
-          <span className="text-[0.72rem] font-bold py-[3px] px-[9px] rounded-[999px] bg-[rgba(255,_193,_7,_0.14)] bg-none border border-[rgba(255,_193,_7,_0.4)] text-[#ffc107]">
+          <InkStamp tone="gold" size="sm">
             Administras
-          </span>
+          </InkStamp>
         )}
         {group.competitionName && (
-          <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(162,_155,_254,_0.14)] bg-none border border-[rgba(162,_155,_254,_0.35)] text-[#a29bfe]">
+          <InkStamp tone="ink" size="sm">
             {group.competitionName}
-          </span>
+          </InkStamp>
         )}
         {group.poolFormat && (
-          <span className="text-[0.72rem] font-semibold py-[3px] px-[9px] rounded-[999px] bg-[rgba(0,_210,_211,_0.1)] bg-none border border-[rgba(0,_210,_211,_0.3)] text-[#00d2d3]">
+          <InkStamp tone="ink" size="sm">
             {group.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
-          </span>
+          </InkStamp>
         )}
       </div>
 
       <div className="flex flex-col gap-2 mt-auto pt-2.5">
         {isSelected ? (
-          <div className="w-full py-2.5 px-3.5 rounded-[10px] bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[#00d2d3] text-[#00d2d3] font-bold text-[0.9rem] flex items-center justify-center gap-1.5 box-border">
-            <span>✓</span>
-            <span>Liga activa</span>
+          <div className="w-full flex items-center justify-center py-1">
+            <InkStamp tone="ink">Liga activa</InkStamp>
           </div>
         ) : (
           <button
@@ -86,7 +86,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleShareWhatsApp(group)}
-              className="glass-btn flex-[1_1_auto] min-w-0 py-2.5 px-3 rounded-[10px] font-extrabold text-[0.9rem] flex items-center justify-center gap-[7px] text-[#0f172a] bg-[#25D366] bg-none border border-[rgba(37,_211,_102,_0.55)] box-border"
+              className="glass-btn flex-[1_1_auto] min-w-0 py-2.5 px-3 rounded-[10px] font-extrabold text-[0.9rem] flex items-center justify-center gap-[7px] !bg-[#25D366] !border-[#25D366] !text-[#0f172a] box-border"
               title="Invitar por WhatsApp"
               aria-label={`Invitar a ${group.name} por WhatsApp`}
             >
@@ -105,7 +105,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleCopyCode(group.joinCode)}
-              className="glass-btn flex-[0_0_auto] py-2.5 px-3 rounded-[10px] font-extrabold text-[0.85rem] text-white bg-[rgba(0,_0,_0,_0.25)] bg-none border border-line whitespace-nowrap"
+              className="glass-btn flex-[0_0_auto] py-2.5 px-3 rounded-[10px] font-extrabold text-[0.85rem] whitespace-nowrap"
               title="Copiar código de invitación"
               aria-label={`Copiar código ${group.joinCode} de ${group.name}`}
             >
@@ -114,7 +114,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleCopyLink(group.joinCode)}
-              className="glass-btn flex-[0_0_42px] w-10.5 py-2.5 px-0 rounded-[10px] flex items-center justify-center text-[1rem] text-white bg-[rgba(0,_0,_0,_0.25)] bg-none border border-line"
+              className="glass-btn flex-[0_0_42px] w-10.5 py-2.5 px-0 rounded-[10px] flex items-center justify-center text-[1rem]"
               title="Copiar enlace de invitación"
               aria-label={`Copiar enlace de invitación de ${group.name}`}
             >
@@ -137,7 +137,7 @@ export default function GroupCard({
           <button
             type="button"
             onClick={() => setSelectedGroupForMembers(group)}
-            className="glass-btn flex-1 py-2 px-3 text-[0.85rem] text-[#00d2d3] flex items-center justify-center gap-1.5 whitespace-nowrap"
+            className="glass-btn flex-1 py-2 px-3 text-[0.85rem] flex items-center justify-center gap-1.5 whitespace-nowrap"
             title={isCreator ? 'Administrar liga' : 'Miembros'}
             aria-label={isCreator ? `Administrar ${group.name}` : `Miembros de ${group.name}`}
           >
@@ -149,7 +149,7 @@ export default function GroupCard({
           <button
             type="button"
             onClick={() => handleLeaveGroup(group.id, group.name)}
-            className="glass-btn w-full py-2 px-3.5 text-[0.85rem] bg-[rgba(231,_76,_60,_0.15)] bg-none border border-[rgba(231,_76,_60,_0.6)] text-[#ffcccc] whitespace-nowrap"
+            className="glass-btn w-full py-2 px-3.5 text-[0.85rem] !text-[var(--miss)] !border-[var(--miss)] whitespace-nowrap"
             title="Salir de la liga"
           >
             Salir de la liga
