@@ -26,7 +26,14 @@ public class UserAccount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** El email verificado de Google de la persona (Ej: raclo@gmail.com). */
+    /**
+     * Identificador de la cuenta de Google (claim "sub"). Es lo que identifica al usuario al
+     * iniciar sesión; null en las cuentas que no han vuelto a entrar desde que se guarda.
+     */
+    @Column(name = "google_sub", unique = true)
+    private String googleSub;
+
+    /** El email verificado de Google de la persona (Ej: raclo@gmail.com). Se actualiza si cambia en Google. */
     @Column(nullable = false, unique = true)
     private String googleEmail;
 

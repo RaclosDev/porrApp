@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { setAuthToken, updateUserPreferences } from '../services/api';
+import { endSession, updateUserPreferences } from '../services/api';
+import { hasStoredSession } from '../services/sessionHint';
 import { queryClient } from '../services/queryClient';
 import { GLOBAL_LEAGUE_ID, DEMO_COMPETITION_ID } from '../utils/constants';
 import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
@@ -57,8 +58,9 @@ interface AppState {
   enterDemoMode: () => void;
   exitDemoMode: () => void;
   /**
-   * Cierra la sesión: borra el token, los datos del usuario, la liga activa y los borradores
-   * de localStorage, vacía la caché de consultas y deja el store como recién abierto.
+   * Cierra la sesión: la revoca en el servidor, olvida el token, borra los datos del usuario,
+   * la liga activa y los borradores de localStorage, vacía la caché de consultas y deja el
+   * store como recién abierto.
    * Es la única forma de cerrar sesión (menú de perfil, token caducado y salida de la demo).
    */
   logout: () => void;
@@ -144,8 +146,8 @@ const SESSION_KEYS = [
   'isDemoMode',
 ];
 
-// Sin token, los datos de un usuario anterior no son de nadie.
-if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
+// Sin sesión, los datos de un usuario anterior no son de nadie.
+if (typeof window !== 'undefined' && !hasStoredSession()) {
   ['my_prediction_name', 'my_user_id', 'my_avatar_url'].forEach((k) => localStorage.removeItem(k));
 }
 
@@ -214,7 +216,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   viewerPredictionId: null,
   setViewerPredictionId: (id) => set({ viewerPredictionId: id }),
 
-  isAuthenticated: !!localStorage.getItem('token'),
+  // Optimista: la sesión se comprueba con el servidor al arrancar (initSession).
+  isAuthenticated: hasStoredSession(),
   setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
 
   isDemoMode: localStorage.getItem('isDemoMode') === 'true',
@@ -246,7 +249,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   logout: () => {
-    setAuthToken(null);
+    endSession();
     SESSION_KEYS.forEach((k) => localStorage.removeItem(k));
     clearAllDrafts();
     queryClient.clear();

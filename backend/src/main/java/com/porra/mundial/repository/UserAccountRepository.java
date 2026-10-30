@@ -12,6 +12,9 @@ import java.util.Optional;
 @Repository
 public interface UserAccountRepository extends JpaRepository<UserAccount, Long> {
     
+    /** Usuario de una cuenta de Google, por el claim "sub" de su ID token. */
+    Optional<UserAccount> findByGoogleSub(String googleSub);
+
     /**
      * Buscar cuenta vinculada a un email de Google específico.
      */

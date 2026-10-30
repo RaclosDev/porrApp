@@ -1,4 +1,3 @@
-import { getAuthToken } from '../services/api';
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 import type { CredentialResponse } from '@react-oauth/google';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -57,7 +56,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  const isUserLoggedIn = Boolean(getAuthToken()) && Boolean(userName);
+  const isUserLoggedIn = isAuthenticated && Boolean(userName);
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 

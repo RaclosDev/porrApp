@@ -1,7 +1,7 @@
 /**
- * Cliente HTTP del backend. Todas las llamadas pasan por {@link request}, que añade el token,
- * convierte los errores en excepciones con el mensaje del servidor y cierra la sesión si el
- * token actual ha caducado.
+ * Cliente HTTP del backend. Todas las llamadas pasan por {@link request}, que añade el access
+ * token, lo renueva una vez si el servidor responde 401 y convierte los errores en excepciones
+ * con el mensaje del servidor.
  */
 import type {
   Competition,
@@ -37,18 +37,143 @@ import type {
   UserPreferences,
 } from '../types/api';
 import { ApiError, NETWORK_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE } from './apiError';
+import { hasStoredSession, LEGACY_TOKEN_KEY, SESSION_HINT_KEY } from './sessionHint';
 
 const API_BASE = '/api';
 
+// --- Sesión ---
+// El access token (JWT de 15 minutos) vive solo en memoria. Lo que mantiene la sesión es el
+// refresh token, en una cookie HttpOnly que el navegador manda solo a /api/auth/session. En
+// localStorage queda solo una marca, sin valor secreto, de que este dispositivo tiene sesión.
+
+const SESSION_PATH = '/auth/session';
+
+/** Resultado de recuperar la sesión al cargar la aplicación. */
+export type SessionRestore = 'restored' | 'none' | 'unreachable';
+
+let accessToken: string | null = null;
+let sessionRestore: Promise<SessionRestore> | null = null;
+let restoring = false;
+let pendingRefresh: Promise<string | null> | null = null;
+/** Cambia al cerrar sesión, para que un refresco que ya iba en camino no la reabra. */
+let sessionEpoch = 0;
+
 export function getAuthToken(): string | null {
-  return localStorage.getItem('token') || null;
+  return accessToken;
 }
 
 export function setAuthToken(token: string | null): void {
+  accessToken = token;
   if (token) {
-    localStorage.setItem('token', token);
+    localStorage.setItem(SESSION_HINT_KEY, '1');
   } else {
-    localStorage.removeItem('token');
+    localStorage.removeItem(SESSION_HINT_KEY);
+  }
+}
+
+/**
+ * Recupera la sesión al arrancar: canjea el JWT antiguo si queda alguno y, si no, rota el
+ * refresh token de la cookie. Las peticiones que salgan mientras tanto esperan a que acabe.
+ */
+export function initSession(): Promise<SessionRestore> {
+  restoring = true;
+  sessionRestore = restoreSession().finally(() => {
+    restoring = false;
+  });
+  return sessionRestore;
+}
+
+/** La recuperación lanzada por {@link initSession}, o null si no se ha lanzado. */
+export function whenSessionRestored(): Promise<SessionRestore> | null {
+  return sessionRestore;
+}
+
+async function restoreSession(): Promise<SessionRestore> {
+  if (!hasStoredSession()) return 'none';
+  try {
+    if (await withSessionLock(exchangeLegacyToken)) return 'restored';
+    return (await refreshSession()) ? 'restored' : 'none';
+  } catch {
+    return 'unreachable';
+  }
+}
+
+/** Canjea el JWT de 7 días de la versión anterior, si queda, por una sesión con cookie. */
+async function exchangeLegacyToken(): Promise<boolean> {
+  // Se lee dentro del cerrojo: otra pestaña puede haberlo canjeado ya.
+  const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
+  if (!legacyToken) return false;
+  const token = await requestSessionToken('exchange', legacyToken);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  if (token) setAuthToken(token);
+  return token !== null;
+}
+
+/**
+ * Rota el refresh token y guarda el access token nuevo, uno a la vez por pestaña.
+ * Resuelve null si la sesión ha terminado; falla si no se ha podido hablar con el servidor.
+ */
+function refreshSession(): Promise<string | null> {
+  if (!pendingRefresh) {
+    const epoch = sessionEpoch;
+    pendingRefresh = withSessionLock(() => requestSessionToken('refresh'))
+      .then((token) => {
+        if (epoch !== sessionEpoch) return null;
+        setAuthToken(token);
+        return token;
+      })
+      .finally(() => {
+        pendingRefresh = null;
+      });
+  }
+  return pendingRefresh;
+}
+
+/**
+ * Las pestañas comparten la cookie: si dos rotaran a la vez el mismo refresh token, la segunda
+ * parecería una reutilización y el servidor cerraría la sesión. Web Locks las pone en fila.
+ */
+function withSessionLock<T>(task: () => Promise<T>): Promise<T> {
+  if (typeof navigator !== 'undefined' && 'locks' in navigator) {
+    return navigator.locks.request('porrapp-session', task);
+  }
+  return task();
+}
+
+/** POST a /api/auth/session/*: el access token nuevo, o null si el servidor rechaza la sesión. */
+async function requestSessionToken(
+  action: 'refresh' | 'exchange',
+  bearer: string | null = null,
+): Promise<string | null> {
+  const res = await send(`${SESSION_PATH}/${action}`, { method: 'POST' }, bearer);
+  if (res.status === 401) return null;
+  if (!res.ok) throw new ApiError(res.status, `HTTP error! status: ${res.status}`);
+  const body = (await res.json()) as { token: string };
+  return body.token;
+}
+
+/** Cierra la sesión de este dispositivo: olvida el token y revoca el refresh en el servidor. */
+export function endSession(): void {
+  sessionEpoch++;
+  setAuthToken(null);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  // keepalive: la petición sale aunque la página se cierre o recargue justo después.
+  fetch(`${API_BASE}${SESSION_PATH}/logout`, { method: 'POST', keepalive: true }).catch(() => {});
+}
+
+/** Token con el que repetir una petición rechazada con 401, o null si no hay sesión. */
+async function tokenAfter401(rejected: string | null): Promise<string | null> {
+  const current = getAuthToken();
+  // Otra petición ya lo renovó (o se cerró la sesión) mientras esta iba en camino.
+  if (current !== rejected) return current;
+  const epoch = sessionEpoch;
+  try {
+    const token = await refreshSession();
+    if (!token && epoch === sessionEpoch) window.dispatchEvent(new Event('auth-expired'));
+    return token;
+  } catch {
+    // Sin respuesta del servidor: se mantiene la sesión y se devuelve el 401.
+    return null;
   }
 }
 
@@ -79,23 +204,25 @@ function requestSignal(
   return typeof AbortSignal.any === 'function' ? AbortSignal.any([signal, timeout]) : signal;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+/** Una petición HTTP; los fallos de red y de tiempo se convierten en {@link ApiError}. */
+async function send(
+  path: string,
+  options: RequestOptions,
+  token: string | null,
+): Promise<Response> {
   const {
     method = 'GET',
     json,
     form,
     signal,
-    fallbackError,
     timeoutMs = form ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
   } = options;
-  const token = getAuthToken();
   const headers: Record<string, string> = {};
   if (json !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    return await fetch(`${API_BASE}${path}`, {
       method,
       headers,
       body: form ?? (json !== undefined ? JSON.stringify(json) : undefined),
@@ -109,19 +236,29 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     }
     throw new ApiError(0, NETWORK_ERROR_MESSAGE);
   }
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  if (restoring && sessionRestore) await sessionRestore;
+  const sentToken = getAuthToken();
+  let res = await send(path, options, sentToken);
+
+  // Access token caducado: se renueva una vez y se repite la petición. En /auth/ no, porque
+  // ahí un 401 (p. ej. una credencial de Google inválida) no es de la sesión.
+  if (
+    res.status === 401 &&
+    !path.startsWith('/auth/') &&
+    (sentToken !== null || hasStoredSession())
+  ) {
+    const token = await tokenAfter401(sentToken);
+    if (token) res = await send(path, options, token);
+  }
 
   if (!res.ok) {
-    // Un 401 de una petición lanzada con un token anterior no debe cerrar la sesión nueva.
-    // El token se borra ya para que no salgan más peticiones con él; el resto de la limpieza
-    // la hace logout() en el store, que escucha este evento (AppProvider).
-    if (res.status === 401 && token && getAuthToken() === token) {
-      setAuthToken(null);
-      window.dispatchEvent(new Event('auth-expired'));
-    }
     const body = await res.json?.().catch(() => ({}));
     throw new ApiError(
       res.status,
-      body?.error || body?.message || fallbackError || `HTTP error! status: ${res.status}`,
+      body?.error || body?.message || options.fallbackError || `HTTP error! status: ${res.status}`,
     );
   }
   return res.json();

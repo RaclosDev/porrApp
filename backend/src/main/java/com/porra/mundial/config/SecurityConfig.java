@@ -15,9 +15,14 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 
 /**
  * Configuración global de Spring Security.
- * Define las reglas de acceso (Rutas públicas vs privadas), desactiva CSRF
- * (por ser una API Stateless con JWT), registra RateLimitingFilter y JwtAuthFilter,
- * e implementa cabeceras de seguridad HTTP endurecidas (CSP, HSTS, X-Content-Type-Options, etc.).
+ * Define las reglas de acceso (Rutas públicas vs privadas), registra RateLimitingFilter,
+ * CsrfOriginFilter y JwtAuthFilter, e implementa cabeceras de seguridad HTTP endurecidas
+ * (CSP, HSTS, X-Content-Type-Options, etc.).
+ * <p>
+ * El CSRF de Spring Security está desactivado: la API se autentica con la cabecera
+ * Authorization, que el navegador no manda solo, y las rutas que usan la cookie del refresh
+ * token ({@code /api/auth/}) las protegen SameSite=Strict y {@link CsrfOriginFilter}.
+ * </p>
  */
 @Configuration
 @EnableWebSecurity
@@ -26,6 +31,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final CsrfOriginFilter csrfOriginFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -36,6 +42,8 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
+                // Refresco, logout y canje del JWT antiguo: se autentican con la cookie o el JWT.
+                .requestMatchers(HttpMethod.POST, "/api/auth/session/**").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/info").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
                 .requestMatchers("/api/predictions/mine", "/api/groups/mine").authenticated()
@@ -82,6 +90,7 @@ public class SecurityConfig {
                 )
             )
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(csrfOriginFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

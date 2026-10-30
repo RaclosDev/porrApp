@@ -13,6 +13,7 @@ import {
   fetchMe,
   fetchMyGroups,
   updateUserPreferences,
+  whenSessionRestored,
 } from '../services/api';
 import { isApiError } from '../services/apiError';
 import { queryKeys } from '../services/queryKeys';
@@ -66,15 +67,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setUserAvatarUrl = useAppStore((state) => state.setUserAvatarUrl);
   const changeGroup = useAppStore((state) => state.changeGroup);
   const logout = useAppStore((state) => state.logout);
+  const setIsAuthenticated = useAppStore((state) => state.setIsAuthenticated);
   const isUserAuthed = useAppStore((state) => state.isAuthenticated);
 
   useWebSocket(userName, queryClient);
 
-  // api.ts avisa con este evento cuando el token actual recibe un 401.
+  // api.ts avisa con este evento cuando no ha podido renovar la sesión tras un 401.
   useEffect(() => {
     window.addEventListener('auth-expired', logout);
     return () => window.removeEventListener('auth-expired', logout);
   }, [logout]);
+
+  // El store arranca dando la sesión por buena; si al recuperarla el servidor dice que no hay,
+  // se cierra. Sin respuesta del servidor se deja como está y se reintentará en el próximo 401.
+  useEffect(() => {
+    let active = true;
+    whenSessionRestored()?.then((result) => {
+      if (!active) return;
+      if (result === 'restored') setIsAuthenticated(true);
+      else if (result === 'none' && useAppStore.getState().isAuthenticated) logout();
+    });
+    return () => {
+      active = false;
+    };
+  }, [logout, setIsAuthenticated]);
 
   useEffect(() => {
     // La demo pública es de solo lectura: no persistir borradores locales.

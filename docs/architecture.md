@@ -41,7 +41,9 @@ Spring Boot 4 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La b
 
 ## Seguridad
 
-- Inicio de sesión con Google (`AuthService` valida el token de Google) y sesión con JWT sin estado (`JwtAuthFilter`).
+- Inicio de sesión con Google: `AuthService` valida el ID token e identifica la cuenta por su `sub` (las cuentas antiguas se asocian por email la primera vez; si el email de la cuenta de Google cambia, se actualiza).
+- Sesión (`SessionService`): access token JWT de 15 minutos, que el frontend guarda solo en memoria y `JwtAuthFilter` valida en cada petición, y refresh token opaco en una cookie `HttpOnly`, `Secure`, `SameSite=Strict` con `Path=/api/auth/session`. Cada refresco rota el refresh token; si llega uno ya rotado se revoca la sesión entera (su familia). La sesión caduca a los 30 días del inicio de sesión y el logout la revoca en el servidor. En la base solo se guarda el SHA-256 del refresh token.
+- Las rutas de `/api/auth/` usan la cookie, así que `CsrfOriginFilter` exige además que la petición venga de la propia aplicación (cabecera `Origin` o `Sec-Fetch-Site`). El resto de la API se autentica con la cabecera `Authorization` y no necesita protección CSRF.
 - `SecurityConfig` deja públicas solo las lecturas que necesita la demo (partidos, clasificación, goleadores, pronósticos de la Porra Global) y el login; todo lo demás requiere sesión, y los permisos de cada liga se comprueban en el servicio (`assertCanView` y similares).
 - `RateLimitingFilter` limita las peticiones por IP, con un límite más estricto en el login.
 
