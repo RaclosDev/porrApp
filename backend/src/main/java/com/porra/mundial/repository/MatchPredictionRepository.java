@@ -24,6 +24,12 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
             + " WHERE mp.prediction.id IN :predictionIds")
     List<MatchPrediction> findWithMatchByPredictionIdIn(@Param("predictionIds") Collection<Long> predictionIds);
 
+    /** Los pronósticos por partido de una edición en una sola consulta, con el partido y sus equipos. */
+    @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.match m"
+            + " LEFT JOIN FETCH m.homeTeam LEFT JOIN FETCH m.awayTeam"
+            + " WHERE mp.prediction.edition.id = :editionId")
+    List<MatchPrediction> findWithMatchByEditionId(@Param("editionId") Long editionId);
+
     Optional<MatchPrediction> findByPredictionIdAndMatchId(Long predictionId, Long matchId);
 
     List<MatchPrediction> findByPredictionEditionLeagueId(Long leagueId);
