@@ -62,8 +62,8 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
 
   return (
     <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
-      <div className="text-center text-[#00cec9] text-[1rem] font-bold p-1.5 bg-[rgba(0,_206,_201,_0.1)] bg-none border border-[rgba(0,_206,_201,_0.3)] rounded-[12px]">
-        🥉 MEJORES TERCEROS
+      <div className="text-center text-[#00d2d3] text-[1rem] font-bold p-1.5 bg-[rgba(0,_210,_211,_0.08)] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[12px]">
+        Mejores terceros
       </div>
       <div className="bg-(color:--bg-card) bg-none rounded-[12px] border border-[rgba(255,255,255,0.05)] p-2.5">
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-4">

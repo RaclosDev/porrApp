@@ -64,10 +64,14 @@ export default function ThirdsView({
                     {team}
                   </span>
                   {status === 5 && (
-                    <span
-                      className="w-2 h-2 bg-[#3498db] bg-none rounded-full inline-block shrink-0"
-                      title="Clasificado Matemáticamente"
-                    />
+                    <>
+                      <span
+                        className="w-2 h-2 bg-[#3498db] bg-none rounded-full inline-block shrink-0"
+                        title="Clasificado matemáticamente"
+                        aria-hidden="true"
+                      />
+                      <span className="sr-only">Clasificado matemáticamente</span>
+                    </>
                   )}
                 </div>
                 <span
@@ -75,13 +79,13 @@ export default function ThirdsView({
                   role="img"
                   title={
                     isAdvancing
-                      ? 'Seleccionado para avanzar a R32'
-                      : 'No seleccionado para avanzar a R32'
+                      ? 'Seleccionado para pasar a dieciseisavos'
+                      : 'No seleccionado para pasar a dieciseisavos'
                   }
                   aria-label={
                     isAdvancing
-                      ? 'Seleccionado para avanzar a R32'
-                      : 'No seleccionado para avanzar a R32'
+                      ? 'Seleccionado para pasar a dieciseisavos'
+                      : 'No seleccionado para pasar a dieciseisavos'
                   }
                 >
                   {isAdvancing ? '✓' : '×'}

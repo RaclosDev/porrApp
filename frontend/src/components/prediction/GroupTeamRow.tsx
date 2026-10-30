@@ -43,11 +43,14 @@ export default function GroupTeamRow({
       <span className="grow whitespace-nowrap overflow-hidden text-ellipsis flex items-center">
         {teamName}
         {qualified ? (
-          <span
-            className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1.5 shrink-0 inline-block"
-            title="Clasificado Matemáticamente"
-            aria-label="Clasificado Matemáticamente"
-          ></span>
+          <>
+            <span
+              className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1.5 shrink-0 inline-block"
+              title="Clasificado matemáticamente"
+              aria-hidden="true"
+            ></span>
+            <span className="sr-only">Clasificado matemáticamente</span>
+          </>
         ) : null}
       </span>
       {points > 0 && (

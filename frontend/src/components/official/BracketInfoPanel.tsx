@@ -33,7 +33,7 @@ export default function BracketInfoPanel({
       onClick={() => setActivePanel(null)}
     >
       <div
-        className="w-95 max-w-[92vw] max-h-[calc(100vh_-_140px)] bg-[rgba(15,_23,_42,_0.92)] bg-none [backdrop-filter:blur(20px)] border border-[rgba(255,_255,_255,_0.15)] rounded-[16px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.8),_0_0_30px_rgba(59,_130,_246,_0.15)] flex flex-col overflow-hidden [animation:modalScaleUp_0.2s_cubic-bezier(0.16,_1,_0.3,_1)] mt-2.5"
+        className="w-95 max-w-[92vw] max-h-[calc(100dvh_-_140px)] bg-[#0f172a] bg-none border border-[rgba(255,_255,_255,_0.15)] rounded-[16px] shadow-[0_10px_30px_rgba(0,_0,_0,_0.5)] flex flex-col overflow-hidden mt-2.5"
         role="dialog"
         aria-modal="true"
         aria-label={activePanel === 'live' ? 'Partidos en directo' : 'Goleadores'}
@@ -41,7 +41,6 @@ export default function BracketInfoPanel({
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Cabecera del HUD */}
         <div className="flex justify-end items-center pt-3 pb-0 px-4 bg-transparent bg-none">
           <button
             className="bg-[rgba(255,_255,_255,_0.08)] bg-none border-none text-muted w-11 h-11 rounded-full flex items-center justify-center text-[1rem] cursor-pointer [transition:all_0.2s]"
@@ -61,7 +60,6 @@ export default function BracketInfoPanel({
           </button>
         </div>
 
-        {/* Contenido del HUD */}
         <div className="pt-2 pb-4 px-4 overflow-y-auto flex-1">
           {activePanel === 'live' && (
             <LiveMatchesPanel

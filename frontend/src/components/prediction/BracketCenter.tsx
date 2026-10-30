@@ -30,20 +30,19 @@ export default function BracketCenter({
 }: BracketCenterProps) {
   return (
     <div className="block">
-      {/* FINAL HEADER & POINTS */}
       <div
         className="absolute flex flex-col items-center gap-0.5 pointer-events-none"
         style={{ top: finalTopY - 44, left: COL_GAP, width: colW }}
       >
-        <div className="text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase">
-          🏆 Final 🏆
+        <div className="text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase">
+          Final
         </div>
         {centerTotal > 0 ? (
           <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] bg-none inline-block py-0.5 px-2 rounded-[4px]">
             +{centerTotal} pts
           </div>
         ) : (
-          <div className="text-[0.85rem] font-bold text-[rgba(255,255,255,0.3)]">0 pts</div>
+          <div className="text-[0.85rem] font-bold text-muted">0 pts</div>
         )}
       </div>
 
@@ -55,13 +54,12 @@ export default function BracketCenter({
         {renderSlot(finalAway, { roundIndex: 'final', isHome: false })}
       </div>
 
-      {/* CAMPEÓN */}
       <div
         className="absolute text-center"
         style={{ top: finalTopY + MATCH_H + 16, left: COL_GAP, width: colW }}
       >
-        <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1">
-          🏆 Campeón
+        <div className="text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase mb-1">
+          Campeón
         </div>
         <div className="champion-display">
           <div className="team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none border-[#fbbf24] bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24]">
@@ -81,13 +79,12 @@ export default function BracketCenter({
         </div>
       </div>
 
-      {/* TERCER PUESTO */}
       <div
         className="absolute text-center"
         style={{ top: finalTopY + MATCH_H + 16 + MATCH_H + 36, left: COL_GAP, width: colW }}
       >
-        <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1">
-          🥉 Tercer Puesto
+        <div className="text-[0.65rem] font-bold text-muted tracking-[0.5px] uppercase mb-1">
+          Tercer puesto
         </div>
         <div className="match third-place">
           {renderSlot(thirdHome, { roundIndex: 'thirdPlaceMatch', isHome: true })}
@@ -95,8 +92,8 @@ export default function BracketCenter({
         </div>
         {thirdWinnerName && (
           <div className="mt-2 text-center">
-            <div className="text-[0.65rem] font-bold text-muted tracking-[1.5px] uppercase mb-1">
-              Ganador 3er Puesto:
+            <div className="text-[0.65rem] font-bold text-muted tracking-[0.5px] uppercase mb-1">
+              Ganador del tercer puesto
             </div>
             <div className="champion-display inline-block w-full">
               <div className="team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none border-[#cd7f32] bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d]">

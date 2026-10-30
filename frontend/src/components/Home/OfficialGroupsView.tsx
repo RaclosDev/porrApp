@@ -76,16 +76,18 @@ export default function OfficialGroupsView() {
             statusDot = (
               <span
                 className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Clasificado Matemáticamente"
-                aria-label="Clasificado Matemáticamente"
+                role="img"
+                title="Clasificado matemáticamente"
+                aria-label="Clasificado matemáticamente"
               />
             );
           } else if (team.stats.status === -1) {
             statusDot = (
               <span
                 className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Eliminado Matemáticamente"
-                aria-label="Eliminado Matemáticamente"
+                role="img"
+                title="Eliminado matemáticamente"
+                aria-label="Eliminado matemáticamente"
               />
             );
           }

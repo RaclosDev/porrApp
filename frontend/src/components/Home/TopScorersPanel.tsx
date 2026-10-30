@@ -24,8 +24,8 @@ function TopScorersPanel({
     return (
       <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
         {!hideTitle && (
-          <div className="text-center text-[#ffd32a] text-[1rem] font-bold p-1.5 bg-[rgba(255,_211,_42,_0.1)] bg-none border border-[rgba(255,_211,_42,_0.3)] rounded-[12px]">
-            🏆 PICHICHI
+          <div className="text-center text-[#00d2d3] text-[1rem] font-bold p-1.5 bg-[rgba(0,_210,_211,_0.08)] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[12px]">
+            Pichichi
           </div>
         )}
         <div className="text-center text-muted p-5 text-[0.9rem]">
@@ -114,8 +114,8 @@ function TopScorersPanel({
   return (
     <div className="w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
       {!hideTitle && (
-        <div className="text-center text-[#ffd32a] text-[1rem] font-bold p-1.5 bg-[rgba(255,_211,_42,_0.1)] bg-none border border-[rgba(255,_211,_42,_0.3)] rounded-[12px]">
-          🏆 PICHICHI
+        <div className="text-center text-[#00d2d3] text-[1rem] font-bold p-1.5 bg-[rgba(0,_210,_211,_0.08)] bg-none border border-[rgba(0,_210,_211,_0.3)] rounded-[12px]">
+          Pichichi
         </div>
       )}
       <div className="glass-panel p-2.5 rounded-[16px]">

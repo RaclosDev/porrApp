@@ -43,7 +43,7 @@ export default function ViewerHeader({
             onClick={onEdit}
             className="glass-btn primary-btn py-[5px] px-3.5 text-[0.88rem] rounded-[8px] font-bold cursor-pointer flex items-center gap-1.5"
           >
-            ✏️ Modificar Pronóstico
+            Editar porra
           </button>
         ) : !inline ? (
           <button
@@ -51,7 +51,7 @@ export default function ViewerHeader({
             onClick={handleClose}
             className="glass-btn py-[5px] px-3.5 text-[0.88rem] rounded-[8px] font-bold cursor-pointer border border-[rgba(255,_255,_255,_0.2)] bg-[rgba(255,_255,_255,_0.08)] bg-none text-white"
           >
-            ✕ Cerrar
+            Cerrar
           </button>
         ) : null}
       </div>

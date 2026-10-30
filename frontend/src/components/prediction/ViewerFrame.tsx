@@ -43,7 +43,7 @@ export function ViewerMessage({ inline, dialogRef, onClose, kind, message }: Vie
     kind === 'error' ? (
       <>
         <div className="text-[2.5rem] mb-3">🔒</div>
-        <h3 className="text-[#e74c3c] mb-2.5">Porra no disponible</h3>
+        <h3 className="text-[#f87171] mb-2.5">Porra no disponible</h3>
         <p className="text-muted leading-[1.5]">{message}</p>
       </>
     ) : (

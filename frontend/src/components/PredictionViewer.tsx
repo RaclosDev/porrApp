@@ -242,7 +242,7 @@ function PredictionViewer({
     <ViewerModal
       dialogRef={dialogRef}
       onClose={handleClose}
-      className="modal-content w-[98vw] max-w-475 text-left max-h-[95vh] overflow-y-auto pt-[25px]"
+      className="modal-content w-[98vw] max-w-475 text-left max-h-[95dvh] overflow-y-auto pt-[25px]"
     >
       {content}
     </ViewerModal>
