@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import { PageSkeleton } from './components/Skeleton';
 import { Toaster } from 'react-hot-toast';
+import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
 
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const Home = React.lazy(() => import('./pages/Home'));
@@ -108,6 +109,7 @@ const ProtectedRoute = ({
 };
 
 function App() {
+  usePaperTapeAngles();
   return (
     <AppProvider>
       <Toaster
