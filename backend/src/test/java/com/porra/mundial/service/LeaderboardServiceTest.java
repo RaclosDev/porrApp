@@ -16,6 +16,7 @@ import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
+import com.porra.mundial.scoring.ScoringRuleSet;
 import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -260,6 +261,66 @@ class LeaderboardServiceTest {
         assertEquals(4, breakdown.get(2).getPointsByPrediction().get(100L));
         assertFalse(breakdown.get(2).isFinished());
         assertTrue(breakdown.get(2).isCurrent());
+    }
+
+    /** Cuadro que solo acierta el campeón, para comparar lo que da con cada reglamento. */
+    private static Prediction championPrediction(long id, Edition edition) {
+        PredictionDataDTO bracket = new PredictionDataDTO();
+        bracket.setChampion("España");
+        return Prediction.builder()
+                .id(id)
+                .user(UserAccount.builder().id(id).participantName("Jugador " + id).build())
+                .edition(edition)
+                .name("Porra " + id)
+                .paymentStatus("PAID")
+                .bracketData(bracket)
+                .build();
+    }
+
+    private void officialChampion(String champion) {
+        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+                new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of(champion, "Brasil"), champion));
+    }
+
+    @Test
+    @DisplayName("Cada porra puntúa con las reglas de su edición, y sin reglas guardadas con las de por defecto")
+    void getLeaderboard_ScoresEachEditionWithItsOwnRules() {
+        Edition defaults = Edition.builder().id(1L).pichichi(false).build();
+        Edition storedDefaults = Edition.builder().id(2L).pichichi(false)
+                .scoringRulesJson(ScoringRuleSet.defaultWorldCup2026().toJson()).build();
+        Edition custom = Edition.builder().id(3L).pichichi(false)
+                .scoringRulesJson(ScoringRuleSet.builder().championPoints(500).build().toJson()).build();
+        Prediction withDefaults = championPrediction(100L, defaults);
+        Prediction withStoredDefaults = championPrediction(200L, storedDefaults);
+        Prediction withCustom = championPrediction(300L, custom);
+        when(predictionRepository.findAllWithUserAndEdition())
+                .thenReturn(List.of(withDefaults, withStoredDefaults, withCustom));
+        officialChampion("España");
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(null);
+
+        assertEquals(List.of(300L, 100L, 200L), leaderboard.stream().map(ParticipantScoreDTO::getId).toList());
+        assertEquals(500, leaderboard.get(0).getFinals());
+        assertEquals(200, leaderboard.get(1).getFinals());
+        assertEquals(200, leaderboard.get(2).getFinals());
+        assertEquals(500, withCustom.getTotalPoints(), "se guarda la puntuación con las reglas de la liga");
+        assertEquals(200, withDefaults.getTotalPoints());
+    }
+
+    @Test
+    @DisplayName("La puntuación de una sola porra también usa las reglas de su edición")
+    void calculateScoreForPrediction_UsesTheEditionRules() {
+        Edition custom = Edition.builder().id(3L).pichichi(false)
+                .scoringRulesJson(ScoringRuleSet.builder().championPoints(350).build().toJson()).build();
+        when(predictionRepository.findById(300L)).thenReturn(Optional.of(championPrediction(300L, custom)));
+        when(matchPredictionRepository.findByPredictionId(300L)).thenReturn(List.of());
+        officialChampion("España");
+
+        ParticipantScoreDTO score = leaderboardService.calculateScoreForPrediction(300L);
+
+        assertEquals(350, score.getFinals());
+        assertEquals(350, score.getTotal());
     }
 
 }

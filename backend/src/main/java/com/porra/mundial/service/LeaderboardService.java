@@ -17,6 +17,7 @@ import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.util.MatchRound;
 import com.porra.mundial.scoring.CalculationContext;
+import com.porra.mundial.scoring.ScoringRuleSet;
 import com.porra.mundial.scoring.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,8 @@ import java.util.stream.Collectors;
 /**
  * Servicio de Clasificacion (Leaderboard).
  * Orquesta la clasificacion general o de grupo recuperando datos oficiales y delegando
- * el calculo matematico en la ScoringStrategy configurada, integrando tambien los puntos de jornadas.
+ * el calculo matematico en la ScoringStrategy con las reglas de la edicion de cada pronostico,
+ * integrando tambien los puntos de jornadas.
  * Soporta materializacion de puntuaciones para evitar N+1 queries.
  */
 @Service
@@ -42,6 +44,7 @@ public class LeaderboardService {
     private final TopScorerService topScorerService;
     private final MatchRepository matchRepository;
     private final OfficialResultsService officialResultsService;
+    /** Estrategia base: cada edición puntúa con ella y sus propias reglas ({@link ScoringStrategy#withRules}). */
     private final ScoringStrategy scoringStrategy;
     private final MatchPredictionRepository matchPredictionRepository;
     private final MembershipRepository membershipRepository;
@@ -105,6 +108,8 @@ public class LeaderboardService {
         Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
 
         Map<Long, List<MatchPrediction>> matchPredsByPrediction = matchPredictionsByPrediction(groupPredictions);
+        // Una estrategia por juego de reglas: en la clasificación global conviven ediciones con reglas distintas.
+        Map<String, ScoringStrategy> strategiesByRules = new HashMap<>();
 
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
         List<Prediction> toUpdate = new ArrayList<>();
@@ -112,7 +117,10 @@ public class LeaderboardService {
             List<MatchPrediction> matchPreds = matchPredsByPrediction.getOrDefault(pred.getId(), List.of());
             if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
 
-            ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers);
+            String rulesJson = pred.getEdition() != null ? pred.getEdition().getScoringRulesJson() : null;
+            ScoringStrategy strategy = strategiesByRules.computeIfAbsent(rulesJson,
+                    json -> scoringStrategy.withRules(ScoringRuleSet.fromJson(json)));
+            ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers, strategy);
             score.setPending(isPaymentPending(pred, membershipPayment));
             leaderboard.add(score);
             materialize(pred, score);
@@ -337,18 +345,20 @@ public class LeaderboardService {
         boolean pichichiActive = pred.getEdition() == null || pred.getEdition().isPichichi();
         List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
-                officialResultsService.current(), scorers);
+                officialResultsService.current(), scorers,
+                scoringStrategy.withRules(ScoringRuleSet.forEdition(pred.getEdition())));
         score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
         return score;
     }
 
-    /** Puntos del cuadro (si lo tiene) más los de los pronósticos por partido. */
+    /** Puntos del cuadro (si lo tiene, con las reglas de su edición) más los de los pronósticos por partido. */
     private ParticipantScoreDTO scorePrediction(Prediction pred, List<MatchPrediction> matchPreds,
-                                                OfficialResultsService.OfficialResults official, List<TopScorerDTO> scorers) {
+                                                OfficialResultsService.OfficialResults official, List<TopScorerDTO> scorers,
+                                                ScoringStrategy strategy) {
         PredictionDataDTO participant = pred.getBracketData();
         ParticipantScoreDTO score;
         if (participant != null) {
-            score = calculatePoints(new CalculationContext(participant, official.bracket(), official.groupPoints(),
+            score = calculatePoints(strategy, new CalculationContext(participant, official.bracket(), official.groupPoints(),
                     official.orderedTeamsPerGroup(), official.bestThirds(), scorers, official.roundOf16(),
                     official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion()));
             score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
@@ -401,9 +411,9 @@ public class LeaderboardService {
                 .build();
     }
 
-    private ParticipantScoreDTO calculatePoints(CalculationContext ctx) {
+    private static ParticipantScoreDTO calculatePoints(ScoringStrategy strategy, CalculationContext ctx) {
         ParticipantScoreDTO score = emptyScore();
-        scoringStrategy.evaluateScores(score, ctx);
+        strategy.evaluateScores(score, ctx);
 
         int total = score.getR1() + score.getR32() + score.getR16() + score.getQf() + score.getSf() + score.getFinals() + score.getScorer();
         score.setTotal(total);

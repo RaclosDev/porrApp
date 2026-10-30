@@ -17,7 +17,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * <p>
  * La clasificación sirve los puntos guardados mientras todas las porras los tengan calculados, así que
  * hay que llamar aquí cada vez que cambie algo que puntúa los cuadros: clasificación de grupos,
- * resultados de eliminatorias, goleadores o cuadro oficial. Los puntos se recalculan en la siguiente consulta.
+ * resultados de eliminatorias, goleadores, cuadro oficial o las reglas de puntuación de una liga.
+ * Los puntos se recalculan en la siguiente consulta.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,6 +42,22 @@ public class ScoreInvalidationService {
         int cleared = predictionRepository.clearCalculatedScoresByCompetitionId(competitionId);
         if (cleared > 0) {
             log.debug("Puntuaciones de {} porras de la competición {} pendientes de recalcular", cleared, competitionId);
+        }
+        evictLeaderboardAfterCommit();
+        return cleared;
+    }
+
+    /**
+     * Invalida las porras de una edición, por ejemplo al cambiar sus reglas de puntuación.
+     *
+     * @return número de porras invalidadas
+     */
+    @Transactional
+    public int invalidateEdition(Long editionId) {
+        if (editionId == null) return 0;
+        int cleared = predictionRepository.clearCalculatedScoresByEditionId(editionId);
+        if (cleared > 0) {
+            log.debug("Puntuaciones de {} porras de la edición {} pendientes de recalcular", cleared, editionId);
         }
         evictLeaderboardAfterCommit();
         return cleared;
