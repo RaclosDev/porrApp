@@ -1368,9 +1368,9 @@
     padding: 6px 8px !important;
     font-size: 0.82rem !important;
     border-radius: 0 !important;
-    border: none !important;
+    border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-    background: transparent !important;
+    background: transparent;
   }
 
   .mb-match-card .team-slot:last-child {
