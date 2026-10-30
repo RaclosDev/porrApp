@@ -32,6 +32,16 @@ const compactMatchdayLabel = (label: string | null) => {
 };
 
 /** Clasificación de la liga activa (tabla y gráfica). */
+/** La fila es del usuario: por id cuando las dos partes lo tienen y, si no, por nombre. */
+function isOwnRow(
+  row: { userId?: number | string | null; name?: string },
+  userId: number | string | null | undefined,
+  userName: string | null | undefined,
+): boolean {
+  if (row.userId != null && userId != null) return String(row.userId) === String(userId);
+  return Boolean(userName) && row.name === userName;
+}
+
 function Leaderboard() {
   const {
     state,
@@ -310,7 +320,7 @@ function Leaderboard() {
                     const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
                     const isPending = !r.paid;
-                    const isMe = r.userId?.toString() === userId?.toString() || r.name === userName;
+                    const isMe = isOwnRow(r, userId, userName);
                     const bgStyle = isMe
                       ? 'rgba(0, 210, 211, 0.15)'
                       : isPending
@@ -432,7 +442,7 @@ function Leaderboard() {
             {validResults.slice(0, mid).map((r) => {
               const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
-              const isMe = r.name === userName;
+              const isMe = isOwnRow(r, userId, userName);
               return (
                 <div
                   className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
@@ -455,7 +465,7 @@ function Leaderboard() {
             {validResults.slice(mid).map((r) => {
               const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
-              const isMe = r.name === userName;
+              const isMe = isOwnRow(r, userId, userName);
               return (
                 <div
                   className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
