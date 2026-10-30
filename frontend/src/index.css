@@ -4813,37 +4813,58 @@
     --connector: rgba(17, 24, 39, 0.55);
   }
 
-  /* Hoja del álbum: un panel de datos pegado con cinta y un pelín torcido, como un cromo. */
+  /* El giro pertenece a la hoja completa, para que fondo, borde y sombra coincidan. */
   .album-sheet {
     position: relative;
     padding: 18px 16px;
     border-radius: 4px;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+    rotate: -0.4deg;
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(17, 24, 39, 0.025) 0 1px,
+      transparent 1px 3px
+    );
   }
 
-  /* Solo se inclina el soporte: tablas y campos conservan su alineación. */
-  .album-sheet::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    background: var(--paper);
-    rotate: -0.6deg;
-    pointer-events: none;
-  }
-
-  .album-sheet {
-    isolation: isolate;
+  .md-page.album-sheet,
+  .lb-matchday-panel.album-sheet {
+    rotate: 0.35deg;
   }
 
   .group-card.album-sheet:nth-child(even) {
-    rotate: 0.6deg;
+    rotate: 0.8deg;
   }
 
   .group-card.album-sheet:nth-child(odd),
   .invite-summary-card.album-sheet {
-    rotate: -0.6deg;
+    rotate: -0.8deg;
+  }
+
+  .group-card.album-sheet::after,
+  .invite-summary-card.album-sheet::after {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: calc(50% - 32px);
+    width: 64px;
+    height: 19px;
+    background: rgba(255, 230, 140, 0.8);
+    border-inline: 1px dashed rgba(17, 24, 39, 0.15);
+    rotate: -3deg;
+    pointer-events: none;
+  }
+
+  @media (max-width: 600px) {
+    /* Las hojas largas necesitan menos giro para no acercarse al borde de la pantalla. */
+    .album-sheet {
+      rotate: -0.2deg;
+    }
+
+    .md-page.album-sheet,
+    .lb-matchday-panel.album-sheet {
+      rotate: 0.2deg;
+    }
   }
 
   .ranking-podium {
