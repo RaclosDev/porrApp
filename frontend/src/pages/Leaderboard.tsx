@@ -153,9 +153,9 @@ function Leaderboard() {
     userSelect: 'none',
     whiteSpace: 'nowrap',
     transition: 'color 0.2s, background 0.2s',
-    background: sortColumn === colKey ? 'rgba(0, 210, 211, 0.15)' : 'transparent',
-    color: sortColumn === colKey ? '#00d2d3' : 'inherit',
-    borderBottom: sortColumn === colKey ? '2px solid #00d2d3' : undefined,
+    background: 'transparent',
+    color: 'inherit',
+    borderBottom: sortColumn === colKey ? '3px solid var(--ink)' : undefined,
   });
 
   const columnClass = (col: LeaderboardColumn) => {
@@ -233,7 +233,7 @@ function Leaderboard() {
       ) : (
         <>
           {isMatchday && summaryMatchday && (
-            <div className="lb-matchday-panel">
+            <div className="lb-matchday-panel paper-panel album-sheet">
               <div className="lb-matchday-summary">
                 <div className="lb-matchday-heading">
                   <span className="lb-matchday-eyebrow">
@@ -420,7 +420,9 @@ function Leaderboard() {
                                 }}
                                 title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
                               >
-                                <span aria-hidden="true">👁️</span>
+                                <span aria-hidden="true" className="poster-title text-[0.75rem]">
+                                  Ver
+                                </span>
                                 <span className="sr-only">
                                   {isMatchday ? 'Ver jornadas' : 'Ver porra'}
                                 </span>

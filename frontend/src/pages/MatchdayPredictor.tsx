@@ -43,7 +43,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
   }
 
   return (
-    <div className="md-page">
+    <div className="md-page paper-panel album-sheet">
       <MatchdayHeader
         title={activeGroupName || 'Jornadas'}
         isLocked={activeGroupIsLocked}

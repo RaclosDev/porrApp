@@ -32,7 +32,7 @@ export default function GroupCard({
   return (
     <div
       key={group.id}
-      className={`paper-panel landing-tape album-sheet flex-1 min-w-70 max-w-90 p-5 flex flex-col gap-3 ${isSelected ? '[outline:2px_solid_var(--accent-cyan)] outline-offset-2' : ''}`}
+      className={`paper-panel album-sheet flex-1 min-w-70 max-w-90 p-5 flex flex-col gap-3 ${isSelected ? '[outline:2px_solid_var(--accent-cyan)] outline-offset-2' : ''}`}
     >
       <div className="flex items-center gap-3.5 min-h-16">
         <LeagueAvatar url={group.imageUrl} size={64} />
@@ -114,11 +114,11 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleCopyLink(group.joinCode)}
-              className="glass-btn flex-[0_0_42px] w-10.5 py-2.5 px-0 rounded-[10px] flex items-center justify-center text-[1rem]"
+              className="glass-btn flex-[0_0_auto] py-2.5 px-3 rounded-[10px] text-[0.85rem] font-extrabold"
               title="Copiar enlace de invitación"
               aria-label={`Copiar enlace de invitación de ${group.name}`}
             >
-              🔗
+              Enlace
             </button>
           </div>
         )}

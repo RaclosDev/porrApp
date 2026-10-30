@@ -101,7 +101,7 @@ export default function MobileBottomNav() {
               flex: 1,
               height: '50px',
               borderRadius: '25px',
-              color: isActive ? 'var(--accent-cyan, #00d2d3)' : '#94a3b8',
+              color: isActive ? 'var(--ink)' : '#94a3b8',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               WebkitTapHighlightColor: 'transparent',
             })}
@@ -112,7 +112,7 @@ export default function MobileBottomNav() {
                   <IconComponent
                     size={20}
                     strokeWidth={isActive ? 2.4 : 1.8}
-                    color={isActive ? 'var(--accent-cyan, #00d2d3)' : '#94a3b8'}
+                    color={isActive ? 'var(--ink)' : '#94a3b8'}
                   />
                 </span>
                 <span

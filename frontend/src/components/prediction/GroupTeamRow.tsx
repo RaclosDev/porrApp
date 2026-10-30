@@ -28,7 +28,7 @@ export default function GroupTeamRow({
         alignItems: 'center',
       }}
     >
-      <span className="mr-1">{medal}</span>{' '}
+      <span className="poster-title text-[0.8em] text-muted w-3 mr-1 shrink-0">{medal}</span>{' '}
       <Flag
         team={teamName}
         size="w40"
@@ -49,7 +49,9 @@ export default function GroupTeamRow({
           </InkStamp>
         ) : null}
       </span>
-      {points > 0 && <span className="ml-1.5 marker-ink text-[0.9em]">+{points}</span>}
+      {points > 0 && (
+        <span className="ml-1.5 text-[0.85em] font-bold text-[var(--hit)]">+{points}</span>
+      )}
     </div>
   );
 }

@@ -15,7 +15,7 @@ export default function JoinGroupPanel({
 }: JoinGroupPanelProps) {
   return (
     <div className="max-w-120 mt-0 mb-7.5 mx-auto">
-      <div className="paper-panel landing-tape album-sheet p-6 flex flex-col gap-[15px]">
+      <div className="paper-panel album-sheet p-6 flex flex-col gap-[15px]">
         <div className="flex justify-between items-center">
           <h3 className="m-0 poster-title text-[1.3rem] flex items-center gap-2.5">
             Unirse con código

@@ -118,13 +118,13 @@ export default function FixtureCard({
       {/* Desglose de puntos si el partido ya ha finalizado */}
       {fixture.finished && points !== null && points !== undefined && (
         <div
-          className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${scored ? 'bg-[rgba(46,_204,_113,_0.12)] bg-none' : 'bg-[rgba(255,255,255,0.03)] bg-none'} ${scored ? 'border border-[rgba(46,_204,_113,_0.3)]' : 'border border-[rgba(255,255,255,0.06)]'}`}
+          className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${scored ? 'bg-[rgba(21,_128,_61,_0.08)] bg-none' : 'bg-[rgba(17,_24,_39,_0.04)] bg-none'} ${scored ? 'border border-[var(--hit)]' : 'border border-line'}`}
         >
-          <span className={`${scored ? 'text-[#2ecc71]' : 'text-muted'}`}>
+          <span className={`${scored ? 'text-[var(--hit)]' : 'text-muted'}`}>
             {fixture.scoringDetails || (scored ? 'Acierto en pronóstico' : 'Sin puntos')}
           </span>
           <span
-            className={`font-extrabold text-[0.95rem] shrink-0 ${scored ? 'text-[#2ecc71]' : 'text-muted'}`}
+            className={`font-extrabold text-[0.95rem] shrink-0 ${scored ? 'text-[var(--hit)]' : 'text-muted'}`}
           >
             +{points} pts
           </span>

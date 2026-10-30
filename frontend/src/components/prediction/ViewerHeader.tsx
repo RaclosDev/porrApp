@@ -28,7 +28,11 @@ export default function ViewerHeader({
         </h3>
       </div>
       <div className="flex gap-2.5 items-center flex-wrap">
-        {part.scorer && <div className="marker-ink text-[0.95rem]">Pichichi: {part.scorer}</div>}
+        {part.scorer && (
+          <div className="text-[0.9rem] text-muted">
+            Pichichi: <strong className="text-main">{part.scorer}</strong>
+          </div>
+        )}
         <span className="marker-ink text-[1.2rem]" aria-label={`${points.total} puntos en total`}>
           {points.total} pts
         </span>

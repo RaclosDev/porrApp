@@ -129,7 +129,7 @@ export default function MatchdayHomeDashboard() {
         />
       )}
 
-      <header className="home-hero">
+      <header className="home-hero paper-panel album-sheet">
         <div className="home-hero-info">
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
           <div className="home-hero-pills">
@@ -147,7 +147,7 @@ export default function MatchdayHomeDashboard() {
       </header>
 
       <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
-        <div className="flex flex-col gap-2 min-w-0">
+        <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
           <div className="home-list-header">
             <h2>
               <span>Partidos{currentRound ? ` ${currentRound}` : ''}</span>
@@ -214,14 +214,14 @@ export default function MatchdayHomeDashboard() {
               );
             })
           ) : (
-            <div className="glass-panel p-6 text-center text-muted">
+            <div className="paper-panel album-sheet p-6 text-center text-muted">
               No hay partidos programados para esta jornada.
             </div>
           )}
         </div>
 
         <div className="flex flex-col gap-4.5 min-w-0">
-          <div className="glass-panel p-4 rounded-[14px]">
+          <div className="paper-panel album-sheet p-4">
             <div className="home-list-header mb-2.5">
               <h2>
                 <span aria-hidden="true">🏆</span>
@@ -243,13 +243,13 @@ export default function MatchdayHomeDashboard() {
 
                   return (
                     <div
-                      className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.12)] bg-none' : 'bg-[rgba(255,_255,_255,_0.03)] bg-none'} ${isMe ? 'border border-[rgba(0,_210,_211,_0.35)]' : 'border border-transparent'}`}
+                      className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.1)] bg-none' : 'bg-[rgba(17,_24,_39,_0.04)] bg-none'} ${isMe ? 'border border-[var(--marker-ink)]' : 'border border-transparent'}`}
                       key={p.id || index}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[1rem] w-5.5 text-center shrink-0">{medal}</span>
                         <span
-                          className={`text-[0.88rem] text-white overflow-hidden text-ellipsis whitespace-nowrap ${isMe ? 'font-bold' : 'font-medium'}`}
+                          className={`text-[0.88rem] text-main overflow-hidden text-ellipsis whitespace-nowrap ${isMe ? 'font-bold' : 'font-medium'}`}
                         >
                           {p.name}
                           {isMe ? ' (Tú)' : ''}
@@ -270,7 +270,7 @@ export default function MatchdayHomeDashboard() {
           </div>
 
           {topTeams.length > 0 && (
-            <div className="glass-panel p-4 rounded-[14px]">
+            <div className="paper-panel album-sheet p-4">
               <div className="home-list-header mb-2.5">
                 <h2>
                   <span aria-hidden="true">📊</span>
@@ -284,7 +284,7 @@ export default function MatchdayHomeDashboard() {
               <div className="flex flex-col gap-1.5">
                 {topTeams.map((t) => (
                   <div
-                    className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] bg-[rgba(255,_255,_255,_0.03)] bg-none"
+                    className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] bg-[rgba(17,_24,_39,_0.04)] bg-none"
                     key={t.rank + t.teamName}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -296,13 +296,13 @@ export default function MatchdayHomeDashboard() {
                         logo={t.teamLogo}
                         style={{ width: '20px', height: '20px' }}
                       />
-                      <span className="font-semibold text-[0.85rem] text-white overflow-hidden text-ellipsis whitespace-nowrap">
+                      <span className="font-semibold text-[0.85rem] text-main overflow-hidden text-ellipsis whitespace-nowrap">
                         {t.teamName}
                       </span>
                     </div>
                     <div className="flex gap-2.5 text-[0.85rem] items-baseline shrink-0">
                       <span className="text-muted text-[0.75rem]">{t.gamesPlayed} PJ</span>
-                      <span className="font-extrabold text-white">{t.points} pts</span>
+                      <span className="font-extrabold text-main">{t.points} pts</span>
                     </div>
                   </div>
                 ))}

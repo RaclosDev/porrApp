@@ -22,7 +22,7 @@ function TopScorersPanel({
 
   if (loading || error || !topScorers || topScorers.length === 0) {
     return (
-      <div className="paper-panel landing-tape album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
+      <div className="paper-panel album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
         {!hideTitle && <h3 className="album-sheet-title">Pichichi</h3>}
         <div className="text-center text-muted p-5 text-[0.9rem]">
           {loading
@@ -108,7 +108,7 @@ function TopScorersPanel({
   };
 
   return (
-    <div className="paper-panel landing-tape album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
+    <div className="paper-panel album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
       {!hideTitle && <h3 className="album-sheet-title">Pichichi</h3>}
       <div className="glass-panel p-2.5 rounded-[16px]">
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-[0_16px]">

@@ -40,12 +40,14 @@ export default function GroupsView({ part, points, renderGroupTeam }: GroupsView
             <div className="album-sheet-title text-[1.05rem] mb-1.5 flex justify-between items-center border-b border-b-line pb-1">
               <span>Grupo {g}</span>
               {groupPts > 0 && (
-                <span className="marker-ink text-[0.95rem] normal-case">+{groupPts}</span>
+                <span className="text-[0.85rem] font-bold text-[var(--hit)] normal-case font-[Inter,sans-serif] tracking-normal">
+                  +{groupPts}
+                </span>
               )}
             </div>
-            {t1 && renderGroupTeam(g, t1, 1, 'inherit', '🥇')}
-            {t2 && renderGroupTeam(g, t2, 2, 'inherit', '🥈')}
-            {t3 && renderGroupTeam(g, t3, 3, 'inherit', '🥉')}
+            {t1 && renderGroupTeam(g, t1, 1, 'inherit', '1')}
+            {t2 && renderGroupTeam(g, t2, 2, 'inherit', '2')}
+            {t3 && renderGroupTeam(g, t3, 3, 'inherit', '3')}
           </div>
         );
       })}

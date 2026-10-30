@@ -24,7 +24,7 @@ export default function OfficialBracketTabs({
           aria-pressed={activePanel === 'live'}
           onClick={() => setActivePanel((p) => (p === 'live' ? null : 'live'))}
         >
-          <span className="results-toggle-icon">🔴</span> Partidos
+          Partidos
         </button>
       )}
       <div role="tablist" aria-label="Vista del cuadro oficial" className="contents">
@@ -56,7 +56,7 @@ export default function OfficialBracketTabs({
           aria-pressed={activePanel === 'scorers'}
           onClick={() => setActivePanel((p) => (p === 'scorers' ? null : 'scorers'))}
         >
-          <span className="results-toggle-icon">🏆</span> Pichichi
+          Pichichi
         </button>
       )}
     </div>

@@ -61,7 +61,7 @@ function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPa
   if (thirds.length === 0) return null;
 
   return (
-    <div className="paper-panel landing-tape album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
+    <div className="paper-panel album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
       <h3 className="album-sheet-title">Mejores terceros</h3>
       <div className="p-0.5">
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-4">

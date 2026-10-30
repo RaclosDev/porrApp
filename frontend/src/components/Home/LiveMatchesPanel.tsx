@@ -72,7 +72,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
   if (!hasLive && nextMatches.length === 0) {
     return (
       <div
-        className="paper-panel landing-tape album-sheet w-full max-w-120 mt-0 mb-5 mx-auto p-6 text-center text-muted"
+        className="paper-panel album-sheet w-full max-w-120 mt-0 mb-5 mx-auto p-6 text-center text-muted"
         role="status"
       >
         <div className="text-[1.6rem] mb-2" aria-hidden="true">
@@ -89,7 +89,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
   }
 
   return (
-    <div className="paper-panel landing-tape album-sheet w-full max-w-120 mt-0 mb-5 mx-auto flex flex-col gap-4">
+    <div className="paper-panel album-sheet w-full max-w-120 mt-0 mb-5 mx-auto flex flex-col gap-4">
       {hasLive && (
         <div className="flex flex-col gap-2">
           <div className="text-center">

@@ -90,7 +90,7 @@ export default function GroupsDashboard() {
   };
 
   const inviteSummary = pendingJoinCodeNotice ? (
-    <div className="paper-panel landing-tape album-sheet invite-summary-card max-w-130 w-full mt-0 mb-6 mx-auto box-border p-5 flex flex-col gap-3 text-left">
+    <div className="paper-panel album-sheet invite-summary-card max-w-130 w-full mt-0 mb-6 mx-auto box-border p-5 flex flex-col gap-3 text-left">
       <div className="flex items-center gap-3.5 min-h-16">
         {pendingInvite?.imageUrl ? (
           <img
@@ -276,7 +276,7 @@ export default function GroupsDashboard() {
       {loading ? (
         <div className="text-center text-muted py-10 px-0">Cargando tus ligas...</div>
       ) : groupsError && groups.length === 0 ? null : groups.length === 0 ? (
-        <div className="paper-panel landing-tape album-sheet text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto">
+        <div className="paper-panel album-sheet text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto">
           <h3 className="poster-title mt-0 mb-2 mx-0 text-[1.5rem]">
             Aún no te has unido a ninguna liga privada
           </h3>

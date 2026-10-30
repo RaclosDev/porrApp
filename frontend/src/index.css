@@ -4749,7 +4749,8 @@
 
   .ink-stamp-sm {
     padding: 0 4px;
-    border-width: 1.5px;
+    border-width: 1px;
+    opacity: 0.85;
     border-radius: 4px;
     font-size: 0.62rem;
     letter-spacing: 0.06em;
@@ -4817,14 +4818,6 @@
     padding: 18px 16px;
     border-radius: 4px;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
-  }
-
-  .album-sheet:nth-child(even) {
-    transform: rotate(0.4deg);
-  }
-
-  .album-sheet:nth-child(odd) {
-    transform: rotate(-0.4deg);
   }
 
   .album-sheet-title {
@@ -4964,6 +4957,70 @@
       min-width: 150px;
       white-space: nowrap;
     }
+  }
+
+  /* Jornadas sobre papel: partidos como pegatinas, marcadores y 1X2 en tinta. */
+  .paper-panel .md-match,
+  .paper-panel .home-match-card {
+    background: #fffdf7;
+    border: 1.5px solid var(--ink);
+  }
+
+  .paper-panel .md-score-input {
+    background: #ffffff;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .md-sign-btn,
+  .paper-panel .md-filter,
+  .paper-panel .md-round-step,
+  .paper-panel .md-round-select {
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .md-sign-btn.is-active,
+  .paper-panel .md-filter.is-active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  .paper-panel .home-hero {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  .paper-panel .home-hero-pill,
+  .paper-panel .home-rules-btn {
+    background: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .home-link-btn,
+  .paper-panel .home-list-header a {
+    color: var(--marker-ink);
+  }
+
+  .paper-panel .home-match-score {
+    background: rgba(17, 24, 39, 0.06);
+    color: var(--ink);
+  }
+
+  .paper-panel .lb-matchday-step,
+  .paper-panel .lb-matchday-kpi {
+    background: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  /* Barra inferior: la pestaña activa es una pegatina de papel, como el resto de pestañas. */
+  .mobile-bottom-nav .mobile-nav-indicator {
+    background: var(--paper);
   }
 
   .paper-panel .glass-btn {

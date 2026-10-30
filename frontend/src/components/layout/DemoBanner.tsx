@@ -15,7 +15,7 @@ export default function DemoBanner({
   return (
     <div
       id="demo-mode-banner"
-      className="sticky top-0 z-[110] flex items-center justify-between gap-2 border-b border-cyan/35 bg-cyan/15 px-3 py-1.5 text-[0.8rem] text-main"
+      className="sticky top-0 z-[110] flex items-center justify-between gap-2 bg-[var(--paper)] text-[var(--ink)] px-3 py-1.5 text-[0.8rem]"
     >
       <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
         <span className="truncate">
@@ -26,7 +26,7 @@ export default function DemoBanner({
         <button
           type="button"
           onClick={() => setShowMyPredictionModal(true)}
-          className="min-h-11 cursor-pointer whitespace-nowrap rounded-md border-none bg-cyan px-3 py-1 text-xs font-extrabold text-app"
+          className="min-h-11 cursor-pointer whitespace-nowrap rounded-md border-none bg-[var(--ink)] px-3 py-1 text-xs font-extrabold text-[var(--paper)]"
         >
           Entrar con Google
         </button>
@@ -36,7 +36,7 @@ export default function DemoBanner({
             exitDemoMode?.();
             navigate('/', { replace: true });
           }}
-          className="cursor-pointer whitespace-nowrap border-none bg-transparent min-h-11 px-3 py-0.5 text-xs text-muted underline"
+          className="cursor-pointer whitespace-nowrap border-none bg-transparent min-h-11 px-3 py-0.5 text-xs text-[#4b5563] underline"
         >
           Salir
         </button>
