@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
+import { BracketFinalMatch } from '../components/BracketFinale';
 import BracketCanvas, {
   TeamSlot,
   matchTop,
@@ -316,44 +317,33 @@ function Bracket() {
               ]}
               renderSlot={renderSlot}
               renderCenter={renderCenter}
-              mobileCenter={() => (
-                <div className="flex flex-col gap-5">
-                  <div>
-                    <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase text-center mb-2">
-                      Final
-                    </div>
-                    <div className="mb-match-card">
-                      <TeamSlot
-                        name={bracketState.final?.home?.name}
-                        pressed={isPicked(bracketState.final?.home, 'center', 4, 0)}
-                        onClick={() =>
-                          bracketState.final?.home &&
-                          advanceTeam(bracketState.final.home, 'center', 4, 0)
-                        }
-                      />
-                      <TeamSlot
-                        name={bracketState.final?.away?.name}
-                        pressed={isPicked(bracketState.final?.away, 'center', 4, 0)}
-                        onClick={() =>
-                          bracketState.final?.away &&
-                          advanceTeam(bracketState.final.away, 'center', 4, 0)
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[0.75rem] font-bold text-gold tracking-[0.5px] uppercase mb-2">
-                      Campeón
-                    </div>
-                    <div className="champion-display">
-                      <TeamSlot name={bracketState.champion?.name} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[0.75rem] font-bold text-muted tracking-[0.5px] uppercase text-center mb-2">
-                      Tercer puesto
-                    </div>
-                    <div className="mb-match-card">
+              renderFinal={() => (
+                <BracketFinalMatch
+                  editable
+                  home={
+                    <TeamSlot
+                      name={bracketState.final?.home?.name}
+                      pressed={isPicked(bracketState.final?.home, 'center', 4, 0)}
+                      onClick={() =>
+                        bracketState.final?.home &&
+                        advanceTeam(bracketState.final.home, 'center', 4, 0)
+                      }
+                    />
+                  }
+                  away={
+                    <TeamSlot
+                      name={bracketState.final?.away?.name}
+                      pressed={isPicked(bracketState.final?.away, 'center', 4, 0)}
+                      onClick={() =>
+                        bracketState.final?.away &&
+                        advanceTeam(bracketState.final.away, 'center', 4, 0)
+                      }
+                    />
+                  }
+                  champion={<TeamSlot name={bracketState.champion?.name} />}
+                  thirdWinner={bracketState.thirdPlaceWinner?.name}
+                  thirdPlace={
+                    <>
                       <TeamSlot
                         name={bracketState.thirdPlaceMatch?.home?.name}
                         pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
@@ -370,17 +360,9 @@ function Bracket() {
                           advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
                         }
                       />
-                    </div>
-                    {bracketState.thirdPlaceWinner && (
-                      <div className="mt-2.5 text-center">
-                        <div className="text-[0.65rem] text-muted mb-1">
-                          Ganador del tercer puesto
-                        </div>
-                        <TeamSlot name={bracketState.thirdPlaceWinner?.name} />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                    </>
+                  }
+                />
               )}
             />
 

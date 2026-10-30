@@ -5,7 +5,7 @@ import { TeamSlot, type CanvasMatch } from '../../components/BracketCanvas';
 
 const match = (home: string, away: string): CanvasMatch<string> => ({ home, away });
 
-/** Cuadro sin dieciseisavos: Octavos, Cuartos, Semis y Final. */
+/** Cuadro sin dieciseisavos. */
 const leftRounds = [
   [],
   [match('España', 'Italia'), match('Francia', 'Alemania')],
@@ -26,20 +26,21 @@ const renderBracket = (defaultTab: number, onPick = vi.fn()) => {
       rightRounds={rightRounds}
       defaultTab={defaultTab}
       renderSlot={(team) => <TeamSlot name={team as string} onClick={() => onPick(team)} />}
-      mobileCenter={() => <p>Contenido de la final</p>}
+      renderFinal={() => <p>Contenido de la final</p>}
     />,
   );
   return onPick;
 };
 
 describe('MobileBracket', () => {
-  it('picking a semifinal team keeps the Semis tab open', () => {
+  it('picking a semifinal team keeps the combined Final tab open', () => {
     const onPick = renderBracket(3);
     fireEvent.click(screen.getAllByRole('button', { name: 'Pasar a España' })[0]);
 
     expect(onPick).toHaveBeenCalledWith('España');
-    expect(screen.getByRole('tab', { name: 'Semis' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.queryByText('Contenido de la final')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Final' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('Contenido de la final')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Semis' })).not.toBeInTheDocument();
   });
 
   it('picking a team in the next-round column keeps the current tab open', () => {
@@ -57,8 +58,7 @@ describe('MobileBracket', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente ronda →' }));
     expect(screen.getByRole('tab', { name: 'Cuartos' })).toHaveAttribute('aria-selected', 'true');
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Semis' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ver final →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente ronda →' }));
     expect(screen.getByRole('tab', { name: 'Final' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('Contenido de la final')).toBeInTheDocument();
   });

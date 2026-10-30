@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, type ReactNode } from 'react';
 import { getCountryCode } from '../utils/constants';
 import Flag from './Flag';
 import MobileBracket from './MobileBracket';
+import BracketFinale from './BracketFinale';
 import type { BracketTeam } from '../store/useAppStore';
 
 export const SLOT_H = 36;
@@ -252,8 +253,8 @@ interface BracketCanvasProps<T extends SlotTeam> {
   hiddenRounds?: Record<number, boolean>;
   /** Pie opcional de cada columna (p. ej. puntos por ronda). */
   renderRoundFooter?: (roundIndex: number, side: 'left' | 'right') => ReactNode;
-  /** Centro alternativo para la vista móvil. */
-  mobileCenter?: () => ReactNode;
+  /** Final destacada compartida entre móvil y escritorio. */
+  renderFinal?: () => ReactNode;
 }
 
 /** Cuadro de eliminatorias en dos mitades que convergen en la final. */
@@ -264,8 +265,12 @@ export default function BracketCanvas<T extends SlotTeam>({
   renderCenter,
   hiddenRounds = {},
   renderRoundFooter,
-  mobileCenter,
+  renderFinal,
 }: BracketCanvasProps<T>) {
+  const [desktopView, setDesktopView] = useState<'full' | 'final' | null>(null);
+  const showFinale =
+    desktopView === 'final' ||
+    (desktopView === null && computeActiveTab(leftRounds, rightRounds) === -1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [colW, setColW] = useState(DEFAULT_COL);
   const [scale, setScale] = useState(1);
@@ -397,13 +402,43 @@ export default function BracketCanvas<T extends SlotTeam>({
         leftRounds={leftRounds}
         rightRounds={rightRounds}
         renderSlot={renderSlot}
-        mobileCenter={mobileCenter}
+        renderFinal={renderFinal}
         defaultTab={computeActiveTab(leftRounds, rightRounds)}
+        renderRoundFooter={renderRoundFooter}
       />
 
+      <div className="finale-desktop-switch paper-tabs" role="group" aria-label="Vista del cuadro">
+        <button
+          type="button"
+          className={`paper-tab ${!showFinale ? 'is-active' : ''}`}
+          aria-pressed={!showFinale}
+          onClick={() => setDesktopView('full')}
+        >
+          Cuadro completo
+        </button>
+        <button
+          type="button"
+          className={`paper-tab ${showFinale ? 'is-active' : ''}`}
+          aria-pressed={showFinale}
+          onClick={() => setDesktopView('final')}
+        >
+          Final
+        </button>
+      </div>
+      {showFinale && (
+        <div className="finale-desktop">
+          <BracketFinale
+            leftRounds={leftRounds}
+            rightRounds={rightRounds}
+            renderSlot={renderSlot}
+            center={renderFinal}
+            renderRoundFooter={renderRoundFooter}
+          />
+        </div>
+      )}
       <div
         ref={wrapperRef}
-        className={`desktop-bracket-wrapper w-full pb-2.5 flex ${isOverflowX ? 'justify-start' : 'justify-center'}`}
+        className={`${showFinale ? 'finale-full-hidden' : ''} desktop-bracket-wrapper w-full pb-2.5 flex ${isOverflowX ? 'justify-start' : 'justify-center'}`}
       >
         <div className="shrink-0 relative" style={{ width: visualWidth, height: visualHeight }}>
           <div

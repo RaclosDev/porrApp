@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
+import BracketFinale from './BracketFinale';
 import { MATCH_H, type CanvasMatch, type RenderSlot, type SlotTeam } from './BracketCanvas';
 
 type Side = 'left' | 'right';
@@ -26,7 +27,6 @@ const ALL_TABS: Tab[] = [
   { key: 'r32', label: '16avos', roundIndex: 0 },
   { key: 'r16', label: 'Octavos', roundIndex: 1 },
   { key: 'qf', label: 'Cuartos', roundIndex: 2 },
-  { key: 'sf', label: 'Semis', roundIndex: 3 },
   { key: 'final', label: 'Final', roundIndex: -1 },
 ];
 
@@ -34,7 +34,7 @@ const getTabs = (hasR32: boolean) => (hasR32 ? ALL_TABS : ALL_TABS.filter((t) =>
 
 const resolveTabIndex = (tabs: Tab[], target: number) => {
   if (typeof target === 'number') {
-    const byRound = tabs.findIndex((t) => t.roundIndex === target);
+    const byRound = tabs.findIndex((t) => t.roundIndex === (target === 3 ? -1 : target));
     if (byRound !== -1) return byRound;
     if (target >= 0 && target < tabs.length) return target;
   }
@@ -46,15 +46,17 @@ export default function MobileBracket<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
-  mobileCenter,
+  renderFinal,
   defaultTab = 0,
+  renderRoundFooter,
 }: {
   leftRounds: CanvasMatch<T>[][];
   rightRounds: CanvasMatch<T>[][];
   renderSlot: RenderSlot<T>;
   /** Contenido de la pestaña "Final". */
-  mobileCenter?: () => ReactNode;
+  renderFinal?: () => ReactNode;
   defaultTab?: number;
+  renderRoundFooter?: (roundIndex: number, side: Side) => ReactNode;
 }) {
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
   const tabs = getTabs(hasR32);
@@ -113,66 +115,18 @@ export default function MobileBracket<T extends SlotTeam>({
     const tab = tabs[activeTab] || tabs[0];
 
     if (tab.key === 'final') {
-      return mobileCenter ? (
-        <div className="mb-final-content">{mobileCenter()}</div>
-      ) : (
-        <div className="text-center text-muted p-10">Final aún por definir</div>
+      return (
+        <BracketFinale
+          leftRounds={leftRounds}
+          rightRounds={rightRounds}
+          renderSlot={renderSlot}
+          center={renderFinal}
+          renderRoundFooter={renderRoundFooter}
+        />
       );
     }
 
     const roundIndex = tab.roundIndex;
-
-    if (roundIndex === 3) {
-      const leftSF = leftRounds[3]?.[0];
-      const rightSF = rightRounds[3]?.[0];
-      const finalTab = tabs.findIndex((t) => t.key === 'final');
-
-      return (
-        <div className="mb-round">
-          {leftSF && (
-            <div className="mb-sf-card">
-              <div className="mb-sf-label">Semifinal 1</div>
-              <div className="mb-match-card">
-                {renderSlot(leftSF.home, {
-                  side: 'left',
-                  roundIndex: 3,
-                  matchIndex: 0,
-                  isHome: true,
-                })}
-                {renderSlot(leftSF.away, {
-                  side: 'left',
-                  roundIndex: 3,
-                  matchIndex: 0,
-                  isHome: false,
-                })}
-              </div>
-            </div>
-          )}
-          {rightSF && (
-            <div className="mb-sf-card">
-              <div className="mb-sf-label">Semifinal 2</div>
-              <div className="mb-match-card">
-                {renderSlot(rightSF.home, {
-                  side: 'right',
-                  roundIndex: 3,
-                  matchIndex: 0,
-                  isHome: true,
-                })}
-                {renderSlot(rightSF.away, {
-                  side: 'right',
-                  roundIndex: 3,
-                  matchIndex: 0,
-                  isHome: false,
-                })}
-              </div>
-            </div>
-          )}
-          <button type="button" className="mb-next-btn" onClick={() => goToTab(finalTab)}>
-            Ver final →
-          </button>
-        </div>
-      );
-    }
 
     const groups = buildGroups(roundIndex);
 

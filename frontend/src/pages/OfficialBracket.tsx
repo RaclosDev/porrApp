@@ -331,7 +331,7 @@ function OfficialBracketView() {
               renderSlot={renderSlot}
               renderCenter={centerContent}
               hiddenRounds={hiddenRounds}
-              mobileCenter={() => (
+              renderFinal={() => (
                 <OfficialMobileCenter
                   part={part}
                   getName={getName}
