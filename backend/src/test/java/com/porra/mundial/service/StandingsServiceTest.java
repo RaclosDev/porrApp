@@ -28,6 +28,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -211,6 +212,25 @@ class StandingsServiceTest {
 
         verify(standingRepository).saveAll(anyList());
         verify(scoreInvalidationService, never()).invalidateWorldCup();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recalculatesWithTheWorldCupMatchesItIsGivenWithoutReadingThemAgain() {
+        Team spain = Team.builder().id(1L).name("España").groupName("H").build();
+        Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
+        Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
+                .homeScore(0).awayScore(1).finished(true).matchDate(LocalDateTime.of(2026, 6, 15, 21, 0)).build();
+        when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
+        when(standingRepository.findAll()).thenReturn(List.of());
+
+        standingsService.recalculateStandingsFromMatches(List.of(played));
+
+        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
+        verify(standingRepository).saveAll(saved.capture());
+        assertEquals("Uruguay", saved.getValue().get(0).getTeam().getName());
+        assertEquals(3, saved.getValue().get(0).getPoints());
+        verifyNoInteractions(matchRepository, competitionRepository);
     }
 
     private static final long WORLD_CUP_ID = 2L;

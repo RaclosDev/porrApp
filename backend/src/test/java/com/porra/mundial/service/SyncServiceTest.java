@@ -3,6 +3,7 @@ package com.porra.mundial.service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.sports.SportsDataProviderRegistry;
@@ -27,11 +28,14 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -73,6 +77,26 @@ class SyncServiceTest {
         return event != null && id.equals(event.path("id").asText());
     }
 
+    /** El evento con ese id cambia un resultado, como haría el procesador real al guardarlo. */
+    private void givenTheEventChangesAResult(String eventId) {
+        doAnswer(inv -> {
+            inv.<MatchEventProcessor.Batch>getArgument(2).markResultsChanged();
+            return null;
+        }).when(matchEventProcessor).process(argThat(e -> isEvent(e, eventId)), any(), any());
+    }
+
+    /** Mundial y LaLiga con un evento cada uno; el del Mundial cambia un resultado. */
+    private List<Match> givenAWorldCupResultChange() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(worldCup, laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.readTree("[{\"id\": \"liga\"}]"));
+        when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026"))
+                .thenReturn(JSON.readTree("[{\"id\": \"mundial\"}]"));
+        givenTheEventChangesAResult("mundial");
+        List<Match> worldCupMatches = List.of(Match.builder().id(1L).build());
+        when(knockoutBracketService.worldCupMatches()).thenReturn(worldCupMatches);
+        return worldCupMatches;
+    }
+
     @Test
     @DisplayName("Un evento que falla no aborta la pasada: el resto se procesa")
     void skipsBrokenEvents() throws Exception {
@@ -84,8 +108,65 @@ class SyncServiceTest {
         syncService.syncAll();
 
         verify(matchEventProcessor).process(argThat(e -> isEvent(e, "2")), any(), any());
-        verify(standingsService).recalculateStandingsFromMatches();
         assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
+    @DisplayName("Un resultado del Mundial recalcula clasificación y cuadro una sola vez por pasada, con una lectura de partidos")
+    void refreshesTheWorldCupOncePerPass() throws Exception {
+        List<Match> worldCupMatches = givenAWorldCupResultChange();
+        when(knockoutBracketService.propagateKnockoutWinners(worldCupMatches)).thenReturn(2);
+
+        syncService.syncAll();
+
+        verify(knockoutBracketService, times(1)).worldCupMatches();
+        verify(knockoutBracketService, times(1)).propagateKnockoutWinners(worldCupMatches);
+        verify(standingsService, times(1)).recalculateStandingsFromMatches(worldCupMatches);
+        verify(knockoutBracketService, never()).propagateKnockoutWinners();
+        verify(standingsService, never()).recalculateStandingsFromMatches();
+        verify(scoreInvalidationService).invalidateCompetition(worldCup.getId());
+        verify(webSocketService, times(1)).notifyResultsChanged();
+        assertEquals(2, syncService.getLastMatchesUpdated());
+        assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
+    @DisplayName("Sin resultados nuevos del Mundial no se recalculan su clasificación ni su cuadro")
+    void leavesTheWorldCupAloneWhenOnlyALeagueChanges() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(worldCup, laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.readTree("[{\"id\": \"liga\"}]"));
+        when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026")).thenReturn(JSON.createArrayNode());
+        givenTheEventChangesAResult("liga");
+
+        syncService.syncAll();
+
+        verify(scoreInvalidationService).invalidateCompetition(laLiga.getId());
+        verify(knockoutBracketService, never()).worldCupMatches();
+        verify(knockoutBracketService, never()).propagateKnockoutWinners(anyList());
+        verify(standingsService, never()).recalculateStandingsFromMatches(anyList());
+        assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
+    @DisplayName("Si falla el recálculo del Mundial, la salud lo refleja y la siguiente pasada lo repite")
+    void retriesAFailedWorldCupRefreshOnTheNextPass() throws Exception {
+        List<Match> worldCupMatches = givenAWorldCupResultChange();
+        doThrow(new IllegalStateException("base de datos caída"))
+                .doNothing()
+                .when(standingsService).recalculateStandingsFromMatches(worldCupMatches);
+
+        syncService.syncAll();
+        assertEquals("error", syncService.getLastSyncStatus());
+        assertEquals("FIFA World Cup 2026: base de datos caída", syncService.getLastErrorMessage());
+
+        // La siguiente pasada no trae cambios del Mundial, pero el recálculo sigue pendiente.
+        when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026")).thenReturn(JSON.createArrayNode());
+        syncService.syncAll();
+        verify(standingsService, times(2)).recalculateStandingsFromMatches(worldCupMatches);
+        assertEquals("success", syncService.getLastSyncStatus());
+
+        syncService.syncAll();
+        verify(standingsService, times(2)).recalculateStandingsFromMatches(worldCupMatches);
     }
 
     @Test
@@ -115,21 +196,32 @@ class SyncServiceTest {
     }
 
     @Test
+    @DisplayName("Importar una liga no recalcula la clasificación ni el cuadro del Mundial")
+    void importingALeagueLeavesTheWorldCupAlone() throws Exception {
+        when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.readTree("[{\"id\": \"liga\"}]"));
+        givenTheEventChangesAResult("liga");
+
+        syncService.importCompetitionData(5L);
+
+        verify(scoreInvalidationService).invalidateCompetition(laLiga.getId());
+        verify(knockoutBracketService, never()).propagateKnockoutWinners(anyList());
+        verify(standingsService, never()).recalculateStandingsFromMatches(anyList());
+    }
+
+    @Test
     @DisplayName("El estado de salud resume todas las competiciones de la pasada")
     void healthAccumulatesEveryCompetition() throws Exception {
         when(competitionRepository.findAll()).thenReturn(List.of(worldCup, laLiga));
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
-        when(knockoutBracketService.propagateKnockoutWinners()).thenReturn(2);
-        doThrow(new IllegalStateException("base de datos caída"))
-                .doNothing()
-                .when(standingsService).recalculateStandingsFromMatches();
+        when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026"))
+                .thenThrow(new IllegalStateException("ESPN no responde"));
 
         syncService.syncAll();
 
         // Falla el Mundial, que va primero: antes, el éxito de LaLiga lo tapaba.
         assertEquals("error", syncService.getLastSyncStatus());
-        assertEquals("FIFA World Cup 2026: base de datos caída", syncService.getLastErrorMessage());
-        assertEquals(2, syncService.getLastMatchesUpdated());
+        assertEquals("FIFA World Cup 2026: ESPN no responde", syncService.getLastErrorMessage());
     }
 
     @Test
@@ -140,7 +232,7 @@ class SyncServiceTest {
         syncService.syncAll();
 
         verify(provider, never()).fetchScoreboardEvents(anyString(), anyString());
-        verify(standingsService, never()).recalculateStandingsFromMatches();
+        verify(standingsService, never()).recalculateStandingsFromMatches(anyList());
         assertEquals("circuit_breaker_open", syncService.getLastSyncStatus());
     }
 }

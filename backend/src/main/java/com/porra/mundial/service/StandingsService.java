@@ -152,19 +152,32 @@ public class StandingsService {
     @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard"}, allEntries = true)
     @org.springframework.transaction.annotation.Transactional
     public void recalculateStandingsFromMatches() {
+        recalculateWithLock(this::worldCupMatches);
+    }
+
+    /**
+     * Igual que {@link #recalculateStandingsFromMatches()}, con los partidos del Mundial ya cargados:
+     * la sincronización los lee una vez y los comparte con el cuadro de eliminatorias.
+     */
+    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard"}, allEntries = true)
+    @org.springframework.transaction.annotation.Transactional
+    public void recalculateStandingsFromMatches(List<Match> worldCupMatches) {
+        recalculateWithLock(() -> worldCupMatches);
+    }
+
+    private void recalculateWithLock(java.util.function.Supplier<List<Match>> worldCupMatches) {
         if (!recalculateLock.tryLock()) {
             log.info("Recálculo de clasificaciones omitido: ya hay otra ejecución en curso.");
             return;
         }
         try {
-            doRecalculateStandings();
+            doRecalculateStandings(worldCupMatches.get());
         } finally {
             recalculateLock.unlock();
         }
     }
 
-    private void doRecalculateStandings() {
-        List<Match> allMatches = worldCupMatches();
+    private void doRecalculateStandings(List<Match> allMatches) {
         List<Match> groupMatches = allMatches.stream()
                 .filter(m -> "group".equalsIgnoreCase(m.getRound()) && Boolean.TRUE.equals(m.getFinished())
                         && m.getHomeTeam() != null && m.getAwayTeam() != null
