@@ -9,16 +9,10 @@ public enum PoolFormat {
     FULL_BRACKET,
     /** Pronóstico parcial: solo eliminatorias (Octavos/Dieciseisavos en adelante). */
     KNOCKOUTS_ONLY,
-    /** Pronóstico jornada a jornada: predicciones partido a partido (planificado). */
+    /** Jornada a jornada: 1X2 y marcador de cada partido. */
     MATCH_DAY;
 
-    /**
-     * Parsea un string al enum de forma tolerante a nulos o mayúsculas.
-     * Retorna FULL_BRACKET por defecto.
-     *
-     * @param val Cadena a parsear.
-     * @return PoolFormat correspondiente o FULL_BRACKET.
-     */
+    /** null o desconocido → FULL_BRACKET. */
     public static PoolFormat fromString(String val) {
         if (val == null || val.isBlank()) {
             return FULL_BRACKET;

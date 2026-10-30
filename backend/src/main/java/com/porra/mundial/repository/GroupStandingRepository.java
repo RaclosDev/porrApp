@@ -12,13 +12,7 @@ import java.util.List;
 @Repository
 public interface GroupStandingRepository extends JpaRepository<GroupStanding, Long> {
     
-    /**
-     * "Dame la clasificación de todo el Mundial, ordenada por grupos de la A a la L"
-     */
     List<GroupStanding> findAllByOrderByGroupNameAsc();
 
-    /**
-     * "Dame la clasificación completa ordenada directamente por grupo y posición oficial"
-     */
     List<GroupStanding> findAllByOrderByGroupNameAscPositionAsc();
 }

@@ -16,8 +16,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- *  Servicio de Clasificaciones (StandingsService).
- * Gestiona y calcula la clasificación real de los grupos del Mundial.
+ * Clasificación de los grupos del Mundial.
  * Los desempates son los del artículo 13 del reglamento, en {@link GroupTiebreaker}.
  */
 @Service
@@ -80,10 +79,7 @@ public class StandingsService {
         return GroupTiebreaker.sort(standings, allGroupMatches);
     }
 
-    /**
-     * Construye un mapa ultra-optimizado con las estadísticas de la vida real.
-     * Formato: Map<Grupo, Map<Equipo, Map<StatName, Valor>>>
-     */
+    /** grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). */
     @org.springframework.cache.annotation.Cacheable("officialPoints")
     public Map<String, Map<String, Map<String, Integer>>> getOfficialPoints() {
         Map<String, Map<String, Map<String, Integer>>> result = new TreeMap<>();

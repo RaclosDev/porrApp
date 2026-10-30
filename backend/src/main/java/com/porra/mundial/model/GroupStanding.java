@@ -13,12 +13,10 @@ import lombok.*;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class GroupStanding {
 
-    /** Identificador único autogenerado. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** A qué equipo pertenece esta estadística. */
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "team_id")
     private Team team;
@@ -53,7 +51,7 @@ public class GroupStanding {
     @Builder.Default
     private Integer position = 0;
 
-    /** Estado matemático (0: en juego, 5: clasificado, -1: eliminado). */
+    /** Estado matemático: 0 en juego, 1-4 puesto asegurado, 5 entre los dos primeros, -1 eliminado. */
     @Column(name = "status")
     @Builder.Default
     private Integer status = 0;

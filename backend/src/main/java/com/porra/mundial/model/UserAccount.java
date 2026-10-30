@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 /**
  * Entidad 'UserAccount'.
  * Guarda la relación entre una cuenta de Google (email) y el nombre de participante en la porra.
- * Esto evita suplantaciones de identidad y permite el SSO seguro.
  */
 @Entity
 @Table(name = "app_users")
@@ -21,7 +20,6 @@ public class UserAccount {
      */
     public static final String SYSTEM_ADMIN_EMAIL = "admin@local";
 
-    /** Identificador autogenerado del usuario en la base de datos. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -37,7 +35,6 @@ public class UserAccount {
     @Column(nullable = false, unique = true)
     private String googleEmail;
 
-    /** El nombre real que tiene configurado en su cuenta de Google. */
     private String googleName;
 
     /** El apodo o nombre visible con el que se identifica en el ranking y grupos (Ej: "Raclos"). */

@@ -10,7 +10,7 @@ public class MatchScoringCalculator {
 
     public MatchScoreResult calculateSign(String sign, Integer actualHome, Integer actualAway, ScoringRuleSet rules) {
         if (actualHome == null || actualAway == null || sign == null) {
-            return MatchScoreResult.zero("Resultado o pronostico incompleto");
+            return MatchScoreResult.zero("Resultado o pronóstico incompleto");
         }
         String actualSign = actualHome > actualAway ? "1" : actualHome.equals(actualAway) ? "X" : "2";
         if (!actualSign.equals(sign)) {
@@ -26,7 +26,7 @@ public class MatchScoringCalculator {
         }
 
         if (predHome == null || predAway == null || actualHome == null || actualAway == null) {
-            return MatchScoreResult.zero("Resultado o pronostico incompleto");
+            return MatchScoreResult.zero("Resultado o pronóstico incompleto");
         }
 
         if (predHome.equals(actualHome) && predAway.equals(actualAway)) {

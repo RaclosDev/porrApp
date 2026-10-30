@@ -18,17 +18,14 @@ import java.time.LocalDateTime;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Prediction {
 
-    /** Identificador unico autogenerado del pronostico. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Usuario (Participante) propietario de este pronostico. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserAccount user;
 
-    /** Edicion de la competicion a la que pertenece el pronostico. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "edition_id", nullable = false)
     private Edition edition;
@@ -50,7 +47,6 @@ public class Prediction {
     @JoinColumn(name = "payment_marked_by")
     private UserAccount paymentMarkedBy;
 
-    /** Fecha exacta en la que se envio o guardo el pronostico. */
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -59,7 +55,7 @@ public class Prediction {
     @Column(name = "bracket_data", columnDefinition = "TEXT")
     private PredictionDataDTO bracketData;
 
-    /* --- PUNTUACIONES MATERIALIZADAS (Evita N+1 y recálculo en cada GET /api/leaderboard) --- */
+    // Puntos guardados: la clasificación no recalcula en cada GET /api/leaderboard.
 
     @Column(name = "total_points")
     @Builder.Default
@@ -115,7 +111,7 @@ public class Prediction {
 
     @Transient
     public void setParticipantName(String name) {
-        // Ignored by DB
+        // Valor derivado; el setter se ignora a propósito.
     }
 
     @Transient
@@ -125,7 +121,7 @@ public class Prediction {
 
     @Transient
     public void setGroupId(Long id) {
-        // Ignored
+        // Valor derivado; el setter se ignora a propósito.
     }
 
     @Transient

@@ -5,10 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * Registro y despachador de proveedores de datos deportivos (Fase 4).
- * Permite resolver dinámicamente el adapter adecuado según la competición.
- */
+/** Elige el proveedor de datos de cada competición. */
 @Component
 @RequiredArgsConstructor
 public class SportsDataProviderRegistry {

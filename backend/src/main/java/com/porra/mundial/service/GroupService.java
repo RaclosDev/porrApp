@@ -38,11 +38,7 @@ import java.util.stream.Collectors;
 
 
 
-/**
- *  Servicio de Grupos/Ligas (GroupService).
- * Maneja la creación de ligas privadas, invitar amigos con códigos (Join Code),
- * nombrar administradores y borrar o abandonar ligas.
- */
+/** Ligas: creación, invitaciones, miembros, pagos y abandono. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -60,11 +56,7 @@ public class GroupService {
     @Value("${app.admins:Admin}")
     private List<String> appAdmins;
 
-    /**
-     * Script de inicialización que corre al arrancar el backend.
-     * Crea automáticamente la League.GLOBAL_NAME oficial si no existe,
-     * para asegurar que los usuarios sin grupo puedan participar en algo.
-     */
+    /** Al arrancar, garantiza la Porra Global (id, código, edición y administrador). */
     @PostConstruct
     @Transactional
     public void initDefaultGroup() {
@@ -192,9 +184,6 @@ public class GroupService {
         return createGroup(name, email, competitionId, poolFormat, true);
     }
 
-    /**
-     * Sobrecarga de creación de grupo para especificar si la predicción de Pichichi está activa.
-     */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
@@ -279,9 +268,6 @@ public class GroupService {
         return competitionRepository.findByExternalId(slug).orElse(comp);
     }
     
-    /**
-     * Vincula a un usuario (Miembro) con un Grupo a través del JoinCode.
-     */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void joinGroupMembership(Long groupId, String email) {
@@ -302,15 +288,12 @@ public class GroupService {
         }
     }
 
-    /**
-     * Permite a un Admin renombrar su propia liga.
-     */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League updateGroup(Long groupId, String newName, String newRules, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
 
         boolean changed = false;
 
@@ -334,9 +317,6 @@ public class GroupService {
         return leagueRepository.save(group);
     }
 
-    /**
-     * Permite a un Admin eliminar toda la liga, incluyendo usuarios, membresías y pronósticos dentro.
-     */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void deleteGroup(Long groupId, String email) {
@@ -467,14 +447,11 @@ public class GroupService {
         return membershipRepository.existsById(memId);
     }
 
-    /**
-     * Permite a un miembro normal (No-Admin) abandonar la liga por su cuenta.
-     */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void leaveGroup(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-            .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+            .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
 
         if (group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
             throw new IllegalArgumentException("El creador de la liga no puede abandonarla.");
@@ -494,29 +471,24 @@ public class GroupService {
         }
     }
 
-    /**
-     * Middleware de seguridad para comprobar si eres Admin antes de ejecutar acciones criticas.
-     */
+    /** Falla si el usuario no administra la liga. */
     private void verifyGroupAdmin(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
                                
         if (!group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
             throw new SecurityException("No tienes permiso para administrar esta liga.");
         }
     }
 
-    /**
-     * Cambiar el estado de pago de un pronostico concreto dentro del grupo.
-     */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction togglePredictionPaymentStatus(Long groupId, Long predictionId, String email, boolean paid) {
         verifyGroupAdmin(groupId, email);
         Prediction pred = predictionRepository.findById(predictionId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Pronostico no encontrado"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Pronóstico no encontrado"));
         if (!groupId.equals(pred.getGroupId())) {
-            throw new IllegalArgumentException("El pronostico no pertenece a este grupo");
+            throw new IllegalArgumentException("El pronóstico no pertenece a esta liga");
         }
         pred.setPaid(paid);
         return predictionRepository.save(pred);
@@ -527,9 +499,9 @@ public class GroupService {
     public void deletePrediction(Long groupId, Long predictionId, String email) {
         verifyGroupAdmin(groupId, email);
         Prediction pred = predictionRepository.findById(predictionId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Pronostico no encontrado"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Pronóstico no encontrado"));
         if (!groupId.equals(pred.getGroupId())) {
-            throw new IllegalArgumentException("El pronostico no pertenece a este grupo");
+            throw new IllegalArgumentException("El pronóstico no pertenece a esta liga");
         }
         predictionRepository.delete(pred);
     }
@@ -541,7 +513,7 @@ public class GroupService {
     @Transactional(readOnly = true)
     public List<GroupMemberDTO> getGroupMembers(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
 
         boolean isGlobal = group.isGlobal();
         boolean callerIsAdmin = false;
@@ -621,7 +593,6 @@ public class GroupService {
         mem.setPaymentStatus(cleanStatus);
         membershipRepository.save(mem);
 
-        // Sincronizar predicciones del usuario en esta edición
         List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
         for (Prediction p : preds) {
             if (p.getUser() != null && p.getUser().getId().equals(targetUserId)) {
@@ -640,13 +611,12 @@ public class GroupService {
     public void kickMember(Long groupId, Long targetUserId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
 
         if (group.getAdminUser() != null && group.getAdminUser().getId().equals(targetUserId)) {
             throw new IllegalArgumentException("No puedes expulsar al administrador creador de la liga.");
         }
 
-        // Eliminar predicciones del usuario en la liga
         List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
         for (Prediction p : preds) {
             if (p.getUser() != null && p.getUser().getId().equals(targetUserId)) {
@@ -666,7 +636,7 @@ public class GroupService {
     public String regenerateJoinCode(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Grupo no encontrado"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
 
         String newCode;
         do {

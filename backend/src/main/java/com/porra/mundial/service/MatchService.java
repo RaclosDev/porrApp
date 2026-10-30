@@ -12,11 +12,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- *  Servicio de Partidos (MatchService).
- * Encapsula la lógica de negocio para consultar la cartelera de partidos
- * reales (finalizados, en directo o próximos).
- */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -24,26 +19,16 @@ public class MatchService {
 
     private final MatchRepository matchRepository;
 
-    /**
-     * @return Todo el calendario completo del torneo.
-     */
     @org.springframework.cache.annotation.Cacheable("matches")
     public List<Match> getAllMatches() {
         return matchRepository.findAll();
     }
 
-    /**
-     * @param competitionId Identificador de la competición.
-     * @return Todos los partidos disputados o por disputar en una competición, ordenados cronológicamente.
-     */
     public List<Match> getMatchesByCompetition(Long competitionId) {
         return matchRepository.findByCompetitionIdOrderByMatchDateAsc(competitionId);
     }
 
-    /**
-     * Devuelve los partidos que se están jugando AHORA MISMO,
-     * o que están a punto de empezar en los próximos 20 minutos.
-     */
+    /** Partidos en juego o que empiezan en los próximos 20 minutos. */
     public List<Match> getLiveMatches() {
         return getLiveMatches(null);
     }
@@ -63,10 +48,6 @@ public class MatchService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * @param limit Cuántos partidos devolver.
-     * @return Los últimos N partidos finalizados, ideal para mostrar un resumen rápido.
-     */
     public List<Match> getLastMatches(int limit) {
         return getLastMatches(limit, null);
     }
@@ -79,10 +60,6 @@ public class MatchService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * @param limit Cuántos partidos devolver.
-     * @return Los próximos N partidos que se jugarán en el futuro (la cartelera).
-     */
     public List<Match> getNextMatches(int limit) {
         return getNextMatches(limit, null);
     }
@@ -107,16 +84,10 @@ public class MatchService {
         return homeBogus && awayBogus;
     }
 
-    /**
-     * Busca un partido por el ID de la API remota (ESPN).
-     */
     public Optional<Match> findByExternalId(String externalId) {
         return matchRepository.findByExternalId(externalId);
     }
 
-    /**
-     * Guarda o actualiza un partido en base de datos.
-     */
     @org.springframework.cache.annotation.CacheEvict(value = {"matches", "matchRadar", "standings", "officialPoints", "leaderboard"}, allEntries = true)
     @Transactional
     public Match save(Match match) {

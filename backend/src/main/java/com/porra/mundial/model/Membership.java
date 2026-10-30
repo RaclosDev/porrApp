@@ -5,27 +5,20 @@ import lombok.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-/**
- *  Entidad 'Membership' (Membresía).
- * Tabla intermedia que representa la relación Muchos-a-Muchos entre Usuarios y Grupos.
- * Indica que un usuario pertenece a un grupo específico.
- */
+/** Pertenencia de un usuario a una liga (relación muchos a muchos). */
 @Entity
 @Table(name = "memberships")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Membership {
 
-    /** Identificador compuesto (Usuario ID + Grupo ID). */
     @EmbeddedId
     private MembershipId id;
 
-    /** Relación hacia la entidad del Usuario. */
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
     @JoinColumn(name = "user_id")
     private UserAccount user;
 
-    /** Relación hacia la entidad del Grupo. */
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("leagueId")
     @JoinColumn(name = "league_id")
@@ -45,9 +38,6 @@ public class Membership {
     @Builder.Default
     private LocalDateTime joinedAt = LocalDateTime.now();
 
-    /**
-     * Clase estática que representa la clave primaria compuesta.
-     */
     @Embeddable
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @EqualsAndHashCode
     public static class MembershipId implements Serializable {
