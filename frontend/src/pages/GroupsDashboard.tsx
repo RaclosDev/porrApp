@@ -89,7 +89,7 @@ export default function GroupsDashboard() {
 
   if (!userName) {
     return (
-      <div className="join-auth-screen text-center p-6">
+      <div className="join-auth-screen paper-panel album-sheet landing-tape text-center p-6">
         <h2 className="poster-title text-2xl mb-5">Inicia sesión para crear o unirte a una liga</h2>
         <div className="flex justify-center">
           <GoogleLogin

@@ -12,7 +12,7 @@ function Radar() {
 
   if (loading)
     return (
-      <section className="view-section active block">
+      <section className="view-section active block paper-panel album-sheet landing-tape">
         <div className="skeleton skeleton-text short h-6 mt-0 mb-7.5 mx-auto" />
         <div className="flex flex-col gap-[15px] max-w-150 my-0 mx-auto">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -90,7 +90,10 @@ function Radar() {
   };
 
   return (
-    <section id="view-radar" className="view-section active block">
+    <section
+      id="view-radar"
+      className="view-section active block paper-panel album-sheet landing-tape"
+    >
       <div className="section-header mb-5 text-center">
         <h2 className="m-0 poster-title">Partidos</h2>
       </div>

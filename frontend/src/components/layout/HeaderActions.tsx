@@ -54,7 +54,7 @@ export default function HeaderActions({
             id="btn-login-header"
             type="button"
             onClick={() => setShowMyPredictionModal(true)}
-            className="glass-btn h-11 py-0 px-4 text-[0.88rem] rounded-[10px] flex items-center justify-center gap-2 font-bold cursor-pointer whitespace-nowrap bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]"
+            className="glass-btn header-paper-action h-11 py-0 px-4 text-[0.88rem] flex items-center justify-center gap-2 whitespace-nowrap"
             title="Iniciar sesión"
           >
             <span>Iniciar sesión</span>
@@ -74,10 +74,10 @@ export default function HeaderActions({
           </button>
 
           {showProfileMenu && (
-            <div className="absolute top-full right-0 bg-[#151525] bg-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-[rgba(255,_255,_255,_0.1)] rounded-[12px] p-3 mt-2.5 z-[100] min-w-50 flex flex-col gap-2.5">
+            <div className="paper-panel album-sheet absolute top-full right-0 p-3 mt-2.5 z-[100] min-w-50 flex flex-col gap-2.5">
               <div className="border-b border-b-[rgba(255,_255,_255,_0.08)] pb-2 flex items-center gap-2">
                 <UserAvatar url={userAvatarUrl} userId={userId} name={userName} size={32} />
-                <div className="overflow-hidden font-bold text-white text-[0.9rem] text-ellipsis whitespace-nowrap">
+                <div className="overflow-hidden font-bold text-main text-[0.9rem] text-ellipsis whitespace-nowrap">
                   {userName || 'Usuario'}
                 </div>
               </div>

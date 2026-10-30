@@ -122,7 +122,7 @@ function PredictionViewer({
       <ViewerModal
         dialogRef={dialogRef}
         onClose={handleClose}
-        className="modal-content w-[95vw] max-w-150 py-7 px-6"
+        className="modal-content paper-panel album-sheet landing-tape w-[95vw] max-w-150 py-7 px-6"
       >
         <PredictionSkeleton compact />
         <button onClick={handleClose} className="glass-btn mt-2 w-full">

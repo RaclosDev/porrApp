@@ -24,7 +24,7 @@ function Stats() {
 
   if (activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE') {
     return (
-      <section id="view-stats" className="view-section block">
+      <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
         <InsightsHeader leagueName={activeGroupName} summary="Por partido" withSearch={false} />
         {activeGroupId ? (
           <MatchdayStatsView groupId={activeGroupId} />
@@ -46,7 +46,7 @@ function BracketStatsPage() {
       : undefined;
 
   return (
-    <section id="view-stats" className="view-section block">
+    <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
       <InsightsHeader leagueName={insights.leagueName} summary={summary} withSearch />
       <BracketInsightsGate insights={insights}>
         <BracketStats

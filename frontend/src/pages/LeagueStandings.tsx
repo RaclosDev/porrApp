@@ -78,7 +78,7 @@ export default function LeagueStandings() {
           ))}
         </div>
       ) : isError || !standings || !Array.isArray(standings) || standings.length === 0 ? (
-        <div className="glass-panel standings-empty">
+        <div className="paper-panel album-sheet landing-tape standings-empty">
           <div className="standings-empty-icon" aria-hidden="true">
             📊
           </div>

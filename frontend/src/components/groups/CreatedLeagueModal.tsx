@@ -25,9 +25,9 @@ export default function CreatedLeagueModal({
   useDialogFocus(dialogRef, { onEscape: () => setNewlyCreatedGroup(null) });
 
   return (
-    <div className="fixed inset-0 bg-[rgba(0,_0,_0,_0.8)] bg-none [backdrop-filter:blur(6px)] flex items-center justify-center z-[9999] p-5">
+    <div className="paper-dialog-overlay">
       <div
-        className="bg-[#1e293b] bg-none border border-[#00d2d3] rounded-[16px] max-w-120 w-full p-7 text-center shadow-[0_20px_40px_rgba(0,_0,_0,_0.6)] relative"
+        className="paper-panel album-sheet landing-tape paper-dialog overflow-y-auto max-w-120 w-full p-7 text-center relative"
         role="dialog"
         aria-modal="true"
         aria-labelledby="created-league-title"
@@ -42,10 +42,10 @@ export default function CreatedLeagueModal({
         >
           ✕
         </button>
-        <h2 id="created-league-title" className="text-[#00d2d3] mt-0 mb-2 mx-0 text-[1.5rem]">
+        <h2 id="created-league-title" className="poster-title mt-0 mb-2 mx-0 text-[1.5rem]">
           ¡Tu liga está lista!
         </h2>
-        <p className="text-white font-bold text-[1.1rem] mt-0 mb-4 mx-0">
+        <p className="marker-ink font-bold text-[1.1rem] mt-0 mb-4 mx-0">
           "{newlyCreatedGroup.name}"
         </p>
         <p className="text-muted text-[0.9rem] mb-5">
@@ -53,9 +53,9 @@ export default function CreatedLeagueModal({
           pronosticar.
         </p>
 
-        <div className="bg-[rgba(0,_0,_0,_0.4)] bg-none border border-dashed border-[#00d2d3] rounded-[12px] p-4 mb-5">
+        <div className="border border-dashed border-line rounded-[12px] p-4 mb-5">
           <div className="text-[0.8rem] text-muted mb-1">Código de invitación</div>
-          <div className="text-[2rem] font-black tracking-[6px] text-[#fbc531] mb-2.5">
+          <div className="text-[clamp(1.1rem,6vw,2rem)] font-black tracking-[0.12em] break-all marker-ink mb-2.5">
             {newlyCreatedGroup.joinCode}
           </div>
           <div className="flex gap-2 justify-center flex-wrap">
@@ -97,7 +97,7 @@ export default function CreatedLeagueModal({
                 navigate('/prediction');
               }
             }}
-            className="glass-btn primary-btn w-full p-3 text-[0.95rem] bg-[#00d2d3] bg-none text-[#0f172a] font-bold"
+            className="glass-btn primary-btn w-full p-3 text-[0.95rem] font-bold"
           >
             {newlyCreatedGroup.poolFormat === 'MATCH_DAY'
               ? 'Pronosticar la jornada'

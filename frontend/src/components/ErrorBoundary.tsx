@@ -52,22 +52,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 shadow-2xl backdrop-blur text-center space-y-6">
-            <div className="w-16 h-16 mx-auto bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center text-amber-400">
+          <div className="paper-panel album-sheet landing-tape w-full max-w-md p-6 text-center space-y-6">
+            <div className="w-16 h-16 mx-auto flex items-center justify-center marker-ink">
               <AlertTriangle className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-xl font-bold tracking-tight text-white">
-                Esta pantalla ha fallado
-              </h1>
-              <p className="text-sm text-slate-400 leading-relaxed">
+              <h1 className="poster-title text-xl">Esta pantalla ha fallado</h1>
+              <p className="text-sm text-muted leading-relaxed">
                 Ha ocurrido un problema inesperado en la aplicación. Puedes intentar recargar la
                 página o volver a la pantalla de inicio.
               </p>
             </div>
 
-            {this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <div className="text-left bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-xs text-rose-300 font-mono break-all max-h-28 overflow-y-auto">
                 {this.state.error.message || 'Error desconocido'}
               </div>
@@ -84,7 +82,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
               <button
                 onClick={this.handleGoHome}
-                className="w-full py-3 px-4 bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-slate-200 font-medium rounded-xl transition flex items-center justify-center gap-2"
+                className="glass-btn w-full flex items-center justify-center gap-2"
               >
                 <Home className="w-4 h-4" />
                 Volver al inicio
@@ -92,7 +90,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
               <button
                 onClick={this.handleResetStorage}
-                className="w-full min-h-11 py-2 px-3 text-xs text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5"
+                className="w-full min-h-11 py-2 px-3 text-xs text-muted transition flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Limpiar datos locales y reiniciar

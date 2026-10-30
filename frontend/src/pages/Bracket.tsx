@@ -301,7 +301,7 @@ function Bracket() {
 
           <div
             id="controls-section"
-            className={`glass-panel mt-7.5 p-5 ${mobileStep === 'save' ? '' : 'mobile-step-hidden'}`}
+            className={`paper-panel album-sheet landing-tape mt-7.5 p-5 ${mobileStep === 'save' ? '' : 'mobile-step-hidden'}`}
           >
             <h3 className="mt-0 text-accent-text">Guardar porra</h3>
             <div className="flex gap-[15px] flex-wrap mb-[15px]">

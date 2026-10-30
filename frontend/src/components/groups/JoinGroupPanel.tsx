@@ -31,7 +31,7 @@ export default function JoinGroupPanel({
           </button>
         </div>
         <p className="text-muted text-[0.88rem] m-0">Escribe el código de invitación de la liga:</p>
-        <form className="flex gap-2.5" onSubmit={handleJoin}>
+        <form className="flex flex-wrap gap-2.5" onSubmit={handleJoin}>
           <input
             type="text"
             value={joinCode}
@@ -39,7 +39,7 @@ export default function JoinGroupPanel({
             placeholder="Ej: X9K2PLMQ7R"
             aria-label="Código de invitación"
             maxLength={10}
-            className="glass-input flex-1 uppercase tracking-[2px] font-bold"
+            className="glass-input flex-1 min-w-0 uppercase tracking-[2px] font-bold"
           />
           <button type="submit" className="glass-btn primary-btn font-bold">
             Unirse

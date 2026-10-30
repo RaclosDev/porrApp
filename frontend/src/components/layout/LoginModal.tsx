@@ -36,12 +36,8 @@ export default function LoginModal({
       ref={dialogRef}
       tabIndex={-1}
     >
-      <div className="modal-content glass-panel max-w-105 text-center py-[35px] px-[25px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.5)]">
-        <h3
-          id="login-modal-title"
-          className="text-accent-text mb-5 text-[1.8rem] tracking-[1px]"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
-        >
+      <div className="modal-content paper-panel album-sheet landing-tape max-w-105 text-center py-[35px] px-[25px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.5)]">
+        <h3 id="login-modal-title" className="poster-title mb-5 text-[1.8rem]">
           Iniciar sesión
         </h3>
         <div>
@@ -52,7 +48,7 @@ export default function LoginModal({
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => toast.error('Inicio de sesión cancelado o fallido')}
-              theme="filled_black"
+              theme="outline"
               shape="pill"
               text="continue_with"
             />

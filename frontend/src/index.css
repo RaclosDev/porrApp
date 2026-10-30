@@ -6050,3 +6050,15 @@
   --tape-x: 62%;
   --tape-angle: 5deg;
 }
+
+.header-paper-action {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper);
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.paper-panel .scoring-row-error {
+  color: var(--miss);
+}

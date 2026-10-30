@@ -258,7 +258,7 @@ export default function GroupStage({
             return (
               <div
                 key={groupName}
-                className="group-card glass-panel relative flex flex-col gap-2"
+                className="group-card paper-panel album-sheet relative flex flex-col gap-2"
                 style={{ zIndex: 50 - idx }}
               >
                 <h3 className="mt-0 mb-[5px] mx-0 text-center border-b border-b-[rgba(255,255,255,0.1)] pb-1.5 text-[1.1rem]">
@@ -293,7 +293,7 @@ export default function GroupStage({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <span className="text-[0.8rem] text-[#00d2d3] font-bold">1.º clasificado</span>
+                  <span className="text-[0.8rem] text-accent-text font-bold">1.º clasificado</span>
                   <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.first || ''}
@@ -309,7 +309,7 @@ export default function GroupStage({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <span className="text-[0.8rem] text-[#a29bfe] font-bold">2.º clasificado</span>
+                  <span className="text-[0.8rem] text-accent-text font-bold">2.º clasificado</span>
                   <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.second || ''}
@@ -361,11 +361,11 @@ export default function GroupStage({
       </div>
 
       <div className={mobileStep === 'thirds' ? '' : 'mobile-step-hidden'}>
-        <div className="p-5 bg-[rgba(255,255,255,0.05)] bg-none rounded-[12px] mb-7.5 border border-[rgba(255,255,255,0.1)]">
-          <h3 className="text-center text-[#a29bfe] mt-0">Elige los 8 mejores terceros</h3>
+        <div className="paper-panel album-sheet p-5 mb-7.5">
+          <h3 className="text-center marker-ink mt-0">Elige los 8 mejores terceros</h3>
           <p className="text-center text-[0.9rem] text-muted">
             Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los 8 que
-            pasarán a octavos de final (
+            pasarán a las eliminatorias (
             <strong
               className={`${advancingThirds.length === 8 ? 'text-[#00b894]' : 'text-[#ff4757]'}`}
             >
@@ -406,7 +406,7 @@ export default function GroupStage({
           )}
         </div>
 
-        <div className="text-center p-5 bg-[rgba(255,255,255,0.05)] bg-none rounded-[12px] border border-[rgba(255,255,255,0.1)]">
+        <div className="paper-panel album-sheet text-center p-5">
           <button
             onClick={handleSubmit}
             className="glass-btn primary-btn text-[1.2rem] py-3 px-7.5"

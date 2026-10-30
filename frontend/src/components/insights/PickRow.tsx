@@ -10,7 +10,7 @@ export function RealMark({ status, yes, no }: { status: RealStatus; yes: string;
   const Icon = ok ? Check : X;
   return (
     <span
-      className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full ${ok ? 'bg-[rgba(74,222,128,0.16)] text-[#4ade80]' : 'bg-[rgba(248,113,113,0.14)] text-[#f87171]'}`}
+      className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full ${ok ? 'bg-[rgba(74,222,128,0.16)] text-[var(--hit)]' : 'bg-[rgba(248,113,113,0.14)] text-[var(--miss)]'}`}
       title={ok ? yes : no}
     >
       <Icon size={13} strokeWidth={3} aria-hidden="true" />
@@ -59,9 +59,9 @@ export default function PickRow({
         <span className="shrink-0 font-bold tabular-nums text-main">{percent} %</span>
       </div>
       <div className="mt-1.5 flex items-center gap-2">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)]">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[rgba(100,116,139,0.15)]">
           <div
-            className={`h-full rounded-full ${highlight ? 'bg-[#4ade80]' : 'bg-cyan'}`}
+            className={`h-full rounded-full ${highlight ? 'bg-[var(--hit)]' : 'bg-cyan'}`}
             style={{ width: `${percent}%` }}
           />
         </div>

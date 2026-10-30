@@ -34,7 +34,7 @@ export default function CreateLeagueWizard({
 }: CreateLeagueWizardProps) {
   return (
     <div className="max-w-205 mt-0 mb-7.5 mx-auto">
-      <div className="glass-panel p-6 flex flex-col gap-4 border border-[#00d2d3]">
+      <div className="paper-panel album-sheet landing-tape p-6 flex flex-col gap-4">
         <div className="flex justify-between items-center">
           <h3 className="m-0 text-accent-text flex items-center gap-2.5">Crear liga</h3>
           <button
@@ -104,7 +104,7 @@ export default function CreateLeagueWizard({
             </div>
           </div>
 
-          <label className="flex items-center gap-2.5 text-muted text-[0.85rem] cursor-pointer py-2 px-3 bg-[rgba(0,0,0,0.2)] bg-none border border-[rgba(255,255,255,0.1)] rounded-[8px]">
+          <label className="flex items-center gap-2.5 text-muted text-[0.85rem] cursor-pointer py-2 px-3 border border-line rounded-[8px]">
             <input
               type="checkbox"
               checked={includePichichi}

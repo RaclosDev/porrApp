@@ -139,7 +139,7 @@ function BracketSearch() {
   const selectedRow = rows.find((r) => r.stage === stage);
 
   return (
-    <section id="view-search" className="view-section block">
+    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
       <InsightsHeader
         leagueName={insights.leagueName}
         summary={entries.length > 0 ? `${entries.length} cuadros` : undefined}
