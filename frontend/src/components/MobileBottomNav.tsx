@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, matchPath, useLocation } from 'react-router-dom';
 import {
   Home,
   Trophy,
@@ -56,14 +56,36 @@ export default function MobileBottomNav() {
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
         ];
 
+  const { pathname } = useLocation();
+  const activeIndex = navItems.findIndex((item) =>
+    matchPath({ path: item.to, end: item.end ?? false }, pathname),
+  );
+  // Si la ruta no tiene pestaña, el indicador se oculta en la última posición para que al
+  // volver salga de ahí y no desde la primera pestaña.
+  const [lastActiveIndex, setLastActiveIndex] = useState(Math.max(activeIndex, 0));
+  if (activeIndex !== -1 && activeIndex !== lastActiveIndex) {
+    setLastActiveIndex(activeIndex);
+  }
+  const indicatorIndex = activeIndex === -1 ? lastActiveIndex : activeIndex;
+
   return (
     <nav
       className={`mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 bg-[rgba(12,_18,_34,_0.88)] bg-none [backdrop-filter:blur(24px)_saturate(190%)] border border-[rgba(255,_255,_255,_0.12)] rounded-[32px] flex items-center justify-around py-0 px-1.5 z-[1000] shadow-[0_16px_36px_-4px_rgba(0,_0,_0,_0.65),_0_0_0_1px_rgba(255,_255,_255,_0.05),_inset_0_1px_0_rgba(255,_255,_255,_0.15)] ${isNavLocked ? 'opacity-[0.45]' : 'opacity-[1]'} ${isNavLocked ? 'pointer-events-none' : 'pointer-events-auto'}`}
       aria-label="Navegación principal móvil"
       inert={isNavLocked}
       aria-disabled={isNavLocked || undefined}
-      style={{ WebkitBackdropFilter: 'blur(24px) saturate(190%)' }}
+      style={
+        {
+          WebkitBackdropFilter: 'blur(24px) saturate(190%)',
+          '--nav-active': indicatorIndex,
+          '--nav-count': navItems.length,
+        } as React.CSSProperties
+      }
     >
+      <span
+        className={`mobile-nav-indicator ${activeIndex === -1 ? 'is-hidden' : ''}`}
+        aria-hidden="true"
+      />
       {navItems.map((item) => {
         const IconComponent = item.icon;
         return (
@@ -83,7 +105,6 @@ export default function MobileBottomNav() {
               flex: 1,
               height: '50px',
               borderRadius: '25px',
-              background: isActive ? 'rgba(0, 210, 211, 0.14)' : 'transparent',
               color: isActive ? 'var(--accent-cyan, #00d2d3)' : '#94a3b8',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               WebkitTapHighlightColor: 'transparent',
