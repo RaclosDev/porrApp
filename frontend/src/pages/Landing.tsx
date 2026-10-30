@@ -1,8 +1,7 @@
-import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import MarkerHeading from '../components/landing/MarkerHeading';
-import StickerCard from '../components/landing/StickerCard';
+import StickerCard from '../components/StickerCard';
 import NetLine from '../components/landing/NetLine';
 import GhostWord from '../components/landing/GhostWord';
 import FixtureSheet from '../components/landing/FixtureSheet';
@@ -16,20 +15,6 @@ import {
 import { useLandingData } from '../hooks/useLandingData';
 
 const REPO_URL = 'https://github.com/RaclosDev/porrApp';
-const FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Anton&family=Permanent+Marker&display=swap';
-
-/** Las letras de cartel y de rotulador solo las usa la portada, así que se piden desde aquí. */
-function useLandingFonts() {
-  useEffect(() => {
-    if (document.querySelector(`link[href="${FONTS_URL}"]`)) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = FONTS_URL;
-    document.head.appendChild(link);
-  }, []);
-}
-
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
 
 /**
@@ -37,7 +22,6 @@ const FAN_ANGLES = [-8, -3, 0, 3, 8];
  * los primeros de la Porra Global y los dos formatos de liga.
  */
 export default function Landing() {
-  useLandingFonts();
   const { reduced } = useLandingMotion();
   const { leaders, participants, champion, nextFixtures, loading, error } = useLandingData();
   const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
@@ -141,7 +125,7 @@ export default function Landing() {
           className="mt-10 flex flex-wrap items-center justify-center gap-6"
         >
           {champion ? (
-            <span className="landing-stamp">
+            <span className="ink-stamp ink-stamp-paper">
               {champion.team} campeona en {champion.count} de {champion.total} cuadros
             </span>
           ) : null}
@@ -166,7 +150,7 @@ export default function Landing() {
             viewport={inViewOnce}
             className="landing-poster landing-tape rotate-1 p-6 sm:p-8 flex flex-col gap-4"
           >
-            <h3 className="landing-display text-4xl">Cuadro</h3>
+            <h3 className="poster-title text-4xl">Cuadro</h3>
             <p className="text-[#1f2937] leading-snug">
               Para el Mundial. Ordenas los grupos, rellenas las eliminatorias hasta el campeón y
               eliges al pichichi. Los cruces se calculan solos y los puntos llegan con cada partido.
@@ -191,7 +175,7 @@ export default function Landing() {
             viewport={inViewOnce}
             className="landing-poster landing-tape -rotate-1 p-6 sm:p-8 flex flex-col gap-4"
           >
-            <h3 className="landing-display text-4xl">Jornadas</h3>
+            <h3 className="poster-title text-4xl">Jornadas</h3>
             <p className="text-[#1f2937] leading-snug">
               Para LaLiga, la Premier, la Champions y otras ocho competiciones. Pronosticas el
               marcador de cada partido, y cada uno se cierra solo cuando empieza.

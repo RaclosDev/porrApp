@@ -16,6 +16,13 @@
   --champion-gold: #fbbf24;
   /* Desenfoque común de los overlays de pantalla completa. */
   --overlay-blur: 8px;
+  /* Identidad de cartel y álbum de cromos (ver la portada): papel, tinta y sellos. Sobre el
+     fondo oscuro la tinta de rotulador es el cian de la app; sobre papel, un azul tinta. */
+  --paper: #f3ecdc;
+  --ink: #111827;
+  --marker-ink: var(--accent-cyan);
+  --stamp-red: #f87171;
+  --stamp-ink: var(--accent-cyan);
 }
 
 /*
@@ -1732,16 +1739,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .home-live-badge {
-    flex-shrink: 0;
-    background: rgba(255, 107, 107, 0.18);
-    color: #ff8a8a;
-    border-radius: 6px;
-    padding: 2px 6px;
-    font-weight: 800;
-    letter-spacing: 0.4px;
   }
 
   .home-match-teams {
@@ -4517,23 +4514,26 @@
  * El cartel es el único elemento con sombra: es lo que está «pegado» por encima de la pared.
  */
 @layer components {
-  .landing-page {
-    --paper: #f3ecdc;
-    --ink: #111827;
-    --marker-ink: #0b5f74;
-  }
-
-  .landing-display {
+  .poster-title {
     font-family: 'Anton', 'Outfit', sans-serif;
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.01em;
   }
 
-  .landing-marker {
+  .marker-ink {
     font-family: 'Permanent Marker', 'Outfit', cursive;
     font-weight: 400;
     color: var(--marker-ink);
+  }
+
+  /* Cualquier superficie de papel: tinta oscura y sellos de tinta más oscuros. */
+  .landing-poster,
+  .paper-panel,
+  .sticker {
+    --marker-ink: #0b5f74;
+    --stamp-red: #b91c1c;
+    --stamp-ink: #0b5f74;
   }
 
   .landing-poster {
@@ -4624,8 +4624,7 @@
   }
 
   /* Cromo: borde blanco grueso, como el de un cromo de verdad. */
-  .landing-sticker {
-    --marker-ink: #0b5f74;
+  .sticker {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -4643,14 +4642,14 @@
   }
 
   /* El líder lleva el borde dorado de cromo especial. */
-  .landing-sticker-featured {
+  .sticker-featured {
     width: 260px;
     padding: 28px 18px 22px;
     border-color: var(--champion-gold);
     outline-color: #b45309;
   }
 
-  .landing-sticker-rank {
+  .sticker-rank {
     position: absolute;
     top: 6px;
     left: 10px;
@@ -4660,7 +4659,7 @@
   }
 
   /* Reflejo que sigue al puntero cuando el cromo se inclina. */
-  .landing-sticker-glare {
+  .sticker-glare {
     position: absolute;
     top: -40%;
     width: 50%;
@@ -4691,19 +4690,120 @@
     margin: 28px 0;
   }
 
-  /* Sello de tinta sobre el papel. */
-  .landing-stamp {
+  /* Sello de tinta: estados (clasificado, cerrada, en directo) y datos destacados. */
+  .ink-stamp {
     display: inline-block;
     padding: 6px 14px;
-    border: 3px solid #b91c1c;
+    border: 3px solid currentColor;
     border-radius: 8px;
-    color: #b91c1c;
+    color: var(--stamp-red);
     font-family: 'Anton', 'Outfit', sans-serif;
     font-size: 1.1rem;
+    line-height: 1.2;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     transform: rotate(-4deg);
+    white-space: nowrap;
+  }
+
+  .ink-stamp-ink {
+    color: var(--stamp-ink);
+  }
+
+  .ink-stamp-gold {
+    color: var(--champion-gold);
+  }
+
+  /* Sobre papel, el sello lleva el papel detrás para tapar lo que pise. */
+  .ink-stamp-paper {
     background: var(--paper);
+  }
+
+  .ink-stamp-sm {
+    padding: 0 4px;
+    border-width: 1.5px;
+    border-radius: 4px;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    transform: rotate(-6deg);
+    vertical-align: middle;
+  }
+
+  .ink-stamp-md {
+    padding: 2px 8px;
+    border-width: 2px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+  }
+
+  /* Marco blanco de cromo alrededor de un avatar. */
+  .sticker-frame {
+    display: inline-flex;
+    padding: 3px;
+    background: #ffffff;
+    border-radius: 8px;
+    outline: 1px solid rgba(17, 24, 39, 0.25);
+  }
+
+  /* Títulos de página en letra de cartel, como en la portada. */
+  .md-page-header h1,
+  .home-hero-title,
+  .standings-title,
+  .league-admin-title,
+  .friends-predictions-title {
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+
+  /* Panel de papel para lo que se lee: reglas y normas de la liga. */
+  .paper-panel {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .paper-panel .rules-tabs {
+    border-color: rgba(17, 24, 39, 0.2);
+    background: rgba(17, 24, 39, 0.05);
+  }
+
+  .paper-panel .rules-tabs button {
+    color: #4b5563;
+  }
+
+  .paper-panel .rules-tabs button:hover {
+    color: var(--ink);
+  }
+
+  .paper-panel .rules-tabs button.is-active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .paper-panel .rules-tabs button:focus-visible {
+    outline-color: var(--ink);
+  }
+
+  .paper-panel .scoring-panel {
+    color: var(--marker-ink);
+  }
+
+  .paper-panel .scoring-rows {
+    border-color: rgba(17, 24, 39, 0.2);
+  }
+
+  .paper-panel .scoring-row {
+    border-top-color: rgba(17, 24, 39, 0.12);
+  }
+
+  .paper-panel .scoring-row-label,
+  .paper-panel .scoring-points {
+    color: var(--ink);
+  }
+
+  .paper-panel .scoring-row-hint {
+    color: #4b5563;
   }
 
   .landing-pick {

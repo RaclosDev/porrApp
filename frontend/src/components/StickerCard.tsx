@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { animate, motion, useInView, useMotionValue, useSpring, useTransform } from 'motion/react';
-import { UserAvatar } from '../Avatar';
-import { useLandingMotion } from './motion';
-import type { LandingLeader } from '../../hooks/useLandingData';
+import { UserAvatar } from './Avatar';
+import { useLandingMotion } from './landing/motion';
+
+export interface StickerLeader {
+  rank: number;
+  userId: number | null;
+  name: string;
+  avatarUrl: string | null;
+  total: number;
+}
 
 interface StickerCardProps {
-  leader: LandingLeader;
+  leader: StickerLeader;
   /** El líder va en un cromo grande con borde dorado. */
   featured?: boolean;
   /** Texto bajo los puntos, por ejemplo el campeón que eligió. */
@@ -73,32 +80,28 @@ export default function StickerCard({
 
   return (
     <motion.div
-      className={`landing-sticker ${featured ? 'landing-sticker-featured' : ''} ${className}`}
+      className={`sticker ${featured ? 'sticker-featured' : ''} ${className}`}
       style={reduced ? undefined : { rotateX, rotateY, transformPerspective: 900 }}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
     >
-      <span className="landing-sticker-rank" aria-label={`Puesto ${leader.rank}`}>
+      <span className="sticker-rank" aria-label={`Puesto ${leader.rank}`}>
         {leader.rank}
       </span>
       <UserAvatar url={leader.avatarUrl} name={leader.name} userId={leader.userId} size={size} />
-      <span className={`landing-display truncate max-w-full ${featured ? 'text-3xl' : 'text-xl'}`}>
+      <span className={`poster-title truncate max-w-full ${featured ? 'text-3xl' : 'text-xl'}`}>
         {leader.name}
       </span>
       <span
         ref={pointsRef}
-        className={`landing-marker ${featured ? 'text-2xl' : 'text-lg'}`}
+        className={`marker-ink ${featured ? 'text-2xl' : 'text-lg'}`}
         aria-label={`${leader.total} puntos`}
       >
         {shownPoints.toLocaleString('es-ES')} pts
       </span>
       {caption ? <span className="text-sm text-[#4b5563] text-center">{caption}</span> : null}
       {!reduced ? (
-        <motion.span
-          aria-hidden="true"
-          className="landing-sticker-glare"
-          style={{ left: glareX }}
-        />
+        <motion.span aria-hidden="true" className="sticker-glare" style={{ left: glareX }} />
       ) : null}
     </motion.div>
   );

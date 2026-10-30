@@ -33,7 +33,7 @@ export default function MarkerHeading({
       viewport={inViewOnce}
       {...trigger}
     >
-      <Tag className={`landing-display leading-[0.95] ${className}`}>
+      <Tag className={`poster-title leading-[0.95] ${className}`}>
         {words.map((word, index) => (
           <Fragment key={`${word}-${index}`}>
             {index > 0 ? ' ' : null}
@@ -48,7 +48,7 @@ export default function MarkerHeading({
           <>
             {' '}
             <span className="inline-block">
-              <motion.span variants={wordItem} className="landing-marker relative inline-block">
+              <motion.span variants={wordItem} className="marker-ink relative inline-block">
                 {marked}
                 <motion.svg
                   className="absolute left-[-2%] bottom-[-0.1em] w-[104%] h-[0.3em]"

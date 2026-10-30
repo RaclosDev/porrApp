@@ -6,17 +6,12 @@ import { queryKeys } from '../services/queryKeys';
 import { rankPicks, toBracketEntries } from '../utils/bracketStats';
 import { GLOBAL_LEAGUE_ID } from '../utils/constants';
 import type { Match } from '../types/api';
+import type { StickerLeader } from '../components/StickerCard';
 
 /** LaLiga en la base de datos de producción; solo se usa para enseñar el formato por jornadas. */
 const LALIGA_COMPETITION_ID = 4;
 
-export interface LandingLeader {
-  rank: number;
-  userId: number | null;
-  name: string;
-  avatarUrl: string | null;
-  total: number;
-}
+export type LandingLeader = StickerLeader;
 
 export interface ChampionPick {
   team: string;

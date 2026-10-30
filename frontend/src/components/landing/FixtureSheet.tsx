@@ -28,7 +28,7 @@ export default function FixtureSheet({ fixtures, onPick }: FixtureSheetProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="landing-marker text-lg">{round}</p>
+      <p className="marker-ink text-lg">{round}</p>
       <ul className="flex flex-col divide-y divide-[rgba(17,24,39,0.15)]">
         {fixtures.map((m) => (
           <li
