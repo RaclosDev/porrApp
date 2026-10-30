@@ -14,9 +14,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -70,12 +67,6 @@ class PredictionControllerTest {
 
     @Test
     void createPrediction_SavesAndReturnsPrediction() throws Exception {
-        Authentication authentication = Mockito.mock(Authentication.class);
-        Mockito.when(authentication.getName()).thenReturn("Ana");
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        SecurityContextHolder.setContext(securityContext);
-
         PredictionDataDTO body = new PredictionDataDTO();
         body.setUser("Ana");
         body.setPrediction("Mi Porra");
@@ -92,6 +83,7 @@ class PredictionControllerTest {
         Mockito.when(predictionService.createPrediction(anyString(), anyString(), any(PredictionDataDTO.class), any())).thenReturn(saved);
 
         mockMvc.perform(post("/api/predictions")
+                        .principal(() -> "ana@test.com")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -148,7 +140,8 @@ class PredictionControllerTest {
 
     @Test
     void getAllPredictions_Forbidden_WhenNotMemberOfPrivateGroup() throws Exception {
-        Mockito.when(groupService.isUserMemberOrAdmin(Mockito.eq(6L), any())).thenReturn(false);
+        Mockito.doThrow(new SecurityException("No perteneces a esta liga privada"))
+                .when(groupService).assertCanView(Mockito.eq(6L), any());
 
         mockMvc.perform(get("/api/predictions?groupId=6"))
                 .andExpect(status().isForbidden())

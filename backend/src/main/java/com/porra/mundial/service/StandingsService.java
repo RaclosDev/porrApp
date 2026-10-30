@@ -43,7 +43,7 @@ public class StandingsService {
         }
 
         List<GroupStanding> standings = raw.stream()
-                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !Team.PLACEHOLDER_NAME.equalsIgnoreCase(gs.getTeam().getName())))
                 .collect(Collectors.toList());
 
         boolean hasPositions = !standings.isEmpty() && standings.stream().anyMatch(gs -> gs.getPosition() != null && gs.getPosition() > 0);
@@ -158,7 +158,7 @@ public class StandingsService {
 
         List<GroupStanding> thirdPlaceTeams = new ArrayList<>();
         Map<String, List<GroupStanding>> groupedStandings = allStandings.stream()
-                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !Team.PLACEHOLDER_NAME.equalsIgnoreCase(gs.getTeam().getName())))
                 .collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
 
         for (Map.Entry<String, List<GroupStanding>> entry : groupedStandings.entrySet()) {
@@ -290,7 +290,7 @@ public class StandingsService {
         Map<String, List<GroupStanding>> standingsByGroup = new TreeMap<>();
 
         for (Team team : allTeams) {
-            if (team.getGroupName() == null || "-".equals(team.getGroupName()) || "Por definir".equalsIgnoreCase(team.getName())) {
+            if (team.getGroupName() == null || "-".equals(team.getGroupName()) || Team.PLACEHOLDER_NAME.equalsIgnoreCase(team.getName())) {
                 continue;
             }
             String groupName = team.getGroupName().toUpperCase().trim();

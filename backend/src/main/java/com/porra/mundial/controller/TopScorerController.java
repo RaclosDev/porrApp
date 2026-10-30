@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.service.TopScorerService;
+import com.porra.mundial.dto.TopScorerDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,7 +24,7 @@ public class TopScorerController {
      * @return Lista ordenada con el nombre del jugador, goles y país.
      */
     @GetMapping
-    public List<Map<String, Object>> getTopScorers() {
+    public List<TopScorerDTO> getTopScorers() {
         return topScorerService.getTopScorers();
     }
 }

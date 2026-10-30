@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
+import com.porra.mundial.dto.TopScorerDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -126,17 +127,17 @@ class TopScorerServiceTest {
 
         topScorerService.refresh();
 
-        List<Map<String, Object>> scorers = topScorerService.getTopScorers();
+        List<TopScorerDTO> scorers = topScorerService.getTopScorers();
         assertNotNull(scorers);
         assertEquals(2, scorers.size());
 
-        assertEquals("Kylian Mbappé", scorers.get(0).get("name"));
-        assertEquals(2, scorers.get(0).get("goals"));
-        assertEquals("France", scorers.get(0).get("team"));
+        assertEquals("Kylian Mbappé", scorers.get(0).name());
+        assertEquals(2, scorers.get(0).goals());
+        assertEquals("France", scorers.get(0).team());
 
-        assertEquals("Lionel Messi", scorers.get(1).get("name"));
-        assertEquals(1, scorers.get(1).get("goals"));
-        assertEquals("Argentina", scorers.get(1).get("team"));
+        assertEquals("Lionel Messi", scorers.get(1).name());
+        assertEquals(1, scorers.get(1).goals());
+        assertEquals("Argentina", scorers.get(1).team());
 
         verify(webSocketService, times(1)).invalidateAndNotify();
     }

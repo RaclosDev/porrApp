@@ -1,10 +1,7 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.repository.PredictionRepository;
-import com.porra.mundial.service.LeaderboardService;
-import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.StandingsService;
-import com.porra.mundial.service.SyncService;
+import com.porra.mundial.service.KnockoutBracketService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,22 +27,10 @@ class StandingsControllerTest {
     private StandingsService standingsService;
 
     @MockBean
-    private SyncService syncService;
+    private KnockoutBracketService knockoutBracketService;
 
     @MockBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
-
-    @MockBean
-    private PredictionRepository predictionRepository;
-
-    @MockBean
-    private PredictionService predictionService;
-
-    @MockBean
-    private LeaderboardService leaderboardService;
-
-    @MockBean
-    private com.porra.mundial.service.GroupService groupService;
 
     @Test
     void getStandings_ReturnsGroupedStandingsMap() throws Exception {

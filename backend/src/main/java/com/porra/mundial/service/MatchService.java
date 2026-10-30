@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.model.Team;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.repository.MatchRepository;
@@ -101,12 +102,8 @@ public class MatchService {
         if (m.getHomeTeam() == null || m.getAwayTeam() == null) {
             return false;
         }
-        boolean homeBogus = "Por definir".equalsIgnoreCase(m.getHomeTeam().getName())
-                || "TBD".equalsIgnoreCase(m.getHomeTeam().getName())
-                || "TBD".equalsIgnoreCase(m.getHomeTeam().getNameEn());
-        boolean awayBogus = "Por definir".equalsIgnoreCase(m.getAwayTeam().getName())
-                || "TBD".equalsIgnoreCase(m.getAwayTeam().getName())
-                || "TBD".equalsIgnoreCase(m.getAwayTeam().getNameEn());
+        boolean homeBogus = Team.isPlaceholder(m.getHomeTeam());
+        boolean awayBogus = Team.isPlaceholder(m.getAwayTeam());
         return homeBogus && awayBogus;
     }
 
