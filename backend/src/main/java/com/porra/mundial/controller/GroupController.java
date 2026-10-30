@@ -96,26 +96,10 @@ public class GroupController {
         return StatusResponse.success();
     }
 
-    /** Marca un pronóstico como pagado, lo que lo hace contar en la clasificación. Solo el administrador. */
-    @PutMapping("/{id}/predictions/{predictionId}/accept")
-    public StatusResponse acceptPrediction(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
-        groupService.togglePredictionPaymentStatus(id, predictionId, principal.getName(), true);
-        webSocketService.notifyLeagueChanged(id);
-        return StatusResponse.success();
-    }
-
     /** Revoca el pago de un pronóstico. Solo el administrador. */
     @PutMapping("/{id}/predictions/{predictionId}/reject")
     public StatusResponse rejectPrediction(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
         groupService.togglePredictionPaymentStatus(id, predictionId, principal.getName(), false);
-        webSocketService.notifyLeagueChanged(id);
-        return StatusResponse.success();
-    }
-
-    /** Elimina un pronóstico de la liga. Solo el administrador. */
-    @DeleteMapping("/{id}/predictions/{predictionId}")
-    public StatusResponse deletePrediction(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
-        groupService.deletePrediction(id, predictionId, principal.getName());
         webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success();
     }
