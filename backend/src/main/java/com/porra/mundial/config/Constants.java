@@ -60,7 +60,6 @@ public class Constants {
         
         // Alias extra de la API de ESPN (cuando ESPN devuelve acrónimos o nombres distintos)
         API_TO_LOCAL.put("USA", "EEUU");
-        API_TO_LOCAL.put("United States", "EEUU");
         API_TO_LOCAL.put("Turkiye", "Turquía");
         API_TO_LOCAL.put("Türkiye", "Turquía");
         API_TO_LOCAL.put("Czechia", "Chequia");
