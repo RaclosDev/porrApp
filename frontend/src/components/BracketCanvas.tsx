@@ -1,24 +1,21 @@
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, type ReactNode } from 'react';
 import { getCountryCode } from '../utils/constants';
 import Flag from './Flag';
 import MobileBracket from './MobileBracket';
+import type { BracketTeam } from '../store/useAppStore';
 
 // Vertical layout constants
 export const SLOT_H = 36;
 export const MATCH_H = SLOT_H * 2 + 2; // 74px
 export const R32_PITCH = MATCH_H + 14; // 88px
 
-const leafTop = (i) => i * R32_PITCH;
+const leafTop = (i: number) => i * R32_PITCH;
 
 /**
- * Calcula la posición Y (top) de un partido en el Bracket para centrarlo
- * correctamente respecto a la ronda anterior.
- *
- * @param {number} r - Índice de la ronda (0 = 1/16, 1 = Octavos, 2 = Cuartos, 3 = Semis).
- * @param {number} i - Índice del partido en esa ronda.
- * @returns {number} Posición en píxeles (top).
+ * Posición Y (top) de un partido, centrado respecto a sus dos partidos de la ronda anterior.
+ * `r`: 0 = dieciseisavos, 1 = octavos, 2 = cuartos, 3 = semis; `i`: índice en la ronda.
  */
-export function matchTop(r, i) {
+export function matchTop(r: number, i: number): number {
   if (r === 0) return leafTop(i);
   return (matchTop(r - 1, i * 2) + matchTop(r - 1, i * 2 + 1)) / 2;
 }
@@ -35,19 +32,19 @@ export const COL_GAP = GAP;
 const ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
 
 // SVG connector lines
-/**
- * Componente que dibuja las líneas (ramas) conectoras entre una ronda y la siguiente.
- *
- * @component
- * @param {Object} props
- * @param {number} props.parentTop - Top (Y) del partido padre (ronda actual).
- * @param {number} props.childATop - Top (Y) del primer hijo (ronda previa).
- * @param {number} props.childBTop - Top (Y) del segundo hijo (ronda previa).
- * @param {string} props.dir - 'right' o 'left'. Define hacia dónde crecen las ramas.
- * @param {number} props.colW - Ancho actual de la columna (para calcular márgenes).
- * @returns {JSX.Element} Líneas de conexión SVG.
- */
-function Connectors({ parentTop, childATop, childBTop, dir, colW }) {
+interface ConnectorsProps {
+  /** Top del partido de la ronda actual. */
+  parentTop: number;
+  /** Tops de sus dos partidos de la ronda previa. */
+  childATop: number;
+  childBTop: number;
+  /** Hacia dónde crecen las ramas. */
+  dir: 'left' | 'right';
+  colW: number;
+}
+
+/** Líneas SVG que unen dos partidos de una ronda con el de la siguiente. */
+function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsProps) {
   const pMid = parentTop + MATCH_H / 2;
   const aMid = childATop + MATCH_H / 2;
   const bMid = childBTop + MATCH_H / 2;
@@ -95,7 +92,14 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }) {
  * @param {ReactNode} [props.rightContent] - Elemento a renderizar en la derecha (puntos).
  * @returns {JSX.Element} La casilla del bracket.
  */
-export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }) {
+interface TeamSlotProps {
+  name: string | null | undefined;
+  onClick?: () => void;
+  slotStyle?: React.CSSProperties;
+  rightContent?: React.ReactNode;
+}
+
+export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null }: TeamSlotProps) {
   const isEmpty = !name;
   const lower = name?.toLowerCase() || '';
   const isCombined = !isEmpty && name.includes(' / ');
@@ -184,9 +188,9 @@ export function TeamSlot({ name, onClick, slotStyle = {}, rightContent = null })
  * @param {Array[]} rightRounds - Rondas del lado derecho.
  * @returns {number} Índice de la pestaña activa (0-4).
  */
-function computeActiveTab(leftRounds, rightRounds) {
+function computeActiveTab(leftRounds: CanvasMatch[][], rightRounds: CanvasMatch[][]) {
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
-  const isRealTeam = (team) => {
+  const isRealTeam = (team: SlotTeam | undefined) => {
     if (!team) return false;
     const name = typeof team === 'object' ? team.name : team;
     if (!name) return false;
@@ -195,12 +199,12 @@ function computeActiveTab(leftRounds, rightRounds) {
     return true;
   };
 
-  const isMatchComplete = (match) => {
+  const isMatchComplete = (match: CanvasMatch | undefined) => {
     if (!match) return false;
     return isRealTeam(match.home) && isRealTeam(match.away);
   };
 
-  const isRoundComplete = (roundIndex) => {
+  const isRoundComplete = (roundIndex: number) => {
     const leftMatches = leftRounds[roundIndex] || [];
     const rightMatches = rightRounds[roundIndex] || [];
     const allMatches = [...leftMatches, ...rightMatches];
@@ -224,16 +228,45 @@ function computeActiveTab(leftRounds, rightRounds) {
  * que colapsan hacia una columna central (La Final y Tercer Puesto).
  *
  * @component
- * @param {Object} props
- * @param {Array[]} props.leftRounds - Array 2D (4 rondas) con partidos para el lado izquierdo.
- * @param {Array[]} props.rightRounds - Array 2D (4 rondas) con partidos para el lado derecho.
- * @param {Function} props.renderSlot - Función inyectada que dice CÓMO pintar un Slot (inyecta lógica de clics o coloreado).
- * @param {Function} props.renderCenter - Función que dibuja el centro (Final/Tercer puesto).
- * @param {Object} [props.hiddenRounds={}] - Mapa (0:true) indicando qué columnas deben ocultarse en móvil/filtrado.
- * @param {Function} [props.renderRoundFooter] - Función opcional que pinta el pie de cada columna (para sumar puntos por ronda).
- * @returns {JSX.Element} El lienzo del bracket de eliminatorias.
  */
-export default function BracketCanvas({
+export type SlotTeam = BracketTeam | string | null | undefined;
+
+/** Partido del cuadro; cada página decide qué guarda en los huecos (`T`). */
+export interface CanvasMatch<T extends SlotTeam = SlotTeam> {
+  home?: T;
+  away?: T;
+}
+
+export type RenderSlot<T extends SlotTeam = SlotTeam> = (
+  team: T | undefined,
+  context: SlotContext,
+) => ReactNode;
+
+export interface SlotContext {
+  side: 'left' | 'right';
+  roundIndex: number;
+  matchIndex: number;
+  isHome: boolean;
+}
+
+interface BracketCanvasProps<T extends SlotTeam> {
+  /** 4 rondas de partidos del lado izquierdo. */
+  leftRounds: CanvasMatch<T>[][];
+  /** 4 rondas de partidos del lado derecho. */
+  rightRounds: CanvasMatch<T>[][];
+  /** Pinta un hueco del cuadro (inyecta la lógica de clics o coloreado). */
+  renderSlot: RenderSlot<T>;
+  /** Dibuja el centro (final y tercer puesto) con el ancho de columna calculado. */
+  renderCenter: (colW: number) => ReactNode;
+  /** Columnas ocultas en móvil o al filtrar, indexadas por ronda. */
+  hiddenRounds?: Record<number, boolean>;
+  /** Pie opcional de cada columna (p. ej. puntos por ronda). */
+  renderRoundFooter?: (roundIndex: number, side: 'left' | 'right') => ReactNode;
+  /** Centro alternativo para la vista móvil. */
+  mobileCenter?: () => ReactNode;
+}
+
+export default function BracketCanvas<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
@@ -241,8 +274,8 @@ export default function BracketCanvas({
   hiddenRounds = {},
   renderRoundFooter,
   mobileCenter,
-}) {
-  const wrapperRef = useRef(null);
+}: BracketCanvasProps<T>) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [colW, setColW] = useState(DEFAULT_COL);
   const [scale, setScale] = useState(1);
   const [isOverflowX, setIsOverflowX] = useState(false);
@@ -316,7 +349,12 @@ export default function BracketCanvas({
   const centerW = colW + GAP * 2;
 
   /** Render one round column as a flex item. Returns null if hidden. */
-  const renderRoundCol = (rounds, roundIndex, side, connDir) => {
+  const renderRoundCol = (
+    rounds: CanvasMatch<T>[][],
+    roundIndex: number,
+    side: 'left' | 'right',
+    connDir: 'left' | 'right' | null,
+  ) => {
     if (hiddenRounds[roundIndex]) return null;
     const matches = rounds[roundIndex];
     if (!matches) return null;

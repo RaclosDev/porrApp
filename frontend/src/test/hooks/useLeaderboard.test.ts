@@ -7,6 +7,12 @@ vi.mock('../../context/AppContext', () => ({
   useAppContext: vi.fn(),
 }));
 
+// El hook solo lee una parte del contexto; los mocks rellenan esa parte.
+const mockAppContext = (value: Record<string, unknown>) =>
+  vi
+    .mocked(AppContextModule.useAppContext)
+    .mockReturnValue(value as unknown as ReturnType<typeof AppContextModule.useAppContext>);
+
 describe('useLeaderboard hook', () => {
   const mockLeaderboardData = [
     {
@@ -40,7 +46,7 @@ describe('useLeaderboard hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    AppContextModule.useAppContext.mockReturnValue({
+    mockAppContext({
       leaderboardData: mockLeaderboardData,
       loading: false,
       activeGroupName: 'Liga Amigos',
@@ -92,7 +98,7 @@ describe('useLeaderboard hook', () => {
   });
 
   it('carga los puntos de la jornada actual y permite navegar entre jornadas', () => {
-    AppContextModule.useAppContext.mockReturnValue({
+    mockAppContext({
       leaderboardData: mockLeaderboardData,
       leaderboardMatchdays: [
         {
@@ -123,11 +129,11 @@ describe('useLeaderboard hook', () => {
     const { result } = renderHook(() => useLeaderboard());
 
     expect(result.current.selectedMatchday).toBe('Jornada 2');
-    expect(result.current.matchdayStats.myPoints).toBe(3);
-    expect(result.current.matchdayStats.leader.name).toBe('Elena');
+    expect(result.current.matchdayStats?.myPoints).toBe(3);
+    expect(result.current.matchdayStats?.leader?.name).toBe('Elena');
 
     const carlos = result.current.results.find((row) => row.name === 'Carlos');
-    expect(carlos.points.matchday).toBe(3);
+    expect(carlos?.points.matchday).toBe(3);
 
     act(() => {
       result.current.handleStepMatchday(-1);
@@ -136,8 +142,8 @@ describe('useLeaderboard hook', () => {
     expect(result.current.selectedMatchday).toBe('Jornada 1');
 
     const carlosJornada1 = result.current.results.find((row) => row.name === 'Carlos');
-    expect(carlosJornada1.points.matchday).toBe(1);
+    expect(carlosJornada1?.points.matchday).toBe(1);
     const elenaJornada1 = result.current.results.find((row) => row.name === 'Elena');
-    expect(elenaJornada1.points.matchday).toBe(2);
+    expect(elenaJornada1?.points.matchday).toBe(2);
   });
 });

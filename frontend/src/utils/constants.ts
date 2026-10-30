@@ -8,12 +8,13 @@ export const GLOBAL_LEAGUE_ID = '1';
 export const DEMO_COMPETITION_ID = 2;
 
 /** Comprueba si un id de liga (número o texto) es la Porra Global. */
-export const isGlobalLeagueId = (id) => id != null && String(id) === GLOBAL_LEAGUE_ID;
+export const isGlobalLeagueId = (id: string | number | null | undefined) =>
+  id != null && String(id) === GLOBAL_LEAGUE_ID;
 
 /**
  * Corrige mojibake UTF-8 decodificado erróneamente como Latin-1 / Windows-1252.
  */
-export function fixMojibake(str) {
+export function fixMojibake(str: string): string {
   if (!str || typeof str !== 'string') return str;
   return str
     .replace(/Ã¡/g, 'á')
@@ -42,7 +43,7 @@ export function fixMojibake(str) {
 /**
  * Normaliza nombres de participantes reparando mojibake y caracteres '??' o de reemplazo.
  */
-export function normalizeParticipantName(name) {
+export function normalizeParticipantName(name: string): string {
   if (!name || typeof name !== 'string') return name;
   const cleaned = fixMojibake(name.trim());
   return cleaned
@@ -87,7 +88,7 @@ export function normalizeParticipantName(name) {
 /**
  * Normaliza nombres de países y repara posibles cadenas corruptas o con problemas de codificación (mojibake).
  */
-export function normalizeCountryName(name) {
+export function normalizeCountryName(name: string): string {
   if (!name || typeof name !== 'string') return name;
   const cleaned = fixMojibake(name.trim());
   return cleaned
@@ -116,7 +117,7 @@ export function normalizeCountryName(name) {
     .replace(/La Coru(\?\?|\uFFFD|\?)a/gi, 'La Coruña');
 }
 
-export const countryCodeMap = {
+export const countryCodeMap: Record<string, string> = {
   México: 'mx',
   Sudáfrica: 'za',
   'Corea del Sur': 'kr',
@@ -258,7 +259,7 @@ export const countryCodeMap = {
   'Ivory Coast': 'ci',
 };
 
-export function getCountryCode(name) {
+export function getCountryCode(name: string | null | undefined): string {
   if (!name) return 'xx';
   const normalized = normalizeCountryName(name).trim();
   if (countryCodeMap[normalized]) return countryCodeMap[normalized];
@@ -287,7 +288,7 @@ export function getCountryCode(name) {
   return strippedMatch ? countryCodeMap[strippedMatch] : 'xx';
 }
 
-export function getCountryEmoji(name) {
+export function getCountryEmoji(name: string | null | undefined): string {
   const code = getCountryCode(name);
   if (!code || code === 'xx') return '🏴';
   if (code === 'gb-eng') return '🏴󠁧󠁢󠁥󠁮󠁧󠁿';

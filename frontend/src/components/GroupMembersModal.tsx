@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -28,6 +34,10 @@ import {
 } from '../services/api';
 import ImagePicker from './ImagePicker';
 import { LeagueAvatar, UserAvatar } from './Avatar';
+import type { PaymentStatus } from '../types/api';
+import { errorMessage } from '../utils/errors';
+
+type CopyTarget = 'code' | 'link';
 
 const PAYMENT_FILTERS = [
   { id: 'ALL', label: 'Todos' },
@@ -53,11 +63,26 @@ export default function GroupMembersModal({
   onDelete,
   onUploadImage,
   onRemoveImage,
+}: {
+  groupId: number;
+  groupName: string;
+  currentJoinCode: string | null | undefined;
+  isAdmin: boolean;
+  currentUserId?: string | number | null;
+  initialRules?: string;
+  imageUrl?: string | null;
+  onClose: () => void;
+  onCodeRegenerated: (newCode: string) => void;
+  /** Devuelve si se ha guardado. */
+  onSaveSettings: (settings: { name: string; rules: string }) => Promise<boolean>;
+  onDelete: () => Promise<boolean>;
+  onUploadImage: (blob: Blob) => Promise<void>;
+  onRemoveImage: () => Promise<void>;
 }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('members');
   const [activeCode, setActiveCode] = useState(currentJoinCode || '');
-  const [copiedTarget, setCopiedTarget] = useState('');
+  const [copiedTarget, setCopiedTarget] = useState<CopyTarget | ''>('');
   const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState('');
   const [name, setName] = useState(groupName || '');
@@ -65,14 +90,14 @@ export default function GroupMembersModal({
   const [savingConfig, setSavingConfig] = useState(false);
   const [search, setSearch] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('ALL');
-  const [kickTargetId, setKickTargetId] = useState(null);
+  const [kickTargetId, setKickTargetId] = useState<number | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
-  const panelRef = useRef(null);
-  const copyTimeoutRef = useRef(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const isDirty = name.trim() !== (groupName || '').trim() || rulesText !== (initialRules || '');
 
@@ -94,7 +119,7 @@ export default function GroupMembersModal({
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (leaveConfirmOpen) {
           setLeaveConfirmOpen(false);
@@ -120,11 +145,11 @@ export default function GroupMembersModal({
       if (event.key !== 'Tab') return;
       // Mantiene el foco dentro del diálogo activo (o de su confirmación).
       const scope = leaveConfirmOpen
-        ? panelRef.current?.querySelector('.league-admin-confirm-dialog')
+        ? panelRef.current?.querySelector<HTMLElement>('.league-admin-confirm-dialog')
         : panelRef.current;
       if (!scope) return;
       const focusables = Array.from(
-        scope.querySelectorAll(
+        scope.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
       ).filter((element) => element.offsetParent !== null || element === document.activeElement);
@@ -166,7 +191,8 @@ export default function GroupMembersModal({
   });
 
   const paymentMutation = useMutation({
-    mutationFn: ({ userId, status }) => toggleGroupMemberPayment(groupId, userId, status),
+    mutationFn: ({ userId, status }: { userId: number; status: PaymentStatus }) =>
+      toggleGroupMemberPayment(groupId, userId, status),
     onMutate: async ({ userId, status }) => {
       setActionError('');
       await queryClient.cancelQueries({ queryKey: ['groupMembers', groupId] });
@@ -186,7 +212,7 @@ export default function GroupMembersModal({
       if (context?.previous) {
         queryClient.setQueryData(['groupMembers', groupId], context.previous);
       }
-      const message = err.message || 'No se pudo actualizar el estado de pago.';
+      const message = errorMessage(err, 'No se pudo actualizar el estado de pago.');
       setActionError(message);
       toast.error(message);
     },
@@ -202,7 +228,7 @@ export default function GroupMembersModal({
   });
 
   const kickMutation = useMutation({
-    mutationFn: (userId) => kickGroupMember(groupId, userId),
+    mutationFn: (userId: number) => kickGroupMember(groupId, userId),
     onMutate: () => setActionError(''),
     onSuccess: () => {
       setKickTargetId(null);
@@ -211,7 +237,7 @@ export default function GroupMembersModal({
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
     },
     onError: (err) => {
-      const message = err.message || 'No se pudo expulsar al miembro.';
+      const message = errorMessage(err, 'No se pudo expulsar al miembro.');
       setActionError(message);
       toast.error(message);
     },
@@ -229,19 +255,19 @@ export default function GroupMembersModal({
       toast.success('Código de invitación regenerado');
     },
     onError: (err) => {
-      const message = err.message || 'No se pudo regenerar el código.';
+      const message = errorMessage(err, 'No se pudo regenerar el código.');
       setActionError(message);
       toast.error(message);
     },
   });
 
-  const markCopied = (target) => {
+  const markCopied = (target: CopyTarget) => {
     setCopiedTarget(target);
     clearTimeout(copyTimeoutRef.current);
     copyTimeoutRef.current = setTimeout(() => setCopiedTarget(''), 2200);
   };
 
-  const copyText = async (text, target, message) => {
+  const copyText = async (text: string, target: CopyTarget, message: string) => {
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard no disponible');
       await navigator.clipboard.writeText(text);
@@ -265,7 +291,7 @@ export default function GroupMembersModal({
         return;
       } catch (err) {
         // Cancelar el diálogo nativo no debe copiar el enlace por sorpresa.
-        if (err?.name === 'AbortError') return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
       }
     }
     await copyText(inviteLink, 'link', 'Enlace de invitación copiado');
@@ -292,7 +318,7 @@ export default function GroupMembersModal({
       setNotice('Cambios guardados');
       toast.success('Liga actualizada');
     } catch (err) {
-      setActionError(err.message || 'No se pudieron guardar los cambios.');
+      setActionError(errorMessage(err, 'No se pudieron guardar los cambios.'));
     } finally {
       setSavingConfig(false);
     }
@@ -316,7 +342,7 @@ export default function GroupMembersModal({
         setActionError('No se pudo eliminar la liga. Inténtalo de nuevo.');
       }
     } catch (err) {
-      const message = err.message || 'No se pudo eliminar la liga.';
+      const message = errorMessage(err, 'No se pudo eliminar la liga.');
       setActionError(message);
       toast.error(message);
     } finally {
@@ -344,7 +370,7 @@ export default function GroupMembersModal({
   const currentTab = isAdmin ? tab : 'members';
   const isNameValid = Boolean(name.trim());
 
-  const handleTabKeyDown = (event) => {
+  const handleTabKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     const nextTab = tab === 'members' ? 'settings' : 'members';

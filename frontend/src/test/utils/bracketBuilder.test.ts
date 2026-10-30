@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildBracketData } from '../../utils/bracketBuilder';
+import { game } from '../fixtures';
 
 describe('bracketBuilder', () => {
   it('does not mistake finished group matches for the tournament final or 3rd place match', () => {
@@ -26,7 +27,7 @@ describe('bracketBuilder', () => {
       },
     ];
 
-    const result = buildBracketData({}, {}, mockGames);
+    const result = buildBracketData({}, {}, mockGames.map(game));
 
     // Final and 3rd place matches should not pick up group stage matches
     expect(result.final).toEqual([null, null]);
@@ -59,7 +60,7 @@ describe('bracketBuilder', () => {
       },
     ];
 
-    const result = buildBracketData({}, {}, mockGames);
+    const result = buildBracketData({}, {}, mockGames.map(game));
 
     expect(result.final).toEqual(['España', 'Francia']);
     expect(result.champion).toEqual({ name: 'España', isProvisional: false });

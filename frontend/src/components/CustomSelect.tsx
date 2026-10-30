@@ -1,28 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
 import Flag from './Flag';
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface CustomSelectProps {
+  /** Valor seleccionado (nombre del equipo). */
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  /** Texto si no hay valor seleccionado. */
+  placeholder?: string;
+}
+
 /**
- * Componente Select (Dropdown) personalizado para seleccionar equipos.
- * Permite mostrar banderas junto a las opciones y mantener un estilo visual 'glass'.
- *
- * @component
- * @param {Object} props - Propiedades del componente.
- * @param {string} props.value - Valor actualmente seleccionado (nombre del equipo).
- * @param {Array<{value: string, label: string}>} props.options - Opciones disponibles.
- * @param {Function} props.onChange - Callback que se ejecuta cuando el usuario selecciona una opción.
- * @param {string} props.placeholder - Texto que se muestra si no hay valor seleccionado.
- * @returns {JSX.Element} Dropdown interactivo.
+ * Select personalizado para elegir equipos: muestra banderas junto a las opciones
+ * y mantiene el estilo visual 'glass'.
  */
-export default function CustomSelect({ value, options, onChange, placeholder }) {
+export default function CustomSelect({ value, options, onChange, placeholder }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   /**
    * Cierra el desplegable si el usuario hace click fuera del componente.
    */
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
