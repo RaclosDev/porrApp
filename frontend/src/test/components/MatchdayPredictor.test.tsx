@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import MatchdayPredictor, { hasLiveMatch } from '../../pages/MatchdayPredictor';
+import MatchdayPredictor from '../../pages/MatchdayPredictor';
+import { hasLiveMatch } from '../../utils/matchday';
 import { useAppContext } from '../../context/AppContext';
 import * as api from '../../services/api';
 
