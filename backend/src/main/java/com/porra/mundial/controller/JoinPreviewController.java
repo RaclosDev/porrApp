@@ -15,7 +15,9 @@ import javax.imageio.ImageIO;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.GradientPaint;
+import java.awt.FontFormatException;
+import java.awt.geom.Path2D;
+import java.util.Locale;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
@@ -37,9 +39,14 @@ public class JoinPreviewController {
     private static final String BASE_URL = "https://porra.raclos.es";
     private static final String DEFAULT_TITLE = "Invitación a una porra";
     private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
-    private static final String IMAGE_VERSION = "2";
+    private static final String IMAGE_VERSION = "3";
     private static final int IMAGE_WIDTH = 1200;
-    private static final int IMAGE_HEIGHT = 360;
+    private static final int IMAGE_HEIGHT = 630;
+    private static final Color PAPER = new Color(243, 236, 220);
+    private static final Color INK = new Color(17, 24, 39);
+    private static final Color MARKER = new Color(11, 95, 116);
+    private static final Font POSTER = loadFont("fonts/anton/Anton-Regular.ttf");
+    private static final Font HANDWRITING = loadFont("fonts/permanent-marker/PermanentMarker-Regular.ttf");
 
     private final GroupService groupService;
 
@@ -135,27 +142,53 @@ public class JoinPreviewController {
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-            // Fondo opaco de la tarjeta: evita que WhatsApp muestre un fondo blanco
-            // cuando la imagen se comparte desde escritorio.
-            graphics.setPaint(new GradientPaint(0, 0, new Color(16, 24, 39),
-                    IMAGE_WIDTH, IMAGE_HEIGHT, new Color(7, 16, 20)));
+            graphics.setColor(new Color(15, 23, 42));
             graphics.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 
-            // Reproduce la tarjeta original: foto de la liga a la izquierda y título + pills a la derecha.
-            boolean photoLoaded = drawLeaguePhoto(graphics, leagueImageUrl);
-            int textX = photoLoaded ? 356 : 40;
-            int maxTextWidth = photoLoaded ? 800 : 1120;
+            // Solo se inclina el soporte, como en la web: texto y foto permanecen rectos.
+            graphics.setColor(new Color(216, 207, 185));
+            graphics.fillRoundRect(42, 66, 1122, 514, 6, 6);
+            Path2D sheet = new Path2D.Double();
+            sheet.moveTo(32, 60);
+            sheet.lineTo(1152, 48);
+            sheet.lineTo(1152, 558);
+            sheet.lineTo(32, 570);
+            sheet.closePath();
+            graphics.setColor(PAPER);
+            graphics.fill(sheet);
+            graphics.setColor(new Color(255, 230, 140, 220));
+            graphics.fillPolygon(new int[]{520, 672, 674, 522}, new int[]{32, 26, 66, 72}, 4);
 
-            graphics.setColor(Color.WHITE);
-            graphics.setFont(new Font("Arial", Font.BOLD, 54));
-            drawFittedText(graphics, name, textX, 112, maxTextWidth, 54);
+            graphics.setColor(MARKER);
+            graphics.setFont(HANDWRITING.deriveFont(32f));
+            graphics.drawString("PorrApp", 72, 116);
 
-            drawPill(graphics, competition, textX, 150,
-                    new Color(162, 155, 254, 41), new Color(162, 155, 254, 166),
-                    new Color(196, 181, 253), 26, maxTextWidth);
-            drawPill(graphics, format, textX, 214,
-                    new Color(0, 210, 211, 31), new Color(0, 210, 211, 166),
-                    new Color(0, 210, 211), 26, maxTextWidth);
+            if (!drawLeaguePhoto(graphics, leagueImageUrl)) {
+                graphics.setColor(new Color(231, 223, 206));
+                graphics.fillRoundRect(72, 162, 244, 244, 6, 6);
+                graphics.setColor(MARKER);
+                graphics.setStroke(new BasicStroke(3));
+                graphics.drawRoundRect(90, 180, 208, 208, 4, 4);
+                graphics.setFont(POSTER.deriveFont(48f));
+                graphics.drawString("TU LIGA", 120, 305);
+            }
+
+            graphics.setColor(INK);
+            graphics.setFont(POSTER.deriveFont(64f));
+            drawFittedText(graphics, name.toUpperCase(Locale.ROOT), 364, 224, 744, 64);
+            graphics.setFont(POSTER.deriveFont(32f));
+            drawFittedText(graphics, competition.toUpperCase(Locale.ROOT), 364, 293, 744, 32);
+            drawStamp(graphics, format.toUpperCase(Locale.ROOT), 364, 332, 744);
+
+            graphics.setColor(new Color(17, 24, 39, 45));
+            graphics.setStroke(new BasicStroke(2));
+            graphics.drawLine(72, 454, 1112, 454);
+            graphics.setColor(MARKER);
+            graphics.setFont(HANDWRITING.deriveFont(32f));
+            graphics.drawString("Te han invitado a jugar.", 72, 520);
+            graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 22));
+            graphics.setColor(INK);
+            graphics.drawString("porra.raclos.es", 944, 520);
         } finally {
             graphics.dispose();
         }
@@ -192,9 +225,9 @@ public class JoinPreviewController {
                 return false;
             }
 
-            int x = 36;
-            int y = 36;
-            int size = 288;
+            int x = 72;
+            int y = 162;
+            int size = 244;
             double scale = Math.max((double) size / photo.getWidth(), (double) size / photo.getHeight());
             int width = (int) Math.round(photo.getWidth() * scale);
             int height = (int) Math.round(photo.getHeight() * scale);
@@ -211,12 +244,14 @@ public class JoinPreviewController {
                 photoGraphics.dispose();
             }
 
-            graphics.setClip(new RoundRectangle2D.Float(x, y, size, size, 22, 22));
+            graphics.setColor(Color.WHITE);
+            graphics.fillRoundRect(x - 6, y - 6, size + 12, size + 12, 6, 6);
+            graphics.setClip(new RoundRectangle2D.Float(x, y, size, size, 4, 4));
             graphics.drawImage(square, x, y, null);
             graphics.setClip(null);
             return true;
         } catch (IOException | RuntimeException exception) {
-            // Si la foto no está disponible, conservar la tarjeta con el título y las pills.
+            // Si la foto no está disponible, conservar la tarjeta con el nombre de la liga.
             return false;
         } finally {
             if (connection != null) {
@@ -229,28 +264,31 @@ public class JoinPreviewController {
         return groupService.getGroupByJoinCode(code.trim().toUpperCase());
     }
 
-    private void drawPill(Graphics2D graphics, String text, int x, int y,
-                          Color fill, Color stroke, Color foreground, int fontSize, int maxWidth) {
-        graphics.setFont(new Font("Arial", Font.BOLD, fontSize));
-        int width = Math.min(graphics.getFontMetrics().stringWidth(text) + 34, maxWidth);
-        int height = 48;
-        graphics.setColor(fill);
-        graphics.fillRoundRect(x, y, width, height, 24, 24);
-        graphics.setColor(stroke);
-        graphics.setStroke(new BasicStroke(2));
-        graphics.drawRoundRect(x, y, width, height, 24, 24);
-        graphics.setColor(foreground);
-        graphics.setFont(new Font("Arial", Font.BOLD, fontSize));
-        graphics.drawString(text, x + 17, y + 31);
+    private static Font loadFont(String path) {
+        try (var stream = new ClassPathResource(path).getInputStream()) {
+            return Font.createFont(Font.TRUETYPE_FONT, stream);
+        } catch (IOException | FontFormatException exception) {
+            throw new IllegalStateException("No se pudo cargar la tipografía de invitación: " + path, exception);
+        }
+    }
+
+    private void drawStamp(Graphics2D graphics, String text, int x, int y, int maxWidth) {
+        graphics.setFont(POSTER.deriveFont(28f));
+        int width = Math.min(graphics.getFontMetrics().stringWidth(text) + 32, maxWidth);
+        graphics.setColor(MARKER);
+        graphics.setStroke(new BasicStroke(3));
+        graphics.drawRoundRect(x, y, width, 52, 4, 4);
+        drawFittedText(graphics, text, x + 16, y + 36, width - 32, 28);
     }
 
     private void drawFittedText(Graphics2D graphics, String value, int x, int y, int maxWidth, int initialSize) {
         int size = initialSize;
-        Font font = new Font(Font.SANS_SERIF, Font.BOLD, size);
+        Font baseFont = graphics.getFont();
+        Font font = baseFont.deriveFont((float) size);
         graphics.setFont(font);
         while (graphics.getFontMetrics().stringWidth(value) > maxWidth && size > 30) {
             size -= 2;
-            font = new Font(Font.SANS_SERIF, Font.BOLD, size);
+            font = baseFont.deriveFont((float) size);
             graphics.setFont(font);
         }
         String fitted = value;
