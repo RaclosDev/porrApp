@@ -26,6 +26,12 @@ public class UserController {
         return userService.getMe(principal.getName());
     }
 
+    @PutMapping("/me/profile-setup")
+    public StatusResponse completeProfileSetup(Principal principal) {
+        userService.completeProfileSetup(principal.getName());
+        return StatusResponse.success();
+    }
+
     @PutMapping("/me/preferences")
     public StatusResponse updatePreferences(@RequestBody UserPreferencesRequest payload, Principal principal) {
         userService.updateLastSelectedGroup(principal.getName(), payload.lastSelectedGroupId());

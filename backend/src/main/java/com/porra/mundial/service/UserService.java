@@ -21,13 +21,20 @@ public class UserService {
     public MeResponse getMe(String email) {
         UserAccount user = findUser(email);
         return new MeResponse(user.getId(), TextSanitizer.fixParticipantName(user.getParticipantName()),
-                user.getLastSelectedGroupId(), user.getAvatarUrl());
+                user.getLastSelectedGroupId(), user.getAvatarUrl(), user.isProfileSetupCompleted());
     }
 
     @Transactional
     public void updateLastSelectedGroup(String email, Long groupId) {
         UserAccount user = findUser(email);
         user.setLastSelectedGroupId(groupId);
+        userAccountRepository.save(user);
+    }
+
+    @Transactional
+    public void completeProfileSetup(String email) {
+        UserAccount user = findUser(email);
+        user.setProfileSetupCompleted(true);
         userAccountRepository.save(user);
     }
 

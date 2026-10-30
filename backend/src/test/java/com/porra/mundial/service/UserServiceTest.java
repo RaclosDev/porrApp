@@ -10,6 +10,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 class UserServiceTest {
 
@@ -24,5 +25,21 @@ class UserServiceTest {
         assertThat(me.userId()).isEqualTo(42L);
         assertThat(me.participantName()).isEqualTo("Ana");
         assertThat(me.lastSelectedGroupId()).isEqualTo(7L);
+        assertThat(me.profileSetupCompleted()).isFalse();
+    }
+
+    @Test
+    void profileSetupCompletionIsPersistentAndIdempotent() {
+        UserAccountRepository repository = mock(UserAccountRepository.class);
+        UserAccount user = UserAccount.builder().id(42L).googleEmail("ana@test.com")
+                .participantName("Ana").build();
+        when(repository.findByGoogleEmail("ana@test.com")).thenReturn(Optional.of(user));
+        UserService service = new UserService(repository);
+
+        service.completeProfileSetup("ana@test.com");
+        verify(repository).save(user);
+        assertThat(service.getMe("ana@test.com").profileSetupCompleted()).isTrue();
+        service.completeProfileSetup("ana@test.com");
+        assertThat(user.isProfileSetupCompleted()).isTrue();
     }
 }

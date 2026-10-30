@@ -469,6 +469,9 @@ export const loginWithGoogle = (credential: string) =>
 
 export const fetchMe = () => request<Me>('/users/me');
 
+export const completeProfileSetup = () =>
+  request<StatusResponse>('/users/me/profile-setup', { method: 'PUT' });
+
 export const updateUserPreferences = (preferences: UserPreferences) =>
   request<StatusResponse>('/users/me/preferences', {
     method: 'PUT',

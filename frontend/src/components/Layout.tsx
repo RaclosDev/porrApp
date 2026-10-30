@@ -49,6 +49,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [showMyPredictionModal, setShowMyPredictionModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const profileSetupCompleted = useAppStore((state) => state.profileSetupCompleted);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
   const userId = useAppStore((state) => state.userId);
   const logout = useAppStore((state) => state.logout);
@@ -245,8 +246,12 @@ function Layout({ children }: { children: React.ReactNode }) {
         {isNavLocked && !isNoLeagueAllowedPath ? null : children}
       </main>
 
-      {showProfileSettings && (
-        <ProfileSettingsModal onClose={() => setShowProfileSettings(false)} />
+      {(showProfileSettings ||
+        (isUserLoggedIn && !isDemo && !isInviteAuthScreen && profileSetupCompleted === false)) && (
+        <ProfileSettingsModal
+          onboarding={!showProfileSettings && profileSetupCompleted === false}
+          onClose={() => setShowProfileSettings(false)}
+        />
       )}
 
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}

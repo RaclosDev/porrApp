@@ -56,6 +56,9 @@ public class UserAccount {
     @Column(name = "avatar_updated_at")
     private LocalDateTime avatarUpdatedAt;
 
+    @Column(name = "profile_setup_completed", nullable = false)
+    private boolean profileSetupCompleted;
+
     /** URL pública (versionada) de la foto de perfil, o null si no tiene. */
     @Transient
     public String getAvatarUrl() {

@@ -29,6 +29,7 @@ export interface LoginResponse {
 }
 
 export interface Me {
+  profileSetupCompleted: boolean;
   userId: number;
   participantName: string;
   lastSelectedGroupId: number | null;
