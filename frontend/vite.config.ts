@@ -50,11 +50,11 @@ export default defineConfig({
       strategies: 'generateSW',
       registerType: 'autoUpdate',
       includeAssets: [
-        'favicon.png',
-        'apple-touch-icon.png',
-        'icon-192.png',
-        'icon-512.png',
-        'maskable-512.png',
+        'favicon-paper.png',
+        'apple-touch-icon-paper.png',
+        'icon-paper-192.png',
+        'icon-paper-512.png',
+        'maskable-paper-512.png',
       ],
       manifest: {
         name: 'PorrApp · Porras de fútbol',
@@ -70,9 +70,14 @@ export default defineConfig({
         theme_color: '#0f172a',
         categories: ['sports', 'entertainment'],
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icon-paper-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-paper-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          {
+            src: '/maskable-paper-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
         ],
       },
       workbox: {
