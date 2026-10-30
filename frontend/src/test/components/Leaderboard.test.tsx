@@ -56,8 +56,8 @@ describe('Leaderboard Component', () => {
     expect(headers.map((h) => h.textContent?.replace(/[▼▲\s]/g, ''))).toEqual([
       'Pos',
       'Participante',
-      'TOTAL',
-      'PuntosJornadas',
+      'Total',
+      'Puntosdejornada',
     ]);
 
     const row = screen.getByRole('row', { name: /Carlos/ });
@@ -109,7 +109,7 @@ describe('Leaderboard Component', () => {
     expect(headers.map((h) => h.textContent?.replace(/[▼▲\s]/g, ''))).toEqual([
       'Pos',
       'Participante',
-      'TOTAL',
+      'Total',
       'J2',
     ]);
 

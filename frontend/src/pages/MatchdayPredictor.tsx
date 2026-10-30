@@ -21,9 +21,8 @@ function MatchdayPredictor() {
 }
 
 /**
- * Vista de Pronósticos por Jornada (1X2 y Marcador Exacto) - Fase 3
- * Permite a los participantes de ligas por jornadas pronosticar partido a partido,
- * con bloqueo individual por fecha de inicio y visualización de puntos obtenidos.
+ * Pronósticos por jornada (1X2 y marcador exacto), partido a partido: cada uno se cierra al
+ * empezar y muestra los puntos obtenidos.
  */
 function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext> }) {
   const { activeGroupId, activeGroupName, activeGroupIsLocked, activeGroupPoolFormat } = context;

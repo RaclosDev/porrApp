@@ -31,13 +31,7 @@ const compactMatchdayLabel = (label: string | null) => {
   return label;
 };
 
-/**
- * Componente que muestra la tabla de clasificación (Leaderboard) de una liga.
- * Renderiza los participantes, sus puntos y proporciona acciones de administrador si corresponde.
- *
- * @component
- * @returns {JSX.Element} La vista de la tabla de clasificación.
- */
+/** Clasificación de la liga activa (tabla y gráfica). */
 function Leaderboard() {
   const {
     state,
@@ -97,7 +91,7 @@ function Leaderboard() {
     : [];
   const columns: LeaderboardColumn[] = isMatchday
     ? [
-        { key: 'total', label: 'TOTAL', kind: 'total' },
+        { key: 'total', label: 'Total', kind: 'total' },
         selectedMatchday
           ? {
               key: 'matchday',
@@ -105,11 +99,11 @@ function Leaderboard() {
               shortLabel: compactMatchdayLabel(selectedMatchday),
               kind: 'matchday',
             }
-          : { key: 'matchPoints', label: 'Puntos Jornadas', kind: 'detail' },
+          : { key: 'matchPoints', label: 'Puntos de jornada', kind: 'detail' },
         ...scorerColumn,
       ]
     : [
-        { key: 'total', label: 'TOTAL', kind: 'total' },
+        { key: 'total', label: 'Total', kind: 'total' },
         { key: 'matchPoints', label: 'Jornadas', kind: 'detail' },
         { key: 'r1', label: 'F.Grupos', kind: 'detail' },
         { key: 'r32', label: 'Dieciseisavos', kind: 'detail' },
@@ -149,10 +143,10 @@ function Leaderboard() {
         <div
           role="tablist"
           aria-label="Vista de la clasificación"
-          className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1"
+          className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] relative gap-1"
         >
           <button
-            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'table' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'table' ? 'text-black' : 'text-muted'} ${activeTab === 'table' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
+            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'table' ? 'bg-cyan text-black' : 'bg-transparent bg-none text-muted'}`}
             type="button"
             onClick={() => setActiveTab('table')}
             role="tab"
@@ -162,7 +156,7 @@ function Leaderboard() {
             Ranking
           </button>
           <button
-            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'evolution' ? 'bg-[linear-gradient(135deg,_#ff9f43,_#ffaf60)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'evolution' ? 'text-black' : 'text-muted'} ${activeTab === 'evolution' ? 'shadow-[0_4px_15px_rgba(255,_159,_67,_0.4)]' : 'shadow-none'}`}
+            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'evolution' ? 'bg-cyan text-black' : 'bg-transparent bg-none text-muted'}`}
             type="button"
             onClick={() => setActiveTab('evolution')}
             role="tab"
@@ -173,7 +167,7 @@ function Leaderboard() {
           </button>
         </div>
         <button
-          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] bg-transparent text-[#0f172a] border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`py-2 px-3.5 flex items-center justify-center bg-[#25D366] bg-none text-[#0f172a] border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}
@@ -325,10 +319,7 @@ function Leaderboard() {
 
                     const rowStyle = {
                       background: bgStyle,
-                      boxShadow: isMe
-                        ? 'inset 0 0 0 1px var(--accent-color), 0 0 15px rgba(0, 210, 211, 0.2)'
-                        : 'none',
-                      cursor: 'pointer',
+                      boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
                     };
 
                     return (
@@ -344,7 +335,7 @@ function Leaderboard() {
                                 size={28}
                               />
                               <div className="flex items-center flex-wrap gap-1.5 min-w-0">
-                                <span className="text-[1.1em]" title={`Ver Porra de ${r.name}`}>
+                                <span className="text-[1.1em]">
                                   <strong>
                                     {r.name}
                                     {isMe && (
@@ -367,7 +358,7 @@ function Leaderboard() {
 
                             {r.id != null && (
                               <button
-                                className="glass-btn bg-[rgba(56,_173,_246,_0.2)] bg-none text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-8.5 min-h-8.5 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
+                                className="glass-btn bg-[rgba(56,_173,_246,_0.2)] bg-none text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (isMatchday) {
@@ -376,7 +367,7 @@ function Leaderboard() {
                                     state.setViewerPredictionId(r.id);
                                   }
                                 }}
-                                title={isMatchday ? 'Ver partidos de la jornada' : 'Ver Porra'}
+                                title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
                               >
                                 <span aria-hidden="true">👁️</span>
                                 <span className="sr-only">
@@ -422,7 +413,7 @@ function Leaderboard() {
         </>
       )}
 
-      {/* SHARE IMAGE TEMPLATE (Hidden) */}
+      {/* Plantilla oculta de la imagen para WhatsApp */}
       <div
         className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 bg-[#0f0f1a] bg-none text-white box-border rounded-[15px]"
         id="share-image-template"
@@ -430,8 +421,7 @@ function Leaderboard() {
       >
         <div className="text-center mb-5 border-b-2 border-b-[#00d2d3] pb-2.5">
           <h1 className="text-[#00d2d3] m-0 text-[28px] uppercase">
-            🏆{' '}
-            {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'Porra Oficial'}
+            🏆 {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'PorrApp'}
           </h1>
           <p className="text-[#ff9f43] mt-[5px] mb-0 mx-0 text-[18px] font-bold">
             Clasificación: {activeGroupName}

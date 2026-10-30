@@ -16,13 +16,8 @@ import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 
 /**
- * Componente principal para crear o ver una Porra (Pronóstico).
- * Si el usuario ya tiene un pronóstico guardado en la liga activa, muestra el visor interactivo (PredictionViewer)
- * con píldoras de navegación (Grupos, Mejores Terceros, Bracket) y opción de editar.
- * Si no tiene pronóstico o está editando, muestra el asistente de creación/edición.
- *
- * @component
- * @returns {JSX.Element} Vista interactiva para ver o rellenar el bracket.
+ * Porra de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
+ * si no, o al editar, el asistente de grupos y cruces.
  */
 function Bracket() {
   const { userId } = useAppContext();
@@ -110,12 +105,11 @@ function Bracket() {
     return picked?.name === team.name;
   };
 
-  /** Slot renderer for BracketCanvas */
   const renderSlot = (
     team: BracketTeam | null | undefined,
     { side, roundIndex, matchIndex, isHome }: SlotContext,
   ) => {
-    // R32 in KNOCKOUTS_ONLY with placeholder → dropdown
+    // En KNOCKOUTS_ONLY, los dieciseisavos sin equipo ("1º A") se eligen en un desplegable.
     if (roundIndex === 0 && isKnockoutsOnly && team?.name?.includes('º')) {
       return (
         <select
@@ -135,7 +129,6 @@ function Bracket() {
         </select>
       );
     }
-    // R32: display with status indicator and click to advance
     if (roundIndex === 0) {
       let statusIndicator = null;
       const name = team?.name;
@@ -145,8 +138,8 @@ function Bracket() {
           statusIndicator = (
             <span
               className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
-              title="Clasificado Matemáticamente"
-              aria-label="Clasificado Matemáticamente"
+              title="Clasificado matemáticamente"
+              aria-label="Clasificado matemáticamente"
             />
           );
         }
@@ -160,7 +153,6 @@ function Bracket() {
         />
       );
     }
-    // Other rounds: click to advance
     return (
       <TeamSlot
         name={team?.name}
@@ -174,12 +166,11 @@ function Bracket() {
 
   const renderCenter = (colW: number) => (
     <>
-      {/* FINAL */}
       <div
-        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase"
+        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase"
         style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
       >
-        ⚽ Final
+        Final
       </div>
       <div
         className="match final-match absolute"
@@ -201,26 +192,24 @@ function Bracket() {
         />
       </div>
 
-      {/* CAMPEÓN */}
       <div
         className="absolute text-center"
         style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
       >
-        <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1.5">
-          🏆 Campeón
+        <div className="text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase mb-1.5">
+          Campeón
         </div>
         <div className="champion-display">
           <TeamSlot name={bracketState.champion?.name} />
         </div>
       </div>
 
-      {/* TERCER PUESTO */}
       <div
         className="absolute"
         style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
       >
-        <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1.5 text-center">
-          🥉 Tercer Puesto
+        <div className="text-[0.65rem] font-bold text-muted tracking-[0.5px] uppercase mb-1.5 text-center">
+          Tercer puesto
         </div>
         <div className="match third-place">
           <TeamSlot
@@ -242,7 +231,7 @@ function Bracket() {
         </div>
         {bracketState.thirdPlaceWinner && (
           <div className="mt-2.5 text-center">
-            <div className="text-[0.65rem] text-muted mb-1">Ganador:</div>
+            <div className="text-[0.65rem] text-muted mb-1">Ganador del tercer puesto</div>
             <TeamSlot name={bracketState.thirdPlaceWinner?.name} />
           </div>
         )}
@@ -259,7 +248,7 @@ function Bracket() {
             onClick={() => setIsEditing(false)}
             className="glass-btn py-2 px-4 text-[0.88rem] font-bold cursor-pointer flex items-center gap-1.5"
           >
-            👁️ Ver Pronóstico Guardado
+            Ver mi porra
           </button>
         </div>
       )}
@@ -277,7 +266,7 @@ function Bracket() {
           <div className="section-header mb-7.5 text-center">
             <h2 className="m-0">Paso 2: Eliminatorias</h2>
             <p className="text-muted mt-2 text-[0.9rem]">
-              Haz clic en un equipo para avanzarlo a la siguiente ronda
+              Pulsa un equipo para pasarlo a la siguiente ronda
             </p>
             {!isKnockoutsOnly && (
               <button
@@ -285,24 +274,29 @@ function Bracket() {
                 onClick={handleResetToGroupStage}
                 className="glass-btn mt-2.5 text-[0.85rem] py-1.5 px-3.5 rounded-[20px] text-cyan border border-[rgba(0,_210,_211,_0.4)] cursor-pointer"
               >
-                ← Modificar Fase de Grupos
+                ← Editar fase de grupos
               </button>
             )}
           </div>
 
-          {/* Pestañas para móvil */}
-          <div className="mb-tabs hide-on-desktop">
+          <div className="mb-tabs hide-on-desktop" role="tablist" aria-label="Pasos del cuadro">
             <button
+              type="button"
+              role="tab"
+              aria-selected={mobileStep === 'bracket'}
               className={`mb-tab ${mobileStep === 'bracket' ? 'mb-tab-active' : ''}`}
               onClick={() => setMobileStep('bracket')}
             >
               Cuadro
             </button>
             <button
+              type="button"
+              role="tab"
+              aria-selected={mobileStep === 'save'}
               className={`mb-tab ${mobileStep === 'save' ? 'mb-tab-active' : ''}`}
               onClick={() => setMobileStep('save')}
             >
-              {activeGroupPichichi ? 'Guardar y Pichichi' : 'Guardar Porra'}
+              {activeGroupPichichi ? 'Guardar y pichichi' : 'Guardar porra'}
             </button>
           </div>
 
@@ -324,10 +318,9 @@ function Bracket() {
               renderCenter={renderCenter}
               mobileCenter={() => (
                 <div className="flex flex-col gap-5">
-                  {/* Final */}
                   <div>
-                    <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase text-center mb-2">
-                      ⚽ Final
+                    <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase text-center mb-2">
+                      Final
                     </div>
                     <div className="mb-match-card">
                       <TeamSlot
@@ -348,19 +341,17 @@ function Bracket() {
                       />
                     </div>
                   </div>
-                  {/* Campeón */}
                   <div className="text-center">
-                    <div className="text-[0.75rem] font-bold text-gold tracking-[2px] uppercase mb-2">
-                      🏆 Campeón
+                    <div className="text-[0.75rem] font-bold text-gold tracking-[0.5px] uppercase mb-2">
+                      Campeón
                     </div>
                     <div className="champion-display">
                       <TeamSlot name={bracketState.champion?.name} />
                     </div>
                   </div>
-                  {/* Tercer Puesto */}
                   <div>
-                    <div className="text-[0.75rem] font-bold text-muted tracking-[2px] uppercase text-center mb-2">
-                      🥉 Tercer Puesto
+                    <div className="text-[0.75rem] font-bold text-muted tracking-[0.5px] uppercase text-center mb-2">
+                      Tercer puesto
                     </div>
                     <div className="mb-match-card">
                       <TeamSlot
@@ -382,7 +373,9 @@ function Bracket() {
                     </div>
                     {bracketState.thirdPlaceWinner && (
                       <div className="mt-2.5 text-center">
-                        <div className="text-[0.65rem] text-muted mb-1">Ganador:</div>
+                        <div className="text-[0.65rem] text-muted mb-1">
+                          Ganador del tercer puesto
+                        </div>
                         <TeamSlot name={bracketState.thirdPlaceWinner?.name} />
                       </div>
                     )}
@@ -391,7 +384,6 @@ function Bracket() {
               )}
             />
 
-            {/* Botón Siguiente en móvil para pasar a Guardar */}
             <div
               className={`hide-on-desktop ${mobileStep === 'bracket' ? '' : 'mobile-step-hidden'}`}
               style={{ textAlign: 'center', marginTop: '20px' }}
@@ -403,29 +395,21 @@ function Bracket() {
                   setMobileStep('save');
                 }}
               >
-                Continuar a Guardar Porra
+                Continuar
               </button>
             </div>
           </div>
 
-          {/* Controls */}
           <div
             id="controls-section"
-            className={mobileStep === 'save' ? '' : 'mobile-step-hidden'}
-            style={{
-              marginTop: 30,
-              padding: 20,
-              background: 'rgba(255,255,255,0.05)',
-              borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
+            className={`glass-panel mt-7.5 p-5 ${mobileStep === 'save' ? '' : 'mobile-step-hidden'}`}
           >
-            <h3 className="mt-0 text-accent-text">Guardar Porra</h3>
+            <h3 className="mt-0 text-accent-text">Guardar porra</h3>
             <div className="flex gap-[15px] flex-wrap mb-[15px]">
               <input
                 type="text"
-                placeholder="Tu Nombre (Loguéate arriba primero)"
-                aria-label="Tu Nombre"
+                placeholder="Tu nombre"
+                aria-label="Tu nombre"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 className="glass-input flex-1 min-w-50"
@@ -433,8 +417,8 @@ function Bracket() {
               />
               <input
                 type="text"
-                placeholder="Nombre de la Porra (ej: Mi Porra 1)"
-                aria-label="Nombre de la Porra"
+                placeholder="Nombre de la porra (p. ej.: Mi porra 1)"
+                aria-label="Nombre de la porra"
                 value={predictionName}
                 onChange={(e) => setPredictionName(e.target.value)}
                 className="glass-input flex-1 min-w-50"
@@ -450,19 +434,20 @@ function Bracket() {
                 />
               )}
             </div>
+            {!isAuthenticated && (
+              <p className="text-muted mt-0 mb-[15px] text-[0.9rem]">Inicia sesión para guardar.</p>
+            )}
             {activeGroupIsLocked && (
               <div className="py-2.5 px-3.5 bg-[rgba(239,_68,_68,_0.15)] bg-none border border-[rgba(239,_68,_68,_0.4)] rounded-[8px] text-[#fca5a5] mb-[15px] text-[0.9rem]">
-                🔒 <b>Pronósticos cerrados:</b> El plazo para enviar o modificar porras en esta liga
-                ha finalizado.
+                🔒 <b>Porra cerrada:</b> el plazo para enviarla o cambiarla ha terminado.
               </div>
             )}
             <button
               className="glass-btn primary-btn"
               onClick={generatePredictionData}
               disabled={activeGroupIsLocked}
-              style={activeGroupIsLocked ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
             >
-              {activeGroupIsLocked ? 'Plazo Cerrado' : 'Guardar Pronóstico'}
+              {activeGroupIsLocked ? 'Plazo cerrado' : 'Guardar porra'}
             </button>
           </div>
         </>

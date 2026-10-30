@@ -4,9 +4,7 @@ import { openStats } from '../utils/navigation';
 import Flag from '../components/Flag';
 import type { Match } from '../types/api';
 
-/**
- * Componente que muestra los partidos en vivo, recientes y proximos.
- */
+/** Partidos en directo, próximos y últimos resultados de la competición. */
 function Radar() {
   const { matchRadar, loading } = useAppContext();
   const [activeTab, setActiveTab] = useState('proximos');
@@ -40,7 +38,7 @@ function Radar() {
     const d = new Date(m.date ?? 0);
     const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
     const isActuallyLive = type === 'live' && new Date(m.date ?? 0) <= new Date();
-    const statusLabel = isActuallyLive ? m.displayClock || 'En Juego' : dateFormatted;
+    const statusLabel = isActuallyLive ? m.displayClock || 'En juego' : dateFormatted;
 
     const isPlaceholder = (t: string | null | undefined) =>
       !t ||
@@ -76,15 +74,13 @@ function Radar() {
           </div>
         </div>
 
-        {/* Action Buttons at the bottom */}
         {showStatsButton && (
           <div className="text-center mt-2.5">
             <button
               onClick={() => openStats()}
               className="glass-btn py-2 px-4.5 min-h-11 rounded-[8px] text-[0.9rem] font-bold inline-flex items-center justify-center"
-              aria-label={`Ver estadísticas entre ${m.home} y ${m.away}`}
             >
-              Estadísticas
+              Ver en Sofascore
             </button>
           </div>
         )}
@@ -96,7 +92,7 @@ function Radar() {
     <section id="view-radar" className="view-section active block">
       <div className="section-header mb-5 text-center">
         <h2 className="m-0" style={{ fontFamily: "'Outfit', sans-serif" }}>
-          Panel de Partidos
+          Partidos
         </h2>
       </div>
 
@@ -109,7 +105,7 @@ function Radar() {
                 <h3
                   className={`text-center mb-[15px] ${isActuallyLive ? 'text-[#ff4757]' : 'text-[#ffa502]'}`}
                 >
-                  {isActuallyLive ? 'En Directo' : 'A punto de comenzar'}
+                  {isActuallyLive ? 'En directo' : 'A punto de comenzar'}
                 </h3>
                 <div className="last-matches-grid grid-cols-[1fr]">
                   {liveMatches.map((m) => renderMatchCard(m, 'live'))}
@@ -122,14 +118,16 @@ function Radar() {
           <button
             className={`glass-btn flex-1 max-w-50 ${activeTab === 'proximos' ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : ''} ${activeTab === 'proximos' ? 'border border-cyan' : ''}`}
             onClick={() => setActiveTab('proximos')}
+            aria-pressed={activeTab === 'proximos'}
           >
-            Próximos Partidos
+            Próximos partidos
           </button>
           <button
             className={`glass-btn flex-1 max-w-50 ${activeTab === 'ultimos' ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : ''} ${activeTab === 'ultimos' ? 'border border-cyan' : ''}`}
             onClick={() => setActiveTab('ultimos')}
+            aria-pressed={activeTab === 'ultimos'}
           >
-            Últimos Resultados
+            Últimos resultados
           </button>
         </div>
 
@@ -138,7 +136,7 @@ function Radar() {
             className={`radar-column radar-col-proximos ${activeTab === 'proximos' ? 'active-mobile' : ''}`}
             style={{ flex: 1, width: '100%' }}
           >
-            <h3 className="hide-on-mobile text-center text-cyan mb-[15px]">Próximos Partidos</h3>
+            <h3 className="hide-on-mobile text-center text-cyan mb-[15px]">Próximos partidos</h3>
             <div className="last-matches-grid grid-cols-[1fr]">
               {nextMatches.length === 0 ? (
                 <div className="text-center text-muted py-6 px-0 italic">
@@ -156,7 +154,7 @@ function Radar() {
             className={`radar-column radar-col-ultimos ${activeTab === 'ultimos' ? 'active-mobile' : ''}`}
             style={{ flex: 1, width: '100%' }}
           >
-            <h3 className="hide-on-mobile text-center text-cyan mb-[15px]">Últimos Resultados</h3>
+            <h3 className="hide-on-mobile text-center text-cyan mb-[15px]">Últimos resultados</h3>
             <div className="last-matches-grid grid-cols-[1fr]">
               {lastMatches.length === 0 ? (
                 <div className="text-center text-muted py-6 px-0 italic">

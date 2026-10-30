@@ -19,13 +19,7 @@ import FeaturedMatchBanner from '../components/official/FeaturedMatchBanner';
 import BracketInfoPanel from '../components/official/BracketInfoPanel';
 import OfficialMobileCenter from '../components/official/OfficialMobileCenter';
 
-/**
- * Componente que muestra el Bracket Oficial (los cruces reales del torneo).
- * Calcula y resuelve en vivo qué equipos avanzan con la lógica de clasificación de terceros.
- *
- * @component
- * @returns {JSX.Element} La vista del bracket oficial.
- */
+/** Cuadro oficial: los cruces reales del torneo, con los terceros resueltos en vivo. */
 function OfficialBracket() {
   const { activeGroupPoolFormat, activeCompetitionFormatType, loadingGroup, groupError } =
     useAppContext();
@@ -68,13 +62,11 @@ function OfficialBracketView() {
   const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
   const [activeTab, setActiveTab] = useState<'cuadro' | 'grupos'>('cuadro');
 
-  // Build bracket data
   const part = useMemo(
     () => buildBracketData(officialPoints, groupOdds, allGames),
     [officialPoints, groupOdds, allGames],
   );
 
-  // Featured upcoming match
   const featuredMatch = useMemo(() => nextKnockoutMatch(allGames), [allGames]);
 
   const { leftRounds, rightRounds } = useMemo(() => {
@@ -105,18 +97,12 @@ function OfficialBracketView() {
     );
   }
 
-  // Render slot
   const renderSlot = (teamOrObj: BracketSlot | undefined, context?: OfficialSlotContext) => {
     const isObj = typeof teamOrObj === 'object' && teamOrObj !== null;
     const name = slotName(teamOrObj);
     const isProv = isObj ? teamOrObj.isProvisional : false;
 
-    let style: CSSProperties = isProv
-      ? {
-          border: '1px dashed #ff4757',
-          animation: 'provisional-pulse 1.5s infinite',
-        }
-      : {};
+    let style: CSSProperties = isProv ? { border: '1px dashed #ff4757' } : {};
 
     let scoreContent = null;
     let oppName: string | null = null;
@@ -163,7 +149,6 @@ function OfficialBracketView() {
         const isHomeInMatch = matchTeamNames(m.home, name);
         const score = isHomeInMatch ? m.home_score : m.away_score;
 
-        // Determine if this team won the match
         let isWinner = false;
         if (m.winner) {
           isWinner = matchTeamNames(m.winner, name);
@@ -198,13 +183,6 @@ function OfficialBracketView() {
       style = {
         ...style,
         border: isLive ? '2px solid #ff4757' : '2px solid #00d2d3',
-        boxShadow: isLive
-          ? '0 0 16px rgba(255, 71, 87, 0.8), inset 0 0 10px rgba(255, 71, 87, 0.3)'
-          : '0 0 16px rgba(0, 210, 211, 0.8), inset 0 0 10px rgba(0, 210, 211, 0.3)',
-        background: isLive
-          ? 'linear-gradient(90deg, rgba(255,71,87,0.25) 0%, rgba(15,15,26,0.95) 100%)'
-          : 'linear-gradient(90deg, rgba(0,210,211,0.25) 0%, rgba(15,15,26,0.95) 100%)',
-        animation: 'featured-match-pulse 1.5s infinite ease-in-out',
         position: 'relative',
         zIndex: 10,
         fontWeight: 'bold',
@@ -214,7 +192,6 @@ function OfficialBracketView() {
     return <TeamSlot name={name} slotStyle={style} rightContent={scoreContent} />;
   };
 
-  // Hidden rounds
   const hiddenRounds = {
     0: false,
     1: false,
@@ -222,7 +199,6 @@ function OfficialBracketView() {
     3: false,
   };
 
-  // Center content
   const finalTopY = matchTop(3, 0);
 
   const getName = slotName;
@@ -231,12 +207,11 @@ function OfficialBracketView() {
 
   const centerContent = (colW: number) => (
     <div className="block">
-      {/* FINAL */}
       <div
-        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase"
+        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase"
         style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
       >
-        🏆 Final 🏆
+        Final
       </div>
       <div
         className="match final-match absolute"
@@ -246,17 +221,16 @@ function OfficialBracketView() {
         {renderSlot(part.final?.[1], { side: 'center', roundIndex: 'final', isHome: false })}
       </div>
 
-      {/* CAMPEÓN */}
       <div
         className="absolute text-center"
         style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
       >
-        <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1.5">
-          🏆 Campeón
+        <div className="text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase mb-1.5">
+          Campeón
         </div>
         <div className="champion-display">
           <div
-            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.champion) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
+            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'}`}
           >
             <Flag
               team={getName(part.champion) || ''}
@@ -274,13 +248,12 @@ function OfficialBracketView() {
         </div>
       </div>
 
-      {/* TERCER PUESTO */}
       <div
         className="absolute"
         style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
       >
-        <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1.5 text-center">
-          🥉 Tercer Puesto
+        <div className="text-[0.65rem] font-bold text-muted tracking-[0.5px] uppercase mb-1.5 text-center">
+          Tercer puesto
         </div>
         <div className="match third-place">
           {renderSlot(part.thirdPlaceMatch?.[0], {
@@ -295,12 +268,12 @@ function OfficialBracketView() {
           })}
         </div>
         <div className="mt-2 text-center">
-          <div className="text-[0.65rem] font-bold text-[#cd7f32] tracking-[2px] uppercase mb-1">
-            🥉 3.º Puesto
+          <div className="text-[0.65rem] font-bold text-[#cd7f32] tracking-[0.5px] uppercase mb-1">
+            Ganador del tercer puesto
           </div>
           <div className="champion-display">
             <div
-              className={`team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.thirdPlaceWinner) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
+              className={`team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'}`}
             >
               <Flag
                 team={getName(part.thirdPlaceWinner) || ''}
@@ -322,74 +295,53 @@ function OfficialBracketView() {
   );
 
   return (
-    <>
-      <style>{`
-      @keyframes provisional-pulse {
-        0% { opacity: 1; border-color: #ff4757; }
-        50% { opacity: 0.5; border-color: rgba(255,71,87,0.4); }
-        100% { opacity: 1; border-color: #ff4757; }
-      }
-      @keyframes slideInRight {
-        from { transform: translateX(30px) scale(0.96); opacity: 0; }
-        to { transform: translateX(0) scale(1); opacity: 1; }
-      }
-      @keyframes featured-match-pulse {
-        0% { filter: drop-shadow(0 0 2px rgba(0,210,211,0.4)); }
-        50% { filter: drop-shadow(0 0 8px rgba(0,210,211,0.9)) brightness(1.1); }
-        100% { filter: drop-shadow(0 0 2px rgba(0,210,211,0.4)); }
-      }
-    `}</style>
-      <section className="view-section block pt-0 relative">
-        {/* PESTAÑAS DE NAVEGACIÓN ESTILO PILLS */}
-        <OfficialBracketTabs
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          activePanel={activePanel}
-          setActivePanel={setActivePanel}
-          activeGroupPichichi={activeGroupPichichi}
-        />
+    <section className="view-section block pt-0 relative">
+      <OfficialBracketTabs
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        activePanel={activePanel}
+        setActivePanel={setActivePanel}
+        activeGroupPichichi={activeGroupPichichi}
+      />
 
-        {activeTab === 'grupos' ? (
-          <OfficialGroupsView />
-        ) : (
-          <>
-            {featuredMatch && <FeaturedMatchBanner featuredMatch={featuredMatch} />}
+      {activeTab === 'grupos' ? (
+        <OfficialGroupsView />
+      ) : (
+        <>
+          {featuredMatch && <FeaturedMatchBanner featuredMatch={featuredMatch} />}
 
-            {/* Controls overlay */}
-            <div className="flex flex-col items-center mb-2.5 relative z-[50]">
-              {/* HUD Modal Centrado debajo de los botones - Cierra al hacer clic en cualquier parte fuera */}
-              {activePanel && (
-                <BracketInfoPanel
-                  activePanel={activePanel}
-                  setActivePanel={setActivePanel}
-                  matchRadar={matchRadar}
-                  topScorers={topScorers}
-                  topScorersLoading={topScorersLoading}
-                  topScorersError={topScorersError}
-                  refreshTopScorers={refreshTopScorers}
-                />
-              )}
-            </div>
+          <div className="flex flex-col items-center mb-2.5 relative z-[50]">
+            {activePanel && (
+              <BracketInfoPanel
+                activePanel={activePanel}
+                setActivePanel={setActivePanel}
+                matchRadar={matchRadar}
+                topScorers={topScorers}
+                topScorersLoading={topScorersLoading}
+                topScorersError={topScorersError}
+                refreshTopScorers={refreshTopScorers}
+              />
+            )}
+          </div>
 
-            <BracketCanvas
-              leftRounds={leftRounds}
-              rightRounds={rightRounds}
-              renderSlot={renderSlot}
-              renderCenter={centerContent}
-              hiddenRounds={hiddenRounds}
-              mobileCenter={() => (
-                <OfficialMobileCenter
-                  part={part}
-                  getName={getName}
-                  getIsProv={getIsProv}
-                  renderSlot={renderSlot}
-                />
-              )}
-            />
-          </>
-        )}
-      </section>
-    </>
+          <BracketCanvas
+            leftRounds={leftRounds}
+            rightRounds={rightRounds}
+            renderSlot={renderSlot}
+            renderCenter={centerContent}
+            hiddenRounds={hiddenRounds}
+            mobileCenter={() => (
+              <OfficialMobileCenter
+                part={part}
+                getName={getName}
+                getIsProv={getIsProv}
+                renderSlot={renderSlot}
+              />
+            )}
+          />
+        </>
+      )}
+    </section>
   );
 }
 
