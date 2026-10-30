@@ -196,7 +196,7 @@ function Leaderboard() {
           </button>
         </div>
         <button
-          className={`py-2 px-3.5 flex items-center justify-center bg-[#25D366] bg-none text-[#0f172a] border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`glass-btn primary-btn py-2 px-3.5 min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}

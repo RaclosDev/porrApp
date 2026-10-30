@@ -133,10 +133,12 @@
     min-height: 44px;
     border-radius: 10px;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     cursor: pointer;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 700;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     transition:
       background 0.2s ease,
       border-color 0.2s ease,
@@ -168,22 +170,21 @@
   }
 
   /* Texto blanco a 4,5:1 o más en todo el degradado (también al pasar el ratón). */
+  /* Botón principal: pegatina de papel sobre el fondo oscuro; tinta sobre papel. */
   .primary-btn {
-    background: linear-gradient(135deg, #0277b5 0%, #007a94 100%);
-    border: 1px solid rgba(0, 210, 211, 0.4);
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(0, 180, 216, 0.25);
+    background: var(--paper);
+    border: 1.5px solid var(--paper);
+    color: var(--ink);
+    box-shadow: none;
     transition:
       background 0.2s ease,
-      transform 0.15s ease,
-      box-shadow 0.2s ease;
+      transform 0.15s ease;
   }
 
   .primary-btn:hover {
-    background: linear-gradient(135deg, #0369a1 0%, #0e7490 100%);
-    border-color: #00d2d3;
+    background: #ffffff;
+    border-color: #ffffff;
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(0, 210, 211, 0.35);
   }
 
   .primary-btn:disabled {

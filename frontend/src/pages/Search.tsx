@@ -206,7 +206,7 @@ function BracketSearch() {
                 <button
                   type="button"
                   onClick={share}
-                  className="glass-btn mt-4 inline-flex w-full items-center justify-center gap-2 border-[#25D366] bg-[#25D366] font-bold text-[#0f172a]"
+                  className="glass-btn primary-btn mt-4 inline-flex w-full items-center justify-center gap-2"
                 >
                   <WhatsAppIcon size={18} /> Compartir búsqueda
                 </button>

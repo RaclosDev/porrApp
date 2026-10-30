@@ -78,7 +78,7 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => navigate('/mis-ligas')}
-        className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-11 rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.6)] bg-[rgba(0,_210,_211,_0.1)] bg-none text-[#00d2d3] cursor-pointer text-[0.82rem] font-bold"
+        className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-11 rounded-[10px] border-dashed cursor-pointer text-[0.82rem]"
         title="Crear o unirse a una liga"
       >
         <span>➕</span>
@@ -102,16 +102,16 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => setIsOpen(!isOpen)}
-        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] border border-[rgba(0,_210,_211,_0.4)] text-main cursor-pointer font-semibold text-[0.88rem] [transition:all_0.2s_ease] ${isOpen ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(15,_23,_42,_0.75)] bg-none'}`}
+        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem] ${isOpen ? 'bg-[rgba(243,236,220,0.12)] bg-none' : ''}`}
         aria-expanded={isOpen}
         title="Cambiar de liga"
       >
         <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
         <div className="flex flex-col items-start text-left leading-[1.15] min-w-0">
-          <span className="w-full max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-white">
+          <span className="poster-title w-full max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-main text-[0.95rem] tracking-[0.02em]">
             {displayLeagueName}
           </span>
-          <span className="w-full text-[0.7rem] text-accent-text font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="w-full text-[0.7rem] text-muted font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
             {displayCompName}
           </span>
         </div>
@@ -123,10 +123,10 @@ export default function ActiveLeagueDropdown() {
       </button>
 
       {isOpen && (
-        <div className="active-league-menu absolute top-[calc(100%_+_8px)] bg-[#111827] bg-none border border-[rgba(0,_210,_211,_0.35)] rounded-[12px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.75)] p-2 flex flex-col gap-1">
-          <div className="py-1.5 px-2.5 text-[0.75rem] font-bold tracking-[0.5px] text-muted uppercase border-b border-b-[rgba(255,_255,_255,_0.08)] mb-1 flex justify-between items-center">
+        <div className="active-league-menu paper-panel absolute top-[calc(100%_+_8px)] rounded-[6px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.6)] p-2 flex flex-col gap-1">
+          <div className="poster-title py-1.5 px-2.5 text-[0.8rem] text-muted border-b border-b-line mb-1 flex justify-between items-center">
             <span>Mis Ligas</span>
-            <span className="text-[0.7rem] text-[#00d2d3]">
+            <span className="text-[0.7rem] text-muted normal-case font-[Inter,sans-serif] tracking-normal">
               {userGroups?.length || 0} {userGroups?.length === 1 ? 'liga' : 'ligas'}
             </span>
           </div>
@@ -138,7 +138,7 @@ export default function ActiveLeagueDropdown() {
                 const gBadge = getCompetitionBadge(g.competitionName);
                 return (
                   <button
-                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(0,_210,_211,_0.12)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(255,_255,_255,_0.06)] focus-visible:bg-[rgba(255,_255,_255,_0.06)]'} ${isSelected ? 'text-[#00d2d3]' : 'text-white'}`}
+                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(17,_24,_39,_0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)]'} text-main`}
                     key={g.id}
                     type="button"
                     onClick={() => {
@@ -161,9 +161,7 @@ export default function ActiveLeagueDropdown() {
                         </span>
                       </div>
                     </div>
-                    {isSelected && (
-                      <span className="text-[#00d2d3] font-bold text-[0.9rem]">✓</span>
-                    )}
+                    {isSelected && <span className="marker-ink text-[1rem]">✓</span>}
                   </button>
                 );
               })
@@ -176,9 +174,9 @@ export default function ActiveLeagueDropdown() {
             )}
           </div>
 
-          <div className="border-t border-t-[rgba(255,_255,_255,_0.08)] pt-1.5 mt-1">
+          <div className="border-t border-t-line pt-1.5 mt-1">
             <button
-              className="w-full py-2 px-2.5 rounded-[8px] border border-dashed border-[rgba(0,_210,_211,_0.35)] bg-[rgba(0,_210,_211,_0.05)] bg-none hover:bg-[rgba(0,_210,_211,_0.15)] focus-visible:bg-[rgba(0,_210,_211,_0.15)] text-[#00d2d3] text-[0.82rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 [transition:all_0.15s_ease]"
+              className="glass-btn w-full py-2 px-2.5 rounded-[8px] border-dashed text-[0.82rem] cursor-pointer flex items-center justify-center gap-1.5"
               type="button"
               onClick={() => {
                 setIsOpen(false);
