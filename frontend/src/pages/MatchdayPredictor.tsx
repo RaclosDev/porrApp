@@ -10,8 +10,18 @@ import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 
 function MatchdayPredictor() {
   const context = useAppContext();
-  if (context.loadingGroup) return <p role="status">Cargando liga...</p>;
-  if (context.groupError) return <p role="alert">No se pudo cargar la liga. Inténtalo de nuevo.</p>;
+  if (context.loadingGroup)
+    return (
+      <p className="p-6 text-center text-muted" role="status">
+        Cargando liga…
+      </p>
+    );
+  if (context.groupError)
+    return (
+      <p className="p-6 text-center text-[#ff7675]" role="alert">
+        No se pudo cargar la liga. Inténtalo de nuevo.
+      </p>
+    );
   return (
     <MatchdayLeague
       key={`${context.userId || context.userName}:${context.activeGroupId}`}
@@ -28,18 +38,6 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
   const { activeGroupId, activeGroupName, activeGroupIsLocked, activeGroupPoolFormat } = context;
   const md = useMatchdayPredictor(context);
 
-  if (context.loadingGroup)
-    return (
-      <p className="p-6 text-center text-muted" role="status">
-        Cargando liga...
-      </p>
-    );
-  if (context.groupError)
-    return (
-      <p className="p-6 text-center text-[#ff7675]" role="alert">
-        No se pudo cargar la liga. Inténtalo de nuevo.
-      </p>
-    );
   if (activeGroupPoolFormat && !md.isMatchDay) {
     return <Navigate to="/" replace />;
   }
