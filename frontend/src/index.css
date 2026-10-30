@@ -14,6 +14,8 @@
   --input-border: #74839a;
   --accent-cyan: #00d2d3;
   --champion-gold: #fbbf24;
+  /* Desenfoque común de los overlays de pantalla completa. */
+  --overlay-blur: 8px;
 }
 
 /*
@@ -177,16 +179,6 @@
     transform: none;
   }
 
-  .glass-select {
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid var(--input-border);
-    color: white;
-    padding: 10px 14px;
-    min-height: 44px;
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-  }
-
   .glass-input {
     background: rgba(15, 23, 42, 0.85);
     border: 1px solid var(--input-border);
@@ -202,14 +194,12 @@
     color: rgba(255, 255, 255, 0.65);
   }
 
-  .glass-input:focus,
-  .glass-select:focus {
+  .glass-input:focus {
     border-color: var(--accent-cyan);
     background: rgba(15, 23, 42, 0.95);
   }
 
-  select.glass-input,
-  select.glass-select {
+  select.glass-input {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -296,23 +286,6 @@
     border-radius: 10px;
   }
 
-  .user-info {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .user-info input {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    background: rgba(15, 23, 42, 0.7);
-    color: white;
-    font-family: inherit;
-    font-size: 0.85rem;
-    width: 160px;
-  }
-
   .app-container {
     flex: 1;
     padding: 20px;
@@ -397,36 +370,6 @@
     flex: 1;
   }
 
-  .skeleton-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-  }
-
-  .hero {
-    text-align: center;
-    padding: 20px;
-  }
-
-  .hero h2 {
-    font-size: 2.5rem;
-    margin-bottom: 16px;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 800;
-  }
-
-  .hero p {
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    margin-bottom: 32px;
-  }
-
-  .action-buttons {
-    display: flex;
-    gap: 16px;
-    justify-content: center;
-  }
-
   /* Group Stage View */
   .section-header {
     text-align: center;
@@ -459,8 +402,7 @@
   }
 
   @media (max-width: 600px) {
-    .groups-grid,
-    .thirds-selection {
+    .groups-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -478,123 +420,7 @@
     color: var(--accent-cyan);
   }
 
-  .group-teams-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .team-badge {
-    background: rgba(0, 0, 0, 0.25);
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-muted);
-  }
-
-  .team-badge img {
-    border-radius: 2px;
-  }
-
-  .group-slot {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    gap: 10px;
-  }
-
-  .group-slot span:first-child {
-    width: 20px;
-    font-weight: bold;
-    color: var(--text-muted);
-  }
-
-  .group-slot select {
-    flex: 1;
-  }
-
-  .thirds-selection {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    justify-content: center;
-  }
-
-  .third-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 10px 16px;
-    min-height: 44px;
-    border-radius: 8px;
-    cursor: pointer;
-    border: 1px solid var(--border-color);
-    transition: background 0.2s;
-  }
-
-  .third-checkbox:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .third-checkbox.selected {
-    border-color: var(--accent-cyan);
-    background: rgba(0, 210, 211, 0.15);
-  }
-
-  .bottom-actions {
-    text-align: center;
-    margin-top: 40px;
-  }
-
   /* Bracket View */
-  .bracket-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    background: var(--panel-bg);
-    padding: 15px 25px;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-  }
-
-  .top-scorer-box {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .bracket-wrapper {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-  }
-
-  .bracket-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .bracket-children {
-    display: flex;
-    gap: 30px;
-  }
-
-  .bracket-leaf {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .bracket-side {
-    display: flex;
-    flex-direction: column;
-  }
 
   .round {
     display: flex;
@@ -684,21 +510,6 @@
   }
 
   /* Center Finals */
-  .center-side {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-width: 200px;
-    gap: 30px;
-  }
-
-  .finals-container .match h3 {
-    text-align: center;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-  }
 
   .champion-display .team-slot {
     min-height: 56px;
@@ -718,7 +529,7 @@
     right: 0;
     bottom: 0;
     background: rgba(10, 15, 30, 0.85);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(var(--overlay-blur));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -824,13 +635,10 @@
     padding: 16px 18px;
     border-radius: 16px;
     border: 1px solid rgba(0, 210, 211, 0.18);
-    background:
-      radial-gradient(circle at top left, rgba(0, 210, 211, 0.12), transparent 42%),
-      rgba(15, 23, 42, 0.82);
+    background: rgba(15, 23, 42, 0.82);
     box-shadow:
       0 12px 30px rgba(0, 0, 0, 0.28),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(12px);
   }
 
   .lb-matchday-summary {
@@ -1207,30 +1015,6 @@
     min-width: 80px;
   }
 
-  .score-vs {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 4px 10px;
-    border-radius: 4px;
-  }
-
-  .floating-fact {
-    position: fixed;
-    white-space: nowrap;
-    font-size: 1.1rem;
-    font-weight: bold;
-    padding: 10px 20px;
-    background: rgba(15, 23, 42, 0.95);
-    border: 1px solid var(--accent-cyan);
-    color: white;
-    border-radius: 10px;
-    z-index: 9999;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    pointer-events: none;
-  }
-
   /* Desktop header: keep the navigation centered on the viewport, not in the leftover space. */
   @media (min-width: 1200px) {
     .top-bar {
@@ -1315,11 +1099,6 @@
       margin-left: auto !important;
     }
 
-    /* Ocultar el nombre del usuario logueado en la cabecera móvil (dejar solo el icono avatar) */
-    .header-user-name {
-      display: none !important;
-    }
-
     /* Por debajo de 360 px el texto "Demo" se montaba sobre el logo: queda solo el icono */
     @media (max-width: 359px) {
       .header-demo-label {
@@ -1351,15 +1130,6 @@
       order: 10;
       display: flex;
       margin-top: 5px;
-    }
-
-    #online-counter {
-      order: 1;
-      margin: 0;
-    }
-    #btn-view-my-prediction-header {
-      order: 2;
-      margin: 0;
     }
     .header-right > a {
       order: 3;
@@ -1397,11 +1167,6 @@
       width: 100%;
     }
 
-    .bracket-wrapper {
-      min-width: 800px;
-      padding-bottom: 20px;
-    }
-
     .radar-container {
       flex-direction: column;
     }
@@ -1418,126 +1183,6 @@
     .leaderboard-table td {
       padding: 10px 6px;
       font-size: 0.85rem;
-    }
-
-    .search-conditions-grid {
-      grid-template-columns: 1fr 1fr !important;
-    }
-  }
-
-  /* Tooltip online counter */
-  .tooltip-container {
-    position: relative;
-    display: inline-block;
-  }
-
-  .custom-tooltip {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    top: 130%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1e293b;
-    border: 1px solid var(--accent-cyan);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-    border-radius: 8px;
-    padding: 10px 15px;
-    min-width: 150px;
-    z-index: 9999;
-    transition:
-      opacity 0.2s ease,
-      visibility 0.2s ease;
-    color: white;
-    font-size: 0.85rem;
-    pointer-events: none;
-  }
-
-  .custom-tooltip::after {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    margin-left: -6px;
-    border-width: 6px;
-    border-style: solid;
-    border-color: transparent transparent #1e293b transparent;
-  }
-
-  @media (hover: hover) {
-    .tooltip-container:hover .custom-tooltip {
-      visibility: visible;
-      opacity: 1;
-      top: 140%;
-    }
-  }
-
-  .tooltip-container.show-tooltip .custom-tooltip {
-    visibility: visible !important;
-    opacity: 1 !important;
-    top: 140% !important;
-  }
-
-  .tooltip-header {
-    font-weight: 700;
-    color: var(--accent-cyan);
-    margin-bottom: 8px;
-    border-bottom: 1px solid rgba(0, 210, 211, 0.2);
-    padding-bottom: 5px;
-    text-align: center;
-    font-family: 'Outfit', sans-serif;
-  }
-
-  #online-users-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    text-align: left;
-    max-height: 200px;
-    overflow-y: auto;
-  }
-
-  #online-users-list li {
-    padding: 4px 0;
-    color: #f8fafc;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  #online-users-list li::before {
-    content: '•';
-    color: var(--accent-cyan);
-  }
-
-  .pichichi-widget-wrapper {
-    position: absolute;
-    right: 0;
-    top: 0;
-  }
-
-  @media (max-width: 1024px) {
-    .pichichi-widget-wrapper {
-      position: static;
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-    }
-  }
-
-  .lineups-widget-wrapper {
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
-
-  @media (max-width: 1024px) {
-    .lineups-widget-wrapper {
-      position: static;
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
     }
   }
 
@@ -1571,7 +1216,7 @@
     transform: translate(-50%, -50%);
     width: 90%;
     max-width: 400px;
-    max-height: 80vh;
+    max-height: 80dvh;
     overflow-y: auto;
     background: #1e293b;
     border: 1px solid var(--accent-cyan);
@@ -1814,9 +1459,7 @@
     border-radius: 8px !important;
   }
 
-  /* ==========================================================================
-   Mobile Bottom Navigation & Ergonomics
-   ========================================================================== */
+  /* Navegación inferior en móvil */
   @media (min-width: 769px) {
     .mobile-bottom-nav {
       display: none !important;
@@ -1926,12 +1569,12 @@
     /* Ajustar visor de porra para aprovechar la pantalla móvil */
     #points-breakdown-modal .modal-content {
       width: 96vw !important;
-      max-height: 94vh !important;
+      max-height: 94dvh !important;
       padding: 16px 10px !important;
     }
   }
 
-  /* ===== Inicio: cabecera de liga y lista de partidos ===== */
+  /* Inicio: cabecera de liga y lista de partidos */
   .home-hero {
     display: flex;
     flex-wrap: wrap;
@@ -1958,25 +1601,6 @@
     color: #fff;
     line-height: 1.2;
     overflow-wrap: anywhere;
-  }
-
-  .home-hero-sub {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 4px 0 0;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: var(--accent-cyan);
-    min-width: 0;
-  }
-
-  .home-hero-sub span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .home-hero-pills {
@@ -2010,18 +1634,6 @@
     border-color: rgba(148, 163, 184, 0.28);
     background: rgba(148, 163, 184, 0.1);
     color: var(--text-muted);
-  }
-
-  .home-hero-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .home-hero-actions .glass-btn {
-    min-height: 44px;
-    padding: 0 16px;
-    font-size: 0.88rem;
   }
 
   .home-list-header {
@@ -2201,20 +1813,9 @@
     .home-hero {
       padding: 16px;
     }
-
-    .home-hero-actions {
-      width: 100%;
-      flex-wrap: nowrap;
-    }
-
-    .home-hero-actions .glass-btn {
-      flex: 1;
-      padding: 0 10px;
-      font-size: 0.84rem;
-    }
   }
 
-  /* ===== Jornadas: selector de ronda, filtros y tarjetas de partido ===== */
+  /* Jornadas: selector de ronda, filtros y tarjetas de partido */
   .md-page {
     max-width: 900px;
     margin: 0 auto;
@@ -2527,14 +2128,6 @@
     cursor: not-allowed;
   }
 
-  .md-match-footer {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-  }
-
   .md-predictions-btn {
     min-height: 44px;
     padding: 0 12px;
@@ -2592,7 +2185,7 @@
     }
   }
 
-  /* ===== Modal de pronósticos del grupo ===== */
+  /* Modal de pronósticos del grupo */
   @keyframes friends-predictions-in {
     from {
       opacity: 0;
@@ -2613,7 +2206,7 @@
     justify-content: center;
     padding: 16px;
     background: rgba(2, 6, 23, 0.78);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(var(--overlay-blur));
   }
 
   .friends-predictions-panel {
@@ -2624,7 +2217,7 @@
     overflow: hidden;
     border: 1px solid rgba(0, 210, 211, 0.22);
     border-radius: 22px;
-    background: radial-gradient(circle at 8% 0%, rgba(0, 210, 211, 0.14), transparent 38%), #0f172a;
+    background: #0f172a;
     box-shadow:
       0 30px 70px rgba(0, 0, 0, 0.7),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -2638,17 +2231,6 @@
     gap: 12px;
     padding: 18px 20px 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  }
-
-  .friends-predictions-kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--accent-cyan);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
   }
 
   .friends-predictions-title {
@@ -3110,7 +2692,7 @@
     }
   }
 
-  /* ================= Administración de liga ================= */
+  /* Administración de liga */
   @keyframes league-admin-fade {
     from {
       opacity: 0;
@@ -3151,8 +2733,8 @@
     justify-content: center;
     padding: 24px;
     background: rgba(2, 6, 23, 0.74);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(var(--overlay-blur));
+    -webkit-backdrop-filter: blur(var(--overlay-blur));
     animation: league-admin-fade 0.18s ease-out;
   }
 
