@@ -1,5 +1,6 @@
 package com.porra.mundial.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,6 +28,8 @@ public class MatchdayFriendPredictionDTO {
     private Boolean isCorrectSign;
     private String scoringDetails;
     private LocalDateTime updatedAt;
+    // Sin @JsonProperty, Lombok genera isCaller() y Jackson lo publicaría como "caller".
+    @JsonProperty("isCaller")
     private boolean isCaller;
     private boolean hasPredicted;
 }

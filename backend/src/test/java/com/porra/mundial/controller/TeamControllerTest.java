@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.service.TeamService;
+import com.porra.mundial.dto.TeamOddsDTO;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,11 +33,13 @@ class TeamControllerTest {
     @Test
     void getGroupOdds_ReturnsTeamsGroupedByGroup() throws Exception {
         Mockito.when(teamService.getGroupOdds())
-                .thenReturn(Map.of("E", List.of(Map.of("name", "Spain", "winOdds", 4.5))));
+                .thenReturn(Map.of("E", List.of(new TeamOddsDTO("España", 4.5, 1.2, 7.0))));
 
         mockMvc.perform(get("/api/teams/odds"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.E[0].name").value("Spain"))
-                .andExpect(jsonPath("$.E[0].winOdds").value(4.5));
+                .andExpect(jsonPath("$.E[0].name").value("España"))
+                .andExpect(jsonPath("$.E[0].win").value(4.5))
+                .andExpect(jsonPath("$.E[0].qualify").value(1.2))
+                .andExpect(jsonPath("$.E[0].outright").value(7.0));
     }
 }

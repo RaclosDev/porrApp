@@ -7,8 +7,6 @@ import com.porra.mundial.dto.MatchdayFriendPredictionDTO;
 import com.porra.mundial.dto.MatchdaySubmissionDTO;
 import com.porra.mundial.service.MatchPredictionService;
 import com.porra.mundial.service.WebSocketService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -17,11 +15,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.security.Principal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -49,19 +45,7 @@ class MatchPredictionControllerTest {
     @MockBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
-    @BeforeEach
-    void setUpSecurity() {
-        Authentication auth = Mockito.mock(Authentication.class);
-        Mockito.when(auth.getName()).thenReturn("user@test.com");
-        SecurityContext context = Mockito.mock(SecurityContext.class);
-        Mockito.when(context.getAuthentication()).thenReturn(auth);
-        SecurityContextHolder.setContext(context);
-    }
-
-    @AfterEach
-    void tearDownSecurity() {
-        SecurityContextHolder.clearContext();
-    }
+    private static final Principal USER = () -> "user@test.com";
 
     @Test
     @DisplayName("GET /api/predictions/matchday devuelve la cartelera de partidos")
@@ -76,7 +60,7 @@ class MatchPredictionControllerTest {
         Mockito.when(matchPredictionService.getMatchdayFixtures(any(), eq(10L), any()))
                 .thenReturn(List.of(fixture));
 
-        mockMvc.perform(get("/api/predictions/matchday?groupId=10"))
+        mockMvc.perform(get("/api/predictions/matchday?groupId=10").principal(USER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].matchId").value(101))
                 .andExpect(jsonPath("$[0].homeTeam").value("España"))
@@ -97,7 +81,7 @@ class MatchPredictionControllerTest {
         Mockito.when(matchPredictionService.saveMatchdayPredictions(eq("user@test.com"), eq(10L), any()))
                 .thenReturn(1);
 
-        mockMvc.perform(post("/api/predictions/matchday")
+        mockMvc.perform(post("/api/predictions/matchday").principal(USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
@@ -120,7 +104,7 @@ class MatchPredictionControllerTest {
         Mockito.when(matchPredictionService.saveMatchdayPredictions(eq("user@test.com"), eq(10L), any()))
                 .thenThrow(new IllegalStateException("El partido ya ha comenzado y está bloqueado."));
 
-        mockMvc.perform(post("/api/predictions/matchday")
+        mockMvc.perform(post("/api/predictions/matchday").principal(USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isConflict())
@@ -144,7 +128,7 @@ class MatchPredictionControllerTest {
         Mockito.when(matchPredictionService.getFriendPredictionsForMatch(eq("user@test.com"), eq(10L), eq(101L)))
                 .thenReturn(List.of(friendPrediction));
 
-        mockMvc.perform(get("/api/predictions/matchday/matches/101/predictions")
+        mockMvc.perform(get("/api/predictions/matchday/matches/101/predictions").principal(USER)
                         .param("groupId", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].participantName").value("Carlos"))
