@@ -53,6 +53,10 @@ describe('Leaderboard Component', () => {
     );
 
     const headers = screen.getAllByRole('columnheader');
+    expect(
+      screen.queryByRole('tablist', { name: 'Vista de la clasificación' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Compartir en WhatsApp' })).not.toBeInTheDocument();
     expect(headers.map((h) => h.textContent?.replace(/[▼▲\s]/g, ''))).toEqual([
       'Pos',
       'Participante',

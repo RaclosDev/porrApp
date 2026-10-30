@@ -11,6 +11,7 @@ import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
 import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
+import InkStamp from '../components/InkStamp';
 
 /**
  * Página principal: estado del torneo oficial, clasificación por grupos en vivo,
@@ -88,7 +89,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
     return (
       <div
         key={groupName}
-        className={`group-card relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
+        className={`group-card paper-panel album-sheet relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
         role="button"
         tabIndex={0}
         aria-label={`Ver detalles del grupo ${groupName}`}
@@ -106,7 +107,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
         }}
       >
         <div className="flex justify-between items-center mb-2.5">
-          <h3 className="m-0">Grupo {groupName}</h3>
+          <h3 className="album-sheet-title mb-0 text-left">Grupo {groupName}</h3>
           <div className="flex gap-2 text-[0.75em] font-bold text-muted pr-1.5">
             <span className="w-5 text-center">DG</span>
             <span className="w-4 text-center">GF</span>
@@ -132,25 +133,21 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           let statusDot = null;
           if (isMathematicallyQualified(team.stats.status)) {
             statusDot = (
-              <span
-                className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Clasificado matemáticamente"
-                aria-label="Clasificado matemáticamente"
-              />
+              <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente" className="ml-1">
+                Clas.
+              </InkStamp>
             );
           } else if (isMathematicallyEliminated(team.stats.status)) {
             statusDot = (
-              <span
-                className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Eliminado matemáticamente"
-                aria-label="Eliminado matemáticamente"
-              />
+              <InkStamp size="sm" label="Eliminado matemáticamente" className="ml-1">
+                Elim.
+              </InkStamp>
             );
           }
 
           return (
             <div
-              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)] bg-none' : 'bg-transparent bg-none'}`}
+              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgba(17,_24,_39,_0.04)] bg-none' : 'bg-transparent bg-none'}`}
               key={team.name}
               style={{ borderLeft: borderLeftStyle, borderRadius: '0 6px 6px 0' }}
             >
@@ -173,7 +170,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
                 >
                   {team.stats.fp || 0}
                 </span>
-                <span className="font-bold bg-[rgba(255,255,255,0.08)] bg-none py-0.5 px-1.5 rounded-[4px] text-white w-6 text-center">
+                <span className="font-bold bg-[rgba(17,24,39,0.08)] bg-none py-0.5 px-1.5 rounded-[4px] text-main w-6 text-center">
                   {team.stats.pts}
                 </span>
               </div>

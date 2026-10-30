@@ -1,13 +1,8 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
-import BracketCanvas, {
-  TeamSlot,
-  matchTop,
-  MATCH_H,
-  COL_GAP,
-  type SlotContext,
-} from '../components/BracketCanvas';
+import { BracketFinalMatch } from '../components/BracketFinale';
+import BracketCanvas, { TeamSlot, type SlotContext } from '../components/BracketCanvas';
 import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
 import { PredictionSkeleton } from '../components/Skeleton';
@@ -15,6 +10,7 @@ import { useBracket } from '../hooks/useBracket';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { isMathematicallyQualified } from '../utils/groupStatus';
+import InkStamp from '../components/InkStamp';
 
 /**
  * Porra de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
@@ -137,11 +133,9 @@ function Bracket() {
         const teamStatus = getTeamStatus(name);
         if (isMathematicallyQualified(teamStatus)) {
           statusIndicator = (
-            <span
-              className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
-              title="Clasificado matemáticamente"
-              aria-label="Clasificado matemáticamente"
-            />
+            <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente" className="ml-1">
+              Clas.
+            </InkStamp>
           );
         }
       }
@@ -162,83 +156,6 @@ function Bracket() {
       />
     );
   };
-
-  const finalTopY = matchTop(3, 0);
-
-  const renderCenter = (colW: number) => (
-    <>
-      <div
-        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase"
-        style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
-      >
-        Final
-      </div>
-      <div
-        className="match final-match absolute"
-        style={{ top: finalTopY, left: COL_GAP, width: colW }}
-      >
-        <TeamSlot
-          name={bracketState.final?.home?.name}
-          pressed={isPicked(bracketState.final?.home, 'center', 4, 0)}
-          onClick={() =>
-            bracketState.final?.home && advanceTeam(bracketState.final.home, 'center', 4, 0)
-          }
-        />
-        <TeamSlot
-          name={bracketState.final?.away?.name}
-          pressed={isPicked(bracketState.final?.away, 'center', 4, 0)}
-          onClick={() =>
-            bracketState.final?.away && advanceTeam(bracketState.final.away, 'center', 4, 0)
-          }
-        />
-      </div>
-
-      <div
-        className="absolute text-center"
-        style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
-      >
-        <div className="text-[0.65rem] font-bold text-gold tracking-[0.5px] uppercase mb-1.5">
-          Campeón
-        </div>
-        <div className="champion-display">
-          <TeamSlot name={bracketState.champion?.name} />
-        </div>
-      </div>
-
-      <div
-        className="absolute"
-        style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
-      >
-        <div className="text-[0.65rem] font-bold text-muted tracking-[0.5px] uppercase mb-1.5 text-center">
-          Tercer puesto
-        </div>
-        <div className="match third-place">
-          <TeamSlot
-            name={bracketState.thirdPlaceMatch?.home?.name}
-            pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
-            onClick={() =>
-              bracketState.thirdPlaceMatch?.home &&
-              advanceTeam(bracketState.thirdPlaceMatch.home, 'center', 5, 0)
-            }
-          />
-          <TeamSlot
-            name={bracketState.thirdPlaceMatch?.away?.name}
-            pressed={isPicked(bracketState.thirdPlaceMatch?.away, 'center', 5, 0)}
-            onClick={() =>
-              bracketState.thirdPlaceMatch?.away &&
-              advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
-            }
-          />
-        </div>
-        {bracketState.thirdPlaceWinner && (
-          <div className="mt-2.5 text-center">
-            <div className="text-[0.65rem] text-muted mb-1">Ganador del tercer puesto</div>
-            <TeamSlot name={bracketState.thirdPlaceWinner?.name} />
-          </div>
-        )}
-      </div>
-    </>
-  );
 
   return (
     <section id="view-bracket" className="view-section block">
@@ -265,7 +182,7 @@ function Bracket() {
       ) : (
         <>
           <div className="section-header mb-7.5 text-center">
-            <h2 className="m-0">Paso 2: Eliminatorias</h2>
+            <h2 className="m-0 poster-title">Paso 2: Eliminatorias</h2>
             <p className="text-muted mt-2 text-[0.9rem]">
               Pulsa un equipo para pasarlo a la siguiente ronda
             </p>
@@ -316,45 +233,34 @@ function Bracket() {
                 bracketState.sf.right,
               ]}
               renderSlot={renderSlot}
-              renderCenter={renderCenter}
-              mobileCenter={() => (
-                <div className="flex flex-col gap-5">
-                  <div>
-                    <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase text-center mb-2">
-                      Final
-                    </div>
-                    <div className="mb-match-card">
-                      <TeamSlot
-                        name={bracketState.final?.home?.name}
-                        pressed={isPicked(bracketState.final?.home, 'center', 4, 0)}
-                        onClick={() =>
-                          bracketState.final?.home &&
-                          advanceTeam(bracketState.final.home, 'center', 4, 0)
-                        }
-                      />
-                      <TeamSlot
-                        name={bracketState.final?.away?.name}
-                        pressed={isPicked(bracketState.final?.away, 'center', 4, 0)}
-                        onClick={() =>
-                          bracketState.final?.away &&
-                          advanceTeam(bracketState.final.away, 'center', 4, 0)
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[0.75rem] font-bold text-gold tracking-[0.5px] uppercase mb-2">
-                      Campeón
-                    </div>
-                    <div className="champion-display">
-                      <TeamSlot name={bracketState.champion?.name} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[0.75rem] font-bold text-muted tracking-[0.5px] uppercase text-center mb-2">
-                      Tercer puesto
-                    </div>
-                    <div className="mb-match-card">
+              renderFinal={(expandedThirdPlace) => (
+                <BracketFinalMatch
+                  expandedThirdPlace={expandedThirdPlace}
+                  editable
+                  home={
+                    <TeamSlot
+                      name={bracketState.final?.home?.name}
+                      pressed={isPicked(bracketState.final?.home, 'center', 4, 0)}
+                      onClick={() =>
+                        bracketState.final?.home &&
+                        advanceTeam(bracketState.final.home, 'center', 4, 0)
+                      }
+                    />
+                  }
+                  away={
+                    <TeamSlot
+                      name={bracketState.final?.away?.name}
+                      pressed={isPicked(bracketState.final?.away, 'center', 4, 0)}
+                      onClick={() =>
+                        bracketState.final?.away &&
+                        advanceTeam(bracketState.final.away, 'center', 4, 0)
+                      }
+                    />
+                  }
+                  champion={<TeamSlot name={bracketState.champion?.name} />}
+                  thirdWinner={bracketState.thirdPlaceWinner?.name}
+                  thirdPlace={
+                    <>
                       <TeamSlot
                         name={bracketState.thirdPlaceMatch?.home?.name}
                         pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
@@ -371,17 +277,9 @@ function Bracket() {
                           advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
                         }
                       />
-                    </div>
-                    {bracketState.thirdPlaceWinner && (
-                      <div className="mt-2.5 text-center">
-                        <div className="text-[0.65rem] text-muted mb-1">
-                          Ganador del tercer puesto
-                        </div>
-                        <TeamSlot name={bracketState.thirdPlaceWinner?.name} />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                    </>
+                  }
+                />
               )}
             />
 
@@ -403,7 +301,7 @@ function Bracket() {
 
           <div
             id="controls-section"
-            className={`glass-panel mt-7.5 p-5 ${mobileStep === 'save' ? '' : 'mobile-step-hidden'}`}
+            className={`paper-panel album-sheet landing-tape mt-7.5 p-5 ${mobileStep === 'save' ? '' : 'mobile-step-hidden'}`}
           >
             <h3 className="mt-0 text-accent-text">Guardar porra</h3>
             <div className="flex gap-[15px] flex-wrap mb-[15px]">
@@ -439,9 +337,10 @@ function Bracket() {
               <p className="text-muted mt-0 mb-[15px] text-[0.9rem]">Inicia sesión para guardar.</p>
             )}
             {activeGroupIsLocked && (
-              <div className="py-2.5 px-3.5 bg-[rgba(239,_68,_68,_0.15)] bg-none border border-[rgba(239,_68,_68,_0.4)] rounded-[8px] text-[#fca5a5] mb-[15px] text-[0.9rem]">
-                🔒 <b>Porra cerrada:</b> el plazo para enviarla o cambiarla ha terminado.
-              </div>
+              <p className="flex items-center gap-3 mb-[15px] text-[0.9rem] text-muted">
+                <InkStamp>Porra cerrada</InkStamp>
+                El plazo para enviarla o cambiarla ha terminado.
+              </p>
             )}
             <button
               className="glass-btn primary-btn"

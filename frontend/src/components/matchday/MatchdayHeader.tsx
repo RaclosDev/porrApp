@@ -1,3 +1,5 @@
+import InkStamp from '../InkStamp';
+import { Check, TriangleAlert } from 'lucide-react';
 interface MatchdayHeaderProps {
   title: string;
   isLocked: boolean;
@@ -26,7 +28,7 @@ export default function MatchdayHeader({
         <div className="min-w-0">
           <h1>{title}</h1>
           <p className="md-page-sub">
-            {isLocked ? '🔒 Porra cerrada' : `${predicted}/${total} pronosticados`}
+            {isLocked ? <InkStamp>Porra cerrada</InkStamp> : `${predicted}/${total} pronosticados`}
           </p>
         </div>
 
@@ -40,21 +42,14 @@ export default function MatchdayHeader({
       </div>
 
       {successMsg && (
-        <div
-          className="bg-[rgba(0,_184,_148,_0.2)] bg-none border border-[#00b894] text-[#55efc4] py-3 px-4 rounded-[10px] mb-4 text-[0.95rem] flex items-center gap-2"
-          role="status"
-          aria-live="polite"
-        >
-          <span>✅</span> {successMsg}
+        <div className="md-save-notice" role="status" aria-live="polite">
+          <Check size={18} aria-hidden="true" /> {successMsg}
         </div>
       )}
 
       {errorMsg && (
-        <div
-          className="bg-[rgba(231,_76,_60,_0.2)] bg-none border border-[#e74c3c] text-[#ff7675] py-3 px-4 rounded-[10px] mb-4 text-[0.95rem] flex items-center gap-2"
-          role="alert"
-        >
-          <span>⚠️</span> {errorMsg}
+        <div className="md-save-notice is-error" role="alert">
+          <TriangleAlert size={18} aria-hidden="true" /> {errorMsg}
         </div>
       )}
     </>

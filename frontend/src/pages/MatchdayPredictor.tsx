@@ -43,7 +43,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
   }
 
   return (
-    <div className="md-page">
+    <div className="md-page paper-panel album-sheet">
       <MatchdayHeader
         title={activeGroupName || 'Jornadas'}
         isLocked={activeGroupIsLocked}
@@ -83,7 +83,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         </p>
       )}
       {!md.isLoading && !md.isError && md.fixtures.length === 0 && (
-        <div className="glass-panel text-center p-10 text-muted rounded-[12px]">
+        <div className="paper-panel album-sheet landing-tape text-center p-10 text-muted rounded-[12px]">
           No hay partidos programados para esta competición o jornada.
         </div>
       )}

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { type RenderViewerSlot, type ViewerData } from './viewerTypes';
 import BracketCanvas from '../BracketCanvas';
+import { BracketFinalMatch } from '../BracketFinale';
 
 interface BracketViewProps {
   champName: string | null;
@@ -13,7 +14,6 @@ interface BracketViewProps {
   hiddenRounds: Record<number, boolean>;
   leftRounds: ViewerData['leftRounds'];
   rightRounds: ViewerData['rightRounds'];
-  renderCenter: (colW: number) => ReactNode;
   renderRoundFooter: (roundIndex: number, side: 'left' | 'right') => ReactNode;
   renderSlot: RenderViewerSlot;
 }
@@ -30,7 +30,6 @@ export default function BracketView({
   hiddenRounds,
   leftRounds,
   rightRounds,
-  renderCenter,
   renderRoundFooter,
   renderSlot,
 }: BracketViewProps) {
@@ -40,63 +39,26 @@ export default function BracketView({
         leftRounds={leftRounds}
         rightRounds={rightRounds}
         renderSlot={renderSlot}
-        renderCenter={renderCenter}
         hiddenRounds={hiddenRounds}
         renderRoundFooter={renderRoundFooter}
-        mobileCenter={() => {
+        renderFinal={(expandedThirdPlace) => {
           const centerTotal = getCenterPointsTotal();
           return (
-            <div className="flex flex-col gap-5">
-              <div>
-                <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase text-center mb-2">
-                  Final
-                </div>
-                <div className="mb-match-card">
-                  {renderSlot(finalHome, { roundIndex: 'final', isHome: true })}
-                  {renderSlot(finalAway, { roundIndex: 'final', isHome: false })}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-[0.75rem] font-bold text-gold tracking-[0.5px] uppercase mb-2">
-                  Campeón
-                </div>
-                <div className="champion-display">
-                  {renderSlot(champName, { roundIndex: 'champion' })}
-                </div>
-              </div>
-              <div>
-                <div className="text-[0.75rem] font-bold text-muted tracking-[0.5px] uppercase text-center mb-2">
-                  Tercer puesto
-                </div>
-                <div className="mb-match-card">
-                  {renderSlot(thirdHome, {
-                    roundIndex: 'thirdPlaceMatch',
-                    isHome: true,
-                  })}
-                  {renderSlot(thirdAway, {
-                    roundIndex: 'thirdPlaceMatch',
-                    isHome: false,
-                  })}
-                </div>
-              </div>
-              {thirdWinnerName && (
-                <div className="text-center">
-                  <div className="text-[0.75rem] font-bold text-muted tracking-[0.5px] uppercase mb-2">
-                    Ganador del tercer puesto
-                  </div>
-                  <div className="champion-display">
-                    {renderSlot(thirdWinnerName, { roundIndex: 'thirdPlaceMatch' })}
-                  </div>
-                </div>
-              )}
-              {centerTotal > 0 && (
-                <div className="text-center">
-                  <div className="text-[0.85rem] font-bold text-[#00d2d3] bg-[rgba(0,_210,_211,_0.1)] bg-none inline-block py-1 px-3 rounded-[6px]">
-                    +{centerTotal} pts
-                  </div>
-                </div>
-              )}
-            </div>
+            <BracketFinalMatch
+              expandedThirdPlace={expandedThirdPlace}
+              description="Puntos obtenidos por tu predicción"
+              home={renderSlot(finalHome, { roundIndex: 'final', isHome: true })}
+              away={renderSlot(finalAway, { roundIndex: 'final', isHome: false })}
+              champion={renderSlot(champName, { roundIndex: 'champion' })}
+              thirdWinner={thirdWinnerName}
+              thirdPlace={
+                <>
+                  {renderSlot(thirdHome, { roundIndex: 'thirdPlaceMatch', isHome: true })}
+                  {renderSlot(thirdAway, { roundIndex: 'thirdPlaceMatch', isHome: false })}
+                </>
+              }
+              footer={centerTotal > 0 ? <p className="finale-points">+{centerTotal} pts</p> : null}
+            />
           );
         }}
       />

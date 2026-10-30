@@ -111,15 +111,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isCancelled = false;
     const autoSelectGroup = async () => {
+      const selectedAtStart = useAppStore.getState().activeGroupId;
       if (isDemoMode || !isUserAuthed) return;
       try {
         let dbGroupId = null;
         try {
           const me = await fetchMe();
+          if (isCancelled) return;
           dbGroupId = me.lastSelectedGroupId?.toString();
           // El id del servidor manda: es la semilla del avatar y la clave de los borradores.
           setUserId(String(me.userId));
           setUserAvatarUrl(me.avatarUrl || '');
+          if (typeof me.profileSetupCompleted === 'boolean')
+            useAppStore.getState().setProfileSetupCompleted(me.profileSetupCompleted);
           if (me.participantName && me.participantName !== userName)
             setUserName(me.participantName);
         } catch {
@@ -127,7 +131,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
 
         const myGroups = await fetchMyGroups();
-        if (isCancelled) return;
+        if (
+          isCancelled ||
+          localStorage.getItem('pendingJoinCode') ||
+          useAppStore.getState().activeGroupId !== selectedAtStart
+        )
+          return;
 
         if (!myGroups || myGroups.length === 0) {
           localStorage.removeItem('activeGroupId');

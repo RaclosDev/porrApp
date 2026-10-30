@@ -1,4 +1,5 @@
 import Flag from '../Flag';
+import InkStamp from '../InkStamp';
 
 interface GroupTeamRowProps {
   teamName: string;
@@ -27,7 +28,7 @@ export default function GroupTeamRow({
         alignItems: 'center',
       }}
     >
-      <span className="mr-1">{medal}</span>{' '}
+      <span className="poster-title text-[0.8em] text-muted w-3 mr-1 shrink-0">{medal}</span>{' '}
       <Flag
         team={teamName}
         size="w40"
@@ -43,20 +44,13 @@ export default function GroupTeamRow({
       <span className="grow whitespace-nowrap overflow-hidden text-ellipsis flex items-center">
         {teamName}
         {qualified ? (
-          <>
-            <span
-              className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1.5 shrink-0 inline-block"
-              title="Clasificado matemáticamente"
-              aria-hidden="true"
-            ></span>
-            <span className="sr-only">Clasificado matemáticamente</span>
-          </>
+          <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente" className="ml-1.5">
+            Clas.
+          </InkStamp>
         ) : null}
       </span>
       {points > 0 && (
-        <span className="ml-1.5 text-[0.85em] font-bold text-[rgba(0,_210,_211,_0.9)] bg-[rgba(0,_210,_211,_0.15)] bg-none py-px px-[5px] rounded-[4px]">
-          +{points}
-        </span>
+        <span className="ml-1.5 text-[0.85em] font-bold text-[var(--hit)]">+{points}</span>
       )}
     </div>
   );

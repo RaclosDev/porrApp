@@ -43,13 +43,13 @@ export function ViewerMessage({ inline, dialogRef, onClose, kind, message }: Vie
     kind === 'error' ? (
       <>
         <div className="text-[2.5rem] mb-3">🔒</div>
-        <h3 className="text-[#f87171] mb-2.5">Porra no disponible</h3>
+        <h3 className="text-[var(--miss)] mb-2.5">Porra no disponible</h3>
         <p className="text-muted leading-[1.5]">{message}</p>
       </>
     ) : (
       <>
         <div className="text-[2.5rem] mb-3">⚠️</div>
-        <h3 className="text-(color:--text-color) mb-2.5">Porra no encontrada</h3>
+        <h3 className="text-main mb-2.5">Porra no encontrada</h3>
         <p className="text-muted">No se encontraron los datos de la porra seleccionada.</p>
       </>
     );
@@ -59,8 +59,8 @@ export function ViewerMessage({ inline, dialogRef, onClose, kind, message }: Vie
       <div
         className={
           kind === 'error'
-            ? 'text-center py-10 px-5 bg-[rgba(231,76,60,0.1)] bg-none rounded-[16px] border border-[rgba(231,76,60,0.3)]'
-            : 'text-center py-10 px-5'
+            ? 'paper-panel album-sheet text-center py-10 px-5'
+            : 'paper-panel album-sheet text-center py-10 px-5'
         }
       >
         {body}
@@ -71,7 +71,7 @@ export function ViewerMessage({ inline, dialogRef, onClose, kind, message }: Vie
     <ViewerModal
       dialogRef={dialogRef}
       onClose={onClose}
-      className="modal-content w-[95vw] max-w-150 text-center p-12.5"
+      className="modal-content paper-panel album-sheet landing-tape w-[95vw] max-w-150 text-center p-8"
     >
       {body}
       <button onClick={onClose} className="glass-btn primary-btn mt-5">

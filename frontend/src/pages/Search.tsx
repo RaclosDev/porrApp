@@ -139,7 +139,7 @@ function BracketSearch() {
   const selectedRow = rows.find((r) => r.stage === stage);
 
   return (
-    <section id="view-search" className="view-section block">
+    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
       <InsightsHeader
         leagueName={insights.leagueName}
         summary={entries.length > 0 ? `${entries.length} cuadros` : undefined}
@@ -206,7 +206,7 @@ function BracketSearch() {
                 <button
                   type="button"
                   onClick={share}
-                  className="glass-btn mt-4 inline-flex w-full items-center justify-center gap-2 border-[#25D366] bg-[#25D366] font-bold text-[#0f172a]"
+                  className="glass-btn primary-btn mt-4 inline-flex w-full items-center justify-center gap-2"
                 >
                   <WhatsAppIcon size={18} /> Compartir búsqueda
                 </button>

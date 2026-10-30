@@ -194,13 +194,15 @@ describe('group tables', () => {
   it('colours exact, qualified and wrong picks', () => {
     const exact = pointsWith([], { exactMatches: { A: { 1: true } } } as Partial<ViewerPoints>);
     expect(groupTeamData('A', 'España', 1, exact, standings, odds)).toEqual({
-      color: '#2ecc71',
+      color: 'var(--hit)',
       mp: 3,
       status: 5,
     });
     const passed = pointsWith([], { passedTeams: { Italia: true } } as Partial<ViewerPoints>);
-    expect(groupTeamData('A', 'Italia', 2, passed, standings, odds).color).toBe('#3498db');
-    expect(groupTeamData('A', 'Italia', 2, pointsWith([]), standings, odds).color).toBe('#e74c3c');
+    expect(groupTeamData('A', 'Italia', 2, passed, standings, odds).color).toBe('var(--pass)');
+    expect(groupTeamData('A', 'Italia', 2, pointsWith([]), standings, odds).color).toBe(
+      'var(--miss)',
+    );
     expect(groupTeamData('A', 'Japón', 3, pointsWith([]), standings, odds).color).toBe('inherit');
     expect(groupTeamData('B', 'Japón', 3, pointsWith([]), standings, odds).mp).toBe(0);
   });

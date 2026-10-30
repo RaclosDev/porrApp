@@ -358,7 +358,11 @@ export default function GroupMembersModal({
         if (event.target === event.currentTarget) requestClose();
       }}
     >
-      <div ref={panelRef} tabIndex={-1} className="league-admin-panel">
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="league-admin-panel paper-panel landing-tape paper-dialog"
+      >
         <header className="league-admin-header">
           <LeagueAvatar url={imageUrl} size={46} />
           <div className="league-admin-heading">

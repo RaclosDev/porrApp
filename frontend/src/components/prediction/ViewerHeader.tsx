@@ -18,25 +18,24 @@ export default function ViewerHeader({
   points,
 }: ViewerHeaderProps) {
   return (
-    <div className="flex justify-between items-center border-b border-b-[rgba(255,255,255,0.1)] pb-2.5 mb-[15px] flex-wrap gap-2.5">
+    <div className="flex justify-between items-center border-b border-b-line pb-2.5 mb-[15px] flex-wrap gap-2.5">
       <div className="flex items-center gap-2.5 min-w-0">
-        <UserAvatar url={points.avatarUrl} userId={points.userId} name={part.user} size={32} />
-        <h3
-          className="text-cyan text-[1.25rem] font-extrabold tracking-[-0.3px] m-0 min-w-0 break-words"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
-        >
-          Porra de {part.user}
+        <span className="sticker-frame shrink-0">
+          <UserAvatar url={points.avatarUrl} userId={points.userId} name={part.user} size={32} />
+        </span>
+        <h3 className="poster-title text-main text-[1.4rem] m-0 min-w-0 break-words">
+          Porra de <span className="marker-ink">{part.user}</span>
         </h3>
       </div>
       <div className="flex gap-2.5 items-center flex-wrap">
         {part.scorer && (
-          <div className="bg-[rgba(255,159,67,0.15)] bg-none border border-[rgba(255,159,67,0.4)] py-1 px-2.5 rounded-[8px] text-[#ff9f43] font-bold text-[0.85rem]">
-            ⚽ Pichichi: {part.scorer}
+          <div className="text-[0.9rem] text-muted">
+            Pichichi: <strong className="text-main">{part.scorer}</strong>
           </div>
         )}
-        <div className="bg-[rgba(0,210,211,0.12)] bg-none border border-[rgba(0,210,211,0.4)] py-1 px-2.5 rounded-[8px] text-cyan font-extrabold text-[0.95rem]">
-          🏆 Total: {points.total} pts
-        </div>
+        <span className="marker-ink text-[1.2rem]" aria-label={`${points.total} puntos en total`}>
+          {points.total} pts
+        </span>
         {inline && onEdit ? (
           <button
             type="button"
@@ -49,7 +48,7 @@ export default function ViewerHeader({
           <button
             type="button"
             onClick={handleClose}
-            className="glass-btn py-[5px] px-3.5 text-[0.88rem] rounded-[8px] font-bold cursor-pointer border border-[rgba(255,_255,_255,_0.2)] bg-[rgba(255,_255,_255,_0.08)] bg-none text-white"
+            className="glass-btn py-[5px] px-3.5 text-[0.88rem] rounded-[8px] font-bold cursor-pointer"
           >
             Cerrar
           </button>

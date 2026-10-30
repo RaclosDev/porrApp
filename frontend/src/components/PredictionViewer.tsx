@@ -8,7 +8,6 @@ import ViewerTabs from './prediction/ViewerTabs';
 import GroupsView from './prediction/GroupsView';
 import ThirdsView from './prediction/ThirdsView';
 import BracketView from './prediction/BracketView';
-import BracketCenter from './prediction/BracketCenter';
 import GroupTeamRow from './prediction/GroupTeamRow';
 import RoundFooter from './prediction/RoundFooter';
 import ViewerSlot from './prediction/ViewerSlot';
@@ -123,7 +122,7 @@ function PredictionViewer({
       <ViewerModal
         dialogRef={dialogRef}
         onClose={handleClose}
-        className="modal-content w-[95vw] max-w-150 py-7 px-6"
+        className="modal-content paper-panel album-sheet landing-tape w-[95vw] max-w-150 py-7 px-6"
       >
         <PredictionSkeleton compact />
         <button onClick={handleClose} className="glass-btn mt-2 w-full">
@@ -175,17 +174,21 @@ function PredictionViewer({
   const [thirdHome = null, thirdAway = null] = part.thirdPlaceMatch ?? [];
   const hasGroups = Boolean(part.groups && Object.keys(part.groups).length > 0);
 
+  const showBracket = !hasGroups || activeTab === 'bracket';
+
   const content = (
     <div id="points-breakdown-body">
-      <ViewerHeader
-        handleClose={handleClose}
-        inline={inline}
-        onEdit={onEdit}
-        part={part}
-        points={points}
-      />
+      <div className={showBracket ? 'viewer-bracket-heading paper-panel album-sheet' : undefined}>
+        <ViewerHeader
+          handleClose={handleClose}
+          inline={inline}
+          onEdit={onEdit}
+          part={part}
+          points={points}
+        />
 
-      {hasGroups && <ViewerTabs activeTab={activeTab} setActiveTab={setActiveTab} />}
+        {hasGroups && <ViewerTabs activeTab={activeTab} setActiveTab={setActiveTab} />}
+      </div>
 
       <div className="flex flex-col">
         {hasGroups && activeTab === 'groups' && (
@@ -212,19 +215,6 @@ function PredictionViewer({
             hiddenRounds={HIDDEN_ROUNDS}
             leftRounds={leftRounds}
             rightRounds={rightRounds}
-            renderCenter={(colW) => (
-              <BracketCenter
-                colW={colW}
-                centerTotal={getCenterPointsTotal()}
-                champName={champName}
-                thirdWinnerName={thirdWinnerName}
-                finalHome={finalHome}
-                finalAway={finalAway}
-                thirdHome={thirdHome}
-                thirdAway={thirdAway}
-                renderSlot={renderSlot}
-              />
-            )}
             renderRoundFooter={(roundIndex, side) => (
               <RoundFooter total={getRoundFooterTotal(roundIndex, side)} />
             )}
@@ -236,14 +226,20 @@ function PredictionViewer({
   );
 
   if (inline) {
-    return <div className="prediction-viewer-inline w-full max-w-450 my-0 mx-auto">{content}</div>;
+    return (
+      <div
+        className={`prediction-viewer-inline ${showBracket ? 'viewer-with-bracket' : 'paper-panel landing-tape album-sheet'} w-full max-w-450 my-0 mx-auto`}
+      >
+        {content}
+      </div>
+    );
   }
 
   return (
     <ViewerModal
       dialogRef={dialogRef}
       onClose={handleClose}
-      className="modal-content w-[98vw] max-w-475 text-left max-h-[95dvh] overflow-y-auto pt-[25px]"
+      className={`modal-content ${showBracket ? 'viewer-with-bracket' : 'paper-panel album-sheet'} w-[98vw] max-w-475 text-left max-h-[95dvh] overflow-y-auto pt-[25px]`}
     >
       {content}
     </ViewerModal>

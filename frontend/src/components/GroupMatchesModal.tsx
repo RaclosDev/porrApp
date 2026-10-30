@@ -32,13 +32,9 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
   groupMatches.sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
 
   return createPortal(
-    <>
+    <div className="paper-dialog-overlay" onClick={onClose}>
       <div
-        onClick={onClose}
-        className="modal-backdrop-mobile fixed top-0 left-0 right-0 bottom-0 z-[99998]"
-      />
-      <div
-        className="group-matches-popover"
+        className="paper-panel landing-tape paper-dialog"
         role="dialog"
         aria-modal="true"
         aria-label={`Partidos del Grupo ${selectedGroup.name}`}
@@ -46,20 +42,18 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-[15px]">
-          <h4 className="m-0 text-cyan text-center flex-1">
-            Partidos del Grupo {selectedGroup.name}
-          </h4>
+        <div className="paper-dialog-heading">
+          <h4 className="m-0 poster-title text-xl">Partidos del Grupo {selectedGroup.name}</h4>
           <button
             type="button"
-            className="bg-none bg-transparent border-none text-[#aaa] text-[1.4rem] cursor-pointer absolute right-1 top-[3px] z-[2] w-11 h-11 flex items-center justify-center"
+            className="paper-dialog-close"
             onClick={onClose}
             aria-label="Cerrar"
           >
             ×
           </button>
         </div>
-        <div className="last-matches-grid grid-cols-[1fr] gap-2">
+        <div className="paper-dialog-body last-matches-grid grid-cols-[1fr] gap-2">
           {groupMatches.length === 0 ? (
             <p className="text-center text-muted">No hay partidos registrados.</p>
           ) : (
@@ -92,7 +86,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
                     <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
                   </div>
                   <div
-                    className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasStarted ? 'text-white' : 'text-muted'} ${hasStarted ? 'bg-[rgba(0,0,0,0.3)] bg-none' : 'bg-transparent bg-none'}`}
+                    className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasStarted ? 'text-main' : 'text-muted'} ${hasStarted ? 'bg-[rgba(0,0,0,0.3)] bg-none' : 'bg-transparent bg-none'}`}
                   >
                     {hasStarted ? `${m.homeScore} - ${m.awayScore}` : 'VS'}
                   </div>
@@ -106,7 +100,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
           )}
         </div>
       </div>
-    </>,
+    </div>,
     document.body,
   );
 };

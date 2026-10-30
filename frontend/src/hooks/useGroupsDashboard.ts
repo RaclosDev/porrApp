@@ -4,7 +4,6 @@ import {
   createGroup,
   joinGroup,
   fetchGroup,
-  fetchGroupInvitationPreview,
   leaveGroup,
   fetchCompetitions,
   updateGroup,
@@ -84,9 +83,6 @@ export function useGroupsDashboard() {
   const [selectedPoolFormat, setSelectedPoolFormat] = useState<PoolFormat>('MATCH_DAY');
   const [includePichichi, setIncludePichichi] = useState(false);
   const [newlyCreatedGroup, setNewlyCreatedGroup] = useState<Group | null>(null);
-  const [pendingJoinCodeNotice, setPendingJoinCodeNotice] = useState('');
-  const [pendingInvite, setPendingInvite] = useState<Group | null>(null);
-  const [isJoiningInvite, setIsJoiningInvite] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [visibleCodes, setVisibleCodes] = useState(new Set<GroupId>());
@@ -155,55 +151,6 @@ export function useGroupsDashboard() {
   const retryGroups = useCallback(() => {
     refetchMyGroups();
   }, [refetchMyGroups]);
-
-  useEffect(() => {
-    const pendingCode = localStorage.getItem('pendingJoinCode');
-    if (!pendingCode) return;
-    const normalizedCode = pendingCode.trim().toUpperCase();
-    setPendingJoinCodeNotice(normalizedCode);
-    let cancelled = false;
-    fetchGroupInvitationPreview(normalizedCode)
-      .then((preview) => {
-        if (!cancelled) setPendingInvite(preview);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(errorMessage(e, 'No se ha encontrado esta invitación'));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const handleAcceptPendingInvite = async () => {
-    const code = pendingJoinCodeNotice || localStorage.getItem('pendingJoinCode');
-    if (!code || isJoiningInvite) return;
-    setIsJoiningInvite(true);
-    setError('');
-    try {
-      const group = await joinGroup(code);
-      rememberKnownGroup(group.id);
-      const groupId = group.id.toString();
-      const fullGroup = await fetchGroup(groupId).catch(() => group);
-      queryClient.setQueryData(queryKeys.group(groupId), fullGroup);
-      // El alta afecta a la tarjeta, al listado de miembros y al ranking de esta liga.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) }),
-      ]);
-      localStorage.removeItem('pendingJoinCode');
-      setPendingJoinCodeNotice('');
-      setPendingInvite(null);
-      changeGroup(groupId);
-      toast.success(`¡Te has unido a "${fullGroup.name || group.name}"!`);
-      navigate('/', { replace: true });
-    } catch (e) {
-      setError(errorMessage(e, 'No se ha podido aceptar la invitación'));
-    } finally {
-      setIsJoiningInvite(false);
-    }
-  };
 
   const handleCreate = async (e?: { preventDefault?: () => void }) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -400,10 +347,6 @@ export function useGroupsDashboard() {
     setIncludePichichi,
     newlyCreatedGroup,
     setNewlyCreatedGroup,
-    pendingJoinCodeNotice,
-    pendingInvite,
-    handleAcceptPendingInvite,
-    isJoiningInvite,
     joinCode,
     setJoinCode,
     visibleCodes,

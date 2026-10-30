@@ -1,4 +1,5 @@
 import Flag from '../Flag';
+import { CalendarDays, Users } from 'lucide-react';
 import type { MatchdayFixture } from '../../types/api';
 import { formatMatchDate, type DraftPrediction, type MatchSign } from '../../utils/matchday';
 
@@ -48,27 +49,21 @@ export default function FixtureCard({
   return (
     <div className={`md-match${locked ? ' is-locked' : ''}`}>
       <div className="md-match-top">
-        <span>📅 {formatMatchDate(fixture.matchDate)}</span>
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarDays size={12} aria-hidden="true" />
+          {formatMatchDate(fixture.matchDate)}
+        </span>
         <div className="md-match-status-actions">
-          <button
-            type="button"
-            className="md-predictions-btn md-predictions-icon-btn"
-            onClick={() => onShowFriends(fixture)}
-            aria-label={`Ver pronósticos de ${fixture.homeTeam} vs ${fixture.awayTeam}`}
-            title="Ver pronósticos de amigos"
-          >
-            <span aria-hidden="true">👥</span>
-          </button>
           {fixture.finished ? (
             <span className="md-badge is-finished">
               Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
             </span>
           ) : locked ? (
             <span className="md-badge is-locked" title={fixture.lockReason ?? undefined}>
-              🔒 Bloqueado
+              Cerrado
             </span>
           ) : (
-            <span className="md-badge is-open">⏱️ Abierto</span>
+            <span className="md-badge is-open">Abierto</span>
           )}
         </div>
       </div>
@@ -115,16 +110,26 @@ export default function FixtureCard({
         })}
       </div>
 
+      <button
+        type="button"
+        className="md-friends-link"
+        onClick={() => onShowFriends(fixture)}
+        aria-label={`Ver pronósticos de ${fixture.homeTeam} vs ${fixture.awayTeam}`}
+        title="Ver pronósticos de amigos"
+      >
+        <Users size={16} aria-hidden="true" /> Ver pronósticos
+      </button>
+
       {/* Desglose de puntos si el partido ya ha finalizado */}
       {fixture.finished && points !== null && points !== undefined && (
         <div
-          className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${scored ? 'bg-[rgba(46,_204,_113,_0.12)] bg-none' : 'bg-[rgba(255,255,255,0.03)] bg-none'} ${scored ? 'border border-[rgba(46,_204,_113,_0.3)]' : 'border border-[rgba(255,255,255,0.06)]'}`}
+          className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${scored ? 'bg-[rgba(21,_128,_61,_0.08)] bg-none' : 'bg-[rgba(17,_24,_39,_0.04)] bg-none'} ${scored ? 'border border-[var(--hit)]' : 'border border-line'}`}
         >
-          <span className={`${scored ? 'text-[#2ecc71]' : 'text-muted'}`}>
+          <span className={`${scored ? 'text-[var(--hit)]' : 'text-muted'}`}>
             {fixture.scoringDetails || (scored ? 'Acierto en pronóstico' : 'Sin puntos')}
           </span>
           <span
-            className={`font-extrabold text-[0.95rem] shrink-0 ${scored ? 'text-[#2ecc71]' : 'text-muted'}`}
+            className={`font-extrabold text-[0.95rem] shrink-0 ${scored ? 'text-[var(--hit)]' : 'text-muted'}`}
           >
             +{points} pts
           </span>
