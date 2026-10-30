@@ -1,6 +1,7 @@
 package com.porra.mundial.repository;
 
 import com.porra.mundial.model.Match;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +21,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     
     List<Match> findByFinishedFalseOrderByMatchDateAsc();
     
+    /** Con sus equipos en la misma consulta: la sincronización la llama una vez por evento. */
+    @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
     Optional<Match> findByExternalId(String externalId);
 
     List<Match> findByCompetitionId(Long competitionId);
