@@ -236,6 +236,77 @@ class WorldCup2026ScoringStrategyTest {
 
             assertThat(s.score(strategy).getScorer()).isEqualTo(100);
         }
+
+        /** Puntos de pichichi de {@code pick} si el máximo goleador es {@code top} y han marcado también {@code others}. */
+        private int pointsFor(String pick, TopScorerDTO top, TopScorerDTO... others) {
+            Scenario s = finishedTournament(pick);
+            List<TopScorerDTO> scorers = new ArrayList<>();
+            scorers.add(top);
+            scorers.addAll(List.of(others));
+            s.scorers = scorers;
+            return s.score(strategy).getScorer();
+        }
+
+        private final TopScorerDTO goncaloRamos = scorer("Gonçalo Ramos", "G. Ramos", 9);
+        private final TopScorerDTO mbappe = scorer("Kylian Mbappé", "K. Mbappé", 10);
+        private final TopScorerDTO kane = scorer("Harry Kane", "H. Kane", 6);
+
+        @Test
+        void anotherPlayerWithTheSameSurnameIsNotTheTopScorer() {
+            assertThat(pointsFor("Sergio Ramos", goncaloRamos, kane)).isZero();
+            assertThat(pointsFor("S. Ramos", goncaloRamos, kane)).isZero();
+        }
+
+        @Test
+        void theSurnameAloneCountsWhenNoOtherScorerHasIt() {
+            assertThat(pointsFor("Ramos", goncaloRamos, kane)).isEqualTo(200);
+        }
+
+        @Test
+        void theSurnameAloneDoesNotCountWhenItIsAmbiguous() {
+            assertThat(pointsFor("Ramos", goncaloRamos, scorer("Sergio Ramos", "S. Ramos", 1))).isZero();
+            assertThat(pointsFor("Martínez", scorer("Lautaro Martínez", "L. Martínez", 8),
+                    scorer("Lisandro Martínez", "L. Martínez", 1))).isZero();
+        }
+
+        @Test
+        void aSharedShortNameIsAmbiguousButTheFullNameIsNot() {
+            TopScorerDTO lautaro = scorer("Lautaro Martínez", "L. Martínez", 8);
+            TopScorerDTO lisandro = scorer("Lisandro Martínez", "L. Martínez", 1);
+
+            assertThat(pointsFor("L. Martinez", lautaro, lisandro)).isZero();
+            assertThat(pointsFor("Lautaro Martinez", lautaro, lisandro)).isEqualTo(200);
+            assertThat(pointsFor("Lisandro Martinez", lautaro, lisandro)).isZero();
+        }
+
+        @Test
+        void acceptsTheInitialAndSurnameForm() {
+            assertThat(pointsFor("K. Mbappe", mbappe, kane)).isEqualTo(200);
+            assertThat(pointsFor("k mbappé", mbappe, kane)).isEqualTo(200);
+            assertThat(pointsFor("E. Mbappé", mbappe, kane)).as("otra inicial es otro jugador").isZero();
+        }
+
+        @Test
+        void acceptsSmallTyposButNotADifferentName() {
+            assertThat(pointsFor("Kilian Mbape", mbappe, kane)).isEqualTo(200);
+            assertThat(pointsFor("Mbape", mbappe, kane)).isEqualTo(200);
+            assertThat(pointsFor("K. Mbape", mbappe, kane)).isEqualTo(200);
+            assertThat(pointsFor("Rapinha", scorer("Raphinha", "Raphinha", 7), kane)).isEqualTo(200);
+            assertThat(pointsFor("Kanté", scorer("Harry Kane", "H. Kane", 12), mbappe)).as("apellido corto, sin erratas").isZero();
+            assertThat(pointsFor("Kylian", mbappe, kane)).as("el nombre de pila solo no basta").isZero();
+        }
+
+        @Test
+        void acceptsPunctuationAndJuniorVariants() {
+            assertThat(pointsFor("Vinicius Jr.", scorer("Vinícius Júnior", "V. Júnior", 8), kane)).isEqualTo(200);
+            assertThat(pointsFor("  KYLIAN   MBAPPÉ ", mbappe, kane)).isEqualTo(200);
+        }
+
+        @Test
+        void aTypoCloserToAnotherScorerIsNotTheTopScorer() {
+            assertThat(pointsFor("Luis Suares", scorer("Luis Juárez", "L. Juárez", 8), scorer("Luis Suárez", "L. Suárez", 1)))
+                    .isZero();
+        }
     }
 
     @Test
