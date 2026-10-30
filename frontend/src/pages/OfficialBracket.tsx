@@ -35,13 +35,13 @@ function OfficialBracket() {
 
   if (loadingGroup)
     return (
-      <p role="status" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <p className="p-6 text-center text-muted" role="status">
         Cargando liga...
       </p>
     );
   if (groupError)
     return (
-      <p role="alert" style={{ padding: '24px', textAlign: 'center', color: '#ff7675' }}>
+      <p className="p-6 text-center text-[#ff7675]" role="alert">
         No se pudo cargar la liga. Inténtalo de nuevo.
       </p>
     );
@@ -99,16 +99,8 @@ function OfficialBracketView() {
 
   if (!part) {
     return (
-      <section
-        className="view-section"
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '50vh',
-        }}
-      >
-        <h2 style={{ color: 'var(--text-muted)' }}>Cargando cuadro oficial...</h2>
+      <section className="view-section flex justify-center items-center min-h-[50vh]">
+        <h2 className="text-muted">Cargando cuadro oficial...</h2>
       </section>
     );
   }
@@ -181,15 +173,7 @@ function OfficialBracketView() {
 
         scoreContent = (
           <span
-            style={{
-              marginLeft: '4px',
-              fontSize: '0.85em',
-              fontWeight: 'bold',
-              color: isWinner ? '#2ecc71' : 'var(--text-muted)',
-              background: 'rgba(255,255,255,0.05)',
-              padding: '2px 4px',
-              borderRadius: '4px',
-            }}
+            className={`ml-1 text-[0.85em] font-bold bg-[rgba(255,255,255,0.05)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[#2ecc71]' : 'text-muted'}`}
           >
             {score}
           </span>
@@ -246,27 +230,17 @@ function OfficialBracketView() {
     typeof t === 'object' && t ? t.isProvisional : false;
 
   const centerContent = (colW: number) => (
-    <div style={{ display: 'block' }}>
+    <div className="block">
       {/* FINAL */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY - 22,
-          left: COL_GAP,
-          width: colW,
-          textAlign: 'center',
-          fontSize: '0.65rem',
-          fontWeight: 700,
-          color: 'rgba(251,191,36,0.9)',
-          letterSpacing: 2,
-          textTransform: 'uppercase',
-        }}
+        className="absolute text-center text-[0.65rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase"
+        style={{ top: finalTopY - 22, left: COL_GAP, width: colW }}
       >
         🏆 Final 🏆
       </div>
       <div
-        className="match final-match"
-        style={{ position: 'absolute', top: finalTopY, left: COL_GAP, width: colW }}
+        className="match final-match absolute"
+        style={{ top: finalTopY, left: COL_GAP, width: colW }}
       >
         {renderSlot(part.final?.[0], { side: 'center', roundIndex: 'final', isHome: true })}
         {renderSlot(part.final?.[1], { side: 'center', roundIndex: 'final', isHome: false })}
@@ -274,41 +248,15 @@ function OfficialBracketView() {
 
       {/* CAMPEÓN */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY + MATCH_H + 18,
-          left: COL_GAP,
-          width: colW,
-          textAlign: 'center',
-        }}
+        className="absolute text-center"
+        style={{ top: finalTopY + MATCH_H + 18, left: COL_GAP, width: colW }}
       >
-        <div
-          style={{
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            color: 'var(--champion-gold)',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-          }}
-        >
+        <div className="text-[0.65rem] font-bold text-gold tracking-[2px] uppercase mb-1.5">
           🏆 Campeón
         </div>
         <div className="champion-display">
           <div
-            className="team-slot"
-            style={{
-              height: 50,
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-              borderColor: getIsProv(part.champion) ? '#ff4757' : '#fbbf24',
-              background: 'rgba(251,191,36,0.15)',
-              color: '#fbbf24',
-              borderStyle: getIsProv(part.champion) ? 'dashed' : 'solid',
-              animation: getIsProv(part.champion) ? 'provisional-pulse 1.5s infinite' : 'none',
-            }}
+            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.champion) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
           >
             <Flag
               team={getName(part.champion) || ''}
@@ -328,24 +276,10 @@ function OfficialBracketView() {
 
       {/* TERCER PUESTO */}
       <div
-        style={{
-          position: 'absolute',
-          top: finalTopY + MATCH_H + 18 + MATCH_H + 44,
-          left: COL_GAP,
-          width: colW,
-        }}
+        className="absolute"
+        style={{ top: finalTopY + MATCH_H + 18 + MATCH_H + 44, left: COL_GAP, width: colW }}
       >
-        <div
-          style={{
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-            textAlign: 'center',
-          }}
-        >
+        <div className="text-[0.65rem] font-bold text-muted tracking-[2px] uppercase mb-1.5 text-center">
           🥉 Tercer Puesto
         </div>
         <div className="match third-place">
@@ -360,36 +294,13 @@ function OfficialBracketView() {
             isHome: false,
           })}
         </div>
-        <div style={{ marginTop: 8, textAlign: 'center' }}>
-          <div
-            style={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: '#cd7f32',
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              marginBottom: 4,
-            }}
-          >
+        <div className="mt-2 text-center">
+          <div className="text-[0.65rem] font-bold text-[#cd7f32] tracking-[2px] uppercase mb-1">
             🥉 3.º Puesto
           </div>
           <div className="champion-display">
             <div
-              className="team-slot"
-              style={{
-                height: 38,
-                fontSize: '0.95rem',
-                fontWeight: 'bold',
-                justifyContent: 'center',
-                pointerEvents: 'none',
-                borderColor: getIsProv(part.thirdPlaceWinner) ? '#ff4757' : '#cd7f32',
-                background: 'rgba(205, 127, 50, 0.15)',
-                color: '#e0a96d',
-                borderStyle: getIsProv(part.thirdPlaceWinner) ? 'dashed' : 'solid',
-                animation: getIsProv(part.thirdPlaceWinner)
-                  ? 'provisional-pulse 1.5s infinite'
-                  : 'none',
-              }}
+              className={`team-slot h-9.5 text-[0.95rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.thirdPlaceWinner) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
             >
               <Flag
                 team={getName(part.thirdPlaceWinner) || ''}
@@ -428,10 +339,7 @@ function OfficialBracketView() {
         100% { filter: drop-shadow(0 0 2px rgba(0,210,211,0.4)); }
       }
     `}</style>
-      <section
-        className="view-section"
-        style={{ display: 'block', paddingTop: 0, position: 'relative' }}
-      >
+      <section className="view-section block pt-0 relative">
         {/* PESTAÑAS DE NAVEGACIÓN ESTILO PILLS */}
         <OfficialBracketTabs
           activeTab={activeTab}
@@ -448,16 +356,7 @@ function OfficialBracketView() {
             {featuredMatch && <FeaturedMatchBanner featuredMatch={featuredMatch} />}
 
             {/* Controls overlay */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                marginBottom: '10px',
-                position: 'relative',
-                zIndex: 50,
-              }}
-            >
+            <div className="flex flex-col items-center mb-2.5 relative z-[50]">
               {/* HUD Modal Centrado debajo de los botones - Cierra al hacer clic en cualquier parte fuera */}
               {activePanel && (
                 <BracketInfoPanel

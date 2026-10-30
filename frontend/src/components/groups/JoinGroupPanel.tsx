@@ -29,8 +29,7 @@ export default function JoinGroupPanel({
           </button>
         </div>
         <p className="text-muted text-[0.88rem] m-0">
-          ¿Tienes un código de invitación? Introdúcelo aquí para acceder directamente a
-          la liga:
+          ¿Tienes un código de invitación? Introdúcelo aquí para acceder directamente a la liga:
         </p>
         <form className="flex gap-2.5" onSubmit={handleJoin}>
           <input

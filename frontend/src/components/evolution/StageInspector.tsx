@@ -19,67 +19,34 @@ export default function StageInspector({
 }: StageInspectorProps) {
   return (
     <div
+      className={`py-3 px-4 mb-4 [transition:all_0.3s] ${currentInspectedStage ? 'bg-[rgba(0,_210,_211,_0.07)] bg-none' : 'bg-[rgba(255,_255,_255,_0.02)] bg-none'}`}
       style={{
-        background: currentInspectedStage ? 'rgba(0, 210, 211, 0.07)' : 'rgba(255, 255, 255, 0.02)',
         border: '1px solid',
         borderColor: currentInspectedStage ? 'rgba(0, 210, 211, 0.3)' : 'rgba(255, 255, 255, 0.06)',
         borderRadius: '12px',
-        padding: '12px 16px',
-        marginBottom: '16px',
-        transition: 'all 0.3s',
       }}
     >
       {currentInspectedStage ? (
         <div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '10px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              paddingBottom: '8px',
-              marginBottom: '10px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  fontWeight: 'bold',
-                  color: '#00d2d3',
-                  fontSize: '0.95rem',
-                  background: 'rgba(0, 210, 211, 0.15)',
-                  padding: '3px 10px',
-                  borderRadius: '15px',
-                  border: '1px solid rgba(0, 210, 211, 0.4)',
-                }}
-              >
+          <div className="flex justify-between items-center flex-wrap gap-2.5 border-b border-b-[rgba(255,_255,_255,_0.08)] pb-2 mb-2.5">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="font-bold text-[#00d2d3] text-[0.95rem] bg-[rgba(0,_210,_211,_0.15)] bg-none py-[3px] px-2.5 rounded-[15px] border border-[rgba(0,_210,_211,_0.4)]">
                 📍 {currentInspectedStage.roundName || currentInspectedStage.label}
               </span>
               {currentInspectedStage.matchTitle && (
-                <span style={{ fontSize: '0.88rem', color: '#fff', fontWeight: 'bold' }}>
+                <span className="text-[0.88rem] text-white font-bold">
                   ⚽ {currentInspectedStage.matchTitle}
                 </span>
               )}
               {currentInspectedStage.matchTime && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span className="text-[0.8rem] text-muted">
                   🕒 {currentInspectedStage.matchTime}
                 </span>
               )}
             </div>
             <button
+              className="bg-[rgba(255,255,255,0.08)] bg-none border-none text-[#aaa] cursor-pointer text-[0.8rem] py-1 px-2.5 rounded-[12px] [transition:background_0.2s]"
               onClick={() => setHoveredStageIdx(null)}
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: 'none',
-                color: '#aaa',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                padding: '4px 10px',
-                borderRadius: '12px',
-                transition: 'background 0.2s',
-              }}
               title="Cerrar inspección"
             >
               ✕ Cerrar detalle
@@ -87,13 +54,8 @@ export default function StageInspector({
           </div>
 
           <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              overflowX: 'auto',
-              paddingBottom: '4px',
-              WebkitOverflowScrolling: 'touch',
-            }}
+            className="flex gap-2 overflow-x-auto pb-1"
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {users
               .filter((u) => selectedUsers[u.key])
@@ -107,37 +69,16 @@ export default function StageInspector({
                 const pts = u.pointsEvolution[inspectedIdx];
                 return (
                   <div
+                    className={`flex items-center gap-1.5 py-1 px-2.5 rounded-[16px] text-[0.8rem] text-white whitespace-nowrap shrink-0 ${u.isMe ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : 'bg-[rgba(255,_255,_255,_0.06)] bg-none'} ${u.isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,_255,_255,_0.1)]'}`}
                     key={u.key}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: u.isMe ? 'rgba(0, 210, 211, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                      border: u.isMe ? '1px solid #00d2d3' : '1px solid rgba(255, 255, 255, 0.1)',
-                      padding: '4px 10px',
-                      borderRadius: '16px',
-                      fontSize: '0.8rem',
-                      color: '#fff',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
                   >
                     <span
-                      style={{
-                        display: 'inline-block',
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: u.color,
-                      }}
+                      className="inline-block w-2 h-2 rounded-full"
+                      style={{ background: u.color }}
                     ></span>
-                    <span style={{ fontWeight: u.isMe ? 'bold' : 'normal' }}>{u.name}</span>
+                    <span className={`${u.isMe ? 'font-bold' : 'font-normal'}`}>{u.name}</span>
                     <span
-                      style={{
-                        color: mode === 'rank' ? '#00d2d3' : '#ff9f43',
-                        fontWeight: 'bold',
-                        marginLeft: '4px',
-                      }}
+                      className={`font-bold ml-1 ${mode === 'rank' ? 'text-[#00d2d3]' : 'text-[#ff9f43]'}`}
                     >
                       {mode === 'rank' ? `${rk}º` : `${pts} pts`}
                     </span>
@@ -147,16 +88,8 @@ export default function StageInspector({
           </div>
         </div>
       ) : (
-        <div
-          style={{
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.85rem',
-            padding: '4px 0',
-            userSelect: 'none',
-          }}
-        >
-          👆 <span style={{ color: '#ccc' }}>Toca cualquier columna del gráfico</span> para
+        <div className="text-center text-muted text-[0.85rem] py-1 px-0 select-none">
+          👆 <span className="text-[#ccc]">Toca cualquier columna del gráfico</span> para
           inspeccionar en directo los puntos y el ranking de ese momento (sin clics dobles).
         </div>
       )}

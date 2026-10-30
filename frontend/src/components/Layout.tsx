@@ -176,10 +176,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       <header className={`top-bar${isLanding ? ' top-bar--landing' : ''}`}>
         <div className="header-left">
-          <div
-            className="header-title-row"
-            style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'nowrap' }}
-          >
+          <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
             {/* Logo de PorrApp */}
             <NavLink
               to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
@@ -201,30 +198,14 @@ function Layout({ children }: { children: React.ReactNode }) {
                 flexShrink: 0,
               }}
             >
-              <span className="brand-ball-icon" style={{ fontSize: '1.35rem' }}>
-                ⚽
-              </span>
+              <span className="brand-ball-icon text-[1.35rem]">⚽</span>
               <span>
-                Porr<span style={{ color: 'var(--accent-cyan, #00d2d3)' }}>App</span>
+                Porr<span className="text-cyan">App</span>
               </span>
             </NavLink>
 
             {isLanding || isInviteAuthScreen ? null : isDemo ? (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 10px',
-                  borderRadius: '16px',
-                  background: 'rgba(0, 210, 211, 0.12)',
-                  border: '1px solid rgba(0, 210, 211, 0.4)',
-                  color: 'var(--accent-cyan, #00d2d3)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <span className="inline-block min-w-0 truncate py-1 px-2.5 rounded-[16px] bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.4)] text-cyan text-[0.8rem] font-bold">
                 🌍 Mundial 2026
               </span>
             ) : (
@@ -236,41 +217,27 @@ function Layout({ children }: { children: React.ReactNode }) {
                 {loading ? null : isMatchDayLeague ? (
                   <button
                     id="btn-complete-my-prediction-header"
-                    className="glass-btn primary-btn header-porra-cta"
-                    style={{
-                      padding: '6px 14px',
-                      minHeight: '38px',
-                      borderRadius: '10px',
-                      fontWeight: 'bold',
-                      fontSize: '0.85rem',
-                      cursor: isNavLocked ? 'not-allowed' : 'pointer',
-                      whiteSpace: 'nowrap',
-                      opacity: isNavLocked ? 0.4 : 1,
-                    }}
+                    className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
                     onClick={() => navigate('/jornadas')}
                     disabled={isNavLocked}
+                    aria-label="Pronosticar jornada"
+                    title="Pronosticar jornada"
                   >
-                    ⚽ Pronosticar Jornada
+                    <span aria-hidden="true">⚽</span>
+                    <span className="header-porra-cta-label"> Pronosticar Jornada</span>
                   </button>
                 ) : userName &&
                   participantsHashes.find((h) => h.participantName === userName) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
-                    className="glass-btn primary-btn header-porra-cta"
-                    style={{
-                      padding: '6px 14px',
-                      minHeight: '38px',
-                      borderRadius: '10px',
-                      fontWeight: 'bold',
-                      fontSize: '0.85rem',
-                      cursor: isNavLocked ? 'not-allowed' : 'pointer',
-                      whiteSpace: 'nowrap',
-                      opacity: isNavLocked ? 0.4 : 1,
-                    }}
+                    className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
                     onClick={() => navigate('/prediction')}
                     disabled={isNavLocked}
+                    aria-label="Completar mi porra"
+                    title="Completar mi porra"
                   >
-                    ✍️ Completar Mi Porra
+                    <span aria-hidden="true">✍️</span>
+                    <span className="header-porra-cta-label"> Completar Mi Porra</span>
                   </button>
                 )}
               </>

@@ -44,22 +44,23 @@ export default function PwaUpdater() {
 
       // Keep checking while the PWA stays open; browsers may throttle this
       // timer in the background, so visibility/focus handlers below are vital.
-      const intervalId = window.setInterval(
-        () => void checkForUpdate(),
-        UPDATE_CHECK_INTERVAL_MS,
-      );
+      const intervalId = window.setInterval(() => void checkForUpdate(), UPDATE_CHECK_INTERVAL_MS);
 
       // Store the timer on the registration so a repeated registration does
       // not leave multiple polling loops running.
-      const previousInterval = (registration as ServiceWorkerRegistration & {
-        __porrAppUpdateInterval?: number;
-      }).__porrAppUpdateInterval;
+      const previousInterval = (
+        registration as ServiceWorkerRegistration & {
+          __porrAppUpdateInterval?: number;
+        }
+      ).__porrAppUpdateInterval;
       if (previousInterval !== undefined) {
         window.clearInterval(previousInterval);
       }
-      (registration as ServiceWorkerRegistration & {
-        __porrAppUpdateInterval?: number;
-      }).__porrAppUpdateInterval = intervalId;
+      (
+        registration as ServiceWorkerRegistration & {
+          __porrAppUpdateInterval?: number;
+        }
+      ).__porrAppUpdateInterval = intervalId;
     },
     onRegisterError(error) {
       console.error('No se pudo registrar el Service Worker de PorrApp:', error);

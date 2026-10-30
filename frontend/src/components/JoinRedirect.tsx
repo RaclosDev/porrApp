@@ -42,7 +42,9 @@ export default function JoinRedirect() {
           if (existingGroup) {
             localStorage.removeItem('pendingJoinCode');
             changeGroup(String(existingGroup.id));
-            toast.success(`Ya perteneces a "${existingGroup.name || invitation.name}". Te hemos abierto la liga.`);
+            toast.success(
+              `Ya perteneces a "${existingGroup.name || invitation.name}". Te hemos abierto la liga.`,
+            );
             navigate(
               (invitation.poolFormat || existingGroup.poolFormat) === 'MATCH_DAY'
                 ? '/jornadas'
@@ -67,7 +69,7 @@ export default function JoinRedirect() {
   }, [code, navigate, isAuthenticated, userName, changeGroup]);
 
   return (
-    <div style={{ textAlign: 'center', padding: '40px', color: 'white' }}>
+    <div className="text-center p-10 text-white">
       <p>Comprobando invitación...</p>
     </div>
   );

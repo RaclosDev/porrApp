@@ -389,13 +389,13 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
 
   if (loadingGroup)
     return (
-      <p role="status" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <p className="p-6 text-center text-muted" role="status">
         Cargando liga...
       </p>
     );
   if (groupError)
     return (
-      <p role="alert" style={{ padding: '24px', textAlign: 'center', color: '#ff7675' }}>
+      <p className="p-6 text-center text-[#ff7675]" role="alert">
         No se pudo cargar la liga. Inténtalo de nuevo.
       </p>
     );
@@ -407,7 +407,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
     <div className="md-page">
       {/* Cabecera de la jornada */}
       <div className="md-page-header">
-        <div style={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <h1>{activeGroupName || 'Jornadas'}</h1>
           <p className="md-page-sub">
             {activeGroupIsLocked
@@ -419,8 +419,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         <button
           onClick={handleSaveAll}
           disabled={saveMutation.isPending || activeGroupIsLocked}
-          className="glass-btn primary-btn md-save-btn"
-          style={{ cursor: activeGroupIsLocked ? 'not-allowed' : 'pointer' }}
+          className={`glass-btn primary-btn md-save-btn ${activeGroupIsLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
         >
           {saveMutation.isPending ? 'Guardando…' : 'Guardar'}
         </button>
@@ -429,20 +428,9 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       {/* Alertas de éxito o error */}
       {saveSuccessMsg && (
         <div
+          className="bg-[rgba(0,_184,_148,_0.2)] bg-none border border-[#00b894] text-[#55efc4] py-3 px-4 rounded-[10px] mb-4 text-[0.95rem] flex items-center gap-2"
           role="status"
           aria-live="polite"
-          style={{
-            background: 'rgba(0, 184, 148, 0.2)',
-            border: '1px solid #00b894',
-            color: '#55efc4',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            marginBottom: '16px',
-            fontSize: '0.95rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
         >
           <span>✅</span> {saveSuccessMsg}
         </div>
@@ -450,19 +438,8 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
 
       {saveErrorMsg && (
         <div
+          className="bg-[rgba(231,_76,_60,_0.2)] bg-none border border-[#e74c3c] text-[#ff7675] py-3 px-4 rounded-[10px] mb-4 text-[0.95rem] flex items-center gap-2"
           role="alert"
-          style={{
-            background: 'rgba(231, 76, 60, 0.2)',
-            border: '1px solid #e74c3c',
-            color: '#ff7675',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            marginBottom: '16px',
-            fontSize: '0.95rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
         >
           <span>⚠️</span> {saveErrorMsg}
         </div>
@@ -541,9 +518,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
 
       {/* Estado de carga */}
       {isLoading && (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-          Cargando partidos y pronósticos...
-        </div>
+        <div className="text-center p-10 text-muted">Cargando partidos y pronósticos...</div>
       )}
 
       {/* Lista de partidos */}
@@ -553,20 +528,12 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         </p>
       )}
       {!isLoading && !isError && fixtures.length === 0 && (
-        <div
-          className="glass-panel"
-          style={{
-            textAlign: 'center',
-            padding: '40px',
-            color: 'var(--text-muted)',
-            borderRadius: '12px',
-          }}
-        >
+        <div className="glass-panel text-center p-10 text-muted rounded-[12px]">
           No hay partidos programados para esta competición o jornada.
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div className="flex flex-col gap-3.5">
         {displayedFixtures.map((fixture) => {
           const pred = localPredictions[fixture.matchId] || {
             homeScore: '',
@@ -675,40 +642,16 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
                 fixture.pointsAwarded !== null &&
                 fixture.pointsAwarded !== undefined && (
                   <div
-                    style={{
-                      marginTop: '10px',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      background:
-                        fixture.pointsAwarded > 0
-                          ? 'rgba(46, 204, 113, 0.12)'
-                          : 'rgba(255,255,255,0.03)',
-                      border:
-                        fixture.pointsAwarded > 0
-                          ? '1px solid rgba(46, 204, 113, 0.3)'
-                          : '1px solid rgba(255,255,255,0.06)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      fontSize: '0.85rem',
-                    }}
+                    className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${fixture.pointsAwarded > 0 ? 'bg-[rgba(46,_204,_113,_0.12)] bg-none' : 'bg-[rgba(255,255,255,0.03)] bg-none'} ${fixture.pointsAwarded > 0 ? 'border border-[rgba(46,_204,_113,_0.3)]' : 'border border-[rgba(255,255,255,0.06)]'}`}
                   >
                     <span
-                      style={{
-                        color: fixture.pointsAwarded > 0 ? '#2ecc71' : 'var(--text-muted)',
-                      }}
+                      className={`${fixture.pointsAwarded > 0 ? 'text-[#2ecc71]' : 'text-muted'}`}
                     >
                       {fixture.scoringDetails ||
                         (fixture.pointsAwarded > 0 ? 'Acierto en pronóstico' : 'Sin puntos')}
                     </span>
                     <span
-                      style={{
-                        fontWeight: 800,
-                        color: fixture.pointsAwarded > 0 ? '#2ecc71' : 'var(--text-muted)',
-                        fontSize: '0.95rem',
-                        flexShrink: 0,
-                      }}
+                      className={`font-extrabold text-[0.95rem] shrink-0 ${fixture.pointsAwarded > 0 ? 'text-[#2ecc71]' : 'text-muted'}`}
                     >
                       +{fixture.pointsAwarded} pts
                     </span>
@@ -720,36 +663,11 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       </div>
       {/* Botón flotante inferior para guardar en móvil si hay cambios */}
       {hasUnsavedChanges && (
-        <div
-          className="floating-bottom-action"
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 9000,
-            animation: 'fadeIn 0.2s ease-out',
-            boxShadow: '0 10px 25px rgba(0, 210, 211, 0.4)',
-            borderRadius: '30px',
-          }}
-        >
+        <div className="floating-bottom-action fixed bottom-5 left-[50%] [transform:translateX(-50%)] z-[9000] [animation:fadeIn_0.2s_ease-out] shadow-[0_10px_25px_rgba(0,_210,_211,_0.4)] rounded-[30px]">
           <button
             onClick={handleSaveAll}
             disabled={saveMutation.isPending || activeGroupIsLocked}
-            className="glass-btn primary-btn"
-            style={{
-              padding: '12px 24px',
-              fontWeight: 800,
-              fontSize: '1rem',
-              borderRadius: '30px',
-              background: 'linear-gradient(135deg, #00d2d3, #00a8ff)',
-              color: '#000',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-            }}
+            className="glass-btn primary-btn py-3 px-6 font-extrabold text-[1rem] rounded-[30px] bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] bg-transparent text-black border-none flex items-center gap-2 cursor-pointer"
           >
             <span>💾</span>
             <span>
