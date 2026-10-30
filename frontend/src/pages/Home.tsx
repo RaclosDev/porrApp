@@ -10,6 +10,7 @@ import BestThirdsPanel from '../components/Home/BestThirdsPanel';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
 import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
+import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 
 /**
  * Página principal: estado del torneo oficial, clasificación por grupos en vivo,
@@ -129,7 +130,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           }
 
           let statusDot = null;
-          if (team.stats.status === 5) {
+          if (isMathematicallyQualified(team.stats.status)) {
             statusDot = (
               <span
                 className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
@@ -137,7 +138,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
                 aria-label="Clasificado matemáticamente"
               />
             );
-          } else if (team.stats.status === -1) {
+          } else if (isMathematicallyEliminated(team.stats.status)) {
             statusDot = (
               <span
                 className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"

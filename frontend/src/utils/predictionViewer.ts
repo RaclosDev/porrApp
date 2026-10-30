@@ -15,6 +15,7 @@ import type {
   PredictionData,
   TeamPair,
 } from '../types/api';
+import { isMathematicallyEliminated } from './groupStatus';
 
 /** Cuadro vacío que se muestra si no se puede obtener el oficial. */
 export const EMPTY_OFFICIAL_BRACKET: PredictionData = {
@@ -162,7 +163,7 @@ export function isTeamEliminated(
     const safeKey2 = resolvedName.replace(/[.#$[\]]/g, '');
     for (const group of Object.values(officialPoints)) {
       const entry = group[safeKey1] ?? group[safeKey2];
-      if (entry && (entry.status === 4 || entry.status === -1)) return true;
+      if (entry && isMathematicallyEliminated(entry.status)) return true;
     }
   }
 

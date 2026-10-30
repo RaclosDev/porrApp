@@ -17,6 +17,7 @@ import type { ViewerTab } from './prediction/viewerTypes';
 import { nextKnockoutMatch } from '../utils/bracketBuilder';
 import { advancingThirds, thirdPlacedTeams } from '../utils/predictionViewer';
 import { featuredSlot, groupTeamPoints } from '../utils/viewerScoring';
+import { isMathematicallyQualified } from '../utils/groupStatus';
 
 interface PredictionViewerProps {
   /** Se pinta dentro de la página en vez de como modal. */
@@ -162,7 +163,7 @@ function PredictionViewer({
         teamName={teamName}
         color={color === 'inherit' ? defaultColor : color}
         medal={medal}
-        qualified={status === 5}
+        qualified={isMathematicallyQualified(status)}
         points={groupTeamPoints(points, groupName, teamName)}
       />
     );

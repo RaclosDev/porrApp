@@ -1,5 +1,6 @@
 import { type ViewerData } from './viewerTypes';
 import Flag from '../Flag';
+import { isMathematicallyQualified } from '../../utils/groupStatus';
 
 interface ThirdsViewProps {
   advancingThirds: string[];
@@ -63,7 +64,7 @@ export default function ThirdsView({
                   >
                     {team}
                   </span>
-                  {status === 5 && (
+                  {isMathematicallyQualified(status) && (
                     <>
                       <span
                         className="w-2 h-2 bg-[#3498db] bg-none rounded-full inline-block shrink-0"

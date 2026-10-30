@@ -14,6 +14,7 @@ import { PredictionSkeleton } from '../components/Skeleton';
 import { useBracket } from '../hooks/useBracket';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
+import { isMathematicallyQualified } from '../utils/groupStatus';
 
 /**
  * Porra de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
@@ -134,7 +135,7 @@ function Bracket() {
       const name = team?.name;
       if (name && !name.includes('º')) {
         const teamStatus = getTeamStatus(name);
-        if (teamStatus === 5) {
+        if (isMathematicallyQualified(teamStatus)) {
           statusIndicator = (
             <span
               className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
