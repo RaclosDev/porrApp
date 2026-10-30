@@ -28,7 +28,7 @@ export default function OfficialBracketTabs({
       <div
         role="tablist"
         aria-label="Vista del cuadro oficial"
-        className="inline-flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] gap-1"
+        className="inline-flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] gap-1"
       >
         <button
           className={`[padding:clamp(7px,_1.6vw,_8px)_clamp(9px,_2.6vw,_22px)] font-extrabold text-[clamp(0.76rem,_3vw,_0.95rem)] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'cuadro' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'cuadro' ? 'text-black' : 'text-muted'} ${activeTab === 'cuadro' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
@@ -38,7 +38,7 @@ export default function OfficialBracketTabs({
           id="official-tab-cuadro"
           aria-selected={activeTab === 'cuadro'}
         >
-          🏆 Cuadro
+          Cuadro
         </button>
         <button
           className={`[padding:clamp(7px,_1.6vw,_8px)_clamp(9px,_2.6vw,_22px)] font-extrabold text-[clamp(0.76rem,_3vw,_0.95rem)] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'grupos' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'grupos' ? 'text-black' : 'text-muted'} ${activeTab === 'grupos' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
@@ -48,7 +48,7 @@ export default function OfficialBracketTabs({
           id="official-tab-grupos"
           aria-selected={activeTab === 'grupos'}
         >
-          📋 Grupos
+          Grupos
         </button>
       </div>
       {activeTab === 'cuadro' && activeGroupPichichi && (

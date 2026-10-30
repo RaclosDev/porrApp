@@ -6,19 +6,10 @@ import org.springframework.context.annotation.Configuration;
 import java.net.http.HttpClient;
 import java.time.Duration;
 
-/**
- * Configuración general de Beans de aplicación.
- */
 @Configuration
 public class AppConfig {
 
-    /**
-     * Instancia global de HttpClient utilizada para realizar peticiones a APIs externas
-     * (por ejemplo, a la API oculta de ESPN). Se configura con tiempos de espera
-     * razonables y soporte para redirecciones para evitar cuelgues si la API externa falla.
-     * 
-     * @return Cliente HTTP asíncrono y síncrono.
-     */
+    /** Cliente HTTP para ESPN: HTTP/1.1 y sigue redirecciones. */
     @Bean
     public HttpClient httpClient() {
         return HttpClient.newBuilder()

@@ -4,11 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
-/**
- * Entidad 'Competition' (Competición).
- * Representa un torneo o liga deportiva gestionada por la aplicación.
- * Ejemplos: "LaLiga EA Sports", "UEFA Champions League", "Mundial 2026".
- */
+/** Torneo o liga deportiva. Ejemplos: "LaLiga EA Sports", "UEFA Champions League", "Mundial 2026". */
 @Entity
 @Table(name = "competitions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -17,7 +13,6 @@ public class Competition {
     /** Identificador del Mundial 2026 en ESPN. */
     public static final String WORLD_CUP_EXTERNAL_ID = "fifa.world";
 
-    /** Identificador autogenerado. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,7 +30,6 @@ public class Competition {
     @Column(name = "format_type", length = 30)
     private String formatType = "LEAGUE";
 
-    /** Fecha en la que se dio de alta la competición. */
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

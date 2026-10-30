@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
+import { useAppStore } from '../../store/useAppStore';
 import { fetchCompetitionStandings } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import Flag from '../Flag';
@@ -48,6 +49,7 @@ export default function MatchdayHomeDashboard() {
     userId,
   } = useAppContext();
 
+  const activeGroupId = useAppStore((state) => state.activeGroupId);
   const navigate = useNavigate();
 
   const { data: leagueStandings } = useQuery({
@@ -121,12 +123,11 @@ export default function MatchdayHomeDashboard() {
     <section className="view-section active max-w-270 my-0 mx-auto pt-1 pb-6 px-0">
       {showRules && (
         <LeagueRulesModal
-          group={{ name: activeGroupName, rules: activeGroupRules }}
+          group={{ id: activeGroupId, name: activeGroupName, rules: activeGroupRules }}
           onClose={() => setShowRules(false)}
         />
       )}
 
-      {/* Cabecera de la liga */}
       <header className="home-hero">
         <div className="home-hero-info">
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
@@ -140,12 +141,11 @@ export default function MatchdayHomeDashboard() {
           </div>
         </div>
         <button type="button" className="home-rules-btn" onClick={() => setShowRules(true)}>
-          📜 Reglas
+          Reglas
         </button>
       </header>
 
       <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
-        {/* Partidos */}
         <div className="flex flex-col gap-2 min-w-0">
           <div className="home-list-header">
             <h2>
@@ -175,7 +175,7 @@ export default function MatchdayHomeDashboard() {
                 >
                   <div className="home-match-meta">
                     <span>{formatMatchDate(m.date)}</span>
-                    {isLive && <span className="home-live-badge">EN VIVO</span>}
+                    {isLive && <span className="home-live-badge">En directo</span>}
                   </div>
 
                   <div className="home-match-teams">
@@ -219,7 +219,6 @@ export default function MatchdayHomeDashboard() {
           )}
         </div>
 
-        {/* Ranking y tabla */}
         <div className="flex flex-col gap-4.5 min-w-0">
           <div className="glass-panel p-4 rounded-[14px]">
             <div className="home-list-header mb-2.5">
@@ -263,7 +262,7 @@ export default function MatchdayHomeDashboard() {
                 })
               ) : (
                 <div className="text-center text-muted text-[0.85rem] p-3">
-                  Aún no hay puntuaciones en esta peña.
+                  Aún no hay puntuaciones en esta liga.
                 </div>
               )}
             </div>

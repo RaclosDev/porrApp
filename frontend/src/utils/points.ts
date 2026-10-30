@@ -4,6 +4,8 @@ interface RankedTeam {
   name: string;
 }
 
+// Desempate: puntos, enfrentamiento directo (puntos, diferencia, goles), diferencia y goles
+// generales, fair play (menos negativos gana) y nombre.
 export function compareTeams(
   a: RankedTeam,
   b: RankedTeam,
@@ -30,10 +32,8 @@ export function compareTeams(
   const fpA = statsA?.fp || 0;
   const fpB = statsB?.fp || 0;
 
-  // Puntos totales
   if (ptsB !== ptsA) return ptsB - ptsA;
 
-  // Head-to-Head calculations
   let h2hPtsA = 0,
     h2hPtsB = 0;
   let h2hDiffA = 0,
@@ -69,24 +69,17 @@ export function compareTeams(
     }
   }
 
-  // Puntos en enfrentamientos directos (Head-to-Head)
   if (h2hPtsB !== h2hPtsA) return h2hPtsB - h2hPtsA;
 
-  // Diferencia de goles en enfrentamientos directos
   if (h2hDiffB !== h2hDiffA) return h2hDiffB - h2hDiffA;
 
-  // Goles marcados en enfrentamientos directos
   if (h2hGlsB !== h2hGlsA) return h2hGlsB - h2hGlsA;
 
-  // 5. Diferencia de goles (General)
   if (diffB !== diffA) return diffB - diffA;
 
-  // 6. Goles marcados (General)
   if (glsB !== glsA) return glsB - glsA;
 
-  // 7. Puntos de Fair Play / Conducta de equipo (menos puntos negativos es mejor)
   if (fpB !== fpA) return fpB - fpA;
 
-  // 8. Sorteo / Orden alfabético
   return a.name.localeCompare(b.name);
 }

@@ -20,7 +20,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public MeResponse getMe(String email) {
         UserAccount user = findUser(email);
-        return new MeResponse(TextSanitizer.fixParticipantName(user.getParticipantName()),
+        return new MeResponse(user.getId(), TextSanitizer.fixParticipantName(user.getParticipantName()),
                 user.getLastSelectedGroupId(), user.getAvatarUrl());
     }
 

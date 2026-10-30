@@ -23,9 +23,9 @@ import { errorMessage } from '../utils/errors';
 type GroupId = number | string;
 
 export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
-  { id: 'MATCH_DAY', label: 'Por Jornadas (1X2 y Marcador Exacto)' },
-  { id: 'FULL_BRACKET', label: 'Completa (Fase de grupos y cruces)' },
-  { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
+  { id: 'MATCH_DAY', label: 'Por jornadas (1X2 y marcador exacto)' },
+  { id: 'FULL_BRACKET', label: 'Completa (fase de grupos y cruces)' },
+  { id: 'KNOCKOUTS_ONLY', label: 'Solo eliminatorias' },
 ];
 
 const KNOWN_GROUPS_KEY = 'knownGroups';
@@ -209,7 +209,7 @@ export function useGroupsDashboard() {
     if (e && e.preventDefault) e.preventDefault();
     if (isCreating) return;
     if (!newGroupName.trim() || !selectedCompetition || !selectedPoolFormat) {
-      setError('El nombre del grupo y la competición son obligatorios');
+      setError('El nombre de la liga y la competición son obligatorios');
       return;
     }
     setIsCreating(true);
@@ -225,7 +225,7 @@ export function useGroupsDashboard() {
       changeGroup(group.id.toString());
       refreshGroups();
     } catch (e) {
-      setError(errorMessage(e, 'Error al crear el grupo'));
+      setError(errorMessage(e, 'No se pudo crear la liga'));
     } finally {
       setIsCreating(false);
     }
@@ -247,7 +247,7 @@ export function useGroupsDashboard() {
       refreshGroups();
       return true;
     } catch (e) {
-      setError(errorMessage(e, 'Ha ocurrido un error'));
+      setError(errorMessage(e, 'No se pudieron guardar los cambios'));
       return false;
     }
   };
@@ -278,7 +278,7 @@ export function useGroupsDashboard() {
     if (
       !skipConfirm &&
       !window.confirm(
-        `⚠️ ADVERTENCIA ⚠️\n¿Estás seguro de que quieres BORRAR POR COMPLETO la liga "${groupName}"?\n\nEsta acción eliminará todos los pronósticos de todos los participantes y no se puede deshacer.`,
+        `¿Eliminar la liga "${groupName}"? Se borrarán todos sus pronósticos y no se puede deshacer.`,
       )
     )
       return false;
@@ -295,7 +295,7 @@ export function useGroupsDashboard() {
       toast.success(`La liga "${groupName}" ha sido eliminada.`);
       return true;
     } catch (e) {
-      setError(errorMessage(e, 'Ha ocurrido un error'));
+      setError(errorMessage(e, 'No se pudo eliminar la liga'));
       return false;
     }
   };
@@ -325,7 +325,7 @@ export function useGroupsDashboard() {
       // La portada adapta automáticamente el contenido al formato de esta liga.
       navigate('/', { replace: true });
     } catch (e) {
-      setError(errorMessage(e, 'Ha ocurrido un error'));
+      setError(errorMessage(e, 'No se pudo unir a la liga'));
     }
   };
 
@@ -354,7 +354,7 @@ export function useGroupsDashboard() {
       refreshGroups();
       toast.success(`Has abandonado la liga "${groupName}".`);
     } catch (e) {
-      setError(errorMessage(e, 'Ha ocurrido un error'));
+      setError(errorMessage(e, 'No se pudo salir de la liga'));
     }
   };
 

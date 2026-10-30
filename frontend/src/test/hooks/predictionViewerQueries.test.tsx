@@ -21,7 +21,7 @@ describe('usePredictionViewerData con TanStack Query', () => {
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const render = () =>
-    renderHook(() => usePredictionViewerData('5', {}, [], {}, [], {}, part), { wrapper });
+    renderHook(() => usePredictionViewerData('5', {}, [], {}, [], part), { wrapper });
 
   beforeEach(() => {
     vi.clearAllMocks();

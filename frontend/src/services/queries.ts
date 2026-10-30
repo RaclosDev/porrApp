@@ -1,6 +1,7 @@
 /** Opciones de consulta compartidas por varios componentes (misma clave, misma función). */
 import { queryOptions } from '@tanstack/react-query';
 import {
+  fetchLeaderboardMatchdays,
   fetchMyGroups,
   fetchMyPredictions,
   fetchOfficialBracket,
@@ -29,6 +30,14 @@ export const predictionScoreQuery = (predictionId: number | string) =>
   queryOptions({
     queryKey: queryKeys.predictionScore(String(predictionId)),
     queryFn: () => fetchPredictionScore(predictionId),
+    staleTime: 60_000,
+  });
+
+/** Jornadas de la liga con sus puntos; la jornada actual viene marcada con `current`. */
+export const leaderboardMatchdaysQuery = (groupId: number | string) =>
+  queryOptions({
+    queryKey: queryKeys.leaderboardMatchdays(groupId),
+    queryFn: () => fetchLeaderboardMatchdays(groupId),
     staleTime: 60_000,
   });
 

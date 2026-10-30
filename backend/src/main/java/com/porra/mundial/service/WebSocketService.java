@@ -14,10 +14,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Servicio WebSocket.
- * Mantiene la lista de clientes (Navegadores web) conectados en tiempo real.
- * Si ocurre un gol o un resultado cambia, emite eventos para actualizar sin recargar.
- * <p>
  * Una sesión WebSocket no admite envíos simultáneos, y aquí escriben a la vez la sincronización,
  * los goleadores y las respuestas a los PING. Por eso cada sesión se envuelve en un
  * {@link ConcurrentWebSocketSessionDecorator}, que encola los mensajes y corta a los clientes lentos.

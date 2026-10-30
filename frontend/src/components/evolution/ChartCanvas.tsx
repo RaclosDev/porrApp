@@ -76,7 +76,6 @@ export default function ChartCanvas({
           </filter>
         </defs>
 
-        {/* Y-Axis Grid Lines & Labels */}
         {mode === 'rank'
           ? Array.from({ length: maxRank }, (_, i) => i + 1).map((rk) => {
               const y = getY(rk, true);
@@ -128,7 +127,6 @@ export default function ChartCanvas({
               );
             })}
 
-        {/* X-Axis Grid Lines & Stage Labels */}
         {activeStages.map((st, idx) => {
           const x = getX(idx);
           const isHovered = hoveredStageIdx === idx;
@@ -182,7 +180,6 @@ export default function ChartCanvas({
           );
         })}
 
-        {/* Lines for selected users */}
         {users.map((u) => {
           if (!selectedUsers[u.key]) return null;
           const isHovered = hoveredUser === u.key;

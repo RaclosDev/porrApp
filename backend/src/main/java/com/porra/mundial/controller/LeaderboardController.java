@@ -14,10 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.security.Principal;
 import java.util.List;
 
-/**
- * Controlador de la Clasificación (Leaderboard).
- * Se encarga de exponer la tabla de puntuaciones calculada a los usuarios.
- */
 @RestController
 @RequestMapping("/api/leaderboard")
 @RequiredArgsConstructor
@@ -27,13 +23,8 @@ public class LeaderboardController {
     private final GroupService groupService;
 
     /**
-     * Calcula y devuelve la clasificación general o específica de un grupo.
-     * Al recibir la petición, este método desencadena todo el motor de cálculo de puntos en tiempo real
-     * (comparando los pronósticos de todos los usuarios frente al Bracket Oficial), en vez de devolver
-     * un listado estático precalculado.
-     * 
-     * @param groupId liga a consultar; por defecto, la Porra Global.
-     * @return Lista de participantes ordenada de mayor a menor puntuación.
+     * Clasificación de una liga (por defecto, la Porra Global). Usa los puntos guardados y
+     * recalcula si alguna porra está invalidada.
      */
     @GetMapping
     public List<ParticipantScoreDTO> getLeaderboard(@RequestParam(required = false) Long groupId, Principal principal) {

@@ -34,7 +34,6 @@ public class League {
         return GLOBAL_JOIN_CODE.equalsIgnoreCase(joinCode);
     }
 
-    /** Identificador autogenerado de la liga. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -53,7 +52,6 @@ public class League {
     @JoinColumn(name = "admin_user_id", nullable = false)
     private UserAccount adminUser;
 
-    /** Fecha de creación de la liga. */
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -72,7 +70,7 @@ public class League {
 
     @Transient
     public void setAdminParticipantName(String name) {
-        // Ignored by JPA, needed for compatibility
+        // Valor derivado; el setter se ignora a propósito.
     }
 
     /** URL pública (versionada) de la imagen de la liga, o null si no tiene. */

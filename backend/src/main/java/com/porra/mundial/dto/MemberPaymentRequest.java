@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Pattern;
  * @param status PAID o PENDING
  */
 public record MemberPaymentRequest(
-        @Pattern(regexp = "PAID|PENDING", message = "El estado de pago debe ser PAID o PENDING")
+        @Pattern(regexp = "PAID|PENDING", message = "Estado de pago no válido")
         String status) {
 
     public String statusOrDefault() {

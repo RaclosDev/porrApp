@@ -4,23 +4,16 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
-/**
- *  Entidad 'Edition' (Edición).
- * Es el enlace central que une a una Liga (League) con una Competición (Competition).
- * Permite que un mismo grupo ("Los Amigos") juegue múltiples ediciones
- * a lo largo de los años ("Mundial 22", "Euro 24", "Mundial 26") sin perder el grupo.
- */
+/** Une una liga con una competición; una liga puede tener varias ediciones. */
 @Entity
 @Table(name = "editions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Edition {
 
-    /** Identificador autogenerado de la edición del grupo. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** La liga que está participando. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "league_id", nullable = false)
     private League league;

@@ -11,9 +11,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * DTO para el envío en lote de pronósticos de una o varias jornadas.
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,7 +18,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MatchdaySubmissionDTO {
 
-    @NotNull(message = "El identificador de liga/grupo es obligatorio")
+    @NotNull(message = "Falta la liga")
     private Long groupId;
 
     @NotEmpty(message = "Debes proporcionar al menos un pronóstico")

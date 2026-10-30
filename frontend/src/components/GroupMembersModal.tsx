@@ -21,6 +21,7 @@ import LeaveConfirmDialog from './league/LeaveConfirmDialog';
 import type { PaymentStatus } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
+import { useScoringEditor } from '../hooks/useScoringEditor';
 import { queryKeys } from '../services/queryKeys';
 
 export type CopyTarget = 'code' | 'link';
@@ -80,7 +81,10 @@ export default function GroupMembersModal({
   const panelRef = useRef<HTMLDivElement>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const isDirty = name.trim() !== (groupName || '').trim() || rulesText !== (initialRules || '');
+  const scoringEditor = useScoringEditor(groupId, isAdmin);
+  const settingsDirty =
+    name.trim() !== (groupName || '').trim() || rulesText !== (initialRules || '');
+  const isDirty = settingsDirty || scoringEditor.isDirty;
 
   const requestClose = () => {
     if (isDirty) {
@@ -262,17 +266,24 @@ export default function GroupMembersModal({
       return;
     }
     if (!isDirty) return;
+    if (!scoringEditor.isValid) {
+      setActionError('Revisa la puntuación: hay valores no válidos.');
+      return;
+    }
 
     setSavingConfig(true);
     setActionError('');
     setNotice('');
     try {
-      const ok = await onSaveSettings?.({ name: trimmedName, rules: rulesText });
-      if (ok === false) {
-        setActionError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
-        return;
+      if (settingsDirty) {
+        const ok = await onSaveSettings?.({ name: trimmedName, rules: rulesText });
+        if (ok === false) {
+          setActionError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
+          return;
+        }
+        setName(trimmedName);
       }
-      setName(trimmedName);
+      if (scoringEditor.isDirty) await scoringEditor.save();
       setNotice('Cambios guardados');
       toast.success('Liga actualizada');
     } catch (err) {
@@ -285,6 +296,7 @@ export default function GroupMembersModal({
   const handleDiscard = () => {
     setName(groupName || '');
     setRulesText(initialRules || '');
+    scoringEditor.reset();
     setActionError('');
     setNotice('');
     setLeaveConfirmOpen(false);
@@ -469,6 +481,7 @@ export default function GroupMembersModal({
               onRemoveImage={onRemoveImage}
               onUploadImage={onUploadImage}
               rulesText={rulesText}
+              scoringEditor={scoringEditor}
               setDeleteConfirmName={setDeleteConfirmName}
               setDeleteOpen={setDeleteOpen}
               setName={setName}
@@ -497,7 +510,7 @@ export default function GroupMembersModal({
                 type="button"
                 className="league-admin-btn is-primary"
                 onClick={handleSave}
-                disabled={savingConfig || !isNameValid}
+                disabled={savingConfig || !isNameValid || !scoringEditor.isValid}
               >
                 {savingConfig ? (
                   <Loader2 className="league-admin-spin" size={15} aria-hidden="true" />

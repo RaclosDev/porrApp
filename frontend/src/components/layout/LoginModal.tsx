@@ -44,9 +44,9 @@ export default function LoginModal({
         >
           Iniciar sesión
         </h3>
-        <div className="[animation:fadeIn_0.5s_ease_forwards]">
+        <div>
           <p className="mb-7.5 text-[1rem] text-muted leading-[1.5]">
-            Para ver en qué liga estás o rellenar tu porra, ¡inicia sesión con Google!
+            Inicia sesión con Google para ver tus ligas y rellenar tu porra.
           </p>
           <div className="flex justify-center mb-5">
             <GoogleLogin

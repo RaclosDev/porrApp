@@ -102,10 +102,9 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => setIsOpen(!isOpen)}
-        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] border border-[rgba(0,_210,_211,_0.4)] text-main cursor-pointer font-semibold text-[0.88rem] [transition:all_0.2s_ease] ${isOpen ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(15,_23,_42,_0.75)] bg-none'} ${isOpen ? 'shadow-[0_0_15px_rgba(0,_210,_211,_0.25)]' : 'shadow-none'}`}
+        className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] border border-[rgba(0,_210,_211,_0.4)] text-main cursor-pointer font-semibold text-[0.88rem] [transition:all_0.2s_ease] ${isOpen ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(15,_23,_42,_0.75)] bg-none'}`}
         aria-expanded={isOpen}
-        aria-haspopup="true"
-        title="Cambiar de liga o peña"
+        title="Cambiar de liga"
       >
         <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
         <div className="flex flex-col items-start text-left leading-[1.15] min-w-0">
@@ -124,10 +123,7 @@ export default function ActiveLeagueDropdown() {
       </button>
 
       {isOpen && (
-        <div
-          role="menu"
-          className="active-league-menu absolute top-[calc(100%_+_8px)] bg-[#111827] bg-none border border-[rgba(0,_210,_211,_0.35)] rounded-[12px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.75),_0_0_20px_rgba(0,_210,_211,_0.15)] [backdrop-filter:blur(12px)] p-2 flex flex-col gap-1 [animation:fadeIn_0.15s_ease-out]"
-        >
+        <div className="active-league-menu absolute top-[calc(100%_+_8px)] bg-[#111827] bg-none border border-[rgba(0,_210,_211,_0.35)] rounded-[12px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.75)] p-2 flex flex-col gap-1">
           <div className="py-1.5 px-2.5 text-[0.75rem] font-bold tracking-[0.5px] text-muted uppercase border-b border-b-[rgba(255,_255,_255,_0.08)] mb-1 flex justify-between items-center">
             <span>Mis Ligas</span>
             <span className="text-[0.7rem] text-[#00d2d3]">
@@ -142,20 +138,13 @@ export default function ActiveLeagueDropdown() {
                 const gBadge = getCompetitionBadge(g.competitionName);
                 return (
                   <button
-                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(0,_210,_211,_0.12)] bg-none' : 'bg-transparent bg-none'} ${isSelected ? 'text-[#00d2d3]' : 'text-white'}`}
+                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[rgba(0,_210,_211,_0.4)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(0,_210,_211,_0.12)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(255,_255,_255,_0.06)] focus-visible:bg-[rgba(255,_255,_255,_0.06)]'} ${isSelected ? 'text-[#00d2d3]' : 'text-white'}`}
                     key={g.id}
                     type="button"
                     onClick={() => {
                       changeGroup(g.id.toString());
                       setIsOpen(false);
                       navigate('/');
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected)
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) e.currentTarget.style.background = 'transparent';
                     }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -189,21 +178,15 @@ export default function ActiveLeagueDropdown() {
 
           <div className="border-t border-t-[rgba(255,_255,_255,_0.08)] pt-1.5 mt-1">
             <button
-              className="w-full py-2 px-2.5 rounded-[8px] border border-dashed border-[rgba(0,_210,_211,_0.35)] bg-[rgba(0,_210,_211,_0.05)] bg-none text-[#00d2d3] text-[0.82rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 [transition:all_0.15s_ease]"
+              className="w-full py-2 px-2.5 rounded-[8px] border border-dashed border-[rgba(0,_210,_211,_0.35)] bg-[rgba(0,_210,_211,_0.05)] bg-none hover:bg-[rgba(0,_210,_211,_0.15)] focus-visible:bg-[rgba(0,_210,_211,_0.15)] text-[#00d2d3] text-[0.82rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 [transition:all_0.15s_ease]"
               type="button"
               onClick={() => {
                 setIsOpen(false);
                 navigate('/mis-ligas');
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 210, 211, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 210, 211, 0.05)';
-              }}
             >
               <span>➕</span>
-              <span>Crear o Unirse a una Liga</span>
+              <span>Crear o unirse a una liga</span>
             </button>
           </div>
         </div>

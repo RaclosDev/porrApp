@@ -70,8 +70,41 @@ class FlywayFreshDatabaseTest {
             while (rs.next()) indexes.add(rs.getString(1));
 
             assertThat(indexes).containsExactly(
-                    "app_users_google_email_key", "app_users_pkey",
+                    "app_users_google_email_key", "app_users_google_sub_key", "app_users_pkey",
                     "idx_pronosticos_partido_match", "pronosticos_partido_pkey", "uq_prediction_match");
+        }
+    }
+
+    @Test
+    void v48AddsAUniqueGoogleSubAndRefreshTokensThatFollowTheirUser() throws Exception {
+        String url = createDatabase("v48_sessions");
+        flyway(url, "47").migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("INSERT INTO app_users (id, google_email, google_name, participant_name) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9401, 'ana@test.com', 'Ana', 'Ana'), (9402, 'luis@test.com', 'Luis', 'Luis')");
+        }
+
+        flyway(url, null).migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            // Las cuentas que ya existían quedan sin sub hasta que vuelven a entrar.
+            assertThat(queryLong(st, "SELECT count(*) FROM app_users WHERE google_sub IS NULL AND id IN (9401, 9402)"))
+                    .isEqualTo(2);
+            st.execute("UPDATE app_users SET google_sub = 'sub-ana' WHERE id = 9401");
+            try {
+                st.execute("UPDATE app_users SET google_sub = 'sub-ana' WHERE id = 9402");
+                org.junit.jupiter.api.Assertions.fail("google_sub tiene que ser único");
+            } catch (java.sql.SQLException e) {
+                assertThat(e.getSQLState()).isEqualTo("23505");
+            }
+
+            st.execute("INSERT INTO refresh_token_families (id, user_id, expires_at) OVERRIDING SYSTEM VALUE"
+                    + " VALUES (9401, 9401, now() + interval '30 days')");
+            st.execute("INSERT INTO refresh_tokens (family_id, token_hash) VALUES (9401, repeat('a', 64))");
+            st.execute("DELETE FROM app_users WHERE id = 9401");
+            assertThat(queryLong(st, "SELECT count(*) FROM refresh_tokens WHERE family_id = 9401")).isZero();
         }
     }
 

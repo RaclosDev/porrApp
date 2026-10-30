@@ -14,27 +14,29 @@ Porras de fútbol con amigos: cada liga elige su formato, los resultados se sinc
 
 ## Qué hace
 
-- **Ligas privadas** con código de invitación, control de pagos y reglas propias por liga.
+- **Ligas privadas** con código de invitación y control de pagos.
 - **Tres formatos de porra**: cuadro completo (fase de grupos y eliminatorias), solo eliminatorias, o jornada a jornada con 1X2 y marcador exacto.
+- **Puntuación por liga**: el administrador fija cuántos puntos vale cada acierto; los miembros los ven en la pestaña Puntuación y las normas escritas en Normas. Al cambiarlos se recalcula la clasificación.
 - **Resultados automáticos**: los partidos se sincronizan desde ESPN y la puntuación se recalcula en el backend.
 - **Tiempo real**: los cambios de marcador llegan por WebSocket y refrescan clasificación, cuadro y jornadas.
-- **Cuadro oficial en vivo**, con los cruces resueltos según la clasificación de grupos y los mejores terceros.
-- **Inicio de sesión con Google** y sesión con JWT.
+- **Cuadro oficial en vivo**, con los cruces resueltos según la clasificación de grupos y los mejores terceros. Los empates de grupo se deshacen con los criterios del artículo 13 del reglamento del Mundial 2026.
+- **Estadísticas de la liga**: Más elegidos (campeón, equipos por ronda, final, pichichi y ganadores de grupo comparados con lo que ha pasado) y Buscador (hasta qué ronda lleva cada participante a un equipo). En las ligas por jornadas, el reparto de predicciones de cada partido ya empezado.
+- **Inicio de sesión con Google**, con access token de 15 minutos y refresh token en una cookie `HttpOnly` que rota en cada uso.
 - **PWA** instalable en móvil.
 
 ## Stack
 
 | Capa | Tecnologías |
 | --- | --- |
-| Frontend | React 19, TypeScript (`strict`), Vite, TanStack Query, Zustand, Tailwind CSS v4, Radix UI |
-| Backend | Java 21, Spring Boot 4, Spring Security, Spring Data JPA, WebSockets, Resilience4j |
+| Frontend | React 19, TypeScript (`strict`), Vite, TanStack Query, Zustand, Tailwind CSS v4 |
+| Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA, WebSockets, Resilience4j |
 | Datos | PostgreSQL con migraciones Flyway |
 | Calidad | Vitest + Testing Library, JUnit 5 + Mockito + Testcontainers, JaCoCo, ESLint, Prettier, GitHub Actions |
 | Despliegue | Docker multi-etapa (el frontend se sirve desde Spring Boot) en Railway |
 
 ## Decisiones de diseño
 
-- **Puntuación como estrategia.** `scoring/` separa las reglas (`ScoringRuleSet`) del cálculo (`ScoringStrategy`, con `WorldCup2026ScoringStrategy` como implementación), así que un torneo nuevo no toca el resto del dominio.
+- **Puntuación como estrategia.** `scoring/` separa las reglas (`ScoringRuleSet`) del cálculo (`ScoringStrategy`, con `WorldCup2026ScoringStrategy` como implementación), así que un torneo nuevo no toca el resto del dominio. Cada liga guarda sus valores en su edición activa y la clasificación aplica la estrategia con ellos (`ScoringStrategy#withRules`).
 - **Resultados oficiales calculados, no introducidos.** `OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados y la clasificación que se calcula con ellos; no hay una cuenta que tenga que mantenerlo a mano.
 - **Proveedores de datos intercambiables.** `sports/` define `SportsDataProvider` y un registro; ESPN es la implementación actual y el resto del backend no sabe de dónde vienen los resultados.
 - **Contrato tipado entre capas.** Los controladores devuelven DTOs/records y el frontend tiene un cliente único (`services/api.ts`) con los tipos de esas respuestas (`types/api.ts`).

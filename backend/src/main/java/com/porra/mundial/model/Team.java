@@ -3,10 +3,7 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-/**
- * Entidad 'Team' (Equipo / Selección / Club).
- * Representa a un equipo participante en una competición oficial.
- */
+/** Equipo de una competición: selección o club. */
 @Entity
 @Table(name = "teams")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -24,7 +21,6 @@ public class Team {
                 || PLACEHOLDER_NAME_EN.equalsIgnoreCase(team.getNameEn());
     }
 
-    /** Identificador único numérico de la base de datos local. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

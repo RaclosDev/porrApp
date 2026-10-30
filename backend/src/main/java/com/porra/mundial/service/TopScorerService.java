@@ -19,12 +19,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.Comparator;
 
-/**
- * Servicio de Pichichi : Extracts top scorers from ESPN match details
- * - Refreshes every 30 minutes via @Scheduled
- * - Also refreshable on demand (e.g., when a match finishes)
- * - Uses ESPN's free public API (no API key needed)
- */
+/** Goleadores del Mundial a partir de los partidos de ESPN; se refresca cada 30 min y al terminar un partido. */
 @Service
 @Slf4j
 public class TopScorerService {
@@ -66,13 +61,12 @@ public class TopScorerService {
         "Vinicius Junior", "https://r2.thesportsdb.com/images/media/player/cartoon/vq5z4u1771264896.png"
     ));
 
-    /** Called every 30 minutes */
     @Scheduled(initialDelay = 5_000, fixedDelay = 1_800_000)
     public void scheduledRefresh() {
         refresh();
     }
 
-    /** Call this when a match just finished */
+    /** También se llama al terminar un partido. */
     public void refresh() {
         try {
             JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);

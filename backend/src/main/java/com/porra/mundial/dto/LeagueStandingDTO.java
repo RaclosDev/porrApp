@@ -5,9 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para la tabla de clasificación oficial de una liga regular (LaLiga, Premier League, etc.)
- */
 @Data
 @Builder
 @NoArgsConstructor

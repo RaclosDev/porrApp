@@ -8,9 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para enviar un pronóstico individual de un partido (marcador o 1X2).
- */
 @Data
 @Builder
 @NoArgsConstructor

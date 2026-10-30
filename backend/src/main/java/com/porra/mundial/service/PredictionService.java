@@ -23,10 +23,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-/**
- * Servicio principal de gestión de pronósticos (Prediction).
- * Almacena y sirve el árbol del cuadro directamente como documento estructurado.
- */
+/** Guarda y sirve el árbol del cuadro como un único documento estructurado. */
 @Slf4j
 @Service
 @Transactional
@@ -55,7 +52,7 @@ public class PredictionService {
             return;
         }
 
-        throw new SecurityException("No tienes permiso para modificar o eliminar este pronostico.");
+        throw new SecurityException("No tienes permiso para modificar o eliminar este pronóstico.");
     }
 
     public void verifyGroupAdminForPayment(Prediction prediction, String requesterEmail) {
@@ -70,7 +67,7 @@ public class PredictionService {
             return;
         }
 
-        throw new SecurityException("Solo el administrador del grupo puede marcar el pronostico como pagado.");
+        throw new SecurityException("Solo el administrador de la liga puede marcar el pronóstico como pagado.");
     }
 
     @Transactional(readOnly = true)
@@ -102,7 +99,7 @@ public class PredictionService {
                 .orElse(null);
 
         if (edition != null && edition.isLocked()) {
-            throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
+            throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
         if (groupId != null && user != null && edition != null && edition.getLeague() != null) {
@@ -141,12 +138,12 @@ public class PredictionService {
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, PredictionDataDTO predictionData) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
         if (prediction.getEdition() != null && prediction.getEdition().isLocked()) {
-            throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
+            throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
         if (participantName != null) prediction.setParticipantName(participantName);
@@ -161,7 +158,7 @@ public class PredictionService {
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction markAsPaid(Long id, String requesterEmail) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
 
         verifyGroupAdminForPayment(prediction, requesterEmail);
 
@@ -176,7 +173,7 @@ public class PredictionService {
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public void deletePrediction(Long id, String requesterEmail) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
@@ -229,7 +226,7 @@ public class PredictionService {
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id, String requesterEmail) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
 
         if (!isOwner) {
@@ -239,7 +236,7 @@ public class PredictionService {
         boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
 
         if (!isLocked && !isOwner) {
-            throw new SecurityException("Los pronosticos de otros participantes estaran ocultos hasta que finalice el plazo de inscripcion.");
+            throw new SecurityException("Los pronósticos de otros participantes estarán ocultos hasta que finalice el plazo de inscripción.");
         }
 
         return getPredictionData(id);
@@ -262,7 +259,7 @@ public class PredictionService {
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
         PredictionDataDTO dto = pred.getBracketData();
         if (dto == null) {
             dto = new PredictionDataDTO();

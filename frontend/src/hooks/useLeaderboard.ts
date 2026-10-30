@@ -1,9 +1,7 @@
 import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
 import type { MatchdayPoints, ParticipantScore } from '../types/api';
-import { errorMessage } from '../utils/errors';
 
 /** Fila de la clasificación tal como la pinta la interfaz. */
 export interface LeaderboardRow {
@@ -44,7 +42,6 @@ export function useLeaderboard() {
     userName,
   } = state;
   const [sharing, setSharing] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>('total');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMatchdayState, setSelectedMatchdayState] = useState<string | null>(null);
@@ -203,33 +200,6 @@ export function useLeaderboard() {
     }
   };
 
-  const handleAcceptPrediction = async (predictionId: number) => {
-    if (!window.confirm('¿Confirmar que este jugador ha pagado / es aceptado en la liga?')) return;
-    setActionLoading(true);
-    try {
-      await acceptGroupPrediction(activeGroupId, predictionId);
-      state.fetchData();
-    } catch (e) {
-      toast.error(errorMessage(e, 'Ha ocurrido un error'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDeletePrediction = async (predictionId: number) => {
-    if (!window.confirm('¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.'))
-      return;
-    setActionLoading(true);
-    try {
-      await deleteGroupPrediction(activeGroupId, predictionId);
-      state.fetchData();
-    } catch (e) {
-      toast.error(errorMessage(e, 'Ha ocurrido un error'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
@@ -263,10 +233,7 @@ export function useLeaderboard() {
     isLeagueAdmin,
     lowestPaidRank,
     sharing,
-    actionLoading,
     handleShare,
-    handleAcceptPrediction,
-    handleDeletePrediction,
     validResults: results.filter((r) => r.paid),
     sortColumn,
     sortDirection,

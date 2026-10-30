@@ -19,10 +19,9 @@ export default function OfficialMobileCenter({
 }: OfficialMobileCenterProps) {
   return (
     <div className="flex flex-col gap-5">
-      {/* Final */}
       <div>
-        <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[2px] uppercase text-center mb-2">
-          🏆 Final 🏆
+        <div className="text-[0.75rem] font-bold text-[rgba(251,191,36,0.9)] tracking-[0.5px] uppercase text-center mb-2">
+          Final
         </div>
         <div className="mb-match-card">
           {renderSlot(part.final?.[0], {
@@ -37,14 +36,13 @@ export default function OfficialMobileCenter({
           })}
         </div>
       </div>
-      {/* Campeón */}
       <div className="text-center">
-        <div className="text-[0.75rem] font-bold text-gold tracking-[2px] uppercase mb-2">
-          🏆 Campeón
+        <div className="text-[0.75rem] font-bold text-gold tracking-[0.5px] uppercase mb-2">
+          Campeón
         </div>
         <div className="champion-display">
           <div
-            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.champion) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
+            className={`team-slot h-12.5 text-[1.1rem] font-bold justify-center pointer-events-none bg-[rgba(251,191,36,0.15)] bg-none text-[#fbbf24] ${getIsProv(part.champion) ? 'border-[#ff4757]' : 'border-[#fbbf24]'} ${getIsProv(part.champion) ? 'border-dashed' : 'border-solid'}`}
           >
             <Flag
               team={getName(part.champion) || ''}
@@ -61,10 +59,9 @@ export default function OfficialMobileCenter({
           </div>
         </div>
       </div>
-      {/* Tercer Puesto */}
       <div>
-        <div className="text-[0.75rem] font-bold text-muted tracking-[2px] uppercase text-center mb-2">
-          🥉 Tercer Puesto
+        <div className="text-[0.75rem] font-bold text-muted tracking-[0.5px] uppercase text-center mb-2">
+          Tercer puesto
         </div>
         <div className="mb-match-card">
           {renderSlot(part.thirdPlaceMatch?.[0], {
@@ -79,12 +76,12 @@ export default function OfficialMobileCenter({
           })}
         </div>
         <div className="text-center mt-2.5">
-          <div className="text-[0.75rem] font-bold text-[#cd7f32] tracking-[2px] uppercase mb-1.5">
-            🥉 3.º Puesto
+          <div className="text-[0.75rem] font-bold text-[#cd7f32] tracking-[0.5px] uppercase mb-1.5">
+            Ganador del tercer puesto
           </div>
           <div className="champion-display">
             <div
-              className={`team-slot h-10.5 text-[1rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'} ${getIsProv(part.thirdPlaceWinner) ? '[animation:provisional-pulse_1.5s_infinite]' : '[animation:none]'}`}
+              className={`team-slot h-10.5 text-[1rem] font-bold justify-center pointer-events-none bg-[rgba(205,_127,_50,_0.15)] bg-none text-[#e0a96d] ${getIsProv(part.thirdPlaceWinner) ? 'border-[#ff4757]' : 'border-[#cd7f32]'} ${getIsProv(part.thirdPlaceWinner) ? 'border-dashed' : 'border-solid'}`}
             >
               <Flag
                 team={getName(part.thirdPlaceWinner) || ''}

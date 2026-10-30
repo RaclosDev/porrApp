@@ -8,10 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- *  Controlador de Pichichi (Goleadores).
- * Expone la tabla de máximos goleadores del campeonato.
- */
+/** Máximos goleadores del torneo. */
 @RestController
 @RequestMapping("/api/scorers")
 @RequiredArgsConstructor

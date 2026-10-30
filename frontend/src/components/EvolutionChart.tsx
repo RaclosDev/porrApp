@@ -66,14 +66,11 @@ export default function EvolutionChart({ validResults, userName, allGames }: Evo
     setSelectedUsers(sel);
   };
 
-  // Build active stages array depending on timeScale.
-  // CRITICAL: Never include Inicio (r0). Always end EXACTLY at the last round/match actually played/scored.
   const activeStages = useMemo(
     () => buildStages(timeScale, validResults, allGames),
     [timeScale, allGames, validResults],
   );
 
-  // Calculate cumulative points, rank, and smart Y-axis zoom based on selected users
   const evolutionData = useMemo(
     () => buildEvolution(validResults, userName, timeScale, activeStages, selectedUsers),
     [validResults, userName, timeScale, activeStages, selectedUsers],
@@ -105,7 +102,6 @@ export default function EvolutionChart({ validResults, userName, allGames }: Evo
 
   return (
     <div className="bg-[rgba(15,_15,_26,_0.8)] bg-none border border-[rgba(255,_255,_255,_0.08)] rounded-[16px] py-5 px-3.5 my-0 mx-auto w-full max-w-350 shadow-[0_10px_30px_rgba(0,0,0,0.3)] box-border">
-      {/* Header & Mode/Scale Toggles */}
       <ChartToolbar
         mode={mode}
         setMode={setMode}
@@ -116,7 +112,6 @@ export default function EvolutionChart({ validResults, userName, allGames }: Evo
         setHoveredStageIdx={setHoveredStageIdx}
       />
 
-      {/* LIVE TELEMETRY BAR / INSPECTOR PANEL */}
       <StageInspector
         mode={mode}
         setHoveredStageIdx={setHoveredStageIdx}
@@ -126,7 +121,6 @@ export default function EvolutionChart({ validResults, userName, allGames }: Evo
         inspectedIdx={inspectedIdx}
       />
 
-      {/* SVG Interactive Chart with Touch & Widescreen Optimization */}
       <ChartCanvas
         mode={mode}
         timeScale={timeScale}
@@ -149,7 +143,6 @@ export default function EvolutionChart({ validResults, userName, allGames }: Evo
         getY={getY}
       />
 
-      {/* Participant Filter Controls */}
       <ParticipantFilter
         mode={mode}
         hoveredUser={hoveredUser}

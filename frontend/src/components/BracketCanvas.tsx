@@ -4,7 +4,6 @@ import Flag from './Flag';
 import MobileBracket from './MobileBracket';
 import type { BracketTeam } from '../store/useAppStore';
 
-// Vertical layout constants
 export const SLOT_H = 36;
 export const MATCH_H = SLOT_H * 2 + 2; // 74px
 export const R32_PITCH = MATCH_H + 14; // 88px
@@ -22,16 +21,13 @@ export function matchTop(r: number, i: number): number {
 
 export const CANVAS_H = leafTop(7) + MATCH_H;
 
-// Horizontal layout constants
 const GAP = 20; // px between adjacent columns (fixed)
 const DEFAULT_COL = 155;
 
-// Re-export for pages that need gap value for center content positioning
 export const COL_GAP = GAP;
 
 const ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
 
-// SVG connector lines
 interface ConnectorsProps {
   /** Top del partido de la ronda actual. */
   parentTop: number;
@@ -73,19 +69,6 @@ function Connectors({ parentTop, childATop, childBTop, dir, colW }: ConnectorsPr
   );
 }
 
-// Default team slot
-/**
- * Casilla individual que muestra un equipo en el Bracket.
- *
- * @component
- * @param {Object} props
- * @param {string} props.name - Nombre del equipo (ej. "España", "1º Grupo A").
- * @param {Function} [props.onClick] - Acción al hacer click en la casilla.
- * @param {Object} [props.slotStyle] - Estilos adicionales de renderizado (para aciertos/fallos).
- * @param {ReactNode} [props.rightContent] - Elemento a renderizar en la derecha (puntos).
- * @param {boolean} [props.pressed] - Si el equipo ya está elegido para pasar de ronda.
- * @returns {JSX.Element} La casilla del bracket.
- */
 interface TeamSlotProps {
   name: string | null | undefined;
   onClick?: () => void;
@@ -94,6 +77,7 @@ interface TeamSlotProps {
   pressed?: boolean;
 }
 
+/** Casilla de un equipo en el cuadro; solo es pulsable si el equipo es real. */
 export function TeamSlot({
   name,
   onClick,
@@ -191,17 +175,7 @@ export function TeamSlot({
   );
 }
 
-// Active tab calculation
-/**
- * Determina la pestaña activa por defecto para el bracket móvil.
- * Busca la primera ronda donde NO todos los partidos están completos
- * (tienen equipos reales, no placeholders).
- * Si todas las rondas están completas, devuelve la última pestaña (Final).
- *
- * @param {Array[]} leftRounds  - Rondas del lado izquierdo.
- * @param {Array[]} rightRounds - Rondas del lado derecho.
- * @returns {number} Índice de la pestaña activa (0-4).
- */
+/** Pestaña inicial del cuadro móvil: la última ronda con todos los cruces definidos; -1 si lo están todas. */
 function computeActiveTab(leftRounds: CanvasMatch[][], rightRounds: CanvasMatch[][]) {
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
   const isRealTeam = (team: SlotTeam | undefined) => {
@@ -235,14 +209,6 @@ function computeActiveTab(leftRounds: CanvasMatch[][], rightRounds: CanvasMatch[
   return -1;
 }
 
-// BracketCanvas core
-/**
- * Componente core del diseño "Copa del Mundo".
- * Dibuja un bracket (cuadro de eliminatorias) con 2 mitades simétricas (Izquierda y Derecha)
- * que colapsan hacia una columna central (La Final y Tercer Puesto).
- *
- * @component
- */
 export type SlotTeam = BracketTeam | string | null | undefined;
 
 /** Partido del cuadro; cada página decide qué guarda en los huecos (`T`). */
@@ -290,6 +256,7 @@ interface BracketCanvasProps<T extends SlotTeam> {
   mobileCenter?: () => ReactNode;
 }
 
+/** Cuadro de eliminatorias en dos mitades que convergen en la final. */
 export default function BracketCanvas<T extends SlotTeam>({
   leftRounds,
   rightRounds,
@@ -304,12 +271,10 @@ export default function BracketCanvas<T extends SlotTeam>({
   const [scale, setScale] = useState(1);
   const [isOverflowX, setIsOverflowX] = useState(false);
 
-  // Visible round indices per side
   const leftVis = [0, 1, 2, 3].filter((i) => !hiddenRounds[i]);
   const rightVis = [3, 2, 1, 0].filter((i) => !hiddenRounds[i]);
   const totalCols = leftVis.length + rightVis.length + 1; // +1 center
 
-  // Responsive column width calculation based on screen size
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
@@ -365,14 +330,13 @@ export default function BracketCanvas<T extends SlotTeam>({
   const rightGaps = Math.max(0, rightVis.length - 1);
   const totalGaps = leftGaps + 4 + rightGaps;
 
-  // Calculate exact visual dimensions after scaling to prevent bounding box collapse
+  // Tamaño ya escalado: sin él, el contenedor no reserva el alto y el cuadro se solapa.
   const visualWidth = (totalCols * colW + totalGaps * GAP + 32) * scale;
   const visualHeight = (CANVAS_H + 50) * scale;
 
   const sfMidY = matchTop(3, 0) + MATCH_H / 2;
   const centerW = colW + GAP * 2;
 
-  /** Render one round column as a flex item. Returns null if hidden. */
   const renderRoundCol = (
     rounds: CanvasMatch<T>[][],
     roundIndex: number,
@@ -389,19 +353,16 @@ export default function BracketCanvas<T extends SlotTeam>({
         key={`${side}-${roundIndex}`}
         style={{ width: colW, height: CANVAS_H }}
       >
-        {/* Label */}
-        <div className="absolute -top-8.5 left-0 w-full text-center text-[0.6rem] font-bold text-muted tracking-[1.5px] uppercase">
+        <div className="absolute -top-8.5 left-0 w-full text-center text-[0.7rem] font-bold text-muted tracking-[0.5px] uppercase">
           {ROUND_LABELS[roundIndex]}
         </div>
 
-        {/* Column Total (was Footer) */}
         {renderRoundFooter && (
           <div className="absolute -top-5 left-0 w-full text-center pointer-events-none">
             {renderRoundFooter(roundIndex, side)}
           </div>
         )}
 
-        {/* Match cards (absolutely positioned vertically) */}
         {matches.map((match, i) => (
           <div
             key={i}
@@ -413,7 +374,6 @@ export default function BracketCanvas<T extends SlotTeam>({
           </div>
         ))}
 
-        {/* Connectors to previous round (only if that round is visible) */}
         {connDir &&
           roundIndex > 0 &&
           !hiddenRounds[roundIndex - 1] &&
@@ -433,7 +393,6 @@ export default function BracketCanvas<T extends SlotTeam>({
 
   return (
     <>
-      {/* Mobile bracket */}
       <MobileBracket
         leftRounds={leftRounds}
         rightRounds={rightRounds}
@@ -442,7 +401,6 @@ export default function BracketCanvas<T extends SlotTeam>({
         defaultTab={computeActiveTab(leftRounds, rightRounds)}
       />
 
-      {/* Desktop horizontal bracket */}
       <div
         ref={wrapperRef}
         className={`desktop-bracket-wrapper w-full pb-2.5 flex ${isOverflowX ? 'justify-start' : 'justify-center'}`}
@@ -452,14 +410,12 @@ export default function BracketCanvas<T extends SlotTeam>({
             className="absolute top-0 left-0 inline-flex items-start pt-10 pb-2.5 px-4 gap-0 [transform-origin:0_0]"
             style={{ transform: `scale(${scale})` }}
           >
-            {/* Left side */}
             <div className="flex shrink-0" style={{ gap: GAP, height: CANVAS_H }}>
               {[0, 1, 2, 3].map((rIdx) =>
                 renderRoundCol(leftRounds, rIdx, 'left', rIdx > 0 ? 'right' : null),
               )}
             </div>
 
-            {/* SF → Final dashed connector (left) */}
             {!hiddenRounds[3] && (
               <svg
                 className="shrink-0 overflow-visible pointer-events-none"
@@ -477,12 +433,10 @@ export default function BracketCanvas<T extends SlotTeam>({
               </svg>
             )}
 
-            {/* Center */}
             <div className="relative shrink-0" style={{ width: centerW, height: CANVAS_H }}>
               {renderCenter(colW)}
             </div>
 
-            {/* Final → SF dashed connector (right) */}
             {!hiddenRounds[3] && (
               <svg
                 className="shrink-0 overflow-visible pointer-events-none"
@@ -500,7 +454,6 @@ export default function BracketCanvas<T extends SlotTeam>({
               </svg>
             )}
 
-            {/* Right side */}
             <div className="flex shrink-0" style={{ gap: GAP, height: CANVAS_H }}>
               {[3, 2, 1, 0].map((rIdx) =>
                 renderRoundCol(rightRounds, rIdx, 'right', rIdx > 0 ? 'left' : null),

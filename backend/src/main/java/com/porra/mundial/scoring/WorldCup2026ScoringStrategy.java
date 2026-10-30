@@ -32,6 +32,11 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
     }
 
     @Override
+    public ScoringStrategy withRules(ScoringRuleSet rules) {
+        return new WorldCup2026ScoringStrategy(rules);
+    }
+
+    @Override
     public void evaluateScores(ParticipantScoreDTO score, CalculationContext ctx) {
         evaluateGroupStage(score, ctx);
         evaluateKnockouts(score, ctx);

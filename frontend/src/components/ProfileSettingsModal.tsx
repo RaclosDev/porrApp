@@ -62,7 +62,7 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
       tabIndex={-1}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-115 bg-[#151525] bg-none border border-[rgba(255,255,255,0.1)] rounded-[16px] p-5 flex flex-col gap-4.5 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-115 bg-[#151525] bg-none border border-[rgba(255,255,255,0.1)] rounded-[16px] p-5 flex flex-col gap-4.5 max-h-[90dvh] overflow-y-auto">
         <div className="flex justify-between items-center">
           <h3 className="m-0 text-white text-[1.2rem]" id="profile-settings-title">
             Ajustes de cuenta

@@ -8,6 +8,7 @@ import TopScorersPanel from './TopScorersPanel';
 import type { SelectedGroup } from '../GroupMatchesModal';
 import type { TeamOdds } from '../../types/api';
 import { useSortedGroups } from '../../hooks/useSortedGroups';
+import { isMathematicallyEliminated, isMathematicallyQualified } from '../../utils/groupStatus';
 
 /**
  * Componente que renderiza la vista oficial de fase de grupos del torneo:
@@ -72,20 +73,22 @@ export default function OfficialGroupsView() {
 
         {teamsWithStats.map((team, idx) => {
           let statusDot = null;
-          if (team.stats.status === 5) {
+          if (isMathematicallyQualified(team.stats.status)) {
             statusDot = (
               <span
                 className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Clasificado Matemáticamente"
-                aria-label="Clasificado Matemáticamente"
+                role="img"
+                title="Clasificado matemáticamente"
+                aria-label="Clasificado matemáticamente"
               />
             );
-          } else if (team.stats.status === -1) {
+          } else if (isMathematicallyEliminated(team.stats.status)) {
             statusDot = (
               <span
                 className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Eliminado Matemáticamente"
-                aria-label="Eliminado Matemáticamente"
+                role="img"
+                title="Eliminado matemáticamente"
+                aria-label="Eliminado matemáticamente"
               />
             );
           }

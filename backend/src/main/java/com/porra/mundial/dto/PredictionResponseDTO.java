@@ -5,9 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para transferir la informacion de un Pronostico (Prediction) a las capas cliente.
- */
 @Data
 @Builder
 @NoArgsConstructor

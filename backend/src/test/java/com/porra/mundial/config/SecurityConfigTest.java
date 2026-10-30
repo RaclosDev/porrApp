@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Verifica las reglas de acceso de {@link SecurityConfig} con los filtros reales activos.
  */
 @WebMvcTest(TopScorerController.class)
-@Import({SecurityConfig.class, JwtAuthFilter.class, RateLimitingFilter.class})
+@Import({SecurityConfig.class, JwtAuthFilter.class, RateLimitingFilter.class, CsrfOriginFilter.class})
 class SecurityConfigTest {
 
     @Autowired
@@ -37,6 +37,7 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/scorers")).andExpect(status().isOk());
         // Ruta pública sin controlador en este test: pasa la seguridad y llega al 404.
         mockMvc.perform(get("/api/groups/1")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/groups/1/scoring")).andExpect(status().isNotFound());
     }
 
     @Test
@@ -60,6 +61,7 @@ class SecurityConfigTest {
         mockMvc.perform(post("/api/scorers/refresh")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/matches")).andExpect(status().isUnauthorized());
         mockMvc.perform(delete("/api/groups/1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(put("/api/groups/1/scoring")).andExpect(status().isUnauthorized());
     }
 
     @Test

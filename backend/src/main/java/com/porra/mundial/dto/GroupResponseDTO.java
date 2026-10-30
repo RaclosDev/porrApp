@@ -16,17 +16,12 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class GroupResponseDTO {
-    /** Identificador único del grupo. */
     private Long id;
-    /** Nombre del grupo. */
     private String name;
-    /** Código de invitación necesario para unirse. */
     private String joinCode;
     /** Nombre del participante que es administrador de este grupo. */
     private String adminParticipantName;
-    /** Identificador del usuario administrador del grupo. */
     private Long adminUserId;
-    /** Fecha de creación del grupo. */
     private LocalDateTime createdAt;
     
     /** Identificador de la competición asociada a la edición activa. */

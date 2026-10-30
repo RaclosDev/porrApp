@@ -45,11 +45,12 @@ export default function StageInspector({
               )}
             </div>
             <button
+              type="button"
               className="bg-[rgba(255,255,255,0.08)] bg-none border-none text-[#aaa] cursor-pointer text-[0.8rem] py-1 px-2.5 rounded-[12px] [transition:background_0.2s]"
               onClick={() => setHoveredStageIdx(null)}
               title="Cerrar inspección"
             >
-              ✕ Cerrar detalle
+              Cerrar
             </button>
           </div>
 
@@ -89,8 +90,8 @@ export default function StageInspector({
         </div>
       ) : (
         <div className="text-center text-muted text-[0.85rem] py-1 px-0 select-none">
-          👆 <span className="text-[#ccc]">Toca cualquier columna del gráfico</span> para
-          inspeccionar en directo los puntos y el ranking de ese momento (sin clics dobles).
+          <span className="text-[#ccc]">Pulsa una columna del gráfico</span> para ver los puntos y
+          la posición en ese momento.
         </div>
       )}
     </div>

@@ -10,11 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * ️ Servicio de Equipos (TeamService).
- * Gestiona a las selecciones del Torneo. Proporciona métodos para 
- * obtener sus datos básicos y las probabilidades calculadas (cuotas).
- */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -22,19 +17,11 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
 
-    /**
-     * "Dame a todos los equipos ordenados"
-     * @return Lista completa de todos los equipos ordenados por grupo y luego alfabéticamente.
-     */
     @org.springframework.cache.annotation.Cacheable("allTeams")
     public List<Team> getAllTeams() {
         return teamRepository.findAllByOrderByGroupNameAscNameAsc();
     }
 
-    /**
-     * "Agrupa a los equipos por letra de grupo" (Devuelve algo así como A -> [España, Francia...])
-     * Útil para renderizar la pantalla inicial de predicción de Fase de Grupos.
-     */
     public Map<String, List<Team>> getTeamsByGroup() {
         return getAllTeams().stream()
                 .filter(t -> t.getGroupName() != null && !"-".equals(t.getGroupName()) && !Team.PLACEHOLDER_NAME.equalsIgnoreCase(t.getName()))
@@ -68,12 +55,7 @@ public class TeamService {
         return teamRepository.save(team);
     }
 
-    /**
-     *  Traductor de probabilidades de los equipos.
-     * Este método sustituye a tu antiguo archivo estático `data.js`.
-     * Convierte los datos almacenados en BD al mismo formato JSON que antes leías
-     * por HTTP para que el frontend siga funcionando sin tener que reescribirlo.
-     */
+    /** Probabilidades por grupo con la forma que espera el frontend. */
     @org.springframework.cache.annotation.Cacheable("groupOdds")
     public Map<String, List<TeamOddsDTO>> getGroupOdds() {
         Map<String, List<TeamOddsDTO>> result = new TreeMap<>();

@@ -12,14 +12,7 @@ import CreateLeagueWizard from '../components/groups/CreateLeagueWizard';
 import CreatedLeagueModal from '../components/groups/CreatedLeagueModal';
 import type { Group } from '../types/api';
 
-/**
- * Vista del listado y gestión de grupos/ligas disponibles.
- * Permite buscar, crear o unirse a ligas con contraseñas,
- * además de administrar las propias en caso de ser el administrador.
- *
- * @component
- * @returns {JSX.Element} Vista del dashboard de grupos.
- */
+/** Mis ligas: crear, unirse con código y administrar. */
 export default function GroupsDashboard() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<Group | null>(null);
   const [selectedGroupForRules, setSelectedGroupForRules] = useState<Group | null>(null);
@@ -172,10 +165,7 @@ export default function GroupsDashboard() {
 
         {!pendingJoinCodeNotice && (
           <>
-            <h2 className="text-[1.5rem] mb-[15px]">Debes iniciar sesión con Google</h2>
-            <p className="text-muted mb-5">
-              Para crear o unirte a una liga, necesitas acceder con tu cuenta de Google:
-            </p>
+            <h2 className="text-[1.5rem] mb-5">Inicia sesión para crear o unirte a una liga</h2>
             <div className="flex justify-center">
               <GoogleLogin
                 onSuccess={handleDirectGoogleLogin}
@@ -194,7 +184,6 @@ export default function GroupsDashboard() {
   return (
     <section className="view-section active">
       {inviteSummary}
-      {/* Modal de Activación / Celebración tras crear grupo */}
       {newlyCreatedGroup && (
         <CreatedLeagueModal
           newlyCreatedGroup={newlyCreatedGroup}
@@ -208,7 +197,7 @@ export default function GroupsDashboard() {
 
       <div className="flex justify-between items-center flex-wrap gap-3.5 mb-6 pb-4 border-b border-b-[rgba(255,_255,_255,_0.08)]">
         <div>
-          <h2 className="m-0 text-[1.6rem] text-white font-extrabold">Mis Ligas</h2>
+          <h2 className="m-0 text-[1.6rem] text-white font-extrabold">Mis ligas</h2>
         </div>
         <div className="flex gap-2.5 flex-wrap">
           <button
@@ -217,9 +206,10 @@ export default function GroupsDashboard() {
               setShowJoinModal((prev) => !prev);
               setShowCreateModal(false);
             }}
-            className={`glass-btn py-2 px-4 text-[0.88rem] font-bold rounded-[10px] cursor-pointer ${showJoinModal ? 'border border-[#9b59b6]' : 'border border-[rgba(255,255,255,0.15)]'} ${showJoinModal ? 'bg-[rgba(155,_89,_182,_0.25)] bg-none' : 'bg-[rgba(255,255,255,0.06)] bg-none'} ${showJoinModal ? 'text-[#e056fd]' : 'text-white'}`}
+            aria-expanded={showJoinModal}
+            className="glass-btn py-2 px-4 text-[0.88rem] font-bold rounded-[10px] cursor-pointer"
           >
-            🎟️ Unirse con Código
+            Unirse con código
           </button>
           <button
             type="button"
@@ -227,9 +217,10 @@ export default function GroupsDashboard() {
               setShowCreateModal((prev) => !prev);
               setShowJoinModal(false);
             }}
-            className={`glass-btn primary-btn py-2 px-4.5 text-[0.88rem] font-extrabold rounded-[10px] cursor-pointer ${showCreateModal ? 'bg-[rgba(255,255,255,0.12)] bg-none' : 'bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] bg-transparent'} ${showCreateModal ? 'text-white' : 'text-[#0f172a]'} ${showCreateModal ? 'border border-[rgba(255,255,255,0.2)]' : 'border-none'} ${showCreateModal ? 'shadow-none' : 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.3)]'}`}
+            aria-expanded={showCreateModal}
+            className={`glass-btn py-2 px-4.5 text-[0.88rem] font-extrabold rounded-[10px] cursor-pointer ${showCreateModal ? '' : 'primary-btn'}`}
           >
-            {showCreateModal ? '✕ Cancelar Creación' : '➕ Crear Nueva Liga'}
+            {showCreateModal ? 'Cancelar' : 'Crear liga'}
           </button>
         </div>
       </div>
@@ -240,7 +231,6 @@ export default function GroupsDashboard() {
         </div>
       )}
 
-      {/* Asistente de Creación de Liga */}
       {showCreateModal && (
         <CreateLeagueWizard
           competitions={competitions}
@@ -258,7 +248,6 @@ export default function GroupsDashboard() {
         />
       )}
 
-      {/* Unirse con Código */}
       {showJoinModal && (
         <JoinGroupPanel
           joinCode={joinCode}
@@ -288,7 +277,6 @@ export default function GroupsDashboard() {
         <div className="text-center text-muted py-10 px-0">Cargando tus ligas...</div>
       ) : groupsError && groups.length === 0 ? null : groups.length === 0 ? (
         <div className="glass-panel text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto rounded-[16px] border border-dashed border-[rgba(0,_210,_211,_0.4)] bg-[rgba(0,_210,_211,_0.04)] bg-none">
-          <div className="text-[3rem] mb-3">🏟️</div>
           <h3 className="text-white mt-0 mb-2 mx-0 text-[1.3rem] font-extrabold">
             Aún no te has unido a ninguna liga privada
           </h3>
@@ -303,9 +291,9 @@ export default function GroupsDashboard() {
                 setShowCreateModal(true);
                 setShowJoinModal(false);
               }}
-              className="glass-btn primary-btn py-[11px] px-5.5 font-extrabold text-[0.95rem] bg-[linear-gradient(135deg,_#00d2d3,_#00a8ff)] bg-transparent text-[#0f172a] shadow-[0_4px_15px_rgba(0,_210,_211,_0.3)]"
+              className="glass-btn primary-btn py-[11px] px-5.5 font-extrabold text-[0.95rem]"
             >
-              ➕ Crear mi primera liga
+              Crear mi primera liga
             </button>
             <button
               type="button"
@@ -315,7 +303,7 @@ export default function GroupsDashboard() {
               }}
               className="glass-btn py-[11px] px-5 font-bold text-[0.95rem]"
             >
-              🎟️ Unirse con código
+              Unirse con código
             </button>
           </div>
         </div>
@@ -342,7 +330,6 @@ export default function GroupsDashboard() {
           })}
         </div>
       )}
-      {/* Modal de Gestión de Miembros y Pagos */}
       {selectedGroupForMembers && (
         <GroupMembersModal
           groupId={selectedGroupForMembers.id}

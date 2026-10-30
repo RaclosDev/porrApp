@@ -11,7 +11,7 @@ export default function InstallBanner({
   isIos,
 }: InstallBannerProps) {
   return (
-    <div className="fixed bottom-5 left-1/2 z-[999999] flex w-[90%] max-w-[350px] -translate-x-1/2 flex-col items-center gap-2.5 rounded-xl border border-accent bg-app/95 px-5 py-[15px] shadow-[0_10px_30px_rgba(0,210,211,0.3)] backdrop-blur-md">
+    <div className="fixed bottom-5 left-1/2 z-[999999] flex w-[90%] max-w-[350px] -translate-x-1/2 flex-col items-center gap-2.5 rounded-xl border border-accent bg-app/95 px-5 py-[15px] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
       <p className="m-0 text-center font-bold text-white">
         {isIos()
           ? 'Para instalar la app, pulsa Compartir y luego "Añadir a la pantalla de inicio".'
@@ -21,9 +21,9 @@ export default function InstallBanner({
         {!isIos() && (
           <button
             onClick={handleInstallClick}
-            className="glass-btn bg-accent px-[15px] py-2 font-bold text-black"
+            className="glass-btn bg-accent px-[15px] py-2 font-bold text-white"
           >
-            Sí, Instalar
+            Instalar
           </button>
         )}
         <button onClick={handleDismissBanner} className="glass-btn px-[15px] py-2">
