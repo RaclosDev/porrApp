@@ -438,7 +438,6 @@ export function useBracket() {
       thirdPlaceMatch: matchPair(bracketState.thirdPlaceMatch),
       thirdPlaceWinner: teamName(bracketState.thirdPlaceWinner),
       scorer: topScorer,
-      isOfficial: false,
       groups: isKnockoutsOnly ? {} : formattedGroups,
       thirds: isKnockoutsOnly ? [] : advancingThirds,
     };

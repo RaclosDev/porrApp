@@ -1,5 +1,7 @@
 # PorrApp
 
+[![CI](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml)
+
 Porras de fútbol con amigos: cada liga elige su formato, los resultados se sincronizan solos y la clasificación se actualiza en directo.
 
 **Demo:** [porra.raclos.es/demo](https://porra.raclos.es/demo) (modo de solo lectura, sin registro)
@@ -25,14 +27,15 @@ Porras de fútbol con amigos: cada liga elige su formato, los resultados se sinc
 | Capa | Tecnologías |
 | --- | --- |
 | Frontend | React 19, TypeScript (`strict`), Vite, TanStack Query, Zustand, Tailwind CSS v4, Radix UI |
-| Backend | Java 21, Spring Boot 3, Spring Security, Spring Data JPA, WebSockets, Resilience4j |
+| Backend | Java 21, Spring Boot 4, Spring Security, Spring Data JPA, WebSockets, Resilience4j |
 | Datos | PostgreSQL con migraciones Flyway |
-| Calidad | Vitest + Testing Library, JUnit 5 + Mockito, ESLint, Prettier, GitHub Actions |
+| Calidad | Vitest + Testing Library, JUnit 5 + Mockito + Testcontainers, JaCoCo, ESLint, Prettier, GitHub Actions |
 | Despliegue | Docker multi-etapa (el frontend se sirve desde Spring Boot) en Railway |
 
 ## Decisiones de diseño
 
 - **Puntuación como estrategia.** `scoring/` separa las reglas (`ScoringRuleSet`) del cálculo (`ScoringStrategy`, con `WorldCup2026ScoringStrategy` como implementación), así que un torneo nuevo no toca el resto del dominio.
+- **Resultados oficiales calculados, no introducidos.** `OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados y la clasificación que se calcula con ellos; no hay una cuenta que tenga que mantenerlo a mano.
 - **Proveedores de datos intercambiables.** `sports/` define `SportsDataProvider` y un registro; ESPN es la implementación actual y el resto del backend no sabe de dónde vienen los resultados.
 - **Contrato tipado entre capas.** Los controladores devuelven DTOs/records y el frontend tiene un cliente único (`services/api.ts`) con los tipos de esas respuestas (`types/api.ts`).
 - **Lógica fuera de los componentes.** Cálculos como el cuadro oficial, la normalización de pronósticos o la evolución de la clasificación son funciones puras en `utils/` y `components/*/…Data.ts`, con tests propios.
@@ -63,7 +66,7 @@ npm run dev        # http://localhost:5173, con /api redirigido a localhost:8080
 
 ```bash
 cd backend
-mvn spring-boot:run      # en Windows sin Maven instalado: .\mvnw.cmd spring-boot:run
+./mvnw spring-boot:run   # en Windows: .\mvnw.cmd spring-boot:run
 ```
 
 ## Variables de entorno
@@ -81,11 +84,13 @@ La plantilla completa está en [`.env.example`](.env.example).
 ## Tests y CI
 
 ```bash
-cd frontend && npm run lint && npm test && npm run build
-cd backend && mvn -B test   # o .\mvnw.cmd -B test
+cd frontend && npm run lint && npm run test:coverage && npm run build
+cd backend && ./mvnw -B test   # en Windows: .\mvnw.cmd -B test
 ```
 
-`npm run lint` incluye la comprobación de tipos (`tsc --noEmit` en modo `strict`). El workflow de [GitHub Actions](.github/workflows/ci.yml) ejecuta lo mismo en cada push a `main`.
+`npm run lint` incluye la comprobación de tipos (`tsc --noEmit` en modo `strict`). En el backend, los tests de migraciones y el de arranque completo levantan un PostgreSQL real con Testcontainers (se saltan si no hay Docker). La cobertura queda en `frontend/coverage/` y `backend/target/site/jacoco/`.
+
+El workflow de [GitHub Actions](.github/workflows/ci.yml) ejecuta lo mismo en cada PR y en cada push a `main`, pero solo los jobs de la parte que cambia (lo decide `.github/scripts/detect-changes.sh`): el frontend si cambia `frontend/`, el backend si cambia `backend/` y la imagen Docker si cambian el `Dockerfile` o los manifiestos de dependencias. Un cambio en la propia CI, la ejecución semanal y la manual lo pasan todo. La cobertura de las dos partes queda en el resumen de la ejecución. Railway solo despliega cuando la CI pasa.
 
 ## Estructura
 

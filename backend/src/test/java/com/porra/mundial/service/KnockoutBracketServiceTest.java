@@ -91,6 +91,21 @@ class KnockoutBracketServiceTest {
     }
 
     @Test
+    @DisplayName("Con los partidos del Mundial ya cargados, no los vuelve a leer")
+    void propagatesWithTheMatchesItIsGiven() {
+        Match semi1 = knockout("sf", spain, france, 2, 1, 14);
+        Match semi2 = knockout("sf", brazil, argentina, 0, 1, 15);
+        Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
+
+        assertEquals(2, service.propagateKnockoutWinners(List.of(semi1, semi2, finalMatch)));
+
+        assertSame(spain, finalMatch.getHomeTeam());
+        assertSame(argentina, finalMatch.getAwayTeam());
+        verifyNoInteractions(competitionRepository);
+        verify(matchRepository, never()).findByCompetitionId(any());
+    }
+
+    @Test
     @DisplayName("No toca nada si las semifinales aún no se han jugado")
     void doesNothingWithoutDecidedSemis() {
         Match semi1 = knockout("sf", spain, france, null, null, 14);

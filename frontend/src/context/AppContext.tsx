@@ -5,7 +5,6 @@ import {
   fetchStandings,
   fetchMatches,
   fetchMatchRadar,
-  fetchPredictions,
   fetchTeamOdds,
   fetchLeaderboard,
   fetchLeaderboardMatchdays,
@@ -17,7 +16,7 @@ import {
 } from '../services/api';
 import { isApiError } from '../services/apiError';
 import { queryKeys } from '../services/queryKeys';
-import { myGroupsQuery } from '../services/queries';
+import { leaguePredictionsQuery, myGroupsQuery } from '../services/queries';
 import { useWebSocket } from '../hooks/useWebSocket';
 import {
   useAppStore,
@@ -257,33 +256,12 @@ export const useAppContext = () => {
     enabled: competitionReady,
   });
 
+  // Los pronósticos de toda la liga son pesados: aquí solo se leen de la caché. Los piden las
+  // pantallas que los usan (useLeaguePredictions); el resto no los descarga.
   const { data: predictions, error: predictionsError } = useQuery({
-    queryKey: queryKeys.predictions(activeGroupId),
-    queryFn: () => fetchPredictions(activeGroupId),
-    enabled: Boolean(activeGroupId),
-    retry: 1,
-    // No mostrar una porra ficticia como si fueran datos reales.
-    placeholderData: undefined,
+    ...leaguePredictionsQuery(activeGroupId),
+    enabled: false,
   });
-
-  useEffect(() => {
-    if (
-      !store.isDemoMode &&
-      predictionsError &&
-      activeGroupId &&
-      !isGlobalLeagueId(activeGroupId)
-    ) {
-      if (isApiError(predictionsError, 403)) {
-        // No cambiar silenciosamente a la liga global: eso hace que parezca
-        // que la liga recién seleccionada se ha sustituido por el Mundial.
-        console.warn('No se pudieron cargar los pronósticos de la liga activa', {
-          activeGroupId,
-          message: predictionsError.message,
-        });
-        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
-      }
-    }
-  }, [predictionsError, activeGroupId, queryClient, store.isDemoMode]);
 
   const { data: odds } = useQuery({
     queryKey: queryKeys.odds(),
@@ -300,11 +278,28 @@ export const useAppContext = () => {
     },
   });
 
-  const { data: leaderboard } = useQuery({
+  const { data: leaderboard, error: leaderboardError } = useQuery({
     queryKey: queryKeys.leaderboard(activeGroupId),
     queryFn: () => fetchLeaderboard(activeGroupId),
     enabled: Boolean(activeGroupId),
   });
+
+  // Un 403 en la liga activa (p. ej. tras una expulsión) refresca la lista de ligas. El ranking se
+  // pide en todas las pantallas; los pronósticos, solo en las que los usan.
+  const forbiddenError = [predictionsError, leaderboardError].find((error) =>
+    isApiError(error, 403),
+  );
+  useEffect(() => {
+    if (!store.isDemoMode && forbiddenError && activeGroupId && !isGlobalLeagueId(activeGroupId)) {
+      // No cambiar silenciosamente a la liga global: eso hace que parezca
+      // que la liga recién seleccionada se ha sustituido por el Mundial.
+      console.warn('No se pudieron cargar los datos de la liga activa', {
+        activeGroupId,
+        message: forbiddenError.message,
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
+    }
+  }, [forbiddenError, activeGroupId, queryClient, store.isDemoMode]);
 
   const isMatchdayPool =
     groupInfo?.poolFormat === 'MATCH_DAY' || groupInfo?.formatType === 'LEAGUE';
@@ -396,6 +391,7 @@ export const useAppContext = () => {
           queryKeys.group(activeGroupId),
           queryKeys.groupMembers(activeGroupId),
           queryKeys.predictions(activeGroupId),
+          queryKeys.myPredictions(),
           queryKeys.leaderboard(activeGroupId),
           queryKeys.leaderboardMatchdays(activeGroupId),
           queryKeys.matchdayFixtures(activeGroupId),

@@ -5,6 +5,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, Suspense } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
+import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import ProfileSettingsModal from './ProfileSettingsModal';
 import { useAppStore } from '../store/useAppStore';
 import MobileBottomNav from './MobileBottomNav';
@@ -31,7 +32,6 @@ interface BeforeInstallPromptEvent extends Event {
  */
 function Layout({ children }: { children: React.ReactNode }) {
   const {
-    participantsHashes,
     userName,
     viewerPredictionId,
     activeGroupPoolFormat,
@@ -44,6 +44,8 @@ function Layout({ children }: { children: React.ReactNode }) {
     userGroups,
     userGroupsLoaded,
   } = useAppContext();
+  // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
+  const myPrediction = useMyLeaguePrediction();
   const navigate = useNavigate();
   const [showMyPredictionModal, setShowMyPredictionModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -226,8 +228,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                     <span aria-hidden="true">⚽</span>
                     <span className="header-porra-cta-label"> Pronosticar Jornada</span>
                   </button>
-                ) : userName &&
-                  participantsHashes.find((h) => h.participantName === userName) ? null : (
+                ) : userName && myPrediction ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
                     className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}

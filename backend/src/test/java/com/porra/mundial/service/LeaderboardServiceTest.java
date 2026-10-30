@@ -2,6 +2,7 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.dto.MatchdayPointsDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
@@ -44,16 +45,13 @@ class LeaderboardServiceTest {
     private PredictionRepository predictionRepository;
 
     @Mock
-    private StandingsService standingsService;
+    private OfficialResultsService officialResultsService;
 
     @Mock
     private TopScorerService topScorerService;
 
     @Mock
     private MatchRepository matchRepository;
-
-    @Mock
-    private KnockoutBracketService knockoutBracketService;
 
     @Mock
     private MatchPredictionRepository matchPredictionRepository;
@@ -82,12 +80,14 @@ class LeaderboardServiceTest {
                 .scoreCalculatedAt(null)
                 .build();
 
-        MatchPrediction mp1 = MatchPrediction.builder().id(1L).pointsAwarded(3).scoringDetails("Exacto 2-1").build();
-        MatchPrediction mp2 = MatchPrediction.builder().id(2L).pointsAwarded(1).scoringDetails("Signo 1").build();
+        MatchPrediction mp1 = MatchPrediction.builder().id(1L).prediction(pred).pointsAwarded(3).scoringDetails("Exacto 2-1").build();
+        MatchPrediction mp2 = MatchPrediction.builder().id(2L).prediction(pred).pointsAwarded(1).scoringDetails("Signo 1").build();
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
-        when(matchPredictionRepository.findByPredictionId(100L)).thenReturn(List.of(mp1, mp2));
-        when(standingsService.getAllStandings()).thenReturn(Collections.emptyList());
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(100L))).thenReturn(List.of(mp1, mp2));
+        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+                new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of(), null));
 
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
 
@@ -97,6 +97,9 @@ class LeaderboardServiceTest {
         assertEquals(4, first.getTotal(), "total debe incluir los matchPoints (4)");
         assertEquals(4, pred.getMatchPoints(), "La entidad Prediction debe recibir el valor calculado de matchPoints");
         assertEquals(4, pred.getTotalPoints(), "La entidad Prediction debe recibir el valor calculado de totalPoints");
+        // Una sola consulta para todos los participantes, no una por participante.
+        org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.times(1)).findWithMatchByPredictionIdIn(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.never()).findByPredictionId(org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test

@@ -4,8 +4,8 @@ import com.porra.mundial.controller.TopScorerController;
 import com.porra.mundial.service.TopScorerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,10 +25,10 @@ class SecurityConfigTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private TopScorerService topScorerService;
 
-    @MockBean
+    @MockitoBean
     private JwtUtil jwtUtil;
 
     @Test
@@ -37,6 +37,15 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/scorers")).andExpect(status().isOk());
         // Ruta pública sin controlador en este test: pasa la seguridad y llega al 404.
         mockMvc.perform(get("/api/groups/1")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void contentSecurityPolicyAllowsLocalImagePreviews() throws Exception {
+        when(topScorerService.getTopScorers()).thenReturn(List.of());
+        // La vista previa de una foto elegida es una URL blob: hasta que se sube.
+        mockMvc.perform(get("/api/scorers"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Content-Security-Policy", org.hamcrest.Matchers.containsString("img-src 'self' data: blob: https:")));
     }
 
     @Test

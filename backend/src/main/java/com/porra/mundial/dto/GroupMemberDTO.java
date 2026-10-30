@@ -19,9 +19,9 @@ public class GroupMemberDTO {
     private String role;
     private String paymentStatus;
     private LocalDateTime joinedAt;
-    // Sin @JsonProperty, Lombok genera isAdmin() y Jackson lo publicaría como "admin".
+    // Lombok genera isAdmin(); sin @JsonProperty, Jackson lo publicaría como "admin".
     @JsonProperty("isAdmin")
-    private boolean isAdmin;
+    private boolean admin;
     /** URL (versionada) de la foto de perfil, o null si no tiene. */
     private String avatarUrl;
 }

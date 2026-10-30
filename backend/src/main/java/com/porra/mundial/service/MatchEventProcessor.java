@@ -1,6 +1,6 @@
 package com.porra.mundial.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.porra.mundial.config.Constants;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
@@ -69,9 +69,16 @@ public class MatchEventProcessor {
             return competition != null ? competition.getName() : null;
         }
 
-        /** Si ha cambiado algún resultado (equipos, marcador final, ganador o fin del partido). */
+        /**
+         * Si ha cambiado algún resultado: equipos, marcador final, ganador, fin del partido o las
+         * tarjetas de un partido terminado (el fair play desempata los grupos).
+         */
         public boolean resultsChanged() {
             return resultsChanged;
+        }
+
+        void markResultsChanged() {
+            resultsChanged = true;
         }
     }
 
@@ -156,7 +163,7 @@ public class MatchEventProcessor {
 
         MatchStatus status = parseStatus(competition);
         Scores scores = parseScores(home, away, homeTeam, awayTeam, status);
-        MatchMetadata metadata = parseMetadata(competition, batch.competition);
+        MatchMetadata metadata = parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fairPlayPoints(competition, home, away, homeTeam, awayTeam);
 
         upsertMatch(eventId, homeTeam, awayTeam, scores, fairPlay, parseDate(event.path("date").asText(null)),
@@ -262,10 +269,27 @@ public class MatchEventProcessor {
         return new Scores(homeScore, awayScore, winner);
     }
 
-    /** Grupo y ronda a partir de las notas del evento. Las competiciones de liga no tienen ronda. */
-    private MatchMetadata parseMetadata(JsonNode competition, Competition comp) {
+    /** Ronda que ESPN indica en {@code season.slug}; null si el evento no la trae o no se reconoce. */
+    static String roundFromSlug(String slug) {
+        return switch (slug == null ? "" : slug.toLowerCase()) {
+            case "group-stage" -> "group";
+            case "round-of-32" -> "r32";
+            case "round-of-16" -> "r16";
+            case "quarterfinals" -> "qf";
+            case "semifinals" -> "sf";
+            case "3rd-place-match", "third-place-match" -> "third";
+            case "final" -> "final";
+            default -> null;
+        };
+    }
+
+    /**
+     * Grupo y ronda del evento. La ronda sale del {@code season.slug} de ESPN y, si no lo trae,
+     * de sus notas ("3rd-Place Match" se lee igual que "3rd place match"). Las ligas no tienen ronda.
+     */
+    private MatchMetadata parseMetadata(JsonNode competition, String seasonSlug, Competition comp) {
         String altNote = competition.path("altGameNote").asText("");
-        String note = (altNote + " " + competition.path("notes")).toLowerCase();
+        String note = (altNote + " " + competition.path("notes")).toLowerCase().replace('-', ' ');
 
         String group = null;
         if (altNote.contains("Group ")) {
@@ -277,7 +301,10 @@ public class MatchEventProcessor {
             return new MatchMetadata(group, null);
         }
 
-        String round;
+        String round = roundFromSlug(seasonSlug);
+        if (round != null) {
+            return new MatchMetadata(group, round);
+        }
         if (group != null || note.contains("group ") || note.contains("grupo ")) {
             round = "group";
         } else if (note.contains("round of 32") || note.contains("16avo") || note.contains("dieciseis")) {
@@ -329,8 +356,9 @@ public class MatchEventProcessor {
         if (meta.round() != null && !"group".equals(meta.round())) {
             updated |= setIfChanged(match.getRound(), meta.round(), match::setRound);
         }
-        updated |= setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay);
-        updated |= setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
+        boolean fairPlayChanged = setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay)
+                | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
+        updated |= fairPlayChanged;
 
         MatchStatusNormalized normalized = MatchStatusNormalized.fromExternal(
                 status.live() ? "in" : (status.finished() ? "completed" : "scheduled"), status.finished());
@@ -339,8 +367,9 @@ public class MatchEventProcessor {
         if (updated) {
             matchRepository.save(match);
             batch.matchesUpdated++;
-            if (homeChanged || awayChanged || winnerChanged || finishedChanged || (status.finished() && scoreChanged)) {
-                batch.resultsChanged = true;
+            if (homeChanged || awayChanged || winnerChanged || finishedChanged
+                    || (status.finished() && (scoreChanged || fairPlayChanged))) {
+                batch.markResultsChanged();
             }
             if (scoreChanged) {
                 webSocketService.broadcastMatchScore(

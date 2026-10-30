@@ -42,14 +42,14 @@ public class GroupImageController {
                                            @RequestParam("file") MultipartFile file,
                                            Principal principal) throws IOException {
         League league = profileImageService.saveLeagueImage(id, principal.getName(), file.getBytes());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(id);
         return LeagueImageResponse.of(league);
     }
 
     @DeleteMapping
     public LeagueImageResponse deleteImage(@PathVariable Long id, Principal principal) {
         League league = profileImageService.deleteLeagueImage(id, principal.getName());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(id);
         return LeagueImageResponse.of(league);
     }
 }

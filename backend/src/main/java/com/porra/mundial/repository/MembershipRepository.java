@@ -17,7 +17,9 @@ public interface MembershipRepository extends JpaRepository<Membership, Membersh
      * @return Todos los miembros de ese grupo.
      */
     List<Membership> findByLeagueId(Long leagueId);
-    
+
+    long countByLeagueId(Long leagueId);
+
     /**
      * @param userId El ID del usuario.
      * @return Las membresías vinculadas a esa cuenta de usuario.

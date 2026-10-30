@@ -6,7 +6,6 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.PredictionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,10 +14,11 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Cuadro de eliminatorias oficial: coloca a los ganadores de semifinales en la final y a los
- * perdedores en el tercer puesto, y completa el cuadro oficial con los partidos reales.
+ * perdedores en el tercer puesto, y rellena final, campeón y tercer puesto con los partidos reales.
  */
 @Service
 @RequiredArgsConstructor
@@ -27,8 +27,6 @@ public class KnockoutBracketService {
 
     private final MatchRepository matchRepository;
     private final CompetitionRepository competitionRepository;
-    private final PredictionRepository predictionRepository;
-    private final PredictionService predictionService;
     private final ScoreInvalidationService scoreInvalidationService;
 
     /** Partidos de las últimas rondas, ya clasificados. */
@@ -41,8 +39,22 @@ public class KnockoutBracketService {
      * @return número de partidos actualizados
      */
     public int propagateKnockoutWinners() {
+        return propagate(this::worldCupMatches);
+    }
+
+    /**
+     * Igual que {@link #propagateKnockoutWinners()}, con los partidos del Mundial ya cargados
+     * ({@link #worldCupMatches()}), para no volver a leerlos si ya los tiene quien llama.
+     *
+     * @return número de partidos actualizados
+     */
+    public int propagateKnockoutWinners(List<Match> worldCupMatches) {
+        return propagate(() -> worldCupMatches);
+    }
+
+    private int propagate(Supplier<List<Match>> worldCupMatches) {
         try {
-            FinalRounds rounds = findFinalRounds();
+            FinalRounds rounds = findFinalRounds(worldCupMatches.get());
             List<Match> decidedSemis = rounds.semis().stream()
                     .filter(m -> Boolean.TRUE.equals(m.getFinished()) || winnerOf(m) != null)
                     .toList();
@@ -70,7 +82,7 @@ public class KnockoutBracketService {
     public void enrichPredictionDataWithMatches(PredictionDataDTO dto) {
         if (dto == null) return;
         try {
-            FinalRounds rounds = findFinalRounds();
+            FinalRounds rounds = findFinalRounds(worldCupMatches());
             List<Match> semis = rounds.semis();
             Match semi0 = semis.isEmpty() ? null : semis.get(0);
             Match semi1 = semis.size() > 1 ? semis.get(1) : null;
@@ -104,18 +116,6 @@ public class KnockoutBracketService {
         }
     }
 
-    /**
-     * Cuadro oficial: el pronóstico marcado como oficial (si existe) completado con los
-     * resultados reales de las rondas finales.
-     */
-    public PredictionDataDTO officialBracket() {
-        PredictionDataDTO bracket = predictionRepository.findByIsOfficialTrue()
-                .map(official -> predictionService.getPredictionData(official.getId()))
-                .orElseGet(PredictionDataDTO::new);
-        enrichPredictionDataWithMatches(bracket);
-        return bracket;
-    }
-
     /** Partidos del Mundial, el único torneo con cuadro oficial; los de otras competiciones no cuentan. */
     public List<Match> worldCupMatches() {
         return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
@@ -123,8 +123,8 @@ public class KnockoutBracketService {
                 .orElse(List.of());
     }
 
-    private FinalRounds findFinalRounds() {
-        List<Match> knockout = worldCupMatches().stream().filter(KnockoutBracketService::isKnockoutMatch).toList();
+    private FinalRounds findFinalRounds(List<Match> worldCupMatches) {
+        List<Match> knockout = worldCupMatches.stream().filter(KnockoutBracketService::isKnockoutMatch).toList();
         List<Match> semis = knockout.stream()
                 .filter(m -> isRound(m.getRound(), "sf", "semi"))
                 .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))

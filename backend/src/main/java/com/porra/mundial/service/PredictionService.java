@@ -37,25 +37,6 @@ public class PredictionService {
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
-    private final ScoreInvalidationService scoreInvalidationService;
-
-    /** Nombre que el cuadro oficial usaba antes de existir {@code is_official}; queda reservado. */
-    static final String RESERVED_OFFICIAL_NAME = "official";
-
-    /**
-     * El cliente no puede usar el nombre reservado del cuadro oficial: los lectores antiguos
-     * todavía lo buscan por nombre cuando no hay ninguno marcado.
-     */
-    static void rejectReservedName(String predictionName) {
-        if (predictionName != null && RESERVED_OFFICIAL_NAME.equalsIgnoreCase(predictionName.trim())) {
-            throw new IllegalArgumentException("El nombre \"" + RESERVED_OFFICIAL_NAME + "\" está reservado para el cuadro oficial.");
-        }
-    }
-
-    /** Solo la cuenta interna del sistema crea el cuadro oficial; nada de lo que manda el cliente lo marca. */
-    static boolean isSystemAdmin(UserAccount user) {
-        return user != null && UserAccount.SYSTEM_ADMIN_EMAIL.equalsIgnoreCase(user.getGoogleEmail());
-    }
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
@@ -114,7 +95,6 @@ public class PredictionService {
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO predictionData, Long groupId) {
-        rejectReservedName(predictionName);
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
         Edition edition = editionRepository.findByLeagueIdAndStatus(effectiveGroupId, "ACTIVE")
@@ -138,8 +118,6 @@ public class PredictionService {
                     .ifPresent(predictionRepository::delete);
         }
 
-        boolean isOfficial = isSystemAdmin(user);
-
         String paymentStatus = "PENDING";
         if (groupId != null && user != null) {
             Membership.MembershipId memberId = new Membership.MembershipId(user.getId(), groupId);
@@ -153,17 +131,12 @@ public class PredictionService {
                 .user(user)
                 .edition(edition)
                 .name(predictionName)
-                .isOfficial(isOfficial)
                 .bracketData(predictionData)
                 .paymentStatus(paymentStatus)
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        Prediction saved = predictionRepository.save(prediction);
-        if (isOfficial) {
-            scoreInvalidationService.invalidateWorldCup();
-        }
-        return saved;
+        return predictionRepository.save(prediction);
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
@@ -176,10 +149,6 @@ public class PredictionService {
             throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
         }
 
-        if (!prediction.isOfficial()) {
-            rejectReservedName(predictionName);
-        }
-
         if (participantName != null) prediction.setParticipantName(participantName);
         if (predictionName != null) prediction.setName(predictionName);
         if (predictionData != null) {
@@ -187,12 +156,7 @@ public class PredictionService {
             prediction.setScoreCalculatedAt(null);
         }
 
-        Prediction saved = predictionRepository.save(prediction);
-        if (predictionData != null && prediction.isOfficial()) {
-            // El cuadro oficial puntúa las porras de todos.
-            scoreInvalidationService.invalidateWorldCup();
-        }
-        return saved;
+        return predictionRepository.save(prediction);
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
@@ -226,9 +190,8 @@ public class PredictionService {
         }
         return predictions.stream().map(pred -> {
             boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-            boolean isOfficial = pred.isOfficial();
             boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
-            boolean canViewDetails = isLocked || isOwner || isOfficial;
+            boolean canViewDetails = isLocked || isOwner;
 
             PredictionDataDTO dataDto = null;
             if (canViewDetails) {
@@ -269,14 +232,13 @@ public class PredictionService {
         Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
 
-        if (!isOwner && !pred.isOfficial()) {
+        if (!isOwner) {
             assertMemberOfPredictionLeague(pred, requesterEmail);
         }
 
-        boolean isOfficial = pred.isOfficial();
         boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
 
-        if (!isLocked && !isOwner && !isOfficial) {
+        if (!isLocked && !isOwner) {
             throw new SecurityException("Los pronosticos de otros participantes estaran ocultos hasta que finalice el plazo de inscripcion.");
         }
 

@@ -93,7 +93,7 @@ export default function GroupCard({
             <button
               type="button"
               onClick={() => handleShareWhatsApp(group)}
-              className="glass-btn flex-[1_1_auto] min-w-0 py-2.5 px-3 rounded-[10px] font-extrabold text-[0.9rem] flex items-center justify-center gap-[7px] text-white bg-[linear-gradient(135deg,_#25D366,_#128C7E)] bg-transparent border border-[rgba(37,_211,_102,_0.55)] box-border"
+              className="glass-btn flex-[1_1_auto] min-w-0 py-2.5 px-3 rounded-[10px] font-extrabold text-[0.9rem] flex items-center justify-center gap-[7px] text-[#0f172a] bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] bg-transparent border border-[rgba(37,_211,_102,_0.55)] box-border"
               title="Invitar por WhatsApp"
               aria-label={`Invitar a ${group.name} por WhatsApp`}
             >

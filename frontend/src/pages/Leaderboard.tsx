@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useLeaderboard, type SortColumn } from '../hooks/useLeaderboard';
 
 interface LeaderboardColumn {
@@ -183,6 +183,19 @@ function Leaderboard() {
           {sharing ? <span className="text-[1rem]">⏳</span> : <WhatsAppIcon size={24} />}
         </button>
       </div>
+
+      <nav aria-label="Estadísticas de la liga" className="mb-5 flex justify-center gap-2">
+        <Link to="/stats" className="glass-btn inline-flex items-center gap-1.5 font-bold">
+          <BarChart3 size={16} aria-hidden="true" />
+          {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
+        </Link>
+        {!isMatchday && (
+          <Link to="/search" className="glass-btn inline-flex items-center gap-1.5 font-bold">
+            <Search size={16} aria-hidden="true" />
+            Buscador
+          </Link>
+        )}
+      </nav>
 
       {activeTab === 'evolution' ? (
         <div className="w-full mt-2.5">
