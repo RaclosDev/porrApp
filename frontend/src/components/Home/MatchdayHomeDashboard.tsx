@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
+import { useAppStore } from '../../store/useAppStore';
 import { fetchCompetitionStandings } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import Flag from '../Flag';
@@ -48,6 +49,7 @@ export default function MatchdayHomeDashboard() {
     userId,
   } = useAppContext();
 
+  const activeGroupId = useAppStore((state) => state.activeGroupId);
   const navigate = useNavigate();
 
   const { data: leagueStandings } = useQuery({
@@ -121,7 +123,7 @@ export default function MatchdayHomeDashboard() {
     <section className="view-section active max-w-270 my-0 mx-auto pt-1 pb-6 px-0">
       {showRules && (
         <LeagueRulesModal
-          group={{ name: activeGroupName, rules: activeGroupRules }}
+          group={{ id: activeGroupId, name: activeGroupName, rules: activeGroupRules }}
           onClose={() => setShowRules(false)}
         />
       )}

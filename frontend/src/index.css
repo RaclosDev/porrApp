@@ -3720,6 +3720,173 @@
     color: #67e8f9;
   }
 
+  /* Reglas: pestañas Puntuación / Normas y tabla de puntos */
+  .rules-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .rules-tabs button {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .rules-tabs button:hover {
+    color: #fff;
+  }
+
+  .rules-tabs button.is-active {
+    background: rgba(0, 210, 211, 0.16);
+    color: #67e8f9;
+  }
+
+  .rules-tabs button:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 1px;
+  }
+
+  .rules-tab-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .scoring-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .scoring-section h4 {
+    margin: 0 0 6px;
+    color: var(--accent-cyan);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .scoring-rows {
+    margin: 0;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .scoring-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+
+  .scoring-row + .scoring-row {
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .scoring-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .scoring-row-label {
+    color: #f1f5f9;
+    font-size: 0.86rem;
+    font-weight: 700;
+  }
+
+  .scoring-row-hint {
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    line-height: 1.4;
+  }
+
+  .scoring-row-error {
+    color: #fca5a5;
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+
+  .scoring-row-default {
+    color: #fbbf24;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .scoring-row-value {
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .scoring-points {
+    color: #f8fafc;
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .scoring-points span,
+  .scoring-input-wrap > span {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .scoring-input-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .scoring-input-wrap .scoring-input {
+    width: 84px;
+    min-height: 40px;
+    padding: 0 10px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scoring-input[aria-invalid='true'] {
+    border-color: rgba(248, 113, 113, 0.7);
+  }
+
+  .scoring-restore {
+    align-self: flex-start;
+  }
+
+  @media (max-width: 640px) {
+    .rules-tabs button {
+      min-height: 44px;
+    }
+
+    .scoring-input-wrap .scoring-input {
+      width: 76px;
+      min-height: 44px;
+    }
+  }
+
   /* Miembros */
   .league-admin-member-list {
     display: flex;

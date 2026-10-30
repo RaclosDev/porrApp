@@ -11,6 +11,7 @@ import type {
   GroupOdds,
   GroupStandings,
   JoinCodeResponse,
+  LeagueScoring,
   LoginResponse,
   LeagueImageResponse,
   LeagueStanding,
@@ -30,6 +31,7 @@ import type {
   PredictionSaved,
   PredictionSummary,
   ProfileResponse,
+  ScoringRules,
   StatusResponse,
   TopScorer,
   UserPreferences,
@@ -262,6 +264,18 @@ export const deleteGroupPrediction = (groupId: number | string, predictionId: nu
   request<StatusResponse>(`/groups/${groupId}/predictions/${predictionId}`, {
     method: 'DELETE',
     fallbackError: 'Error al eliminar la porra',
+  });
+
+/** Reglas de puntuación de la liga, las de por defecto y si quien consulta puede cambiarlas. */
+export const fetchLeagueScoring = (groupId: number | string) =>
+  request<LeagueScoring>(`/groups/${groupId}/scoring`);
+
+/** Cambia la puntuación de la liga; el servidor recalcula los puntos. Solo el administrador. */
+export const updateLeagueScoring = (groupId: number | string, rules: ScoringRules) =>
+  request<LeagueScoring>(`/groups/${groupId}/scoring`, {
+    method: 'PUT',
+    json: rules,
+    fallbackError: 'No se pudo guardar la puntuación',
   });
 
 export const fetchGroupMembers = (groupId: number | string) =>
