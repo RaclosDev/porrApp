@@ -5023,6 +5023,91 @@
     background: var(--paper);
   }
 
+  /* Jornadas y panel de jornada del ranking: todo lo que era blanco o cian pasa a tinta. */
+  .paper-panel .home-hero-title,
+  .paper-panel .home-list-header h2,
+  .paper-panel .home-match-team,
+  .paper-panel .md-page-header h1,
+  .paper-panel .md-team-name,
+  .paper-panel .lb-matchday-title,
+  .paper-panel .lb-matchday-kpi strong,
+  .paper-panel .lb-matchday-kpi:first-child strong,
+  .paper-panel .lb-matchday-select,
+  .paper-panel .lb-matchday-select option,
+  .paper-panel .lb-matchday-step,
+  .paper-panel .md-round-select option {
+    color: var(--ink);
+  }
+
+  .paper-panel .lb-matchday-eyebrow,
+  .paper-panel .md-predictions-btn,
+  .paper-panel .lb-matchday-cell:not(th) {
+    color: var(--marker-ink);
+  }
+
+  .paper-panel .lb-matchday-select {
+    background: #ffffff;
+    border-color: var(--ink);
+  }
+
+  .paper-panel .md-predictions-icon-btn {
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .md-badge {
+    background: transparent;
+    border: 1px solid currentColor;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .paper-panel .md-badge.is-open {
+    color: var(--marker-ink);
+  }
+
+  .paper-panel .md-badge.is-finished {
+    color: var(--hit);
+  }
+
+  .paper-panel .md-badge.is-locked {
+    color: var(--miss);
+  }
+
+  .paper-panel .md-score-input:disabled {
+    border-color: rgba(17, 24, 39, 0.3);
+  }
+
+  .paper-panel .home-match-score.is-live {
+    color: var(--miss);
+  }
+
+  .paper-panel .lb-matchday-status,
+  .paper-panel .lb-unpaid-badge {
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .paper-panel .lb-matchday-status.is-live {
+    color: var(--hit);
+  }
+
+  .paper-panel .lb-matchday-status.is-finished {
+    color: var(--text-muted);
+  }
+
+  .paper-panel .lb-unpaid-badge {
+    color: var(--miss);
+  }
+
   .paper-panel .glass-btn {
     background: transparent;
     border-color: var(--ink);

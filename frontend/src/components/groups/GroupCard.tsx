@@ -48,21 +48,19 @@ export default function GroupCard({
           </p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {isCreator && (
           <InkStamp tone="gold" size="sm">
             Administras
           </InkStamp>
         )}
         {group.competitionName && (
-          <InkStamp tone="ink" size="sm">
-            {group.competitionName}
-          </InkStamp>
+          <span className="poster-title text-[0.8rem] text-muted">{group.competitionName}</span>
         )}
         {group.poolFormat && (
-          <InkStamp tone="ink" size="sm">
+          <span className="poster-title text-[0.8rem] text-muted">
             {group.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
-          </InkStamp>
+          </span>
         )}
       </div>
 

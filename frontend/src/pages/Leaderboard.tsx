@@ -172,10 +172,10 @@ function Leaderboard() {
         <div
           role="tablist"
           aria-label="Vista de la clasificación"
-          className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] relative gap-1"
+          className="paper-tabs w-auto relative"
         >
           <button
-            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'table' ? 'bg-cyan text-black' : 'bg-transparent bg-none text-muted'}`}
+            className={`paper-tab ${activeTab === 'table' ? 'is-active' : ''}`}
             type="button"
             onClick={() => setActiveTab('table')}
             role="tab"
@@ -185,7 +185,7 @@ function Leaderboard() {
             Ranking
           </button>
           <button
-            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'evolution' ? 'bg-cyan text-black' : 'bg-transparent bg-none text-muted'}`}
+            className={`paper-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
             type="button"
             onClick={() => setActiveTab('evolution')}
             role="tab"
