@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useLeaderboard, type SortColumn } from '../hooks/useLeaderboard';
 
 interface LeaderboardColumn {
@@ -12,6 +12,7 @@ interface LeaderboardColumn {
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import WhatsAppIcon from '../components/WhatsAppIcon';
 import { UserAvatar } from '../components/Avatar';
+import StickerCard, { type StickerLeader } from '../components/StickerCard';
 
 /** Medalla para el podio, tortuga para el último que ha pagado y número para el resto. */
 function rankLabel(rank: number | '-' | undefined, lowestPaidRank: number): string | number {
@@ -31,13 +32,17 @@ const compactMatchdayLabel = (label: string | null) => {
   return label;
 };
 
-/**
- * Componente que muestra la tabla de clasificación (Leaderboard) de una liga.
- * Renderiza los participantes, sus puntos y proporciona acciones de administrador si corresponde.
- *
- * @component
- * @returns {JSX.Element} La vista de la tabla de clasificación.
- */
+/** Clasificación de la liga activa (tabla y gráfica). */
+/** La fila es del usuario: por id cuando las dos partes lo tienen y, si no, por nombre. */
+function isOwnRow(
+  row: { userId?: number | string | null; name?: string },
+  userId: number | string | null | undefined,
+  userName: string | null | undefined,
+): boolean {
+  if (row.userId != null && userId != null) return String(row.userId) === String(userId);
+  return Boolean(userName) && row.name === userName;
+}
+
 function Leaderboard() {
   const {
     state,
@@ -66,8 +71,26 @@ function Leaderboard() {
     handleStepMatchday,
   } = useLeaderboard();
 
+  // Los tres primeros como cromos, igual que en la portada; el resto sigue en la tabla.
+  const podium = React.useMemo<StickerLeader[]>(
+    () =>
+      results
+        .filter((r) => typeof r.rank === 'number' && r.rank <= 3)
+        .sort((a, b) => (a.rank as number) - (b.rank as number))
+        .map((r) => ({
+          rank: r.rank as number,
+          userId: r.userId,
+          name: r.name,
+          avatarUrl: r.avatarUrl,
+          total: r.points.total,
+        })),
+    [results],
+  );
+
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('table'); // 'table' | 'evolution'
+  // En móvil el desglose por fase va oculto hasta que se pide.
+  const [showDetail, setShowDetail] = useState(false);
 
   if (loading)
     return (
@@ -97,7 +120,7 @@ function Leaderboard() {
     : [];
   const columns: LeaderboardColumn[] = isMatchday
     ? [
-        { key: 'total', label: 'TOTAL', kind: 'total' },
+        { key: 'total', label: 'Total', kind: 'total' },
         selectedMatchday
           ? {
               key: 'matchday',
@@ -105,11 +128,11 @@ function Leaderboard() {
               shortLabel: compactMatchdayLabel(selectedMatchday),
               kind: 'matchday',
             }
-          : { key: 'matchPoints', label: 'Puntos Jornadas', kind: 'detail' },
+          : { key: 'matchPoints', label: 'Puntos de jornada', kind: 'detail' },
         ...scorerColumn,
       ]
     : [
-        { key: 'total', label: 'TOTAL', kind: 'total' },
+        { key: 'total', label: 'Total', kind: 'total' },
         { key: 'matchPoints', label: 'Jornadas', kind: 'detail' },
         { key: 'r1', label: 'F.Grupos', kind: 'detail' },
         { key: 'r32', label: 'Dieciseisavos', kind: 'detail' },
@@ -126,13 +149,12 @@ function Leaderboard() {
   };
 
   const thStyle = (colKey: SortColumn): React.CSSProperties => ({
-    cursor: 'pointer',
     userSelect: 'none',
     whiteSpace: 'nowrap',
     transition: 'color 0.2s, background 0.2s',
-    background: sortColumn === colKey ? 'rgba(0, 210, 211, 0.15)' : 'transparent',
-    color: sortColumn === colKey ? '#00d2d3' : 'inherit',
-    borderBottom: sortColumn === colKey ? '2px solid #00d2d3' : undefined,
+    background: 'transparent',
+    color: 'inherit',
+    borderBottom: sortColumn === colKey ? '3px solid var(--ink)' : undefined,
   });
 
   const columnClass = (col: LeaderboardColumn) => {
@@ -145,31 +167,57 @@ function Leaderboard() {
 
   return (
     <section id="view-leaderboard" className="view-section block">
-      <div className="flex justify-center items-center gap-2.5 flex-nowrap mb-[25px] mt-2.5 max-w-full">
-        <div className="flex bg-[rgba(15,_23,_42,_0.8)] bg-none p-1 rounded-[16px] border border-[rgba(255,_255,_255,_0.12)] shadow-[0_8px_25px_rgba(0,_0,_0,_0.5),_inset_0_1px_0_rgba(255,_255,_255,_0.1)] [backdrop-filter:blur(12px)] relative gap-1">
+      <div hidden style={{ display: 'none' }} aria-hidden="true">
+        <div
+          role="tablist"
+          aria-label="Vista de la clasificación"
+          className="paper-tabs w-auto relative"
+        >
           <button
-            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'table' ? 'bg-[linear-gradient(135deg,_#00d2d3,_#01a3a4)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'table' ? 'text-black' : 'text-muted'} ${activeTab === 'table' ? 'shadow-[0_4px_15px_rgba(0,_210,_211,_0.4)]' : 'shadow-none'}`}
+            className={`paper-tab ${activeTab === 'table' ? 'is-active' : ''}`}
+            type="button"
             onClick={() => setActiveTab('table')}
+            role="tab"
+            id="leaderboard-tab-table"
+            aria-selected={activeTab === 'table'}
           >
             Ranking
           </button>
           <button
-            className={`py-2 px-4.5 font-extrabold text-[0.95rem] border-none cursor-pointer rounded-[12px] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] flex items-center gap-1.5 tracking-[0.5px] whitespace-nowrap ${activeTab === 'evolution' ? 'bg-[linear-gradient(135deg,_#ff9f43,_#ffaf60)] bg-transparent' : 'bg-transparent bg-none'} ${activeTab === 'evolution' ? 'text-black' : 'text-muted'} ${activeTab === 'evolution' ? 'shadow-[0_4px_15px_rgba(255,_159,_67,_0.4)]' : 'shadow-none'}`}
+            className={`paper-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
+            type="button"
             onClick={() => setActiveTab('evolution')}
+            role="tab"
+            id="leaderboard-tab-evolution"
+            aria-selected={activeTab === 'evolution'}
           >
             Gráfica
           </button>
         </div>
         <button
-          className={`py-2 px-3.5 flex items-center justify-center bg-[linear-gradient(135deg,_#25D366,_#1ebd5a)] bg-transparent text-white border border-[rgba(255,_255,_255,_0.12)] rounded-[14px] shadow-[0_8px_25px_rgba(37,_211,_102,_0.3),_inset_0_1px_0_rgba(255,_255,_255,_0.2)] [backdrop-filter:blur(12px)] [transition:all_0.25s_cubic-bezier(0.2,_0.8,_0.2,_1)] min-h-10.5 min-w-10.5 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`glass-btn primary-btn py-2 px-3.5 min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}
           title="Compartir en WhatsApp"
+          aria-label="Compartir en WhatsApp"
         >
           {sharing ? <span className="text-[1rem]">⏳</span> : <WhatsAppIcon size={24} />}
         </button>
       </div>
+
+      <nav aria-label="Estadísticas de la liga" className="mb-5 flex justify-center gap-2">
+        <Link to="/stats" className="glass-btn inline-flex items-center gap-1.5 font-bold">
+          <BarChart3 size={16} aria-hidden="true" />
+          {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
+        </Link>
+        {!isMatchday && (
+          <Link to="/search" className="glass-btn inline-flex items-center gap-1.5 font-bold">
+            <Search size={16} aria-hidden="true" />
+            Buscador
+          </Link>
+        )}
+      </nav>
 
       {activeTab === 'evolution' ? (
         <div className="w-full mt-2.5">
@@ -184,7 +232,7 @@ function Leaderboard() {
       ) : (
         <>
           {isMatchday && summaryMatchday && (
-            <div className="lb-matchday-panel">
+            <div className="lb-matchday-panel paper-panel album-sheet">
               <div className="lb-matchday-summary">
                 <div className="lb-matchday-heading">
                   <span className="lb-matchday-eyebrow">
@@ -263,149 +311,184 @@ function Leaderboard() {
             </div>
           )}
 
+          {podium.length === 3 && (
+            <ul className="ranking-podium" aria-label="Podio">
+              {podium.map((row) => (
+                <li
+                  key={row.rank}
+                  className={`ranking-podium-place ranking-podium-place-${row.rank}`}
+                >
+                  <StickerCard leader={row} featured={row.rank === 1} compact />
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="flex gap-5 items-start flex-wrap justify-center w-full">
-            <div className="table-container flex-1 min-w-75 max-w-350 my-0 mx-auto">
-              <table className="leaderboard-table">
-                <thead>
-                  <tr>
-                    <th>Pos</th>
-                    <th>Participante</th>
-                    {columns.map((col) => (
-                      <th
-                        key={col.key}
-                        className={columnClass(col)}
-                        style={thStyle(col.key)}
-                        onClick={() => handleSort(col.key)}
-                        title={`Ordenar por ${col.label}`}
-                        aria-label={col.shortLabel ? `Ordenar por ${col.label}` : undefined}
-                      >
-                        {col.shortLabel || col.label}
-                        {sortIndicator(col.key)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody id="leaderboard-body-tab">
-                  {results.map((r) => {
-                    const rankDisplay = rankLabel(r.rank, lowestPaidRank);
-
-                    const isPending = !r.paid;
-                    const isMe = r.userId?.toString() === userId?.toString() || r.name === userName;
-                    const bgStyle = isMe
-                      ? 'rgba(0, 210, 211, 0.15)'
-                      : isPending
-                        ? 'rgba(255, 165, 0, 0.05)'
-                        : 'transparent';
-
-                    const rowStyle = {
-                      background: bgStyle,
-                      boxShadow: isMe
-                        ? 'inset 0 0 0 1px var(--accent-color), 0 0 15px rgba(0, 210, 211, 0.2)'
-                        : 'none',
-                      cursor: 'pointer',
-                    };
-
-                    return (
-                      <tr key={r.key} style={rowStyle}>
-                        <td className="text-[1.2em] text-center">{rankDisplay}</td>
-                        <td>
-                          <div className="flex justify-start items-center flex-nowrap gap-1.5">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <UserAvatar
-                                url={r.avatarUrl}
-                                userId={r.userId}
-                                name={r.name}
-                                size={28}
-                              />
-                              <div className="flex items-center flex-wrap gap-1.5 min-w-0">
-                                <span className="text-[1.1em]" title={`Ver Porra de ${r.name}`}>
-                                  <strong>
-                                    {r.name}
-                                    {isMe && (
-                                      <span className="text-accent ml-[5px] text-[0.8em]">
-                                        (Tú)
-                                      </span>
-                                    )}
-                                  </strong>
-                                </span>
-                                {isPending && (
-                                  <span
-                                    className="lb-unpaid-badge"
-                                    title="Pago pendiente. El administrador debe marcarlo como pagado para mostrar sus puntos."
-                                  >
-                                    Sin pagar
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {r.id != null && (
-                              <button
-                                className="glass-btn bg-[rgba(56,_173,_246,_0.2)] bg-none text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-8.5 min-h-8.5 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (isMatchday) {
-                                    navigate('/jornadas');
-                                  } else {
-                                    state.setViewerPredictionId(r.id);
-                                  }
-                                }}
-                                title={isMatchday ? 'Ver partidos de la jornada' : 'Ver Porra'}
-                              >
-                                <span aria-hidden="true">👁️</span>
-                                <span className="sr-only">
-                                  {isMatchday ? 'Ver jornadas' : 'Ver porra'}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        {columns.map((col) => (
-                          <td
-                            key={col.key}
-                            className={columnClass(col)}
-                            style={
-                              col.kind === 'total'
-                                ? {
-                                    color: 'var(--accent-color)',
-                                    fontWeight: 'bold',
-                                    fontSize: '1.1em',
-                                    textAlign: 'center',
-                                  }
-                                : undefined
-                            }
+            <div
+              className={`table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto ${showDetail ? 'show-detail' : ''}`}
+            >
+              <button
+                type="button"
+                className="lb-detail-toggle glass-btn py-1.5 px-3 text-[0.8rem]"
+                aria-pressed={showDetail}
+                onClick={() => setShowDetail((v) => !v)}
+              >
+                {showDetail ? 'Ocultar desglose' : 'Ver desglose por fase'}
+              </button>
+              <div className="ranking-table-scroll">
+                <table className="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Pos</th>
+                      <th>Participante</th>
+                      {columns.map((col) => (
+                        <th
+                          key={col.key}
+                          className={columnClass(col)}
+                          style={thStyle(col.key)}
+                          aria-sort={
+                            sortColumn === col.key
+                              ? sortDirection === 'asc'
+                                ? 'ascending'
+                                : 'descending'
+                              : 'none'
+                          }
+                        >
+                          <button
+                            type="button"
+                            className="leaderboard-sort-button"
+                            onClick={() => handleSort(col.key)}
+                            title={`Ordenar por ${col.label}`}
+                            aria-label={`Ordenar por ${col.label}`}
                           >
-                            {col.kind === 'total' ? (
-                              <span className="lb-total-value">
-                                {r.paid ? `${r.points.total ?? 0} pts` : '-'}
-                              </span>
-                            ) : r.paid ? (
-                              `${r.points[col.key] ?? 0}`
-                            ) : (
-                              '-'
-                            )}
+                            {col.shortLabel || col.label}
+                            <span aria-hidden="true">{sortIndicator(col.key)}</span>
+                          </button>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody id="leaderboard-body-tab">
+                    {results.map((r) => {
+                      const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+
+                      const isPending = !r.paid;
+                      const isMe = isOwnRow(r, userId, userName);
+                      const bgStyle = isMe
+                        ? 'rgba(0, 210, 211, 0.15)'
+                        : isPending
+                          ? 'rgba(255, 165, 0, 0.05)'
+                          : 'transparent';
+
+                      const rowStyle = {
+                        background: bgStyle,
+                        boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
+                      };
+
+                      return (
+                        <tr key={r.key} style={rowStyle}>
+                          <td className="text-[1.2em] text-center">{rankDisplay}</td>
+                          <td>
+                            <div className="flex justify-start items-center flex-nowrap gap-1.5">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <UserAvatar
+                                  url={r.avatarUrl}
+                                  userId={r.userId}
+                                  name={r.name}
+                                  size={28}
+                                />
+                                <div className="flex items-center flex-wrap gap-1.5 min-w-0">
+                                  <span className="text-[1.1em]">
+                                    <strong>
+                                      {r.name}
+                                      {isMe && (
+                                        <span className="text-accent-text ml-[5px] text-[0.8em]">
+                                          (Tú)
+                                        </span>
+                                      )}
+                                    </strong>
+                                  </span>
+                                  {isPending && (
+                                    <span
+                                      className="lb-unpaid-badge"
+                                      title="Pago pendiente. El administrador debe marcarlo como pagado para mostrar sus puntos."
+                                    >
+                                      Sin pagar
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {r.id != null && (
+                                <button
+                                  className="glass-btn bg-[rgba(56,_173,_246,_0.2)] bg-none text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isMatchday) {
+                                      navigate('/jornadas');
+                                    } else {
+                                      state.setViewerPredictionId(r.id);
+                                    }
+                                  }}
+                                  title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
+                                >
+                                  <span aria-hidden="true" className="poster-title text-[0.75rem]">
+                                    Ver
+                                  </span>
+                                  <span className="sr-only">
+                                    {isMatchday ? 'Ver jornadas' : 'Ver porra'}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
                           </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          {columns.map((col) => (
+                            <td
+                              key={col.key}
+                              className={columnClass(col)}
+                              style={
+                                col.kind === 'total'
+                                  ? {
+                                      color: 'var(--accent-text)',
+                                      fontWeight: 'bold',
+                                      fontSize: '1.1em',
+                                      textAlign: 'center',
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {col.kind === 'total' ? (
+                                <span className="lb-total-value">
+                                  {r.paid ? `${r.points.total ?? 0} pts` : '-'}
+                                </span>
+                              ) : r.paid ? (
+                                `${r.points[col.key] ?? 0}`
+                              ) : (
+                                '-'
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </>
       )}
 
-      {/* SHARE IMAGE TEMPLATE (Hidden) */}
+      {/* Plantilla oculta de la imagen para WhatsApp */}
       <div
         className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 bg-[#0f0f1a] bg-none text-white box-border rounded-[15px]"
         id="share-image-template"
+        aria-hidden="true"
         style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         <div className="text-center mb-5 border-b-2 border-b-[#00d2d3] pb-2.5">
           <h1 className="text-[#00d2d3] m-0 text-[28px] uppercase">
-            🏆{' '}
-            {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'Porra Oficial'}
+            🏆 {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'PorrApp'}
           </h1>
           <p className="text-[#ff9f43] mt-[5px] mb-0 mx-0 text-[18px] font-bold">
             Clasificación: {activeGroupName}
@@ -416,14 +499,14 @@ function Leaderboard() {
             {validResults.slice(0, mid).map((r) => {
               const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
-              const isMe = r.name === userName;
+              const isMe = isOwnRow(r, userId, userName);
               return (
                 <div
                   className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
+                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
                       {rankDisplay}
                     </span>
                     <span className="text-[1.1rem] font-bold text-white">{r.name}</span>
@@ -439,14 +522,14 @@ function Leaderboard() {
             {validResults.slice(mid).map((r) => {
               const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
-              const isMe = r.name === userName;
+              const isMe = isOwnRow(r, userId, userName);
               return (
                 <div
                   className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent">
+                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
                       {rankDisplay}
                     </span>
                     <span className="text-[1.1rem] font-bold text-white">{r.name}</span>

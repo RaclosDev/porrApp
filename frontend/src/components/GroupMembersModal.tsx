@@ -20,6 +20,7 @@ import LeagueSettingsTab from './league/LeagueSettingsTab';
 import LeaveConfirmDialog from './league/LeaveConfirmDialog';
 import type { PaymentStatus } from '../types/api';
 import { errorMessage } from '../utils/errors';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 export type CopyTarget = 'code' | 'link';
 export type PaymentFilter = 'ALL' | 'PAID' | 'PENDING';
@@ -91,67 +92,38 @@ export default function GroupMembersModal({
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    panelRef.current?.focus();
     return () => {
       document.body.style.overflow = previousOverflow;
     };
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (leaveConfirmOpen) {
-          setLeaveConfirmOpen(false);
-          return;
-        }
-        if (deleteOpen) {
-          setDeleteOpen(false);
-          setDeleteConfirmName('');
-          return;
-        }
-        if (confirmRegenerate) {
-          setConfirmRegenerate(false);
-          return;
-        }
-        if (isDirty) {
-          setLeaveConfirmOpen(true);
-          return;
-        }
-        onClose();
+  useDialogFocus(panelRef, {
+    onEscape: () => {
+      if (leaveConfirmOpen) {
+        setLeaveConfirmOpen(false);
         return;
       }
-
-      if (event.key !== 'Tab') return;
-      // Mantiene el foco dentro del diálogo activo (o de su confirmación).
-      const scope = leaveConfirmOpen
+      if (deleteOpen) {
+        setDeleteOpen(false);
+        setDeleteConfirmName('');
+        return;
+      }
+      if (confirmRegenerate) {
+        setConfirmRegenerate(false);
+        return;
+      }
+      if (isDirty) {
+        setLeaveConfirmOpen(true);
+        return;
+      }
+      onClose();
+    },
+    // Mantiene el foco dentro del diálogo activo (o de su confirmación).
+    getScope: () =>
+      leaveConfirmOpen
         ? panelRef.current?.querySelector<HTMLElement>('.league-admin-confirm-dialog')
-        : panelRef.current;
-      if (!scope) return;
-      const focusables = Array.from(
-        scope.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      ).filter((element) => element.offsetParent !== null || element === document.activeElement);
-      if (focusables.length === 0) {
-        event.preventDefault();
-        scope.focus?.();
-        return;
-      }
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const active = document.activeElement;
-      const outsideScope = !scope.contains(active);
-      if (event.shiftKey && (active === first || outsideScope)) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && (active === last || outsideScope)) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isDirty, leaveConfirmOpen, deleteOpen, confirmRegenerate, onClose]);
+        : panelRef.current,
+  });
 
   useEffect(() => () => clearTimeout(copyTimeoutRef.current), []);
 

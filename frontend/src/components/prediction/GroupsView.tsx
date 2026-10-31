@@ -40,7 +40,7 @@ export default function GroupsView({ part, points, renderGroupTeam }: GroupsView
             className="bg-[linear-gradient(145deg,_rgba(30,_41,_59,_0.92),_rgba(15,_23,_42,_0.88))] bg-transparent border border-[rgba(148,_163,_184,_0.18)] p-3.5 rounded-[12px] text-left min-w-0 shadow-[0_6px_18px_rgba(0,_0,_0,_0.12)]"
             key={g}
           >
-            <div className="font-bold text-accent mb-2 text-[1.1em] flex justify-between items-center border-b border-b-[rgba(255,255,255,0.1)] pb-[5px]">
+            <div className="font-bold text-accent-text mb-2 text-[1.1em] flex justify-between items-center border-b border-b-[rgba(255,255,255,0.1)] pb-[5px]">
               <span>Grupo {g}</span>
               {groupPts > 0 && (
                 <span className="text-[0.85em] bg-[rgba(0,_210,_211,_0.15)] bg-none py-0.5 px-2 rounded-[10px]">

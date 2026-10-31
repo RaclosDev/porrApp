@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { updateMyProfile, uploadMyAvatar, deleteMyAvatar } from '../services/api';
@@ -6,6 +6,7 @@ import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
 import { UserAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 /**
  * Ajustes de cuenta: nombre público y foto de perfil.
@@ -23,11 +24,8 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, { onEscape: onClose });
 
   const refreshEverywhere = () => {
     queryClient.invalidateQueries({ queryKey: ['myGroups'] });
@@ -60,6 +58,8 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-settings-title"
+      ref={dialogRef}
+      tabIndex={-1}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="w-full max-w-115 bg-[#151525] bg-none border border-[rgba(255,255,255,0.1)] rounded-[16px] p-5 flex flex-col gap-4.5 max-h-[90vh] overflow-y-auto">
@@ -70,8 +70,8 @@ export default function ProfileSettingsModal({ onClose }: { onClose: () => void 
           <button
             type="button"
             onClick={onClose}
-            aria-label="Cerrar ajustes"
-            className="glass-btn w-8 h-8 rounded-full cursor-pointer"
+            aria-label="Cerrar"
+            className="glass-btn w-11 h-11 p-0 rounded-full cursor-pointer"
           >
             ✕
           </button>
