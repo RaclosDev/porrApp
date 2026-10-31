@@ -235,6 +235,36 @@ export interface Group {
   imageUrl: string | null;
 }
 
+/** Puntos por cada acierto; los nombres son los del backend (`ScoringRuleSet`). */
+export interface ScoringRules {
+  groupQualifierPoints: number;
+  groupExactPositionPoints: number;
+  roundOf32Points: number;
+  roundOf16Points: number;
+  quarterFinalPoints: number;
+  semiFinalPoints: number;
+  championPoints: number;
+  runnerUpPoints: number;
+  thirdPlacePoints: number;
+  fourthPlacePoints: number;
+  topScorerPoints: number;
+  exactScorePoints: number;
+  correctSignPoints: number;
+  goalDiffBonusPoints: number;
+}
+
+export type ScoringRuleKey = keyof ScoringRules;
+
+/** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */
+export interface LeagueScoring {
+  poolFormat: PoolFormat | null;
+  pichichi: boolean;
+  editable: boolean;
+  maxPoints: number;
+  rules: ScoringRules;
+  defaults: ScoringRules;
+}
+
 export interface GroupMember {
   userId: number;
   participantName: string;

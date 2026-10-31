@@ -2,12 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import GroupMembersModal from '../../components/GroupMembersModal';
+import { leagueScoring } from '../fixtures';
 
 const api = vi.hoisted(() => ({
   fetchGroupMembers: vi.fn(),
   toggleGroupMemberPayment: vi.fn(),
   kickGroupMember: vi.fn(),
   regenerateGroupJoinCode: vi.fn(),
+  fetchLeagueScoring: vi.fn(),
+  updateLeagueScoring: vi.fn(),
 }));
 vi.mock('../../services/api', () => api);
 
@@ -31,6 +34,8 @@ describe('GroupMembersModal: invalidación de la caché', () => {
     api.fetchGroupMembers.mockReset().mockResolvedValue(MEMBERS);
     api.kickGroupMember.mockReset().mockResolvedValue({ status: 'success' });
     api.regenerateGroupJoinCode.mockReset().mockResolvedValue({ joinCode: 'NEW123' });
+    api.fetchLeagueScoring.mockReset().mockResolvedValue(leagueScoring());
+    api.updateLeagueScoring.mockReset();
   });
 
   const setup = () =>

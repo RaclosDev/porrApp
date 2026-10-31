@@ -15,4 +15,11 @@ public interface ScoringStrategy {
      * @param ctx Contexto que contiene la prediccion del participante y los resultados oficiales.
      */
     void evaluateScores(ParticipantScoreDTO score, CalculationContext ctx);
+
+    /**
+     * La misma estrategia puntuando con otras reglas, por ejemplo las que ha fijado una liga.
+     *
+     * @param rules reglas a aplicar; null equivale a las de por defecto
+     */
+    ScoringStrategy withRules(ScoringRuleSet rules);
 }

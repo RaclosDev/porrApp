@@ -368,6 +368,45 @@ class MatchPredictionServiceTest {
     }
 
     @Test
+    @DisplayName("rescoreEdition vuelve a puntuar los partidos terminados con las reglas nuevas de la edición")
+    void rescoreEdition_AppliesTheNewRulesToFinishedMatches() {
+        // Calculador real: lo que se comprueba son los puntos que salen de las reglas de la liga.
+        MatchPredictionService service = new MatchPredictionService(matchRepository, matchPredictionRepository,
+                predictionRepository, userAccountRepository, editionRepository, membershipRepository,
+                new MatchScoringCalculator());
+        edition.setScoringRulesJson(ScoringRuleSet.builder()
+                .exactScorePoints(10).correctSignPoints(2).goalDiffBonusPoints(0).build().toJson());
+        Prediction prediction = Prediction.builder().id(50L).edition(edition).build();
+        MatchPrediction exact = MatchPrediction.builder().id(1L).prediction(prediction).match(finishedMatch)
+                .homeScore(2).awayScore(1).pointsAwarded(5).build();
+        MatchPrediction sameGoalDiff = MatchPrediction.builder().id(2L).prediction(prediction).match(finishedMatch)
+                .homeScore(3).awayScore(2).pointsAwarded(4).build();
+        MatchPrediction signOnly = MatchPrediction.builder().id(3L).prediction(prediction).match(finishedMatch)
+                .predictionSign("1").pointsAwarded(3).build();
+        MatchPrediction notPlayed = MatchPrediction.builder().id(4L).prediction(prediction).match(futureMatch)
+                .homeScore(1).awayScore(0).build();
+        when(matchPredictionRepository.findWithMatchByPredictionEditionId(100L))
+                .thenReturn(List.of(exact, sameGoalDiff, signOnly, notPlayed));
+
+        int rescored = service.rescoreEdition(edition);
+
+        assertEquals(3, rescored);
+        assertEquals(10, exact.getPointsAwarded());
+        assertTrue(exact.getIsExactScore());
+        assertEquals(2, sameGoalDiff.getPointsAwarded(), "sin bonus por diferencia de goles en esta liga");
+        assertEquals(2, signOnly.getPointsAwarded());
+        assertNull(notPlayed.getPointsAwarded(), "un partido por jugar sigue sin puntos");
+        verify(matchPredictionRepository).saveAll(List.of(exact, sameGoalDiff, signOnly));
+    }
+
+    @Test
+    void rescoreEditionIgnoresAnUnsavedEdition() {
+        assertEquals(0, matchPredictionService.rescoreEdition(null));
+        assertEquals(0, matchPredictionService.rescoreEdition(Edition.builder().build()));
+        verifyNoInteractions(matchPredictionRepository);
+    }
+
+    @Test
     @DisplayName("getMatchdayFixtures retorna lista vacía cuando el grupo es la Porra Global o no es modalidad MATCH_DAY")
     void getMatchdayFixtures_ReturnsEmptyList_WhenNotMatchDay() {
         List<MatchdayFixturePredictionDTO> globalFixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 1L, null);

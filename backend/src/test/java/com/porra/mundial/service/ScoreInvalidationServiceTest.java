@@ -56,4 +56,14 @@ class ScoreInvalidationServiceTest {
         assertEquals(0, service.invalidateWorldCup());
         verify(predictionRepository, never()).clearCalculatedScoresByCompetitionId(any());
     }
+
+    @Test
+    @DisplayName("Invalida las porras de una edición y vacía la caché de clasificaciones")
+    void invalidatesOneEditionAndEvictsTheLeaderboard() {
+        when(predictionRepository.clearCalculatedScoresByEditionId(100L)).thenReturn(3);
+
+        assertEquals(3, service.invalidateEdition(100L));
+        assertNull(cacheManager.getCache(ScoreInvalidationService.LEADERBOARD_CACHE).get(7L));
+        assertEquals(0, service.invalidateEdition(null));
+    }
 }
