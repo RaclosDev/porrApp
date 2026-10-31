@@ -341,4 +341,110 @@
       margin: 0;
     }
   }
+
+  .ranking-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px 24px;
+    max-width: 1400px;
+    margin: 0 auto 20px;
+  }
+
+  .ranking-view-tabs {
+    display: flex;
+    gap: 16px;
+  }
+
+  .ranking-view-tab {
+    min-height: 44px;
+    padding: 8px 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .ranking-view-tab.is-active {
+    border-bottom-color: var(--paper);
+    color: var(--paper);
+  }
+
+  .ranking-secondary-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px 20px;
+  }
+
+  .ranking-secondary-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+
+  .ranking-secondary-link:hover {
+    color: var(--paper);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .ranking-share-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--tab-border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--paper);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .ranking-share-button:hover:not(:disabled) {
+    background: rgba(243, 236, 220, 0.08);
+  }
+
+  .ranking-share-button:disabled {
+    cursor: wait;
+  }
+
+  .ranking-toolbar:has(> .ranking-view-tabs) .ranking-secondary-links {
+    grid-column: 2;
+  }
+
+  .ranking-toolbar:not(:has(> .ranking-view-tabs)) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  @media (max-width: 640px) {
+    .ranking-toolbar {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 4px 12px;
+      margin-bottom: 12px;
+    }
+
+    .ranking-toolbar:has(> .ranking-view-tabs) .ranking-secondary-links {
+      grid-column: 1;
+      grid-row: 2;
+      justify-content: flex-start;
+      gap: 4px 16px;
+    }
+
+    .ranking-toolbar:has(> .ranking-view-tabs) .ranking-share-button {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      align-self: start;
+    }
+  }
 }

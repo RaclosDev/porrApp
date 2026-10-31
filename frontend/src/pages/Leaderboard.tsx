@@ -151,12 +151,12 @@ function Leaderboard() {
 
   return (
     <section id="view-leaderboard" className="view-section block">
-      <div className="flex flex-wrap justify-center items-center gap-3 mb-5">
+      <div className="ranking-toolbar">
         {!isMatchday && (
           <div
             role="tablist"
             aria-label="Vista de la clasificación"
-            className="paper-tabs w-auto relative"
+            className="ranking-view-tabs"
             onKeyDown={(event) => {
               if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
               event.preventDefault();
@@ -173,7 +173,7 @@ function Leaderboard() {
             }}
           >
             <button
-              className={`paper-tab ${activeTab === 'table' ? 'is-active' : ''}`}
+              className={`ranking-view-tab ${activeTab === 'table' ? 'is-active' : ''}`}
               type="button"
               onClick={() => setActiveTab('table')}
               role="tab"
@@ -185,7 +185,7 @@ function Leaderboard() {
               Ranking
             </button>
             <button
-              className={`paper-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
+              className={`ranking-view-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
               type="button"
               onClick={() => setActiveTab('evolution')}
               role="tab"
@@ -198,8 +198,20 @@ function Leaderboard() {
             </button>
           </div>
         )}
+        <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
+          <Link to="/stats" className="ranking-secondary-link">
+            <BarChart3 size={16} aria-hidden="true" />
+            {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
+          </Link>
+          {!isMatchday && (
+            <Link to="/search" className="ranking-secondary-link">
+              <Search size={16} aria-hidden="true" />
+              Buscador
+            </Link>
+          )}
+        </nav>
         <button
-          className={`glass-btn primary-btn py-2 px-3.5 min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          className="ranking-share-button"
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}
@@ -211,25 +223,6 @@ function Leaderboard() {
           <span className="ml-2">{sharing ? 'Generando…' : 'Compartir'}</span>
         </button>
       </div>
-
-      <nav aria-label="Estadísticas de la liga" className="mb-5 flex justify-center gap-2">
-        <Link
-          to="/stats"
-          className="glass-btn header-paper-action inline-flex items-center gap-1.5 font-bold"
-        >
-          <BarChart3 size={16} aria-hidden="true" />
-          {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
-        </Link>
-        {!isMatchday && (
-          <Link
-            to="/search"
-            className="glass-btn header-paper-action inline-flex items-center gap-1.5 font-bold"
-          >
-            <Search size={16} aria-hidden="true" />
-            Buscador
-          </Link>
-        )}
-      </nav>
 
       <div
         id="leaderboard-panel"
