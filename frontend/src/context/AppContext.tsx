@@ -24,9 +24,8 @@ import {
   defaultBracketState,
   getInitialBracketState,
   readGroupVisits,
-  type BracketState,
 } from '../store/useAppStore';
-import { readJsonDraft, writeDraft } from '../utils/drafts';
+import { writeDraft } from '../utils/drafts';
 import type { Group, MatchRadar } from '../types/api';
 
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
@@ -98,9 +97,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (isDemoMode || !activeGroupId) return;
     // Evitar sobreescribir un draft guardado si bracketState coincide con defaultBracketState vacío
     if (bracketState === defaultBracketState) {
-      const existing = readJsonDraft('bracket', activeGroupId, userId) as
-        Partial<BracketState> | undefined;
-      if (existing?.r32 && !existing.r32.left[0]?.home?.name?.includes('º')) return;
+      const existing = getInitialBracketState(activeGroupId, userId);
+      if (existing !== defaultBracketState) return;
     }
     const timer = setTimeout(() => {
       writeDraft('bracket', activeGroupId, userId, bracketState);

@@ -90,8 +90,8 @@ export const readGroupsDraft = (
   return hasValidGroupSelections(parsed) ? parsed : {};
 };
 
-/** Mejores terceros guardados en local por este usuario para esta liga. */
-export const readThirdsDraft = (groupId: string, userId: string): string[] => {
+/** undefined: no hay borrador válido; []: el usuario desmarcó todos sus terceros. */
+export const readThirdsDraft = (groupId: string, userId: string): string[] | undefined => {
   const raw = readJsonDraft('advancing', groupId, userId);
-  return Array.isArray(raw) ? raw.filter((t): t is string => typeof t === 'string') : [];
+  return Array.isArray(raw) ? raw.filter((t): t is string => typeof t === 'string') : undefined;
 };

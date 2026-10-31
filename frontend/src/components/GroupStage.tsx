@@ -21,14 +21,7 @@ type Selections = Record<string, GroupSelection>;
  * Permite elegir 1º, 2º y hasta 8 equipos como los "Mejores Terceros".
  * Persiste los datos en localStorage en caso de recarga o cierre.
  */
-export default function GroupStage({
-  groupOdds,
-  onComplete,
-  activeGroupId,
-  userId,
-  initialSelections,
-  initialThirds,
-}: {
+interface GroupStageProps {
   groupOdds: GroupOdds;
   /** Se llama cuando el usuario valida su fase de grupos. */
   onComplete: (selections: Selections, thirds: string[]) => void;
@@ -38,11 +31,21 @@ export default function GroupStage({
   userId: string;
   initialSelections?: unknown;
   initialThirds?: string[];
-}) {
+}
+
+export default function GroupStage(props: GroupStageProps) {
+  return <GroupStageForm key={`${props.userId}:${props.activeGroupId}`} {...props} />;
+}
+
+function GroupStageForm({
+  groupOdds,
+  onComplete,
+  activeGroupId,
+  userId,
+  initialSelections,
+  initialThirds,
+}: GroupStageProps) {
   const [selections, setSelections] = useState<Selections>(() => {
-    if (hasValidGroupSelections(initialSelections)) {
-      return normalizeSelections(initialSelections);
-    }
     const saved = getSavedSelections(activeGroupId, userId);
     if (hasValidGroupSelections(saved)) {
       return saved;
@@ -50,59 +53,23 @@ export default function GroupStage({
     return normalizeSelections(initialSelections || {});
   });
 
-  const [advancingThirds, setAdvancingThirds] = useState<string[]>(() => {
-    if (initialThirds && Array.isArray(initialThirds) && initialThirds.length > 0) {
-      return initialThirds;
-    }
-    return getSavedThirds(activeGroupId, userId);
-  });
+  const [advancingThirds, setAdvancingThirds] = useState<string[]>(
+    () => getSavedThirds(activeGroupId, userId) ?? initialThirds ?? [],
+  );
 
   const [mobileStep, setMobileStep] = useState('groups'); // 'groups' | 'thirds'
 
-  /**
-   * Sincroniza las selecciones si llegan como props o si cambia la liga activa.
-   */
+  /** Los datos remotos completan un formulario sin borrador; una edición local tiene prioridad. */
   useEffect(() => {
-    if (hasValidGroupSelections(initialSelections)) {
-      setSelections((prev) => {
-        const norm = normalizeSelections(initialSelections);
-        const merged = { ...prev };
-        Object.keys(norm).forEach((g) => {
-          merged[g] = {
-            first: norm[g]?.first || merged[g]?.first || '',
-            second: norm[g]?.second || merged[g]?.second || '',
-            third: norm[g]?.third || merged[g]?.third || '',
-          };
-        });
-        return merged;
-      });
-    } else {
-      const saved = getSavedSelections(activeGroupId, userId);
-      if (hasValidGroupSelections(saved)) {
-        setSelections((prev) => {
-          const merged = { ...prev };
-          Object.keys(saved).forEach((g) => {
-            merged[g] = {
-              first: saved[g]?.first || merged[g]?.first || '',
-              second: saved[g]?.second || merged[g]?.second || '',
-              third: saved[g]?.third || merged[g]?.third || '',
-            };
-          });
-          return merged;
-        });
-      }
-    }
+    const saved = getSavedSelections(activeGroupId, userId);
+    const incoming = hasValidGroupSelections(saved)
+      ? saved
+      : normalizeSelections(initialSelections);
+    if (hasValidGroupSelections(incoming)) setSelections((prev) => ({ ...prev, ...incoming }));
   }, [initialSelections, activeGroupId, userId]);
 
   useEffect(() => {
-    if (initialThirds && Array.isArray(initialThirds) && initialThirds.length > 0) {
-      setAdvancingThirds(initialThirds);
-    } else {
-      const saved = getSavedThirds(activeGroupId, userId);
-      if (saved && saved.length > 0) {
-        setAdvancingThirds(saved);
-      }
-    }
+    setAdvancingThirds(getSavedThirds(activeGroupId, userId) ?? initialThirds ?? []);
   }, [initialThirds, activeGroupId, userId]);
 
   /**
@@ -133,56 +100,37 @@ export default function GroupStage({
     }
   }, [selections, activeGroupId, userId]);
 
-  useEffect(() => {
-    if (advancingThirds && advancingThirds.length > 0 && activeGroupId) {
-      writeDraft('advancing', activeGroupId, userId, advancingThirds);
-    }
-  }, [advancingThirds, activeGroupId, userId]);
-
-  /**
-   * Si el usuario desmarca a un tercero en un grupo, elimina a ese equipo de
-   * la lista de "Mejores Terceros" seleccionados (advancingTieds).
-   */
-  useEffect(() => {
-    const currentThirds = Object.values(selections)
-      .map((g) => g.third)
-      .filter((t) => t !== '');
-    setTimeout(
-      () => setAdvancingThirds((prev) => prev.filter((t) => currentThirds.includes(t))),
-      0,
-    );
-  }, [selections]);
+  const saveThirds = (next: string[]) => {
+    setAdvancingThirds(next);
+    writeDraft('advancing', activeGroupId, userId, next);
+  };
 
   /**
    * Maneja la selección de un equipo en un grupo y asegura que
    * no se pueda poner al mismo equipo en 1º y en 2º a la vez.
    */
   const handleSelect = (group: string, pos: keyof GroupSelection, teamName: string) => {
-    setSelections((prev) => {
-      const next = { ...prev };
-      const currentGroup = { ...next[group] };
-
-      if (teamName) {
-        if (pos !== 'first' && currentGroup.first === teamName) currentGroup.first = '';
-        if (pos !== 'second' && currentGroup.second === teamName) currentGroup.second = '';
-        if (pos !== 'third' && currentGroup.third === teamName) currentGroup.third = '';
-      }
-
-      currentGroup[pos] = teamName;
-      next[group] = currentGroup;
-      return next;
-    });
+    const next = { ...selections };
+    const currentGroup = { ...next[group] };
+    if (teamName) {
+      if (pos !== 'first' && currentGroup.first === teamName) currentGroup.first = '';
+      if (pos !== 'second' && currentGroup.second === teamName) currentGroup.second = '';
+      if (pos !== 'third' && currentGroup.third === teamName) currentGroup.third = '';
+    }
+    currentGroup[pos] = teamName;
+    next[group] = currentGroup;
+    setSelections(next);
+    const thirds = Object.values(next).map((g) => g.third);
+    const kept = advancingThirds.filter((team) => thirds.includes(team));
+    if (kept.length !== advancingThirds.length) saveThirds(kept);
   };
 
   /**
    * Agrega o quita un equipo a la lista final de 8 mejores terceros.
    */
   const toggleAdvancingThird = (team: string) => {
-    setAdvancingThirds((prev) => {
-      if (prev.includes(team)) return prev.filter((x) => x !== team);
-      if (prev.length < 8) return [...prev, team];
-      return prev;
-    });
+    if (advancingThirds.includes(team)) saveThirds(advancingThirds.filter((x) => x !== team));
+    else if (advancingThirds.length < 8) saveThirds([...advancingThirds, team]);
   };
 
   const selectedThirds = Object.values(selections)

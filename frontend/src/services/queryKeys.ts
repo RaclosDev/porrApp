@@ -20,6 +20,7 @@ type Id = string | number | null;
 const asText = (id: Id | undefined) => (typeof id === 'number' ? String(id) : id);
 
 export const queryKeys = {
+  competitions: () => key('competitions'),
   myGroups: (isAuthenticated?: boolean) => key('myGroups', isAuthenticated),
   group: (groupId?: Id) => key('group', asText(groupId)),
   groupMembers: (groupId?: Id) => key('groupMembers', asText(groupId)),

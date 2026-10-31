@@ -220,14 +220,14 @@ export function buildBracketData(
   const cleanName = (n: string | null | undefined): BracketSlot =>
     !n || n === 'Por definir' || n === '???' ? null : n;
 
-  const qf: BracketSlot[][] =
-    realQF.length > 0
-      ? realQF.map((m) => [cleanName(m.home), cleanName(m.away)])
-      : Array(4).fill([null, null]);
-  const sf: BracketSlot[][] =
-    realSF.length > 0
-      ? realSF.map((m) => [cleanName(m.home), cleanName(m.away)])
-      : Array(2).fill([null, null]);
+  const qf: BracketSlot[][] = Array.from({ length: 4 }, (_, i) => [
+    cleanName(realQF[i]?.home),
+    cleanName(realQF[i]?.away),
+  ]);
+  const sf: BracketSlot[][] = Array.from({ length: 2 }, (_, i) => [
+    cleanName(realSF[i]?.home),
+    cleanName(realSF[i]?.away),
+  ]);
   const final_: BracketSlot[] =
     realFinal.length > 0
       ? [cleanName(realFinal[0].home), cleanName(realFinal[0].away)]

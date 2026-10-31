@@ -5,6 +5,7 @@ import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/
 import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
 import { isGlobalLeagueId } from '../utils/constants';
+import { advanceBracketWinner, replaceR32Team } from '../utils/bracketTransitions';
 import {
   defaultBracketState,
   type BracketMatch,
@@ -69,7 +70,7 @@ export function useBracket() {
   const [savedGroupsDraft, setSavedGroupsDraft] = useState<Record<string, GroupSelection>>(() =>
     readGroupsDraft(activeGroupId, userId),
   );
-  const [savedThirdsDraft, setSavedThirdsDraft] = useState<string[]>(() =>
+  const [savedThirdsDraft, setSavedThirdsDraft] = useState<string[] | undefined>(() =>
     readThirdsDraft(activeGroupId, userId),
   );
   // Al cambiar de liga o de usuario, el estado local es de la anterior: se relee de su borrador.
@@ -184,16 +185,17 @@ export function useBracket() {
         if (!current && isGlobalLeagueId(groupId)) {
           current = predictions.find((b) => !b.groupId || isGlobalLeagueId(b.groupId));
         }
-        if (!current && predictions.length === 1) {
-          current = predictions[0];
-        }
         if (!current && latest.participantsHashes.length > 0) {
-          current = latest.participantsHashes.find(
-            (p) =>
-              (userId && p.userId?.toString() === userId) ||
-              (latest.userName &&
-                p.participantName?.toLowerCase() === latest.userName.toLowerCase()),
-          );
+          if (userId) {
+            current = latest.participantsHashes.find((p) => p.userId?.toString() === userId);
+          } else if (latest.userName) {
+            const matches = latest.participantsHashes.filter(
+              (p) =>
+                p.userId == null &&
+                p.participantName?.toLowerCase() === latest.userName.toLowerCase(),
+            );
+            if (matches.length === 1) current = matches[0];
+          }
         }
         if (!current) return;
 
@@ -224,7 +226,7 @@ export function useBracket() {
           setSavedGroupsDraft(norm);
           writeDraft('groups', groupId, userId, norm);
         }
-        if (normThirds.length > 0 && readThirdsDraft(groupId, userId).length === 0) {
+        if (normThirds.length > 0 && readThirdsDraft(groupId, userId) === undefined) {
           setSavedThirdsDraft(normThirds);
           writeDraft('advancing', groupId, userId, normThirds);
         }
@@ -269,7 +271,7 @@ export function useBracket() {
     if (hasValidGroupSelections(extracted.groups)) {
       setSavedGroupsDraft(extracted.groups);
       writeDraft('groups', activeGroupId, userId, extracted.groups);
-      if (extracted.thirds && extracted.thirds.length > 0) {
+      if (extracted.thirds.length > 0 && readThirdsDraft(activeGroupId, userId) === undefined) {
         setSavedThirdsDraft(extracted.thirds);
         writeDraft('advancing', activeGroupId, userId, extracted.thirds);
       }
@@ -277,11 +279,7 @@ export function useBracket() {
   }, [bracketState, savedGroupsDraft, groupOdds, activeGroupId, userId]);
 
   const setR32Team = (teamName: string, side: Side, matchIndex: number, isHome: boolean) => {
-    const ns = cloneBracket(bracketState);
-    const m = side === 'left' ? ns.r32.left[matchIndex] : ns.r32.right[matchIndex];
-    if (isHome) m.home = { name: teamName, id: `${side}_${matchIndex}_home` };
-    else m.away = { name: teamName, id: `${side}_${matchIndex}_away` };
-    setBracketState(ns);
+    setBracketState(replaceR32Team(bracketState, teamName, side, matchIndex, isHome));
   };
 
   const advanceTeam = (
@@ -290,34 +288,7 @@ export function useBracket() {
     roundIndex: number,
     matchIndex: number,
   ) => {
-    if (!team || team.name.includes('º')) return;
-    const ns = cloneBracket(bracketState);
-
-    if (roundIndex < 3) {
-      const arr = [ns.r16, ns.qf, ns.sf][roundIndex][side as Side];
-      const next = Math.floor(matchIndex / 2);
-      if (matchIndex % 2 === 0) arr[next].home = team;
-      else arr[next].away = team;
-    } else if (roundIndex === 3) {
-      if (!ns.final) ns.final = { home: null, away: null, id: 'FINAL' };
-      if (!ns.thirdPlaceMatch) ns.thirdPlaceMatch = { home: null, away: null, id: 'THIRD' };
-      const sf = bracketState.sf[side as Side][0];
-      const loser = sf.home?.name === team.name ? sf.away : sf.home;
-      if (side === 'left') {
-        ns.final.home = team;
-        ns.thirdPlaceMatch.home = loser;
-      } else {
-        ns.final.away = team;
-        ns.thirdPlaceMatch.away = loser;
-      }
-      ns.champion = null;
-      ns.thirdPlaceWinner = null;
-    } else if (roundIndex === 4) {
-      ns.champion = team;
-    } else if (roundIndex === 5) {
-      ns.thirdPlaceWinner = team;
-    }
-    setBracketState(ns);
+    setBracketState(advanceBracketWinner(bracketState, team, side, roundIndex, matchIndex));
   };
 
   const getTeamPairs = (matches: BracketMatch[]): TeamPair[] =>
@@ -411,7 +382,7 @@ export function useBracket() {
     const sf = [...getTeamPairs(bracketState.sf.left), ...getTeamPairs(bracketState.sf.right)];
 
     const groupsRaw = readGroupsDraft(activeGroupId, userId);
-    const advancingThirds = readThirdsDraft(activeGroupId, userId);
+    const advancingThirds = readThirdsDraft(activeGroupId, userId) ?? [];
 
     const formattedGroups: Record<string, string[]> = {};
     Object.keys(groupsRaw).forEach((g) => {
@@ -489,7 +460,7 @@ export function useBracket() {
       if (hasValidGroupSelections(extracted.groups)) {
         setSavedGroupsDraft(extracted.groups);
         writeDraft('groups', activeGroupId, userId, extracted.groups);
-        if (extracted.thirds && extracted.thirds.length > 0) {
+        if (extracted.thirds.length > 0 && readThirdsDraft(activeGroupId, userId) === undefined) {
           setSavedThirdsDraft(extracted.thirds);
           writeDraft('advancing', activeGroupId, userId, extracted.thirds);
         }

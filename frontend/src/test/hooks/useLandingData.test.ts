@@ -30,6 +30,13 @@ const match = (overrides: Partial<Match>): Match => ({
 const inDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
 
 describe('nextRound', () => {
+  it('orders offset dates by instant across time zones and the winter transition', () => {
+    const fixtures = [
+      match({ id: 1, date: '2099-10-25T02:10:00+01:00' }),
+      match({ id: 2, date: '2099-10-25T02:50:00+02:00' }),
+    ];
+    expect(nextRound(fixtures).map((m) => m.id)).toEqual([2, 1]);
+  });
   it('returns the first three fixtures of the earliest round still to come', () => {
     const fixtures = [
       match({ id: 1, round: 'Jornada 3', date: inDays(9) }),
