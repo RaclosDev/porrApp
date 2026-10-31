@@ -49,13 +49,13 @@ const API_BASE = '/api';
 const SESSION_PATH = '/auth/session';
 
 /** Resultado de recuperar la sesión al cargar la aplicación. */
-export type SessionRestore = 'restored' | 'none' | 'unreachable';
+export type SessionRestore = 'restored' | 'none' | 'unreachable' | 'superseded';
 
 let accessToken: string | null = null;
 let sessionRestore: Promise<SessionRestore> | null = null;
 let restoring = false;
-let pendingRefresh: Promise<string | null> | null = null;
-/** Cambia al cerrar sesión, para que un refresco que ya iba en camino no la reabra. */
+let pendingRefresh: { epoch: number; promise: Promise<string | null> } | null = null;
+/** Cambia al sustituir la sesión; rotar su access token conserva la generación. */
 let sessionEpoch = 0;
 
 export function getAuthToken(): string | null {
@@ -63,6 +63,12 @@ export function getAuthToken(): string | null {
 }
 
 export function setAuthToken(token: string | null): void {
+  if (token !== accessToken) sessionEpoch++;
+  if (token) localStorage.removeItem(LEGACY_TOKEN_KEY);
+  storeAuthToken(token);
+}
+
+function storeAuthToken(token: string | null): void {
   accessToken = token;
   if (token) {
     localStorage.setItem(SESSION_HINT_KEY, '1');
@@ -89,23 +95,30 @@ export function whenSessionRestored(): Promise<SessionRestore> | null {
 }
 
 async function restoreSession(): Promise<SessionRestore> {
+  const epoch = sessionEpoch;
   if (!hasStoredSession()) return 'none';
   try {
-    if (await withSessionLock(exchangeLegacyToken)) return 'restored';
-    return (await refreshSession()) ? 'restored' : 'none';
+    const exchanged = await withSessionLock(() => exchangeLegacyToken(epoch));
+    if (epoch !== sessionEpoch) return 'superseded';
+    if (exchanged) return 'restored';
+    const refreshed = await refreshSession();
+    if (epoch !== sessionEpoch) return 'superseded';
+    return refreshed ? 'restored' : 'none';
   } catch {
-    return 'unreachable';
+    return epoch === sessionEpoch ? 'unreachable' : 'superseded';
   }
 }
 
 /** Canjea el JWT de 7 días de la versión anterior, si queda, por una sesión con cookie. */
-async function exchangeLegacyToken(): Promise<boolean> {
+async function exchangeLegacyToken(epoch: number): Promise<boolean> {
+  if (epoch !== sessionEpoch) return false;
   // Se lee dentro del cerrojo: otra pestaña puede haberlo canjeado ya.
   const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
   if (!legacyToken) return false;
   const token = await requestSessionToken('exchange', legacyToken);
+  if (epoch !== sessionEpoch) return false;
   localStorage.removeItem(LEGACY_TOKEN_KEY);
-  if (token) setAuthToken(token);
+  if (token) storeAuthToken(token);
   return token !== null;
 }
 
@@ -114,19 +127,22 @@ async function exchangeLegacyToken(): Promise<boolean> {
  * Resuelve null si la sesión ha terminado; falla si no se ha podido hablar con el servidor.
  */
 function refreshSession(): Promise<string | null> {
-  if (!pendingRefresh) {
-    const epoch = sessionEpoch;
-    pendingRefresh = withSessionLock(() => requestSessionToken('refresh'))
+  const epoch = sessionEpoch;
+  if (!pendingRefresh || pendingRefresh.epoch !== epoch) {
+    const promise = withSessionLock(() =>
+      epoch === sessionEpoch ? requestSessionToken('refresh') : Promise.resolve(null),
+    )
       .then((token) => {
         if (epoch !== sessionEpoch) return null;
-        setAuthToken(token);
+        storeAuthToken(token);
         return token;
       })
       .finally(() => {
-        pendingRefresh = null;
+        if (pendingRefresh?.epoch === epoch) pendingRefresh = null;
       });
+    pendingRefresh = { epoch, promise };
   }
-  return pendingRefresh;
+  return pendingRefresh.promise;
 }
 
 /**
@@ -155,18 +171,18 @@ async function requestSessionToken(
 /** Cierra la sesión de este dispositivo: olvida el token y revoca el refresh en el servidor. */
 export function endSession(): void {
   sessionEpoch++;
-  setAuthToken(null);
+  storeAuthToken(null);
   localStorage.removeItem(LEGACY_TOKEN_KEY);
   // keepalive: la petición sale aunque la página se cierre o recargue justo después.
   fetch(`${API_BASE}${SESSION_PATH}/logout`, { method: 'POST', keepalive: true }).catch(() => {});
 }
 
 /** Token con el que repetir una petición rechazada con 401, o null si no hay sesión. */
-async function tokenAfter401(rejected: string | null): Promise<string | null> {
+async function tokenAfter401(rejected: string | null, epoch: number): Promise<string | null> {
+  if (epoch !== sessionEpoch) return null;
   const current = getAuthToken();
   // Otra petición ya lo renovó (o se cerró la sesión) mientras esta iba en camino.
   if (current !== rejected) return current;
-  const epoch = sessionEpoch;
   try {
     const token = await refreshSession();
     if (!token && epoch === sessionEpoch) window.dispatchEvent(new Event('auth-expired'));
@@ -239,9 +255,16 @@ async function send(
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const epoch = sessionEpoch;
+  const ensureCurrentSession = () => {
+    if (epoch !== sessionEpoch)
+      throw new ApiError(401, 'La sesión ha cambiado. Vuelve a intentarlo.');
+  };
   if (restoring && sessionRestore) await sessionRestore;
+  ensureCurrentSession();
   const sentToken = getAuthToken();
   let res = await send(path, options, sentToken);
+  ensureCurrentSession();
 
   // Access token caducado: se renueva una vez y se repite la petición. En /auth/ no, porque
   // ahí un 401 (p. ej. una credencial de Google inválida) no es de la sesión.
@@ -250,18 +273,22 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     !path.startsWith('/auth/') &&
     (sentToken !== null || hasStoredSession())
   ) {
-    const token = await tokenAfter401(sentToken);
-    if (token) res = await send(path, options, token);
+    const token = await tokenAfter401(sentToken, epoch);
+    if (token && epoch === sessionEpoch) res = await send(path, options, token);
   }
+  ensureCurrentSession();
 
   if (!res.ok) {
     const body = await res.json?.().catch(() => ({}));
+    ensureCurrentSession();
     throw new ApiError(
       res.status,
       body?.error || body?.message || options.fallbackError || `Error del servidor (${res.status})`,
     );
   }
-  return res.json();
+  const body = await res.json();
+  ensureCurrentSession();
+  return body;
 }
 
 const query = (params: Record<string, string | number | null | undefined>): string => {
