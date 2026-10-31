@@ -48,7 +48,7 @@ const STAGES: { key: string; label: string; prop: StagePointsKey }[] = [
   { key: 'total', label: 'Total', prop: 'scorer' },
 ];
 
-export const PALETTE = [
+const PALETTE = [
   '#0b5f74',
   '#92400e',
   '#b91c1c',

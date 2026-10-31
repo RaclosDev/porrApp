@@ -85,11 +85,6 @@ public class PredictionDataDTO {
     }
 
     @com.fasterxml.jackson.annotation.JsonIgnore
-    public List<String> getFlatR32() {
-        return flatten(r32);
-    }
-    
-    @com.fasterxml.jackson.annotation.JsonIgnore
     public List<String> getFlatR16() {
         return flatten(r16);
     }

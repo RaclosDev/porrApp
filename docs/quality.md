@@ -6,6 +6,8 @@ El workflow de GitHub Actions es la referencia de los controles exigidos. En fro
 
 Para una medición limpia del backend, ejecuta `./mvnw -B clean test` (en Windows, `.\mvnw.cmd -B clean test`). Para el frontend: `npm ci`, `npm run lint`, `npm run test:coverage`, `npm run build`, `npx playwright install chromium` y `npm run test:e2e`. No hacen falta credenciales de producción.
 
+TypeScript rechaza variables, imports y parámetros no utilizados tanto en la aplicación como en la configuración y las pruebas de navegador. Los exports compartidos y las clases CSS dinámicas requieren revisar sus consumidores antes de eliminarlos.
+
 Los umbrales actuales conservan la cobertura observada durante la revisión del 31 de octubre de 2026. Se pueden subir conforme crezcan las pruebas; no deben bajarse para hacer pasar un cambio sin explicar qué cobertura se pierde.
 
 ## Qué prueban los distintos niveles

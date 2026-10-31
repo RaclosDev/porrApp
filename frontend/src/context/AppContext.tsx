@@ -71,7 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setIsAuthenticated = useAppStore((state) => state.setIsAuthenticated);
   const isUserAuthed = useAppStore((state) => state.isAuthenticated);
 
-  useWebSocket(userName, queryClient);
+  useWebSocket(queryClient);
 
   // Otra pestaña ha cambiado la cuenta compartida por la cookie. Recargar vacía todo el estado
   // anterior y recupera la identidad nueva sin revocar la sesión de esa otra pestaña.

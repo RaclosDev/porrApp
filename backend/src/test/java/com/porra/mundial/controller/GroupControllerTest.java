@@ -19,7 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.security.Principal;
-import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.eq;

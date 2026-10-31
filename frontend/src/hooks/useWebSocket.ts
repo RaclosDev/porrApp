@@ -56,7 +56,7 @@ const invalidateAll = (queryClient: QueryClient, keys: readonly (readonly unknow
   keys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
 };
 
-export function useWebSocket(userName: string, queryClient: QueryClient) {
+export function useWebSocket(queryClient: QueryClient) {
   useEffect(() => {
     const loc = window.location;
     const wsUrl = (loc.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + loc.host + '/api/ws';

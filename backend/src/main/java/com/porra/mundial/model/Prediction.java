@@ -119,11 +119,6 @@ public class Prediction {
         return "PAID".equals(paymentStatus);
     }
 
-    @Transient
-    public void setPaid(Boolean paid) {
-        this.paymentStatus = (paid != null && paid) ? "PAID" : "PENDING";
-    }
-
     public static class PredictionBuilder {
 
         public PredictionBuilder predictionName(String predictionName) {

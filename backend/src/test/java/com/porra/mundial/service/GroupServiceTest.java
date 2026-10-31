@@ -5,8 +5,6 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
-import com.porra.mundial.model.Edition;
-import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

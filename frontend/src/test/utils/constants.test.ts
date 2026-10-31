@@ -4,7 +4,6 @@ import {
   getCountryCode,
   getCountryEmoji,
   fixMojibake,
-  normalizeParticipantName,
 } from '../../utils/constants';
 
 describe('constants country normalization and flags', () => {
@@ -42,13 +41,5 @@ describe('constants country normalization and flags', () => {
     expect(fixMojibake('JosÃ©')).toBe('José');
     expect(fixMojibake('Ãngel')).toBe('Ángel');
     expect(fixMojibake('RaÃºl')).toBe('Raúl');
-  });
-
-  it('normalizes corrupted participant names', () => {
-    expect(normalizeParticipantName('An??nimo')).toBe('Anónimo');
-    expect(normalizeParticipantName('Ra??l')).toBe('Raúl');
-    expect(normalizeParticipantName('Jos??')).toBe('José');
-    expect(normalizeParticipantName('JosÃ©')).toBe('José');
-    expect(normalizeParticipantName('Carlos')).toBe('Carlos');
   });
 });

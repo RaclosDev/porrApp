@@ -510,9 +510,4 @@
       transition: none;
     }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .skeleton::after {
-      animation: none;
-    }
-  }
 }
