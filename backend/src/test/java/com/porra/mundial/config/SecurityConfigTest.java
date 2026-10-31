@@ -49,7 +49,9 @@ class SecurityConfigTest {
         // La vista previa de una foto elegida es una URL blob: hasta que se sube.
         mockMvc.perform(get("/api/scorers"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
-                        .string("Content-Security-Policy", org.hamcrest.Matchers.containsString("img-src 'self' data: blob: https:")));
+                        .string("Content-Security-Policy", org.hamcrest.Matchers.containsString("img-src 'self' data: blob: https:")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Permissions-Policy", "camera=(), microphone=(), geolocation=()"));
     }
 
     @Test

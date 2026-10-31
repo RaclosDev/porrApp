@@ -5,7 +5,7 @@ import ImagePicker from '../../components/ImagePicker';
 const prepare = vi.fn();
 vi.mock('../../utils/image', async () => {
   const actual = await vi.importActual('../../utils/image');
-  return { ...actual, prepareImageForUpload: (...a) => prepare(...a) };
+  return { ...actual, prepareImageForUpload: (file: File) => prepare(file) };
 });
 
 const pngFile = () => new File([new Uint8Array([1, 2, 3])], 'foto.png', { type: 'image/png' });
@@ -49,7 +49,7 @@ describe('ImagePicker', () => {
     );
     const { container, onUpload } = setup();
 
-    fireEvent.change(container.querySelector('input[type="file"]'), {
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
       target: { files: [pngFile()] },
     });
 
@@ -66,7 +66,7 @@ describe('ImagePicker', () => {
   it('rechaza archivos que no son imagen sin llamar a la subida', async () => {
     const { container, onUpload } = setup();
     const txt = new File(['hola'], 'nota.txt', { type: 'text/plain' });
-    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [txt] } });
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [txt] } });
     expect(await screen.findByRole('alert')).toHaveTextContent(/JPG, PNG o WebP/);
     expect(prepare).not.toHaveBeenCalled();
     expect(onUpload).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ describe('ImagePicker', () => {
     onUpload.mockRejectedValueOnce(
       new Error('Solo el administrador de la liga puede cambiar su imagen.'),
     );
-    fireEvent.change(container.querySelector('input[type="file"]'), {
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
       target: { files: [pngFile()] },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Guardar imagen/i }));

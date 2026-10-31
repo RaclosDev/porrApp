@@ -1,6 +1,7 @@
 package com.porra.mundial.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,6 +24,26 @@ class FlywayFreshDatabaseTest {
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    @Test
+    void rejectsChangedV38ChecksumWithoutRewritingHistory() throws Exception {
+        String url = createDatabase("checksum_integrity");
+        Flyway flyway = flyway(url, null);
+        flyway.migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("UPDATE flyway_schema_history SET checksum = 123 WHERE version = '38'");
+        }
+
+        assertThatThrownBy(flyway::migrate)
+                .isInstanceOf(org.flywaydb.core.api.exception.FlywayValidateException.class);
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT checksum FROM flyway_schema_history WHERE version = '38'"))
+                    .isEqualTo(123);
+        }
+    }
 
     @Test
     void migratesAnEmptyDatabaseToTheLatestVersion() throws Exception {
@@ -54,6 +75,76 @@ class FlywayFreshDatabaseTest {
             assertThat(rs.getString(1)).isEqualTo("esp.1");
             assertThat(rs.getInt(2)).isEqualTo(90);
             assertThat(rs.next()).isFalse();
+        }
+    }
+
+    @Test
+    void v50RepairsOnlyMissingWorldCupBracketDeadlines() throws Exception {
+        String url = createDatabase("v50_deadlines");
+        flyway(url, "49").migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("INSERT INTO app_users (id, google_email, google_name, participant_name) VALUES"
+                    + " (9501, 'deadline@test.com', 'Deadline', 'Deadline')");
+            st.execute("INSERT INTO leagues (id, name, join_code, admin_user_id) VALUES"
+                    + " (9501, 'Deadline', 'DEADLINE', 9501)");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9501, 9501, id, 'FULL_BRACKET', NULL"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9502, 9501, id, 'KNOCKOUTS_ONLY', NULL"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9503, 9501, id, 'MATCH_DAY', NULL"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9504, 9501, id, 'FULL_BRACKET', TIMESTAMP '2026-06-10 12:00:00'"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9505, 9501, id, 'MATCH_DAY', NULL"
+                    + " FROM competitions WHERE external_id = 'esp.1'");
+        }
+
+        flyway(url, null).migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM editions WHERE id IN (9501,9502)"
+                    + " AND lock_date = TIMESTAMP '2026-06-11 20:00:00'")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM editions WHERE id IN (9503,9505) AND lock_date IS NULL"))
+                    .isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM editions WHERE id = 9504"
+                    + " AND lock_date = TIMESTAMP '2026-06-10 12:00:00'")).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void v53KeepsOneUserEditionConstraintAndRejectsDuplicates() throws Exception {
+        String url = createDatabase("v53_uniqueness");
+        flyway(url, "51").migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM pg_constraint WHERE conrelid = 'predictions'::regclass"
+                    + " AND contype = 'u'")).isEqualTo(2);
+            st.execute("INSERT INTO app_users (id, google_email, google_name, participant_name) VALUES"
+                    + " (9531, 'unique@test.com', 'Unique', 'Unique')");
+            st.execute("INSERT INTO leagues (id, name, join_code, admin_user_id) VALUES"
+                    + " (9531, 'Unique', 'UNIQUE53', 9531)");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9531, 9531, id, 'FULL_BRACKET'"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO predictions (user_id, edition_id, prediction_name) VALUES (9531, 9531, 'Unique')");
+        }
+        flyway(url, null).migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM pg_constraint WHERE conrelid = 'predictions'::regclass"
+                    + " AND contype = 'u'")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM predictions WHERE user_id = 9531")).isEqualTo(1);
+            assertThatThrownBy(() -> st.execute("INSERT INTO predictions (user_id, edition_id, prediction_name)"
+                    + " VALUES (9531, 9531, 'Duplicate')"))
+                    .isInstanceOf(java.sql.SQLException.class)
+                    .extracting(e -> ((java.sql.SQLException) e).getSQLState()).isEqualTo("23505");
         }
     }
 

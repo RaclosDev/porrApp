@@ -1,7 +1,6 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.model.League;
-import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.LeagueRepository;
@@ -24,7 +23,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /** La caché "groupByCode" guarda las ligas encontradas pero no los códigos que no existen. */
@@ -36,13 +34,7 @@ class GroupServiceJoinCodeCacheTest {
         @Bean CacheManager cacheManager() { return new ConcurrentMapCacheManager("groupByCode"); }
         @Bean LeagueRepository leagueRepository() { return mock(LeagueRepository.class); }
         @Bean PredictionRepository predictionRepository() { return mock(PredictionRepository.class); }
-        @Bean UserAccountRepository userAccountRepository() {
-            UserAccountRepository repo = mock(UserAccountRepository.class);
-            // initDefaultGroup necesita una cuenta Admin con id para arrancar.
-            when(repo.findByParticipantName("Admin"))
-                    .thenReturn(Optional.of(UserAccount.builder().id(1L).googleEmail("admin@local").build()));
-            return repo;
-        }
+        @Bean UserAccountRepository userAccountRepository() { return mock(UserAccountRepository.class); }
         @Bean CompetitionRepository competitionRepository() { return mock(CompetitionRepository.class, RETURNS_MOCKS); }
         @Bean EditionRepository editionRepository() { return mock(EditionRepository.class, RETURNS_MOCKS); }
         @Bean MembershipRepository membershipRepository() { return mock(MembershipRepository.class); }
@@ -53,11 +45,6 @@ class GroupServiceJoinCodeCacheTest {
                                         EditionRepository editions, MembershipRepository memberships,
                                         MatchRepository matches,
                                         ApplicationEventPublisher events) {
-            when(leagues.save(any(League.class))).thenAnswer(inv -> {
-                League l = inv.getArgument(0);
-                l.setId(League.GLOBAL_ID);
-                return l;
-            });
             return new GroupService(leagues, predictions, users, competitions, editions, memberships,
                     matches, events);
         }

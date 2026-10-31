@@ -40,6 +40,12 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
     @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.match WHERE mp.prediction.edition.id = :editionId")
     List<MatchPrediction> findWithMatchByPredictionEditionId(@Param("editionId") Long editionId);
 
+    @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.prediction p LEFT JOIN FETCH p.user"
+            + " JOIN FETCH mp.match m LEFT JOIN FETCH m.homeTeam LEFT JOIN FETCH m.awayTeam"
+            + " WHERE mp.match.id = :matchId AND p.edition.league.id = :leagueId")
+    List<MatchPrediction> findFriendsByMatchAndLeague(@Param("matchId") Long matchId,
+                                                   @Param("leagueId") Long leagueId);
+
     List<MatchPrediction> findByMatchId(Long matchId);
 
     boolean existsByMatchIdAndPointsAwardedIsNull(Long matchId);

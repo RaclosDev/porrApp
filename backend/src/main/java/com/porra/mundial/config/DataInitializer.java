@@ -33,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
  * Las correcciones de datos puntuales van en migraciones de Flyway, no aquí.
  */
 @Component
+@org.springframework.core.annotation.Order(1)
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {

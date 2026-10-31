@@ -13,8 +13,6 @@ import java.util.Optional;
 @Repository
 public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 
-    List<Prediction> findByPaymentStatus(String paymentStatus);
-
     List<Prediction> findAllByOrderByCreatedAtDesc();
 
     List<Prediction> findByEditionLeagueId(Long groupId);

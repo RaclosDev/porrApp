@@ -1,3 +1,5 @@
+import { matchdayFixture, friendPrediction } from '../context/fixtures';
+import type { MatchdayFixture } from '../../types/api';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +10,7 @@ vi.mock('../../services/api', () => ({
   fetchMatchdayFriendPredictions: vi.fn(),
 }));
 
-const match = {
+const match = matchdayFixture({
   matchId: 99,
   homeTeam: 'Athletic Club',
   awayTeam: 'Real Sociedad',
@@ -18,14 +20,14 @@ const match = {
   round: 'Jornada 12',
   finished: false,
   locked: false,
-};
+});
 
-function renderModal(overrides = {}) {
+function renderModal(overrides: Partial<MatchdayFixture> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <MatchFriendsPredictionsModal
-        groupId={1}
+        groupId="1"
         match={{ ...match, ...overrides }}
         onClose={() => {}}
       />
@@ -39,37 +41,39 @@ describe('MatchFriendsPredictionsModal', () => {
   });
 
   it('muestra los avatares y diferencia pronósticos ocultos de pendientes', async () => {
-    fetchMatchdayFriendPredictions.mockResolvedValue([
-      {
-        userId: 1,
-        participantName: 'Toto',
-        avatarUrl: '/api/users/1/avatar?v=10',
-        hasPredicted: true,
-        scoringDetails: '🔒 Pronóstico oculto hasta el pitido inicial',
-        isCaller: false,
-        updatedAt: '2026-10-28T13:59:00',
-      },
-      {
-        userId: 2,
-        participantName: 'Raclos',
-        avatarUrl: null,
-        hasPredicted: false,
-        scoringDetails: '⏳ Pendiente de pronosticar',
-        isCaller: true,
-        updatedAt: null,
-      },
-      {
-        userId: 3,
-        participantName: 'Giorgi - Winamax',
-        avatarUrl: null,
-        hasPredicted: true,
-        homeScore: 2,
-        awayScore: 1,
-        sign: '1',
-        isCaller: false,
-        updatedAt: '2026-10-28T09:16:00',
-      },
-    ]);
+    vi.mocked(fetchMatchdayFriendPredictions).mockResolvedValue(
+      [
+        {
+          userId: 1,
+          participantName: 'Toto',
+          avatarUrl: '/api/users/1/avatar?v=10',
+          hasPredicted: true,
+          scoringDetails: '🔒 Pronóstico oculto hasta el pitido inicial',
+          isCaller: false,
+          updatedAt: '2026-10-28T13:59:00',
+        },
+        {
+          userId: 2,
+          participantName: 'Raclos',
+          avatarUrl: null,
+          hasPredicted: false,
+          scoringDetails: '⏳ Pendiente de pronosticar',
+          isCaller: true,
+          updatedAt: null,
+        },
+        {
+          userId: 3,
+          participantName: 'Giorgi - Winamax',
+          avatarUrl: null,
+          hasPredicted: true,
+          homeScore: 2,
+          awayScore: 1,
+          sign: '1',
+          isCaller: false,
+          updatedAt: '2026-10-28T09:16:00',
+        },
+      ].map(friendPrediction),
+    );
 
     renderModal();
 
@@ -91,17 +95,19 @@ describe('MatchFriendsPredictionsModal', () => {
   });
 
   it('marca como sin pronóstico los partidos ya bloqueados', async () => {
-    fetchMatchdayFriendPredictions.mockResolvedValue([
-      {
-        userId: 2,
-        participantName: 'Raclos',
-        avatarUrl: null,
-        hasPredicted: false,
-        scoringDetails: '❌ Sin pronóstico (0 pts)',
-        isCaller: true,
-        updatedAt: null,
-      },
-    ]);
+    vi.mocked(fetchMatchdayFriendPredictions).mockResolvedValue(
+      [
+        {
+          userId: 2,
+          participantName: 'Raclos',
+          avatarUrl: null,
+          hasPredicted: false,
+          scoringDetails: '❌ Sin pronóstico (0 pts)',
+          isCaller: true,
+          updatedAt: null,
+        },
+      ].map(friendPrediction),
+    );
 
     renderModal({ locked: true });
 

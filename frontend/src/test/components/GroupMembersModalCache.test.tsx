@@ -15,8 +15,8 @@ const api = vi.hoisted(() => ({
 vi.mock('../../services/api', () => api);
 
 const MEMBERS = [
-  { userId: 'u1', participantName: 'Ana', paymentStatus: 'PAID', isAdmin: true },
-  { userId: 'u2', participantName: 'Bruno', paymentStatus: 'PENDING', isAdmin: false },
+  { userId: 1, participantName: 'Ana', paymentStatus: 'PAID', isAdmin: true },
+  { userId: 2, participantName: 'Bruno', paymentStatus: 'PENDING', isAdmin: false },
 ];
 
 describe('GroupMembersModal: invalidación de la caché', () => {
@@ -46,9 +46,12 @@ describe('GroupMembersModal: invalidación de la caché', () => {
           groupName="Liga de prueba"
           currentJoinCode="ABC123"
           isAdmin
-          currentUserId="u1"
+          currentUserId={1}
           initialRules=""
           onClose={vi.fn()}
+          onCodeRegenerated={vi.fn()}
+          onUploadImage={vi.fn(async () => {})}
+          onRemoveImage={vi.fn(async () => {})}
           onSaveSettings={vi.fn().mockResolvedValue(true)}
           onDelete={vi.fn().mockResolvedValue(true)}
         />
