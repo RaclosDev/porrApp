@@ -1,0 +1,614 @@
+@layer components {
+  /* Last Matches Widget */
+  .radar-container {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .radar-column {
+    flex: 1;
+    min-width: 300px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .last-matches-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .last-match-card {
+    background: #1e293b;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    min-height: 145px;
+    justify-content: center;
+    gap: 10px;
+    transition:
+      border-color 0.2s ease,
+      transform 0.15s ease;
+  }
+
+  .last-match-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-cyan);
+  }
+
+  .last-match-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 10px;
+    width: 100%;
+    font-weight: 700;
+  }
+
+  .last-match-teams {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .last-match-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    min-width: 0;
+  }
+
+  .last-match-team span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+
+  .last-match-team.home {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .last-match-team.away {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    text-align: right;
+  }
+
+  .last-match-team img {
+    width: 24px;
+    height: 18px;
+    border-radius: 3px;
+    object-fit: cover;
+  }
+
+  .last-match-score {
+    font-size: 1.3rem;
+    font-weight: bold;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 6px 14px;
+    border-radius: 6px;
+    color: var(--accent-cyan);
+    text-align: center;
+    min-width: 80px;
+  }
+
+  /* Desktop header: keep the navigation centered on the viewport, not in the leftover space. */
+  @media (min-width: 1200px) {
+    .top-bar {
+      display: grid;
+      /* Las columnas laterales no bajan de su contenido: la navegación se aparta antes de solaparse. */
+      grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+      column-gap: 16px;
+    }
+
+    /* En la landing no hay navegación central: reservar solo columnas para marca y acciones. */
+    .top-bar.top-bar--landing {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .header-left {
+      min-width: 0;
+      justify-self: start;
+    }
+
+    .header-center {
+      min-width: 0;
+      max-width: 100%;
+      justify-self: center;
+    }
+
+    .header-right {
+      min-width: 0;
+      justify-self: end;
+    }
+
+    .nav-links {
+      justify-content: center;
+      max-width: 100%;
+    }
+  }
+
+  /* Mobile & Tablet Responsive */
+  @media (max-width: 1024px) {
+    .top-bar {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 6px 12px !important;
+      gap: 8px !important;
+      width: 100% !important;
+      height: 56px !important;
+    }
+
+    .header-left {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      min-width: 0 !important;
+      flex: 1 1 auto !important;
+    }
+
+    .header-title-row {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      min-width: 0 !important;
+      width: auto !important;
+    }
+
+    .header-brand-link {
+      flex-shrink: 0 !important;
+      font-size: 1.18rem !important;
+    }
+
+    /* Ocultar el icono del balón en pantallas móviles para dejar solo el texto PorrApp */
+    .brand-ball-icon {
+      display: none !important;
+    }
+
+    .header-right {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      flex-shrink: 0 !important;
+      margin-left: auto !important;
+    }
+
+    /* Por debajo de 360 px el texto "Demo" se montaba sobre el logo: queda solo el icono */
+    @media (max-width: 359px) {
+      .header-demo-label {
+        display: none;
+      }
+    }
+
+    #btn-profile-menu {
+      width: 44px !important;
+      height: 44px !important;
+      padding: 0 !important;
+      border-radius: 50% !important;
+      min-width: 44px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    /* Ajustar selector de liga activa en cabecera móvil */
+    #btn-active-league-dropdown {
+      max-width: 175px !important;
+      padding: 4px 8px !important;
+      font-size: 0.82rem !important;
+      min-height: 44px !important;
+    }
+
+    .header-center {
+      width: 100%;
+      order: 10;
+      display: flex;
+      margin-top: 5px;
+    }
+    .header-right > a {
+      order: 3;
+      margin: 0;
+    }
+    .header-right > button {
+      order: 4;
+      margin: 0;
+    }
+
+    .nav-links {
+      flex-wrap: nowrap !important;
+      justify-content: flex-start !important;
+      overflow-x: auto !important;
+      width: 100%;
+      padding: 4px 10px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .nav-links::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-links a {
+      white-space: nowrap;
+    }
+
+    .nav-links button {
+      flex: 0 0 auto;
+    }
+
+    #view-bracket {
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    .radar-container {
+      flex-direction: column;
+    }
+
+    .radar-column {
+      min-width: 100%;
+    }
+
+    .app-container {
+      padding: 12px;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 10px 6px;
+      font-size: 0.85rem;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .hide-on-mobile {
+      display: none !important;
+    }
+  }
+
+  .leaderboard-table {
+    min-width: 600px;
+  }
+
+  @media (max-width: 1024px) {
+    .pichichi-mobile-center {
+      justify-content: center !important;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .section-header h2 {
+      font-size: 1.4rem !important;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .radar-col-ultimos,
+    .radar-col-proximos {
+      display: none !important;
+    }
+    .radar-col-ultimos.active-mobile,
+    .radar-col-proximos.active-mobile {
+      display: block !important;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .hide-on-desktop {
+      display: none !important;
+    }
+  }
+
+  /* Mobile & Tablet Bracket */
+  .mobile-bracket {
+    display: none;
+  }
+
+  @media (max-width: 1024px) {
+    .mobile-bracket {
+      display: block;
+    }
+    .mobile-step-hidden {
+      display: none !important;
+    }
+  }
+
+  /*
+   * Pestañas de toda la app, como las de la portada: borde de tinta, letra de cartel y la activa
+   * rellena. .mb-tabs es el mismo estilo en las pantallas de móvil.
+   */
+  .paper-tabs,
+  .mb-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    border: 1.5px solid var(--tab-border);
+    border-radius: 10px;
+    background: transparent;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mb-tabs {
+    margin-bottom: 16px;
+  }
+
+  .paper-tabs::-webkit-scrollbar,
+  .mb-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .paper-tab,
+  .mb-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 6px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    font-size: clamp(0.8rem, 3vw, 1rem);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .paper-tab:hover,
+  .mb-tab:hover {
+    color: var(--text-main);
+  }
+
+  .paper-tab.is-active,
+  .mb-tab.mb-tab-active {
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
+  }
+
+  .mb-content {
+    padding: 0 2px;
+    overflow: hidden;
+  }
+
+  .mb-round {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .mb-group {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .mb-current {
+    flex: 1 1 53%;
+    min-width: 0;
+  }
+
+  .mb-connector {
+    width: 18px;
+    flex-shrink: 0;
+    align-self: stretch;
+  }
+
+  .mb-next {
+    flex: 1 1 43%;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .mb-match-card {
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  /* Ensure comfortable tap target on mobile slots without truncating names */
+  .mb-match-card .team-slot {
+    min-height: 44px !important;
+    padding: 6px 8px !important;
+    font-size: 0.82rem !important;
+    border-radius: 0 !important;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    background: transparent;
+  }
+
+  .mb-match-card .team-slot:last-child {
+    border-bottom: none !important;
+  }
+
+  .mb-match-next {
+    opacity: 0.9;
+    transform: none;
+    width: 100%;
+  }
+
+  .mb-match-next .team-slot {
+    min-height: 44px !important;
+    padding: 4px 6px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .mb-match-placeholder {
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .mb-placeholder-inner {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-style: italic;
+  }
+
+  .mb-next-btn {
+    align-self: flex-end;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-cyan);
+    background: rgba(0, 210, 211, 0.12);
+    color: var(--accent-cyan);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .mb-next-btn:active {
+    background: rgba(0, 210, 211, 0.22);
+  }
+
+  /* Navegación inferior en móvil */
+  @media (min-width: 769px) {
+    .mobile-bottom-nav {
+      display: none !important;
+    }
+  }
+
+  /*
+   * Tablet: la navegación comparte fila con la marca y las acciones. La marca no debe encogerse
+   * por debajo de su contenido (la etiqueta de liga se salía por encima de "Iniciar sesión");
+   * es la navegación, con su propio scroll horizontal, la que cede el espacio.
+   */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .header-left {
+      flex: 0 0 auto !important;
+    }
+
+    /* Enlaces más compactos para que quepan los cinco sin scroll. */
+    .nav-links {
+      gap: 4px !important;
+      padding: 4px !important;
+    }
+
+    .nav-links a {
+      padding: 8px 10px !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  /* Hasta escritorio ancho, la llamada a rellenar la porra se queda en el icono. */
+  @media (min-width: 769px) and (max-width: 1199px) {
+    .header-porra-cta-label {
+      display: none;
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 820px) {
+    .nav-links a {
+      padding: 8px 7px !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    /* En pantallas móviles la navegación principal pasa al pulgar inferior */
+    .header-center {
+      display: none !important;
+    }
+
+    /* Padding inferior para que el contenido no quede tapado por la barra flotante */
+    .app-container.has-mobile-bottom-nav {
+      padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    /* Los botones flotantes de acción se elevan por encima de la barra */
+    .floating-bottom-action {
+      bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .mobile-bottom-nav .mobile-nav-item:active {
+      transform: scale(0.92);
+    }
+
+    /*
+     * Resalte único que se desliza entre pestañas. Las pestañas miden lo mismo (flex: 1), así
+     * que basta con el índice activo y el número de pestañas: 12px es el padding horizontal de
+     * la barra y 50px la altura de cada pestaña.
+     */
+    .mobile-nav-indicator {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 6px;
+      width: calc((100% - 12px) / var(--nav-count));
+      height: 50px;
+      margin-block: auto;
+      border-radius: 25px;
+      background: rgba(0, 210, 211, 0.14);
+      pointer-events: none;
+      transform: translateX(calc(var(--nav-active) * 100%));
+      transition:
+        transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.2s ease;
+    }
+
+    .mobile-nav-indicator.is-hidden {
+      opacity: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mobile-nav-indicator {
+        transition: opacity 0.2s ease;
+      }
+    }
+
+    /* Selector de liga alineado a la derecha en móvil para evitar cortes de pantalla */
+    .active-league-menu {
+      left: auto !important;
+      right: 0 !important;
+      min-width: 250px !important;
+      max-width: calc(100vw - 24px) !important;
+    }
+
+    /* Ocultar botón CTA duplicado de porra en cabecera superior (ya está en bottom nav) */
+    .header-porra-cta {
+      display: none !important;
+    }
+
+    /* Ajustar visor de porra para aprovechar la pantalla móvil */
+    #points-breakdown-modal .modal-content {
+      width: 96vw !important;
+      max-height: 94dvh !important;
+      padding: 16px 10px !important;
+    }
+  }
+}

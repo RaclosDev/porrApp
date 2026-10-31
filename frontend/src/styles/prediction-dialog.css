@@ -1,0 +1,508 @@
+@layer components {
+  /* Modal de pronósticos del grupo */
+  @keyframes friends-predictions-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .friends-predictions-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(2, 6, 23, 0.78);
+    backdrop-filter: blur(var(--overlay-blur));
+  }
+
+  .friends-predictions-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100%);
+    max-height: min(86dvh, 720px);
+    overflow: hidden;
+    border: 1px solid rgba(0, 210, 211, 0.22);
+    border-radius: 22px;
+    background: #0f172a;
+    box-shadow:
+      0 30px 70px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    animation: friends-predictions-in 0.22s ease-out;
+  }
+
+  .friends-predictions-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .friends-predictions-title {
+    margin: 4px 0 0;
+    color: var(--text-main);
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.15;
+  }
+
+  .friends-predictions-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .friends-predictions-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .friends-predictions-match {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px 10px;
+  }
+
+  .friends-predictions-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: var(--text-main);
+    font-weight: 800;
+  }
+
+  .friends-predictions-team > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .friends-predictions-team.is-away {
+    justify-content: flex-end;
+    text-align: right;
+  }
+
+  .friends-predictions-crest {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    object-fit: contain;
+  }
+
+  .friends-predictions-crest-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 0.95rem;
+  }
+
+  .friends-predictions-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 58px;
+  }
+
+  .friends-predictions-vs {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+  }
+
+  .friends-predictions-vs.is-finished {
+    color: var(--text-main);
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+  }
+
+  .friends-predictions-round {
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .friends-predictions-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 0 20px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+  }
+
+  .friends-predictions-count {
+    color: var(--text-main);
+    font-weight: 700;
+  }
+
+  .friends-predictions-progress {
+    height: 4px;
+    margin: 8px 20px 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .friends-predictions-progress i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #00d2d3, #00a8ff);
+    transition: width 0.25s ease;
+  }
+
+  .friends-predictions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 16px 16px;
+    overflow-y: auto;
+  }
+
+  .friends-prediction {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .friends-prediction.is-caller {
+    border-color: rgba(0, 210, 211, 0.28);
+    background: rgba(0, 210, 211, 0.07);
+  }
+
+  .friends-prediction-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .friends-prediction-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .friends-prediction-name > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .friends-prediction-you {
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--accent-cyan);
+    color: #04121f;
+    font-size: 0.6rem;
+    font-weight: 800;
+  }
+
+  .friends-prediction-time {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+  }
+
+  .friends-prediction-result {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .friends-prediction-score-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .friends-prediction-score {
+    padding: 2px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--panel-bg);
+    color: var(--text-main);
+    font-size: 0.95rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .friends-prediction-sign {
+    padding: 0 5px;
+    border-radius: 5px;
+    background: rgba(0, 210, 211, 0.12);
+    color: var(--accent-cyan);
+    font-size: 0.62rem;
+    font-weight: 800;
+  }
+
+  .friends-prediction-points {
+    color: var(--hit);
+    font-size: 0.65rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .friends-prediction-points.is-zero {
+    color: var(--text-muted);
+  }
+
+  .friends-prediction-status {
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .friends-prediction-status.is-hidden {
+    border: 1px solid rgba(59, 130, 246, 0.28);
+    background: rgba(59, 130, 246, 0.14);
+    color: #93c5fd;
+  }
+
+  .friends-prediction-status.is-pending {
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+  }
+
+  .friends-prediction-status.is-missed {
+    border: 1px solid rgba(248, 113, 113, 0.28);
+    background: rgba(248, 113, 113, 0.12);
+    color: #f87171;
+  }
+
+  .friends-predictions-message {
+    padding: 28px 12px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .friends-predictions-message.is-error {
+    color: #ff7675;
+  }
+
+  .friends-predictions-skeletons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .friends-predictions-skeleton {
+    height: 60px;
+    border-radius: 14px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 25%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.04) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.2s infinite linear;
+  }
+
+  .friends-predictions-foot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+  }
+
+  @media (max-width: 560px) {
+    .friends-predictions-overlay {
+      align-items: flex-end;
+      padding: 0;
+    }
+
+    .friends-predictions-panel {
+      width: 100%;
+      max-height: 88dvh;
+      border-radius: 22px 22px 0 0;
+      border-bottom: 0;
+    }
+
+    .friends-predictions-head {
+      padding: 14px 16px 12px;
+    }
+
+    .friends-predictions-title {
+      font-size: 1.05rem;
+    }
+
+    .friends-predictions-match {
+      gap: 8px;
+      padding: 14px 16px 8px;
+    }
+
+    .friends-predictions-team {
+      gap: 6px;
+      font-size: 0.82rem;
+    }
+
+    .friends-predictions-crest {
+      width: 24px;
+      height: 24px;
+      flex-basis: 24px;
+    }
+
+    .friends-predictions-meta {
+      padding: 0 16px;
+    }
+
+    .friends-predictions-progress {
+      margin: 8px 16px 10px;
+    }
+
+    .friends-predictions-list {
+      padding: 0 12px 12px;
+    }
+
+    .friends-prediction {
+      padding: 9px 10px;
+    }
+
+    .friends-predictions-foot {
+      padding: 10px 16px 12px;
+    }
+  }
+
+  /* Fila de Resultados: Partidos / Cuadro-Grupos / Pichichi en una sola línea */
+  @media (max-width: 359px) {
+    .results-toggle-icon {
+      display: none;
+    }
+  }
+
+  /* Carga sin texto visible: bloques con brillo y aviso solo para lectores de pantalla */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .skeleton {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    line-height: 0;
+    background: rgba(148, 163, 184, 0.16);
+    border-radius: 8px;
+  }
+
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(226, 232, 240, 0.16), transparent);
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .prediction-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    padding: 4px 0 24px;
+  }
+
+  .prediction-skeleton.is-compact {
+    gap: 14px;
+    padding-bottom: 0;
+  }
+
+  .prediction-skeleton-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .prediction-skeleton-tags {
+    display: flex;
+    gap: 8px;
+  }
+
+  .prediction-skeleton-pills {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .prediction-skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .page-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  @media (min-width: 700px) {
+    .prediction-skeleton-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+}

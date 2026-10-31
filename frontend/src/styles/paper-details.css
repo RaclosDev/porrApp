@@ -1,0 +1,70 @@
+/* Anchos de cinta según el tamaño de la hoja. */
+.landing-tape:nth-child(3n + 2),
+.group-card.album-sheet:nth-child(3n + 2) {
+  --tape-width: 88px;
+}
+
+.landing-tape:nth-child(3n),
+.group-card.album-sheet:nth-child(3n) {
+  --tape-width: 96px;
+}
+
+.bracket-sheet.bracket-sheet-left {
+  --tape-width: 92px;
+}
+.bracket-sheet.bracket-sheet-center {
+  --tape-width: 108px;
+}
+.bracket-sheet.bracket-sheet-right {
+  --tape-width: 92px;
+}
+.header-paper-action {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper);
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.paper-panel .scoring-row-error {
+  color: var(--miss);
+}
+
+.paper-toast {
+  position: relative;
+}
+
+.paper-toast.landing-tape::after {
+  top: -8px;
+  width: 54px;
+  height: 18px;
+}
+
+@layer utilities {
+  .landing-hero-podium .poster-title {
+    font-size: clamp(0.8rem, 1.6vw, 1.1rem);
+  }
+
+  .landing-hero-podium .sticker-featured .poster-title {
+    font-size: clamp(1rem, 2vw, 1.4rem);
+  }
+
+  @media (max-width: 600px) {
+    .landing-hero-podium .poster-title {
+      font-size: 0.75rem;
+    }
+
+    .landing-hero-podium .sticker-featured .poster-title {
+      font-size: 0.9rem;
+    }
+
+    .landing-hero-podium .marker-ink {
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .landing-hero-podium .sticker-featured .marker-ink {
+      font-size: 0.9rem;
+    }
+  }
+}

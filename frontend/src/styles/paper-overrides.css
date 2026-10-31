@@ -1,0 +1,285 @@
+@layer components {
+  .top-bar {
+    background: var(--bg-color);
+    backdrop-filter: none;
+    border-bottom: 2px solid rgba(243, 236, 220, 0.22);
+  }
+
+  .header-brand-link {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--paper);
+    text-decoration: none;
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+  }
+
+  .header-brand-link:hover {
+    color: var(--accent-cyan);
+  }
+
+  .top-bar .glass-btn {
+    background: transparent;
+    border-color: rgba(243, 236, 220, 0.3);
+    border-radius: 4px;
+    box-shadow: none;
+  }
+
+  .top-bar .nav-links a {
+    border: 1px solid transparent;
+    color: var(--paper);
+  }
+
+  .top-bar .nav-links a.active {
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+    border-color: var(--paper) !important;
+    border-radius: 3px !important;
+  }
+
+  .top-bar #btn-active-league-dropdown {
+    --text-main: #111827;
+    --text-muted: #4b5563;
+    background: var(--paper);
+    color: var(--ink);
+    border-color: var(--paper);
+    box-shadow: 2px 2px 0 #d8cfb9;
+  }
+
+  .paper-dialog-body > .album-sheet::before {
+    display: none;
+  }
+}
+
+@layer components {
+  .mobile-bottom-nav {
+    background: var(--bg-color);
+    border: 1px solid rgba(243, 236, 220, 0.3);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .mobile-bottom-nav .mobile-nav-indicator {
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+  #btn-active-league-dropdown {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .top-bar #btn-active-league-dropdown[aria-expanded='true'] {
+    background: var(--paper);
+    transform: translateY(-2px);
+    box-shadow:
+      3px 5px 0 #d8cfb9,
+      0 8px 18px rgba(0, 0, 0, 0.2);
+  }
+
+  .league-selection,
+  .active-league-menu {
+    animation: league-paper-arrive 180ms ease-out;
+    transform-origin: top center;
+  }
+
+  @keyframes league-paper-arrive {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .paper-panel .lb-matchday-select option {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .paper-panel .standings-title,
+  .paper-panel .standings-empty-title {
+    color: var(--ink);
+  }
+
+  .standings-table {
+    table-layout: fixed;
+  }
+
+  .standings-position-column {
+    width: 52px;
+  }
+  .standings-stat-column {
+    width: 58px;
+  }
+  .standings-table.is-complete .standings-team-column {
+    width: 64px;
+  }
+  .standings-table.is-complete col:last-child {
+    width: auto;
+  }
+
+  .standings-table.is-complete .standings-team-cell,
+  .standings-table .standings-team-cell {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  @media (max-width: 760px) {
+    .paper-panel .standings-table.is-complete th:nth-child(2),
+    .paper-panel .standings-table.is-complete td:nth-child(2) {
+      left: 52px;
+      background: var(--paper);
+    }
+
+    .paper-panel .standings-table.is-complete .standings-row:hover td:nth-child(2) {
+      background: #e7dfce;
+    }
+  }
+}
+
+@layer components {
+  h1,
+  h2,
+  h3,
+  h4,
+  .poster-title,
+  .album-sheet-title,
+  .standings-title,
+  .league-admin-title,
+  .friends-predictions-title,
+  .home-hero-title,
+  .md-page-header h1,
+  .home-list-header h2 {
+    font-family: 'Permanent Marker', 'Outfit', cursive;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .paper-dialog.league-admin-panel {
+    max-width: 720px;
+  }
+
+  .paper-dialog.league-admin-panel,
+  .paper-dialog.friends-predictions-panel {
+    background: var(--paper);
+    overflow: visible;
+    border-color: var(--border-color);
+  }
+
+  .paper-dialog .league-admin-body,
+  .paper-dialog .friends-predictions-list {
+    min-height: 0;
+  }
+
+  .paper-panel .league-admin-title,
+  .paper-panel .friends-predictions-title {
+    color: var(--ink);
+  }
+
+  .paper-panel .league-admin-card,
+  .paper-panel .league-admin-footer {
+    background: var(--panel-bg);
+    border-color: var(--border-color);
+  }
+
+  .paper-panel .league-admin-input,
+  .paper-panel .league-admin-textarea,
+  .paper-panel .league-admin-select {
+    background: var(--panel-bg);
+    color: var(--ink);
+    border-color: var(--input-border);
+  }
+
+  .paper-panel .league-admin-btn.is-primary {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .paper-panel .friends-prediction-you {
+    color: var(--paper);
+  }
+}
+
+@layer components {
+  .paper-panel .md-badge {
+    border: none;
+    background: transparent;
+    padding: 0;
+    rotate: none;
+    transform: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .paper-panel .md-badge::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .md-friends-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 4px;
+    border: none;
+    background: transparent;
+    color: var(--marker-ink);
+    font:
+      600 0.78rem 'Inter',
+      sans-serif;
+    cursor: pointer;
+  }
+
+  .md-friends-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+@layer components {
+  .paper-panel .md-round-select,
+  .paper-panel .md-round-select option {
+    background-color: var(--paper);
+    color: var(--ink);
+    color-scheme: light;
+  }
+
+  .md-save-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--marker-ink);
+    border-radius: 4px;
+    color: var(--marker-ink);
+    font-size: 0.9rem;
+  }
+
+  .md-save-notice.is-error {
+    color: var(--miss);
+    border-left-color: var(--miss);
+  }
+}

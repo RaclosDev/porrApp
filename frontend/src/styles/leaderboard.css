@@ -1,0 +1,328 @@
+@layer components {
+  /* Leaderboard */
+  .table-container {
+    background: var(--panel-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .leaderboard-table th {
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--accent-cyan);
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.5px;
+  }
+
+  .leaderboard-table tbody tr {
+    transition: background 0.15s ease;
+    cursor: pointer;
+  }
+
+  .leaderboard-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .leaderboard-table th:nth-child(2),
+  .leaderboard-table td:nth-child(2) {
+    text-align: left;
+    font-weight: bold;
+  }
+
+  /* Leaderboard matchday panel */
+  .lb-matchday-panel {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto 14px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 210, 211, 0.18);
+    background: rgba(15, 23, 42, 0.82);
+    box-shadow:
+      0 12px 30px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .lb-matchday-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+    min-width: 260px;
+  }
+
+  .lb-matchday-heading {
+    min-width: 150px;
+  }
+
+  .lb-matchday-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-cyan);
+  }
+
+  .lb-matchday-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+
+  .lb-matchday-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.35rem;
+    color: #fff;
+    line-height: 1.1;
+  }
+
+  .lb-matchday-status {
+    font-size: 0.66rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 4px 8px;
+    border-radius: 999px;
+  }
+
+  .lb-matchday-status.is-finished {
+    background: rgba(148, 163, 184, 0.12);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+  }
+
+  .lb-matchday-status.is-live {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .lb-matchday-meta {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+  }
+
+  .lb-matchday-kpis {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .lb-matchday-kpi {
+    min-width: 120px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .lb-matchday-kpi span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+
+  .lb-matchday-kpi strong {
+    font-size: 0.95rem;
+    color: #fff;
+  }
+
+  .lb-matchday-kpi:first-child strong {
+    color: var(--accent-cyan);
+    font-size: 1.15rem;
+  }
+
+  .lb-matchday-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: center;
+  }
+
+  .lb-matchday-step {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      opacity 0.15s ease;
+  }
+
+  .lb-matchday-step:hover:not(:disabled) {
+    background: rgba(0, 210, 211, 0.12);
+    border-color: rgba(0, 210, 211, 0.4);
+    color: var(--accent-cyan);
+  }
+
+  .lb-matchday-step:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .lb-matchday-select {
+    height: 40px;
+    min-width: 180px;
+    max-width: 260px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background-color: rgba(15, 23, 42, 0.9);
+    color: #fff;
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .lb-matchday-select option {
+    background: #0f172a;
+    color: #fff;
+  }
+
+  .lb-matchday-cell {
+    color: #e2e8f0;
+    font-weight: 700;
+    min-width: 44px;
+    white-space: nowrap;
+  }
+
+  .lb-matchday-cell:not(th) {
+    color: var(--accent-cyan);
+  }
+
+  .lb-total-value {
+    display: inline;
+    white-space: nowrap;
+  }
+
+  .lb-unpaid-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.14);
+    color: #fbbf24;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 700px) {
+    .lb-matchday-panel {
+      padding: 14px;
+      gap: 12px;
+    }
+
+    .lb-matchday-summary {
+      gap: 12px;
+      width: 100%;
+    }
+
+    .lb-matchday-heading {
+      flex: 1 1 100%;
+    }
+
+    .lb-matchday-kpis {
+      width: 100%;
+    }
+
+    .lb-matchday-kpi {
+      flex: 1 1 120px;
+      min-width: 0;
+    }
+
+    .lb-matchday-nav {
+      width: 100%;
+    }
+
+    .lb-matchday-select {
+      flex: 1;
+      max-width: none;
+      min-width: 0;
+    }
+
+    .lb-matchday-step {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    #view-leaderboard .leaderboard-table .lb-matchday-cell {
+      width: 46px;
+      min-width: 46px;
+      padding-left: 3px;
+      padding-right: 3px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .leaderboard-table {
+      min-width: 0;
+      table-layout: auto;
+      font-size: 0.82rem;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 8px 6px;
+    }
+
+    .leaderboard-table th {
+      font-size: 0.7rem;
+      letter-spacing: 0;
+    }
+
+    .leaderboard-table th:nth-child(2),
+    .leaderboard-table td:nth-child(2) {
+      min-width: 92px;
+      overflow-wrap: anywhere;
+    }
+
+    .leaderboard-table td button {
+      margin: 0;
+    }
+  }
+}
