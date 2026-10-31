@@ -40,13 +40,7 @@ import {
   teamName,
 } from '../utils/bracketDraft';
 
-/**
- * Hook personalizado que gestiona toda la lógica de creación y edición de una porra (Bracket).
- * Coordina la fase de grupos, el avance de equipos por eliminatorias, y la generación final del JSON
- * para enviar al servidor.
- *
- * @returns {Object} Todo el estado y funciones necesarias para manejar el componente Bracket.
- */
+/** Estado y acciones del editor del cuadro (grupos, cruces y guardado). */
 export function useBracket() {
   const {
     bracketState,
@@ -385,15 +379,15 @@ export function useBracket() {
 
   const generatePredictionData = async () => {
     if (!predictionName.trim()) {
-      toast.error('Por favor introduce un nombre para tu porra.');
+      toast.error('Ponle nombre a tu porra.');
       return;
     }
     if (!isAuthenticated && (!userName || !bracketState.champion)) {
-      toast.error('Por favor rellena tu nombre y completa el bracket hasta el campeón.');
+      toast.error('Pon tu nombre y completa el cuadro hasta el campeón.');
       return;
     }
     if (activeGroupPichichi && !topScorer) {
-      toast.error('Por favor introduce el pichichi.');
+      toast.error('Falta el pichichi.');
       return;
     }
     if (isKnockoutsOnly) {
@@ -407,7 +401,7 @@ export function useBracket() {
             m.away.name.includes('º'),
         )
       ) {
-        toast.error('Por favor rellena todos los equipos de los Dieciseisavos antes de enviar.');
+        toast.error('Rellena todos los equipos de dieciseisavos.');
         return;
       }
     }
@@ -447,10 +441,10 @@ export function useBracket() {
     }
     try {
       await createPrediction(predictionData, activeGroupId);
-      toast.success('¡Porra guardada correctamente en la liga!');
+      toast.success('Porra guardada.');
       fetchData();
     } catch (e) {
-      toast.error(errorMessage(e, 'Hubo un error al guardar la porra.'));
+      toast.error(errorMessage(e, 'No se pudo guardar la porra. Inténtalo de nuevo.'));
     }
   };
 

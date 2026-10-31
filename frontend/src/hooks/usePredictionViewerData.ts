@@ -31,10 +31,7 @@ export type { RoundRef } from '../utils/predictionViewer';
  * Carga y prepara lo que necesita el visor de la porra de un usuario: el pronóstico, el cuadro
  * oficial y los puntos. Devuelve funciones ya enlazadas a esos datos para pintar cada hueco.
  *
- * @param viewerPredictionId - Porra que se visualiza.
- * @param officialPoints - Clasificación oficial de los grupos.
  * @param leaderboardData - Ranking de la liga; da los puntos mientras llega el desglose.
- * @param groupOdds - Equipos de cada grupo.
  * @param allGames - Partidos oficiales, para saber quién ha caído.
  * @param initialPart - Porra ya disponible (lista de participantes) para pintarla al instante.
  */
@@ -103,7 +100,7 @@ export function usePredictionViewerData(
       .catch((err) => {
         if (cancelled) return;
         console.error(err);
-        setError(errorMessage(err, 'Ha ocurrido un error'));
+        setError(errorMessage(err, 'No se pudo cargar la porra'));
         setPartLoading(false);
       });
 

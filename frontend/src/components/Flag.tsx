@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getCountryCode, getCountryEmoji, normalizeCountryName } from '../utils/constants';
 
-/**
- * Componente funcional para renderizar la bandera o escudo de un equipo o país.
- * Permite pasar un logo/escudo directo con fallback a bandera por código de país o emoji.
- *
- * @component
- * @param {Object} props - Propiedades del componente.
- * @param {string} props.team - Nombre del equipo o país para obtener su bandera.
- * @param {string} [props.logo] - URL del logo o escudo oficial (opcional).
- * @param {string} [props.size='w40'] - Tamaño de la bandera (ej. 'w40', 'w80').
- * @param {Object} [props.style={}] - Estilos inline adicionales para la imagen.
- * @param {string} [props.className=''] - Clases CSS adicionales.
- * @returns {JSX.Element|null} Elemento <img> o emoji con la bandera o escudo.
- */
 interface FlagProps {
   team: string | null | undefined;
   logo?: string | null;
@@ -22,6 +9,7 @@ interface FlagProps {
   className?: string;
 }
 
+/** Bandera o escudo de un equipo; sin logo usa la bandera por código o un emoji. */
 const Flag = ({ team, logo, size = 'w40', style = {}, className = '' }: FlagProps) => {
   const [hasError, setHasError] = useState(false);
   const [logoError, setLogoError] = useState(false);

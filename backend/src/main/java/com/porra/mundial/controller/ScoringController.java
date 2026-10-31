@@ -7,9 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Controlador REST para consultar reglamentos de puntuacion y simular calculos explicables.
- */
+/** Reglas de puntuación y vista previa de los puntos de un partido. */
 @RestController
 @RequestMapping("/api/rules")
 @RequiredArgsConstructor

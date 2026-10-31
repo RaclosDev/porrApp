@@ -10,6 +10,9 @@ interface ChartToolbarProps {
   setHoveredStageIdx: (idx: number | null) => void;
 }
 
+const toggleClass = (active: boolean) =>
+  `rounded-[20px] border-none cursor-pointer font-bold [transition:all_0.2s] min-h-11 sm:min-h-0 ${active ? 'bg-[#00d2d3] bg-none text-black' : 'bg-transparent bg-none text-white'}`;
+
 /** Título y controles del gráfico: zoom, escala temporal y modo. */
 export default function ChartToolbar({
   mode,
@@ -24,28 +27,19 @@ export default function ChartToolbar({
     <div className="flex justify-between items-center flex-wrap gap-[15px] mb-4 py-0 px-1">
       <div>
         <h3 className="m-0 text-[1.4rem] text-white flex items-center gap-2">
-          <span>📈 Gráfica de Evolución</span>
-          {mode === 'rank' && (
-            <span className="text-[0.8rem] bg-[rgba(0,_210,_211,_0.2)] bg-none text-[#00d2d3] py-0.5 px-2 rounded-[12px] border border-[#00d2d3]">
-              Ranking
-            </span>
-          )}
-          {mode === 'points' && (
-            <span className="text-[0.8rem] bg-[rgba(255,_159,_67,_0.2)] bg-none text-[#ff9f43] py-0.5 px-2 rounded-[12px] border border-[#ff9f43]">
-              Puntos
-            </span>
-          )}
+          <span>Evolución de la clasificación</span>
         </h3>
       </div>
 
       <div className="flex gap-2.5 flex-wrap items-center">
-        {/* Horizontal Zoom Controls */}
         <div className="flex gap-0.5 bg-[rgba(255,_255,_255,_0.04)] bg-none p-[3px] rounded-[25px] border border-[rgba(255,_255,_255,_0.1)] items-center">
           <button
-            className={`py-[5px] px-2.5 rounded-[16px] border-none bg-transparent bg-none font-bold text-[0.9rem] [transition:all_0.2s] ${zoomLevel <= 0.75 ? 'cursor-not-allowed' : 'cursor-pointer'} ${zoomLevel <= 0.75 ? 'text-[#555]' : 'text-white'}`}
+            type="button"
+            className={`py-[5px] px-2.5 rounded-[16px] border-none bg-transparent bg-none font-bold text-[0.9rem] [transition:all_0.2s] min-h-11 sm:min-h-0 ${zoomLevel <= 0.75 ? 'cursor-not-allowed' : 'cursor-pointer'} ${zoomLevel <= 0.75 ? 'text-[#555]' : 'text-white'}`}
             onClick={() => setZoomLevel((prev) => Math.max(prev - 0.25, 0.75))}
             disabled={zoomLevel <= 0.75}
             title="Reducir zoom horizontal"
+            aria-label="Reducir zoom"
           >
             🔍-
           </button>
@@ -53,59 +47,69 @@ export default function ChartToolbar({
             {Math.round(zoomLevel * 100)}%
           </span>
           <button
-            className={`py-[5px] px-2.5 rounded-[16px] border-none bg-transparent bg-none font-bold text-[0.9rem] [transition:all_0.2s] ${zoomLevel >= 3.5 ? 'cursor-not-allowed' : 'cursor-pointer'} ${zoomLevel >= 3.5 ? 'text-[#555]' : 'text-white'}`}
+            type="button"
+            className={`py-[5px] px-2.5 rounded-[16px] border-none bg-transparent bg-none font-bold text-[0.9rem] [transition:all_0.2s] min-h-11 sm:min-h-0 ${zoomLevel >= 3.5 ? 'cursor-not-allowed' : 'cursor-pointer'} ${zoomLevel >= 3.5 ? 'text-[#555]' : 'text-white'}`}
             onClick={() => setZoomLevel((prev) => Math.min(prev + 0.35, 3.5))}
             disabled={zoomLevel >= 3.5}
             title="Aumentar zoom horizontal"
+            aria-label="Aumentar zoom"
           >
             🔍+
           </button>
           {zoomLevel !== 1 && (
             <button
-              className="py-[3px] px-2 rounded-[12px] border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.1)] bg-none text-white text-[0.7rem] cursor-pointer ml-0.5 [transition:all_0.2s]"
+              type="button"
+              className="py-[3px] px-2 rounded-[12px] border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.1)] bg-none text-white text-[0.7rem] cursor-pointer ml-0.5 [transition:all_0.2s] min-h-11 sm:min-h-0"
               onClick={() => setZoomLevel(1)}
               title="Restaurar zoom al 100%"
+              aria-label="Restaurar zoom al 100%"
             >
               100%
             </button>
           )}
         </div>
 
-        {/* Time Scale Selector */}
         <div className="flex gap-1 bg-[rgba(255,_255,_255,_0.04)] bg-none p-1 rounded-[25px] border border-[rgba(255,_255,_255,_0.1)]">
           <button
-            className={`py-1.5 px-3.5 rounded-[20px] border-none cursor-pointer font-bold text-[0.8rem] [transition:all_0.2s] ${timeScale === 'rounds' ? 'bg-[#70a1ff] bg-none' : 'bg-transparent bg-none'} ${timeScale === 'rounds' ? 'text-black' : 'text-white'}`}
+            type="button"
+            className={`py-1.5 px-3.5 text-[0.8rem] ${toggleClass(timeScale === 'rounds')}`}
+            aria-pressed={timeScale === 'rounds'}
             onClick={() => {
               setTimeScale('rounds');
               setHoveredStageIdx(null);
             }}
           >
-            🔄 Rondas
+            Por rondas
           </button>
           <button
-            className={`py-1.5 px-3.5 rounded-[20px] border-none cursor-pointer font-bold text-[0.8rem] [transition:all_0.2s] ${timeScale === 'matches' ? 'bg-[#2ecc71] bg-none' : 'bg-transparent bg-none'} ${timeScale === 'matches' ? 'text-black' : 'text-white'}`}
+            type="button"
+            className={`py-1.5 px-3.5 text-[0.8rem] ${toggleClass(timeScale === 'matches')}`}
+            aria-pressed={timeScale === 'matches'}
             onClick={() => {
               setTimeScale('matches');
               setHoveredStageIdx(null);
             }}
           >
-            ⏱️ Partido a Partido
+            Partido a partido
           </button>
         </div>
 
-        {/* Mode Selector */}
         <div className="flex gap-1 bg-[rgba(255,_255,_255,_0.05)] bg-none p-1 rounded-[25px] border border-[rgba(255,_255,_255,_0.1)]">
           <button
-            className={`py-1.5 px-4 rounded-[20px] border-none cursor-pointer font-bold text-[0.85rem] [transition:all_0.2s] ${mode === 'rank' ? 'bg-[#00d2d3] bg-none' : 'bg-transparent bg-none'} ${mode === 'rank' ? 'text-black' : 'text-white'}`}
+            type="button"
+            className={`py-1.5 px-4 text-[0.85rem] ${toggleClass(mode === 'rank')}`}
+            aria-pressed={mode === 'rank'}
             onClick={() => setMode('rank')}
           >
-            🏆 Posición
+            Posición
           </button>
           <button
-            className={`py-1.5 px-4 rounded-[20px] border-none cursor-pointer font-bold text-[0.85rem] [transition:all_0.2s] ${mode === 'points' ? 'bg-[#ff9f43] bg-none' : 'bg-transparent bg-none'} ${mode === 'points' ? 'text-black' : 'text-white'}`}
+            type="button"
+            className={`py-1.5 px-4 text-[0.85rem] ${toggleClass(mode === 'points')}`}
+            aria-pressed={mode === 'points'}
             onClick={() => setMode('points')}
           >
-            📈 Puntos
+            Puntos
           </button>
         </div>
       </div>

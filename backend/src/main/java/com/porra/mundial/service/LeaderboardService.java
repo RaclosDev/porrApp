@@ -28,13 +28,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Servicio de Clasificacion (Leaderboard).
- * Orquesta la clasificacion general o de grupo recuperando datos oficiales y delegando
- * el calculo matematico en la ScoringStrategy con las reglas de la edicion de cada pronostico,
- * integrando tambien los puntos de jornadas.
- * Soporta materializacion de puntuaciones para evitar N+1 queries.
- */
+/** Clasificación de una liga: puntos del cuadro y de las jornadas, guardados en cada porra. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -50,10 +44,6 @@ public class LeaderboardService {
     private final MembershipRepository membershipRepository;
     private final EditionRepository editionRepository;
 
-    /**
-     * @param groupId ID del grupo a consultar.
-     * @return El ranking ordenado de participantes con todos sus desgloses de puntos.
-     */
     /** Clasificación: más puntos, luego más puntos por partido, luego nombre. */
     private static final Comparator<ParticipantScoreDTO> LEADERBOARD_ORDER = Comparator
             .comparingInt(ParticipantScoreDTO::getTotal).reversed()

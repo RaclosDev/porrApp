@@ -48,7 +48,7 @@ public class ProfileImageService {
     public record StoredImage(byte[] data, String contentType, LocalDateTime updatedAt) {
     }
 
-    // ---------------------------------------------------------------- Ligas
+    // Ligas
 
     @Transactional
     public League saveLeagueImage(Long groupId, String email, byte[] raw) {
@@ -94,7 +94,7 @@ public class ProfileImageService {
         return league;
     }
 
-    // --------------------------------------------------------------- Perfil
+    // Perfil
 
     @Transactional
     public UserAccount saveAvatar(String email, byte[] raw) {

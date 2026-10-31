@@ -11,9 +11,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio de Partidos.
- */
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
 

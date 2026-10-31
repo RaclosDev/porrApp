@@ -7,19 +7,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- *  Calculadora de Estatus Matemático para la Fase de Grupos.
- * Esta clase NO es un @Service de Spring, es una utilidad estática.
- * 
- * ¿Qué hace?
- * Analiza un grupo y, calculando TODAS las combinaciones posibles de los partidos
- * que faltan por jugar (victoria local, empate, victoria visitante), determina si
- * un equipo está:
- *  - Matemáticamente Clasificado (status 1)
- *  - Matemáticamente Eliminado (status -1)
- *  - Todavía con vida / Posible (status 0)
- * 
- * Esencialmente es un algoritmo de fuerza bruta (permutaciones) que prueba todos
- * los futuros paralelos posibles.
+ * Estado matemático de cada equipo del grupo, probando todos los resultados pendientes (3^n; con
+ * más de 6 pendientes no calcula). 0 abierto, 1-4 puesto asegurado, 5 entre los dos primeros, -1 eliminado.
  */
 public class MathematicalStatusCalculator {
 
@@ -46,8 +35,7 @@ public class MathematicalStatusCalculator {
                 .filter(m -> Boolean.TRUE.equals(m.getFinished()) && m.getHomeScore() != null)
                 .collect(Collectors.toList());
 
-        // Si faltan demasiados partidos (más de 6, por ejemplo), el cálculo es muy pesado.
-        // Mejor decir que todo está abierto. (3^7 = 2187 permutaciones, 3^8 = 6561).
+        // Con 7 o más pendientes (3^7 = 2187 combinaciones) no se calcula: todo queda abierto.
         if (unplayed.size() > 6) {
             standings.forEach(gs -> statusMap.put(gs.getTeam().getId(), 0));
             return statusMap;
@@ -61,12 +49,10 @@ public class MathematicalStatusCalculator {
             worstRanks.put(gs.getTeam().getId(), 1);
         });
 
-        // Número total de futuros posibles: 3 ^ (número de partidos restantes)
         int combinations = (int) Math.pow(3, unplayed.size());
         // Las tarjetas de los partidos que faltan no se conocen: el fair play solo desempata con el grupo cerrado.
         boolean fairPlayKnown = unplayed.isEmpty();
 
-        // Simular cada uno de esos futuros paralelos
         for (int i = 0; i < combinations; i++) {
             List<Outcome> outcomes = decodeOutcomes(i, unplayed.size());
             simulatePermutation(standings, played, unplayed, outcomes, fairPlayKnown, bestRanks, worstRanks);

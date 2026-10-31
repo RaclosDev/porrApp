@@ -10,9 +10,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio JPA para Pronosticos (Prediction).
- */
 @Repository
 public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 
