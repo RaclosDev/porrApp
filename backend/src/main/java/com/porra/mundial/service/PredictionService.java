@@ -34,6 +34,7 @@ public class PredictionService {
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
+    private final BracketPredictionValidator bracketValidator;
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
@@ -105,6 +106,8 @@ public class PredictionService {
             }
         }
 
+        bracketValidator.validate(edition, predictionData);
+
         Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, effectiveGroupId);
         if (existing.isPresent()) {
             Prediction prediction = existing.get();
@@ -145,6 +148,7 @@ public class PredictionService {
             throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
+        if (predictionData != null) bracketValidator.validate(prediction.getEdition(), predictionData);
         if (predictionName != null) prediction.setName(predictionName);
         if (predictionData != null) {
             prediction.setBracketData(predictionData);

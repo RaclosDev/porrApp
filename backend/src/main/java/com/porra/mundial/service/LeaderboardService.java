@@ -347,7 +347,12 @@ public class LeaderboardService {
                                                 ScoringStrategy strategy) {
         PredictionDataDTO participant = pred.getBracketData();
         ParticipantScoreDTO score;
-        if (participant != null) {
+        Edition edition = pred.getEdition();
+        boolean bracketEdition = edition != null && edition.getCompetition() != null
+                && com.porra.mundial.model.Competition.WORLD_CUP_EXTERNAL_ID.equals(edition.getCompetition().getExternalId())
+                && (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.FULL_BRACKET
+                    || edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY);
+        if (participant != null && bracketEdition) {
             score = calculatePoints(strategy, new CalculationContext(participant, official.bracket(), official.groupPoints(),
                     official.orderedTeamsPerGroup(), official.bestThirds(), scorers, official.roundOf16(),
                     official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion()));

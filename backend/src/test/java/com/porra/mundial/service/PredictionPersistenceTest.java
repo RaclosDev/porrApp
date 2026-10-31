@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
-@Import(PredictionService.class)
+@Import({PredictionService.class, BracketPredictionValidator.class})
 class PredictionPersistenceTest {
 
     @Container
@@ -43,12 +43,13 @@ class PredictionPersistenceTest {
     void savingAgainUpdatesTheExistingPredictionAndPreservesItsPaymentRecord() {
         UserAccount owner = em.persist(UserAccount.builder().googleEmail("prediction@test.invalid")
                 .googleName("Ana").participantName("Ana").build());
-        Competition competition = em.persist(Competition.builder().name("Test Cup")
-                .externalId("test.cup").formatType("TOURNAMENT").build());
+        Competition competition = em.getEntityManager().createQuery(
+                "select c from Competition c where c.externalId = :id", Competition.class)
+                .setParameter("id", Competition.WORLD_CUP_EXTERNAL_ID).getSingleResult();
         League league = em.persist(League.builder().name("Test League").joinCode("TESTSAVE")
                 .adminUser(owner).build());
         Edition edition = em.persist(Edition.builder().league(league).competition(competition)
-                .poolFormat(PoolFormat.FULL_BRACKET).build());
+                .poolFormat(PoolFormat.KNOCKOUTS_ONLY).build());
         em.persist(Membership.builder().id(new Membership.MembershipId(owner.getId(), league.getId()))
                 .user(owner).league(league).paymentStatus("PAID").build());
         em.flush();
@@ -64,7 +65,7 @@ class PredictionPersistenceTest {
         em.clear();
 
         PredictionDataDTO changed = new PredictionDataDTO();
-        changed.setChampion("España");
+        changed.setScorer("España");
         Prediction saved = predictions.createPrediction(owner.getGoogleEmail(), "Updated", changed, league.getId());
         em.flush();
         em.clear();
@@ -73,7 +74,7 @@ class PredictionPersistenceTest {
         assertThat(reloaded.getId()).isEqualTo(firstId);
         assertThat(reloaded.getCreatedAt()).isEqualTo(createdAt);
         assertThat(reloaded.getName()).isEqualTo("Updated");
-        assertThat(reloaded.getBracketData().getChampion()).isEqualTo("España");
+        assertThat(reloaded.getBracketData().getScorer()).isEqualTo("España");
         assertThat(reloaded.getPaymentStatus()).isEqualTo("PAID");
         assertThat(reloaded.getPaymentMarkedBy().getId()).isEqualTo(owner.getId());
         assertThat(reloaded.getPaymentAmount()).isEqualByComparingTo("10.00");

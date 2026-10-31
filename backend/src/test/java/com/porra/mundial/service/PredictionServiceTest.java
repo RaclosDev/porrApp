@@ -39,6 +39,9 @@ class PredictionServiceTest {
     private EditionRepository editionRepository;@Mock
     private MembershipRepository membershipRepository;
 
+    @org.mockito.Spy
+    private BracketPredictionValidator bracketValidator = new BracketPredictionValidator(mock(com.porra.mundial.repository.TeamRepository.class));
+
     @InjectMocks
     private PredictionService predictionService;
 
@@ -80,6 +83,8 @@ class PredictionServiceTest {
         edition = Edition.builder()
                 .id(1L)
                 .league(group)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY)
+                .competition(com.porra.mundial.model.Competition.builder().externalId("fifa.world").build())
                 .status("ACTIVE")
                 .build();
 
@@ -91,6 +96,15 @@ class PredictionServiceTest {
                 .bracketData(new PredictionDataDTO())
                 .paymentStatus("PENDING")
                 .build();
+    }
+
+    @Test
+    void rejectsBracketInMatchDayEdition() {
+        edition.setPoolFormat(com.porra.mundial.model.PoolFormat.MATCH_DAY);
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        assertThrows(IllegalArgumentException.class, () ->
+                predictionService.updatePrediction(1L, "owner@test.com", null, new PredictionDataDTO()));
+        verify(predictionRepository, never()).save(any());
     }
 
     @Test

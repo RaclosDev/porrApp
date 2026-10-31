@@ -70,6 +70,20 @@ class LeaderboardServiceTest {
     private LeaderboardService leaderboardService;
 
     @Test
+    void ignoresLegacyBracketPointsInMatchDayEditionButKeepsMatchPoints() {
+        Edition edition = Edition.builder().poolFormat(com.porra.mundial.model.PoolFormat.MATCH_DAY)
+                .competition(Competition.builder().externalId("esp.1").build()).build();
+        Prediction prediction = championPrediction(123L, edition);
+        when(predictionRepository.findById(123L)).thenReturn(Optional.of(prediction));
+        when(matchPredictionRepository.findByPredictionId(123L)).thenReturn(List.of(
+                MatchPrediction.builder().pointsAwarded(3).build()));
+        officialChampion("España");
+        ParticipantScoreDTO score = leaderboardService.calculateScoreForPrediction(123L);
+        assertEquals(0, score.getFinals());
+        assertEquals(3, score.getTotal());
+    }
+
+    @Test
     @DisplayName("getLeaderboard calcula y asigna matchPoints correctamente a partir de MatchPredictions")
     void getLeaderboard_CalculatesAndSetsMatchPoints() {
         UserAccount user = UserAccount.builder().id(10L).participantName("Jugador 1").build();
@@ -265,6 +279,8 @@ class LeaderboardServiceTest {
 
     /** Cuadro que solo acierta el campeón, para comparar lo que da con cada reglamento. */
     private static Prediction championPrediction(long id, Edition edition) {
+        if (edition.getCompetition() == null) edition.setCompetition(Competition.builder().externalId(Competition.WORLD_CUP_EXTERNAL_ID).build());
+        if (edition.getPoolFormat() == null) edition.setPoolFormat(com.porra.mundial.model.PoolFormat.FULL_BRACKET);
         PredictionDataDTO bracket = new PredictionDataDTO();
         bracket.setChampion("España");
         return Prediction.builder()
