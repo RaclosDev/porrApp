@@ -88,6 +88,28 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     }
 
     @Override
+    public JsonNode fetchEvent(String competitionSlug, String eventId) throws Exception {
+        String slug = resolveSlug(competitionSlug);
+        if (!KNOWN_SLUGS.contains(slug) || eventId == null || !eventId.matches("[0-9]{1,20}")) {
+            throw new IllegalArgumentException("Competición o identificador de evento no válido");
+        }
+        JsonNode header = executeGet(BASE_SOCCER_URL + "/" + slug + "/summary?event=" + eventId).path("header");
+        JsonNode competitions = header.path("competitions");
+        if (!eventId.equals(header.path("id").asText()) || !slug.equals(header.path("league").path("slug").asText())
+                || !competitions.isArray() || competitions.size() != 1
+                || !eventId.equals(competitions.get(0).path("id").asText())) {
+            throw new IOException("El resumen de ESPN no corresponde al evento y competición solicitados");
+        }
+        var event = objectMapper.createObjectNode();
+        event.put("id", eventId);
+        event.put("date", competitions.get(0).path("date").asText());
+        event.set("competitions", competitions);
+        event.set("season", header.path("season"));
+        event.set("league", header.path("league"));
+        return event;
+    }
+
+    @Override
     public JsonNode fetchTeams(String competitionSlug) throws Exception {
         String slug = resolveSlug(competitionSlug);
         String url = BASE_SOCCER_URL + "/" + slug + "/teams";

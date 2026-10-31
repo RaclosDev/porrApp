@@ -59,6 +59,7 @@ public class SyncService {
     private final ScoreInvalidationService scoreInvalidationService;
     private final PlatformTransactionManager transactionManager;
     private final TopScorerService topScorerService;
+    private final LegacyFixtureRepairService legacyFixtureRepairService;
 
     private final ReentrantLock syncLock = new ReentrantLock();
 
@@ -86,6 +87,23 @@ public class SyncService {
             syncAll();
         } catch (Exception e) {
             log.warn("Falló la sincronización programada: {}", e.getMessage());
+        }
+    }
+
+    /** Repara el histórico por lotes sin competir con una sincronización o importación normal. */
+    @Scheduled(initialDelay = 120_000, fixedDelay = 300_000)
+    public void repairLegacyFixtures() {
+        if (!syncLock.tryLock()) return;
+        try {
+            var result = legacyFixtureRepairService.repairBatch();
+            if (result.attempted() > 0) {
+                log.info("Reparación histórica: {} consultados, {} reparados, {} pendientes de reintento",
+                        result.attempted(), result.repaired(), result.failed());
+            }
+        } catch (Exception error) {
+            log.warn("Falló la reparación de partidos históricos: {}", error.getMessage(), error);
+        } finally {
+            syncLock.unlock();
         }
     }
 

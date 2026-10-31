@@ -117,6 +117,7 @@ public class DataInitializer implements CommandLineRunner {
     private void runInitialSync() {
         runStep("importar calendarios vacíos", this::importEmptyCompetitionFixtures);
         runStep("sincronizar resultados", syncService::syncAll);
+        runStep("reparar equipos históricos", syncService::repairLegacyFixtures);
         runStep("recalcular clasificaciones", standingsService::recalculateStandingsFromMatches);
         runStep("propagar ganadores de eliminatorias", knockoutBracketService::propagateKnockoutWinners);
         log.info("Sincronización inicial de arranque finalizada.");

@@ -56,6 +56,7 @@ class SyncServiceTest {
     @Mock private PlatformTransactionManager transactionManager;
     @Mock private SportsDataProvider provider;
     @Mock private TopScorerService topScorerService;
+    @Mock private LegacyFixtureRepairService legacyFixtureRepairService;
 
     @InjectMocks
     private SyncService syncService;
@@ -97,6 +98,16 @@ class SyncServiceTest {
         List<Match> worldCupMatches = List.of(Match.builder().id(1L).build());
         when(knockoutBracketService.worldCupMatches()).thenReturn(worldCupMatches);
         return worldCupMatches;
+    }
+
+    @Test
+    void invokesOneBoundedHistoricalRepairPass() {
+        when(legacyFixtureRepairService.repairBatch())
+                .thenReturn(new LegacyFixtureRepairService.RepairResult(20, 18, 2));
+
+        syncService.repairLegacyFixtures();
+
+        verify(legacyFixtureRepairService).repairBatch();
     }
 
     @Test

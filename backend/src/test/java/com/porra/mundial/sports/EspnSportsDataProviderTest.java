@@ -46,6 +46,41 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
+    void fetchesAHistoricalEventByIdAndAdaptsItsVerifiedHeader() throws Exception {
+        byte[] fixture;
+        try (var input = getClass().getResourceAsStream("/espn/summary-401882926.json")) {
+            fixture = java.util.Objects.requireNonNull(input).readAllBytes();
+        }
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(fixture);
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (key, value) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode event = provider.fetchEvent("esp.1", "401882926");
+
+        assertEquals("401882926", event.path("id").asText());
+        assertEquals("2026-08-15T17:30Z", event.path("date").asText());
+        assertEquals("96", event.path("competitions").get(0).path("competitors").get(0).path("team").path("id").asText());
+        var request = org.mockito.ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/summary?event=401882926",
+                request.getValue().uri().toString());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"esp.1,other,401882926", "eng.1,401882926,401882926", "esp.1,401882926,other"})
+    void rejectsSummaryFromAnotherEventOrCompetition(String slug, String headerId, String competitionId) throws Exception {
+        String body = "{\"header\":{\"id\":\"%s\",\"league\":{\"slug\":\"%s\"},\"competitions\":[{\"id\":\"%s\"}]}}"
+                .formatted(headerId, slug, competitionId);
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(body.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (key, value) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> provider.fetchEvent("esp.1", "401882926"));
+    }
+
+    @Test
     void providerFailurePropagatesBeforeTheBreakerOpens() throws Exception {
         when(httpResponse.statusCode()).thenReturn(503);
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);

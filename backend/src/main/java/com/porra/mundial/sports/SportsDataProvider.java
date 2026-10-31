@@ -49,6 +49,11 @@ public interface SportsDataProvider {
         return fetchScoreboardEvents(dateRange);
     }
 
+    /** Evento concreto, independiente del calendario de la temporada. */
+    default JsonNode fetchEvent(String competitionSlug, String eventId) throws Exception {
+        throw new UnsupportedOperationException("El proveedor no ofrece consultas por evento");
+    }
+
     /**
      * Recupera los equipos participantes en una competición con sus escudos oficiales y nombres.
      *
