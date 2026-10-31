@@ -99,7 +99,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
         when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Prediction updated = predictionService.updatePrediction(1L, "owner@test.com", "OwnerUser", "Nuevo Nombre", null);
+        Prediction updated = predictionService.updatePrediction(1L, "owner@test.com", "Nuevo Nombre", null);
 
         assertNotNull(updated);
         assertEquals("Nuevo Nombre", updated.getName());
@@ -112,7 +112,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
         when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Prediction updated = predictionService.updatePrediction(1L, "admin@test.com", "OwnerUser", "Corregido por Admin", null);
+        Prediction updated = predictionService.updatePrediction(1L, "admin@test.com", "Corregido por Admin", null);
 
         assertNotNull(updated);
         assertEquals("Corregido por Admin", updated.getName());
@@ -125,7 +125,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
         when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        predictionService.updatePrediction(1L, "owner@test.com", null, null, new PredictionDataDTO());
+        predictionService.updatePrediction(1L, "owner@test.com", null, new PredictionDataDTO());
 
         assertNull(prediction.getScoreCalculatedAt());
     }
@@ -136,7 +136,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                predictionService.updatePrediction(1L, "stranger@test.com", "Hacker", "Robada", null)
+                predictionService.updatePrediction(1L, "stranger@test.com", "Robada", null)
         );
 
         verify(predictionRepository, never()).save(any());
@@ -148,7 +148,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                predictionService.updatePrediction(1L, null, "User", "Sin Auth", null)
+                predictionService.updatePrediction(1L, null, "Sin Auth", null)
         );
     }
 
@@ -237,7 +237,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(IllegalStateException.class, () ->
-                predictionService.updatePrediction(1L, "owner@test.com", "OwnerUser", "Cambio", null)
+                predictionService.updatePrediction(1L, "owner@test.com", "Cambio", null)
         );
 
         verify(predictionRepository, never()).save(any());
@@ -251,7 +251,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(IllegalStateException.class, () ->
-                predictionService.updatePrediction(1L, "admin@test.com", "OwnerUser", "Fix de Admin", null)
+                predictionService.updatePrediction(1L, "admin@test.com", "Fix de Admin", null)
         );
         verify(predictionRepository, never()).save(any());
     }

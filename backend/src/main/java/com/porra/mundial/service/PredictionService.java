@@ -71,11 +71,6 @@ public class PredictionService {
     }
 
     @Transactional(readOnly = true)
-    public List<Prediction> getAllPredictions() {
-        return predictionRepository.findAllByOrderByCreatedAtDesc();
-    }
-
-    @Transactional(readOnly = true)
     public List<Prediction> getPredictionsByGroupId(Long groupId) {
         return predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId);
     }
@@ -110,9 +105,13 @@ public class PredictionService {
             }
         }
 
-        if (groupId != null) {
-            predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
-                    .ifPresent(predictionRepository::delete);
+        Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, effectiveGroupId);
+        if (existing.isPresent()) {
+            Prediction prediction = existing.get();
+            prediction.setName(predictionName);
+            prediction.setBracketData(predictionData);
+            prediction.setScoreCalculatedAt(null);
+            return predictionRepository.save(prediction);
         }
 
         String paymentStatus = "PENDING";
@@ -137,7 +136,7 @@ public class PredictionService {
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
-    public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, PredictionDataDTO predictionData) {
+    public Prediction updatePrediction(Long id, String requesterEmail, String predictionName, PredictionDataDTO predictionData) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
@@ -146,7 +145,6 @@ public class PredictionService {
             throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
-        if (participantName != null) prediction.setParticipantName(participantName);
         if (predictionName != null) prediction.setName(predictionName);
         if (predictionData != null) {
             prediction.setBracketData(predictionData);

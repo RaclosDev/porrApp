@@ -13,8 +13,6 @@ import java.util.Optional;
 @Repository
 public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 
-    List<Prediction> findAllByOrderByCreatedAtDesc();
-
     List<Prediction> findByEditionLeagueId(Long groupId);
 
     @Query("SELECT p FROM Prediction p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.edition e LEFT JOIN FETCH e.league l WHERE l.id = :groupId OR (:groupId = 1 AND (p.edition IS NULL OR l.id IS NULL))")

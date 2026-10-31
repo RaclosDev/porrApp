@@ -70,7 +70,7 @@ public class PredictionController {
     @PutMapping("/{id}")
     public PredictionSavedResponse updatePrediction(@PathVariable Long id, @Valid @RequestBody PredictionDataDTO body,
                                                     Principal principal) {
-        Prediction prediction = predictionService.updatePrediction(id, CurrentUser.email(principal), body.getUser(), body.getPrediction(), body);
+        Prediction prediction = predictionService.updatePrediction(id, CurrentUser.email(principal), body.getPrediction(), body);
         return PredictionSavedResponse.updated(prediction.getId());
     }
 

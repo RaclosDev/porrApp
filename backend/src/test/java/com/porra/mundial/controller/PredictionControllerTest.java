@@ -1,9 +1,12 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.repository.UserAccountRepository;
+
 import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
+import com.porra.mundial.model.League;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.WebSocketService;
@@ -28,6 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(PredictionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class PredictionControllerTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;
@@ -57,12 +63,15 @@ class PredictionControllerTest {
                 .participantName("Juan")
                 .build();
 
-        Mockito.when(predictionService.getAllPredictions()).thenReturn(List.of());
-        Mockito.when(predictionService.toPredictionDtoList(any(), any())).thenReturn(List.of(dto));
+        List<Prediction> predictions = List.of(Prediction.builder().id(1L).build());
+        Mockito.when(predictionService.getPredictionsByGroupId(League.GLOBAL_ID)).thenReturn(predictions);
+        Mockito.when(predictionService.toPredictionDtoList(predictions, null)).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/predictions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].participantName").value("Juan"));
+        Mockito.verify(groupService).assertCanView(League.GLOBAL_ID, null);
+        Mockito.verify(predictionService).getPredictionsByGroupId(League.GLOBAL_ID);
     }
 
     @Test
@@ -119,7 +128,7 @@ class PredictionControllerTest {
         body.setR16(List.of(List.of("Team1", "Team2")));
 
         Mockito.doThrow(new SecurityException("No tienes permiso para modificar o eliminar este pronostico."))
-                .when(predictionService).updatePrediction(Mockito.eq(99L), any(), any(), any(), any());
+                .when(predictionService).updatePrediction(Mockito.eq(99L), any(), any(), any());
 
         mockMvc.perform(put("/api/predictions/99")
                         .contentType(MediaType.APPLICATION_JSON)
