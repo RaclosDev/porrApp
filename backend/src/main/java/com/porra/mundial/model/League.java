@@ -68,11 +68,6 @@ public class League {
         return adminUser != null ? adminUser.getParticipantName() : null;
     }
 
-    @Transient
-    public void setAdminParticipantName(String name) {
-        // Valor derivado; el setter se ignora a propósito.
-    }
-
     /** URL pública (versionada) de la imagen de la liga, o null si no tiene. */
     @com.fasterxml.jackson.annotation.JsonProperty("imageUrl")
     @Transient

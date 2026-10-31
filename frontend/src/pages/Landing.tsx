@@ -1,3 +1,4 @@
+import { Skeleton } from '../components/SkeletonBlock';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import MarkerHeading from '../components/landing/MarkerHeading';
@@ -88,13 +89,22 @@ export default function Landing() {
                 Va primero de {participants} en la Porra Global
               </p>
             </div>
+          ) : loading && !error ? (
+            <div
+              role="status"
+              aria-label="Cargando clasificación"
+              aria-busy="true"
+              className="flex items-end justify-center gap-3 p-4"
+            >
+              <Skeleton width="30%" height={150} radius={4} />
+              <Skeleton width="34%" height={190} radius={4} />
+              <Skeleton width="30%" height={130} radius={4} />
+            </div>
           ) : (
             <p className="text-[#4b5563] text-sm" role="status">
               {error
                 ? 'La clasificación no responde ahora mismo.'
-                : loading
-                  ? 'Cargando la clasificación…'
-                  : 'Todavía no hay cuadros en la Porra Global.'}
+                : 'Todavía no hay cuadros en la Porra Global.'}
             </p>
           )}
         </motion.div>

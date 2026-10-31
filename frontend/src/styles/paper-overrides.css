@@ -191,9 +191,7 @@
     border-color: var(--border-color);
   }
 
-  .paper-panel .league-admin-input,
-  .paper-panel .league-admin-textarea,
-  .paper-panel .league-admin-select {
+  .paper-panel .league-admin-textarea {
     background: var(--panel-bg);
     color: var(--ink);
     border-color: var(--input-border);

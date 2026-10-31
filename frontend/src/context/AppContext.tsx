@@ -71,7 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setIsAuthenticated = useAppStore((state) => state.setIsAuthenticated);
   const isUserAuthed = useAppStore((state) => state.isAuthenticated);
 
-  useWebSocket(userName, queryClient);
+  useWebSocket(queryClient);
 
   // Otra pestaña ha cambiado la cuenta compartida por la cookie. Recargar vacía todo el estado
   // anterior y recupera la identidad nueva sin revocar la sesión de esa otra pestaña.
@@ -424,7 +424,10 @@ export const useAppContext = () => {
     leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
     loading,
     loadingGroup,
-    groupError,
+    groupError:
+      groupInfo && (!isApiError(groupError) || groupError.status === 0 || groupError.status >= 500)
+        ? null
+        : groupError,
     /** Recarga los datos de la liga activa (tras guardar, aceptar o borrar un pronóstico). */
     fetchData: () =>
       Promise.all(

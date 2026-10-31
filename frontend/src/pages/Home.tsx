@@ -1,3 +1,5 @@
+import PaperLoading from '../components/PaperLoading';
+import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useSortedGroups } from '../hooks/useSortedGroups';
@@ -50,8 +52,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
 
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
-  if (loadingGroup) return <p role="status">Cargando liga...</p>;
-  if (groupError) return <p role="alert">No se pudo cargar la liga. Inténtalo de nuevo.</p>;
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (isMatchDayLeague) {
     return <MatchdayHomeDashboard />;
   }
@@ -63,24 +64,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
 
   const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;
   if (loading && !hasGroupsData) {
-    return (
-      <section className="view-section block">
-        <div className="groups-grid">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="skeleton-card">
-              <div className="skeleton skeleton-text short h-4.5 mb-3.5" />
-              {Array.from({ length: 4 }).map((_, j) => (
-                <div key={j} className="skeleton-row">
-                  <div className="skeleton skeleton-avatar" />
-                  <div className="skeleton skeleton-bar" />
-                  <div className="skeleton w-7 h-3.5 rounded-[4px]" />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-    );
+    return <PaperLoading label="Cargando grupos" />;
   }
 
   const renderGroup = (groupName: string, teams: TeamOdds[]) => {
@@ -123,11 +107,11 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
             posColor = 'var(--champion-gold)';
             borderLeftStyle = '3px solid var(--champion-gold)';
           } else if (idx === 1) {
-            posColor = '#e0e0e0';
-            borderLeftStyle = '3px solid #e0e0e0';
+            posColor = 'var(--text-muted)';
+            borderLeftStyle = '3px solid var(--text-muted)';
           } else if (idx === 2) {
-            posColor = '#cd7f32';
-            borderLeftStyle = '3px solid #cd7f32';
+            posColor = 'var(--champion-gold)';
+            borderLeftStyle = '3px solid var(--champion-gold)';
           }
 
           let statusDot = null;

@@ -1,3 +1,5 @@
+import PaperLoading from '../components/PaperLoading';
+import LeagueLoadState from '../components/LeagueLoadState';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
@@ -10,18 +12,8 @@ import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 
 function MatchdayPredictor() {
   const context = useAppContext();
-  if (context.loadingGroup)
-    return (
-      <p className="p-6 text-center text-muted" role="status">
-        Cargando liga…
-      </p>
-    );
-  if (context.groupError)
-    return (
-      <p className="p-6 text-center text-[#ff7675]" role="alert">
-        No se pudo cargar la liga. Inténtalo de nuevo.
-      </p>
-    );
+  if (context.loadingGroup || context.groupError)
+    return <LeagueLoadState error={context.groupError} />;
   return (
     <MatchdayLeague
       key={`${context.userId || context.userName}:${context.activeGroupId}`}
@@ -72,14 +64,14 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         />
       )}
 
-      {md.isLoading && (
-        <div className="text-center p-10 text-muted">Cargando partidos y pronósticos...</div>
-      )}
+      {md.isLoading && <PaperLoading label="Cargando partidos y predicciones" embedded />}
 
       {md.isError && (
         <p role="alert">
           No se pudieron cargar los partidos.{' '}
-          <button onClick={() => md.refetch()}>Reintentar</button>
+          <button type="button" className="glass-btn" onClick={() => md.refetch()}>
+            Reintentar
+          </button>
         </p>
       )}
       {!md.isLoading && !md.isError && md.fixtures.length === 0 && (

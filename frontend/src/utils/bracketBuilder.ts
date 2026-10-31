@@ -20,7 +20,7 @@ export function matchWinner(m: Match): string | null {
 }
 
 /** Partido de eliminatorias (no de fase de grupos ni de liga). */
-export const isKnockoutMatch = (m: Match | null | undefined) => {
+const isKnockoutMatch = (m: Match | null | undefined) => {
   if (!m) return false;
   if (m.groupName && m.groupName !== '-' && m.groupName.trim() !== '') return false;
   const r = (m.round || '').toLowerCase().trim();

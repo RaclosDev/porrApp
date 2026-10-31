@@ -6,6 +6,8 @@ El workflow de GitHub Actions es la referencia de los controles exigidos. En fro
 
 Para una medición limpia del backend, ejecuta `./mvnw -B clean test` (en Windows, `.\mvnw.cmd -B clean test`). Para el frontend: `npm ci`, `npm run lint`, `npm run test:coverage`, `npm run build`, `npx playwright install chromium` y `npm run test:e2e`. No hacen falta credenciales de producción.
 
+TypeScript rechaza variables, imports y parámetros no utilizados tanto en la aplicación como en la configuración y las pruebas de navegador. Los exports compartidos y las clases CSS dinámicas requieren revisar sus consumidores antes de eliminarlos.
+
 Los umbrales actuales conservan la cobertura observada durante la revisión del 31 de octubre de 2026. Se pueden subir conforme crezcan las pruebas; no deben bajarse para hacer pasar un cambio sin explicar qué cobertura se pierde.
 
 ## Qué prueban los distintos niveles
@@ -14,7 +16,7 @@ Los umbrales actuales conservan la cobertura observada durante la revisión del 
 - Las pruebas de concurrencia usan respuestas diferidas para comprobar cambios de cuenta, orden de las operaciones de sesión, pagos simultáneos y respuestas de una liga que llegan después de seleccionar otra. Las ráfagas de WebSocket se prueban con consultas activas, contando peticiones y cancelaciones.
 - Las integraciones con PostgreSQL verifican migraciones, restricciones reales, persistencia y arranque de Spring. También comprueban que una importación fallida revierte partidos y puntuaciones, conserva las cachés anteriores y no emite actualizaciones de resultados. Un mock de repositorio no reproduce restricciones únicas ni el orden de las escrituras de Hibernate.
 - Las pruebas de la PWA usan Cache Storage y un service worker real en Chromium. Comprueban que una actualización borra la caché antigua de la API y que una petición sin conexión no recupera datos privados de otra sesión.
-- Las pruebas de interfaz cubren la portada, el diálogo de acceso y la entrada y salida de la demo, en tamaños de escritorio y móvil. La API está simulada y los servicios externos bloqueados. No comprueban el consentimiento de Google, todas las pantallas, ni todos los navegadores.
+- Las pruebas de interfaz cubren la portada, el diálogo de acceso y la entrada y salida de la demo, en tamaños de escritorio y móvil. También fuerzan una carga lenta de la liga y un fallo recuperable, y comprueban el reintento sin cambiar de pantalla y la preferencia de movimiento reducido. También comprueban que las cargas de datos posteriores conservan las hojas de papel y que el selector de equipos mantiene un contraste mínimo de 4,5:1, permite seleccionar y no desborda en móvil ni escritorio. La API está simulada y los servicios externos bloqueados. No comprueban el consentimiento de Google, todas las pantallas, ni todos los navegadores.
 
 ## Límites conocidos
 

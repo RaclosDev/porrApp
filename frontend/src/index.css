@@ -17,3 +17,5 @@
 @import './styles/paper-overrides.css';
 @import './styles/bracket-layout.css';
 @import './styles/paper-details.css';
+
+@import './styles/league-loading.css';

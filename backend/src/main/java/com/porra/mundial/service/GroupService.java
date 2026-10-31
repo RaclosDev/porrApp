@@ -1,12 +1,8 @@
 package com.porra.mundial.service;
 
 import java.util.Map;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.Set;
 import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
-import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.League;
@@ -29,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
-import com.porra.mundial.model.MatchPrediction;
 import java.util.Optional;
 import java.util.stream.Collectors;
 

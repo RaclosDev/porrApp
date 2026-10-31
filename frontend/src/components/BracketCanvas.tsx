@@ -5,9 +5,9 @@ import MobileBracket from './MobileBracket';
 import BracketFinale from './BracketFinale';
 import type { BracketTeam } from '../store/useAppStore';
 
-export const SLOT_H = 36;
+const SLOT_H = 36;
 export const MATCH_H = SLOT_H * 2 + 2; // 74px
-export const R32_PITCH = MATCH_H + 14; // 88px
+const R32_PITCH = MATCH_H + 14; // 88px
 
 const leafTop = (i: number) => i * R32_PITCH;
 
@@ -15,7 +15,7 @@ const leafTop = (i: number) => i * R32_PITCH;
  * Posición Y (top) de un partido, centrado respecto a sus dos partidos de la ronda anterior.
  * `r`: 0 = dieciseisavos, 1 = octavos, 2 = cuartos, 3 = semis; `i`: índice en la ronda.
  */
-export function matchTop(r: number, i: number): number {
+function matchTop(r: number, i: number): number {
   if (r === 0) return leafTop(i);
   return (matchTop(r - 1, i * 2) + matchTop(r - 1, i * 2 + 1)) / 2;
 }

@@ -62,20 +62,6 @@ export default function ChartCanvas({
           setHoveredUser(null);
         }}
       >
-        <defs>
-          <filter
-            id="line-glow"
-            filterUnits="userSpaceOnUse"
-            x="-1000"
-            y="-1000"
-            width="4000"
-            height="3000"
-          >
-            <feGaussianBlur stdDeviation="3.5" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-
         {mode === 'rank'
           ? Array.from({ length: maxRank }, (_, i) => i + 1).map((rk) => {
               const y = getY(rk, true);
@@ -86,7 +72,7 @@ export default function ChartCanvas({
                     y1={y}
                     x2={width - padding.right}
                     y2={y}
-                    stroke="rgba(255,255,255,0.06)"
+                    stroke="rgba(17,24,39,0.06)"
                     strokeDasharray="4 4"
                   />
                   <text
@@ -95,7 +81,7 @@ export default function ChartCanvas({
                     fontSize="11"
                     textAnchor="end"
                     fontWeight={rk === 1 ? 'bold' : 'normal'}
-                    fill={rk === 1 ? '#00d2d3' : 'var(--text-muted)'}
+                    fill={rk === 1 ? 'var(--accent-cyan)' : 'var(--text-muted)'}
                   >
                     {rk === 1 ? '🥇 1º' : `${rk}º`}
                   </text>
@@ -111,7 +97,7 @@ export default function ChartCanvas({
                     y1={y}
                     x2={width - padding.right}
                     y2={y}
-                    stroke="rgba(255,255,255,0.06)"
+                    stroke="rgba(17,24,39,0.06)"
                     strokeDasharray="4 4"
                   />
                   <text
@@ -147,7 +133,7 @@ export default function ChartCanvas({
                 y={padding.top}
                 width={colWidth}
                 height={chartH}
-                fill={isHovered ? 'rgba(0, 210, 211, 0.12)' : 'transparent'}
+                fill={isHovered ? 'rgba(11, 95, 116, 0.12)' : 'transparent'}
               />
               <line
                 x1={x}
@@ -156,10 +142,10 @@ export default function ChartCanvas({
                 y2={padding.top + chartH}
                 stroke={
                   isHovered
-                    ? 'rgba(0, 210, 211, 0.6)'
+                    ? 'rgba(11, 95, 116, 0.6)'
                     : st.isRoundBoundary
-                      ? 'rgba(255,255,255,0.15)'
-                      : 'rgba(255,255,255,0.04)'
+                      ? 'rgba(17,24,39,0.15)'
+                      : 'rgba(17,24,39,0.04)'
                 }
                 strokeWidth={isHovered ? 2 : st.isRoundBoundary ? 1.5 : 1}
                 strokeDasharray={st.isRoundBoundary && !isHovered ? '3 3' : undefined}
@@ -168,7 +154,7 @@ export default function ChartCanvas({
                 <text
                   x={x}
                   y={height - 12}
-                  fill={isHovered ? '#00d2d3' : '#aaa'}
+                  fill={isHovered ? 'var(--accent-cyan)' : 'var(--text-muted)'}
                   fontSize={isHovered ? '12' : '11'}
                   fontWeight={isHovered ? 'bold' : 'normal'}
                   textAnchor="middle"
@@ -217,7 +203,6 @@ export default function ChartCanvas({
                 strokeLinejoin="round"
                 strokeDasharray={u.isMe && !isHovered ? 'none' : undefined}
                 points={points}
-                filter={isHovered || u.isMe ? 'url(#line-glow)' : undefined}
               />
               {activeStages.map((st, idx) => {
                 let val = mode === 'rank' ? u.rankEvolution[idx] : u.pointsEvolution[idx];
@@ -242,7 +227,7 @@ export default function ChartCanvas({
                     cy={cy}
                     r={dotRadius}
                     fill={u.color}
-                    stroke="#0f0f1a"
+                    stroke="var(--paper)"
                     strokeWidth="2"
                   />
                 );

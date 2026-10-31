@@ -11,7 +11,7 @@ import { orderR32, legacyR32Order, topologyVersion, type TopologyVersion } from 
 /** Hueco de un cruce: nombre o equipo del cuadro, según de dónde venga. */
 type SlotLike = string | { name?: string } | null | undefined;
 
-export const WORLD_CUP_2026_GROUPS = {
+const WORLD_CUP_2026_GROUPS = {
   A: ['México', 'Sudáfrica', 'Corea del Sur', 'Chequia'],
   B: ['Canadá', 'Bosnia y Her.', 'Catar', 'Suiza'],
   C: ['Brasil', 'Marruecos', 'Haití', 'Escocia'],
