@@ -58,6 +58,7 @@ public class SyncService {
     private final WebSocketService webSocketService;
     private final ScoreInvalidationService scoreInvalidationService;
     private final PlatformTransactionManager transactionManager;
+    private final TopScorerService topScorerService;
 
     private final ReentrantLock syncLock = new ReentrantLock();
 
@@ -117,10 +118,16 @@ public class SyncService {
             }
             List<CompetitionSync> results = new ArrayList<>();
             for (Competition competition : competitions) {
+                if (Thread.currentThread().isInterrupted()) {
+                    results.add(CompetitionSync.failed(competition.getName(), STATUS_ERROR, "Sincronización interrumpida"));
+                    break;
+                }
                 results.add(syncCompetition(competition));
             }
-            if (worldCupRefreshPending || results.stream().anyMatch(CompetitionSync::worldCupResultsChanged)) {
+            worldCupRefreshPending |= results.stream().anyMatch(CompetitionSync::worldCupResultsChanged);
+            if (worldCupRefreshPending && !Thread.currentThread().isInterrupted()) {
                 results.add(refreshWorldCup(competitions));
+                topScorerService.refresh();
             }
             if (results.stream().anyMatch(r -> r.matchesUpdated() > 0 || r.teamsUpdated() > 0)) {
                 webSocketService.notifyResultsChanged();
@@ -153,7 +160,7 @@ public class SyncService {
                     try {
                         processEvents(provider.fetchScoreboardEvents(slug, day.format(ESPN_DATE)), teams, batch);
                     } catch (Exception e) {
-                        log.debug("Sin eventos el {} para {}: {}", day, slug, e.getMessage());
+                        batch.recordError(day + ": " + e.getMessage());
                     }
                 }
             }
@@ -167,8 +174,8 @@ public class SyncService {
 
             // Si el breaker se ha abierto durante la pasada, las respuestas vacías no eran datos reales.
             boolean available = provider.isAvailable();
-            return new CompetitionSync(competition.getName(), available ? STATUS_SUCCESS : STATUS_CIRCUIT_OPEN,
-                    batch.matchesUpdated(), batch.teamsUpdated(), available ? null : "circuit breaker abierto",
+            return new CompetitionSync(competition.getName(), batch.hasErrors() ? STATUS_ERROR : available ? STATUS_SUCCESS : STATUS_CIRCUIT_OPEN,
+                    batch.matchesUpdated(), batch.teamsUpdated(), batch.hasErrors() ? batch.errorMessage() : available ? null : "circuit breaker abierto",
                     worldCup && batch.resultsChanged());
         } catch (Exception e) {
             log.error("Falló la sincronización de {} con {}: {}", competition.getName(), provider.getProviderName(), e.getMessage(), e);
@@ -195,7 +202,11 @@ public class SyncService {
             throw new IllegalStateException("Importación interrumpida de la competición " + competitionId, e);
         }
         try {
-            return new TransactionTemplate(transactionManager).execute(status -> doImportCompetitionData(competitionId));
+            ImportResult result = new TransactionTemplate(transactionManager).execute(status -> doImportCompetitionData(competitionId));
+            if (competitionRepository.findById(competitionId).filter(SyncService::isWorldCup).isPresent()) {
+                topScorerService.refresh();
+            }
+            return result;
         } finally {
             syncLock.unlock();
         }
@@ -239,7 +250,7 @@ public class SyncService {
                     processEvent(event, teams, batch);
                 }
             } catch (Exception e) {
-                log.debug("Sin eventos de {} en {}: {}", slug, year, e.getMessage());
+                batch.recordError(year + ": " + e.getMessage());
             }
         }
 
@@ -249,6 +260,7 @@ public class SyncService {
             }
             scoreInvalidationService.invalidateCompetition(competition.getId());
         }
+        if (batch.hasErrors()) throw new IllegalStateException("Importación incompleta: " + batch.errorMessage());
         log.info("Importados {} equipos y {} partidos de {}", importedTeams, batch.matchesUpdated(), competition.getName());
         return new ImportResult(competition.getName(), importedTeams, batch.matchesUpdated());
     }
@@ -291,6 +303,7 @@ public class SyncService {
     private void processEvents(JsonNode events, Map<String, Team> teams, MatchEventProcessor.Batch batch) {
         if (events == null || !events.isArray()) return;
         for (JsonNode event : events) {
+            if (Thread.currentThread().isInterrupted()) throw new IllegalStateException("Sincronización interrumpida");
             processEvent(event, teams, batch);
         }
     }
@@ -300,6 +313,7 @@ public class SyncService {
         try {
             matchEventProcessor.process(event, teams, batch);
         } catch (Exception e) {
+            batch.recordError("Evento " + event.path("id").asText("?") + ": " + e.getMessage());
             log.warn("Evento {} de {} omitido: {}", event.path("id").asText("?"),
                     batch.competitionName(), e.getMessage(), e);
         }

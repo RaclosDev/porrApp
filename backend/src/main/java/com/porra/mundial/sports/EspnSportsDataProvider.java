@@ -2,7 +2,6 @@ package com.porra.mundial.sports;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import lombok.RequiredArgsConstructor;
@@ -84,7 +83,8 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         JsonNode root = executeGet(url);
         if (root == null) return objectMapper.createArrayNode();
         JsonNode events = root.path("events");
-        return events.isArray() ? events : objectMapper.createArrayNode();
+        if (!events.isArray()) throw new IOException("ESPN devolvió un marcador sin events");
+        return events;
     }
 
     @Override
@@ -133,21 +133,16 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         return dates;
     }
 
-    /**
-     * GET a ESPN a través del circuit breaker. Nunca lanza: ante cualquier fallo devuelve null.
-     * Los timeouts, errores de red y respuestas 5xx o 429 cuentan como fallos del breaker; con él
-     * abierto no se llama a ESPN hasta que pase el tiempo de espera configurado.
-     */
-    private JsonNode executeGet(String url) {
+    /** Un fallo no equivale a una jornada vacía; el sincronizador registra el error. */
+    private JsonNode executeGet(String url) throws Exception {
         CircuitBreaker breaker = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER);
         try {
-            return breaker.executeCallable(() -> request(url));
-        } catch (CallNotPermittedException e) {
-            log.debug("Circuit breaker de ESPN abierto: no se pide {}", url);
-            return null;
-        } catch (Exception e) {
-            log.warn("Failed ESPN request to {}: {}", url, e.getMessage());
-            return null;
+            JsonNode result = breaker.executeCallable(() -> request(url));
+            if (result == null) throw new IOException("ESPN no devolvió datos válidos");
+            return result;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw e;
         }
     }
 

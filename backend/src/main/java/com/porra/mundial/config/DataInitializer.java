@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+
 
 /**
  * Prepara los datos base al arrancar:
@@ -48,6 +48,7 @@ public class DataInitializer implements CommandLineRunner {
     private final StandingsService standingsService;
     private final KnockoutBracketService knockoutBracketService;
     private final ObjectMapper objectMapper;
+    private final InitialSyncExecutor initialSyncExecutor;
 
     /** Equipo del fichero de semilla con sus probabilidades iniciales. */
     record TeamSeed(String name, String group, double winOdds, double qualifyOdds, double outrightOdds) {
@@ -63,7 +64,12 @@ public class DataInitializer implements CommandLineRunner {
 
         seedWorldCupTeamsIfMissing();
 
-        CompletableFuture.runAsync(this::runInitialSync);
+
+    }
+
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    public void startInitialSync() {
+        initialSyncExecutor.execute(this::runInitialSync);
     }
 
     private void seedCompetitionIfMissing(String name, String externalId, String formatType) {
@@ -126,6 +132,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void runStep(String description, Runnable step) {
+        if (Thread.currentThread().isInterrupted()) return;
         try {
             step.run();
         } catch (Exception e) {

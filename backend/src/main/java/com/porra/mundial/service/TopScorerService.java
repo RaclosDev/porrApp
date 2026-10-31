@@ -6,7 +6,6 @@ import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.dto.TopScorerDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -49,8 +48,10 @@ public class TopScorerService {
     // Cached list of top scorers (thread-safe)
     private final AtomicReference<List<TopScorerDTO>> cachedScorers = new AtomicReference<>(Collections.emptyList());
 
-    // Persistent cache of player name -> image URL (avoids re-fetching every 30 min)
-    private final Map<String, String> imageCache = new java.util.concurrent.ConcurrentHashMap<>();
+    // También se cachean búsquedas vacías; las imágenes se vuelven a buscar a las seis horas.
+    private record CachedImage(String url, long expiresAt) {}
+    private final Map<String, CachedImage> imageCache = new LinkedHashMap<>();
+    private static final long IMAGE_CACHE_TTL_MS = Duration.ofHours(6).toMillis();
 
     // Hardcoded cartoon URLs for known pichichi contenders (from thesportsdb)
     private static final Map<String, String> CARTOON_MAP = new HashMap<>(Map.of(
@@ -66,8 +67,11 @@ public class TopScorerService {
         refresh();
     }
 
-    /** También se llama al terminar un partido. */
+    private final java.util.concurrent.locks.ReentrantLock refreshLock = new java.util.concurrent.locks.ReentrantLock();
+
+    /** Una sola actualización simultánea; las llamadas solapadas aprovechan la que está en curso. */
     public void refresh() {
+        if (!refreshLock.tryLock()) return;
         try {
             JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);
             if (events == null) return;
@@ -77,11 +81,10 @@ public class TopScorerService {
             Map<String, String> playerPositions = new HashMap<>();
             Map<String, String> playerIds = new HashMap<>();
             Map<String, String> playerTeams = new HashMap<>();
-            Map<String, String> playerImages = new HashMap<>();
 
-            processEvents(events, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams, playerImages);
+            processEvents(events, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
 
-            List<TopScorerDTO> scorers = buildScorersList(playerGoals, playerShortNames, playerPositions, playerIds, playerTeams, playerImages);
+            List<TopScorerDTO> scorers = buildScorersList(playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
             List<TopScorerDTO> previous = cachedScorers.get();
             if (scorers.isEmpty() && !previous.isEmpty()) {
                 // Los goles no se pierden: una lista vacía tras tener goleadores es que ESPN no ha respondido.
@@ -101,6 +104,8 @@ public class TopScorerService {
 
         } catch (Exception e) {
             log.error("TopScorerService: Failed to fetch scorers from ESPN: {}", e.getMessage());
+        } finally {
+            refreshLock.unlock();
         }
     }
 
@@ -108,7 +113,7 @@ public class TopScorerService {
 
     private void processEvents(JsonNode events, Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                Map<String, String> playerPositions, Map<String, String> playerIds,
-                               Map<String, String> playerTeams, Map<String, String> playerImages) {
+                               Map<String, String> playerTeams) {
         for (JsonNode event : events) {
             JsonNode competitionNode = event.path("competitions").get(0);
             if (competitionNode == null) continue;
@@ -118,7 +123,7 @@ public class TopScorerService {
             if (!details.isArray()) continue;
 
             for (JsonNode detail : details) {
-                processDetail(detail, teamNames, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams, playerImages);
+                processDetail(detail, teamNames, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
             }
         }
     }
@@ -139,7 +144,7 @@ public class TopScorerService {
     private void processDetail(JsonNode detail, Map<String, String> teamNames,
                                Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                Map<String, String> playerPositions, Map<String, String> playerIds,
-                               Map<String, String> playerTeams, Map<String, String> playerImages) {
+                               Map<String, String> playerTeams) {
         if (!detail.path("scoringPlay").asBoolean(false)) return;
         if (detail.path("ownGoal").asBoolean(false)) return;
 
@@ -154,14 +159,12 @@ public class TopScorerService {
         String position = scorer.path("position").asText("");
         String playerId = scorer.path("id").asText("");
         String teamName = getTeamName(scorer, detail, teamNames);
-        String imageUrl = fetchImageUrl(fullName);
 
         playerGoals.computeIfAbsent(fullName, k -> new int[1])[0]++;
         playerShortNames.put(fullName, shortName);
         playerPositions.put(fullName, position);
         playerIds.put(fullName, playerId);
         playerTeams.put(fullName, teamName);
-        playerImages.put(fullName, imageUrl);
     }
 
     private String getShortName(JsonNode scorer, String fullName) {
@@ -193,10 +196,17 @@ public class TopScorerService {
         String imageUrl = CARTOON_MAP.get(fullName);
         if (imageUrl != null) return imageUrl;
         
-        imageUrl = imageCache.get(fullName);
-        if (imageUrl != null && !imageUrl.isEmpty()) return imageUrl;
+        long now = System.currentTimeMillis();
+        CachedImage cached = imageCache.get(fullName);
+        if (cached != null && cached.expiresAt() > now) return cached.url();
+        String resolved = lookupImageUrl(fullName);
+        if (imageCache.size() >= 1000) imageCache.remove(imageCache.keySet().iterator().next());
+        imageCache.put(fullName, new CachedImage(resolved, now + IMAGE_CACHE_TTL_MS));
+        return resolved;
+    }
 
-        imageUrl = "";
+    private String lookupImageUrl(String fullName) {
+        String imageUrl = "";
         try {
             String encodedName = java.net.URLEncoder.encode(fullName, "UTF-8").replace("+", "%20");
             
@@ -236,19 +246,18 @@ public class TopScorerService {
                 }
             }
         } catch (Exception e) {
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
             log.warn("TopScorerService: image lookup failed for {}: {}", fullName, e.getMessage());
-        }
-        if (imageUrl != null && !imageUrl.isEmpty()) {
-            imageCache.put(fullName, imageUrl);
         }
         return imageUrl != null ? imageUrl : "";
     }
 
     private List<TopScorerDTO> buildScorersList(Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                                        Map<String, String> playerPositions, Map<String, String> playerIds,
-                                                       Map<String, String> playerTeams, Map<String, String> playerImages) {
+                                                       Map<String, String> playerTeams) {
         List<TopScorerDTO> scorers = new ArrayList<>();
         for (Map.Entry<String, int[]> entry : playerGoals.entrySet()) {
+            if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException("Refresco interrumpido");
             String name = entry.getKey();
             scorers.add(new TopScorerDTO(
                     name,
@@ -257,7 +266,7 @@ public class TopScorerService {
                     playerPositions.getOrDefault(name, ""),
                     playerIds.getOrDefault(name, ""),
                     playerTeams.getOrDefault(name, ""),
-                    playerImages.getOrDefault(name, "")));
+                    fetchImageUrl(name)));
         }
         scorers.sort(Comparator.comparingInt(TopScorerDTO::goals).reversed());
         return scorers;

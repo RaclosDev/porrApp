@@ -23,7 +23,7 @@ public interface SportsDataProvider {
 
     /**
      * Si se le puede llamar ahora. Un proveedor con el circuit breaker abierto tras fallos repetidos
-     * devuelve respuestas vacías sin llamar a la API, y la sincronización no las debe dar por buenas.
+     * no llama a la API; los fallos de una petición se propagan, no equivalen a un calendario vacío.
      */
     default boolean isAvailable() {
         return true;

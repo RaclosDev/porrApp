@@ -46,6 +46,15 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
+    void providerFailurePropagatesBeforeTheBreakerOpens() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(503);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> provider.fetchScoreboardEvents("esp.1", "20261025"));
+        assertTrue(provider.isAvailable());
+    }
+
+    @Test
     @DisplayName("Debe reportar ESPN como nombre del proveedor")
     void getProviderName_returnsEspn() {
         assertEquals("ESPN", provider.getProviderName());
@@ -105,18 +114,14 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
-    @DisplayName("Debe retornar array vacío de forma segura si la respuesta no es un JSON válido")
+    @DisplayName("Una respuesta no JSON se comunica como fallo")
     void fetchScoreboardEvents_handlesNonJsonResponseGracefully() throws Exception {
         when(httpResponse.statusCode()).thenReturn(200);
         when(httpResponse.body()).thenReturn("<html><body>Error</body></html>".getBytes(StandardCharsets.UTF_8));
         when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
-        JsonNode events = provider.fetchScoreboardEvents("esp.1", "20261024");
-
-        assertNotNull(events);
-        assertTrue(events.isArray());
-        assertEquals(0, events.size());
+        assertThrows(java.io.IOException.class, () -> provider.fetchScoreboardEvents("esp.1", "20261024"));
     }
 
     @Test
@@ -137,29 +142,21 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
-    @DisplayName("Debe manejar timeouts de conexión con ESPN retornando array vacío sin romper la app")
+    @DisplayName("Un timeout se propaga al sincronizador")
     void fetchScoreboardEvents_handlesTimeoutGracefully() throws Exception {
         when(httpClient.<byte[]>send(any(HttpRequest.class), any()))
                 .thenThrow(new java.net.http.HttpConnectTimeoutException("ESPN connection timed out"));
 
-        JsonNode events = provider.fetchScoreboardEvents("esp.1", "20261025");
-
-        assertNotNull(events);
-        assertTrue(events.isArray());
-        assertEquals(0, events.size(), "Debe retornar un ArrayNode vacío ante timeout");
+        assertThrows(java.io.IOException.class, () -> provider.fetchScoreboardEvents("esp.1", "20261025"));
     }
 
     @Test
-    @DisplayName("Debe manejar errores HTTP 500 y 503 retornando respuesta segura")
+    @DisplayName("Un error HTTP 500 o 503 se comunica al sincronizador")
     void fetchScoreboardEvents_handlesHttp500() throws Exception {
         when(httpResponse.statusCode()).thenReturn(503);
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
-        JsonNode events = provider.fetchScoreboardEvents("esp.1", "20261025");
-
-        assertNotNull(events);
-        assertTrue(events.isArray());
-        assertEquals(0, events.size());
+        assertThrows(java.io.IOException.class, () -> provider.fetchScoreboardEvents("esp.1", "20261025"));
     }
 
     /** Breaker que se abre con dos fallos de dos llamadas. */
@@ -179,12 +176,11 @@ class EspnSportsDataProviderTest {
         when(httpResponse.statusCode()).thenReturn(503);
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
-        sensitive.fetchScoreboardEvents("esp.1", "20261025");
-        sensitive.fetchScoreboardEvents("esp.1", "20261026");
-        JsonNode events = sensitive.fetchScoreboardEvents("esp.1", "20261027");
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261025"));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261026"));
+        assertThrows(io.github.resilience4j.circuitbreaker.CallNotPermittedException.class,
+                () -> sensitive.fetchScoreboardEvents("esp.1", "20261027"));
 
-        assertTrue(events.isArray());
-        assertEquals(0, events.size());
         assertFalse(sensitive.isAvailable());
         verify(httpClient, times(2)).send(any(HttpRequest.class), any());
     }
@@ -196,9 +192,9 @@ class EspnSportsDataProviderTest {
         when(httpResponse.statusCode()).thenReturn(404);
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
-        sensitive.fetchScoreboardEvents("esp.1", "20261025");
-        sensitive.fetchScoreboardEvents("esp.1", "20261026");
-        sensitive.fetchScoreboardEvents("esp.1", "20261027");
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261025"));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261026"));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261027"));
 
         assertTrue(sensitive.isAvailable());
         verify(httpClient, times(3)).send(any(HttpRequest.class), any());

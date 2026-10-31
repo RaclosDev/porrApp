@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 /**
  * Traduce los eventos y equipos del marcador de ESPN a entidades {@link Match} y {@link Team}.
  * Solo guarda cambios reales y, cuando un partido termina, dispara la evaluación de pronósticos
- * y el refresco de goleadores.
+ *; el sincronizador refresca los goleadores una vez al terminar la pasada.
  */
 @Component
 @RequiredArgsConstructor
@@ -39,7 +39,6 @@ public class MatchEventProcessor {
     private final TeamRepository teamRepository;
     private final MatchRepository matchRepository;
     private final MatchPredictionService matchPredictionService;
-    private final TopScorerService topScorerService;
     private final WebSocketService webSocketService;
 
     /** Se sustituye entero al refrescar: quien ya tiene el mapa anterior no lo ve vaciarse a medias. */
@@ -52,6 +51,11 @@ public class MatchEventProcessor {
         private int teamsUpdated;
         private int matchesUpdated;
         private boolean resultsChanged;
+        private final java.util.List<String> errors = new java.util.ArrayList<>();
+
+        void recordError(String error) { errors.add(error); }
+        boolean hasErrors() { return !errors.isEmpty(); }
+        String errorMessage() { return String.join("; ", errors); }
 
         public Batch(Competition competition) {
             this.competition = competition;
@@ -82,7 +86,8 @@ public class MatchEventProcessor {
         }
     }
 
-    private record MatchStatus(boolean live, boolean finished, String displayClock) {
+    private record MatchStatus(MatchStatusNormalized normalized, boolean finished, String displayClock) {
+        boolean live() { return normalized.isLive(); }
     }
 
     private record Competitor(JsonNode node, String nameEn, String espnId) {
@@ -183,9 +188,17 @@ public class MatchEventProcessor {
 
     private MatchStatus parseStatus(JsonNode competition) {
         JsonNode type = competition.path("status").path("type");
-        return new MatchStatus(
-                "in".equals(type.path("state").asText("")),
-                type.path("completed").asBoolean(false),
+        String name = type.path("name").asText("").toUpperCase(java.util.Locale.ROOT).replace("STATUS_", "");
+        MatchStatusNormalized normalized = switch (name) {
+            case "CANCELED", "CANCELLED" -> MatchStatusNormalized.CANCELLED;
+            case "POSTPONED" -> MatchStatusNormalized.POSTPONED;
+            case "SUSPENDED" -> MatchStatusNormalized.SUSPENDED;
+            case "ABANDONED" -> MatchStatusNormalized.ABANDONED;
+            case "HALFTIME" -> MatchStatusNormalized.PAUSED;
+            default -> MatchStatusNormalized.fromExternal(type.path("state").asText(""),
+                    type.path("completed").asBoolean(false));
+        };
+        return new MatchStatus(normalized, normalized == MatchStatusNormalized.FINISHED,
                 competition.path("status").path("displayClock").asText(null));
     }
 
@@ -360,8 +373,7 @@ public class MatchEventProcessor {
                 | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
         updated |= fairPlayChanged;
 
-        MatchStatusNormalized normalized = MatchStatusNormalized.fromExternal(
-                status.live() ? "in" : (status.finished() ? "completed" : "scheduled"), status.finished());
+        MatchStatusNormalized normalized = status.normalized();
         updated |= setIfChanged(match.getStatus(), normalized, match::setStatus);
 
         if (updated) {
@@ -378,7 +390,7 @@ public class MatchEventProcessor {
                         match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
                         match.getHomeScore(),
                         match.getAwayScore(),
-                        status.finished() ? "FINISHED" : (status.live() ? "IN_PLAY" : "SCHEDULED"));
+                        normalized == MatchStatusNormalized.LIVE ? "IN_PLAY" : normalized.name());
             }
         }
 
@@ -401,12 +413,7 @@ public class MatchEventProcessor {
         } catch (Exception e) {
             log.warn("Falló la evaluación de pronósticos del partido", e);
         }
-        if (!resultChanged) return;
-        try {
-            topScorerService.refresh();
-        } catch (Exception e) {
-            log.warn("Falló el refresco de goleadores", e);
-        }
+
     }
 
     private static String teamName(Team team) {
