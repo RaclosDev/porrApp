@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import GroupMembersModal from '../../components/GroupMembersModal';
@@ -78,5 +78,59 @@ describe('GroupMembersModal: invalidación de la caché', () => {
 
     await waitFor(() => expect(invalidated).toContainEqual(['group', '1']));
     expect(invalidated).toContainEqual(['myGroups']);
+  });
+  it('keeps both rows locked and rolls back only the failed member', async () => {
+    const members = [
+      ...MEMBERS,
+      { userId: 3, participantName: 'Carla', paymentStatus: 'PENDING', isAdmin: false },
+    ];
+    api.fetchGroupMembers.mockResolvedValue(members);
+    let failBruno!: (error: Error) => void;
+    let finishCarla!: () => void;
+    api.toggleGroupMemberPayment.mockImplementation((_group: number, userId: number) =>
+      userId === 2
+        ? new Promise((_resolve, reject) => {
+            failBruno = reject;
+          })
+        : new Promise<void>((resolve) => {
+            finishCarla = resolve;
+          }),
+    );
+    setup();
+    const bruno = await screen.findByRole('button', {
+      name: 'Marcar el pago de Bruno como recibido',
+    });
+    fireEvent.click(bruno);
+    await waitFor(() => expect(api.toggleGroupMemberPayment).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Marcar el pago de Carla como recibido' }));
+    await waitFor(() => expect(api.toggleGroupMemberPayment).toHaveBeenCalledTimes(2));
+    expect(
+      screen.getByRole('button', { name: 'Marcar el pago de Bruno como pendiente' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Marcar el pago de Carla como pendiente' }),
+    ).toBeDisabled();
+    await act(async () => {
+      failBruno(new Error('Failed'));
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Marcar el pago de Bruno como recibido' }),
+      ).toBeEnabled(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Marcar el pago de Carla como pendiente' }),
+    ).toBeDisabled();
+    api.fetchGroupMembers.mockResolvedValue(
+      members.map((m) => (m.userId === 3 ? { ...m, paymentStatus: 'PAID' } : m)),
+    );
+    await act(async () => {
+      finishCarla();
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Marcar el pago de Carla como pendiente' }),
+      ).toBeEnabled(),
+    );
   });
 });

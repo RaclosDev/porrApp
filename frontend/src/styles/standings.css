@@ -225,7 +225,7 @@
   }
 
   .standings-table.is-complete .standings-team-cell {
-    width: 64px;
+    min-width: 180px;
     padding-left: 8px;
     padding-right: 8px;
   }

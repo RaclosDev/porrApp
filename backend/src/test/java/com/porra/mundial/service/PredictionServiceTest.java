@@ -39,6 +39,9 @@ class PredictionServiceTest {
     private EditionRepository editionRepository;@Mock
     private MembershipRepository membershipRepository;
 
+    @org.mockito.Spy
+    private BracketPredictionValidator bracketValidator = new BracketPredictionValidator(mock(com.porra.mundial.repository.TeamRepository.class));
+
     @InjectMocks
     private PredictionService predictionService;
 
@@ -49,8 +52,79 @@ class PredictionServiceTest {
     private Edition edition;
     private Prediction prediction;
 
+    @Test
+    void refusesMissingRequestedEditionInsteadOfSavingInGlobalLeague() {
+        group.setId(League.GLOBAL_ID);
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(999L, "ACTIVE")).thenReturn(Optional.empty());
+        lenient().when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        assertThrows(java.util.NoSuchElementException.class, () ->
+                predictionService.createPrediction("owner@test.com", "Mi liga", new PredictionDataDTO(), 999L));
+        verify(editionRepository, never()).findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE");
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    void refusesToSaveWithoutAnExistingUserAccount() {
+        when(userAccountRepository.findByGoogleEmail("missing@test.com")).thenReturn(Optional.empty());
+        lenient().when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        assertThrows(java.util.NoSuchElementException.class, () ->
+                predictionService.createPrediction("missing@test.com", "Sin cuenta", new PredictionDataDTO(), null));
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    void nullGroupExplicitlyUsesTheGlobalEdition() {
+        group.setId(League.GLOBAL_ID);
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(predictionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Prediction saved = predictionService.createPrediction("owner@test.com", "Global", new PredictionDataDTO(), null);
+        assertSame(edition, saved.getEdition());
+        assertSame(owner, saved.getUser());
+        verify(editionRepository).findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE");
+    }
+
+    @Test
+    void rejectsChangingTheTopologyOfAnExistingPredictionThroughUpdate() {
+        var stored = new PredictionDataDTO();
+        stored.setTopologyVersion(2);
+        prediction.setBracketData(stored);
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        assertThrows(IllegalArgumentException.class, () ->
+                predictionService.updatePrediction(1L, "owner@test.com", "Old client", new PredictionDataDTO()));
+        verify(predictionRepository, never()).save(any());
+        assertSame(stored, prediction.getBracketData());
+    }
+
+    @Test
+    void rejectsChangingHistoricalTopologyThroughUpsert() {
+        prediction.setBracketData(new PredictionDataDTO());
+        var canonical = new PredictionDataDTO();
+        canonical.setTopologyVersion(2);
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(membershipRepository.existsById(any())).thenReturn(true);
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("owner@test.com", 100L)).thenReturn(Optional.of(prediction));
+        assertThrows(IllegalArgumentException.class, () ->
+                predictionService.createPrediction("owner@test.com", "Nueva", canonical, 100L));
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    void canonicalPartialPredictionsAreNotFilledWithGuessedFinalistsOnRead() {
+        var data = new PredictionDataDTO();
+        data.setTopologyVersion(2);
+        data.setSf(List.of(List.of("A", "B"), List.of("C", "D")));
+        data.setChampion("A");
+        predictionService.ensureKnockoutFinals(data);
+        assertNull(data.getFinalMatch());
+        assertNull(data.getThirdPlaceMatch());
+    }
+
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(predictionService, "paymentService", new LeaguePaymentService(membershipRepository, predictionRepository));
 
         owner = UserAccount.builder()
                 .id(10L)
@@ -80,6 +154,8 @@ class PredictionServiceTest {
         edition = Edition.builder()
                 .id(1L)
                 .league(group)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY)
+                .competition(com.porra.mundial.model.Competition.builder().externalId("fifa.world").build())
                 .status("ACTIVE")
                 .build();
 
@@ -94,12 +170,21 @@ class PredictionServiceTest {
     }
 
     @Test
+    void rejectsBracketInMatchDayEdition() {
+        edition.setPoolFormat(com.porra.mundial.model.PoolFormat.MATCH_DAY);
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        assertThrows(IllegalArgumentException.class, () ->
+                predictionService.updatePrediction(1L, "owner@test.com", null, new PredictionDataDTO()));
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Dueño puede actualizar su propio pronostico")
     void ownerCanUpdateOwnPrediction() {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
         when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Prediction updated = predictionService.updatePrediction(1L, "owner@test.com", "OwnerUser", "Nuevo Nombre", null);
+        Prediction updated = predictionService.updatePrediction(1L, "owner@test.com", "Nuevo Nombre", null);
 
         assertNotNull(updated);
         assertEquals("Nuevo Nombre", updated.getName());
@@ -112,7 +197,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
         when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Prediction updated = predictionService.updatePrediction(1L, "admin@test.com", "OwnerUser", "Corregido por Admin", null);
+        Prediction updated = predictionService.updatePrediction(1L, "admin@test.com", "Corregido por Admin", null);
 
         assertNotNull(updated);
         assertEquals("Corregido por Admin", updated.getName());
@@ -125,7 +210,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
         when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        predictionService.updatePrediction(1L, "owner@test.com", null, null, new PredictionDataDTO());
+        predictionService.updatePrediction(1L, "owner@test.com", null, new PredictionDataDTO());
 
         assertNull(prediction.getScoreCalculatedAt());
     }
@@ -136,7 +221,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                predictionService.updatePrediction(1L, "stranger@test.com", "Hacker", "Robada", null)
+                predictionService.updatePrediction(1L, "stranger@test.com", "Robada", null)
         );
 
         verify(predictionRepository, never()).save(any());
@@ -148,7 +233,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(SecurityException.class, () ->
-                predictionService.updatePrediction(1L, null, "User", "Sin Auth", null)
+                predictionService.updatePrediction(1L, null, "Sin Auth", null)
         );
     }
 
@@ -172,9 +257,15 @@ class PredictionServiceTest {
         when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(groupAdmin));
 
+        Membership membership = Membership.builder().paymentStatus("PENDING").build();
+        when(membershipRepository.findById(any())).thenReturn(Optional.of(membership));
+        when(predictionRepository.findByUserIdAndEditionLeagueId(owner.getId(), group.getId()))
+                .thenReturn(List.of(prediction));
         Prediction paidPrediction = predictionService.markAsPaid(1L, "admin@test.com");
 
         assertTrue(paidPrediction.getPaid());
+        assertEquals("PAID", membership.getPaymentStatus());
+        verify(membershipRepository).save(membership);
         assertEquals(groupAdmin, paidPrediction.getPaymentMarkedBy());
         verify(predictionRepository).save(prediction);
     }
@@ -221,6 +312,7 @@ class PredictionServiceTest {
     @DisplayName("cannotCreatePredictionWhenEditionIsLocked")
     void cannotCreatePredictionWhenEditionIsLocked() {
         edition.setStatus("LOCKED");
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
         when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
 
         assertThrows(IllegalStateException.class, () ->
@@ -237,7 +329,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(IllegalStateException.class, () ->
-                predictionService.updatePrediction(1L, "owner@test.com", "OwnerUser", "Cambio", null)
+                predictionService.updatePrediction(1L, "owner@test.com", "Cambio", null)
         );
 
         verify(predictionRepository, never()).save(any());
@@ -251,7 +343,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(IllegalStateException.class, () ->
-                predictionService.updatePrediction(1L, "admin@test.com", "OwnerUser", "Fix de Admin", null)
+                predictionService.updatePrediction(1L, "admin@test.com", "Fix de Admin", null)
         );
         verify(predictionRepository, never()).save(any());
     }

@@ -47,6 +47,7 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
     private void evaluateGroupStage(ParticipantScoreDTO score, CalculationContext ctx) {
         if (ctx.part().getGroups() == null) return;
 
+        Set<String> awardedQualifiers = new HashSet<>();
         for (String g : ctx.part().getGroups().keySet()) {
             List<String> pTeams = ctx.part().getGroups().get(g);
             List<String> oTeams = (ctx.off() != null && ctx.off().getGroups() != null) ? ctx.off().getGroups().get(g) : null;
@@ -83,9 +84,9 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
             boolean p2Exact = actualO2 != null && actualO2.equals(p2);
             boolean p3Exact = actualO3 != null && actualO3.equals(p3) && p3Selected && p3ActuallyPassed;
 
-            awardGroupPoints(score, p1, g, "1º", p1Passed, p1Exact);
-            awardGroupPoints(score, p2, g, "2º", p2Passed, p2Exact);
-            awardGroupPoints(score, p3, g, "Mejor 3º", p3Passed, p3Exact);
+            if (p1 != null && awardedQualifiers.add(p1)) awardGroupPoints(score, p1, g, "1º", p1Passed, p1Exact);
+            if (p2 != null && awardedQualifiers.add(p2)) awardGroupPoints(score, p2, g, "2º", p2Passed, p2Exact);
+            if (p3 != null && awardedQualifiers.add(p3)) awardGroupPoints(score, p3, g, "Mejor 3º", p3Passed, p3Exact);
 
             Map<String, Object> exact = new HashMap<>();
             exact.put("1", p1Exact);
@@ -203,7 +204,7 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
     private void checkRound(ParticipantScoreDTO score, List<String> pTeams, Collection<String> oTeams, int pts, String stage, String msgTemplate) {
         if (pTeams == null || oTeams == null) return;
         List<String> flatO = oTeams.stream().filter(Objects::nonNull).collect(Collectors.toList());
-        for (String t : pTeams) {
+        for (String t : new LinkedHashSet<>(pTeams)) {
             if (t != null && flatO.contains(t)) {
                 award(score, pts, stage, String.format(msgTemplate, t));
             }

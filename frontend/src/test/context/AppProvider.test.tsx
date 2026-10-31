@@ -1,8 +1,8 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AppProvider, useAppContext } from '../../context/AppContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore, defaultBracketState } from '../../store/useAppStore';
 
 function ConsumerComponent() {
   const { allGames, nameToIdMap, officialPoints, groupOdds, leaderboardData } = useAppContext();
@@ -29,6 +29,28 @@ describe('AppProvider & useAppContext', () => {
       },
     });
     localStorage.clear();
+    useAppStore.setState({
+      activeGroupId: '',
+      userId: '',
+      isDemoMode: false,
+      bracketState: defaultBracketState,
+    });
+  });
+
+  it('replaces a malformed JSON draft without crashing the persistence effect', async () => {
+    localStorage.setItem('draft_bracket_u7_g42', JSON.stringify({ r32: {} }));
+    useAppStore.setState({ activeGroupId: '42', userId: '7' });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AppProvider>Ready</AppProvider>
+      </QueryClientProvider>,
+    );
+    await waitFor(() =>
+      expect(JSON.parse(localStorage.getItem('draft_bracket_u7_g42')!)).toEqual(
+        defaultBracketState,
+      ),
+    );
+    expect(screen.getByText('Ready')).toBeInTheDocument();
   });
 
   it('renders children without reference errors when unauthenticated', () => {

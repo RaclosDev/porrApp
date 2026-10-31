@@ -113,6 +113,7 @@ export const normalizePart = (
 
   // Final vacía pero con semifinales y campeón.
   if (
+    normalized.topologyVersion !== 2 &&
     (!normalized.final?.[0] || !normalized.final?.[1]) &&
     sf &&
     sf.length >= 2 &&
@@ -146,7 +147,11 @@ export const normalizePart = (
   }
 
   if (!hasValidGroupSelections(normalized.groups) && (normalized.r32 || normalized.r1)) {
-    const extracted = extractGroupsFromR32(normalized.r32 || normalized.r1, odds);
+    const extracted = extractGroupsFromR32(
+      normalized.r32 || normalized.r1,
+      odds,
+      normalized.topologyVersion,
+    );
     if (hasValidGroupSelections(extracted.groups)) {
       normalized.groups = extracted.groups;
       if (!normalized.thirds || normalized.thirds.length === 0) {
@@ -159,7 +164,9 @@ export const normalizePart = (
     if (Array.isArray(normalized.r1) && normalized.r1.length >= 16) {
       normalized.r32 = normalized.r1;
     } else if (normalized.groups && hasValidGroupSelections(normalized.groups)) {
-      normalized.r32 = buildR32FromGroups(normalized.groups, normalized.thirds) ?? undefined;
+      normalized.r32 =
+        buildR32FromGroups(normalized.groups, normalized.thirds, normalized.topologyVersion) ??
+        undefined;
     }
   }
 

@@ -1,15 +1,12 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchLeaderboard, fetchMatches } from '../services/api';
+import { fetchCompetitions, fetchLeaderboard, fetchMatches } from '../services/api';
 import { leaguePredictionsQuery } from '../services/queries';
 import { queryKeys } from '../services/queryKeys';
 import { rankPicks, toBracketEntries } from '../utils/bracketStats';
 import { GLOBAL_LEAGUE_ID } from '../utils/constants';
 import type { Match } from '../types/api';
 import type { StickerLeader } from '../components/StickerCard';
-
-/** LaLiga en la base de datos de producción; solo se usa para enseñar el formato por jornadas. */
-const LALIGA_COMPETITION_ID = 4;
 
 export type LandingLeader = StickerLeader;
 
@@ -31,9 +28,17 @@ export function useLandingData() {
     retry: 1,
   });
   const predictions = useQuery(leaguePredictionsQuery(GLOBAL_LEAGUE_ID));
+  const competitions = useQuery({
+    queryKey: queryKeys.competitions(),
+    queryFn: fetchCompetitions,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+  const competitionId = competitions.data?.find((item) => item.externalId === 'esp.1')?.id;
   const fixtures = useQuery({
-    queryKey: queryKeys.matches(LALIGA_COMPETITION_ID),
-    queryFn: () => fetchMatches(LALIGA_COMPETITION_ID),
+    queryKey: queryKeys.matches(competitionId ?? null),
+    queryFn: () => (competitionId == null ? Promise.resolve([]) : fetchMatches(competitionId)),
+    enabled: competitionId != null,
     staleTime: 5 * 60_000,
     retry: 1,
   });
@@ -72,7 +77,7 @@ export function nextRound(matches: Match[]): Match[] {
   const now = Date.now();
   const upcoming = matches
     .filter((m) => !m.finished && m.date && new Date(m.date).getTime() > now)
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    .sort((a, b) => Date.parse(a.date!) - Date.parse(b.date!));
   const round = upcoming[0]?.round;
   if (!round) return [];
   return upcoming.filter((m) => m.round === round).slice(0, 3);

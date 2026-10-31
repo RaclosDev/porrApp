@@ -75,6 +75,13 @@ public class ScoringRuleSet {
         return edition != null ? fromJson(edition.getScoringRulesJson()) : defaultWorldCup2026();
     }
 
+    /** Aplica las modalidades activas sin alterar los valores configurados por el administrador. */
+    public static ScoringRuleSet effectiveForEdition(Edition edition) {
+        ScoringRuleSet rules = forEdition(edition);
+        if (edition != null && !edition.isPichichi()) rules.setTopScorerPoints(0);
+        return rules;
+    }
+
     public static ScoringRuleSet fromJson(String json) {
         if (json == null || json.isBlank()) {
             return defaultWorldCup2026();

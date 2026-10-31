@@ -250,7 +250,7 @@
     --accent-cyan: #0b5f74;
     --accent-text: #0b5f74;
     --champion-gold: #92400e;
-    --hit: #15803d;
+    --hit: #166534;
     --pass: #1d4ed8;
     --miss: #b91c1c;
     --tab-active-bg: var(--ink);
@@ -680,6 +680,11 @@
     background: #ffffff;
     border-color: var(--ink);
     color: var(--ink);
+  }
+
+  .paper-panel .glass-input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
   }
 
   /* En móvil el ranking esconde el desglose por fase; este botón lo despliega con scroll. */
