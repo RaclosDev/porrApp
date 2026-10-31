@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- Usa los valores por defecto de Spring Boot -->
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
-
-    <!-- Silenciar explícitamente el logger exacto de Tomcat que da la murga con los WebSockets -->
-    <logger name="org.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/].[dispatcherServlet]" level="OFF" />
-    <logger name="org.apache.catalina.core.ContainerBase" level="OFF" />
-    
-    <!-- Configuración principal -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>

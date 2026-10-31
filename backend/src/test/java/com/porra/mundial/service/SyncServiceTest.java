@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -98,6 +99,45 @@ class SyncServiceTest {
         List<Match> worldCupMatches = List.of(Match.builder().id(1L).build());
         when(knockoutBracketService.worldCupMatches()).thenReturn(worldCupMatches);
         return worldCupMatches;
+    }
+
+    @Test
+    void oversizedImportNeverStartsWriting() throws Exception {
+        var oversized = JSON.createArrayNode();
+        for (int i = 0; i < 1001; i++) oversized.addObject();
+        when(provider.fetchTeams("esp.1")).thenReturn(oversized);
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> syncService.importCompetitionData(5L));
+
+        verifyNoInteractions(transactionManager);
+        verify(matchEventProcessor, never()).importTeams(any(), any());
+    }
+
+    @Test
+    void interruptedDownloadPreservesCancellationAndMakesNoWrites() throws Exception {
+        when(provider.fetchTeams("esp.1")).thenThrow(new InterruptedException("closing"));
+        try {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                    () -> syncService.importCompetitionData(5L));
+            assertTrue(Thread.currentThread().isInterrupted());
+            verifyNoInteractions(transactionManager);
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    void downloadsTheWholeImportBeforeOpeningItsWriteTransaction() throws Exception {
+        when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+
+        syncService.importCompetitionData(5L);
+
+        var order = org.mockito.Mockito.inOrder(provider, transactionManager);
+        order.verify(provider).fetchTeams("esp.1");
+        order.verify(provider, org.mockito.Mockito.atLeastOnce()).fetchScoreboardEvents(anyString(), anyString());
+        order.verify(transactionManager).getTransaction(any());
     }
 
     @Test
@@ -230,6 +270,7 @@ class SyncServiceTest {
             return JSON.createArrayNode();
         });
         when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(eq("esp.1"), anyString())).thenReturn(JSON.createArrayNode());
 
         CompletableFuture<Void> sync = CompletableFuture.runAsync(syncService::syncAll);
         assertTrue(syncStarted.await(5, TimeUnit.SECONDS));

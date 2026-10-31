@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 /**
  * DTO para la respuesta de un Grupo.
@@ -35,6 +36,7 @@ public class GroupResponseDTO {
     /** Si esta edición cuenta con un premio/ranking al pichichi. */
     private Boolean pichichi;
     /** Fecha y hora límite para enviar pronósticos en esta edición. */
+    @JsonSerialize(using = MadridDateTimeSerializer.class)
     private LocalDateTime lockDate;
     /** Si la edición se encuentra cerrada para nuevos pronósticos o cambios. */
     private Boolean isLocked;

@@ -7,6 +7,8 @@ import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Membership;
+import com.porra.mundial.service.SyncService;
+import com.porra.mundial.service.TopScorerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -57,6 +60,13 @@ class PorraMundialApplicationTests {
 
     @Autowired
     private MembershipRepository memberships;
+
+    // El arranque conserva PostgreSQL y HTTP reales, pero no depende del calendario vivo de ESPN.
+    @MockitoBean
+    private SyncService syncService;
+
+    @MockitoBean
+    private TopScorerService topScorerService;
 
     @Test
     @Transactional
