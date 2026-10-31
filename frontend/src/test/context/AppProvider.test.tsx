@@ -20,7 +20,7 @@ function ConsumerComponent() {
 }
 
 describe('AppProvider & useAppContext', () => {
-  let queryClient;
+  let queryClient: QueryClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({

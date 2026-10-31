@@ -1,3 +1,4 @@
+import { appContext, group } from '../context/fixtures';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -20,19 +21,21 @@ vi.mock('../../services/api', () => ({
   fetchMyGroups: vi.fn(),
   joinGroup: vi.fn(),
 }));
-const league = { id: 42, name: 'Tebas League', poolFormat: 'MATCH_DAY' };
+const league = group({ id: 42, name: 'Tebas League', poolFormat: 'MATCH_DAY' });
 
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
-  vi.mocked(useAppContext).mockReturnValue({
-    isAuthenticated: false,
-    userName: '',
-    changeGroup,
-  } as ReturnType<typeof useAppContext>);
-  vi.mocked(fetchGroupInvitationPreview).mockResolvedValue(league as never);
+  vi.mocked(useAppContext).mockReturnValue(
+    appContext({
+      isAuthenticated: false,
+      userName: '',
+      changeGroup,
+    }),
+  );
+  vi.mocked(fetchGroupInvitationPreview).mockResolvedValue(league);
   vi.mocked(fetchMyGroups).mockResolvedValue([]);
-  vi.mocked(joinGroup).mockResolvedValue(league as never);
+  vi.mocked(joinGroup).mockResolvedValue(league);
   signIn.mockResolvedValue(true);
 });
 
@@ -72,11 +75,13 @@ it('no se une si falla el inicio de sesión y conserva el enlace', async () => {
 });
 
 it('permite aceptar con sesión ya iniciada', async () => {
-  vi.mocked(useAppContext).mockReturnValue({
-    isAuthenticated: true,
-    userName: 'Carlos',
-    changeGroup,
-  } as ReturnType<typeof useAppContext>);
+  vi.mocked(useAppContext).mockReturnValue(
+    appContext({
+      isAuthenticated: true,
+      userName: 'Carlos',
+      changeGroup,
+    }),
+  );
   showInvitation();
   const button = await screen.findByRole('button', { name: 'Unirme a la liga' });
   await waitFor(() => expect(button).not.toBeDisabled());
@@ -86,12 +91,14 @@ it('permite aceptar con sesión ya iniciada', async () => {
 });
 
 it('abre directamente la liga de quien ya es miembro', async () => {
-  vi.mocked(useAppContext).mockReturnValue({
-    isAuthenticated: true,
-    userName: 'Carlos',
-    changeGroup,
-  } as ReturnType<typeof useAppContext>);
-  vi.mocked(fetchMyGroups).mockResolvedValue([league] as never);
+  vi.mocked(useAppContext).mockReturnValue(
+    appContext({
+      isAuthenticated: true,
+      userName: 'Carlos',
+      changeGroup,
+    }),
+  );
+  vi.mocked(fetchMyGroups).mockResolvedValue([league]);
   showInvitation();
   expect(await screen.findByText('Tu jornada')).toBeInTheDocument();
   expect(joinGroup).not.toHaveBeenCalled();
