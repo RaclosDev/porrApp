@@ -78,6 +78,19 @@ class MatchEventProcessorTest {
         return captor.getValue();
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"STATUS_CANCELED,CANCELLED", "STATUS_POSTPONED,POSTPONED", "STATUS_SUSPENDED,SUSPENDED", "STATUS_ABANDONED,ABANDONED"})
+    void preservesProviderInterruptionStatus(String external, MatchStatusNormalized expected) throws Exception {
+        var event = event("pre", false, "Group H", "0", "0", "Spain", "164", "Uruguay", "212", "[]");
+        ((tools.jackson.databind.node.ObjectNode) event.path("competitions").get(0).path("status").path("type"))
+                .put("name", external);
+
+        processor.process(event, cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertEquals(expected, savedMatch().getStatus());
+        verify(matchPredictionService, never()).evaluatePredictionsForMatch(any());
+    }
+
     @Test
     @DisplayName("Un partido de grupo terminado guarda marcador, grupo, fair play y evalúa pronósticos")
     void savesFinishedGroupMatch() throws Exception {
@@ -104,7 +117,7 @@ class MatchEventProcessorTest {
         assertEquals(-4, match.getAwayFairPlay(), "roja directa");
         assertEquals(1, batch.matchesUpdated());
         verify(matchPredictionService).evaluatePredictionsForMatch(match);
-        verify(topScorerService).refresh();
+        verify(topScorerService, never()).refresh();
         verify(webSocketService).broadcastMatchScore(any(), eq("España"), eq("Uruguay"), eq(2), eq(1), eq("FINISHED"));
     }
 
@@ -257,7 +270,7 @@ class MatchEventProcessorTest {
         assertEquals(2, stored.getAwayScore());
         verify(matchRepository).save(stored);
         verify(matchPredictionService).evaluatePredictionsForMatch(stored);
-        verify(topScorerService).refresh();
+        verify(topScorerService, never()).refresh();
         assertTrue(batch.resultsChanged());
     }
 

@@ -19,14 +19,6 @@ export default defineConfig({
           if (id.includes('lucide-react')) return 'icons';
           if (id.includes('@tanstack')) return 'data-vendor';
           if (id.includes('@react-oauth')) return 'auth-vendor';
-          if (
-            id.includes('@radix-ui') ||
-            id.includes('class-variance-authority') ||
-            id.includes('clsx') ||
-            id.includes('tailwind-merge')
-          ) {
-            return 'ui-vendor';
-          }
           if (id.includes('react-hot-toast')) return 'toast-vendor';
           if (id.includes('html2canvas')) return 'html2canvas';
           if (id.includes('zustand')) return 'store-vendor';
@@ -81,6 +73,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        importScripts: ['/sw-cleanup.js'],
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,svg}'],
         // html2canvas solo se carga con import() al compartir la clasificación: se baja al usarlo.
         globIgnores: ['**/updates/**', '**/og-image.jpg', '**/assets/html2canvas-*.js'],
@@ -96,13 +90,7 @@ export default defineConfig({
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-runtime-cache',
-              networkTimeoutSeconds: 4,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
-              cacheableResponse: { statuses: [200] },
-            },
+            handler: 'NetworkOnly',
           },
           {
             urlPattern: ({ url }) =>
@@ -141,12 +129,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
-    exclude: ['node_modules/**'],
+    exclude: ['node_modules/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/test/**', 'src/**/*.d.ts', 'src/main.tsx'],
       reporter: ['text-summary', 'html', 'json-summary'],
+      thresholds: { lines: 52, statements: 50, functions: 46, branches: 42 },
     },
   },
 });

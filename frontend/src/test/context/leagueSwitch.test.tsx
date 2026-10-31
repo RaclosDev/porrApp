@@ -1,3 +1,5 @@
+import { group, participantScore, predictionSummary } from './fixtures';
+import { game } from '../fixtures';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,26 +31,28 @@ describe('league switching', () => {
       isAuthenticated: true,
       userId: '7',
     });
-    api.fetchMyGroups.mockResolvedValue([
-      { id: 10, competitionId: 2, poolFormat: 'MATCH_DAY' },
-      { id: 20, competitionId: 3, poolFormat: 'MATCH_DAY' },
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([
+      group({ id: 10, competitionId: 2, poolFormat: 'MATCH_DAY' }),
+      group({ id: 20, competitionId: 3, poolFormat: 'MATCH_DAY' }),
     ]);
-    api.fetchGroup.mockImplementation((id) =>
+    vi.mocked(api.fetchGroup).mockImplementation((id) =>
       id === '10'
-        ? Promise.resolve({ id: 10, competitionId: 2, poolFormat: 'MATCH_DAY' })
+        ? Promise.resolve(group({ id: 10, competitionId: 2, poolFormat: 'MATCH_DAY' }))
         : new Promise(() => {}),
     );
-    api.fetchMatches.mockImplementation((id) =>
-      id === 2 ? Promise.resolve([{ id: 101, home: 'Liga A' }]) : new Promise(() => {}),
+    vi.mocked(api.fetchMatches).mockImplementation((id) =>
+      id === 2 ? Promise.resolve([game({ id: 101, home: 'Liga A' })]) : new Promise(() => {}),
     );
-    api.fetchPredictions.mockImplementation((id) =>
-      id === '10' ? Promise.resolve([{ id: 1 }]) : new Promise(() => {}),
+    vi.mocked(api.fetchPredictions).mockImplementation((id) =>
+      id === '10' ? Promise.resolve([predictionSummary()]) : new Promise(() => {}),
     );
-    api.fetchLeaderboard.mockImplementation((id) =>
-      id === '10' ? Promise.resolve([{ id: 1 }]) : new Promise(() => {}),
+    vi.mocked(api.fetchLeaderboard).mockImplementation((id) =>
+      id === '10' ? Promise.resolve([participantScore()]) : new Promise(() => {}),
     );
-    api.fetchMatchRadar.mockImplementation((id) =>
-      id === 2 ? Promise.resolve({ live: [{ id: 101 }] }) : new Promise(() => {}),
+    vi.mocked(api.fetchMatchRadar).mockImplementation((id) =>
+      id === 2
+        ? Promise.resolve({ live: [game({ id: 101 })], last: [], next: [] })
+        : new Promise(() => {}),
     );
   });
 
@@ -101,9 +105,9 @@ describe('league switching', () => {
     expect(keys).not.toContain(undefined);
     expect(keys).toContainEqual(['predictions', '10']);
     expect(keys).toContainEqual(['leaderboard', '10']);
-    expect(keys.some((k) => ['standings', 'matches', 'odds', 'topScorers'].includes(k[0]))).toBe(
-      false,
-    );
+    expect(
+      keys.some((k) => ['standings', 'matches', 'odds', 'topScorers'].includes(String(k?.[0]))),
+    ).toBe(false);
   });
 
   it('flushes the outgoing bracket draft and resets league-specific selections immediately', () => {
@@ -111,18 +115,18 @@ describe('league switching', () => {
     useAppStore.setState({
       bracketState: bracket,
       viewerPredictionId: 123,
-      viewerPredictionId: 123,
       topScorer: 'Player',
     });
     useAppStore.getState().changeGroup('20');
-    expect(JSON.parse(localStorage.getItem('draft_bracket_u7_g10')).champion.name).toBe('España');
+    expect(JSON.parse(localStorage.getItem('draft_bracket_u7_g10') ?? '{}').champion.name).toBe(
+      'España',
+    );
     expect(useAppStore.getState()).toMatchObject({
       activeCompetitionId: null,
-      viewerPredictionId: null,
       viewerPredictionId: null,
       topScorer: '',
     });
     useAppStore.getState().changeGroup('10');
-    expect(useAppStore.getState().bracketState.champion.name).toBe('España');
+    expect(useAppStore.getState().bracketState.champion?.name).toBe('España');
   });
 });

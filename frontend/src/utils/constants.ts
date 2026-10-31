@@ -4,9 +4,6 @@
  */
 export const GLOBAL_LEAGUE_ID = '1';
 
-/** Competición que muestra el modo demo (Mundial 2026). */
-export const DEMO_COMPETITION_ID = 2;
-
 /** Comprueba si un id de liga (número o texto) es la Porra Global. */
 export const isGlobalLeagueId = (id: string | number | null | undefined) =>
   id != null && String(id) === GLOBAL_LEAGUE_ID;

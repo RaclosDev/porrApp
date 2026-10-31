@@ -8,6 +8,8 @@ import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -22,13 +24,13 @@ import java.util.Optional;
  * <p>
  * El access token dura {@link #ACCESS_TOKEN_TTL} y no se puede revocar: lo que mantiene la
  * sesión es el refresh token ({@code SessionService}). Lleva la cabecera {@code typ: at+jwt}
- * (RFC 9068), {@code sub} con el id del usuario y el claim {@code email}, que es el nombre del
- * usuario autenticado en el resto del backend.
+ * (RFC 9068), {@code sub} con el id del usuario y el claim {@code email} del momento de emisión.
+ * El filtro resuelve por id el email actual para identificar al usuario en el resto del backend.
  * </p>
  * <p>
  * Transición: los JWT de 7 días que emitía la versión anterior (sin {@code typ}, con el email
- * en {@code sub}) se siguen aceptando hasta que caducan. Nada los emite ya, así que una semana
- * después del despliegue no queda ninguno y se puede borrar esa rama.
+ * en {@code sub}) se verifican hasta que caducan. El filtro y el canje solo los aceptan para
+ * cuentas que todavía no tienen un {@code googleSub}; después de migrar se exige la identidad estable.
  * </p>
  */
 @Component
@@ -64,10 +66,11 @@ public class JwtUtil {
      * - En desarrollo/test: genera una clave criptográfica segura de 256 bits efímera en memoria.
      *
      * @param secret Clave secreta (mínimo 256 bits recomendados para HS256)
+     * @param environment entorno de Spring, incluidos perfiles de argumentos y archivos de configuración
      */
-    public JwtUtil(@Value("${app.jwt.secret:}") String secret) {
+    public JwtUtil(@Value("${app.jwt.secret:}") String secret, Environment environment) {
         boolean isInsecure = isSecretInsecure(secret);
-        boolean isProd = isProductionProfile();
+        boolean isProd = environment.acceptsProfiles(Profiles.of("prod"));
 
         if (isInsecure) {
             if (isProd) {
@@ -92,14 +95,6 @@ public class JwtUtil {
         if (INSECURE_DEFAULT_SECRETS.contains(trimmed)) return true;
         String lower = trimmed.toLowerCase();
         return lower.contains("change-me") || lower.contains("example");
-    }
-
-    private static boolean isProductionProfile() {
-        String activeProfile = System.getProperty("spring.profiles.active");
-        if (activeProfile == null || activeProfile.isBlank()) {
-            activeProfile = System.getenv("SPRING_PROFILES_ACTIVE");
-        }
-        return activeProfile != null && activeProfile.toLowerCase().contains("prod");
     }
 
     /** Access token de {@link #ACCESS_TOKEN_TTL} para el usuario. */

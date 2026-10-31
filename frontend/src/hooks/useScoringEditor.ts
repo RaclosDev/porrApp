@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchLeagueScoring, updateLeagueScoring } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
-import type { ScoringRuleKey } from '../types/api';
+import type { ScoringRuleKey, ScoringRules } from '../types/api';
 import { draftToRules, sameRules, toDraft, type ScoringDraft } from '../utils/scoringRules';
 
 /**
@@ -27,13 +27,13 @@ export function useScoringEditor(groupId: number | string, enabled: boolean) {
   const isDefault = Boolean(rules && scoring && sameRules(rules, scoring.defaults));
 
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: ({ rules }: { rules: ScoringRules | null; draft: ScoringDraft | null }) => {
       if (!rules) throw new Error('Revisa los puntos: hay valores no válidos.');
       return updateLeagueScoring(groupId, rules);
     },
-    onSuccess: (saved) => {
+    onSuccess: (saved, submitted) => {
       queryClient.setQueryData(queryKeys.leagueScoring(groupId), saved);
-      setEdited(null);
+      setEdited((current) => (current === submitted.draft ? null : current));
       // Los puntos se recalculan en el servidor con las reglas nuevas.
       [
         queryKeys.leaderboard(groupId),
@@ -61,7 +61,7 @@ export function useScoringEditor(groupId: number | string, enabled: boolean) {
       if (scoring) setEdited(toDraft(scoring.defaults));
     },
     reset: () => setEdited(null),
-    save: () => mutation.mutateAsync(),
+    save: () => mutation.mutateAsync({ rules, draft: edited }),
   };
 }
 

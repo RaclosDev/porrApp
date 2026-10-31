@@ -1,11 +1,12 @@
 import { solveThirdPlaceMatrix } from './matrix';
 import {
-  defaultBracketState,
+  getDefaultBracketState,
   type BracketMatch,
   type BracketState,
   type BracketTeam,
 } from '../store/useAppStore';
 import type { GroupOdds, PredictionData, TeamPair } from '../types/api';
+import { orderR32, legacyR32Order, topologyVersion, type TopologyVersion } from './bracketTopology';
 
 /** Hueco de un cruce: nombre o equipo del cuadro, según de dónde venga. */
 type SlotLike = string | { name?: string } | null | undefined;
@@ -93,6 +94,7 @@ export function normalizeGroupsDraft(groups: unknown): Record<string, GroupSelec
 export function extractGroupsFromR32(
   r32: unknown,
   groupOdds: GroupOdds | Record<string, never> = {},
+  version?: TopologyVersion,
 ): { groups: Record<string, GroupSelection>; thirds: string[] } {
   const groups: Record<string, GroupSelection> = {};
   const thirds: string[] = [];
@@ -116,6 +118,7 @@ export function extractGroupsFromR32(
   }
 
   if (pairs.length < 16) return { groups, thirds };
+  pairs = legacyR32Order(pairs, version);
 
   const getTeamName = (slot: SlotLike) => {
     if (!slot) return '';
@@ -222,6 +225,7 @@ export function extractGroupsFromR32(
 export function buildR32FromGroups(
   groupsInput: unknown,
   thirdsRaw: (string | { team?: string; name?: string })[] = [],
+  version?: TopologyVersion,
 ): string[][] | null {
   if (!groupsInput || typeof groupsInput !== 'object') return null;
   const groups = normalizeGroupsDraft(groupsInput);
@@ -289,24 +293,27 @@ export function buildR32FromGroups(
   const gSecond = (g: string) => groups[g]?.second || `2º Grupo ${g}`;
   const gThird = (idx: number, placeholder: string) => thirdSlotTeams[idx] || placeholder;
 
-  return [
-    [gFirst('E'), gThird(0, '3º A/B/C/D/F')],
-    [gFirst('I'), gThird(1, '3º C/D/F/G/H')],
-    [gFirst('F'), gSecond('C')],
-    [gFirst('C'), gSecond('F')],
-    [gSecond('A'), gSecond('B')],
-    [gSecond('E'), gSecond('I')],
-    [gFirst('A'), gThird(2, '3º C/E/F/H/I')],
-    [gFirst('L'), gThird(3, '3º E/H/I/J/K')],
-    [gSecond('K'), gSecond('L')],
-    [gFirst('H'), gSecond('J')],
-    [gFirst('D'), gThird(4, '3º B/E/F/I/J')],
-    [gFirst('G'), gThird(5, '3º A/E/H/I/J')],
-    [gFirst('J'), gSecond('H')],
-    [gSecond('D'), gSecond('G')],
-    [gFirst('B'), gThird(6, '3º E/F/G/I/J')],
-    [gFirst('K'), gThird(7, '3º D/E/I/J/L')],
-  ];
+  return orderR32(
+    [
+      [gFirst('E'), gThird(0, '3º A/B/C/D/F')],
+      [gFirst('I'), gThird(1, '3º C/D/F/G/H')],
+      [gFirst('F'), gSecond('C')],
+      [gFirst('C'), gSecond('F')],
+      [gSecond('A'), gSecond('B')],
+      [gSecond('E'), gSecond('I')],
+      [gFirst('A'), gThird(2, '3º C/E/F/H/I')],
+      [gFirst('L'), gThird(3, '3º E/H/I/J/K')],
+      [gSecond('K'), gSecond('L')],
+      [gFirst('H'), gSecond('J')],
+      [gFirst('D'), gThird(4, '3º B/E/F/I/J')],
+      [gFirst('G'), gThird(5, '3º A/E/H/I/J')],
+      [gFirst('J'), gSecond('H')],
+      [gSecond('D'), gSecond('G')],
+      [gFirst('B'), gThird(6, '3º E/F/G/I/J')],
+      [gFirst('K'), gThird(7, '3º D/E/I/J/L')],
+    ],
+    version,
+  );
 }
 
 /** Pronóstico tal como llega del backend; los grupos pueden venir como listas o posiciones. */
@@ -351,18 +358,19 @@ export function reconstructBracketState(
   } else if (Array.isArray(data.r1) && data.r1.length >= 16) {
     r32Data = data.r1;
   } else if (data.groups && hasValidGroupSelections(normalizeGroupsDraft(data.groups))) {
-    r32Data = buildR32FromGroups(data.groups, data.thirds);
+    r32Data = buildR32FromGroups(data.groups, data.thirds, data.topologyVersion);
   }
 
   const hasR32 = Boolean(r32Data && r32Data.length >= 16);
 
   return {
+    topologyVersion: topologyVersion(data.topologyVersion),
     r32: hasR32
       ? {
           left: toMatches(r32Data, 0, 8, 'L'),
           right: toMatches(r32Data, 8, 8, 'R'),
         }
-      : defaultBracketState.r32,
+      : getDefaultBracketState(data.topologyVersion).r32,
     r16: {
       left: toMatches(data.r16 || [], 0, 4, 'L8'),
       right: toMatches(data.r16 || [], 4, 4, 'R8'),

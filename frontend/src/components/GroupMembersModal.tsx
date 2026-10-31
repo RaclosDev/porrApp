@@ -18,7 +18,7 @@ import {
 import LeagueMembersTab from './league/LeagueMembersTab';
 import LeagueSettingsTab from './league/LeagueSettingsTab';
 import LeaveConfirmDialog from './league/LeaveConfirmDialog';
-import type { PaymentStatus } from '../types/api';
+import type { GroupMember, PaymentStatus } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useScoringEditor } from '../hooks/useScoringEditor';
@@ -87,6 +87,7 @@ export default function GroupMembersModal({
   const isDirty = settingsDirty || scoringEditor.isDirty;
 
   const requestClose = () => {
+    if (savingConfig) return;
     if (isDirty) {
       setLeaveConfirmOpen(true);
       return;
@@ -104,6 +105,7 @@ export default function GroupMembersModal({
 
   useDialogFocus(panelRef, {
     onEscape: () => {
+      if (savingConfig) return;
       if (leaveConfirmOpen) {
         setLeaveConfirmOpen(false);
         return;
@@ -146,13 +148,18 @@ export default function GroupMembersModal({
     enabled: Boolean(groupId),
   });
 
+  const paymentRequests = useRef(new Set<number>());
+  const [pendingPaymentIds, setPendingPaymentIds] = useState<ReadonlySet<number>>(new Set());
+
   const paymentMutation = useMutation({
     mutationFn: ({ userId, status }: { userId: number; status: PaymentStatus }) =>
       toggleGroupMemberPayment(groupId, userId, status),
     onMutate: async ({ userId, status }) => {
       setActionError('');
       await queryClient.cancelQueries({ queryKey: queryKeys.groupMembers(groupId) });
-      const previous = queryClient.getQueryData(queryKeys.groupMembers(groupId));
+      const previous = queryClient
+        .getQueryData<GroupMember[]>(queryKeys.groupMembers(groupId))
+        ?.find((member) => member.userId === userId)?.paymentStatus;
       queryClient.setQueryData(queryKeys.groupMembers(groupId), (current) =>
         Array.isArray(current)
           ? current.map((member) =>
@@ -164,9 +171,14 @@ export default function GroupMembersModal({
       );
       return { previous };
     },
-    onError: (err, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.groupMembers(groupId), context.previous);
+    onError: (err, { userId }, context) => {
+      const previous = context?.previous;
+      if (previous !== undefined) {
+        queryClient.setQueryData<GroupMember[]>(queryKeys.groupMembers(groupId), (current) =>
+          current?.map((member) =>
+            member.userId === userId ? { ...member, paymentStatus: previous } : member,
+          ),
+        );
       }
       const message = errorMessage(err, 'No se pudo actualizar el estado de pago.');
       setActionError(message);
@@ -177,11 +189,23 @@ export default function GroupMembersModal({
         status === 'PAID' ? 'Pago marcado como recibido' : 'Pago marcado como pendiente',
       );
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard() });
+    onSettled: (_data, _error, { userId }) => {
+      paymentRequests.current.delete(userId);
+      setPendingPaymentIds(new Set(paymentRequests.current));
+      // Wait for the other rows before replacing optimistic values with a server snapshot.
+      if (paymentRequests.current.size === 0) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
+      }
     },
   });
+
+  const changePayment = (userId: number, status: PaymentStatus) => {
+    if (paymentRequests.current.has(userId)) return;
+    paymentRequests.current.add(userId);
+    setPendingPaymentIds(new Set(paymentRequests.current));
+    paymentMutation.mutate({ userId, status });
+  };
 
   const kickMutation = useMutation({
     mutationFn: (userId: number) => kickGroupMember(groupId, userId),
@@ -260,6 +284,7 @@ export default function GroupMembersModal({
   };
 
   const handleSave = async () => {
+    if (savingConfig) return;
     const trimmedName = name.trim();
     if (!trimmedName) {
       setActionError('El nombre de la liga no puede estar vacío.');
@@ -458,7 +483,8 @@ export default function GroupMembersModal({
               paidCount={paidCount}
               paidPercent={paidPercent}
               paymentFilter={paymentFilter}
-              paymentMutation={paymentMutation}
+              pendingPaymentIds={pendingPaymentIds}
+              changePayment={changePayment}
               pendingCount={pendingCount}
               regenerateMutation={regenerateMutation}
               search={search}
@@ -476,6 +502,7 @@ export default function GroupMembersModal({
               deleteConfirmName={deleteConfirmName}
               deleteOpen={deleteOpen}
               deleting={deleting}
+              saving={savingConfig}
               groupName={groupName}
               handleDelete={handleDelete}
               imageUrl={imageUrl}

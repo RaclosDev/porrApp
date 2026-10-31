@@ -17,14 +17,14 @@ vi.mock('../../services/api', () => api);
 
 const MEMBERS = [
   {
-    userId: 'u1',
+    userId: 1,
     participantName: 'Ana',
     paymentStatus: 'PAID',
     isAdmin: true,
     avatarUrl: null,
   },
   {
-    userId: 'u2',
+    userId: 2,
     participantName: 'Bruno',
     paymentStatus: 'PENDING',
     isAdmin: false,
@@ -33,7 +33,7 @@ const MEMBERS = [
 ];
 
 describe('GroupMembersModal', () => {
-  let queryClient;
+  let queryClient: QueryClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -45,19 +45,22 @@ describe('GroupMembersModal', () => {
     api.updateLeagueScoring.mockReset();
   });
 
-  const setup = (props = {}) => {
+  const setup = (props: Partial<Parameters<typeof GroupMembersModal>[0]> = {}) => {
     const onSaveSettings = vi.fn().mockResolvedValue(true);
     const onDelete = vi.fn().mockResolvedValue(true);
     const utils = render(
       <QueryClientProvider client={queryClient}>
         <GroupMembersModal
-          groupId="1"
+          groupId={1}
           groupName="Liga de prueba"
           currentJoinCode="ABC123"
           isAdmin
-          currentUserId="u1"
+          currentUserId={1}
           initialRules="Cuota de 10 €"
           onClose={vi.fn()}
+          onCodeRegenerated={vi.fn()}
+          onUploadImage={vi.fn(async () => {})}
+          onRemoveImage={vi.fn(async () => {})}
           onSaveSettings={onSaveSettings}
           onDelete={onDelete}
           {...props}
@@ -128,7 +131,7 @@ describe('GroupMembersModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
 
     await waitFor(() =>
-      expect(api.updateLeagueScoring).toHaveBeenCalledWith('1', {
+      expect(api.updateLeagueScoring).toHaveBeenCalledWith(1, {
         ...DEFAULT_SCORING,
         championPoints: 300,
       }),
@@ -137,6 +140,32 @@ describe('GroupMembersModal', () => {
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: /Guardar cambios/i })).not.toBeInTheDocument(),
     );
+  });
+
+  it('blocks settings edits and closing until the pending save finishes', async () => {
+    let finish!: (saved: boolean) => void;
+    const onSaveSettings = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const onClose = vi.fn();
+    setup({ onSaveSettings, onClose });
+    await screen.findByText('Bruno');
+    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.change(screen.getByLabelText('Nombre de la liga'), {
+      target: { value: 'Nueva liga' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
+    await waitFor(() => expect(onSaveSettings).toHaveBeenCalled());
+    expect(screen.getByLabelText('Nombre de la liga')).toBeDisabled();
+    expect(screen.getByLabelText('Campeón')).toBeDisabled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    finish(true);
+    await waitFor(() => expect(screen.getByLabelText('Nombre de la liga')).toBeEnabled());
+    expect(screen.getByLabelText('Nombre de la liga')).toHaveValue('Nueva liga');
   });
 
   it('no deja guardar un valor no válido y restaura los valores por defecto', async () => {
@@ -191,9 +220,7 @@ describe('GroupMembersModal', () => {
       }),
     );
 
-    await waitFor(() =>
-      expect(api.toggleGroupMemberPayment).toHaveBeenCalledWith('1', 'u2', 'PAID'),
-    );
+    await waitFor(() => expect(api.toggleGroupMemberPayment).toHaveBeenCalledWith(1, 2, 'PAID'));
   });
 
   it('pide confirmación en línea antes de expulsar a un miembro', async () => {
@@ -205,7 +232,7 @@ describe('GroupMembersModal', () => {
     expect(api.kickGroupMember).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
-    await waitFor(() => expect(api.kickGroupMember).toHaveBeenCalledWith('1', 'u2'));
+    await waitFor(() => expect(api.kickGroupMember).toHaveBeenCalledWith(1, 2));
   });
 
   it('solo elimina la liga al escribir su nombre exacto', async () => {

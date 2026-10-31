@@ -149,7 +149,6 @@ function Leaderboard() {
   };
 
   const thStyle = (colKey: SortColumn): React.CSSProperties => ({
-    cursor: 'pointer',
     userSelect: 'none',
     whiteSpace: 'nowrap',
     transition: 'color 0.2s, background 0.2s',
@@ -347,12 +346,24 @@ function Leaderboard() {
                           key={col.key}
                           className={columnClass(col)}
                           style={thStyle(col.key)}
-                          onClick={() => handleSort(col.key)}
-                          title={`Ordenar por ${col.label}`}
-                          aria-label={col.shortLabel ? `Ordenar por ${col.label}` : undefined}
+                          aria-sort={
+                            sortColumn === col.key
+                              ? sortDirection === 'asc'
+                                ? 'ascending'
+                                : 'descending'
+                              : 'none'
+                          }
                         >
-                          {col.shortLabel || col.label}
-                          {sortIndicator(col.key)}
+                          <button
+                            type="button"
+                            className="leaderboard-sort-button"
+                            onClick={() => handleSort(col.key)}
+                            title={`Ordenar por ${col.label}`}
+                            aria-label={`Ordenar por ${col.label}`}
+                          >
+                            {col.shortLabel || col.label}
+                            <span aria-hidden="true">{sortIndicator(col.key)}</span>
+                          </button>
                         </th>
                       ))}
                     </tr>
@@ -472,6 +483,7 @@ function Leaderboard() {
       <div
         className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 bg-[#0f0f1a] bg-none text-white box-border rounded-[15px]"
         id="share-image-template"
+        aria-hidden="true"
         style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         <div className="text-center mb-5 border-b-2 border-b-[#00d2d3] pb-2.5">

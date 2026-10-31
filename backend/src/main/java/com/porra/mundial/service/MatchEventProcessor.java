@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -26,7 +29,7 @@ import java.util.function.Consumer;
 /**
  * Traduce los eventos y equipos del marcador de ESPN a entidades {@link Match} y {@link Team}.
  * Solo guarda cambios reales y, cuando un partido termina, dispara la evaluación de pronósticos
- * y el refresco de goleadores.
+ *; el sincronizador refresca los goleadores una vez al terminar la pasada.
  */
 @Component
 @RequiredArgsConstructor
@@ -39,7 +42,6 @@ public class MatchEventProcessor {
     private final TeamRepository teamRepository;
     private final MatchRepository matchRepository;
     private final MatchPredictionService matchPredictionService;
-    private final TopScorerService topScorerService;
     private final WebSocketService webSocketService;
 
     /** Se sustituye entero al refrescar: quien ya tiene el mapa anterior no lo ve vaciarse a medias. */
@@ -49,12 +51,34 @@ public class MatchEventProcessor {
     /** Acumula lo que cambia durante una sincronización o importación. */
     public static final class Batch {
         private final Competition competition;
+        private final boolean atomic;
+        private final List<Runnable> notifications = new ArrayList<>();
         private int teamsUpdated;
         private int matchesUpdated;
         private boolean resultsChanged;
+        private final List<String> errors = new ArrayList<>();
+
+        void recordError(String error) { errors.add(error); }
+        boolean hasErrors() { return !errors.isEmpty(); }
+        String errorMessage() { return String.join("; ", errors); }
 
         public Batch(Competition competition) {
+            this(competition, false);
+        }
+
+        Batch(Competition competition, boolean atomic) {
             this.competition = competition;
+            this.atomic = atomic;
+        }
+
+        void notifyScore(Runnable notification) {
+            if (atomic) notifications.add(notification);
+            else notification.run();
+        }
+
+        void publishNotifications() {
+            notifications.forEach(Runnable::run);
+            notifications.clear();
         }
 
         public int teamsUpdated() {
@@ -82,7 +106,8 @@ public class MatchEventProcessor {
         }
     }
 
-    private record MatchStatus(boolean live, boolean finished, String displayClock) {
+    private record MatchStatus(MatchStatusNormalized normalized, boolean finished, String displayClock) {
+        boolean live() { return normalized.isLive(); }
     }
 
     private record Competitor(JsonNode node, String nameEn, String espnId) {
@@ -99,17 +124,28 @@ public class MatchEventProcessor {
         long now = System.currentTimeMillis();
         Map<String, Team> current = teamCache;
         if (current.isEmpty() || now - lastTeamCacheRefresh > TEAM_CACHE_TTL_MS) {
-            Map<String, Team> fresh = new ConcurrentHashMap<>();
-            teamRepository.findAll().forEach(team -> {
-                if (team.getName() != null) fresh.put(team.getName(), team);
-                if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
-                if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
-            });
+            Map<String, Team> fresh = freshTeamCache();
             teamCache = fresh;
             lastTeamCacheRefresh = now;
             return fresh;
         }
         return current;
+    }
+
+    /** Entidades propias de la transacción de importación; nunca publica datos sin confirmar en la caché global. */
+    Map<String, Team> freshTeamCache() {
+        Map<String, Team> fresh = new ConcurrentHashMap<>();
+        teamRepository.findAll().forEach(team -> {
+            if (team.getName() != null) fresh.put(team.getName(), team);
+            if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
+            if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
+        });
+        return fresh;
+    }
+
+    void invalidateTeamCache() {
+        teamCache = new ConcurrentHashMap<>();
+        lastTeamCacheRefresh = 0;
     }
 
     /**
@@ -183,9 +219,17 @@ public class MatchEventProcessor {
 
     private MatchStatus parseStatus(JsonNode competition) {
         JsonNode type = competition.path("status").path("type");
-        return new MatchStatus(
-                "in".equals(type.path("state").asText("")),
-                type.path("completed").asBoolean(false),
+        String name = type.path("name").asText("").toUpperCase(Locale.ROOT).replace("STATUS_", "");
+        MatchStatusNormalized normalized = switch (name) {
+            case "CANCELED", "CANCELLED" -> MatchStatusNormalized.CANCELLED;
+            case "POSTPONED" -> MatchStatusNormalized.POSTPONED;
+            case "SUSPENDED" -> MatchStatusNormalized.SUSPENDED;
+            case "ABANDONED" -> MatchStatusNormalized.ABANDONED;
+            case "HALFTIME" -> MatchStatusNormalized.PAUSED;
+            default -> MatchStatusNormalized.fromExternal(type.path("state").asText(""),
+                    type.path("completed").asBoolean(false));
+        };
+        return new MatchStatus(normalized, normalized == MatchStatusNormalized.FINISHED,
                 competition.path("status").path("displayClock").asText(null));
     }
 
@@ -360,8 +404,7 @@ public class MatchEventProcessor {
                 | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
         updated |= fairPlayChanged;
 
-        MatchStatusNormalized normalized = MatchStatusNormalized.fromExternal(
-                status.live() ? "in" : (status.finished() ? "completed" : "scheduled"), status.finished());
+        MatchStatusNormalized normalized = status.normalized();
         updated |= setIfChanged(match.getStatus(), normalized, match::setStatus);
 
         if (updated) {
@@ -372,18 +415,16 @@ public class MatchEventProcessor {
                 batch.markResultsChanged();
             }
             if (scoreChanged) {
-                webSocketService.broadcastMatchScore(
-                        match.getId(),
-                        match.getHomeTeam() != null ? match.getHomeTeam().getName() : null,
-                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
-                        match.getHomeScore(),
-                        match.getAwayScore(),
-                        status.finished() ? "FINISHED" : (status.live() ? "IN_PLAY" : "SCHEDULED"));
+                Long matchId = match.getId();
+                String homeName = teamName(match.getHomeTeam());
+                String awayName = teamName(match.getAwayTeam());
+                batch.notifyScore(() -> webSocketService.broadcastMatchScore(matchId, homeName, awayName,
+                        scores.home(), scores.away(), normalized == MatchStatusNormalized.LIVE ? "IN_PLAY" : normalized.name()));
             }
         }
 
         if (status.finished()) {
-            evaluateFinishedMatch(match, !wasFinished || scoreChanged);
+            evaluateFinishedMatch(match, !wasFinished || scoreChanged, batch.atomic);
         }
     }
 
@@ -391,7 +432,7 @@ public class MatchEventProcessor {
      * Puntúa los pronósticos de un partido terminado: al acabar, cuando ESPN corrige el marcador final
      * o cuando queda alguno sin puntuar (por ejemplo, porque falló una evaluación anterior).
      */
-    private void evaluateFinishedMatch(Match match, boolean resultChanged) {
+    private void evaluateFinishedMatch(Match match, boolean resultChanged, boolean atomic) {
         try {
             if (resultChanged || matchPredictionService.hasUnscoredPredictions(match.getId())) {
                 log.info("Evaluando pronósticos de {} - {} ({}-{})", teamName(match.getHomeTeam()),
@@ -399,14 +440,10 @@ public class MatchEventProcessor {
                 matchPredictionService.evaluatePredictionsForMatch(match);
             }
         } catch (Exception e) {
+            if (atomic) throw new IllegalStateException("Falló la puntuación de un partido importado", e);
             log.warn("Falló la evaluación de pronósticos del partido", e);
         }
-        if (!resultChanged) return;
-        try {
-            topScorerService.refresh();
-        } catch (Exception e) {
-            log.warn("Falló el refresco de goleadores", e);
-        }
+
     }
 
     private static String teamName(Team team) {

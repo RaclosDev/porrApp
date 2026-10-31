@@ -50,6 +50,44 @@ class TopScorerServiceTest {
     }
 
     @Test
+    void overlappingRefreshDoesNotQueueAnotherProviderRequest() throws Exception {
+        var started = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenAnswer(invocation -> {
+            started.countDown();
+            if (!release.await(2, java.util.concurrent.TimeUnit.SECONDS)) throw new IllegalStateException("timeout");
+            return objectMapper.createArrayNode();
+        });
+        var running = java.util.concurrent.CompletableFuture.runAsync(topScorerService::refresh);
+        assertTrue(started.await(2, java.util.concurrent.TimeUnit.SECONDS));
+        try {
+            assertTimeoutPreemptively(java.time.Duration.ofMillis(500), topScorerService::refresh);
+        } finally {
+            release.countDown();
+            running.get(2, java.util.concurrent.TimeUnit.SECONDS);
+        }
+        verify(sportsDataProvider, times(1)).fetchScoreboardEvents(anyString());
+    }
+
+    @Test
+    void missingPlayerImageIsLookedUpOnceAcrossGoalsAndRefreshes() throws Exception {
+        JsonNode goal = goalBy("New Scorer");
+        var events = objectMapper.createArrayNode().add(goal.get(0)).add(goal.get(0));
+        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(events);
+        @SuppressWarnings("unchecked")
+        var response = (java.net.http.HttpResponse<String>) mock(java.net.http.HttpResponse.class);
+        when(response.statusCode()).thenReturn(200);
+        when(response.body()).thenReturn("{}");
+        when(httpClient.<String>send(any(java.net.http.HttpRequest.class), any())).thenReturn(response);
+
+        topScorerService.refresh();
+        topScorerService.refresh();
+
+        assertEquals(2, topScorerService.getTopScorers().getFirst().goals());
+        verify(httpClient, times(2)).send(any(java.net.http.HttpRequest.class), any());
+    }
+
+    @Test
     @DisplayName("Debe resolver la inyeccion de Spring con el proveedor ESPN registrado")
     void springContext_resolvesSportsDataProviderWithoutAmbiguity() {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();

@@ -51,6 +51,9 @@ class GroupServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private LeaguePaymentService paymentService;
+
     @InjectMocks
     private GroupService groupService;
 
@@ -120,6 +123,21 @@ class GroupServiceTest {
                 edition.getCompetition() != null && edition.getCompetition().getId().equals(5L)));
         // La importación se pide para después de confirmar la liga, no dentro de su transacción.
         verify(eventPublisher).publishEvent(new CompetitionImportRequestedEvent(5L));
+    }
+
+    @Test
+    void createWorldCupBracketHasTheTournamentDeadline() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition worldCup = Competition.builder().id(2L)
+                .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+        when(competitionRepository.findById(2L)).thenReturn(Optional.of(worldCup));
+        when(leagueRepository.save(any(League.class))).thenReturn(league);
+
+        groupService.createGroup("Mundial", "admin@test.com", 2L,
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET);
+
+        verify(editionRepository).save(argThat(edition ->
+                java.time.LocalDateTime.of(2026, 6, 11, 20, 0).equals(edition.getLockDate())));
     }
 
     @Test
@@ -285,4 +303,12 @@ class GroupServiceTest {
             assertEquals("Miembro Regular", members.get(0).getParticipantName());
         }
     }
+    @Test
+    void paymentRouteDelegatesToTheSharedMembershipPaymentService() {
+        when(leagueRepository.findById(league.getId())).thenReturn(Optional.of(league));
+        when(userAccountRepository.findByGoogleEmail(admin.getGoogleEmail())).thenReturn(Optional.of(admin));
+        groupService.toggleMemberPayment(league.getId(), member.getId(), admin.getGoogleEmail(), "PAID");
+        verify(paymentService).setPayment(league.getId(), member.getId(), "PAID", admin);
+    }
+
 }

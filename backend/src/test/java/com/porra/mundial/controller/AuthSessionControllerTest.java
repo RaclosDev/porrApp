@@ -55,6 +55,9 @@ class AuthSessionControllerTest {
     @MockitoBean
     private JwtUtil jwtUtil;
 
+    @MockitoBean
+    private com.porra.mundial.repository.UserAccountRepository userAccountRepository;
+
     private static SessionTokens tokens(String accessToken, String refreshToken) {
         UserAccount user = UserAccount.builder().id(7L).googleEmail("ana@test.com").participantName("Ana").build();
         return new SessionTokens(accessToken, refreshToken, Instant.now().plus(Duration.ofDays(30)), user);

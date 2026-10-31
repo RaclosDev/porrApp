@@ -2,8 +2,10 @@ import { create } from 'zustand';
 import { endSession, updateUserPreferences } from '../services/api';
 import { hasStoredSession } from '../services/sessionHint';
 import { queryClient } from '../services/queryClient';
-import { GLOBAL_LEAGUE_ID, DEMO_COMPETITION_ID } from '../utils/constants';
+import { GLOBAL_LEAGUE_ID } from '../utils/constants';
 import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
+import { isBracketState } from '../utils/bracketValidation';
+import { orderR32, topologyVersion, type TopologyVersion } from '../utils/bracketTopology';
 
 /** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
 export interface BracketTeam {
@@ -24,6 +26,7 @@ export interface BracketSide {
 
 /** Cuadro de eliminatorias que rellena el usuario. */
 export interface BracketState {
+  topologyVersion?: TopologyVersion;
   r32: BracketSide;
   r16: BracketSide;
   qf: BracketSide;
@@ -70,7 +73,8 @@ interface AppState {
   changeGroup: (groupId: string | number | null) => void;
 }
 
-export const defaultBracketState: BracketState = {
+const legacyBracketState: BracketState = {
+  topologyVersion: 1,
   r32: {
     left: [
       { home: { name: '1º Grupo E' }, away: { name: '3º A/B/C/D/F' }, id: 'L1' },
@@ -119,11 +123,21 @@ export const defaultBracketState: BracketState = {
   thirdPlaceWinner: null,
 };
 
+const canonicalR32 = orderR32([...legacyBracketState.r32.left, ...legacyBracketState.r32.right], 2);
+export const defaultBracketState: BracketState = {
+  ...legacyBracketState,
+  topologyVersion: 2,
+  r32: { left: canonicalR32.slice(0, 8), right: canonicalR32.slice(8) },
+};
+
+export const getDefaultBracketState = (version?: TopologyVersion): BracketState =>
+  topologyVersion(version) === 2 ? defaultBracketState : legacyBracketState;
+
 /** Borrador del cuadro de este usuario en esta liga, o el cuadro vacío. */
 export const getInitialBracketState = (groupId: string, userId: string): BracketState => {
   if (!groupId || typeof window === 'undefined') return defaultBracketState;
-  const parsed = readJsonDraft('bracket', groupId, userId) as BracketState | undefined;
-  return parsed && typeof parsed === 'object' && parsed.r32 ? parsed : defaultBracketState;
+  const parsed = readJsonDraft('bracket', groupId, userId);
+  return isBracketState(parsed) ? parsed : defaultBracketState;
 };
 
 /** Mapa local liga -> timestamp de la última vez que se abrió, para ordenar "Mis Ligas". */
@@ -248,11 +262,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   enterDemoMode: () => {
     localStorage.setItem('isDemoMode', 'true');
     localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
-    localStorage.setItem('activeCompetitionId', String(DEMO_COMPETITION_ID));
+    localStorage.removeItem('activeCompetitionId');
     set({
       isDemoMode: true,
       activeGroupId: GLOBAL_LEAGUE_ID,
-      activeCompetitionId: DEMO_COMPETITION_ID,
+      activeCompetitionId: null,
       viewerPredictionId: null,
     });
   },

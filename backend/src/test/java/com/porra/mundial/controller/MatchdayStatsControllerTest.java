@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.repository.UserAccountRepository;
+
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
@@ -26,6 +28,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(MatchdayStatsController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class MatchdayStatsControllerTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;

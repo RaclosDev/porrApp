@@ -98,8 +98,8 @@ public class MathematicalStatusCalculator {
     }
 
     /**
-     * Ejecuta una simulación concreta (victorias 1-0, empates 0-0), la ordena con los desempates del
-     * reglamento y actualiza el mejor y el peor puesto de cada equipo. Los equipos que el reglamento no
+     * Ejecuta una combinación de puntos sin inventar marcadores y actualiza el mejor y el peor
+     * puesto conservador de cada equipo. Los equipos que el reglamento no
      * separa en la simulación pueden acabar en cualquiera de los puestos que comparten.
      */
     private static void simulatePermutation(List<GroupStanding> standings, List<Match> played, List<Match> unplayed,
@@ -116,8 +116,6 @@ public class MathematicalStatusCalculator {
                     .build());
         }
 
-        List<Match> allMatches = new ArrayList<>(played);
-
         for (int i = 0; i < unplayed.size(); i++) {
             Match m = unplayed.get(i);
             Outcome out = outcomes.get(i);
@@ -125,19 +123,14 @@ public class MathematicalStatusCalculator {
             GroupStanding away = simStats.get(m.getAwayTeam().getId());
             if (home == null || away == null) continue;
 
-            int homeGoals = out == Outcome.HOME_WIN ? 1 : 0;
-            int awayGoals = out == Outcome.AWAY_WIN ? 1 : 0;
-            addResult(home, homeGoals, awayGoals);
-            addResult(away, awayGoals, homeGoals);
-            allMatches.add(Match.builder()
-                    .homeTeam(m.getHomeTeam()).awayTeam(m.getAwayTeam())
-                    .homeScore(homeGoals).awayScore(awayGoals)
-                    .finished(true)
-                    .build());
+            home.setPoints(home.getPoints() + (out == Outcome.HOME_WIN ? 3 : out == Outcome.DRAW ? 1 : 0));
+            away.setPoints(away.getPoints() + (out == Outcome.AWAY_WIN ? 3 : out == Outcome.DRAW ? 1 : 0));
         }
 
         int position = 1;
-        for (List<GroupStanding> tier : GroupTiebreaker.tiers(new ArrayList<>(simStats.values()), allMatches)) {
+        for (List<GroupStanding> tier : fairPlayKnown
+                ? GroupTiebreaker.tiers(new ArrayList<>(simStats.values()), played)
+                : uncertainTiers(new ArrayList<>(simStats.values()), played)) {
             int lastPosition = position + tier.size() - 1;
             for (GroupStanding gs : tier) {
                 Long tid = gs.getTeam().getId();
@@ -148,10 +141,33 @@ public class MathematicalStatusCalculator {
         }
     }
 
-    private static void addResult(GroupStanding gs, int scored, int conceded) {
-        gs.setPoints(gs.getPoints() + (scored > conceded ? 3 : scored == conceded ? 1 : 0));
-        gs.setGoalDiff(gs.getGoalDiff() + scored - conceded);
-        gs.setGoalsFor(gs.getGoalsFor() + scored);
+    /** Sin marcadores futuros, un empate solo se separa por enfrentamientos internos ya terminados. */
+    private static List<List<GroupStanding>> uncertainTiers(List<GroupStanding> standings, List<Match> played) {
+        Map<Integer, List<GroupStanding>> points = standings.stream().collect(Collectors.groupingBy(
+                GroupStanding::getPoints, () -> new TreeMap<>(Comparator.reverseOrder()), Collectors.toList()));
+        List<List<GroupStanding>> result = new ArrayList<>();
+        for (List<GroupStanding> tied : points.values()) {
+            boolean headToHeadComplete = true;
+            for (int i = 0; i < tied.size(); i++) {
+                for (int j = i + 1; j < tied.size(); j++) {
+                    Long first = tied.get(i).getTeam().getId();
+                    Long second = tied.get(j).getTeam().getId();
+                    boolean playedEachOther = played.stream().anyMatch(m ->
+                            (Objects.equals(m.getHomeTeam().getId(), first) && Objects.equals(m.getAwayTeam().getId(), second))
+                            || (Objects.equals(m.getHomeTeam().getId(), second) && Objects.equals(m.getAwayTeam().getId(), first)));
+                    if (!playedEachOther) headToHeadComplete = false;
+                }
+            }
+            if (!headToHeadComplete) {
+                result.add(tied);
+                continue;
+            }
+            // Los goles totales y las tarjetas que faltan no pueden desempatar como si fueran conocidos.
+            List<GroupStanding> withoutUnknownTotals = tied.stream().map(gs -> GroupStanding.builder()
+                    .team(gs.getTeam()).points(gs.getPoints()).goalDiff(0).goalsFor(0).fairPlayPoints(0).build()).toList();
+            result.addAll(GroupTiebreaker.tiers(withoutUnknownTotals, played));
+        }
+        return result;
     }
 
     private static int orZero(Integer value) {

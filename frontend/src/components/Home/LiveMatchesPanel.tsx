@@ -55,7 +55,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
               className="glass-btn min-h-11 py-2.5 px-4.5 text-[0.9rem] rounded-[8px]"
               onClick={() => openStats()}
             >
-              Ver en Sofascore
+              Abrir Sofascore (fútbol)
             </button>
           </div>
         )}

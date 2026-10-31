@@ -56,14 +56,9 @@ export default function GroupsDashboard() {
     navigate,
   } = useGroupsDashboard();
 
-  /** El usuario administra la liga (por id o, en ligas antiguas, por nombre). */
+  /** El nombre público puede repetirse; la administración pertenece al id de usuario. */
   const isGroupAdmin = (group: Group) =>
-    Boolean(
-      (group.adminUserId && userId && String(group.adminUserId) === String(userId)) ||
-      (group.adminParticipantName &&
-        userName &&
-        group.adminParticipantName.toLowerCase() === userName.toLowerCase()),
-    );
+    Boolean(group.adminUserId != null && userId && String(group.adminUserId) === String(userId));
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -254,6 +249,7 @@ export default function GroupsDashboard() {
       )}
       {selectedGroupForMembers && (
         <GroupMembersModal
+          key={selectedGroupForMembers.id}
           groupId={selectedGroupForMembers.id}
           groupName={selectedGroupForMembers.name}
           currentJoinCode={selectedGroupForMembers.joinCode}
@@ -261,22 +257,30 @@ export default function GroupsDashboard() {
           imageUrl={selectedGroupForMembers.imageUrl || null}
           onUploadImage={async (blob) => {
             const url = await handleUploadGroupImage(selectedGroupForMembers.id, blob);
-            setSelectedGroupForMembers((prev) => (prev ? { ...prev, imageUrl: url } : prev));
+            setSelectedGroupForMembers((prev) =>
+              prev?.id === selectedGroupForMembers.id ? { ...prev, imageUrl: url } : prev,
+            );
           }}
           onRemoveImage={async () => {
             await handleRemoveGroupImage(selectedGroupForMembers.id);
-            setSelectedGroupForMembers((prev) => (prev ? { ...prev, imageUrl: null } : prev));
+            setSelectedGroupForMembers((prev) =>
+              prev?.id === selectedGroupForMembers.id ? { ...prev, imageUrl: null } : prev,
+            );
           }}
           isAdmin={isGroupAdmin(selectedGroupForMembers)}
           currentUserId={userId}
           onClose={() => setSelectedGroupForMembers(null)}
           onCodeRegenerated={(newCode) => {
-            setSelectedGroupForMembers((prev) => (prev ? { ...prev, joinCode: newCode } : prev));
+            setSelectedGroupForMembers((prev) =>
+              prev?.id === selectedGroupForMembers.id ? { ...prev, joinCode: newCode } : prev,
+            );
           }}
           onSaveSettings={async ({ name, rules }) => {
             const ok = await handleSaveGroupConfig(selectedGroupForMembers.id, name, rules);
             if (ok) {
-              setSelectedGroupForMembers((prev) => (prev ? { ...prev, name, rules } : prev));
+              setSelectedGroupForMembers((prev) =>
+                prev?.id === selectedGroupForMembers.id ? { ...prev, name, rules } : prev,
+              );
             }
             return ok;
           }}
@@ -286,7 +290,10 @@ export default function GroupsDashboard() {
               selectedGroupForMembers.name,
               { skipConfirm: true },
             );
-            if (ok) setSelectedGroupForMembers(null);
+            if (ok)
+              setSelectedGroupForMembers((prev) =>
+                prev?.id === selectedGroupForMembers.id ? null : prev,
+              );
             return ok;
           }}
         />

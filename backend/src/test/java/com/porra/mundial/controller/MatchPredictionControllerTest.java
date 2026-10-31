@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.repository.UserAccountRepository;
+
 import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
@@ -29,6 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(MatchPredictionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class MatchPredictionControllerTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;

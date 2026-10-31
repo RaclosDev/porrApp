@@ -110,18 +110,8 @@ public class Prediction {
     }
 
     @Transient
-    public void setParticipantName(String name) {
-        // Valor derivado; el setter se ignora a propósito.
-    }
-
-    @Transient
     public Long getGroupId() {
         return (edition != null && edition.getLeague() != null) ? edition.getLeague().getId() : null;
-    }
-
-    @Transient
-    public void setGroupId(Long id) {
-        // Valor derivado; el setter se ignora a propósito.
     }
 
     @Transient

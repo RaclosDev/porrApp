@@ -19,6 +19,7 @@ interface LeagueSettingsTabProps {
   deleteConfirmName: string;
   deleteOpen: boolean;
   deleting: boolean;
+  saving: boolean;
   groupName: string;
   handleDelete: () => Promise<void>;
   imageUrl: string | null;
@@ -41,6 +42,7 @@ export default function LeagueSettingsTab({
   deleteConfirmName,
   deleteOpen,
   deleting,
+  saving,
   groupName,
   handleDelete,
   imageUrl,
@@ -61,9 +63,10 @@ export default function LeagueSettingsTab({
   const { scoring } = scoringEditor;
 
   return (
-    <div
+    <fieldset
+      disabled={saving || scoringEditor.isSaving}
       id="league-admin-panel-settings"
-      className="league-admin-panel-section"
+      className="league-admin-panel-section min-w-0 border-0 m-0 p-0"
       role="tabpanel"
       aria-labelledby="league-admin-tab-settings"
     >
@@ -285,6 +288,6 @@ export default function LeagueSettingsTab({
           </div>
         )}
       </section>
-    </div>
+    </fieldset>
   );
 }

@@ -7,6 +7,8 @@ dev-dist/
 .vite/
 *.tsbuildinfo
 coverage/
+playwright-report/
+test-results/
 
 # ==============================================================================
 # Maven / Backend
@@ -77,20 +79,14 @@ public/workbox-*.js
 AGENTS.md
 GEMINI.md
 .agents/
+.claude/
+tmp/
 graphify-out/
 .graphify*
 
 apache-maven-3.9.6/
 maven/
 maven.zip
-*.json
-!package.json
-!package-lock.json
-!frontend/package.json
-!frontend/package-lock.json
-!tsconfig*.json
-!frontend/tsconfig*.json
-!backend/src/main/resources/seed/*.json
 cv*.html
 *.zip
 scratch/

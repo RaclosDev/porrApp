@@ -58,10 +58,32 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
             <p className="text-center text-muted">No hay partidos registrados.</p>
           ) : (
             groupMatches.map((m) => {
-              const d = new Date(m.date ?? 0);
-              const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-              const hasStarted = new Date() >= d;
-              const hasFinished = m.finished === true;
+              const d = m.date ? new Date(m.date) : null;
+              const validDate = d && !Number.isNaN(d.getTime());
+              const dateFormatted = validDate
+                ? d.toLocaleString('es-ES', {
+                    day: 'numeric',
+                    month: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'Fecha por confirmar';
+              const status = m.status?.toUpperCase() ?? '';
+              const live = ['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS'].includes(status);
+              const stateLabel = m.finished
+                ? 'Final'
+                : live
+                  ? 'En directo'
+                  : ['POSTPONED', 'SUSPENDED'].includes(status)
+                    ? 'Aplazado'
+                    : ['CANCELLED', 'CANCELED'].includes(status)
+                      ? 'Cancelado'
+                      : validDate && d > new Date()
+                        ? 'Próx'
+                        : 'Pendiente';
+              const homeScore = m.homeScore ?? m.home_score;
+              const awayScore = m.awayScore ?? m.away_score;
+              const hasScore = homeScore != null && awayScore != null && (m.finished || live);
 
               return (
                 <div
@@ -76,19 +98,19 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
                       openStats();
                     }
                   }}
-                  aria-label={`${m.home} contra ${m.away}. Ver en Sofascore`}
+                  aria-label={`${m.home} contra ${m.away}. Abrir el portal de fútbol de Sofascore`}
                 >
-                  <div className="text-muted text-[0.75rem]">
-                    {hasFinished ? 'Final' : 'Próx'} {dateFormatted}
+                  <div className="text-muted text-[0.75rem] whitespace-normal">
+                    {stateLabel} {dateFormatted}
                   </div>
                   <div className="flex items-center justify-end gap-1.5 text-right">
                     <span className="overflow-hidden text-ellipsis">{m.home}</span>
                     <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
                   </div>
                   <div
-                    className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasStarted ? 'text-main' : 'text-muted'} ${hasStarted ? 'bg-[rgba(0,0,0,0.3)] bg-none' : 'bg-transparent bg-none'}`}
+                    className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasScore ? 'text-main' : 'text-muted'} ${hasScore ? 'bg-[rgba(0,0,0,0.3)] bg-none' : 'bg-transparent bg-none'}`}
                   >
-                    {hasStarted ? `${m.homeScore} - ${m.awayScore}` : 'VS'}
+                    {hasScore ? `${homeScore} - ${awayScore}` : 'VS'}
                   </div>
                   <div className="flex items-center justify-start gap-1.5">
                     <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} />

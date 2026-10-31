@@ -76,21 +76,31 @@ public class ScoreInvalidationService {
     }
 
     /** Vacía la caché de clasificaciones cuando se confirma la transacción, para no servir puntos viejos. */
-    private void evictLeaderboardAfterCommit() {
+    void evictLeaderboardAfterCommit() {
+        evictAfterCommit(LEADERBOARD_CACHE);
+    }
+
+    void evictStandingsAfterCommit() {
+        evictAfterCommit("standings", "officialPoints", LEADERBOARD_CACHE);
+    }
+
+    private void evictAfterCommit(String... cacheNames) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    clearLeaderboardCache();
+                    clearCaches(cacheNames);
                 }
             });
         } else {
-            clearLeaderboardCache();
+            clearCaches(cacheNames);
         }
     }
 
-    private void clearLeaderboardCache() {
-        Cache cache = cacheManager.getCache(LEADERBOARD_CACHE);
-        if (cache != null) cache.clear();
+    private void clearCaches(String... cacheNames) {
+        for (String cacheName : cacheNames) {
+            Cache cache = cacheManager.getCache(cacheName);
+            if (cache != null) cache.clear();
+        }
     }
 }

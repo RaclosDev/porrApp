@@ -19,6 +19,9 @@ graphify-out
 **/dist
 **/dev-dist
 **/coverage
+**/test-results
+**/playwright-report
+tmp
 **/*.tsbuildinfo
 backend/target
 backend/data

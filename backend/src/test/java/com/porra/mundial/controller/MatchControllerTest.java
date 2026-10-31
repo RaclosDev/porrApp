@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.repository.UserAccountRepository;
+
 import com.porra.mundial.service.MatchService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -18,6 +20,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(MatchController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class MatchControllerTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;

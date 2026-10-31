@@ -1,0 +1,78 @@
+:root {
+  --bg-color: #0f172a;
+  --panel-bg: #1e293b;
+  --panel-bg-translucent: rgba(30, 41, 59, 0.85);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-color: #2563eb;
+  /* Acento para texto: #2563eb no llega a 4,5:1 sobre los fondos oscuros. */
+  --accent-text: #60a5fa;
+  /* Borde de campos de formulario, 3:1 como mínimo sobre los paneles. */
+  --input-border: #74839a;
+  --accent-cyan: #00d2d3;
+  --champion-gold: #fbbf24;
+  /* Desenfoque común de los overlays de pantalla completa. */
+  --overlay-blur: 8px;
+  /* Identidad de cartel y álbum de cromos (ver la portada): papel, tinta y sellos. Sobre el
+     fondo oscuro la tinta de rotulador es el cian de la app; sobre papel, un azul tinta. */
+  --paper: #f3ecdc;
+  --ink: #111827;
+  --marker-ink: var(--accent-cyan);
+  --stamp-red: #f87171;
+  --stamp-ink: var(--accent-cyan);
+  /* Acierto exacto, pasa de ronda y fallo, en el cuadro y en los grupos. */
+  --hit: #2ecc71;
+  --pass: #3498db;
+  --miss: #e74c3c;
+  /* Pestañas: sobre el fondo oscuro la activa es una pegatina de papel; sobre papel, tinta. */
+  --tab-active-bg: var(--paper);
+  --tab-active-fg: var(--ink);
+  --tab-border: rgba(255, 255, 255, 0.18);
+  --connector: rgba(96, 165, 250, 0.55);
+}
+
+/*
+ * Tokens del diseño para Tailwind: generan utilidades como bg-app, text-muted,
+ * border-accent o text-gold. Apuntan a las variables de arriba para que el CSS
+ * global y las clases de Tailwind compartan la misma paleta durante la migración.
+ */
+@theme inline {
+  --color-app: var(--bg-color);
+  --color-panel: var(--panel-bg);
+  --color-panel-glass: var(--panel-bg-translucent);
+  --color-line: var(--border-color);
+  --color-main: var(--text-main);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent-color);
+  --color-accent-text: var(--accent-text);
+  --color-cyan: var(--accent-cyan);
+  --color-gold: var(--champion-gold);
+}
+
+/*
+ * Todo el CSS propio va en capas: así las utilidades de Tailwind (capa utilities)
+ * pueden sobrescribirlo, y el reset no anula sus márgenes y rellenos.
+ */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/*
+ * Sin capa a propósito: tiene que ganar a las animaciones de los componentes y
+ * de las utilidades de Tailwind cuando el sistema pide reducir el movimiento.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

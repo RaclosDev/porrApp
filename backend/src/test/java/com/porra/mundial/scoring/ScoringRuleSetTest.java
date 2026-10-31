@@ -138,4 +138,15 @@ class ScoringRuleSetTest {
         }
         assertThrows(IllegalArgumentException.class, () -> ScoringRuleSet.fromRequest(null));
     }
+    @Test
+    void disabledPichichiChangesEffectivePointsButPreservesConfiguredRules() {
+        ScoringRuleSet configured = ScoringRuleSet.defaultWorldCup2026();
+        configured.setTopScorerPoints(73);
+        Edition edition = Edition.builder().pichichi(false).scoringRulesJson(configured.toJson()).build();
+        assertEquals(0, ScoringRuleSet.effectiveForEdition(edition).getTopScorerPoints());
+        assertEquals(73, ScoringRuleSet.forEdition(edition).getTopScorerPoints());
+        edition.setPichichi(true);
+        assertEquals(73, ScoringRuleSet.effectiveForEdition(edition).getTopScorerPoints());
+    }
+
 }

@@ -1,3 +1,5 @@
+import { appContext, matchdayFixture, type AppContextValue } from '../context/fixtures';
+import type { MatchdaySubmissionResult } from '../../types/api';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -16,22 +18,23 @@ vi.mock('../../services/api', () => ({
 vi.mock('../../components/Flag', () => ({ default: () => null }));
 vi.mock('../../components/MatchFriendsPredictionsModal', () => ({ default: () => null }));
 
-const fixture = (matchId, round, homeTeam) => ({
-  matchId,
-  round,
-  homeTeam,
-  awayTeam: `Visitante ${matchId}`,
-  matchDate: '2099-01-01T20:00:00',
-  locked: false,
-  finished: false,
-  predHomeScore: null,
-  predAwayScore: null,
-  predSign: null,
-});
+const fixture = (matchId: number, round: string, homeTeam: string) =>
+  matchdayFixture({
+    matchId,
+    round,
+    homeTeam,
+    awayTeam: `Visitante ${matchId}`,
+    matchDate: '2099-01-01T20:00:00',
+    locked: false,
+    finished: false,
+    predHomeScore: null,
+    predAwayScore: null,
+    predSign: null,
+  });
 
 describe('matchday editing and navigation', () => {
-  let context;
-  let client;
+  let context: AppContextValue;
+  let client: QueryClient;
   const tree = () => (
     <QueryClientProvider client={client}>
       <MemoryRouter>
@@ -42,28 +45,32 @@ describe('matchday editing and navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    context = {
+    context = appContext({
       activeGroupId: '10',
       activeGroupName: 'Liga A',
       activeGroupPoolFormat: 'MATCH_DAY',
       activeCompetitionFormatType: 'LEAGUE',
       isAuthenticated: true,
       userId: '7',
-    };
-    useAppContext.mockImplementation(() => context);
+    });
+    vi.mocked(useAppContext).mockImplementation(() => context);
     client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
-    api.fetchMatchdayFixtures.mockImplementation((id) =>
+    vi.mocked(api.fetchMatchdayFixtures).mockImplementation((id) =>
       Promise.resolve(
         id === '10'
           ? [fixture(101, 'Jornada 10', 'Equipo A')]
           : [fixture(201, 'Jornada 2', 'Equipo B')],
       ),
     );
-    api.submitMatchdayPredictions.mockResolvedValue({ message: 'Guardado' });
+    vi.mocked(api.submitMatchdayPredictions).mockResolvedValue({
+      success: true,
+      saved: 1,
+      message: 'Guardado',
+    });
     // Sin resumen de jornadas se pide la temporada entera y las jornadas salen de los partidos.
-    api.fetchLeaderboardMatchdays.mockResolvedValue([]);
+    vi.mocked(api.fetchLeaderboardMatchdays).mockResolvedValue([]);
   });
 
   it('resets the selected round and preserves an immediate draft when switching leagues', async () => {
@@ -117,7 +124,7 @@ describe('matchday editing and navigation', () => {
   });
 
   it('includes the final and provides calendar dates when the provider has no round', async () => {
-    api.fetchMatchdayFixtures.mockResolvedValue([
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
       fixture(101, 'final', 'Finalista'),
       fixture(102, 'group', 'Sin ronda'),
     ]);
@@ -130,8 +137,8 @@ describe('matchday editing and navigation', () => {
   });
 
   it('does not clear another league draft when a save finishes after switching', async () => {
-    let finishSave;
-    api.submitMatchdayPredictions.mockImplementation(
+    let finishSave!: (result: MatchdaySubmissionResult) => void;
+    vi.mocked(api.submitMatchdayPredictions).mockImplementation(
       () =>
         new Promise((resolve) => {
           finishSave = resolve;
@@ -144,9 +151,11 @@ describe('matchday editing and navigation', () => {
     context = { ...context, activeGroupId: '20' };
     view.rerender(tree());
     fireEvent.change(await screen.findByLabelText('Goles de Equipo B'), { target: { value: '4' } });
-    await act(async () => finishSave({ message: 'Guardado A' }));
+    await act(async () => finishSave({ success: true, saved: 1, message: 'Guardado A' }));
     expect(screen.getByLabelText('Goles de Equipo B')).toHaveValue(4);
-    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g20'))['201'].homeScore).toBe('4');
+    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g20') ?? '{}')['201'].homeScore).toBe(
+      '4',
+    );
     expect(screen.queryByText('Guardado A')).not.toBeInTheDocument();
   });
 
@@ -184,7 +193,7 @@ describe('matchday editing and navigation', () => {
   });
 
   it('lists every round in one selector and navigates with previous/next controls', async () => {
-    api.fetchMatchdayFixtures.mockResolvedValue([
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
       { ...fixture(1, 'Jornada 1', 'Equipo 1'), finished: true },
       { ...fixture(2, 'Jornada 2', 'Equipo 2'), finished: true },
       { ...fixture(3, 'Jornada 3', 'Equipo 3'), finished: true },
@@ -223,8 +232,8 @@ describe('matchday editing and navigation', () => {
 });
 
 describe('matchday screen with the league round summary', () => {
-  let client;
-  const matchday = (label, current = false) => ({
+  let client: QueryClient;
+  const matchday = (label: string, current = false) => ({
     label,
     date: null,
     finished: !current,
@@ -243,23 +252,25 @@ describe('matchday screen with the league round summary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    useAppContext.mockImplementation(() => ({
-      activeGroupId: '10',
-      activeGroupName: 'Liga A',
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeCompetitionFormatType: 'LEAGUE',
-      isAuthenticated: true,
-      userId: '7',
-    }));
+    vi.mocked(useAppContext).mockImplementation(() =>
+      appContext({
+        activeGroupId: '10',
+        activeGroupName: 'Liga A',
+        activeGroupPoolFormat: 'MATCH_DAY',
+        activeCompetitionFormatType: 'LEAGUE',
+        isAuthenticated: true,
+        userId: '7',
+      }),
+    );
     client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
-    api.fetchLeaderboardMatchdays.mockResolvedValue([
+    vi.mocked(api.fetchLeaderboardMatchdays).mockResolvedValue([
       matchday('Jornada 1'),
       matchday('Jornada 2', true),
       matchday('Jornada 3'),
     ]);
-    api.fetchMatchdayFixtures.mockImplementation((_groupId, round) =>
+    vi.mocked(api.fetchMatchdayFixtures).mockImplementation((_groupId, round = '') =>
       Promise.resolve([fixture(Number(round.slice(-1)), round, `Local ${round}`)]),
     );
   });
@@ -284,8 +295,8 @@ describe('matchday screen with the league round summary', () => {
   });
 
   it('falls back to the whole season when the summary cannot be loaded', async () => {
-    api.fetchLeaderboardMatchdays.mockRejectedValue(new Error('caído'));
-    api.fetchMatchdayFixtures.mockResolvedValue([fixture(1, 'Jornada 1', 'Equipo 1')]);
+    vi.mocked(api.fetchLeaderboardMatchdays).mockRejectedValue(new Error('caído'));
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([fixture(1, 'Jornada 1', 'Equipo 1')]);
     render(tree());
     expect(await screen.findByLabelText('Goles de Equipo 1')).toBeInTheDocument();
     expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith('10', '');
@@ -298,7 +309,9 @@ describe('matchday screen with the league round summary', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Jornada siguiente' }));
     await screen.findByLabelText('Goles de Local Jornada 3');
-    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g10'))['2'].homeScore).toBe('2');
+    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g10') ?? '{}')['2'].homeScore).toBe(
+      '2',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Jornada anterior' }));
     await waitFor(() => expect(screen.getByLabelText('Goles de Local Jornada 2')).toHaveValue(2));

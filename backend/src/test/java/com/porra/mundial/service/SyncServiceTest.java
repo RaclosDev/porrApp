@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -38,6 +39,7 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -54,6 +56,8 @@ class SyncServiceTest {
     @Mock private ScoreInvalidationService scoreInvalidationService;
     @Mock private PlatformTransactionManager transactionManager;
     @Mock private SportsDataProvider provider;
+    @Mock private TopScorerService topScorerService;
+    @Mock private LegacyFixtureRepairService legacyFixtureRepairService;
 
     @InjectMocks
     private SyncService syncService;
@@ -98,6 +102,90 @@ class SyncServiceTest {
     }
 
     @Test
+    void oversizedImportNeverStartsWriting() throws Exception {
+        var oversized = JSON.createArrayNode();
+        for (int i = 0; i < 1001; i++) oversized.addObject();
+        when(provider.fetchTeams("esp.1")).thenReturn(oversized);
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> syncService.importCompetitionData(5L));
+
+        verifyNoInteractions(transactionManager);
+        verify(matchEventProcessor, never()).importTeams(any(), any());
+    }
+
+    @Test
+    void interruptedDownloadPreservesCancellationAndMakesNoWrites() throws Exception {
+        when(provider.fetchTeams("esp.1")).thenThrow(new InterruptedException("closing"));
+        try {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                    () -> syncService.importCompetitionData(5L));
+            assertTrue(Thread.currentThread().isInterrupted());
+            verifyNoInteractions(transactionManager);
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    void downloadsTheWholeImportBeforeOpeningItsWriteTransaction() throws Exception {
+        when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+
+        syncService.importCompetitionData(5L);
+
+        var order = org.mockito.Mockito.inOrder(provider, transactionManager);
+        order.verify(provider).fetchTeams("esp.1");
+        order.verify(provider, org.mockito.Mockito.atLeastOnce()).fetchScoreboardEvents(anyString(), anyString());
+        order.verify(transactionManager).getTransaction(any());
+    }
+
+    @Test
+    void invokesOneBoundedHistoricalRepairPass() {
+        when(legacyFixtureRepairService.repairBatch())
+                .thenReturn(new LegacyFixtureRepairService.RepairResult(20, 18, 2));
+
+        syncService.repairLegacyFixtures();
+
+        verify(legacyFixtureRepairService).repairBatch();
+    }
+
+    @Test
+    void actualProviderHttpFailureDegradesHealthAndNextSuccessRecovers() throws Exception {
+        var client = org.mockito.Mockito.mock(java.net.http.HttpClient.class);
+        @SuppressWarnings("unchecked")
+        var response = (java.net.http.HttpResponse<byte[]>) org.mockito.Mockito.mock(java.net.http.HttpResponse.class);
+        when(response.statusCode()).thenReturn(503, 200);
+        when(response.body()).thenReturn("{\"events\":[]}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        when(response.headers()).thenReturn(java.net.http.HttpHeaders.of(java.util.Map.of(), (key, value) -> true));
+        when(client.<byte[]>send(any(java.net.http.HttpRequest.class), any())).thenReturn(response);
+        var actualProvider = new com.porra.mundial.sports.EspnSportsDataProvider(client, JSON,
+                io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry.ofDefaults());
+        when(sportsDataProviderRegistry.getProviderForCompetition(anyString())).thenReturn(actualProvider);
+
+        syncService.syncAll();
+        assertEquals("error", syncService.getLastSyncStatus());
+        assertTrue(actualProvider.isAvailable());
+
+        syncService.syncAll();
+        assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
+    void domesticProviderFailureIsNotAHealthyEmptyDay() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString()))
+                .thenThrow(new java.io.IOException("HTTP 503"))
+                .thenReturn(JSON.createArrayNode());
+
+        syncService.syncAll();
+
+        assertEquals("error", syncService.getLastSyncStatus());
+        verify(provider, times(3)).fetchScoreboardEvents(anyString(), anyString());
+        assertTrue(syncService.getLastErrorMessage().contains("HTTP 503"));
+    }
+
+    @Test
     @DisplayName("Un evento que falla no aborta la pasada: el resto se procesa")
     void skipsBrokenEvents() throws Exception {
         when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026"))
@@ -108,7 +196,7 @@ class SyncServiceTest {
         syncService.syncAll();
 
         verify(matchEventProcessor).process(argThat(e -> isEvent(e, "2")), any(), any());
-        assertEquals("success", syncService.getLastSyncStatus());
+        assertEquals("error", syncService.getLastSyncStatus());
     }
 
     @Test
@@ -126,6 +214,7 @@ class SyncServiceTest {
         verify(standingsService, never()).recalculateStandingsFromMatches();
         verify(scoreInvalidationService).invalidateCompetition(worldCup.getId());
         verify(webSocketService, times(1)).notifyResultsChanged();
+        verify(topScorerService, times(1)).refresh();
         assertEquals(2, syncService.getLastMatchesUpdated());
         assertEquals("success", syncService.getLastSyncStatus());
     }
@@ -141,6 +230,7 @@ class SyncServiceTest {
         syncService.syncAll();
 
         verify(scoreInvalidationService).invalidateCompetition(laLiga.getId());
+        verifyNoInteractions(topScorerService);
         verify(knockoutBracketService, never()).worldCupMatches();
         verify(knockoutBracketService, never()).propagateKnockoutWinners(anyList());
         verify(standingsService, never()).recalculateStandingsFromMatches(anyList());
@@ -180,6 +270,7 @@ class SyncServiceTest {
             return JSON.createArrayNode();
         });
         when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(eq("esp.1"), anyString())).thenReturn(JSON.createArrayNode());
 
         CompletableFuture<Void> sync = CompletableFuture.runAsync(syncService::syncAll);
         assertTrue(syncStarted.await(5, TimeUnit.SECONDS));
@@ -193,6 +284,19 @@ class SyncServiceTest {
         sync.get(5, TimeUnit.SECONDS);
         assertEquals("LaLiga EA Sports", importing.get(5, TimeUnit.SECONDS).competition());
         verify(provider, timeout(1000)).fetchTeams("esp.1");
+    }
+
+    @Test
+    void worldCupImportRefreshesScorersAfterCommittingItsTransaction() throws Exception {
+        when(competitionRepository.findById(2L)).thenReturn(Optional.of(worldCup));
+        when(provider.fetchTeams(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+
+        syncService.importCompetitionData(2L);
+
+        var order = org.mockito.Mockito.inOrder(transactionManager, topScorerService);
+        order.verify(transactionManager).commit(any());
+        order.verify(topScorerService).refresh();
     }
 
     @Test

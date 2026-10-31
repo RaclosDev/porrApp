@@ -42,7 +42,8 @@ interface LeagueMembersTabProps {
   paidCount: number;
   paidPercent: number;
   paymentFilter: PaymentFilter;
-  paymentMutation: UseMutationResult<unknown, Error, { userId: number; status: PaymentStatus }>;
+  pendingPaymentIds: ReadonlySet<number>;
+  changePayment: (userId: number, status: PaymentStatus) => void;
   pendingCount: number;
   regenerateMutation: UseMutationResult<unknown, Error, void>;
   search: string;
@@ -72,7 +73,8 @@ export default function LeagueMembersTab({
   paidCount,
   paidPercent,
   paymentFilter,
-  paymentMutation,
+  pendingPaymentIds,
+  changePayment,
   pendingCount,
   regenerateMutation,
   search,
@@ -291,9 +293,7 @@ export default function LeagueMembersTab({
           visibleMembers.map((member) => {
             const isPaid = member.paymentStatus === 'PAID';
             const isSelf = currentUserId != null && String(member.userId) === String(currentUserId);
-            const rowPaymentPending =
-              paymentMutation.isPending &&
-              String(paymentMutation.variables?.userId) === String(member.userId);
+            const rowPaymentPending = pendingPaymentIds.has(member.userId);
             const rowKickPending =
               kickMutation.isPending && String(kickMutation.variables) === String(member.userId);
             const confirmingKick = String(kickTargetId) === String(member.userId);
@@ -339,10 +339,7 @@ export default function LeagueMembersTab({
                       className={`league-admin-pay ${isPaid ? 'is-paid' : 'is-pending'}`}
                       onClick={() => {
                         setActionError('');
-                        paymentMutation.mutate({
-                          userId: member.userId,
-                          status: isPaid ? 'PENDING' : 'PAID',
-                        });
+                        changePayment(member.userId, isPaid ? 'PENDING' : 'PAID');
                       }}
                       disabled={rowPaymentPending}
                       aria-label={

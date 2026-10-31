@@ -1,3 +1,4 @@
+import { appContext, participantScore } from '../context/fixtures';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,18 +34,19 @@ describe('Leaderboard Component', () => {
   });
 
   it('alinea exactamente los encabezados y celdas en modalidad MATCH_DAY', () => {
-    useAppContext.mockReturnValue({
-      leaderboardData: sampleLeaderboard,
-      loading: false,
-      activeGroupName: 'Liga Santander',
-      activeGroupId: 1,
-      activeGroupPichichi: false,
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeGroupAdminId: 1,
-      userId: 10,
-      userName: 'Carlos',
-    });
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: sampleLeaderboard.map(participantScore),
+        loading: false,
+        activeGroupName: 'Liga Santander',
+        activeGroupId: '1',
+        activeGroupPichichi: false,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        activeGroupAdminId: 1,
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
 
     render(
       <MemoryRouter>
@@ -70,34 +72,37 @@ describe('Leaderboard Component', () => {
   });
 
   it('muestra la jornada actual y permite navegar por las jornadas', () => {
-    useAppContext.mockReturnValue({
-      leaderboardData: sampleLeaderboard,
-      leaderboardMatchdays: [
-        {
-          label: 'Jornada 1',
-          current: false,
-          finished: true,
-          matchCount: 2,
-          pointsByPrediction: { 1: 3 },
-        },
-        {
-          label: 'Jornada 2',
-          current: true,
-          finished: false,
-          matchCount: 2,
-          pointsByPrediction: { 1: 4 },
-        },
-      ],
-      loading: false,
-      activeGroupName: 'Liga Santander',
-      activeGroupId: 1,
-      activeGroupPichichi: false,
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeGroupAdminId: 1,
-      userId: 10,
-      userName: 'Carlos',
-    });
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: sampleLeaderboard.map(participantScore),
+        leaderboardMatchdays: [
+          {
+            date: null,
+            label: 'Jornada 1',
+            current: false,
+            finished: true,
+            matchCount: 2,
+            pointsByPrediction: { 1: 3 },
+          },
+          {
+            date: null,
+            label: 'Jornada 2',
+            current: true,
+            finished: false,
+            matchCount: 2,
+            pointsByPrediction: { 1: 4 },
+          },
+        ],
+        loading: false,
+        activeGroupName: 'Liga Santander',
+        activeGroupId: '1',
+        activeGroupPichichi: false,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        activeGroupAdminId: 1,
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
 
     render(
       <MemoryRouter>
@@ -149,34 +154,37 @@ describe('Leaderboard Component', () => {
       },
     ];
 
-    useAppContext.mockReturnValue({
-      leaderboardData: twoParticipants,
-      leaderboardMatchdays: [
-        {
-          label: 'Jornada 1',
-          current: false,
-          finished: true,
-          matchCount: 2,
-          pointsByPrediction: { 1: 3, 2: 1 },
-        },
-        {
-          label: 'Jornada 2',
-          current: true,
-          finished: false,
-          matchCount: 2,
-          pointsByPrediction: { 1: 4, 2: 8 },
-        },
-      ],
-      loading: false,
-      activeGroupName: 'Liga Santander',
-      activeGroupId: 1,
-      activeGroupPichichi: false,
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeGroupAdminId: 1,
-      userId: 10,
-      userName: 'Carlos',
-    });
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: twoParticipants.map(participantScore),
+        leaderboardMatchdays: [
+          {
+            date: null,
+            label: 'Jornada 1',
+            current: false,
+            finished: true,
+            matchCount: 2,
+            pointsByPrediction: { 1: 3, 2: 1 },
+          },
+          {
+            date: null,
+            label: 'Jornada 2',
+            current: true,
+            finished: false,
+            matchCount: 2,
+            pointsByPrediction: { 1: 4, 2: 8 },
+          },
+        ],
+        loading: false,
+        activeGroupName: 'Liga Santander',
+        activeGroupId: '1',
+        activeGroupPichichi: false,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        activeGroupAdminId: 1,
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
 
     render(
       <MemoryRouter>
@@ -192,19 +200,20 @@ describe('Leaderboard Component', () => {
   });
 
   it('muestra "Sin pagar" en participantes con el pago pendiente', () => {
-    useAppContext.mockReturnValue({
-      leaderboardData: [{ ...sampleLeaderboard[0], pending: true }],
-      leaderboardMatchdays: [],
-      loading: false,
-      activeGroupName: 'Liga Santander',
-      activeGroupId: 1,
-      activeGroupPichichi: false,
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeGroupPoolFormat: 'MATCH_DAY',
-      activeGroupAdminId: 1,
-      userId: 20,
-      userName: 'Otro',
-    });
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: [participantScore({ ...sampleLeaderboard[0], pending: true })],
+        leaderboardMatchdays: [],
+        loading: false,
+        activeGroupName: 'Liga Santander',
+        activeGroupId: '1',
+        activeGroupPichichi: false,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        activeGroupAdminId: 1,
+        userId: '20',
+        userName: 'Otro',
+      }),
+    );
 
     render(
       <MemoryRouter>
@@ -217,18 +226,19 @@ describe('Leaderboard Component', () => {
   });
 
   it('muestra las columnas del cuadro eliminatorio en modalidad FULL_BRACKET', () => {
-    useAppContext.mockReturnValue({
-      leaderboardData: sampleLeaderboard,
-      loading: false,
-      activeGroupName: 'Mundial 2026',
-      activeGroupId: 2,
-      activeGroupPichichi: true,
-      activeGroupPoolFormat: 'FULL_BRACKET',
-      activeGroupPoolFormat: 'FULL_BRACKET',
-      activeGroupAdminId: 1,
-      userId: 10,
-      userName: 'Carlos',
-    });
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: sampleLeaderboard.map(participantScore),
+        loading: false,
+        activeGroupName: 'Mundial 2026',
+        activeGroupId: '2',
+        activeGroupPichichi: true,
+        activeGroupPoolFormat: 'FULL_BRACKET',
+        activeGroupAdminId: 1,
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
 
     render(
       <MemoryRouter>

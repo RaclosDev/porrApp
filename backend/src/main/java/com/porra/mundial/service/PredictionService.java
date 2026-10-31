@@ -34,6 +34,8 @@ public class PredictionService {
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
+    private final BracketPredictionValidator bracketValidator;
+    private final LeaguePaymentService paymentService;
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
@@ -71,11 +73,6 @@ public class PredictionService {
     }
 
     @Transactional(readOnly = true)
-    public List<Prediction> getAllPredictions() {
-        return predictionRepository.findAllByOrderByCreatedAtDesc();
-    }
-
-    @Transactional(readOnly = true)
     public List<Prediction> getPredictionsByGroupId(Long groupId) {
         return predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId);
     }
@@ -92,17 +89,17 @@ public class PredictionService {
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO predictionData, Long groupId) {
-        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        UserAccount user = userAccountRepository.findByGoogleEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
         Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
         Edition edition = editionRepository.findByLeagueIdAndStatus(effectiveGroupId, "ACTIVE")
-                .or(() -> editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE"))
-                .orElse(null);
+                .orElseThrow(() -> new NoSuchElementException("No hay una edición activa para esta liga"));
 
-        if (edition != null && edition.isLocked()) {
+        if (edition.isLocked()) {
             throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
-        if (groupId != null && user != null && edition != null && edition.getLeague() != null) {
+        if (groupId != null && edition.getLeague() != null) {
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
             boolean isGlobal = edition.getLeague().isGlobal();
             if (!membershipRepository.existsById(memId) && !isGlobal) {
@@ -110,13 +107,20 @@ public class PredictionService {
             }
         }
 
-        if (groupId != null) {
-            predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
-                    .ifPresent(predictionRepository::delete);
+        bracketValidator.validate(edition, predictionData);
+
+        Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, effectiveGroupId);
+        if (existing.isPresent()) {
+            Prediction prediction = existing.get();
+            requireSameTopology(prediction.getBracketData(), predictionData);
+            prediction.setName(predictionName);
+            prediction.setBracketData(predictionData);
+            prediction.setScoreCalculatedAt(null);
+            return predictionRepository.save(prediction);
         }
 
         String paymentStatus = "PENDING";
-        if (groupId != null && user != null) {
+        if (groupId != null) {
             Membership.MembershipId memberId = new Membership.MembershipId(user.getId(), groupId);
             paymentStatus = membershipRepository.findById(memberId)
                     .map(Membership::getPaymentStatus)
@@ -137,7 +141,7 @@ public class PredictionService {
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
-    public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, PredictionDataDTO predictionData) {
+    public Prediction updatePrediction(Long id, String requesterEmail, String predictionName, PredictionDataDTO predictionData) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
@@ -146,7 +150,10 @@ public class PredictionService {
             throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
-        if (participantName != null) prediction.setParticipantName(participantName);
+        if (predictionData != null) {
+            requireSameTopology(prediction.getBracketData(), predictionData);
+            bracketValidator.validate(prediction.getEdition(), predictionData);
+        }
         if (predictionName != null) prediction.setName(predictionName);
         if (predictionData != null) {
             prediction.setBracketData(predictionData);
@@ -162,13 +169,10 @@ public class PredictionService {
 
         verifyGroupAdminForPayment(prediction, requesterEmail);
 
-        prediction.setPaid(true);
-
-        if (requesterEmail != null) {
-            userAccountRepository.findByGoogleEmail(requesterEmail).ifPresent(prediction::setPaymentMarkedBy);
-        }
-
-        return predictionRepository.save(prediction);
+        UserAccount admin = userAccountRepository.findByGoogleEmail(requesterEmail)
+                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+        paymentService.setPayment(prediction.getEdition().getLeague().getId(), prediction.getUser().getId(), "PAID", admin);
+        return prediction;
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
@@ -270,8 +274,16 @@ public class PredictionService {
         return dto;
     }
 
+    private void requireSameTopology(PredictionDataDTO stored, PredictionDataDTO incoming) {
+        if (stored == null) return;
+        int previous = stored.getTopologyVersion() == null ? 1 : stored.getTopologyVersion();
+        int next = incoming.getTopologyVersion() == null ? 1 : incoming.getTopologyVersion();
+        if (previous != next)
+            throw new IllegalArgumentException("La versión del cuadro guardado no puede cambiar al editarlo");
+    }
+
     public void ensureKnockoutFinals(PredictionDataDTO dto) {
-        if (dto == null) return;
+        if (dto == null || Integer.valueOf(2).equals(dto.getTopologyVersion())) return;
         if ((dto.getFinalMatch() == null || dto.getFinalMatch().isEmpty()) && dto.getSf() != null && dto.getSf().size() >= 2 && dto.getChampion() != null) {
             List<String> sf1 = dto.getSf().get(0);
             List<String> sf2 = dto.getSf().get(1);

@@ -91,7 +91,9 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
               <span className="block text-[0.95rem] font-extrabold tabular-nums text-main">
                 {s.sign} · {s.percent} %
               </span>
-              <span className={`block text-[0.72rem] ${isReal ? 'text-[#4ade80]' : 'text-muted'}`}>
+              <span
+                className={`block text-[0.72rem] ${isReal ? 'text-[var(--hit)]' : 'text-muted'}`}
+              >
                 {SIGN_STYLE[s.sign].label}
                 {isReal ? ' ✓' : ''}
               </span>
@@ -115,7 +117,7 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
               return (
                 <li
                   key={`${s.home}-${s.away}`}
-                  className={`rounded-full border px-3 py-1 text-[0.88rem] tabular-nums ${exact ? 'border-[rgba(74,222,128,0.5)] bg-[rgba(74,222,128,0.1)] text-[#4ade80]' : 'border-line text-main'}`}
+                  className={`rounded-full border px-3 py-1 text-[0.88rem] tabular-nums ${exact ? 'border-[rgba(74,222,128,0.5)] bg-[rgba(74,222,128,0.1)] text-[var(--hit)]' : 'border-line text-main'}`}
                 >
                   <strong>
                     {s.home}-{s.away}

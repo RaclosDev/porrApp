@@ -56,6 +56,21 @@ class WorldCup2026ScoringStrategyTest {
         return new TopScorerDTO(name, shortName, goals, "FW", null, null, null);
     }
 
+    @Test
+    void duplicateTeamsCannotMultiplyKnockoutPoints() {
+        Scenario s = new Scenario();
+        s.participant.setR16(java.util.Collections.nCopies(50, List.of("España", "España")));
+        s.roundOf16.add("España");
+        assertThat(s.score(strategy).getR32()).isEqualTo(25);
+    }
+
+    @Test
+    void repeatedGroupQualifierCannotEarnPointsTwice() {
+        Scenario s = new Scenario();
+        s.participant.setGroups(Map.of("A", List.of("España", "España")));
+        assertThat(s.score(strategy).getR1()).isEqualTo(20);
+    }
+
     @Nested
     class GroupStage {
 

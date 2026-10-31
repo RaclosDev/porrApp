@@ -21,10 +21,8 @@ import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.util.JoinCodeGenerator;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,8 +32,6 @@ import java.time.LocalDateTime;
 import com.porra.mundial.model.MatchPrediction;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-
 
 
 /** Ligas: creación, invitaciones, miembros, pagos y abandono. */
@@ -52,131 +48,7 @@ public class GroupService {
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
     private final ApplicationEventPublisher eventPublisher;
-
-    @Value("${app.admins:Admin}")
-    private List<String> appAdmins;
-
-    /** Al arrancar, garantiza la Porra Global (id, código, edición y administrador). */
-    @PostConstruct
-    @Transactional
-    public void initDefaultGroup() {
-        UserAccount adminUser = userAccountRepository.findByParticipantName("Admin")
-                .orElseGet(() -> userAccountRepository.save(UserAccount.builder()
-                        .googleEmail(UserAccount.SYSTEM_ADMIN_EMAIL)
-                        .googleName("Admin")
-                        .participantName("Admin")
-                        .build()));
-
-        League globalGroup = leagueRepository.findById(League.GLOBAL_ID).orElse(null);
-
-        if (globalGroup == null) {
-            // Find if any group has code GLOBAL
-            globalGroup = leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).orElse(null);
-            if (globalGroup == null) {
-                globalGroup = League.builder()
-                        .name(League.GLOBAL_NAME)
-                        .joinCode(League.GLOBAL_JOIN_CODE)
-                        .adminUser(adminUser)
-                        .build();
-                globalGroup = leagueRepository.save(globalGroup);
-            }
-        } else {
-            // Normalize the global league without overwriting a real administrator.
-            UserAccount currentAdmin = globalGroup.getAdminUser();
-            String currentAdminEmail = currentAdmin != null ? currentAdmin.getGoogleEmail() : null;
-            boolean currentAdminIsPlaceholder = currentAdmin == null
-                    || UserAccount.SYSTEM_ADMIN_EMAIL.equalsIgnoreCase(currentAdminEmail)
-                    || (currentAdminEmail != null && currentAdminEmail.toLowerCase(java.util.Locale.ROOT).endsWith("@auto.generated"));
-
-            boolean metadataNeedsUpdate = !League.GLOBAL_JOIN_CODE.equals(globalGroup.getJoinCode())
-                    || !League.GLOBAL_NAME.equals(globalGroup.getName());
-            boolean adminNeedsUpdate = currentAdminIsPlaceholder
-                    && (currentAdmin == null || !adminUser.getId().equals(currentAdmin.getId()));
-
-            if (metadataNeedsUpdate || adminNeedsUpdate) {
-                try {
-                    // Avoid a unique-code conflict if another league currently uses GLOBAL.
-                    leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).ifPresent(other -> {
-                        if (!League.isGlobalId(other.getId())) {
-                            log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
-                            other.setJoinCode(JoinCodeGenerator.next());
-                            leagueRepository.saveAndFlush(other);
-                        }
-                    });
-
-                    globalGroup.setJoinCode(League.GLOBAL_JOIN_CODE);
-                    globalGroup.setName(League.GLOBAL_NAME);
-                    if (adminNeedsUpdate) {
-                        log.info("Replacing placeholder administrator of Porra Global with the default Admin account.");
-                        globalGroup.setAdminUser(adminUser);
-                    }
-                    globalGroup = leagueRepository.saveAndFlush(globalGroup);
-                } catch (Exception e) {
-                    log.error("Failed to normalize the global league. Error: {}", e.getMessage(), e);
-                }
-            }
-        }
-
-        final League finalGlobalGroup = globalGroup;
-
-        // Ensure competition exists (siempre la canónica con proveedor externo)
-        Competition comp = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
-            .or(() -> competitionRepository.findByName("FIFA World Cup 2026"))
-            .orElseGet(() -> competitionRepository.save(Competition.builder()
-                    .name("FIFA World Cup 2026")
-                    .externalId(Competition.WORLD_CUP_EXTERNAL_ID)
-                    .formatType("TOURNAMENT")
-                    .build()));
-
-        // Ensure Edition exists
-        Edition edition = editionRepository.findByLeagueIdAndStatus(finalGlobalGroup.getId(), "ACTIVE")
-            .orElseGet(() -> editionRepository.save(Edition.builder()
-                    .league(finalGlobalGroup)
-                    .competition(comp)
-                    .poolFormat(com.porra.mundial.model.PoolFormat.FULL_BRACKET)
-                    .pichichi(true)
-                    .status("ACTIVE")
-                    .build()));
-        if (!edition.isPichichi()) {
-            edition.setPichichi(true);
-            editionRepository.save(edition);
-        }
-
-        // Ensure the current league administrator has an ADMIN membership, even if a stale
-        // MEMBER membership already exists from before an administrator change.
-        Membership.MembershipId memId = new Membership.MembershipId(finalGlobalGroup.getAdminUser().getId(), finalGlobalGroup.getId());
-        Membership adminMembership = membershipRepository.findById(memId).orElse(null);
-        if (adminMembership == null) {
-            membershipRepository.save(Membership.builder()
-                .id(memId)
-                .user(finalGlobalGroup.getAdminUser())
-                .league(finalGlobalGroup)
-                .role("ADMIN")
-                .build());
-        } else if (!"ADMIN".equalsIgnoreCase(adminMembership.getRole())) {
-            adminMembership.setRole("ADMIN");
-            membershipRepository.save(adminMembership);
-        }
-
-        // Migrate all existing predictions to this global group (except the Admin template)
-        List<Prediction> allPredictions = predictionRepository.findAll();
-        boolean migrated = false;
-        for (Prediction pred : allPredictions) {
-            if (pred.getEdition() == null) {
-                if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) {
-                    // Admin prediction stays global (null)
-                    continue;
-                }
-                pred.setEdition(edition);
-                predictionRepository.save(pred);
-                migrated = true;
-            }
-        }
-        
-        if (migrated) {
-            log.info("Migrados los pronosticos existentes al Grupo Global.");
-        }
-    }
+    private final LeaguePaymentService paymentService;
 
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
@@ -229,6 +101,7 @@ public class GroupService {
                 .league(group)
                 .competition(comp)
                 .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
+                .lockDate(Edition.defaultLockDate(comp, poolFormat))
                 .pichichi(pichichi)
                 .status("ACTIVE")
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
@@ -559,22 +432,9 @@ public class GroupService {
     public void toggleMemberPayment(Long groupId, Long targetUserId, String email, String status) {
         verifyGroupAdmin(groupId, email);
 
-        Membership.MembershipId memId = new Membership.MembershipId(targetUserId, groupId);
-        Membership mem = membershipRepository.findById(memId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Membresía no encontrada"));
-
-        String cleanStatus = "PAID".equalsIgnoreCase(status) ? "PAID" : "PENDING";
-        mem.setPaymentStatus(cleanStatus);
-        membershipRepository.save(mem);
-
-        List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
-        for (Prediction p : preds) {
-            if (p.getUser() != null && p.getUser().getId().equals(targetUserId)) {
-                p.setPaid("PAID".equals(cleanStatus));
-                p.setPaymentStatus(cleanStatus);
-                predictionRepository.save(p);
-            }
-        }
+        UserAccount admin = userAccountRepository.findByGoogleEmail(email)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Usuario no encontrado"));
+        paymentService.setPayment(groupId, targetUserId, status, admin);
     }
 
     /**

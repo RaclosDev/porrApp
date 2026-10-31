@@ -126,7 +126,9 @@ export default function ImagePicker({
       <div className="flex flex-col items-center gap-1.5" data-testid={`${idPrefix}-preview`}>
         {renderPreview(shownUrl)}
         {pending && (
-          <span className="text-[0.68rem] font-bold text-[#00d2d3] text-center">Vista previa</span>
+          <span className="text-[0.68rem] font-bold text-[var(--marker-ink)] text-center">
+            Vista previa
+          </span>
         )}
       </div>
 
@@ -161,7 +163,7 @@ export default function ImagePicker({
                   ...btn,
                   background: 'rgba(0, 210, 211, 0.15)',
                   border: '1px solid rgba(0, 210, 211, 0.45)',
-                  color: '#00d2d3',
+                  color: 'var(--marker-ink)',
                 }}
               >
                 {busy ? 'Subiendo…' : pending.processing ? 'Preparando imagen…' : 'Guardar imagen'}
@@ -183,7 +185,7 @@ export default function ImagePicker({
               className="glass-btn"
               onClick={remove}
               disabled={disabled || busy}
-              style={{ ...btn, color: '#ff6b7a', border: '1px solid rgba(255, 71, 87, 0.4)' }}
+              style={{ ...btn, color: 'var(--miss)', border: '1px solid rgba(255, 71, 87, 0.4)' }}
             >
               Quitar
             </button>
@@ -193,7 +195,7 @@ export default function ImagePicker({
           JPG, PNG o WebP. Se recorta en cuadrado y se reduce automáticamente.
         </span>
         {error && (
-          <span className="text-[0.78rem] text-[#ff6b7a]" role="alert">
+          <span className="text-[0.78rem] text-[var(--miss)]" role="alert">
             {error}
           </span>
         )}

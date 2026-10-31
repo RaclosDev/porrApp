@@ -46,8 +46,9 @@ export function useLeaderboard() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMatchdayState, setSelectedMatchdayState] = useState<string | null>(null);
 
-  const isLeagueAdmin =
-    activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
+  const isLeagueAdmin = Boolean(
+    activeGroupAdminId != null && userId && String(activeGroupAdminId) === String(userId),
+  );
 
   const matchdays = Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_MATCHDAYS;
 
@@ -145,9 +146,12 @@ export function useLeaderboard() {
     let stats: { myPoints: number; leader: LeaderboardRow | null } | null = null;
     if (selectedMatchdayInfo) {
       const paidList = list.filter((r) => r.paid);
-      const me = paidList.find(
-        (r) => r.userId?.toString() === userId?.toString() || r.name === userName,
-      );
+      const namedRows = paidList.filter((r) => Boolean(userName) && r.name === userName);
+      const me = userId
+        ? paidList.find((r) => r.userId != null && String(r.userId) === String(userId))
+        : namedRows.length === 1
+          ? namedRows[0]
+          : undefined;
       const leader =
         [...paidList]
           .filter((r) => Number(r.points.matchday) > 0)

@@ -11,6 +11,7 @@ import {
 describe('api.ts service', () => {
   beforeEach(() => {
     localStorage.clear();
+    setAuthToken(null);
     vi.restoreAllMocks();
   });
 
@@ -90,7 +91,7 @@ describe('api.ts service', () => {
         return { ok: false, status: 401, json: async () => ({}) };
       }),
     );
-    await expect(fetchStandings()).rejects.toThrow('401');
+    await expect(fetchStandings()).rejects.toThrow('La sesión ha cambiado');
     expect(getAuthToken()).toBe('new-test-token');
   });
 

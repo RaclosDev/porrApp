@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+
 
 /**
  * Prepara los datos base al arrancar:
@@ -33,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
  * Las correcciones de datos puntuales van en migraciones de Flyway, no aquí.
  */
 @Component
+@org.springframework.core.annotation.Order(1)
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
@@ -47,6 +48,7 @@ public class DataInitializer implements CommandLineRunner {
     private final StandingsService standingsService;
     private final KnockoutBracketService knockoutBracketService;
     private final ObjectMapper objectMapper;
+    private final InitialSyncExecutor initialSyncExecutor;
 
     /** Equipo del fichero de semilla con sus probabilidades iniciales. */
     record TeamSeed(String name, String group, double winOdds, double qualifyOdds, double outrightOdds) {
@@ -62,7 +64,12 @@ public class DataInitializer implements CommandLineRunner {
 
         seedWorldCupTeamsIfMissing();
 
-        CompletableFuture.runAsync(this::runInitialSync);
+
+    }
+
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    public void startInitialSync() {
+        initialSyncExecutor.execute(this::runInitialSync);
     }
 
     private void seedCompetitionIfMissing(String name, String externalId, String formatType) {
@@ -110,6 +117,7 @@ public class DataInitializer implements CommandLineRunner {
     private void runInitialSync() {
         runStep("importar calendarios vacíos", this::importEmptyCompetitionFixtures);
         runStep("sincronizar resultados", syncService::syncAll);
+        runStep("reparar equipos históricos", syncService::repairLegacyFixtures);
         runStep("recalcular clasificaciones", standingsService::recalculateStandingsFromMatches);
         runStep("propagar ganadores de eliminatorias", knockoutBracketService::propagateKnockoutWinners);
         log.info("Sincronización inicial de arranque finalizada.");
@@ -125,6 +133,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void runStep(String description, Runnable step) {
+        if (Thread.currentThread().isInterrupted()) return;
         try {
             step.run();
         } catch (Exception e) {

@@ -31,4 +31,23 @@ describe('bracket persistence & hydration on reload (F5)', () => {
     const state = getInitialBracketState('42', '7');
     expect(state).toEqual(defaultBracketState);
   });
+
+  it.each([
+    null,
+    [],
+    { r32: {} },
+    { ...defaultBracketState, sf: { left: [], right: [] } },
+    { ...defaultBracketState, champion: { name: 42 } },
+    { ...defaultBracketState, final: { id: 'F', home: 'España', away: null } },
+  ])('rejects malformed but parseable draft %j', (draft) => {
+    localStorage.setItem('draft_bracket_u7_g42', JSON.stringify(draft));
+    expect(getInitialBracketState('42', '7')).toBe(defaultBracketState);
+  });
+
+  it('preserves valid partial drafts with empty later rounds', () => {
+    const draft = structuredClone(defaultBracketState);
+    draft.r32.right[4].away = { name: 'España' };
+    localStorage.setItem('draft_bracket_u7_g42', JSON.stringify(draft));
+    expect(getInitialBracketState('42', '7')).toEqual(draft);
+  });
 });

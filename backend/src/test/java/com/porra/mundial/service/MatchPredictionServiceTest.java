@@ -48,6 +48,9 @@ class MatchPredictionServiceTest {
     @Mock
     private MatchScoringCalculator matchScoringCalculator;
 
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
+
     @InjectMocks
     private MatchPredictionService matchPredictionService;
 
@@ -114,7 +117,7 @@ class MatchPredictionServiceTest {
                 .awayScore(1)
                 .round("Jornada 1")
                 .build();
-    
+
         lenient().when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
         lenient().when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(true);
     }
@@ -373,7 +376,7 @@ class MatchPredictionServiceTest {
         // Calculador real: lo que se comprueba son los puntos que salen de las reglas de la liga.
         MatchPredictionService service = new MatchPredictionService(matchRepository, matchPredictionRepository,
                 predictionRepository, userAccountRepository, editionRepository, membershipRepository,
-                new MatchScoringCalculator());
+                new MatchScoringCalculator(), scoreInvalidationService);
         edition.setScoringRulesJson(ScoringRuleSet.builder()
                 .exactScorePoints(10).correctSignPoints(2).goalDiffBonusPoints(0).build().toJson());
         Prediction prediction = Prediction.builder().id(50L).edition(edition).build();
@@ -425,5 +428,24 @@ class MatchPredictionServiceTest {
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.empty());
         List<MatchdayFixturePredictionDTO> noEditionFixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null);
         assertTrue(noEditionFixtures.isEmpty(), "Una liga sin edición activa no debe devolver partidos de jornada");
+    }
+
+    @Test
+    void friendPredictionsQueryIsScopedToTheLeagueAndKeepsUnpredictedMembers() {
+        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        when(membershipRepository.existsById(new Membership.MembershipId(1L, 10L))).thenReturn(true);
+        var friend = UserAccount.builder().id(2L).participantName("Friend").build();
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().user(user).build(), Membership.builder().user(friend).build()));
+        var prediction = MatchPrediction.builder().match(futureMatch).homeScore(2).awayScore(1)
+                .prediction(Prediction.builder().user(user).edition(edition).build()).build();
+        when(matchPredictionRepository.findFriendsByMatchAndLeague(101L, 10L)).thenReturn(List.of(prediction));
+        var result = matchPredictionService.getFriendPredictionsForMatch("player@test.com", 10L, 101L);
+        assertEquals(2, result.size());
+        assertEquals(2, result.get(0).getHomeScore());
+        assertFalse(result.get(1).isHasPredicted());
+        verify(matchPredictionRepository, never()).findByMatchId(any());
     }
 }
