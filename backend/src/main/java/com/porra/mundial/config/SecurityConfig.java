@@ -85,7 +85,7 @@ public class SecurityConfig {
                             "connect-src 'self' ws: wss: https://accounts.google.com https://site.api.espn.com https://a.espncdn.com; " +
                             "frame-src 'self' https://accounts.google.com https://googleads.g.doubleclick.net;")
                 )
-                .permissionsPolicy(perm -> perm
+                .permissionsPolicyHeader(perm -> perm
                     .policy("camera=(), microphone=(), geolocation=()")
                 )
             )
