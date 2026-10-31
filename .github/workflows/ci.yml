@@ -97,6 +97,8 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
           cache-dependency-path: backend/pom.xml
+      - name: Require Docker for PostgreSQL integration tests
+        run: docker info > /dev/null
       - name: Build and Test with Maven
         run: ./mvnw -B test
       - name: Coverage summary

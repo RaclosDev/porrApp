@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "npm run typecheck && eslint . --report-unused-disable-directives --max-warnings 0",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

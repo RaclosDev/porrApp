@@ -79,6 +79,8 @@ public/workbox-*.js
 AGENTS.md
 GEMINI.md
 .agents/
+.claude/
+tmp/
 graphify-out/
 .graphify*
 
