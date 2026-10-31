@@ -7,6 +7,7 @@ package com.porra.mundial.dto;
  * @param participantName     apodo en la porra
  * @param lastSelectedGroupId última liga que tenía abierta
  * @param avatarUrl           foto de perfil versionada, o null
+ * @param profileSetupCompleted ya eligió personalizar su perfil u omitir la presentación
  */
-public record MeResponse(Long userId, String participantName, Long lastSelectedGroupId, String avatarUrl) {
+public record MeResponse(Long userId, String participantName, Long lastSelectedGroupId, String avatarUrl, boolean profileSetupCompleted) {
 }
