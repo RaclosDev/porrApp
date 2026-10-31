@@ -766,8 +766,7 @@
     color: var(--ink);
   }
 
-  .paper-panel .lb-matchday-step,
-  .paper-panel .lb-matchday-kpi {
+  .paper-panel .lb-matchday-step {
     background: transparent;
     border-color: var(--ink);
     color: var(--ink);
@@ -785,8 +784,6 @@
   .paper-panel .md-page-header h1,
   .paper-panel .md-team-name,
   .paper-panel .lb-matchday-title,
-  .paper-panel .lb-matchday-kpi strong,
-  .paper-panel .lb-matchday-kpi:first-child strong,
   .paper-panel .lb-matchday-select,
   .paper-panel .lb-matchday-select option,
   .paper-panel .lb-matchday-step,

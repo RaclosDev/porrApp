@@ -1,3 +1,4 @@
+import MatchdayPodium from '../components/MatchdayPodium';
 import PaperLoading from '../components/PaperLoading';
 import React, { useState, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -143,7 +144,7 @@ function Leaderboard() {
 
   const columnClass = (col: LeaderboardColumn) => {
     if (col.kind === 'matchday') return 'lb-matchday-cell';
-    if (col.kind === 'detail') return 'leaderboard-mobile-detail';
+    if (col.kind === 'detail' && !isMatchday) return 'leaderboard-mobile-detail';
     return '';
   };
 
@@ -151,78 +152,80 @@ function Leaderboard() {
 
   return (
     <section id="view-leaderboard" className="view-section block">
-      <div className="ranking-toolbar">
-        {!isMatchday && (
-          <div
-            role="tablist"
-            aria-label="Vista de la clasificación"
-            className="ranking-view-tabs"
-            onKeyDown={(event) => {
-              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-              event.preventDefault();
-              const next =
-                event.key === 'Home'
-                  ? 'table'
-                  : event.key === 'End'
-                    ? 'evolution'
-                    : activeTab === 'table'
-                      ? 'evolution'
-                      : 'table';
-              setActiveTab(next);
-              document.getElementById(`leaderboard-tab-${next}`)?.focus();
-            }}
-          >
-            <button
-              className={`ranking-view-tab ${activeTab === 'table' ? 'is-active' : ''}`}
-              type="button"
-              onClick={() => setActiveTab('table')}
-              role="tab"
-              id="leaderboard-tab-table"
-              aria-selected={activeTab === 'table'}
-              aria-controls="leaderboard-panel"
-              tabIndex={activeTab === 'table' ? 0 : -1}
-            >
-              Ranking
-            </button>
-            <button
-              className={`ranking-view-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
-              type="button"
-              onClick={() => setActiveTab('evolution')}
-              role="tab"
-              id="leaderboard-tab-evolution"
-              aria-selected={activeTab === 'evolution'}
-              aria-controls="leaderboard-panel"
-              tabIndex={activeTab === 'evolution' ? 0 : -1}
-            >
-              Gráfica
-            </button>
-          </div>
-        )}
-        <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
-          <Link to="/stats" className="ranking-secondary-link">
-            <BarChart3 size={16} aria-hidden="true" />
-            {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
-          </Link>
+      {!isMatchday && (
+        <div className="ranking-toolbar">
           {!isMatchday && (
-            <Link to="/search" className="ranking-secondary-link">
-              <Search size={16} aria-hidden="true" />
-              Buscador
-            </Link>
+            <div
+              role="tablist"
+              aria-label="Vista de la clasificación"
+              className="ranking-view-tabs"
+              onKeyDown={(event) => {
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const next =
+                  event.key === 'Home'
+                    ? 'table'
+                    : event.key === 'End'
+                      ? 'evolution'
+                      : activeTab === 'table'
+                        ? 'evolution'
+                        : 'table';
+                setActiveTab(next);
+                document.getElementById(`leaderboard-tab-${next}`)?.focus();
+              }}
+            >
+              <button
+                className={`ranking-view-tab ${activeTab === 'table' ? 'is-active' : ''}`}
+                type="button"
+                onClick={() => setActiveTab('table')}
+                role="tab"
+                id="leaderboard-tab-table"
+                aria-selected={activeTab === 'table'}
+                aria-controls="leaderboard-panel"
+                tabIndex={activeTab === 'table' ? 0 : -1}
+              >
+                Ranking
+              </button>
+              <button
+                className={`ranking-view-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
+                type="button"
+                onClick={() => setActiveTab('evolution')}
+                role="tab"
+                id="leaderboard-tab-evolution"
+                aria-selected={activeTab === 'evolution'}
+                aria-controls="leaderboard-panel"
+                tabIndex={activeTab === 'evolution' ? 0 : -1}
+              >
+                Gráfica
+              </button>
+            </div>
           )}
-        </nav>
-        <button
-          className="ranking-share-button"
-          id="btn-share-wa"
-          onClick={handleShare}
-          disabled={sharing}
-          title="Compartir clasificación"
-          aria-label="Compartir clasificación"
-          aria-busy={sharing}
-        >
-          <Share2 size={20} aria-hidden="true" />
-          <span className="ml-2">{sharing ? 'Generando…' : 'Compartir'}</span>
-        </button>
-      </div>
+          <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
+            <Link to="/stats" className="ranking-secondary-link">
+              <BarChart3 size={16} aria-hidden="true" />
+              {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
+            </Link>
+            {!isMatchday && (
+              <Link to="/search" className="ranking-secondary-link">
+                <Search size={16} aria-hidden="true" />
+                Buscador
+              </Link>
+            )}
+          </nav>
+          <button
+            className="ranking-share-button"
+            id="btn-share-wa"
+            onClick={handleShare}
+            disabled={sharing}
+            title="Compartir clasificación"
+            aria-label="Compartir clasificación"
+            aria-busy={sharing}
+          >
+            <Share2 size={20} aria-hidden="true" />
+            <span className="ml-2">{sharing ? 'Generando…' : 'Compartir'}</span>
+          </button>
+        </div>
+      )}
 
       <div
         id="leaderboard-panel"
@@ -268,21 +271,6 @@ function Leaderboard() {
                       </span>
                     )}
                   </div>
-
-                  <div className="lb-matchday-kpis">
-                    <div className="lb-matchday-kpi">
-                      <span>Tus puntos</span>
-                      <strong>{matchdayStats?.myPoints ?? 0}</strong>
-                    </div>
-                    <div className="lb-matchday-kpi">
-                      <span>Líder de la jornada</span>
-                      <strong>
-                        {matchdayStats?.leader
-                          ? `${matchdayStats.leader.name} · ${matchdayStats.leader.points.matchday} pts`
-                          : 'Sin puntos todavía'}
-                      </strong>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="lb-matchday-nav">
@@ -320,10 +308,18 @@ function Leaderboard() {
                     <ChevronRight size={18} aria-hidden="true" />
                   </button>
                 </div>
+                <div className="lb-matchday-footer">
+                  <span>
+                    Tus puntos en esta jornada <strong>{matchdayStats?.myPoints ?? 0}</strong>
+                  </span>
+                  <Link to="/stats" aria-label="Estadísticas por partido">
+                    <BarChart3 size={16} aria-hidden="true" /> Estadísticas
+                  </Link>
+                </div>
               </div>
             )}
 
-            {podium.length === 3 && (
+            {!isMatchday && podium.length === 3 && (
               <ul className="ranking-podium" aria-label="Podio">
                 {podium.map((row) => (
                   <li
@@ -339,14 +335,40 @@ function Leaderboard() {
               <div
                 className={`table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto ${showDetail ? 'show-detail' : ''}`}
               >
-                <button
-                  type="button"
-                  className="lb-detail-toggle glass-btn py-1.5 px-3 text-[0.8rem]"
-                  aria-pressed={showDetail}
-                  onClick={() => setShowDetail((v) => !v)}
-                >
-                  {showDetail ? 'Ocultar desglose' : 'Ver desglose por fase'}
-                </button>
+                {isMatchday && (
+                  <>
+                    <div className="matchday-ranking-heading">
+                      <h2 className="poster-title">Clasificación general</h2>
+                      <button
+                        type="button"
+                        className="matchday-ranking-share"
+                        onClick={handleShare}
+                        disabled={sharing}
+                        aria-busy={sharing}
+                        aria-label="Compartir clasificación"
+                      >
+                        <Share2 size={18} aria-hidden="true" />
+                        <span>{sharing ? 'Generando…' : 'Compartir'}</span>
+                      </button>
+                    </div>
+                    <MatchdayPodium rows={results} />
+                    {!summaryMatchday && (
+                      <Link className="ranking-secondary-link" to="/stats">
+                        Estadísticas por partido
+                      </Link>
+                    )}
+                  </>
+                )}
+                {!isMatchday && (
+                  <button
+                    type="button"
+                    className="lb-detail-toggle glass-btn py-1.5 px-3 text-[0.8rem]"
+                    aria-pressed={showDetail}
+                    onClick={() => setShowDetail((v) => !v)}
+                  >
+                    {showDetail ? 'Ocultar desglose' : 'Ver desglose por fase'}
+                  </button>
+                )}
                 <div className="ranking-table-scroll">
                   <table className="leaderboard-table">
                     <thead>
@@ -423,7 +445,7 @@ function Leaderboard() {
                                       <strong>
                                         {r.name}
                                         {isMe && (
-                                          <span className="text-accent-text ml-[5px] text-[0.8em]">
+                                          <span className="text-accent-text ml-[5px] text-[0.8em] whitespace-nowrap">
                                             (Tú)
                                           </span>
                                         )}
