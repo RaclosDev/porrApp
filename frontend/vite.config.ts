@@ -19,14 +19,6 @@ export default defineConfig({
           if (id.includes('lucide-react')) return 'icons';
           if (id.includes('@tanstack')) return 'data-vendor';
           if (id.includes('@react-oauth')) return 'auth-vendor';
-          if (
-            id.includes('@radix-ui') ||
-            id.includes('class-variance-authority') ||
-            id.includes('clsx') ||
-            id.includes('tailwind-merge')
-          ) {
-            return 'ui-vendor';
-          }
           if (id.includes('react-hot-toast')) return 'toast-vendor';
           if (id.includes('html2canvas')) return 'html2canvas';
           if (id.includes('zustand')) return 'store-vendor';
