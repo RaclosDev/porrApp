@@ -28,11 +28,13 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
    - `StandingsService` recalcula la clasificación de grupos y `MathematicalStatusCalculator` marca a los equipos ya clasificados o eliminados.
 4. `WebSocketService` avisa a los clientes (`DATA_UPDATED`, `LEAGUE_UPDATED` o `MATCH_SCORE_UPDATED`) y el frontend invalida las consultas afectadas.
 
-`TopScorerService` refresca la tabla de goleadores cada 30 minutos de forma independiente.
+`TopScorerService` refresca la tabla de goleadores cada 30 minutos de forma independiente y una vez por lote de resultados del Mundial. Las imágenes se buscan una vez por jugador; también se cachean temporalmente las búsquedas sin resultado.
+
+La sincronización inicial se lanza después de `ApplicationReadyEvent`, cuando los datos semilla ya están confirmados, mediante un ejecutor gestionado por Spring. Los fallos del proveedor se registran como sincronizaciones incompletas; una respuesta fallida no se interpreta como una jornada sin partidos.
 
 ### Resultados oficiales y desempates
 
-`OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados. `GroupTiebreaker` ordena a los equipos empatados a puntos según el artículo 13 del reglamento del Mundial 2026: primero los partidos entre los empatados, luego la diferencia de goles y los goles de todo el grupo y después el fair play. La app no guarda el ranking FIFA, así que los empates que llegan a ese criterio se ordenan por nombre. Lo usan la clasificación de cada grupo, el estado matemático y el orden de los mejores terceros.
+`OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados. `GroupTiebreaker` ordena a los equipos empatados a puntos según el artículo 13 del reglamento del Mundial 2026: primero los partidos entre los empatados, luego la diferencia de goles y los goles de todo el grupo y después el fair play. La app no guarda el ranking FIFA, así que los empates que llegan a ese criterio se ordenan por nombre. Lo usan la clasificación de cada grupo y el orden de los mejores terceros. Mientras quedan partidos, el estado matemático enumera resultados por puntos y mantiene abiertos los desempates que dependen de goles o tarjetas futuros; no inventa marcadores para declarar un puesto asegurado.
 
 ### Puntuación
 
@@ -45,6 +47,7 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 ### Ligas y pronósticos
 
 - `GroupService` gestiona las ligas (`League`), sus miembros (`Membership`), los códigos de invitación y los pagos. La Porra Global usa un id fijo (`League.GLOBAL_ID`).
+- `LeaguePaymentService` actualiza la membresía y los pronósticos de sus ediciones en una misma transacción, tanto desde la gestión de miembros como desde la ruta de pago de un pronóstico. La autorización de administrador se comprueba antes de delegar.
 - `PredictionService` guarda los cuadros completos; `MatchPredictionService`, los pronósticos por partido, con cierre individual cuando empieza cada encuentro.
 - El formato de cada liga (`PoolFormat`) decide qué se pronostica: `FULL_BRACKET`, `KNOCKOUTS_ONLY` o `MATCH_DAY`.
 - Las nuevas ligas de cuadro del Mundial heredan el cierre que ya usaba el proyecto: 11 de junio de 2026 a las 20:00, hora de Madrid, tanto para cuadro completo como para solo eliminatorias. V50 completa las fechas ausentes de esas ediciones y conserva las fechas explícitas. Las jornadas mantienen su cierre por partido. El instante exacto de cierre ya está bloqueado.
