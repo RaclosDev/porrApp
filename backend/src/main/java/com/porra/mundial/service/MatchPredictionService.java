@@ -32,6 +32,7 @@ public class MatchPredictionService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final MatchScoringCalculator matchScoringCalculator;
+    private final ScoreInvalidationService scoreInvalidationService;
 
     /**
      * Devuelve los partidos del calendario junto con los pronósticos del usuario y su estado de bloqueo.
@@ -316,7 +317,6 @@ public class MatchPredictionService {
      * Se puede repetir: si el marcador final cambia, los puntos se recalculan desde cero.
      */
     @Transactional
-    @CacheEvict(value = "leaderboard", allEntries = true)
     public void evaluatePredictionsForMatch(Match match) {
         if (match == null || !Boolean.TRUE.equals(match.getFinished()) || match.getId() == null || match.getHomeScore() == null || match.getAwayScore() == null) {
             return;
@@ -334,6 +334,7 @@ public class MatchPredictionService {
             }
         }
 
+        scoreInvalidationService.evictLeaderboardAfterCommit();
         for (Prediction pred : affectedPredictions) {
             pred.setScoreCalculatedAt(null);
             predictionRepository.save(pred);

@@ -145,7 +145,6 @@ public class StandingsService {
      * Recalcula la clasificación de todos los grupos a partir de los partidos reales
      * finalizados en la tabla de matches y materializa posiciones y estados matemáticos.
      */
-    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard"}, allEntries = true)
     @org.springframework.transaction.annotation.Transactional
     public void recalculateStandingsFromMatches() {
         recalculateWithLock(this::worldCupMatches);
@@ -155,7 +154,6 @@ public class StandingsService {
      * Igual que {@link #recalculateStandingsFromMatches()}, con los partidos del Mundial ya cargados:
      * la sincronización los lee una vez y los comparte con el cuadro de eliminatorias.
      */
-    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard"}, allEntries = true)
     @org.springframework.transaction.annotation.Transactional
     public void recalculateStandingsFromMatches(List<Match> worldCupMatches) {
         recalculateWithLock(() -> worldCupMatches);
@@ -168,6 +166,7 @@ public class StandingsService {
         }
         try {
             doRecalculateStandings(worldCupMatches.get());
+            scoreInvalidationService.evictStandingsAfterCommit();
         } finally {
             recalculateLock.unlock();
         }

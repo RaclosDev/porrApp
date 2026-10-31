@@ -12,8 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -21,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -210,6 +214,7 @@ public class SyncService {
      * Comparte el cerrojo de la sincronización programada, para que las dos no creen el mismo partido a
      * la vez, y lo mantiene hasta confirmar la transacción.
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ImportResult importCompetitionData(Long competitionId) {
         try {
             if (!syncLock.tryLock(IMPORT_LOCK_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
@@ -220,67 +225,104 @@ public class SyncService {
             throw new IllegalStateException("Importación interrumpida de la competición " + competitionId, e);
         }
         try {
-            ImportResult result = new TransactionTemplate(transactionManager).execute(status -> doImportCompetitionData(competitionId));
-            if (competitionRepository.findById(competitionId).filter(SyncService::isWorldCup).isPresent()) {
+            ImportSnapshot snapshot = downloadImport(competitionId);
+            checkImportCancellation();
+            ImportCommit committed = new TransactionTemplate(transactionManager).execute(status -> applyImport(snapshot));
+            if (committed == null) throw new IllegalStateException("La importación no confirmó sus datos");
+            matchEventProcessor.invalidateTeamCache();
+            committed.batch().publishNotifications();
+            webSocketService.notifyResultsChanged();
+            if (isWorldCup(snapshot.competition()) && !Thread.currentThread().isInterrupted()) {
                 topScorerService.refresh();
             }
-            return result;
+            return committed.result();
         } finally {
             syncLock.unlock();
         }
     }
 
-    private ImportResult doImportCompetitionData(Long competitionId) {
+    private static final int MAX_IMPORT_TEAMS = 1000;
+    private static final int MAX_IMPORT_EVENTS = 2000;
+
+    private record ImportSnapshot(Competition competition, JsonNode teams, List<JsonNode> events) {}
+    private record ImportCommit(ImportResult result, MatchEventProcessor.Batch batch) {}
+
+    /** Descarga secuencial y acotada; no se abre la transacción de escritura hasta tener toda la respuesta. */
+    private ImportSnapshot downloadImport(Long competitionId) {
+        checkImportCancellation();
         Competition competition = competitionRepository.findById(competitionId)
                 .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada con ID: " + competitionId));
         String slug = competition.getExternalId();
         if (slug == null || slug.isBlank()) {
-            throw new IllegalArgumentException("La competición '" + competition.getName() + "' no tiene proveedor externo configurado");
+            throw new IllegalArgumentException("La competición no tiene proveedor externo configurado");
         }
-
         SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getName());
-        Map<String, Team> teams = matchEventProcessor.teamCache();
-        int importedTeams;
-        try {
-            importedTeams = matchEventProcessor.importTeams(provider.fetchTeams(slug), teams);
-        } catch (Exception e) {
-            throw new IllegalStateException("No se pudieron descargar los equipos de " + competition.getName(), e);
-        }
-
-        // ESPN acepta un año natural en `dates`. Se consulta desde el año de inicio de la temporada
-        // hasta el siguiente para cubrir temporadas que cruzan de año (ago 2026 - may 2027).
-        MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition);
         LocalDate today = LocalDate.now();
         int startYear = today.getMonthValue() >= 7 ? today.getYear() : today.getYear() - 1;
         LocalDateTime windowStart = today.minusMonths(3).atStartOfDay();
         LocalDateTime windowEnd = today.plusMonths(12).atStartOfDay();
         Set<String> seenEventIds = new HashSet<>();
-
-        for (int year = startYear; year <= today.getYear() + 1; year++) {
-            try {
+        List<JsonNode> selected = new ArrayList<>();
+        long deadline = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        try {
+            if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
+            JsonNode teams = provider.fetchTeams(slug);
+            if (teams == null || !teams.isArray() || teams.size() > MAX_IMPORT_TEAMS) {
+                throw new IllegalStateException("Catálogo de equipos ausente o demasiado grande");
+            }
+            for (int year = startYear; year <= today.getYear() + 1; year++) {
+                checkImportCancellation();
+                if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
+                if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
                 JsonNode events = provider.fetchScoreboardEvents(slug, String.valueOf(year));
-                if (events == null || !events.isArray()) continue;
+                if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
+                if (events == null || !events.isArray() || events.size() > MAX_IMPORT_EVENTS) {
+                    throw new IllegalStateException("Calendario ausente o demasiado grande");
+                }
                 for (JsonNode event : events) {
+                    checkImportCancellation();
                     String eventId = event.path("id").asText(null);
-                    if (eventId == null || !seenEventIds.add(eventId)) continue;
+                    if (eventId == null || eventId.isBlank()) throw new IllegalStateException("Evento sin identificador");
+                    if (!seenEventIds.add(eventId)) continue;
+                    if (seenEventIds.size() > MAX_IMPORT_EVENTS) throw new IllegalStateException("Demasiados eventos en la importación");
                     LocalDateTime date = matchEventProcessor.parseDate(event.path("date").asText(null));
                     if (date != null && (date.isBefore(windowStart) || date.isAfter(windowEnd))) continue;
-                    processEvent(event, teams, batch);
+                    selected.add(event);
                 }
-            } catch (Exception e) {
-                batch.recordError(year + ": " + e.getMessage());
             }
+            checkImportCancellation();
+            if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
+            return new ImportSnapshot(competition, teams, List.copyOf(selected));
+        } catch (Exception error) {
+            if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+            throw new IllegalStateException("No se pudo descargar la importación de " + competition.getName(), error);
         }
+    }
 
+    private ImportCommit applyImport(ImportSnapshot snapshot) {
+        checkImportCancellation();
+        Competition competition = competitionRepository.findById(snapshot.competition().getId()).orElseThrow();
+        if (!Objects.equals(competition.getExternalId(), snapshot.competition().getExternalId())) {
+            throw new IllegalStateException("La competición cambió durante la descarga");
+        }
+        Map<String, Team> teams = matchEventProcessor.freshTeamCache();
+        int importedTeams = matchEventProcessor.importTeams(snapshot.teams(), teams);
+        MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition, true);
+        for (JsonNode event : snapshot.events()) {
+            checkImportCancellation();
+            matchEventProcessor.process(event, teams, batch);
+        }
         if (batch.resultsChanged()) {
-            if (isWorldCup(competition)) {
-                updateWorldCupStandingsAndBracket();
-            }
+            if (isWorldCup(competition)) updateWorldCupStandingsAndBracket();
             scoreInvalidationService.invalidateCompetition(competition.getId());
         }
-        if (batch.hasErrors()) throw new IllegalStateException("Importación incompleta: " + batch.errorMessage());
+        checkImportCancellation();
         log.info("Importados {} equipos y {} partidos de {}", importedTeams, batch.matchesUpdated(), competition.getName());
-        return new ImportResult(competition.getName(), importedTeams, batch.matchesUpdated());
+        return new ImportCommit(new ImportResult(competition.getName(), importedTeams, batch.matchesUpdated()), batch);
+    }
+
+    private static void checkImportCancellation() {
+        if (Thread.currentThread().isInterrupted()) throw new IllegalStateException("Importación interrumpida");
     }
 
     private static boolean isWorldCup(Competition competition) {

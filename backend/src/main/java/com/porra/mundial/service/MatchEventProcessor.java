@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -48,17 +51,34 @@ public class MatchEventProcessor {
     /** Acumula lo que cambia durante una sincronización o importación. */
     public static final class Batch {
         private final Competition competition;
+        private final boolean atomic;
+        private final List<Runnable> notifications = new ArrayList<>();
         private int teamsUpdated;
         private int matchesUpdated;
         private boolean resultsChanged;
-        private final java.util.List<String> errors = new java.util.ArrayList<>();
+        private final List<String> errors = new ArrayList<>();
 
         void recordError(String error) { errors.add(error); }
         boolean hasErrors() { return !errors.isEmpty(); }
         String errorMessage() { return String.join("; ", errors); }
 
         public Batch(Competition competition) {
+            this(competition, false);
+        }
+
+        Batch(Competition competition, boolean atomic) {
             this.competition = competition;
+            this.atomic = atomic;
+        }
+
+        void notifyScore(Runnable notification) {
+            if (atomic) notifications.add(notification);
+            else notification.run();
+        }
+
+        void publishNotifications() {
+            notifications.forEach(Runnable::run);
+            notifications.clear();
         }
 
         public int teamsUpdated() {
@@ -104,17 +124,28 @@ public class MatchEventProcessor {
         long now = System.currentTimeMillis();
         Map<String, Team> current = teamCache;
         if (current.isEmpty() || now - lastTeamCacheRefresh > TEAM_CACHE_TTL_MS) {
-            Map<String, Team> fresh = new ConcurrentHashMap<>();
-            teamRepository.findAll().forEach(team -> {
-                if (team.getName() != null) fresh.put(team.getName(), team);
-                if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
-                if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
-            });
+            Map<String, Team> fresh = freshTeamCache();
             teamCache = fresh;
             lastTeamCacheRefresh = now;
             return fresh;
         }
         return current;
+    }
+
+    /** Entidades propias de la transacción de importación; nunca publica datos sin confirmar en la caché global. */
+    Map<String, Team> freshTeamCache() {
+        Map<String, Team> fresh = new ConcurrentHashMap<>();
+        teamRepository.findAll().forEach(team -> {
+            if (team.getName() != null) fresh.put(team.getName(), team);
+            if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
+            if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
+        });
+        return fresh;
+    }
+
+    void invalidateTeamCache() {
+        teamCache = new ConcurrentHashMap<>();
+        lastTeamCacheRefresh = 0;
     }
 
     /**
@@ -188,7 +219,7 @@ public class MatchEventProcessor {
 
     private MatchStatus parseStatus(JsonNode competition) {
         JsonNode type = competition.path("status").path("type");
-        String name = type.path("name").asText("").toUpperCase(java.util.Locale.ROOT).replace("STATUS_", "");
+        String name = type.path("name").asText("").toUpperCase(Locale.ROOT).replace("STATUS_", "");
         MatchStatusNormalized normalized = switch (name) {
             case "CANCELED", "CANCELLED" -> MatchStatusNormalized.CANCELLED;
             case "POSTPONED" -> MatchStatusNormalized.POSTPONED;
@@ -384,18 +415,16 @@ public class MatchEventProcessor {
                 batch.markResultsChanged();
             }
             if (scoreChanged) {
-                webSocketService.broadcastMatchScore(
-                        match.getId(),
-                        match.getHomeTeam() != null ? match.getHomeTeam().getName() : null,
-                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
-                        match.getHomeScore(),
-                        match.getAwayScore(),
-                        normalized == MatchStatusNormalized.LIVE ? "IN_PLAY" : normalized.name());
+                Long matchId = match.getId();
+                String homeName = teamName(match.getHomeTeam());
+                String awayName = teamName(match.getAwayTeam());
+                batch.notifyScore(() -> webSocketService.broadcastMatchScore(matchId, homeName, awayName,
+                        scores.home(), scores.away(), normalized == MatchStatusNormalized.LIVE ? "IN_PLAY" : normalized.name()));
             }
         }
 
         if (status.finished()) {
-            evaluateFinishedMatch(match, !wasFinished || scoreChanged);
+            evaluateFinishedMatch(match, !wasFinished || scoreChanged, batch.atomic);
         }
     }
 
@@ -403,7 +432,7 @@ public class MatchEventProcessor {
      * Puntúa los pronósticos de un partido terminado: al acabar, cuando ESPN corrige el marcador final
      * o cuando queda alguno sin puntuar (por ejemplo, porque falló una evaluación anterior).
      */
-    private void evaluateFinishedMatch(Match match, boolean resultChanged) {
+    private void evaluateFinishedMatch(Match match, boolean resultChanged, boolean atomic) {
         try {
             if (resultChanged || matchPredictionService.hasUnscoredPredictions(match.getId())) {
                 log.info("Evaluando pronósticos de {} - {} ({}-{})", teamName(match.getHomeTeam()),
@@ -411,6 +440,7 @@ public class MatchEventProcessor {
                 matchPredictionService.evaluatePredictionsForMatch(match);
             }
         } catch (Exception e) {
+            if (atomic) throw new IllegalStateException("Falló la puntuación de un partido importado", e);
             log.warn("Falló la evaluación de pronósticos del partido", e);
         }
 
