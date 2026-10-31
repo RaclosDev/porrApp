@@ -18,6 +18,10 @@ Los umbrales actuales conservan la cobertura observada durante la revisión del 
 - Las pruebas de la PWA usan Cache Storage y un service worker real en Chromium. Comprueban que una actualización borra la caché antigua de la API y que una petición sin conexión no recupera datos privados de otra sesión.
 - Las pruebas de interfaz cubren la portada, el diálogo de acceso y la entrada y salida de la demo, en tamaños de escritorio y móvil. También fuerzan una carga lenta de la liga y un fallo recuperable, y comprueban el reintento sin cambiar de pantalla y la preferencia de movimiento reducido. También comprueban que las cargas de datos posteriores conservan las hojas de papel y que el selector de equipos mantiene un contraste mínimo de 4,5:1, permite seleccionar y no desborda en móvil ni escritorio. En el ranking de cuadro verifican además el acceso a la gráfica, las pestañas con teclado y la descarga de una imagen PNG real de la clasificación. La gráfica existente representa fases del cuadro; no se muestra en ligas por jornadas. La API está simulada y los servicios externos bloqueados. No comprueban el consentimiento de Google, todas las pantallas, ni todos los navegadores.
 
+## Pausa temporal de bonus por partido
+
+Desde el 31 de octubre de 2026 solo puntúa el signo 1X2 en las predicciones por partido, con el valor configurado en cada liga. `ScoringRuleSet.MATCH_SIGN_ONLY` activa esta política y la API la comunica como `matchSignOnly`. Se conservan los marcadores, los indicadores de acierto y los valores de resultado exacto y diferencia de goles. V54 repuntúa los partidos terminados e invalida los totales guardados. Para reactivar los bonus hay que desactivar la política y repuntuar las ediciones e invalidar sus totales; no se debe editar V54. Las reglas de los cuadros de torneo no cambian.
+
 ## Límites conocidos
 
 - Google OAuth necesita un cliente y orígenes autorizados propios para un despliegue independiente. La demo pública permite explorar la aplicación sin registro.

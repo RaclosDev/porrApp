@@ -255,6 +255,7 @@ export type ScoringRuleKey = keyof ScoringRules;
 
 /** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */
 export interface LeagueScoring {
+  matchSignOnly?: boolean;
   poolFormat: PoolFormat | null;
   pichichi: boolean;
   editable: boolean;

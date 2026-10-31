@@ -181,6 +181,8 @@ describe('GroupMembersModal', () => {
 
     const exact = await screen.findByLabelText('Resultado exacto');
     expect(exact).toHaveValue(10);
+    expect(exact).toBeDisabled();
+    expect(screen.getByLabelText('Bonus por diferencia de goles')).toBeDisabled();
     expect(screen.queryByLabelText('Campeón')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Signo 1X2'), { target: { value: '-2' } });

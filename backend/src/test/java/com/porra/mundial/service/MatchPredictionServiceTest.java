@@ -394,7 +394,7 @@ class MatchPredictionServiceTest {
         int rescored = service.rescoreEdition(edition);
 
         assertEquals(3, rescored);
-        assertEquals(10, exact.getPointsAwarded());
+        assertEquals(2, exact.getPointsAwarded(), "el marcador exacto solo suma el signo durante la pausa");
         assertTrue(exact.getIsExactScore());
         assertEquals(2, sameGoalDiff.getPointsAwarded(), "sin bonus por diferencia de goles en esta liga");
         assertEquals(2, signOnly.getPointsAwarded());

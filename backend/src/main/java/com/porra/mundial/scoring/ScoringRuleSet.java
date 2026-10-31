@@ -28,6 +28,9 @@ public class ScoringRuleSet {
     /** Puntos máximos que admite cada regla. */
     public static final int MAX_POINTS = 1000;
 
+    /** Pausa temporal de los bonus de partido; los valores configurados se conservan. */
+    public static final boolean MATCH_SIGN_ONLY = true;
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // Fase de grupos

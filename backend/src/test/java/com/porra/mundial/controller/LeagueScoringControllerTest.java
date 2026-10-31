@@ -69,6 +69,7 @@ class LeagueScoringControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.poolFormat").value("FULL_BRACKET"))
                 .andExpect(jsonPath("$.pichichi").value(true))
+                .andExpect(jsonPath("$.matchSignOnly").value(true))
                 .andExpect(jsonPath("$.editable").value(false))
                 .andExpect(jsonPath("$.maxPoints").value(1000))
                 .andExpect(jsonPath("$.rules.championPoints").value(200))

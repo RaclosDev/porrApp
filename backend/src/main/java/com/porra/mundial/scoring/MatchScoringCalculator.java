@@ -8,6 +8,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class MatchScoringCalculator {
 
+    private final boolean signOnly;
+
+    public MatchScoringCalculator() {
+        this(ScoringRuleSet.MATCH_SIGN_ONLY);
+    }
+
+    MatchScoringCalculator(boolean signOnly) {
+        this.signOnly = signOnly;
+    }
+
     public MatchScoreResult calculateSign(String sign, Integer actualHome, Integer actualAway, ScoringRuleSet rules) {
         if (actualHome == null || actualAway == null || sign == null) {
             return MatchScoreResult.zero("Resultado o pronóstico incompleto");
@@ -27,6 +37,14 @@ public class MatchScoringCalculator {
 
         if (predHome == null || predAway == null || actualHome == null || actualAway == null) {
             return MatchScoreResult.zero("Resultado o pronóstico incompleto");
+        }
+
+        if (signOnly) {
+            String sign = predHome > predAway ? "1" : predHome.equals(predAway) ? "X" : "2";
+            MatchScoreResult result = calculateSign(sign, actualHome, actualAway, rules);
+            return new MatchScoreResult(result.totalPoints(),
+                    predHome.equals(actualHome) && predAway.equals(actualAway), result.correctSign(),
+                    (predHome - predAway) == (actualHome - actualAway), result.explanation());
         }
 
         if (predHome.equals(actualHome) && predAway.equals(actualAway)) {
