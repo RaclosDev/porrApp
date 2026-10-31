@@ -54,6 +54,7 @@ class PredictionServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(predictionService, "paymentService", new LeaguePaymentService(membershipRepository, predictionRepository));
 
         owner = UserAccount.builder()
                 .id(10L)
@@ -186,9 +187,15 @@ class PredictionServiceTest {
         when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(groupAdmin));
 
+        Membership membership = Membership.builder().paymentStatus("PENDING").build();
+        when(membershipRepository.findById(any())).thenReturn(Optional.of(membership));
+        when(predictionRepository.findByUserIdAndEditionLeagueId(owner.getId(), group.getId()))
+                .thenReturn(List.of(prediction));
         Prediction paidPrediction = predictionService.markAsPaid(1L, "admin@test.com");
 
         assertTrue(paidPrediction.getPaid());
+        assertEquals("PAID", membership.getPaymentStatus());
+        verify(membershipRepository).save(membership);
         assertEquals(groupAdmin, paidPrediction.getPaymentMarkedBy());
         verify(predictionRepository).save(prediction);
     }

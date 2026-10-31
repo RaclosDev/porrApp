@@ -48,6 +48,7 @@ public class GroupService {
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final LeaguePaymentService paymentService;
 
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
@@ -431,22 +432,9 @@ public class GroupService {
     public void toggleMemberPayment(Long groupId, Long targetUserId, String email, String status) {
         verifyGroupAdmin(groupId, email);
 
-        Membership.MembershipId memId = new Membership.MembershipId(targetUserId, groupId);
-        Membership mem = membershipRepository.findById(memId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Membresía no encontrada"));
-
-        String cleanStatus = "PAID".equalsIgnoreCase(status) ? "PAID" : "PENDING";
-        mem.setPaymentStatus(cleanStatus);
-        membershipRepository.save(mem);
-
-        List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
-        for (Prediction p : preds) {
-            if (p.getUser() != null && p.getUser().getId().equals(targetUserId)) {
-                p.setPaid("PAID".equals(cleanStatus));
-                p.setPaymentStatus(cleanStatus);
-                predictionRepository.save(p);
-            }
-        }
+        UserAccount admin = userAccountRepository.findByGoogleEmail(email)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Usuario no encontrado"));
+        paymentService.setPayment(groupId, targetUserId, status, admin);
     }
 
     /**

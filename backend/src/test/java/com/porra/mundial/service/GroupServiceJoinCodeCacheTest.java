@@ -46,7 +46,7 @@ class GroupServiceJoinCodeCacheTest {
                                         MatchRepository matches,
                                         ApplicationEventPublisher events) {
             return new GroupService(leagues, predictions, users, competitions, editions, memberships,
-                    matches, events);
+                    matches, events, mock(LeaguePaymentService.class));
         }
     }
 

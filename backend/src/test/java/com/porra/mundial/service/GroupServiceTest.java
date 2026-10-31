@@ -51,6 +51,9 @@ class GroupServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private LeaguePaymentService paymentService;
+
     @InjectMocks
     private GroupService groupService;
 
@@ -300,4 +303,12 @@ class GroupServiceTest {
             assertEquals("Miembro Regular", members.get(0).getParticipantName());
         }
     }
+    @Test
+    void paymentRouteDelegatesToTheSharedMembershipPaymentService() {
+        when(leagueRepository.findById(league.getId())).thenReturn(Optional.of(league));
+        when(userAccountRepository.findByGoogleEmail(admin.getGoogleEmail())).thenReturn(Optional.of(admin));
+        groupService.toggleMemberPayment(league.getId(), member.getId(), admin.getGoogleEmail(), "PAID");
+        verify(paymentService).setPayment(league.getId(), member.getId(), "PAID", admin);
+    }
+
 }

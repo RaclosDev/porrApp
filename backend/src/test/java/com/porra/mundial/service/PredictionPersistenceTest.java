@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
-@Import({PredictionService.class, BracketPredictionValidator.class})
+@Import({PredictionService.class, BracketPredictionValidator.class, LeaguePaymentService.class})
 class PredictionPersistenceTest {
 
     @Container
@@ -81,4 +81,35 @@ class PredictionPersistenceTest {
         assertThat(reloaded.getScoreCalculatedAt()).isNull();
         assertThat(repository.findByEditionLeagueId(league.getId())).hasSize(1);
     }
+    @Test
+    void legacyPaymentRoutePersistsTheMembershipStatusUsedByTheLeaderboard() {
+        UserAccount admin = em.persist(UserAccount.builder().googleEmail("payment-admin@test.invalid")
+                .googleName("Admin").participantName("Admin").build());
+        UserAccount member = em.persist(UserAccount.builder().googleEmail("payment-member@test.invalid")
+                .googleName("Member").participantName("Member").build());
+        Competition competition = em.getEntityManager().createQuery(
+                "select c from Competition c where c.externalId = :id", Competition.class)
+                .setParameter("id", Competition.WORLD_CUP_EXTERNAL_ID).getSingleResult();
+        League league = em.persist(League.builder().name("Payment League").joinCode("TESTPAY8")
+                .adminUser(admin).build());
+        Edition edition = em.persist(Edition.builder().league(league).competition(competition)
+                .poolFormat(PoolFormat.KNOCKOUTS_ONLY).build());
+        var membershipId = new Membership.MembershipId(member.getId(), league.getId());
+        em.persist(Membership.builder().id(membershipId).user(member).league(league)
+                .paymentStatus("PENDING").build());
+        Prediction prediction = em.persist(Prediction.builder().user(member).edition(edition)
+                .name("Member").paymentStatus("PENDING").build());
+        em.flush();
+        em.clear();
+
+        predictions.markAsPaid(prediction.getId(), admin.getGoogleEmail());
+        em.flush();
+        em.clear();
+
+        assertThat(em.find(Membership.class, membershipId).getPaymentStatus()).isEqualTo("PAID");
+        Prediction stored = em.find(Prediction.class, prediction.getId());
+        assertThat(stored.getPaid()).isTrue();
+        assertThat(stored.getPaymentMarkedBy().getId()).isEqualTo(admin.getId());
+    }
+
 }

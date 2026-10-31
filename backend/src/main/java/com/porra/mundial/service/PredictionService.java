@@ -35,6 +35,7 @@ public class PredictionService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final BracketPredictionValidator bracketValidator;
+    private final LeaguePaymentService paymentService;
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
@@ -164,13 +165,10 @@ public class PredictionService {
 
         verifyGroupAdminForPayment(prediction, requesterEmail);
 
-        prediction.setPaid(true);
-
-        if (requesterEmail != null) {
-            userAccountRepository.findByGoogleEmail(requesterEmail).ifPresent(prediction::setPaymentMarkedBy);
-        }
-
-        return predictionRepository.save(prediction);
+        UserAccount admin = userAccountRepository.findByGoogleEmail(requesterEmail)
+                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+        paymentService.setPayment(prediction.getEdition().getLeague().getId(), prediction.getUser().getId(), "PAID", admin);
+        return prediction;
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
