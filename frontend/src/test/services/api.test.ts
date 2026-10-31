@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getAuthToken, setAuthToken, fetchStandings, fetchMatches } from '../../services/api';
+import {
+  ApiError,
+  isApiError,
+  NETWORK_ERROR_MESSAGE,
+  TIMEOUT_ERROR_MESSAGE,
+} from '../../services/apiError';
 
 describe('api.ts service', () => {
   beforeEach(() => {
@@ -91,5 +97,44 @@ describe('api.ts service', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }));
     await expect(fetchStandings()).rejects.toThrow('401');
     expect(getAuthToken()).toBeNull();
+  });
+
+  it('lanza un ApiError con el código HTTP', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: 'No perteneces a esta liga' }),
+      }),
+    );
+    const err = await fetchStandings().catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(403);
+    expect(isApiError(err, 403)).toBe(true);
+    expect(isApiError(err, 404)).toBe(false);
+  });
+
+  it('traduce un fallo de red a un mensaje en español', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    const err = await fetchStandings().catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(0);
+    expect(err.message).toBe(NETWORK_ERROR_MESSAGE);
+  });
+
+  it('distingue el tiempo de espera agotado de la falta de red', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new DOMException('timed out', 'TimeoutError')),
+    );
+    await expect(fetchStandings()).rejects.toThrow(TIMEOUT_ERROR_MESSAGE);
+  });
+
+  it('pasa siempre una señal con tiempo de espera', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', mockFetch);
+    await fetchStandings();
+    expect(mockFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
   });
 });

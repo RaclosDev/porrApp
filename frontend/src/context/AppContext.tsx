@@ -15,8 +15,18 @@ import {
   fetchMyGroups,
   updateUserPreferences,
 } from '../services/api';
+import { isApiError } from '../services/apiError';
+import { queryKeys } from '../services/queryKeys';
+import { myGroupsQuery } from '../services/queries';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useAppStore, defaultBracketState, readGroupVisits } from '../store/useAppStore';
+import {
+  useAppStore,
+  defaultBracketState,
+  getInitialBracketState,
+  readGroupVisits,
+  type BracketState,
+} from '../store/useAppStore';
+import { readJsonDraft, writeDraft } from '../utils/drafts';
 import type { Group, MatchRadar } from '../types/api';
 
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
@@ -50,65 +60,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const userName = useAppStore((state) => state.userName);
   const activeGroupId = useAppStore((state) => state.activeGroupId);
   const bracketState = useAppStore((state) => state.bracketState);
+  const userId = useAppStore((state) => state.userId);
   const isDemoMode = useAppStore((state) => state.isDemoMode);
 
   const setUserName = useAppStore((state) => state.setUserName);
-  const setUserId = useAppStore((state) => state.setUserId);
   const setUserAvatarUrl = useAppStore((state) => state.setUserAvatarUrl);
   const changeGroup = useAppStore((state) => state.changeGroup);
-  const setIsAuthenticated = useAppStore((state) => state.setIsAuthenticated);
+  const logout = useAppStore((state) => state.logout);
   const isUserAuthed = useAppStore((state) => state.isAuthenticated);
 
   useWebSocket(userName, queryClient);
 
+  // api.ts avisa con este evento cuando el token actual recibe un 401.
   useEffect(() => {
-    const handleAuthExpired = () => {
-      setIsAuthenticated(false);
-      setUserName('');
-      setUserId('');
-    };
-    window.addEventListener('auth-expired', handleAuthExpired);
-    return () => window.removeEventListener('auth-expired', handleAuthExpired);
-  }, [setIsAuthenticated, setUserName, setUserId]);
+    window.addEventListener('auth-expired', logout);
+    return () => window.removeEventListener('auth-expired', logout);
+  }, [logout]);
 
   useEffect(() => {
     // La demo pública es de solo lectura: no persistir borradores locales.
     if (isDemoMode || !activeGroupId) return;
     // Evitar sobreescribir un draft guardado si bracketState coincide con defaultBracketState vacío
     if (bracketState === defaultBracketState) {
-      try {
-        const existing = localStorage.getItem(`draft_bracket_${activeGroupId}`);
-        if (existing) {
-          const parsed = JSON.parse(existing);
-          if (parsed?.r32 && !parsed.r32.left[0]?.home?.name?.includes('º')) {
-            return;
-          }
-        }
-      } catch {
-        /* ignore */
-      }
+      const existing = readJsonDraft('bracket', activeGroupId, userId) as
+        Partial<BracketState> | undefined;
+      if (existing?.r32 && !existing.r32.left[0]?.home?.name?.includes('º')) return;
     }
     const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(`draft_bracket_${activeGroupId}`, JSON.stringify(bracketState));
-      } catch {
-        /* ignore */
-      }
+      writeDraft('bracket', activeGroupId, userId, bracketState);
     }, 300);
     return () => clearTimeout(timer);
-  }, [bracketState, activeGroupId, isDemoMode]);
-
-  useEffect(() => {
-    if (!isUserAuthed) {
-      setTimeout(() => {
-        setUserName('');
-        setUserId('');
-      }, 0);
-      localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_user_id');
-      localStorage.removeItem('my_avatar_url');
-    }
-  }, [isUserAuthed, setUserName, setUserId]);
+  }, [bracketState, activeGroupId, userId, isDemoMode]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -143,17 +125,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // El usuario ya tiene una liga válida seleccionada en esta sesión (respetar en F5)
             const currentBracket = useAppStore.getState().bracketState;
             if (currentBracket === defaultBracketState) {
-              const savedDraft = localStorage.getItem(`draft_bracket_${currentStoreGroup}`);
-              if (savedDraft) {
-                try {
-                  const parsed = JSON.parse(savedDraft);
-                  if (parsed && parsed.r32) {
-                    useAppStore.getState().setBracketState(parsed);
-                  }
-                } catch {
-                  /* ignore */
-                }
-              }
+              const saved = getInitialBracketState(
+                currentStoreGroup,
+                useAppStore.getState().userId,
+              );
+              if (saved !== defaultBracketState) useAppStore.getState().setBracketState(saved);
             }
             // Si difiere de la preferencia en BD, sincronizamos la BD sin cambiar la selección local
             if (dbGroupId !== currentStoreGroup) {
@@ -210,18 +186,14 @@ export const useAppContext = () => {
     data: userGroups,
     isFetched: userGroupsFetched,
     isError: userGroupsError,
-  } = useQuery({
-    queryKey: ['myGroups', isUserAuthed],
-    queryFn: () => (isUserAuthed ? fetchMyGroups() : Promise.resolve([])),
-    staleTime: 60_000,
-  });
+  } = useQuery(myGroupsQuery(isUserAuthed));
 
   const {
     data: groupInfo,
     isPending: groupPending,
     error: groupError,
   } = useQuery<Partial<Group>>({
-    queryKey: ['group', activeGroupId],
+    queryKey: queryKeys.group(activeGroupId),
     queryFn: () =>
       activeGroupId
         ? fetchGroup(activeGroupId)
@@ -265,7 +237,7 @@ export const useAppContext = () => {
   }, [groupInfo?.competitionId, storeCompetitionId, setActiveCompetitionId]);
 
   const { data: standings, isLoading: loadingStandings } = useQuery({
-    queryKey: ['standings'],
+    queryKey: queryKeys.standings(),
     queryFn: async () => {
       const data = await fetchStandings();
       saveCachedJson('cached_official_standings', data);
@@ -280,13 +252,13 @@ export const useAppContext = () => {
   });
 
   const { data: radar } = useQuery({
-    queryKey: ['radar', activeCompetitionId],
+    queryKey: queryKeys.radar(activeCompetitionId),
     queryFn: () => fetchMatchRadar(activeCompetitionId),
     enabled: competitionReady,
   });
 
   const { data: predictions, error: predictionsError } = useQuery({
-    queryKey: ['predictions', activeGroupId],
+    queryKey: queryKeys.predictions(activeGroupId),
     queryFn: () => fetchPredictions(activeGroupId),
     enabled: Boolean(activeGroupId),
     retry: 1,
@@ -301,21 +273,20 @@ export const useAppContext = () => {
       activeGroupId &&
       !isGlobalLeagueId(activeGroupId)
     ) {
-      const msg = predictionsError.message || '';
-      if (msg.includes('403') || msg.includes('No perteneces')) {
+      if (isApiError(predictionsError, 403)) {
         // No cambiar silenciosamente a la liga global: eso hace que parezca
         // que la liga recién seleccionada se ha sustituido por el Mundial.
         console.warn('No se pudieron cargar los pronósticos de la liga activa', {
           activeGroupId,
-          message: msg,
+          message: predictionsError.message,
         });
-        queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
       }
     }
   }, [predictionsError, activeGroupId, queryClient, store.isDemoMode]);
 
   const { data: odds } = useQuery({
-    queryKey: ['odds'],
+    queryKey: queryKeys.odds(),
     queryFn: async () => {
       const data = await fetchTeamOdds();
       saveCachedJson('cached_official_odds', data);
@@ -330,7 +301,7 @@ export const useAppContext = () => {
   });
 
   const { data: leaderboard } = useQuery({
-    queryKey: ['leaderboard', activeGroupId],
+    queryKey: queryKeys.leaderboard(activeGroupId),
     queryFn: () => fetchLeaderboard(activeGroupId),
     enabled: Boolean(activeGroupId),
   });
@@ -339,14 +310,14 @@ export const useAppContext = () => {
     groupInfo?.poolFormat === 'MATCH_DAY' || groupInfo?.formatType === 'LEAGUE';
 
   const { data: leaderboardMatchdays } = useQuery({
-    queryKey: ['leaderboardMatchdays', activeGroupId],
+    queryKey: queryKeys.leaderboardMatchdays(activeGroupId),
     queryFn: () => fetchLeaderboardMatchdays(activeGroupId),
     enabled: Boolean(activeGroupId && isMatchdayPool),
     staleTime: 60_000,
   });
 
   const { data: matches, isLoading: loadingMatches } = useQuery({
-    queryKey: ['matches', activeCompetitionId],
+    queryKey: queryKeys.matches(activeCompetitionId),
     enabled: competitionReady,
     queryFn: async () => {
       const data = await fetchMatches(activeCompetitionId);
@@ -370,7 +341,7 @@ export const useAppContext = () => {
     isError: topScorersError,
     refetch: refreshTopScorers,
   } = useQuery({
-    queryKey: ['topScorers'],
+    queryKey: queryKeys.topScorers(),
     queryFn: fetchTopScorers,
     enabled: activeGroupPichichi,
     staleTime: 300_000,
@@ -418,7 +389,19 @@ export const useAppContext = () => {
     loading,
     loadingGroup,
     groupError,
-    fetchData: () => queryClient.invalidateQueries(),
+    /** Recarga los datos de la liga activa (tras guardar, aceptar o borrar un pronóstico). */
+    fetchData: () =>
+      Promise.all(
+        [
+          queryKeys.group(activeGroupId),
+          queryKeys.groupMembers(activeGroupId),
+          queryKeys.predictions(activeGroupId),
+          queryKeys.leaderboard(activeGroupId),
+          queryKeys.leaderboardMatchdays(activeGroupId),
+          queryKeys.matchdayFixtures(activeGroupId),
+          queryKeys.predictionScore(),
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      ),
     onlineUsers: EMPTY_ARRAY,
     activeGroupName,
     activeGroupAdmin,
