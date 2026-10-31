@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import Flag from './Flag';
 import { usePredictionViewerData } from '../hooks/usePredictionViewerData';
 import { PredictionSkeleton } from './Skeleton';
@@ -92,15 +93,12 @@ function PredictionViewer({
    * Abre automáticamente la sección que tiene más sentido mostrar
    * basado en en qué fase del mundial nos encontremos.
    */
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
-    };
-    if (effectivePredictionId && !inline) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [effectivePredictionId, handleClose, inline]);
+  // Las cuatro variantes del modal comparten el mismo contenedor raíz, así que el ref no cambia.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, {
+    active: Boolean(effectivePredictionId) && !inline,
+    onEscape: handleClose,
+  });
 
   useEffect(() => {
     if (initialSection === 'knockout') {
@@ -421,6 +419,8 @@ function PredictionViewer({
         role="dialog"
         aria-modal="true"
         aria-label="Visor de porra"
+        ref={dialogRef}
+        tabIndex={-1}
         onClick={handleClose}
       >
         <div
@@ -450,6 +450,8 @@ function PredictionViewer({
         role="dialog"
         aria-modal="true"
         aria-label="Visor de porra"
+        ref={dialogRef}
+        tabIndex={-1}
         onClick={handleClose}
       >
         <div
@@ -483,6 +485,8 @@ function PredictionViewer({
         role="dialog"
         aria-modal="true"
         aria-label="Visor de porra"
+        ref={dialogRef}
+        tabIndex={-1}
         onClick={handleClose}
       >
         <div
@@ -565,6 +569,8 @@ function PredictionViewer({
       role="dialog"
       aria-modal="true"
       aria-label="Visor de porra"
+      ref={dialogRef}
+      tabIndex={-1}
       onClick={handleClose}
     >
       <div

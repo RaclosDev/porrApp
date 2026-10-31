@@ -46,18 +46,19 @@ export default function HeaderActions({
                 if (enterDemoMode) enterDemoMode();
                 navigate('/demo');
               }}
-              className="glass-btn h-9.5 py-0 px-3 text-[0.82rem] rounded-[10px] flex items-center gap-1.5 font-bold cursor-pointer whitespace-nowrap bg-[rgba(255,_255,_255,_0.06)] bg-none border border-[rgba(255,_255,_255,_0.15)] text-[#e2e8f0]"
+              className="glass-btn h-11 py-0 px-3 text-[0.82rem] rounded-[10px] flex items-center gap-1.5 font-bold cursor-pointer whitespace-nowrap bg-[rgba(255,_255,_255,_0.06)] bg-none border border-[rgba(255,_255,_255,_0.15)] text-[#e2e8f0]"
               title="Probar Demo del Mundial"
+              aria-label="Demo"
             >
-              <span>🚀</span>
-              <span>Demo</span>
+              <span aria-hidden="true">🚀</span>
+              <span className="header-demo-label">Demo</span>
             </button>
           )}
           <button
             id="btn-login-header"
             type="button"
             onClick={() => setShowMyPredictionModal(true)}
-            className="glass-btn h-9.5 py-0 px-4 text-[0.88rem] rounded-[10px] flex items-center justify-center gap-2 font-bold cursor-pointer whitespace-nowrap bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]"
+            className="glass-btn h-11 py-0 px-4 text-[0.88rem] rounded-[10px] flex items-center justify-center gap-2 font-bold cursor-pointer whitespace-nowrap bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-[#00d2d3] shadow-[0_4px_15px_rgba(0,_210,_211,_0.15)]"
             title="Iniciar Sesión"
           >
             <span className="text-[1.05rem]">👤</span>
@@ -69,7 +70,7 @@ export default function HeaderActions({
           <button
             id="btn-profile-menu"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="glass-btn h-9 w-9 min-w-9 max-w-9 min-h-9 max-h-9 [aspect-ratio:1_/_1] rounded-full p-0 flex items-center justify-center cursor-pointer shrink-0"
+            className="glass-btn h-11 w-11 min-w-11 max-w-11 min-h-11 max-h-11 [aspect-ratio:1_/_1] rounded-full p-0 flex items-center justify-center cursor-pointer shrink-0"
             title="Menú de Usuario"
             aria-label="Menú de Usuario"
           >

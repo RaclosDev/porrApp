@@ -8,28 +8,13 @@ import {
   type GroupSelection,
 } from '../utils/bracketDraft';
 import type { GroupOdds } from '../types/api';
+import {
+  readGroupsDraft as getSavedSelections,
+  readThirdsDraft as getSavedThirds,
+  writeDraft,
+} from '../utils/drafts';
 
 type Selections = Record<string, GroupSelection>;
-
-const getSavedSelections = (groupId: string): Selections => {
-  try {
-    const saved = localStorage.getItem('draft_groups_' + groupId);
-    if (!saved) return {};
-    const parsed = normalizeSelections(JSON.parse(saved));
-    return hasValidGroupSelections(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-};
-
-const getSavedThirds = (groupId: string): string[] => {
-  try {
-    const saved = localStorage.getItem('draft_advancing_' + groupId);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-};
 
 /**
  * Componente interactivo para que el usuario prediga la Fase de Grupos.
@@ -40,6 +25,7 @@ export default function GroupStage({
   groupOdds,
   onComplete,
   activeGroupId,
+  userId,
   initialSelections,
   initialThirds,
 }: {
@@ -48,6 +34,8 @@ export default function GroupStage({
   onComplete: (selections: Selections, thirds: string[]) => void;
   /** Liga activa; separa los borradores en localStorage. */
   activeGroupId: string;
+  /** Usuario actual; los borradores son de cada usuario. */
+  userId: string;
   initialSelections?: unknown;
   initialThirds?: string[];
 }) {
@@ -55,7 +43,7 @@ export default function GroupStage({
     if (hasValidGroupSelections(initialSelections)) {
       return normalizeSelections(initialSelections);
     }
-    const saved = getSavedSelections(activeGroupId);
+    const saved = getSavedSelections(activeGroupId, userId);
     if (hasValidGroupSelections(saved)) {
       return saved;
     }
@@ -66,7 +54,7 @@ export default function GroupStage({
     if (initialThirds && Array.isArray(initialThirds) && initialThirds.length > 0) {
       return initialThirds;
     }
-    return getSavedThirds(activeGroupId);
+    return getSavedThirds(activeGroupId, userId);
   });
 
   const [mobileStep, setMobileStep] = useState('groups'); // 'groups' | 'thirds'
@@ -89,7 +77,7 @@ export default function GroupStage({
         return merged;
       });
     } else {
-      const saved = getSavedSelections(activeGroupId);
+      const saved = getSavedSelections(activeGroupId, userId);
       if (hasValidGroupSelections(saved)) {
         setSelections((prev) => {
           const merged = { ...prev };
@@ -104,18 +92,18 @@ export default function GroupStage({
         });
       }
     }
-  }, [initialSelections, activeGroupId]);
+  }, [initialSelections, activeGroupId, userId]);
 
   useEffect(() => {
     if (initialThirds && Array.isArray(initialThirds) && initialThirds.length > 0) {
       setAdvancingThirds(initialThirds);
     } else {
-      const saved = getSavedThirds(activeGroupId);
+      const saved = getSavedThirds(activeGroupId, userId);
       if (saved && saved.length > 0) {
         setAdvancingThirds(saved);
       }
     }
-  }, [initialThirds, activeGroupId]);
+  }, [initialThirds, activeGroupId, userId]);
 
   /**
    * Inicializa la estructura vacía de selecciones para grupos nuevos sin sobreescribir lo ya rellenado.
@@ -141,15 +129,15 @@ export default function GroupStage({
    */
   useEffect(() => {
     if (hasValidGroupSelections(selections) && activeGroupId) {
-      localStorage.setItem('draft_groups_' + activeGroupId, JSON.stringify(selections));
+      writeDraft('groups', activeGroupId, userId, selections);
     }
-  }, [selections, activeGroupId]);
+  }, [selections, activeGroupId, userId]);
 
   useEffect(() => {
     if (advancingThirds && advancingThirds.length > 0 && activeGroupId) {
-      localStorage.setItem('draft_advancing_' + activeGroupId, JSON.stringify(advancingThirds));
+      writeDraft('advancing', activeGroupId, userId, advancingThirds);
     }
-  }, [advancingThirds, activeGroupId]);
+  }, [advancingThirds, activeGroupId, userId]);
 
   /**
    * Si el usuario desmarca a un tercero en un grupo, elimina a ese equipo de
@@ -230,7 +218,7 @@ export default function GroupStage({
   return (
     <div className="w-full">
       <div className="text-center mb-7.5">
-        <h2 className="text-accent mt-0 mb-2.5 mx-0">Paso 1: Fase de Grupos</h2>
+        <h2 className="poster-title text-accent-text mt-0 mb-2.5 mx-0">Paso 1: fase de grupos</h2>
         <p className="text-muted">
           Selecciona 1º y 2º en cada grupo. Puedes marcar todos los 3º que quieras, y luego elegir a
           los 8 mejores abajo.
@@ -238,18 +226,24 @@ export default function GroupStage({
       </div>
 
       {/* Pestañas para móvil */}
-      <div className="mb-tabs hide-on-desktop">
+      <div className="mb-tabs hide-on-desktop" role="tablist" aria-label="Fase de grupos">
         <button
+          type="button"
+          role="tab"
+          aria-selected={mobileStep === 'groups'}
           className={`mb-tab ${mobileStep === 'groups' ? 'mb-tab-active' : ''}`}
           onClick={() => setMobileStep('groups')}
         >
           Grupos
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={mobileStep === 'thirds'}
           className={`mb-tab ${mobileStep === 'thirds' ? 'mb-tab-active' : ''}`}
           onClick={() => setMobileStep('thirds')}
         >
-          Mejores Terceros
+          Mejores terceros
         </button>
       </div>
 
@@ -264,7 +258,7 @@ export default function GroupStage({
             return (
               <div
                 key={groupName}
-                className="group-card glass-panel relative flex flex-col gap-2"
+                className="group-card paper-panel album-sheet relative flex flex-col gap-2"
                 style={{ zIndex: 50 - idx }}
               >
                 <h3 className="mt-0 mb-[5px] mx-0 text-center border-b border-b-[rgba(255,255,255,0.1)] pb-1.5 text-[1.1rem]">
@@ -299,14 +293,15 @@ export default function GroupStage({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[0.8rem] text-[#00d2d3] font-bold">1º Clasificado:</label>
+                  <span className="text-[0.8rem] text-accent-text font-bold">1.º clasificado</span>
                   <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.first || ''}
                       onChange={(val) => handleSelect(groupName, 'first', val)}
-                      placeholder="-- Seleccionar --"
+                      label={`Grupo ${groupName}, 1º clasificado`}
+                      placeholder="Elige equipo"
                       options={[
-                        { value: '', label: '-- Seleccionar --' },
+                        { value: '', label: 'Elige equipo' },
                         ...teams.map((t) => ({ value: t.name, label: t.name })),
                       ]}
                     />
@@ -314,14 +309,15 @@ export default function GroupStage({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[0.8rem] text-[#a29bfe] font-bold">2º Clasificado:</label>
+                  <span className="text-[0.8rem] text-accent-text font-bold">2.º clasificado</span>
                   <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.second || ''}
                       onChange={(val) => handleSelect(groupName, 'second', val)}
-                      placeholder="-- Seleccionar --"
+                      label={`Grupo ${groupName}, 2º clasificado`}
+                      placeholder="Elige equipo"
                       options={[
-                        { value: '', label: '-- Seleccionar --' },
+                        { value: '', label: 'Elige equipo' },
                         ...teams.map((t) => ({ value: t.name, label: t.name })),
                       ]}
                     />
@@ -329,14 +325,15 @@ export default function GroupStage({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[0.8rem] text-muted font-bold">3º:</label>
+                  <span className="text-[0.8rem] text-muted font-bold">3.º</span>
                   <div className="flex items-center">
                     <CustomSelect
                       value={selections[groupName]?.third || ''}
                       onChange={(val) => handleSelect(groupName, 'third', val)}
-                      placeholder="-- Seleccionar --"
+                      label={`Grupo ${groupName}, 3º clasificado`}
+                      placeholder="Elige equipo"
                       options={[
-                        { value: '', label: '-- Seleccionar --' },
+                        { value: '', label: 'Elige equipo' },
                         ...teams.map((t) => ({ value: t.name, label: t.name })),
                       ]}
                     />
@@ -359,16 +356,16 @@ export default function GroupStage({
             setMobileStep('thirds');
           }}
         >
-          Continuar a Mejores Terceros
+          Continuar a mejores terceros
         </button>
       </div>
 
       <div className={mobileStep === 'thirds' ? '' : 'mobile-step-hidden'}>
-        <div className="p-5 bg-[rgba(255,255,255,0.05)] bg-none rounded-[12px] mb-7.5 border border-[rgba(255,255,255,0.1)]">
-          <h3 className="text-center text-[#a29bfe] mt-0">Selecciona los 8 Mejores Terceros</h3>
+        <div className="paper-panel album-sheet p-5 mb-7.5">
+          <h3 className="text-center marker-ink mt-0">Elige los 8 mejores terceros</h3>
           <p className="text-center text-[0.9rem] text-muted">
             Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los 8 que
-            pasarán a octavos de final (
+            pasarán a las eliminatorias (
             <strong
               className={`${advancingThirds.length === 8 ? 'text-[#00b894]' : 'text-[#ff4757]'}`}
             >
@@ -378,7 +375,7 @@ export default function GroupStage({
           </p>
 
           {selectedThirds.length === 0 ? (
-            <p className="text-center text-[rgba(255,255,255,0.3)] italic mt-5">
+            <p className="text-center text-muted italic mt-5">
               Aún no has seleccionado ningún 3º clasificado en los grupos de arriba.
             </p>
           ) : (
@@ -388,6 +385,9 @@ export default function GroupStage({
                 return (
                   <button
                     key={t}
+                    type="button"
+                    aria-pressed={isSelected}
+                    aria-label={t}
                     onClick={() => toggleAdvancingThird(t)}
                     className={`glass-btn flex items-center gap-2 py-2 px-3 ${isSelected ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isSelected ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.2)]'}`}
                   >
@@ -409,13 +409,13 @@ export default function GroupStage({
           )}
         </div>
 
-        <div className="text-center p-5 bg-[rgba(255,255,255,0.05)] bg-none rounded-[12px] border border-[rgba(255,255,255,0.1)]">
+        <div className="paper-panel album-sheet text-center p-5">
           <button
             onClick={handleSubmit}
             className="glass-btn primary-btn text-[1.2rem] py-3 px-7.5"
             disabled={advancingThirds.length !== 8}
           >
-            Generar Eliminatorias
+            Ir a eliminatorias
           </button>
           {advancingThirds.length !== 8 && (
             <p className="text-[#ff4757] text-[0.9rem] mt-2.5">

@@ -1,4 +1,5 @@
-import React from 'react';
+import { useRef } from 'react';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 /**
  * Modal de solo lectura con las reglas personalizadas de una liga.
@@ -12,6 +13,9 @@ export default function LeagueRulesModal({
   onClose: () => void;
 }) {
   const rules = (group?.rules || '').trim();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Escape propio: desde Inicio no hay otro manejador que cierre este modal.
+  useDialogFocus(dialogRef, { onEscape: onClose });
 
   return (
     <div
@@ -19,6 +23,8 @@ export default function LeagueRulesModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="league-rules-title"
+      ref={dialogRef}
+      tabIndex={-1}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -37,9 +43,10 @@ export default function LeagueRulesModal({
             </h2>
           </div>
           <button
-            className="bg-[rgba(255,_255,_255,_0.08)] bg-none border-none text-white w-8 h-8 rounded-full cursor-pointer shrink-0"
+            className="bg-[rgba(255,_255,_255,_0.08)] bg-none border-none text-white w-11 h-11 rounded-full cursor-pointer shrink-0"
+            type="button"
             onClick={onClose}
-            aria-label="Cerrar reglas"
+            aria-label="Cerrar"
           >
             ✕
           </button>
