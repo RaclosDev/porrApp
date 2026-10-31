@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getAuthToken, setAuthToken, fetchStandings, fetchMatches } from '../../services/api';
+import { hasStoredSession } from '../../services/sessionHint';
 import {
   ApiError,
   isApiError,
@@ -13,16 +14,17 @@ describe('api.ts service', () => {
     vi.restoreAllMocks();
   });
 
-  it('guarda y recupera tokens de autenticación correctamente', () => {
+  it('guarda el access token solo en memoria', () => {
     expect(getAuthToken()).toBeNull();
 
     setAuthToken('my-secret-jwt-token');
     expect(getAuthToken()).toBe('my-secret-jwt-token');
-    expect(localStorage.getItem('token')).toBe('my-secret-jwt-token');
+    expect(Object.values(localStorage)).not.toContain('my-secret-jwt-token');
+    expect(hasStoredSession()).toBe(true);
 
     setAuthToken(null);
     expect(getAuthToken()).toBeNull();
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(hasStoredSession()).toBe(false);
   });
 
   it('adjunta la cabecera Authorization: Bearer cuando el token existe', async () => {

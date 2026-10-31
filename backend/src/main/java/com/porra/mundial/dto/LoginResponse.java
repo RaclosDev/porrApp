@@ -1,9 +1,9 @@
 package com.porra.mundial.dto;
 
 /**
- * Sesión iniciada con Google.
+ * Sesión iniciada con Google. El refresh token no va aquí: va en su cookie HttpOnly.
  *
- * @param token               JWT de la aplicación
+ * @param token               access token (JWT de 15 minutos)
  * @param userId              id del usuario
  * @param participantName     apodo en la porra
  * @param status              siempre "login_success"
