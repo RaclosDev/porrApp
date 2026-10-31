@@ -3,6 +3,7 @@ package com.porra.mundial.controller;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.ProfileImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
@@ -24,8 +25,7 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -49,6 +49,7 @@ public class JoinPreviewController {
     private static final Font HANDWRITING = loadFont("fonts/permanent-marker/PermanentMarker-Regular.ttf");
 
     private final GroupService groupService;
+    private final ProfileImageService profileImageService;
 
     @GetMapping(value = "/join/{code}", produces = MediaType.TEXT_HTML_VALUE)
     public String preview(@PathVariable String code) throws IOException {
@@ -116,13 +117,14 @@ public class JoinPreviewController {
         String name = "Invitación a una porra";
         String competition = "Fútbol";
         String format = "Cuadro completo";
-        String leagueImageUrl = null;
+        byte[] leagueImage = null;
 
         Optional<League> leagueOptional = findLeague(code);
         if (leagueOptional.isPresent()) {
             League league = leagueOptional.get();
             name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
-            leagueImageUrl = league.getImageUrl();
+            leagueImage = profileImageService.getLeagueImage(league.getId())
+                    .map(ProfileImageService.StoredImage::data).orElse(null);
             Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
             if (activeEdition.isPresent()) {
                 Edition edition = activeEdition.get();
@@ -163,7 +165,7 @@ public class JoinPreviewController {
             graphics.setFont(HANDWRITING.deriveFont(32f));
             graphics.drawString("PorrApp", 72, 116);
 
-            if (!drawLeaguePhoto(graphics, leagueImageUrl)) {
+            if (!drawLeaguePhoto(graphics, leagueImage)) {
                 graphics.setColor(new Color(231, 223, 206));
                 graphics.fillRoundRect(72, 162, 244, 244, 6, 6);
                 graphics.setColor(MARKER);
@@ -199,28 +201,12 @@ public class JoinPreviewController {
         }
     }
 
-    private boolean drawLeaguePhoto(Graphics2D graphics, String imageUrl) {
-        if (imageUrl == null || imageUrl.isBlank()) {
+    private boolean drawLeaguePhoto(Graphics2D graphics, byte[] imageData) {
+        if (imageData == null || imageData.length == 0) {
             return false;
         }
-
-        HttpURLConnection connection = null;
-        try {
-            String resolvedUrl = imageUrl.startsWith("https://") || imageUrl.startsWith("http://")
-                    ? imageUrl
-                    : BASE_URL + (imageUrl.startsWith("/") ? imageUrl : "/" + imageUrl);
-            connection = (HttpURLConnection) new URL(resolvedUrl).openConnection();
-            connection.setConnectTimeout(2000);
-            connection.setReadTimeout(3000);
-            connection.setInstanceFollowRedirects(false);
-            connection.setRequestProperty("Accept", "image/*");
-            connection.connect();
-
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                return false;
-            }
-
-            BufferedImage photo = ImageIO.read(connection.getInputStream());
+        try (ByteArrayInputStream input = new ByteArrayInputStream(imageData)) {
+            BufferedImage photo = ImageIO.read(input);
             if (photo == null) {
                 return false;
             }
@@ -253,10 +239,6 @@ public class JoinPreviewController {
         } catch (IOException | RuntimeException exception) {
             // Si la foto no está disponible, conservar la tarjeta con el nombre de la liga.
             return false;
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
         }
     }
 
