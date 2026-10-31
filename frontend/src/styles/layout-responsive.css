@@ -390,6 +390,12 @@
     color: var(--text-main);
   }
 
+  .mobile-bracket > .mb-tabs > .mb-tab {
+    white-space: normal;
+    line-height: 1.2;
+    overflow-wrap: normal;
+  }
+
   .paper-tab.is-active,
   .mb-tab.mb-tab-active {
     background: var(--tab-active-bg);
