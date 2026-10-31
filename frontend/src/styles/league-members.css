@@ -390,7 +390,7 @@
       -webkit-backdrop-filter: none;
     }
 
-    .league-admin-panel {
+    .league-admin-panel.paper-dialog {
       height: 100dvh;
       max-width: none;
       max-height: none;
@@ -413,7 +413,7 @@
     }
 
     .league-admin-body {
-      padding: 14px 16px 18px;
+      padding: 14px 16px calc(18px + env(safe-area-inset-bottom, 0px));
     }
 
     .league-admin-close {
