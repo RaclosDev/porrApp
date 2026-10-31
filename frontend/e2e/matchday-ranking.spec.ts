@@ -93,6 +93,8 @@ for (const width of [360, 390, 1440]) {
     );
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: testInfo.outputPath(`matchday-${width}.png`), fullPage: true });
+    await expect(podium.locator('.sticker')).toHaveCount(3);
+    await expect(podium.locator('.sticker-featured')).toHaveCount(1);
     await podium.getByText('3 empatados').click();
     for (const name of ['Jokin', 'Neglaso', 'Raclos'])
       await expect(podium.getByText(name, { exact: true })).toBeVisible();

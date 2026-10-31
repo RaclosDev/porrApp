@@ -465,52 +465,10 @@
     opacity: 0.65;
   }
 
-  .matchday-podium-places {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 0 16px;
-    margin: 0 auto 8px;
-    max-width: 600px;
-    list-style: none;
+  .matchday-podium .ranking-podium-place-1 {
+    margin-inline: 0;
   }
-  .matchday-podium-card {
-    flex: 1;
-    min-width: 0;
-    max-width: 190px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    position: relative;
-    padding: 18px 6px 10px;
-    margin-top: 10px;
-    background: #fffdf7;
-    border: 1px solid rgba(17, 24, 39, 0.22);
-    box-shadow: 2px 3px 0 rgba(17, 24, 39, 0.09);
-    border-radius: 3px;
-    text-align: center;
-    color: var(--ink);
-  }
-  .matchday-podium-card-1 {
-    order: 2;
-    margin-top: 0;
-    border-color: #97721c;
-  }
-  .matchday-podium-card-2 {
-    order: 1;
-    rotate: -2deg;
-  }
-  .matchday-podium-card-3 {
-    order: 3;
-    rotate: 2deg;
-  }
-  .matchday-podium-rank {
-    position: absolute;
-    top: -12px;
-    font-size: 1.3rem;
-  }
+
   .matchday-podium-avatars {
     display: flex;
     justify-content: center;
@@ -518,21 +476,6 @@
   }
   .matchday-podium-avatars > * + * {
     margin-left: -18px;
-  }
-  .matchday-podium-name {
-    min-height: 44px;
-    display: grid;
-    align-content: center;
-    font-size: 0.85rem;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-  }
-  .matchday-podium-points {
-    font-weight: 800;
-    color: var(--marker-ink);
-  }
-  .matchday-podium-points small {
-    font-weight: 500;
   }
   .matchday-podium-ties {
     width: 100%;

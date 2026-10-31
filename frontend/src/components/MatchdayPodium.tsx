@@ -1,3 +1,4 @@
+import StickerCard from './StickerCard';
 import { UserAvatar } from './Avatar';
 import type { LeaderboardRow } from '../hooks/useLeaderboard';
 
@@ -11,40 +12,48 @@ export default function MatchdayPodium({ rows }: { rows: LeaderboardRow[] }) {
 
   return (
     <section className="matchday-podium" aria-label="Podio de la clasificación general">
-      <ul className="matchday-podium-places">
+      <ul className="ranking-podium">
         {scores.map((score, index) => {
           const leaders = eligible.filter((row) => row.points.total === score);
           return (
-            <li key={score} className={`matchday-podium-card matchday-podium-card-${index + 1}`}>
-              <span className="matchday-podium-rank" aria-label={`Puesto ${index + 1}`}>
-                {['🥇', '🥈', '🥉'][index]}
-              </span>
-              <div className="matchday-podium-avatars" aria-hidden="true">
-                {leaders.slice(0, 3).map((row) => (
-                  <UserAvatar
-                    key={row.key}
-                    url={row.avatarUrl}
-                    userId={row.userId}
-                    name={row.name}
-                    size={36}
-                  />
-                ))}
-              </div>
-              {leaders.length === 1 ? (
-                <strong className="matchday-podium-name">{leaders[0].name}</strong>
-              ) : (
-                <details className="matchday-podium-ties">
-                  <summary>{leaders.length} empatados</summary>
-                  <ul>
-                    {leaders.map((row) => (
-                      <li key={row.key}>{row.name}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              <span className="matchday-podium-points">
-                {score} <small>pts</small>
-              </span>
+            <li key={score} className={`ranking-podium-place ranking-podium-place-${index + 1}`}>
+              <StickerCard
+                leader={{
+                  rank: index + 1,
+                  name: leaders.length === 1 ? leaders[0].name : 'Empate',
+                  userId: leaders[0].userId,
+                  avatarUrl: leaders[0].avatarUrl,
+                  total: score,
+                }}
+                featured={index === 0}
+                compact
+                avatar={
+                  leaders.length > 1 ? (
+                    <div className="matchday-podium-avatars" aria-hidden="true">
+                      {leaders.slice(0, 3).map((row) => (
+                        <UserAvatar
+                          key={row.key}
+                          url={row.avatarUrl}
+                          userId={row.userId}
+                          name={row.name}
+                          size={36}
+                        />
+                      ))}
+                    </div>
+                  ) : undefined
+                }
+              >
+                {leaders.length > 1 && (
+                  <details className="matchday-podium-ties">
+                    <summary>{leaders.length} empatados</summary>
+                    <ul>
+                      {leaders.map((row) => (
+                        <li key={row.key}>{row.name}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </StickerCard>
             </li>
           );
         })}
