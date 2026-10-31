@@ -81,6 +81,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        importScripts: ['/sw-cleanup.js'],
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,svg}'],
         // html2canvas solo se carga con import() al compartir la clasificación: se baja al usarlo.
         globIgnores: ['**/updates/**', '**/og-image.jpg', '**/assets/html2canvas-*.js'],
@@ -96,13 +98,7 @@ export default defineConfig({
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-runtime-cache',
-              networkTimeoutSeconds: 4,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
-              cacheableResponse: { statuses: [200] },
-            },
+            handler: 'NetworkOnly',
           },
           {
             urlPattern: ({ url }) =>
@@ -141,7 +137,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
-    exclude: ['node_modules/**'],
+    exclude: ['node_modules/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
