@@ -93,10 +93,12 @@ class OfficialResultsServiceTest {
         OfficialResultsService.OfficialResults results = service.current();
         PredictionDataDTO bracket = results.bracket();
 
-        assertThat(bracket.getR32()).containsExactly(List.of("España", "Japón"), List.of("Brasil", "Corea del Sur"));
-        assertThat(bracket.getR16()).containsExactly(List.of("España", "Brasil"));
-        assertThat(bracket.getQf()).containsExactly(List.of("España", "Alemania"));
-        assertThat(bracket.getSf()).containsExactly(List.of("España", "Francia"), List.of("Argentina", "Inglaterra"));
+        // Ganadores conocidos siguen puntuando aunque falten los grupos que anclan sus ramas.
+        assertThat(bracket.getTopologyVersion()).isEqualTo(2);
+        assertThat(bracket.getR32()).hasSize(16);
+        assertThat(bracket.getR16()).hasSize(8);
+        assertThat(bracket.getQf()).hasSize(4);
+        assertThat(bracket.getSf()).hasSize(2);
         assertThat(results.roundOf16()).containsExactly("España", "Brasil");
         assertThat(results.quarterFinals()).containsExactly("España");
         assertThat(results.semiFinals()).containsExactly("España");
@@ -106,12 +108,16 @@ class OfficialResultsServiceTest {
 
     @Test
     void undecidedSlotsStayEmptyAndUnplayedMatchesAreSkipped() {
+        when(standingsService.getAllStandings()).thenReturn(List.of(standing("E", "España", 1, 9, 5)));
+        knockout("r32", "España", Team.PLACEHOLDER_NAME, null);
         knockout("r16", "España", Team.PLACEHOLDER_NAME, null);
         knockout("r16", Team.PLACEHOLDER_NAME, Team.PLACEHOLDER_NAME, null);
 
         OfficialResultsService.OfficialResults results = service.current();
 
-        assertThat(results.bracket().getR16()).containsExactly(Arrays.asList("España", null));
+        assertThat(results.bracket().getR16()).hasSize(8);
+        assertThat(results.bracket().getR16().get(0)).containsExactly("España", null);
+        assertThat(results.bracket().getR16().subList(1, 8)).allSatisfy(pair -> assertThat(pair).containsExactly(null, null));
         assertThat(results.quarterFinals()).isEmpty();
         assertThat(results.champion()).isNull();
     }
@@ -122,7 +128,8 @@ class OfficialResultsServiceTest {
 
         PredictionDataDTO bracket = service.officialBracket();
 
-        assertThat(bracket.getThirdPlaceMatch()).containsExactly("Francia", "Inglaterra");
+        // Sin semifinales no se inventa a qué rama pertenece cada participante.
+        assertThat(bracket.getThirdPlaceMatch()).containsExactly(null, null);
         assertThat(bracket.getThirdPlaceWinner()).isEqualTo("Inglaterra");
     }
 
@@ -142,7 +149,69 @@ class OfficialResultsServiceTest {
 
         OfficialResultsService.OfficialResults results = service.current();
 
-        assertThat(results.bracket().getR32()).isEmpty();
+        assertThat(results.bracket().getR32()).hasSize(16)
+                .allSatisfy(pair -> assertThat(pair).containsExactly(null, null));
         assertThat(results.roundOf16()).isEmpty();
     }
+    @Test
+    void officialRoundsKeepFifaBranchesEvenWhenDatesAndHomeSidesDiffer() {
+        List<GroupStanding> groups = new ArrayList<>();
+        for (char group = 'A'; group <= 'L'; group++) {
+            for (int position = 1; position <= 4; position++) {
+                groups.add(standing(String.valueOf(group), "" + group + position, position, 12 - position, 0));
+            }
+        }
+        when(standingsService.getAllStandings()).thenReturn(groups);
+        List<List<String>> expected = new ArrayList<>();
+        int third = 0;
+        for (var slots : com.porra.mundial.model.WorldCupBracketTopology.ROUND_OF_32) {
+            String home = slots.get(0).substring(1) + slots.get(0).charAt(0);
+            String away = slots.get(1).startsWith("3") ? "Third" + third++
+                    : slots.get(1).substring(1) + slots.get(1).charAt(0);
+            expected.add(List.of(home, away));
+            knockout("r32", away, home, home);
+        }
+        for (int i = 0; i < 8; i++) {
+            String left = expected.get(i * 2).get(0);
+            String right = expected.get(i * 2 + 1).get(0);
+            knockout("r16", right, left, left);
+        }
+        for (int i = 0; i < 4; i++) knockout("qf", expected.get(i * 4 + 2).get(0), expected.get(i * 4).get(0), expected.get(i * 4).get(0));
+        for (int i = 0; i < 2; i++) knockout("sf", expected.get(i * 8 + 4).get(0), expected.get(i * 8).get(0), expected.get(i * 8).get(0));
+        knockout("final", expected.get(8).get(0), expected.get(0).get(0), expected.get(0).get(0));
+        knockout("third", expected.get(12).get(0), expected.get(4).get(0), expected.get(4).get(0));
+        java.util.Collections.reverse(matches);
+        for (int i = 0; i < matches.size(); i++) matches.get(i).setMatchDate(LocalDateTime.of(2026, 7, 1, 20, 0).plusDays(i));
+
+        PredictionDataDTO bracket = service.officialBracket();
+
+        assertThat(bracket.getR32()).isEqualTo(expected);
+        assertThat(bracket.getR16()).hasSize(8);
+        for (int i = 0; i < 8; i++) {
+            assertThat(bracket.getR16().get(i)).containsExactly(expected.get(i * 2).get(0), expected.get(i * 2 + 1).get(0));
+        }
+        assertThat(bracket.getQf().get(0)).containsExactly("E1", "A2");
+        assertThat(bracket.getSf().get(0)).containsExactly("E1", "K2");
+        assertThat(bracket.getSf().get(1)).containsExactly("C1", "J1");
+        assertThat(bracket.getFinalMatch()).containsExactly("E1", "C1");
+        assertThat(bracket.getThirdPlaceMatch()).containsExactly("K2", "J1");
+        assertThat(bracket.getChampion()).isEqualTo("E1");
+        assertThat(bracket.getThirdPlaceWinner()).isEqualTo("K2");
+    }
+
+    @Test
+    void provisionalDeclaredWinnerDoesNotAwardOfficialAdvancement() {
+        Match match = knockout("r32", "España", "Japón", null);
+        match.setWinnerTeam(match.getHomeTeam());
+        assertThat(service.current().roundOf16()).isEmpty();
+    }
+
+    @Test
+    void finalistsFromTheSameOriginalGroupStillCountAsKnockout() {
+        Match finalMatch = knockout("final", "A1", "A2", "A1");
+        finalMatch.getHomeTeam().setGroupName("A");
+        finalMatch.getAwayTeam().setGroupName("A");
+        assertThat(service.current().champion()).isEqualTo("A1");
+    }
+
 }

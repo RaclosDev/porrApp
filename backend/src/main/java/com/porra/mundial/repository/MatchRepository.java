@@ -74,4 +74,13 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                                     @Param("dayStart") LocalDateTime dayStart,
                                     @Param("dayEnd") LocalDateTime dayEnd,
                                     @Param("undated") boolean undated);
+    /** Filas de V34 que aún apuntan a los equipos provisionales de V33.1. */
+    @Query("""
+            SELECT m FROM Match m JOIN FETCH m.competition c
+            JOIN FETCH m.homeTeam h JOIN FETCH m.awayTeam a LEFT JOIN FETCH m.winnerTeam
+            WHERE c.externalId = 'esp.1' AND m.id > :afterId AND m.externalId IS NOT NULL
+              AND (h.name LIKE 'Equipo LaLiga %' OR a.name LIKE 'Equipo LaLiga %')
+            ORDER BY m.id
+            """)
+    List<Match> findLegacyPlaceholderFixtures(@Param("afterId") long afterId, Pageable pageable);
 }

@@ -6,7 +6,6 @@ import java.util.Map;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.NotEmpty;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -15,6 +14,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PredictionDataDTO {
+    /** Absent/1 preserves historical brackets; 2 follows the FIFA 2026 draw topology. */
+    private Integer topologyVersion;
     
     @NotBlank(message = "El nombre de usuario o porra es obligatorio")
     private String user;
@@ -23,7 +24,6 @@ public class PredictionDataDTO {
     @JsonAlias({"bet", "predictionName", "name"})
     private String prediction;
     
-    @NotEmpty(message = "Las predicciones de la fase de grupos no pueden estar vacías")
     private Map<String, List<String>> groups;
     
     private List<String> thirds;

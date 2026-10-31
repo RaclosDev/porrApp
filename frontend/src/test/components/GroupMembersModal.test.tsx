@@ -142,6 +142,32 @@ describe('GroupMembersModal', () => {
     );
   });
 
+  it('blocks settings edits and closing until the pending save finishes', async () => {
+    let finish!: (saved: boolean) => void;
+    const onSaveSettings = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const onClose = vi.fn();
+    setup({ onSaveSettings, onClose });
+    await screen.findByText('Bruno');
+    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.change(screen.getByLabelText('Nombre de la liga'), {
+      target: { value: 'Nueva liga' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
+    await waitFor(() => expect(onSaveSettings).toHaveBeenCalled());
+    expect(screen.getByLabelText('Nombre de la liga')).toBeDisabled();
+    expect(screen.getByLabelText('Campeón')).toBeDisabled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    finish(true);
+    await waitFor(() => expect(screen.getByLabelText('Nombre de la liga')).toBeEnabled());
+    expect(screen.getByLabelText('Nombre de la liga')).toHaveValue('Nueva liga');
+  });
+
   it('no deja guardar un valor no válido y restaura los valores por defecto', async () => {
     api.fetchLeagueScoring.mockResolvedValue(
       leagueScoring({

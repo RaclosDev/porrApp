@@ -121,7 +121,7 @@
     width: 58px;
   }
   .standings-table.is-complete .standings-team-column {
-    width: 64px;
+    width: 180px;
   }
   .standings-table.is-complete col:last-child {
     width: auto;

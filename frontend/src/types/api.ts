@@ -140,6 +140,7 @@ export type TeamPair = [string | null, string | null] | string[];
 
 /** Cuadro pronosticado (o el oficial). */
 export interface PredictionData {
+  topologyVersion?: 1 | 2;
   user?: string;
   prediction?: string;
   groups?: Record<string, string[]>;
