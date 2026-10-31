@@ -35,6 +35,8 @@ export interface BracketState {
 }
 
 interface AppState {
+  profileSetupCompleted: boolean | null;
+  setProfileSetupCompleted: (completed: boolean) => void;
   userName: string;
   setUserName: (userName: string) => void;
   userAvatarUrl: string;
@@ -156,6 +158,9 @@ const initialGroupId =
 const initialUserId = typeof window !== 'undefined' ? localStorage.getItem('my_user_id') || '' : '';
 
 export const useAppStore = create<AppState>((set, get) => ({
+  profileSetupCompleted: null,
+  setProfileSetupCompleted: (completed) =>
+    set((state) => ({ profileSetupCompleted: state.profileSetupCompleted === true || completed })),
   userName: localStorage.getItem('my_prediction_name') || '',
   setUserName: (userName) => {
     if (userName) {
@@ -187,7 +192,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       localStorage.removeItem('my_user_id');
     }
     // El borrador del cuadro es de cada usuario: al cambiar de usuario se carga el suyo.
-    set({ userId, bracketState: getInitialBracketState(current.activeGroupId, userId) });
+    set({
+      userId,
+      profileSetupCompleted: null,
+      bracketState: getInitialBracketState(current.activeGroupId, userId),
+    });
   },
 
   activeGroupId: initialGroupId,
@@ -265,6 +274,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       userName: '',
       userId: '',
       userAvatarUrl: '',
+      profileSetupCompleted: null,
       activeGroupId: '',
       activeCompetitionId: null,
       bracketState: defaultBracketState,
