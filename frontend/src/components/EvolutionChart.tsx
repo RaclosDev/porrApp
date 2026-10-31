@@ -101,7 +101,7 @@ export default function EvolutionChart({ validResults, userName, allGames }: Evo
   const inspectedIdx = hoveredStageIdx ?? 0;
 
   return (
-    <div className="bg-[rgba(15,_15,_26,_0.8)] bg-none border border-[rgba(255,_255,_255,_0.08)] rounded-[16px] py-5 px-3.5 my-0 mx-auto w-full max-w-350 shadow-[0_10px_30px_rgba(0,0,0,0.3)] box-border">
+    <div className="paper-panel album-sheet py-5 px-3.5 my-0 mx-auto w-full max-w-350 box-border">
       <ChartToolbar
         mode={mode}
         setMode={setMode}

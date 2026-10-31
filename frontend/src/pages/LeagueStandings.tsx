@@ -1,3 +1,5 @@
+import PaperLoading from '../components/PaperLoading';
+import LeagueLoadState from '../components/LeagueLoadState';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
@@ -32,8 +34,7 @@ export default function LeagueStandings() {
     staleTime: 120_000,
   });
 
-  if (loadingGroup) return <p role="status">Cargando liga...</p>;
-  if (groupError) return <p role="alert">No se pudo cargar la liga. Inténtalo de nuevo.</p>;
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (activeCompetitionFormatType && !isMatchDay) {
     return <Navigate to="/bracket" replace />;
   }
@@ -67,11 +68,7 @@ export default function LeagueStandings() {
       </header>
 
       {isLoading ? (
-        <div className="standings-skeleton" aria-hidden="true">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <div key={index} className="skeleton-card standings-skeleton-row" />
-          ))}
-        </div>
+        <PaperLoading label="Cargando clasificación de equipos" embedded />
       ) : isError ? (
         <div className="standings-empty" role="alert">
           <p>No se pudo cargar la clasificación. Inténtalo de nuevo.</p>

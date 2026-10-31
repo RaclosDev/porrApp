@@ -424,7 +424,10 @@ export const useAppContext = () => {
     leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
     loading,
     loadingGroup,
-    groupError,
+    groupError:
+      groupInfo && (!isApiError(groupError) || groupError.status === 0 || groupError.status >= 500)
+        ? null
+        : groupError,
     /** Recarga los datos de la liga activa (tras guardar, aceptar o borrar un pronóstico). */
     fetchData: () =>
       Promise.all(

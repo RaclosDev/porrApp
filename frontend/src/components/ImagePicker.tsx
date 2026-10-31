@@ -161,8 +161,8 @@ export default function ImagePicker({
                 disabled={disabled || busy || pending.processing || !pending.blob}
                 style={{
                   ...btn,
-                  background: 'rgba(0, 210, 211, 0.15)',
-                  border: '1px solid rgba(0, 210, 211, 0.45)',
+                  background: 'color-mix(in srgb, var(--marker-ink) 10%, transparent)',
+                  border: '1px solid var(--marker-ink)',
                   color: 'var(--marker-ink)',
                 }}
               >
@@ -185,7 +185,7 @@ export default function ImagePicker({
               className="glass-btn"
               onClick={remove}
               disabled={disabled || busy}
-              style={{ ...btn, color: 'var(--miss)', border: '1px solid rgba(255, 71, 87, 0.4)' }}
+              style={{ ...btn, color: 'var(--miss)', border: '1px solid var(--miss)' }}
             >
               Quitar
             </button>

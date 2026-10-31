@@ -1,3 +1,4 @@
+import PaperLoading from '../components/PaperLoading';
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
@@ -143,7 +144,10 @@ export default function GroupsDashboard() {
       </div>
 
       {error && (
-        <div className="bg-[rgba(231,_76,_60,_0.2)] bg-none border border-[#e74c3c] text-[#ffcccc] p-[15px] rounded-[12px] mb-5 text-center">
+        <div
+          role="alert"
+          className="paper-panel album-sheet border border-[var(--miss)] text-[var(--miss)] p-[15px] rounded-[4px] mb-5 text-center"
+        >
           {error}
         </div>
       )}
@@ -177,7 +181,7 @@ export default function GroupsDashboard() {
       {groupsError && (
         <div
           role="alert"
-          className="bg-[rgba(231,_76,_60,_0.2)] bg-none border border-[#e74c3c] text-[#ffcccc] p-[15px] rounded-[12px] mb-5 text-center flex flex-col items-center gap-3"
+          className="paper-panel album-sheet border border-[var(--miss)] text-[var(--miss)] p-[15px] rounded-[4px] mb-5 text-center flex flex-col items-center gap-3"
         >
           <span>{groupsError}</span>
           <button
@@ -191,7 +195,7 @@ export default function GroupsDashboard() {
       )}
 
       {loading ? (
-        <div className="text-center text-muted py-10 px-0">Cargando tus ligas...</div>
+        <PaperLoading label="Cargando tus ligas" />
       ) : groupsError && groups.length === 0 ? null : groups.length === 0 ? (
         <div className="paper-panel album-sheet text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto">
           <h3 className="poster-title mt-0 mb-2 mx-0 text-[1.5rem]">

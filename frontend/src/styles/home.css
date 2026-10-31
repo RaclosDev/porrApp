@@ -9,9 +9,9 @@
     padding: 18px 20px;
     margin-bottom: 18px;
     border-radius: 16px;
-    border: 1px solid rgba(0, 210, 211, 0.25);
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.85) 100%);
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(11, 95, 116, 0.25);
+    background: var(--panel-bg);
+    box-shadow: none;
   }
 
   .home-hero-info {
@@ -23,7 +23,7 @@
     margin: 0;
     font-size: clamp(1.35rem, 5vw, 1.7rem);
     font-weight: 800;
-    color: #fff;
+    color: var(--text-main);
     line-height: 1.2;
     overflow-wrap: anywhere;
   }
@@ -42,8 +42,8 @@
     max-width: 100%;
     padding: 3px 9px;
     border-radius: 999px;
-    border: 1px solid rgba(0, 210, 211, 0.35);
-    background: rgba(0, 210, 211, 0.1);
+    border: 1px solid rgba(11, 95, 116, 0.35);
+    background: rgba(11, 95, 116, 0.1);
     color: var(--accent-cyan);
     font-size: 0.72rem;
     font-weight: 800;
@@ -73,7 +73,7 @@
     margin: 0;
     font-size: 1rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-main);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -90,8 +90,8 @@
     flex-shrink: 0;
     padding: 8px 14px;
     border-radius: 999px;
-    border: 1px solid rgba(0, 210, 211, 0.35);
-    background: rgba(0, 210, 211, 0.08);
+    border: 1px solid rgba(11, 95, 116, 0.35);
+    background: rgba(11, 95, 116, 0.08);
     color: var(--accent-cyan);
     font-size: 0.85rem;
     font-weight: 700;
@@ -101,7 +101,7 @@
 
   .home-rules-btn:hover,
   .home-rules-btn:focus-visible {
-    background: rgba(0, 210, 211, 0.16);
+    background: rgba(11, 95, 116, 0.16);
   }
 
   .home-link-btn {
@@ -122,8 +122,8 @@
     text-align: left;
     padding: 10px 12px;
     border-radius: 12px;
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
     cursor: pointer;
     font-family: inherit;
     color: inherit;
@@ -133,13 +133,13 @@
   }
 
   .home-match-card:hover {
-    border-color: rgba(0, 210, 211, 0.45);
-    background: rgba(15, 23, 42, 0.92);
+    border-color: rgba(11, 95, 116, 0.45);
+    background: var(--panel-bg);
   }
 
   .home-match-card.is-live {
-    border-color: rgba(255, 107, 107, 0.5);
-    box-shadow: 0 0 14px rgba(255, 107, 107, 0.12);
+    border-color: rgba(185, 28, 28, 0.5);
+    box-shadow: none;
   }
 
   .home-match-meta {
@@ -173,7 +173,7 @@
     min-width: 0;
     font-size: 0.88rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-main);
     line-height: 1.2;
   }
 
@@ -205,8 +205,8 @@
     min-width: 52px;
     padding: 4px 8px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.07);
-    color: #fff;
+    background: rgba(17, 24, 39, 0.07);
+    color: var(--text-main);
     font-weight: 800;
     font-size: 0.9rem;
     text-align: center;
@@ -214,7 +214,7 @@
   }
 
   .home-match-score.is-live {
-    color: #00d2d3;
+    color: var(--accent-cyan);
   }
 
   .home-match-score.is-pending {
