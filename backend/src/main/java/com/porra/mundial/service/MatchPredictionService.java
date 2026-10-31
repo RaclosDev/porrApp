@@ -425,11 +425,7 @@ public class MatchPredictionService {
             }
         }
 
-        List<MatchPrediction> matchPreds = matchPredictionRepository.findByMatchId(matchId).stream()
-                .filter(mp -> mp.getPrediction() != null && mp.getPrediction().getEdition() != null
-                        && mp.getPrediction().getEdition().getLeague() != null
-                        && groupId.equals(mp.getPrediction().getEdition().getLeague().getId()))
-                .collect(Collectors.toList());
+        List<MatchPrediction> matchPreds = matchPredictionRepository.findFriendsByMatchAndLeague(matchId, groupId);
 
         Map<Long, MatchPrediction> userPredMap = new HashMap<>();
         for (MatchPrediction mp : matchPreds) {

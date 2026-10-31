@@ -2,6 +2,8 @@ package com.porra.mundial.repository;
 
 import com.porra.mundial.model.Match;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Pageable;
+import com.porra.mundial.model.MatchStatusNormalized;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,10 +16,37 @@ import java.util.Optional;
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
-    List<Match> findByFinishedTrueOrderByMatchDateDesc();
-    
-    List<Match> findByFinishedFalseOrderByMatchDateAsc();
-    
+    // Missing teams remain visible; only two explicit placeholders hide a match.
+    String RADAR_MATCHES = """
+            SELECT m FROM Match m LEFT JOIN FETCH m.homeTeam h LEFT JOIN FETCH m.awayTeam a
+            LEFT JOIN FETCH m.competition LEFT JOIN FETCH m.winnerTeam
+            WHERE (:competitionId IS NULL OR m.competition.id = :competitionId)
+              AND (h IS NULL OR a IS NULL OR NOT (
+                (LOWER(h.name) IN ('por definir', 'tbd') OR LOWER(COALESCE(h.nameEn, '')) = 'tbd')
+                AND (LOWER(a.name) IN ('por definir', 'tbd') OR LOWER(COALESCE(a.nameEn, '')) = 'tbd')))
+            """;
+
+    @Query(RADAR_MATCHES + """
+              AND (m.finished = FALSE OR m.finished IS NULL)
+              AND (m.status IS NULL OR m.status IN :statuses)
+              AND m.matchDate > :past AND m.matchDate < :soon
+            ORDER BY m.matchDate DESC
+            """)
+    List<Match> findRadarLive(@Param("competitionId") Long competitionId,
+                             @Param("past") LocalDateTime past, @Param("soon") LocalDateTime soon,
+                             @Param("statuses") Collection<MatchStatusNormalized> statuses);
+
+    @Query(RADAR_MATCHES + " AND m.finished = TRUE ORDER BY m.matchDate DESC")
+    List<Match> findRadarLast(@Param("competitionId") Long competitionId, Pageable pageable);
+
+    @Query(RADAR_MATCHES + """
+              AND m.finished = FALSE AND (m.status IS NULL OR m.status = :scheduled)
+              AND m.matchDate > :now
+            ORDER BY m.matchDate ASC
+            """)
+    List<Match> findRadarNext(@Param("competitionId") Long competitionId, @Param("now") LocalDateTime now,
+                             @Param("scheduled") MatchStatusNormalized scheduled, Pageable pageable);
+
     /** Con sus equipos en la misma consulta: la sincronización la llama una vez por evento. */
     @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
     Optional<Match> findByExternalId(String externalId);
