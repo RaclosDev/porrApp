@@ -1,0 +1,944 @@
+/*
+ * Portada: un cartel de papel sobre el fondo oscuro de la app, con los participantes como cromos
+ * de álbum. Las letras de cartel (Anton) y de rotulador (Permanent Marker) solo se cargan aquí.
+ * El cartel es el único elemento con sombra: es lo que está «pegado» por encima de la pared.
+ */
+@layer components {
+  .poster-title {
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+
+  .marker-ink {
+    font-family: 'Permanent Marker', 'Outfit', cursive;
+    font-weight: 400;
+    color: var(--marker-ink);
+  }
+
+  /* Cualquier superficie de papel: tinta oscura y sellos de tinta más oscuros. */
+  .landing-poster,
+  .paper-panel,
+  .sticker {
+    --marker-ink: #0b5f74;
+    --stamp-red: #b91c1c;
+    --stamp-ink: #0b5f74;
+  }
+
+  .landing-poster {
+    position: relative;
+    isolation: isolate;
+    --paper-angle: -1deg;
+    color: var(--ink);
+    border-radius: 4px;
+  }
+
+  /* Trozo de cinta adhesiva que sujeta el cartel por arriba. */
+  .landing-tape::after {
+    content: '';
+    position: absolute;
+    top: var(--tape-top, -12px);
+    left: 50%;
+    width: var(--tape-width, 104px);
+    height: 28px;
+    transform: translateX(-50%) rotate(var(--tape-angle, -5deg));
+    background: rgba(255, 230, 140, 0.8);
+    border-left: 1px dashed rgba(0, 0, 0, 0.15);
+    border-right: 1px dashed rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+  }
+
+  .landing-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 10px 22px;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink);
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .landing-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .landing-btn-ink {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .landing-btn:not(.landing-btn-ink):hover {
+    background: rgba(17, 24, 39, 0.08);
+  }
+
+  .landing-link {
+    color: var(--marker-ink);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .landing-link-light {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* Cromo: borde blanco grueso, como el de un cromo de verdad. */
+  .sticker {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 180px;
+    padding: 20px 14px 16px;
+    background: #fffdf7;
+    color: var(--ink);
+    border: 6px solid #ffffff;
+    outline: 1px solid rgba(17, 24, 39, 0.25);
+    border-radius: 10px;
+    overflow: hidden;
+    transform-style: preserve-3d;
+  }
+
+  /* El líder lleva el borde dorado de cromo especial. */
+  .sticker-featured {
+    width: 260px;
+    padding: 28px 18px 22px;
+    border-color: var(--champion-gold);
+    outline-color: #b45309;
+  }
+
+  .sticker-rank {
+    position: absolute;
+    top: 6px;
+    left: 10px;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    color: #4b5563;
+  }
+
+  /* Reflejo que sigue al puntero cuando el cromo se inclina. */
+  .sticker-glare {
+    position: absolute;
+    top: -40%;
+    width: 50%;
+    height: 180%;
+    transform: translateX(-50%) rotate(20deg);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    pointer-events: none;
+  }
+
+  /* Rótulo pintado en la pared detrás de cada sección. */
+  .landing-ghost {
+    position: absolute;
+    inset-inline: 0;
+    top: -0.05em;
+    text-align: center;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: clamp(5rem, 22vw, 16rem);
+    line-height: 1;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.04);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .landing-net {
+    color: rgba(255, 255, 255, 0.2);
+    margin: 28px 0;
+  }
+
+  /* Sello de tinta: estados (clasificado, cerrada, en directo) y datos destacados. */
+  .ink-stamp {
+    display: inline-block;
+    padding: 6px 14px;
+    border: 3px solid currentColor;
+    border-radius: 8px;
+    color: var(--stamp-red);
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transform: rotate(-4deg);
+    white-space: nowrap;
+  }
+
+  .ink-stamp-ink {
+    color: var(--stamp-ink);
+  }
+
+  .ink-stamp-gold {
+    color: var(--champion-gold);
+  }
+
+  /* Sobre papel, el sello lleva el papel detrás para tapar lo que pise. */
+  .ink-stamp-paper {
+    background: var(--paper);
+  }
+
+  .ink-stamp-sm {
+    padding: 0 4px;
+    border-width: 1px;
+    opacity: 0.85;
+    border-radius: 4px;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    transform: rotate(-6deg);
+    vertical-align: middle;
+  }
+
+  .ink-stamp-md {
+    padding: 2px 8px;
+    border-width: 2px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+  }
+
+  /* Marco blanco de cromo alrededor de un avatar. */
+  .sticker-frame {
+    display: inline-flex;
+    padding: 3px;
+    background: #ffffff;
+    border-radius: 8px;
+    outline: 1px solid rgba(17, 24, 39, 0.25);
+  }
+
+  /* Títulos de página en letra de cartel, como en la portada. */
+  .md-page-header h1,
+  .home-hero-title,
+  .standings-title,
+  .league-admin-title,
+  .friends-predictions-title {
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+
+  /*
+   * Hoja de papel. Los tokens de color cambian aquí, así que las clases de siempre (text-muted,
+   * border-line, .team-slot, .leaderboard-table…) salen en tinta sin tocar cada componente.
+   */
+  .paper-panel {
+    background: var(--paper);
+    color: var(--ink);
+    --text-main: #111827;
+    --text-primary: #111827;
+    --text-muted: #4b5563;
+    --border-color: rgba(17, 24, 39, 0.18);
+    --panel-bg: #fffdf7;
+    --panel-bg-translucent: rgba(255, 253, 247, 0.92);
+    --bg-card: #fffdf7;
+    --accent-cyan: #0b5f74;
+    --accent-text: #0b5f74;
+    --champion-gold: #92400e;
+    --hit: #15803d;
+    --pass: #1d4ed8;
+    --miss: #b91c1c;
+    --tab-active-bg: var(--ink);
+    --tab-active-fg: var(--paper);
+    --tab-border: rgba(17, 24, 39, 0.3);
+    --connector: rgba(17, 24, 39, 0.55);
+  }
+
+  /* El papel se dibuja por separado: el contenido nunca hereda su giro. */
+  .album-sheet {
+    position: relative;
+    isolation: isolate;
+    padding: 18px 16px;
+    border-radius: 4px;
+    --paper-angle: -0.4deg;
+  }
+
+  .paper-panel.album-sheet,
+  .landing-poster {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .album-sheet::before,
+  .landing-poster::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--paper);
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(17, 24, 39, 0.025) 0 1px,
+      transparent 1px 3px
+    );
+    transform: skewY(var(--paper-angle));
+    box-shadow:
+      4px 5px 0 #d8cfb9,
+      5px 6px 0 rgba(17, 24, 39, 0.25),
+      0 10px 24px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+  }
+
+  .table-container.album-sheet,
+  #view-leaderboard .table-container.album-sheet,
+  #view-leaderboard .table-container.album-sheet.show-detail {
+    overflow: visible;
+  }
+
+  .ranking-table-scroll {
+    overflow-x: auto;
+  }
+
+  .md-page.album-sheet,
+  .lb-matchday-panel.album-sheet {
+    --paper-angle: 0.35deg;
+  }
+
+  .group-card.album-sheet:nth-child(even) {
+    --paper-angle: 0.8deg;
+  }
+
+  .group-card.album-sheet:nth-child(odd),
+  .invite-summary-card.album-sheet {
+    --paper-angle: -0.8deg;
+  }
+
+  .group-card.album-sheet::after,
+  .invite-summary-card.album-sheet::after {
+    content: '';
+    position: absolute;
+    top: var(--tape-top, -9px);
+    left: 50%;
+    width: var(--tape-width, 64px);
+    height: 19px;
+    background: rgba(255, 230, 140, 0.8);
+    border-inline: 1px dashed rgba(17, 24, 39, 0.15);
+    transform: translateX(-50%) rotate(var(--tape-angle, -5deg));
+    pointer-events: none;
+  }
+
+  @media (max-width: 600px) {
+    /* Las hojas largas necesitan menos giro para no acercarse al borde de la pantalla. */
+    .album-sheet {
+      --paper-angle: -0.2deg;
+    }
+
+    .md-page.album-sheet,
+    .lb-matchday-panel.album-sheet {
+      --paper-angle: 0.2deg;
+    }
+  }
+
+  .ranking-podium {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    list-style: none;
+    padding: 16px 12px 22px;
+    margin: 0 auto 16px;
+    max-width: 640px;
+  }
+
+  .landing-sticker-album {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 20px 16px 28px;
+    scroll-snap-type: x proximity;
+    overflow-y: hidden;
+  }
+
+  .landing-sticker-album > li {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+  }
+
+  .landing-sticker-album:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
+
+  .landing-hero-podium .ranking-podium {
+    padding-inline: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .landing-sticker-album {
+      justify-content: center;
+      gap: 0;
+      overflow: visible;
+    }
+  }
+
+  .ranking-podium-place {
+    position: relative;
+    min-width: 0;
+    flex: 0 1 180px;
+  }
+
+  .ranking-podium-place-1 {
+    order: 2;
+    z-index: 3;
+    flex-basis: 220px;
+    margin-inline: -20px;
+    translate: 0 -8px;
+  }
+
+  .ranking-podium-place-2 {
+    order: 1;
+    rotate: -8deg;
+  }
+
+  .ranking-podium-place-3 {
+    order: 3;
+    rotate: 8deg;
+  }
+
+  .ranking-podium .sticker {
+    width: 100%;
+  }
+
+  @media (max-width: 600px) {
+    .ranking-podium {
+      max-width: 390px;
+      padding: 12px 10px 18px;
+    }
+
+    .ranking-podium-place {
+      flex-basis: 120px;
+    }
+
+    .ranking-podium-place-1 {
+      flex-basis: 144px;
+      margin-inline: -8px;
+    }
+
+    .ranking-podium .sticker {
+      padding: 22px 6px 12px;
+      gap: 5px;
+      border-width: 4px;
+      border-radius: 6px;
+    }
+
+    .ranking-podium .sticker-featured {
+      padding-top: 26px;
+    }
+
+    .ranking-podium .poster-title {
+      font-size: 1rem;
+    }
+
+    .ranking-podium .sticker-featured .poster-title {
+      font-size: 1.15rem;
+    }
+
+    .ranking-podium .marker-ink {
+      font-size: 0.9rem;
+    }
+
+    .ranking-podium .sticker-featured .marker-ink {
+      font-size: 1.1rem;
+    }
+  }
+
+  .album-sheet-title {
+    margin: 0 0 10px;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    font-size: 1.3rem;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+
+  .paper-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+  }
+
+  .paper-dialog {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    max-height: 85dvh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 6px;
+    box-shadow:
+      4px 5px 0 #d8cfb9,
+      0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  }
+
+  .paper-dialog-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .paper-dialog-close {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(17, 24, 39, 0.08);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .paper-dialog-close:hover {
+    background: rgba(17, 24, 39, 0.16);
+  }
+
+  .paper-dialog-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px 20px;
+  }
+
+  .paper-dialog-body > .album-sheet {
+    --paper-angle: 0deg;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+    max-width: none;
+    background-image: none;
+  }
+
+  .paper-panel .standings-card,
+  .paper-panel .standings-empty,
+  .paper-panel .standings-toggle,
+  .paper-panel .standings-table thead tr,
+  .paper-panel .standings-footer,
+  .paper-panel .standings-legend {
+    background: transparent;
+    border-color: var(--border-color);
+    box-shadow: none;
+    border-radius: 4px;
+  }
+
+  .paper-panel .standings-team-name,
+  .paper-panel .standings-points-cell {
+    color: var(--ink);
+  }
+
+  .paper-panel .standings-row {
+    border-color: var(--border-color);
+  }
+
+  .paper-panel .standings-row:hover,
+  .paper-panel .standings-toggle button:hover {
+    color: var(--ink);
+    background: rgba(17, 24, 39, 0.06);
+  }
+
+  .paper-panel .standings-toggle button.is-active {
+    background: var(--ink);
+    color: var(--paper);
+    box-shadow: none;
+  }
+
+  .paper-panel .standings-rank.is-podium-1,
+  .paper-panel .standings-rank.is-podium-3 {
+    color: #92400e;
+  }
+
+  .paper-panel .standings-rank.is-podium-2 {
+    color: #374151;
+  }
+
+  .paper-panel .standings-win-cell,
+  .paper-panel .standings-diff-cell.is-positive {
+    color: var(--hit);
+  }
+
+  .paper-panel .standings-loss-cell,
+  .paper-panel .standings-diff-cell.is-negative {
+    color: var(--miss);
+  }
+
+  .paper-panel .group-card {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  .paper-panel .table-container,
+  .paper-panel .glass-panel,
+  .paper-panel .last-match-card {
+    background: transparent;
+    border-color: var(--border-color);
+  }
+
+  .paper-panel .table-container {
+    border: none;
+  }
+
+  .paper-panel .leaderboard-table th {
+    background: transparent;
+    color: var(--ink);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .paper-panel .leaderboard-table tbody tr:hover {
+    background: rgba(17, 24, 39, 0.05) !important;
+  }
+
+  /* Casillas del cuadro como pegatinas blancas con borde de tinta. */
+  .paper-panel .team-slot {
+    background: #fffdf7;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .team-slot:hover {
+    background: #ffffff;
+    border-color: var(--accent-cyan);
+  }
+
+  .paper-panel .team-slot.winner {
+    background: rgba(21, 128, 61, 0.1);
+    border-color: var(--hit);
+  }
+
+  .paper-panel .team-slot.loser {
+    background: rgba(185, 28, 28, 0.06);
+    border-color: rgba(185, 28, 28, 0.4);
+  }
+
+  .paper-panel .team-slot.empty {
+    border-style: dashed;
+    border-color: rgba(17, 24, 39, 0.35);
+  }
+
+  .paper-panel .champion-display .team-slot {
+    background: rgba(146, 64, 14, 0.1) !important;
+    border-color: var(--champion-gold) !important;
+    color: var(--champion-gold) !important;
+  }
+
+  /* Cuadro en móvil: pestañas y tarjetas de cruce sobre el papel. */
+  .paper-panel .mb-match-card {
+    background: #fffdf7;
+    border: 1.5px solid var(--ink);
+  }
+
+  .paper-panel .mb-match-placeholder {
+    border-color: rgba(17, 24, 39, 0.35);
+  }
+
+  .paper-panel .mb-next-btn {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* Líneas del cuadro entre un cruce y el siguiente. */
+  .bracket-connector {
+    color: var(--connector);
+  }
+
+  /* Grupo dentro del visor: una pegatina por grupo sobre la hoja. */
+  .viewer-group {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--ink);
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .paper-panel .glass-input {
+    background: #ffffff;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  /* En móvil el ranking esconde el desglose por fase; este botón lo despliega con scroll. */
+  .lb-detail-toggle {
+    display: none;
+  }
+
+  @media (max-width: 600px) {
+    .lb-detail-toggle {
+      display: inline-flex;
+      margin: 0 0 10px;
+    }
+
+    #view-leaderboard .table-container.show-detail {
+      overflow-x: auto;
+    }
+
+    #view-leaderboard .table-container.show-detail .leaderboard-table {
+      min-width: 640px !important;
+      table-layout: auto;
+    }
+
+    #view-leaderboard .table-container.show-detail .leaderboard-mobile-detail {
+      display: table-cell;
+    }
+
+    #view-leaderboard .table-container.show-detail .leaderboard-table th:nth-child(2),
+    #view-leaderboard .table-container.show-detail .leaderboard-table td:nth-child(2) {
+      min-width: 150px;
+      white-space: nowrap;
+    }
+  }
+
+  /* Jornadas sobre papel: partidos como pegatinas, marcadores y 1X2 en tinta. */
+  .paper-panel .md-match,
+  .paper-panel .home-match-card {
+    background: #fffdf7;
+    border: 1.5px solid var(--ink);
+  }
+
+  .paper-panel .md-score-input {
+    background: #ffffff;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .md-sign-btn,
+  .paper-panel .md-filter,
+  .paper-panel .md-round-step,
+  .paper-panel .md-round-select {
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .md-sign-btn.is-active,
+  .paper-panel .md-filter.is-active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  .paper-panel .home-hero {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  .paper-panel .home-hero-pill,
+  .paper-panel .home-rules-btn {
+    background: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .home-link-btn,
+  .paper-panel .home-list-header a {
+    color: var(--marker-ink);
+  }
+
+  .paper-panel .home-match-score {
+    background: rgba(17, 24, 39, 0.06);
+    color: var(--ink);
+  }
+
+  .paper-panel .lb-matchday-step,
+  .paper-panel .lb-matchday-kpi {
+    background: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  /* Barra inferior: la pestaña activa es una pegatina de papel, como el resto de pestañas. */
+  .mobile-bottom-nav .mobile-nav-indicator {
+    background: var(--paper);
+  }
+
+  /* Jornadas y panel de jornada del ranking: todo lo que era blanco o cian pasa a tinta. */
+  .paper-panel .home-hero-title,
+  .paper-panel .home-list-header h2,
+  .paper-panel .home-match-team,
+  .paper-panel .md-page-header h1,
+  .paper-panel .md-team-name,
+  .paper-panel .lb-matchday-title,
+  .paper-panel .lb-matchday-kpi strong,
+  .paper-panel .lb-matchday-kpi:first-child strong,
+  .paper-panel .lb-matchday-select,
+  .paper-panel .lb-matchday-select option,
+  .paper-panel .lb-matchday-step,
+  .paper-panel .md-round-select option {
+    color: var(--ink);
+  }
+
+  .paper-panel .lb-matchday-eyebrow,
+  .paper-panel .md-predictions-btn,
+  .paper-panel .lb-matchday-cell:not(th) {
+    color: var(--marker-ink);
+  }
+
+  .paper-panel .lb-matchday-select {
+    background: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .paper-panel .md-predictions-icon-btn {
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .md-badge {
+    background: transparent;
+    border: 1px solid currentColor;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .paper-panel .md-badge.is-open {
+    color: var(--marker-ink);
+  }
+
+  .paper-panel .md-badge.is-finished {
+    color: var(--hit);
+  }
+
+  .paper-panel .md-badge.is-locked {
+    color: var(--miss);
+  }
+
+  .paper-panel .md-score-input:disabled {
+    border-color: rgba(17, 24, 39, 0.3);
+  }
+
+  .paper-panel .home-match-score.is-live {
+    color: var(--miss);
+  }
+
+  .paper-panel .lb-matchday-status,
+  .paper-panel .lb-unpaid-badge {
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .paper-panel .lb-matchday-status.is-live {
+    color: var(--hit);
+  }
+
+  .paper-panel .lb-matchday-status.is-finished {
+    color: var(--text-muted);
+  }
+
+  .paper-panel .lb-unpaid-badge {
+    color: var(--miss);
+  }
+
+  .paper-panel .glass-btn {
+    background: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .paper-panel .glass-btn:hover {
+    background: rgba(17, 24, 39, 0.08);
+  }
+
+  .paper-panel .glass-btn.active,
+  .paper-panel .primary-btn {
+    background: var(--ink) !important;
+    border-color: var(--ink) !important;
+    color: var(--paper) !important;
+  }
+
+  .paper-panel .rules-tabs {
+    border-color: rgba(17, 24, 39, 0.2);
+    background: rgba(17, 24, 39, 0.05);
+  }
+
+  .paper-panel .rules-tabs button {
+    color: #4b5563;
+  }
+
+  .paper-panel .rules-tabs button:hover {
+    color: var(--ink);
+  }
+
+  .paper-panel .rules-tabs button.is-active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .paper-panel .rules-tabs button:focus-visible {
+    outline-color: var(--ink);
+  }
+
+  .paper-panel .scoring-panel {
+    color: var(--marker-ink);
+  }
+
+  .paper-panel .scoring-rows {
+    border-color: rgba(17, 24, 39, 0.2);
+  }
+
+  .paper-panel .scoring-row {
+    border-top-color: rgba(17, 24, 39, 0.12);
+  }
+
+  .paper-panel .scoring-row-label,
+  .paper-panel .scoring-points {
+    color: var(--ink);
+  }
+
+  .paper-panel .scoring-row-hint {
+    color: #4b5563;
+  }
+
+  .landing-pick {
+    min-width: 44px;
+    min-height: 44px;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink);
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .landing-pick:hover {
+    background: var(--ink);
+    color: #ffffff;
+  }
+}

@@ -114,13 +114,17 @@ La plantilla completa está en [`.env.example`](.env.example).
 ## Tests y CI
 
 ```bash
-cd frontend && npm run lint && npm run test:coverage && npm run build
-cd backend && ./mvnw -B test   # en Windows: .\mvnw.cmd -B test
+(cd frontend && npm run lint && npm run test:coverage && npm run build)
+(cd backend && ./mvnw -B clean test)
 ```
 
-Las pruebas de navegador usan la build de producción, sin cuentas ni datos reales: en `frontend/`, ejecuta una vez `npx playwright install chromium` y después `npm run build && npm run test:e2e`. Incluyen la actualización de la PWA y el aislamiento de datos privados sin conexión.
+En PowerShell, ejecuta los comandos de npm dentro de `frontend/` y `.\mvnw.cmd -B clean test` dentro de `backend/`.
+
+Las pruebas de navegador usan la build de producción, sin cuentas ni datos reales: en `frontend/`, ejecuta una vez `npx playwright install chromium` y después `npm run build && npm run test:e2e`. Incluyen la actualización de la PWA, el aislamiento de datos privados sin conexión y la navegación de portada, diálogo de acceso y demo en escritorio y móvil. Las pruebas de interfaz simulan la API; no sustituyen la comprobación del OAuth real.
 
 `npm run lint` incluye la comprobación de tipos (`tsc --noEmit` en modo `strict`). En el backend, los tests de migraciones y el de arranque completo levantan un PostgreSQL real con Testcontainers (se saltan si no hay Docker). La cobertura queda en `frontend/coverage/` y `backend/target/site/jacoco/`.
+
+La CI exige Docker para que las pruebas de integración no se salten. Los mínimos de cobertura son 52 % de líneas, 50 % de sentencias, 46 % de funciones y 42 % de ramas en frontend; 80 % de líneas y 58 % de ramas en backend. Son mínimos para detectar retrocesos respecto al estado medido, no una garantía de ausencia de errores. Consulta el [alcance de las verificaciones y limitaciones](docs/quality.md).
 
 El workflow de [GitHub Actions](.github/workflows/ci.yml) ejecuta lo mismo en cada PR y en cada push a `main`, pero solo los jobs de la parte que cambia (lo decide `.github/scripts/detect-changes.sh`): el frontend si cambia `frontend/`, el backend si cambia `backend/` y la imagen Docker si cambian el `Dockerfile` o los manifiestos de dependencias. Un cambio en la propia CI, la ejecución semanal y la manual lo pasan todo. La cobertura de las dos partes queda en el resumen de la ejecución. Railway solo despliega cuando la CI pasa.
 
@@ -146,6 +150,7 @@ frontend/src/
   services/     cliente de la API
   store/        estado local persistente (Zustand)
   types/        tipos del contrato con el backend
+  styles/       CSS por área, con el orden de cascada definido en index.css
   utils/        cálculos puros (cuadro, puntos, borradores)
 ```
 

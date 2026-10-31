@@ -1,0 +1,232 @@
+@layer components {
+  /* Inicio: cabecera de liga y lista de partidos */
+  .home-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 210, 211, 0.25);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.85) 100%);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  }
+
+  .home-hero-info {
+    min-width: 0;
+    flex: 1 1 200px;
+  }
+
+  .home-hero-title {
+    margin: 0;
+    font-size: clamp(1.35rem, 5vw, 1.7rem);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .home-hero-pills {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .home-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 210, 211, 0.35);
+    background: rgba(0, 210, 211, 0.1);
+    color: var(--accent-cyan);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    line-height: 1.4;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .home-hero-pill.muted {
+    border-color: rgba(148, 163, 184, 0.28);
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text-muted);
+  }
+
+  .home-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .home-list-header h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .home-list-header h2 span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-rules-btn {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 210, 211, 0.35);
+    background: rgba(0, 210, 211, 0.08);
+    color: var(--accent-cyan);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .home-rules-btn:hover,
+  .home-rules-btn:focus-visible {
+    background: rgba(0, 210, 211, 0.16);
+  }
+
+  .home-link-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: var(--accent-cyan);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 0;
+    white-space: nowrap;
+  }
+
+  .home-match-card {
+    width: 100%;
+    display: block;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    font-family: inherit;
+    color: inherit;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease;
+  }
+
+  .home-match-card:hover {
+    border-color: rgba(0, 210, 211, 0.45);
+    background: rgba(15, 23, 42, 0.92);
+  }
+
+  .home-match-card.is-live {
+    border-color: rgba(255, 107, 107, 0.5);
+    box-shadow: 0 0 14px rgba(255, 107, 107, 0.12);
+  }
+
+  .home-match-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    min-width: 0;
+  }
+
+  .home-match-meta > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-match-teams {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .home-match-team {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+  }
+
+  .home-match-team.away {
+    justify-content: flex-end;
+    text-align: right;
+  }
+
+  .home-match-name {
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: break-word;
+  }
+
+  .home-match-crest {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .home-match-score {
+    flex-shrink: 0;
+    min-width: 52px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.9rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .home-match-score.is-live {
+    color: #00d2d3;
+  }
+
+  .home-match-score.is-pending {
+    background: transparent;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    min-width: 44px;
+  }
+
+  @media (max-width: 600px) {
+    .home-hero {
+      padding: 16px;
+    }
+  }
+}
