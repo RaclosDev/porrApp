@@ -26,6 +26,7 @@ public class MatchdayFixturePredictionDTO {
     private String round;
     private String groupName;
     private Boolean finished;
+    private String status;
     private Integer actualHomeScore;
     private Integer actualAwayScore;
     private String displayClock;

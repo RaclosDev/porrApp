@@ -147,7 +147,7 @@ public class MatchPredictionService {
                 scoringDetails = mp.getScoringDetails();
 
                 // Si el partido está terminado o tiene marcador oficial y no se había evaluado
-                if (Boolean.TRUE.equals(match.getFinished())
+                if (hasScorableResult(match)
                         && match.getHomeScore() != null && match.getAwayScore() != null) {
                     MatchScoreResult scoreResult = scorePrediction(mp, match, rules);
                     pointsAwarded = scoreResult.totalPoints();
@@ -169,6 +169,7 @@ public class MatchPredictionService {
                     .round(MatchRound.label(match))
                     .groupName(match.getGroupName())
                     .finished(match.getFinished())
+                    .status(match.getStatus() != null ? match.getStatus().name() : null)
                     .actualHomeScore(match.getHomeScore())
                     .actualAwayScore(match.getAwayScore())
                     .displayClock(match.getDisplayClock())
@@ -312,13 +313,11 @@ public class MatchPredictionService {
         return matchId != null && matchPredictionRepository.existsByMatchIdAndPointsAwardedIsNull(matchId);
     }
 
-    /**
-     * Evalúa y actualiza los puntos de todos los pronósticos de un partido terminado.
-     * Se puede repetir: si el marcador final cambia, los puntos se recalculan desde cero.
-     */
+    /** Evalúa o actualiza los puntos provisionales mientras cambia el marcador en directo. */
     @Transactional
     public void evaluatePredictionsForMatch(Match match) {
-        if (match == null || !Boolean.TRUE.equals(match.getFinished()) || match.getId() == null || match.getHomeScore() == null || match.getAwayScore() == null) {
+        if (match == null || !hasScorableResult(match) || match.getId() == null
+                || match.getHomeScore() == null || match.getAwayScore() == null) {
             return;
         }
 
@@ -339,6 +338,12 @@ public class MatchPredictionService {
             pred.setScoreCalculatedAt(null);
             predictionRepository.save(pred);
         }
+    }
+
+    private static boolean hasScorableResult(Match match) {
+        return Boolean.TRUE.equals(match.getFinished())
+                || match.getStatus() == com.porra.mundial.model.MatchStatusNormalized.LIVE
+                || match.getStatus() == com.porra.mundial.model.MatchStatusNormalized.PAUSED;
     }
 
     /**

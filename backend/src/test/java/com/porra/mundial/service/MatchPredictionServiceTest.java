@@ -254,6 +254,23 @@ class MatchPredictionServiceTest {
     }
 
     @Test
+    void evaluatesProvisionalPointsFromALiveScore() {
+        finishedMatch.setFinished(false);
+        finishedMatch.setStatus(com.porra.mundial.model.MatchStatusNormalized.LIVE);
+        MatchPrediction mp = MatchPrediction.builder().id(1L).match(finishedMatch)
+                .prediction(Prediction.builder().id(50L).edition(edition).build())
+                .homeScore(2).awayScore(1).build();
+        when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(mp));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(1), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(3, true, true, true, "Acierto de signo 1X2"));
+
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+
+        assertEquals(3, mp.getPointsAwarded());
+        verify(matchPredictionRepository).save(mp);
+    }
+
+    @Test
     @DisplayName("Si se corrige el marcador final, los puntos del pronóstico se recalculan")
     void evaluatePredictionsForMatch_ReplacesPointsAfterACorrection() {
         Prediction prediction = Prediction.builder().id(50L).edition(edition).scoreCalculatedAt(LocalDateTime.now()).build();

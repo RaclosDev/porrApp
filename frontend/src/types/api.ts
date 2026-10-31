@@ -305,6 +305,7 @@ export interface MatchdayFixture {
   round: string | null;
   groupName: string | null;
   finished: boolean | null;
+  status: string | null;
   actualHomeScore: number | null;
   actualAwayScore: number | null;
   displayClock: string | null;
