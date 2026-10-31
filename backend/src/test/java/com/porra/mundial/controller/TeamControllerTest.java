@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.repository.UserAccountRepository;
+
 import com.porra.mundial.service.TeamService;
 import com.porra.mundial.dto.TeamOddsDTO;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(TeamController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class TeamControllerTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;

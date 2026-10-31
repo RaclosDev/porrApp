@@ -2,6 +2,7 @@ package com.porra.mundial.controller;
 
 import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.config.JwtUtil;
+import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdaySubmissionDTO;
 import com.porra.mundial.service.MatchPredictionService;
@@ -28,6 +29,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(MatchPredictionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class MatchPredictionValidationTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;

@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.repository.UserAccountRepository;
+
 import com.porra.mundial.service.StandingsService;
 import com.porra.mundial.service.OfficialResultsService;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(StandingsController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class StandingsControllerTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;

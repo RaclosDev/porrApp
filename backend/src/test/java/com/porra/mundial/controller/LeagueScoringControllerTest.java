@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.config.JwtUtil;
+import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.dto.LeagueScoringDTO;
 import com.porra.mundial.scoring.ScoringRuleSet;
 import com.porra.mundial.service.LeagueScoringService;
@@ -29,6 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(LeagueScoringController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class LeagueScoringControllerTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;
