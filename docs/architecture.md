@@ -59,4 +59,6 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 
 ## Despliegue
 
+Flyway valida los checksums en cada arranque y no ejecuta `repair()` automáticamente, tampoco para V38. Las bases que ya pasaron por la reconciliación histórica conservan su historial; una copia antigua con discrepancias debe revisarse antes de actualizar. Si aparece una discrepancia, compara el script aplicado y el esquema con las migraciones del repositorio y realiza una copia de seguridad antes de una reparación administrativa. No edites migraciones aplicadas ni desactives la validación para arrancar.
+
 El `Dockerfile` compila el frontend con Vite y copia el resultado a los recursos estáticos de Spring Boot, de modo que la API y la aplicación se sirven desde el mismo servicio y puerto. En producción corre en Railway; el health check usa Spring Boot Actuator.

@@ -1,6 +1,7 @@
 package com.porra.mundial.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,6 +24,26 @@ class FlywayFreshDatabaseTest {
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    @Test
+    void rejectsChangedV38ChecksumWithoutRewritingHistory() throws Exception {
+        String url = createDatabase("checksum_integrity");
+        Flyway flyway = flyway(url, null);
+        flyway.migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("UPDATE flyway_schema_history SET checksum = 123 WHERE version = '38'");
+        }
+
+        assertThatThrownBy(flyway::migrate)
+                .isInstanceOf(org.flywaydb.core.api.exception.FlywayValidateException.class);
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT checksum FROM flyway_schema_history WHERE version = '38'"))
+                    .isEqualTo(123);
+        }
+    }
 
     @Test
     void migratesAnEmptyDatabaseToTheLatestVersion() throws Exception {
