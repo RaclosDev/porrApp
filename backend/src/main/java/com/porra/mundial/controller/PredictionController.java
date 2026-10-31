@@ -63,7 +63,7 @@ public class PredictionController {
 
         String name = body.getPrediction() != null ? body.getPrediction() : body.getUser();
         Prediction prediction = predictionService.createPrediction(email, name, body, effectiveGroupId);
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(effectiveGroupId);
         return PredictionSavedResponse.created(prediction.getId(), prediction.getParticipantName(), prediction.getGroupId());
     }
 

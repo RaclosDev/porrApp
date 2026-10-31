@@ -262,6 +262,21 @@ class MatchEventProcessorTest {
     }
 
     @Test
+    @DisplayName("Una tarjeta corregida en un partido terminado cambia el desempate de grupos: cuenta como resultado")
+    void flagsFairPlayCorrectionsOfFinishedMatches() throws Exception {
+        Match stored = storedFinishedMatch("2", "1");
+        String lateCard = """
+                [{"yellowCard": true, "team": {"id": "212"}, "athletesInvolved": [{"id": "p9"}]}]
+                """;
+        MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(worldCup);
+
+        processor.process(event("post", true, "Group H", "2", "1", "Spain", "164", "Uruguay", "212", lateCard), cache, batch);
+
+        assertEquals(-1, stored.getAwayFairPlay());
+        assertTrue(batch.resultsChanged());
+    }
+
+    @Test
     @DisplayName("Un partido terminado con pronósticos sin puntuar se puntúa aunque no cambie")
     void evaluatesUnscoredPredictionsOfAnUnchangedFinishedMatch() throws Exception {
         Match stored = storedFinishedMatch("2", "1");

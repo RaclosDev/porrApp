@@ -57,6 +57,24 @@ class FlywayFreshDatabaseTest {
         }
     }
 
+    @Test
+    void v46LeavesOneIndexPerLookup() throws Exception {
+        String url = createDatabase("v46_indexes");
+        flyway(url, null).migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery("SELECT indexname FROM pg_indexes"
+                     + " WHERE tablename IN ('pronosticos_partido', 'app_users') ORDER BY indexname")) {
+            java.util.List<String> indexes = new java.util.ArrayList<>();
+            while (rs.next()) indexes.add(rs.getString(1));
+
+            assertThat(indexes).containsExactly(
+                    "app_users_google_email_key", "app_users_pkey",
+                    "idx_pronosticos_partido_match", "pronosticos_partido_pkey", "uq_prediction_match");
+        }
+    }
+
     /** Base vacía propia, para no compartir el esquema con el resto de tests de la clase. */
     private static String createDatabase(String name) throws Exception {
         try (Connection c = DriverManager.getConnection(
