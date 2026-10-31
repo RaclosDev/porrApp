@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import Flag from '../components/Flag';
 import { useSearchStats } from '../hooks/useSearchStats';
 import WhatsAppIcon from '../components/WhatsAppIcon';
+import { UserAvatar } from '../components/Avatar';
 
 const searchConditions = [
   { val: 'passes_groups', label: 'Pasa a 1/16', icon: '✅' },
@@ -201,7 +202,17 @@ function Search() {
     userName,
     setViewerPredictionId,
     activeGroupPichichi,
+    leaderboardData,
   } = useAppContext();
+
+  // Los pronósticos no traen la foto; la clasificación de la liga sí.
+  const avatarByUserId = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const row of leaderboardData) {
+      if (row.userId !== null && row.avatarUrl) map.set(row.userId, row.avatarUrl);
+    }
+    return map;
+  }, [leaderboardData]);
 
   // Read initial state from URL parameters (if shared link), fallback to localStorage, then default
   const urlParams = new URLSearchParams(window.location.search);
@@ -368,9 +379,12 @@ function Search() {
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      <span className="bg-[#f368e0] bg-none text-white w-6 h-6 rounded-full flex items-center justify-center text-[0.9rem] font-bold">
-                        {r.name.charAt(0).toUpperCase()}
-                      </span>
+                      <UserAvatar
+                        url={r.userId !== null ? avatarByUserId.get(r.userId) : null}
+                        userId={r.userId}
+                        name={r.name}
+                        size={24}
+                      />
                       {r.name}
                     </div>
                   ))}
