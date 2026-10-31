@@ -21,6 +21,7 @@ import LeaveConfirmDialog from './league/LeaveConfirmDialog';
 import type { PaymentStatus } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
+import { queryKeys } from '../services/queryKeys';
 
 export type CopyTarget = 'code' | 'link';
 export type PaymentFilter = 'ALL' | 'PAID' | 'PENDING';
@@ -136,7 +137,7 @@ export default function GroupMembersModal({
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['groupMembers', groupId],
+    queryKey: queryKeys.groupMembers(groupId),
     queryFn: () => fetchGroupMembers(groupId),
     enabled: Boolean(groupId),
   });
@@ -146,9 +147,9 @@ export default function GroupMembersModal({
       toggleGroupMemberPayment(groupId, userId, status),
     onMutate: async ({ userId, status }) => {
       setActionError('');
-      await queryClient.cancelQueries({ queryKey: ['groupMembers', groupId] });
-      const previous = queryClient.getQueryData(['groupMembers', groupId]);
-      queryClient.setQueryData(['groupMembers', groupId], (current) =>
+      await queryClient.cancelQueries({ queryKey: queryKeys.groupMembers(groupId) });
+      const previous = queryClient.getQueryData(queryKeys.groupMembers(groupId));
+      queryClient.setQueryData(queryKeys.groupMembers(groupId), (current) =>
         Array.isArray(current)
           ? current.map((member) =>
               String(member.userId) === String(userId)
@@ -161,7 +162,7 @@ export default function GroupMembersModal({
     },
     onError: (err, _variables, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['groupMembers', groupId], context.previous);
+        queryClient.setQueryData(queryKeys.groupMembers(groupId), context.previous);
       }
       const message = errorMessage(err, 'No se pudo actualizar el estado de pago.');
       setActionError(message);
@@ -173,8 +174,8 @@ export default function GroupMembersModal({
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['groupMembers', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard() });
     },
   });
 
@@ -184,8 +185,11 @@ export default function GroupMembersModal({
     onSuccess: () => {
       setKickTargetId(null);
       toast.success('Miembro expulsado de la liga');
-      queryClient.invalidateQueries({ queryKey: ['groupMembers', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      // El expulsado deja de contar en miembros, ranking, pronósticos y en la tarjeta de la liga.
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.predictions(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
     },
     onError: (err) => {
       const message = errorMessage(err, 'No se pudo expulsar al miembro.');
@@ -203,6 +207,9 @@ export default function GroupMembersModal({
         setActiveCode(data.joinCode);
         onCodeRegenerated?.(data.joinCode);
       }
+      // El código se muestra en la tarjeta (myGroups) y en los detalles de la liga.
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
       toast.success('Código de invitación regenerado');
     },
     onError: (err) => {

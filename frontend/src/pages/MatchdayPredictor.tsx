@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
 import Flag from '../components/Flag';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 import type {
@@ -12,6 +13,7 @@ import type {
   MatchdaySubmissionResult,
 } from '../types/api';
 import { errorMessage } from '../utils/errors';
+import { draftKey, readDraft } from '../utils/drafts';
 
 /** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
 interface DraftPrediction {
@@ -37,6 +39,14 @@ const roundLabelFor = (fixture: MatchdayFixture) =>
       : fixture.matchDate
         ? `Fecha ${fixture.matchDate.slice(0, 10)}`
         : 'Sin jornada';
+/** Hay algún partido empezado y sin terminar. */
+export const hasLiveMatch = (
+  fixtures: MatchdayFixture[] | undefined,
+  now: number = Date.now(),
+): boolean =>
+  Boolean(
+    fixtures?.some((f) => !f.finished && f.matchDate != null && Date.parse(f.matchDate) <= now),
+  );
 const hasPrediction = (prediction: DraftPrediction | undefined) =>
   Boolean(
     prediction && ((prediction.homeScore !== '' && prediction.awayScore !== '') || prediction.sign),
@@ -89,25 +99,27 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const draftRef = useRef<Draft | null>(null);
-  const draftKey = `draft_matchday_${activeGroupId}`;
+  // El borrador es de cada usuario: en un dispositivo compartido no se ve el de otro.
+  const draftUser = userId || userName;
+  const storageKey = draftKey('matchday', activeGroupId, draftUser);
 
   const persistDraft = useCallback(
     (draft: Draft) => {
       draftRef.current = draft;
       try {
-        if (Object.keys(draft).length) localStorage.setItem(draftKey, JSON.stringify(draft));
-        else localStorage.removeItem(draftKey);
+        if (Object.keys(draft).length) localStorage.setItem(storageKey, JSON.stringify(draft));
+        else localStorage.removeItem(storageKey);
       } catch {
         /* ignore */
       }
     },
-    [draftKey],
+    [storageKey],
   );
 
   // Al cambiar de liga, el borrador en memoria pertenece a la anterior: se relee del almacenamiento.
   useEffect(() => {
     draftRef.current = null;
-  }, [draftKey]);
+  }, [storageKey]);
 
   // Redirigir a mis-ligas si no hay liga seleccionada, o al inicio si no es modalidad por jornadas (ej. Mundial)
   useEffect(() => {
@@ -127,10 +139,12 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['matchdayFixtures', activeGroupId, userId || userName],
+    queryKey: queryKeys.matchdayFixtures(activeGroupId, userId || userName),
     queryFn: () => fetchMatchdayFixtures(activeGroupId, ''),
     enabled: Boolean(activeGroupId && isMatchDay),
-    refetchInterval: 30_000,
+    // El WebSocket ya invalida al cambiar un resultado; el sondeo solo cubre los partidos en
+    // juego (reloj y marcador en directo) por si se pierde un mensaje.
+    refetchInterval: (query) => (hasLiveMatch(query.state.data) ? 30_000 : false),
   });
 
   // Inicializar estado local cuando llegan datos del backend
@@ -140,7 +154,8 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       // Cargar borrador previo si existe en LocalStorage para esta liga
       let draft: Draft = draftRef.current || {};
       try {
-        const storedDraft = draftRef.current === null ? localStorage.getItem(draftKey) : null;
+        const storedDraft =
+          draftRef.current === null ? readDraft('matchday', activeGroupId, draftUser) : null;
         if (storedDraft) {
           const parsed = JSON.parse(storedDraft);
           if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) draft = parsed;
@@ -173,7 +188,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       persistDraft(openDraft);
       setHasUnsavedChanges(Object.keys(openDraft).length > 0);
     }
-  }, [fixtures, draftKey, persistDraft]);
+  }, [fixtures, storageKey, activeGroupId, draftUser, persistDraft]);
 
   // Jornadas disponibles en orden y jornada actual (la primera con partidos sin finalizar).
   const { availableRounds, currentRound } = useMemo(() => {
@@ -234,16 +249,22 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         /* ignore */
       }
       setSaveErrorMsg('');
-      queryClient.invalidateQueries({ queryKey: ['matchdayFixtures', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['leaderboard', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['missingRoundUsers', groupId] });
-      setTimeout(() => setSaveSuccessMsg(''), 4000);
+      queryClient.invalidateQueries({ queryKey: queryKeys.matchdayFixtures(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
     },
     onError: (err) => {
       setSaveErrorMsg(errorMessage(err, 'Error al guardar pronósticos'));
       setSaveSuccessMsg('');
     },
   });
+
+  // El aviso de guardado desaparece a los 4 s; el temporizador se limpia al desmontar o si
+  // llega otro aviso antes.
+  useEffect(() => {
+    if (!saveSuccessMsg) return;
+    const timer = setTimeout(() => setSaveSuccessMsg(''), 4000);
+    return () => clearTimeout(timer);
+  }, [saveSuccessMsg]);
 
   const updatePrediction = (matchId: number, prediction: DraftPrediction) => {
     persistDraft({ ...draftRef.current, [matchId]: prediction });
