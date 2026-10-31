@@ -17,6 +17,23 @@ const SCORE_DEPENDENT_KEYS = [
   queryKeys.predictionScore(),
 ];
 
+const DATA_DEPENDENT_KEYS = [
+  ...SCORE_DEPENDENT_KEYS,
+  queryKeys.predictions(),
+  queryKeys.matches(),
+  queryKeys.topScorers(),
+];
+
+const RECONNECT_KEYS = [
+  ...DATA_DEPENDENT_KEYS,
+  queryKeys.odds(),
+  queryKeys.group(),
+  queryKeys.groupMembers(),
+  queryKeys.leagueScoring(),
+  queryKeys.myPredictions(),
+  queryKeys.myGroups(),
+];
+
 /** Consultas de una liga concreta: solo se vuelven a pedir si están en pantalla. */
 const leagueKeys = (leagueId: string | number) => [
   queryKeys.group(leagueId),
@@ -46,7 +63,20 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
     let ws: WebSocket | null = null;
     let wsPingInterval: ReturnType<typeof setInterval> | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let invalidationTimer: ReturnType<typeof setTimeout> | null = null;
+    const pendingInvalidations = new Map<string, readonly unknown[]>();
+    let disconnected = false;
     let disposed = false;
+
+    const queueInvalidations = (keys: readonly (readonly unknown[])[]) => {
+      keys.forEach((key) => pendingInvalidations.set(JSON.stringify(key), key));
+      if (invalidationTimer !== null) return;
+      invalidationTimer = setTimeout(() => {
+        invalidationTimer = null;
+        invalidateAll(queryClient, [...pendingInvalidations.values()]);
+        pendingInvalidations.clear();
+      }, 100);
+    };
 
     const connectWebSocket = () => {
       if (disposed) return;
@@ -54,6 +84,14 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
       ws = socket;
 
       socket.onopen = () => {
+        if (disposed || socket !== ws) return;
+        if (disconnected) {
+          if (invalidationTimer !== null) clearTimeout(invalidationTimer);
+          invalidationTimer = null;
+          pendingInvalidations.clear();
+          invalidateAll(queryClient, RECONNECT_KEYS);
+          disconnected = false;
+        }
         wsPingInterval = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ type: 'PING' }));
@@ -62,15 +100,11 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
       };
 
       socket.onmessage = (event) => {
+        if (disposed || socket !== ws) return;
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === 'DATA_UPDATED') {
-            invalidateAll(queryClient, [
-              ...SCORE_DEPENDENT_KEYS,
-              queryKeys.predictions(),
-              queryKeys.matches(),
-              queryKeys.topScorers(),
-            ]);
+            queueInvalidations(DATA_DEPENDENT_KEYS);
           } else if (msg.type === 'LEAGUE_UPDATED') {
             if (msg.leagueId != null) invalidateAll(queryClient, leagueKeys(msg.leagueId));
           } else if (msg.type === 'MATCH_SCORE_UPDATED') {
@@ -95,7 +129,7 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
                 },
               );
             }
-            invalidateAll(queryClient, SCORE_DEPENDENT_KEYS);
+            queueInvalidations(SCORE_DEPENDENT_KEYS);
           }
         } catch {
           // Ignore malformed payloads
@@ -103,6 +137,8 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
       };
 
       socket.onclose = () => {
+        if (disposed || socket !== ws) return;
+        disconnected = true;
         if (wsPingInterval) clearInterval(wsPingInterval);
         if (!disposed) reconnectTimer = setTimeout(connectWebSocket, 5000);
       };
@@ -113,8 +149,12 @@ export function useWebSocket(userName: string, queryClient: QueryClient) {
     return () => {
       disposed = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (invalidationTimer !== null) clearTimeout(invalidationTimer);
+      pendingInvalidations.clear();
       if (ws) {
         ws.onclose = null;
+        ws.onopen = null;
+        ws.onmessage = null;
         ws.close();
       }
       if (wsPingInterval) clearInterval(wsPingInterval);
