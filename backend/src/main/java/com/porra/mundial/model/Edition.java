@@ -3,12 +3,24 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.ZoneId;
 
 /** Une una liga con una competición; una liga puede tener varias ediciones. */
 @Entity
 @Table(name = "editions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Edition {
+
+    private static final ZoneId TOURNAMENT_ZONE = ZoneId.of("Europe/Madrid");
+    // Fecha de cierre de cuadros ya establecida por V24, también para las nuevas ligas.
+    private static final LocalDateTime WORLD_CUP_DEADLINE = LocalDateTime.of(2026, 6, 11, 20, 0);
+
+    public static LocalDateTime defaultLockDate(Competition competition, PoolFormat format) {
+        return competition != null
+                && Competition.WORLD_CUP_EXTERNAL_ID.equals(competition.getExternalId())
+                && format != PoolFormat.MATCH_DAY ? WORLD_CUP_DEADLINE : null;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -54,10 +66,14 @@ public class Edition {
      * Comprueba si la edición/porra se encuentra bloqueada para nuevos envíos o cambios.
      */
     public boolean isLocked() {
+        return isLocked(Clock.system(TOURNAMENT_ZONE));
+    }
+
+    public boolean isLocked(Clock clock) {
         if (!"ACTIVE".equalsIgnoreCase(status)) {
             return true;
         }
-        return lockDate != null && LocalDateTime.now().isAfter(lockDate);
+        return lockDate != null && !LocalDateTime.now(clock.withZone(TOURNAMENT_ZONE)).isBefore(lockDate);
     }
 
 }

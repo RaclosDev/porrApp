@@ -105,6 +105,7 @@ public class GlobalLeagueInitializer implements CommandLineRunner {
                     .league(finalGlobalGroup)
                     .competition(comp)
                     .poolFormat(com.porra.mundial.model.PoolFormat.FULL_BRACKET)
+                    .lockDate(Edition.defaultLockDate(comp, com.porra.mundial.model.PoolFormat.FULL_BRACKET))
                     .pichichi(true)
                     .status("ACTIVE")
                     .build()));

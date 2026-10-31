@@ -100,6 +100,7 @@ public class GroupService {
                 .league(group)
                 .competition(comp)
                 .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
+                .lockDate(Edition.defaultLockDate(comp, poolFormat))
                 .pichichi(pichichi)
                 .status("ACTIVE")
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())

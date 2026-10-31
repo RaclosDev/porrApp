@@ -47,6 +47,7 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 - `GroupService` gestiona las ligas (`League`), sus miembros (`Membership`), los códigos de invitación y los pagos. La Porra Global usa un id fijo (`League.GLOBAL_ID`).
 - `PredictionService` guarda los cuadros completos; `MatchPredictionService`, los pronósticos por partido, con cierre individual cuando empieza cada encuentro.
 - El formato de cada liga (`PoolFormat`) decide qué se pronostica: `FULL_BRACKET`, `KNOCKOUTS_ONLY` o `MATCH_DAY`.
+- Las nuevas ligas de cuadro del Mundial heredan el cierre que ya usaba el proyecto: 11 de junio de 2026 a las 20:00, hora de Madrid, tanto para cuadro completo como para solo eliminatorias. V50 completa las fechas ausentes de esas ediciones y conserva las fechas explícitas. Las jornadas mantienen su cierre por partido. El instante exacto de cierre ya está bloqueado.
 - `MatchdayStatsService` (`GET /api/predictions/matchday/stats`) da, para cada partido ya empezado de una liga por jornadas, el reparto 1X2, los marcadores más repetidos y, al terminar, cuántos acertaron. Solo lo leen los miembros de la liga. Más elegidos y Buscador, en las ligas de cuadro, se calculan en el frontend (`utils/bracketStats.ts`) con los cuadros visibles de la liga.
 
 ## Seguridad

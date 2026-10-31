@@ -79,6 +79,46 @@ class FlywayFreshDatabaseTest {
     }
 
     @Test
+    void v50RepairsOnlyMissingWorldCupBracketDeadlines() throws Exception {
+        String url = createDatabase("v50_deadlines");
+        flyway(url, "49").migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("INSERT INTO app_users (id, google_email, google_name, participant_name) VALUES"
+                    + " (9501, 'deadline@test.com', 'Deadline', 'Deadline')");
+            st.execute("INSERT INTO leagues (id, name, join_code, admin_user_id) VALUES"
+                    + " (9501, 'Deadline', 'DEADLINE', 9501)");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9501, 9501, id, 'FULL_BRACKET', NULL"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9502, 9501, id, 'KNOCKOUTS_ONLY', NULL"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9503, 9501, id, 'MATCH_DAY', NULL"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9504, 9501, id, 'FULL_BRACKET', TIMESTAMP '2026-06-10 12:00:00'"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, lock_date)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9505, 9501, id, 'MATCH_DAY', NULL"
+                    + " FROM competitions WHERE external_id = 'esp.1'");
+        }
+
+        flyway(url, null).migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM editions WHERE id IN (9501,9502)"
+                    + " AND lock_date = TIMESTAMP '2026-06-11 20:00:00'")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM editions WHERE id IN (9503,9505) AND lock_date IS NULL"))
+                    .isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM editions WHERE id = 9504"
+                    + " AND lock_date = TIMESTAMP '2026-06-10 12:00:00'")).isEqualTo(1);
+        }
+    }
+
+    @Test
     void v46LeavesOneIndexPerLookup() throws Exception {
         String url = createDatabase("v46_indexes");
         flyway(url, null).migrate();

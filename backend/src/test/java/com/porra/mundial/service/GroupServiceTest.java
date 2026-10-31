@@ -123,6 +123,21 @@ class GroupServiceTest {
     }
 
     @Test
+    void createWorldCupBracketHasTheTournamentDeadline() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition worldCup = Competition.builder().id(2L)
+                .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+        when(competitionRepository.findById(2L)).thenReturn(Optional.of(worldCup));
+        when(leagueRepository.save(any(League.class))).thenReturn(league);
+
+        groupService.createGroup("Mundial", "admin@test.com", 2L,
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET);
+
+        verify(editionRepository).save(argThat(edition ->
+                java.time.LocalDateTime.of(2026, 6, 11, 20, 0).equals(edition.getLockDate())));
+    }
+
+    @Test
     @DisplayName("updateGroup rechaza si el nombre está vacío")
     void updateGroup_ThrowsIfEmpty() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
