@@ -80,8 +80,9 @@ describe('MatchFriendsPredictionsModal', () => {
     const avatarSources = screen
       .getAllByTestId('avatar-image')
       .map((avatar) => avatar.querySelector('img')?.getAttribute('src'));
-    expect(avatarSources).toContain('/api/users/1/avatar?v=10');
-    expect(avatarSources).toContain('/api/users/2/avatar');
+    // Sin foto no se pide /avatar (daría 404): se genera el avatar en el cliente.
+    expect(avatarSources).toEqual(['/api/users/1/avatar?v=10']);
+    expect(screen.getAllByTestId('avatar-generated')).toHaveLength(2);
 
     expect(screen.getByText('🔒 Oculto')).toBeInTheDocument();
     expect(screen.getByText('Sin pronosticar')).toBeInTheDocument();
