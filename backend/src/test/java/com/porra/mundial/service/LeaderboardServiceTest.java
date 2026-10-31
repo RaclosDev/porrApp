@@ -70,6 +70,29 @@ class LeaderboardServiceTest {
     private LeaderboardService leaderboardService;
 
     @Test
+    void pichichiFlagAppliesToBothLeaderboardAndIndividualScore() {
+        Edition enabled = Edition.builder().pichichi(true).build();
+        Edition disabled = Edition.builder().pichichi(false).build();
+        Prediction on = championPrediction(701L, enabled);
+        Prediction off = championPrediction(702L, disabled);
+        on.getBracketData().setScorer("Kylian Mbappé");
+        off.getBracketData().setScorer("Kylian Mbappé");
+        PredictionDataDTO official = new PredictionDataDTO();
+        official.setScorer("Kylian Mbappé");
+        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+                official, Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of("España", "Brasil"), "España"));
+        when(predictionRepository.findAllWithUserAndEdition()).thenReturn(List.of(on, off));
+        when(predictionRepository.findById(702L)).thenReturn(Optional.of(off));
+
+        var scores = leaderboardService.getLeaderboard(null);
+
+        assertEquals(200, scores.stream().filter(s -> s.getId().equals(701L)).findFirst().orElseThrow().getScorer());
+        assertEquals(0, scores.stream().filter(s -> s.getId().equals(702L)).findFirst().orElseThrow().getScorer());
+        assertEquals(0, leaderboardService.calculateScoreForPrediction(702L).getScorer());
+    }
+
+    @Test
     void ignoresLegacyBracketPointsInMatchDayEditionButKeepsMatchPoints() {
         Edition edition = Edition.builder().poolFormat(com.porra.mundial.model.PoolFormat.MATCH_DAY)
                 .competition(Competition.builder().externalId("esp.1").build()).build();

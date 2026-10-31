@@ -55,15 +55,15 @@ public class KnockoutBracketService {
     private int propagate(Supplier<List<Match>> worldCupMatches) {
         try {
             FinalRounds rounds = findFinalRounds(worldCupMatches.get());
-            List<Match> decidedSemis = rounds.semis().stream()
-                    .filter(m -> Boolean.TRUE.equals(m.getFinished()) || winnerOf(m) != null)
-                    .toList();
+            List<Match> semis = rounds.semis();
+            List<Team> participants = semis.stream()
+                    .flatMap(m -> java.util.stream.Stream.of(m.getHomeTeam(), m.getAwayTeam()))
+                    .filter(Objects::nonNull).toList();
             int updated = 0;
-            for (int i = 0; i < decidedSemis.size(); i++) {
-                Match semi = decidedSemis.get(i);
-                String slot = i == 0 ? "home" : "away";
-                if (placeTeam(rounds.finalMatch(), winnerOf(semi), slot)) updated++;
-                if (placeTeam(rounds.thirdPlaceMatch(), loserOf(semi), slot)) updated++;
+            for (int slot = 0; slot < 2; slot++) {
+                Match semi = slot < semis.size() ? semis.get(slot) : null;
+                if (placeDerivedTeam(rounds.finalMatch(), winnerOf(semi), slot == 0, participants)) updated++;
+                if (placeDerivedTeam(rounds.thirdPlaceMatch(), loserOf(semi), slot == 0, participants)) updated++;
             }
             if (updated > 0) {
                 scoreInvalidationService.invalidateWorldCup();
@@ -94,8 +94,8 @@ public class KnockoutBracketService {
                 if (home == null) home = nameOf(winnerOf(semi0));
                 if (away == null) away = nameOf(winnerOf(semi1));
                 dto.setFinalMatch(mergePair(dto.getFinalMatch(), home, away));
-                if (fm != null && !Team.isPlaceholder(fm.getWinnerTeam())) {
-                    dto.setChampion(fm.getWinnerTeam().getName());
+                if (!Team.isPlaceholder(winnerOf(fm))) {
+                    dto.setChampion(winnerOf(fm).getName());
                 }
             }
 
@@ -138,33 +138,25 @@ public class KnockoutBracketService {
         return new FinalRounds(semis, finalMatch, thirdPlace);
     }
 
-    /** Coloca un equipo en el hueco indicado si está libre; si no, en el otro hueco libre. */
-    private boolean placeTeam(Match match, Team team, String preferredSlot) {
-        if (match == null || Team.isPlaceholder(team)) return false;
-        boolean alreadyPlaced = (match.getHomeTeam() != null && Objects.equals(match.getHomeTeam().getId(), team.getId()))
-                || (match.getAwayTeam() != null && Objects.equals(match.getAwayTeam().getId(), team.getId()));
-        if (alreadyPlaced) return false;
-
-        boolean homeFree = Team.isPlaceholder(match.getHomeTeam());
-        boolean awayFree = Team.isPlaceholder(match.getAwayTeam());
-        if ("home".equals(preferredSlot) && homeFree) {
-            match.setHomeTeam(team);
-        } else if ("away".equals(preferredSlot) && awayFree) {
-            match.setAwayTeam(team);
-        } else if (homeFree) {
-            match.setHomeTeam(team);
-        } else if (awayFree) {
-            match.setAwayTeam(team);
-        } else {
-            return false;
-        }
+    /** Solo los partidos sintéticos sin empezar admiten equipos derivados; el proveedor es autoridad. */
+    private boolean placeDerivedTeam(Match match, Team team, boolean home, List<Team> participants) {
+        if (match == null || (match.getExternalId() != null && !match.getExternalId().isBlank())
+                || Boolean.TRUE.equals(match.getFinished()) || match.getHomeScore() != null || match.getAwayScore() != null
+                || match.getStatus() != com.porra.mundial.model.MatchStatusNormalized.SCHEDULED) return false;
+        Team current = home ? match.getHomeTeam() : match.getAwayTeam();
+        boolean derived = Team.isPlaceholder(current) || participants.stream()
+                .anyMatch(t -> Objects.equals(t.getId(), current.getId()));
+        if (!derived || (Team.isPlaceholder(current) && Team.isPlaceholder(team))
+                || (current != null && team != null && Objects.equals(current.getId(), team.getId()))) return false;
+        if (home) match.setHomeTeam(team);
+        else match.setAwayTeam(team);
         matchRepository.save(match);
         return true;
     }
 
-    /** Ganador declarado o, si no lo hay, el que va por delante en el marcador. */
+    /** Ganador de un partido terminado, por declaración oficial o marcador definitivo. */
     static Team winnerOf(Match m) {
-        if (m == null) return null;
+        if (m == null || !Boolean.TRUE.equals(m.getFinished())) return null;
         if (m.getWinnerTeam() != null) return m.getWinnerTeam();
         if (hasDecisiveScore(m)) {
             return m.getHomeScore() > m.getAwayScore() ? m.getHomeTeam() : m.getAwayTeam();
@@ -173,7 +165,7 @@ public class KnockoutBracketService {
     }
 
     static Team loserOf(Match m) {
-        if (m == null || m.getHomeTeam() == null || m.getAwayTeam() == null) return null;
+        if (m == null || !Boolean.TRUE.equals(m.getFinished()) || m.getHomeTeam() == null || m.getAwayTeam() == null) return null;
         if (m.getWinnerTeam() != null) {
             return Objects.equals(m.getWinnerTeam().getId(), m.getHomeTeam().getId()) ? m.getAwayTeam() : m.getHomeTeam();
         }

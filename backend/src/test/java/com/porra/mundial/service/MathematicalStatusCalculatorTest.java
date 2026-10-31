@@ -29,6 +29,39 @@ class MathematicalStatusCalculatorTest {
     }
 
     @Test
+    void pendingGoalMarginsCannotProduceAFalseFixedPosition() {
+        Team a = createTeam(1L, "A");
+        Team b = createTeam(2L, "B");
+        Team c = createTeam(3L, "C");
+        Team d = createTeam(4L, "D");
+        List<Match> played = List.of(played(a, 2, 0, b), played(a, 1, 0, c), played(a, 1, 0, d),
+                played(b, 3, 2, c), played(b, 0, 3, d));
+        List<GroupStanding> table = List.of(standing(a, 9, 4, 4, 0), standing(b, 3, -4, 3, 0),
+                standing(c, 0, -2, 2, 0), standing(d, 3, 2, 3, 0));
+        Match pending = Match.builder().homeTeam(c).awayTeam(d).finished(false).build();
+        List<Match> matches = new ArrayList<>(played);
+        matches.add(pending);
+        Map<Long, Integer> guarantees = MathematicalStatusCalculator.calculateStatus(table, matches);
+
+        org.junit.jupiter.api.Assertions.assertNotEquals(2, guarantees.get(4L));
+        for (int home = 0; home <= 6; home++) {
+            for (int away = 0; away <= 6; away++) {
+                pending.setFinished(true);
+                pending.setHomeScore(home);
+                pending.setAwayScore(away);
+                List<GroupStanding> completed = List.of(table.get(0), table.get(1),
+                        standing(c, home > away ? 3 : home == away ? 1 : 0, -2 + home - away, 2 + home, 0),
+                        standing(d, 3 + (away > home ? 3 : away == home ? 1 : 0), 2 + away - home, 3 + away, 0));
+                Map<Long, Integer> actual = MathematicalStatusCalculator.calculateStatus(completed, matches);
+                guarantees.forEach((team, status) -> {
+                    if (status >= 1 && status <= 4) assertEquals(status, actual.get(team));
+                    if (status == 5) org.junit.jupiter.api.Assertions.assertTrue(actual.get(team) <= 2 || actual.get(team) == 5);
+                });
+            }
+        }
+    }
+
+    @Test
     @DisplayName("Devuelve estado 0 (abierto) para todos si hay más de 6 partidos pendientes")
     void shortCircuitsWhenMoreThanSixUnplayedMatches() {
         Team t1 = createTeam(1L, "Team A");

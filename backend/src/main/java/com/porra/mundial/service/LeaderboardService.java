@@ -107,9 +107,9 @@ public class LeaderboardService {
             List<MatchPrediction> matchPreds = matchPredsByPrediction.getOrDefault(pred.getId(), List.of());
             if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
 
-            String rulesJson = pred.getEdition() != null ? pred.getEdition().getScoringRulesJson() : null;
-            ScoringStrategy strategy = strategiesByRules.computeIfAbsent(rulesJson,
-                    json -> scoringStrategy.withRules(ScoringRuleSet.fromJson(json)));
+            ScoringRuleSet effectiveRules = ScoringRuleSet.effectiveForEdition(pred.getEdition());
+            ScoringStrategy strategy = strategiesByRules.computeIfAbsent(effectiveRules.toJson(),
+                    json -> scoringStrategy.withRules(effectiveRules));
             ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers, strategy);
             score.setPending(isPaymentPending(pred, membershipPayment));
             leaderboard.add(score);
@@ -336,7 +336,7 @@ public class LeaderboardService {
         List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
                 officialResultsService.current(), scorers,
-                scoringStrategy.withRules(ScoringRuleSet.forEdition(pred.getEdition())));
+                scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())));
         score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
         return score;
     }

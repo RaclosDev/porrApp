@@ -71,6 +71,73 @@ class KnockoutBracketServiceTest {
     }
 
     @Test
+    void liveScoresNeverPropagateEvenWithAReportedWinner() {
+        Match semi = knockout("sf", spain, france, 1, 0, 14);
+        semi.setFinished(false);
+        semi.setWinnerTeam(spain);
+        Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
+
+        assertEquals(0, service.propagateKnockoutWinners(List.of(semi, finalMatch)));
+        assertNull(KnockoutBracketService.winnerOf(semi));
+        assertNull(KnockoutBracketService.loserOf(semi));
+    }
+
+    @Test
+    void correctionUpdatesTheDerivedSlotWithoutMovingTheOtherSemiFinal() {
+        Match first = knockout("sf", spain, france, 1, 0, 14);
+        Match second = knockout("sf", brazil, argentina, 2, 0, 15);
+        Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
+        Match third = knockout("third", placeholder, placeholder, null, null, 18);
+        List<Match> matches = List.of(first, second, finalMatch, third);
+        service.propagateKnockoutWinners(matches);
+
+        first.setAwayScore(2);
+        service.propagateKnockoutWinners(matches);
+
+        assertSame(france, finalMatch.getHomeTeam());
+        assertSame(brazil, finalMatch.getAwayTeam());
+        assertSame(spain, third.getHomeTeam());
+        assertSame(argentina, third.getAwayTeam());
+    }
+
+    @Test
+    void secondSemiKeepsItsAwaySlotWhenFirstSemiIsUndecided() {
+        Match first = knockout("sf", spain, france, null, null, 14);
+        Match second = knockout("sf", brazil, argentina, 2, 0, 15);
+        Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
+
+        service.propagateKnockoutWinners(List.of(first, second, finalMatch));
+
+        assertSame(placeholder, finalMatch.getHomeTeam());
+        assertSame(brazil, finalMatch.getAwayTeam());
+    }
+
+    @Test
+    void repairsBothSidesWhenAnOldLivePropagationInsertedBothSemiFinalTeams() {
+        Match semi = knockout("sf", spain, france, 1, 2, 14);
+        Match finalMatch = knockout("final", spain, france, null, null, 19);
+
+        service.propagateKnockoutWinners(List.of(semi, finalMatch));
+
+        assertSame(france, finalMatch.getHomeTeam());
+        assertNull(finalMatch.getAwayTeam());
+    }
+
+    @Test
+    void preservesProviderTeamsAndAlreadyStartedMatches() {
+        Match semi = knockout("sf", spain, france, 0, 1, 14);
+        Match official = knockout("final", spain, brazil, null, null, 19);
+        official.setExternalId("provider-final");
+        Match live = knockout("third", spain, argentina, 1, 0, 18);
+        live.setFinished(false);
+        live.setStatus(com.porra.mundial.model.MatchStatusNormalized.LIVE);
+
+        assertEquals(0, service.propagateKnockoutWinners(List.of(semi, official, live)));
+        assertSame(spain, official.getHomeTeam());
+        assertSame(spain, live.getHomeTeam());
+    }
+
+    @Test
     @DisplayName("Coloca ganadores de semis en la final y perdedores en el tercer puesto")
     void propagatesSemiFinalResults() {
         Match semi1 = knockout("sf", spain, france, 2, 1, 14);

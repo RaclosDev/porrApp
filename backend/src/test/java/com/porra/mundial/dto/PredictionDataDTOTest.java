@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PredictionDataDTOTest {
@@ -15,7 +16,6 @@ public class PredictionDataDTOTest {
         dto.setFinalMatch(List.of("España", "Brasil"));
         ObjectMapper mapper = new ObjectMapper();
         String json = mapper.writeValueAsString(dto);
-        System.out.println("SERIALIZED_JSON: " + json);
         assertTrue(json.contains("\"final\":["));
     }
 
@@ -24,7 +24,6 @@ public class PredictionDataDTOTest {
         String json = "{\"final\":[\"España\",\"Brasil\"],\"champion\":\"España\"}";
         ObjectMapper mapper = new ObjectMapper();
         PredictionDataDTO dto = mapper.readValue(json, PredictionDataDTO.class);
-        System.out.println("DESERIALIZED_FINAL: " + dto.getFinalMatch());
         assertNotNull(dto.getFinalMatch());
         assertTrue(dto.getFinalMatch().contains("España"));
     }
@@ -34,7 +33,9 @@ public class PredictionDataDTOTest {
         String json = "{\"finalMatch\":[\"España\",\"Brasil\"],\"champion\":\"España\"}";
         ObjectMapper mapper = new ObjectMapper();
         PredictionDataDTO dto = mapper.readValue(json, PredictionDataDTO.class);
-        System.out.println("DESERIALIZED_FINALMATCH: " + dto.getFinalMatch());
+        assertEquals(List.of("España", "Brasil"), dto.getFinalMatch());
+        assertEquals("España", dto.getChampion());
+        assertEquals(dto.getFinalMatch(), mapper.readValue(mapper.writeValueAsString(dto), PredictionDataDTO.class).getFinalMatch());
     }
 
     @Test
