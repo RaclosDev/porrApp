@@ -19,6 +19,7 @@ interface StickerCardProps {
   caption?: string | null;
   className?: string;
   compact?: boolean;
+  staticCard?: boolean;
   avatar?: ReactNode;
   children?: ReactNode;
 }
@@ -54,6 +55,7 @@ export default function StickerCard({
   caption = null,
   className = '',
   compact = false,
+  staticCard = false,
   avatar,
   children,
 }: StickerCardProps) {
@@ -69,7 +71,8 @@ export default function StickerCard({
     damping: 20,
   });
   const glareX = useTransform(pointerX, [0, 1], ['0%', '100%']);
-  const [pointsRef, shownPoints] = useCountUp(leader.total, !reduced);
+  const animateCard = !reduced && !staticCard;
+  const [pointsRef, shownPoints] = useCountUp(leader.total, animateCard);
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (reduced) return;
@@ -87,9 +90,9 @@ export default function StickerCard({
   return (
     <motion.div
       className={`sticker ${featured ? 'sticker-featured' : ''} ${className}`}
-      style={reduced ? undefined : { rotateX, rotateY, transformPerspective: 900 }}
-      onPointerMove={onPointerMove}
-      onPointerLeave={onPointerLeave}
+      style={animateCard ? { rotateX, rotateY, transformPerspective: 900 } : undefined}
+      onPointerMove={staticCard ? undefined : onPointerMove}
+      onPointerLeave={staticCard ? undefined : onPointerLeave}
     >
       <span className="sticker-rank" aria-label={`Puesto ${leader.rank}`}>
         {leader.rank}
@@ -112,7 +115,7 @@ export default function StickerCard({
       </span>
       {caption ? <span className="text-sm text-[#4b5563] text-center">{caption}</span> : null}
       {children}
-      {!reduced ? (
+      {animateCard ? (
         <motion.span aria-hidden="true" className="sticker-glare" style={{ left: glareX }} />
       ) : null}
     </motion.div>

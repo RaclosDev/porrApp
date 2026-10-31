@@ -71,6 +71,75 @@ describe('Leaderboard Component', () => {
     expect(cells.length).toBe(headers.length);
   });
 
+  it('incluye los tres primeros como cromos en la imagen y deja el resto en la lista', () => {
+    const leaderboard = [
+      participantScore({ id: 1, userId: 10, name: 'Carlos', total: 150 }),
+      participantScore({ id: 2, userId: 20, name: 'Elena', total: 120 }),
+      participantScore({ id: 3, userId: 30, name: 'Jokin', total: 100 }),
+      participantScore({ id: 4, userId: 40, name: 'Marta', total: 40 }),
+    ];
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: leaderboard,
+        activeGroupPoolFormat: 'FULL_BRACKET',
+        activeGroupName: 'Liga Santander',
+        loading: false,
+      }),
+    );
+
+    const { container } = render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    const shareImage = container.querySelector('#share-image-template');
+    const stickers = Array.from(shareImage?.querySelectorAll('.share-image-podium-card') ?? []);
+    const remainingRows = shareImage?.querySelectorAll('.share-image-ranking-row');
+
+    expect(stickers).toHaveLength(3);
+    expect(stickers.map((sticker) => sticker.textContent)).toEqual([
+      expect.stringContaining('Carlos'),
+      expect.stringContaining('Elena'),
+      expect.stringContaining('Jokin'),
+    ]);
+    expect(remainingRows).toHaveLength(1);
+    expect(remainingRows?.[0]).toHaveTextContent('Marta');
+  });
+
+  it('agrupa los empates del podio de jornadas como en la vista móvil', () => {
+    const leaderboard = [
+      participantScore({ id: 1, userId: 10, name: 'Carlos', total: 150 }),
+      participantScore({ id: 2, userId: 20, name: 'Elena', total: 120 }),
+      participantScore({ id: 3, userId: 30, name: 'Jokin', total: 120 }),
+      participantScore({ id: 4, userId: 40, name: 'Marta', total: 80 }),
+      participantScore({ id: 5, userId: 50, name: 'Pablo', total: 40 }),
+    ];
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: leaderboard,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        activeGroupName: 'Liga Santander',
+        loading: false,
+      }),
+    );
+
+    const { container } = render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    const shareImage = container.querySelector('#share-image-template');
+    const stickers = shareImage?.querySelectorAll('.share-image-podium-card');
+
+    expect(stickers).toHaveLength(3);
+    expect(stickers?.[1]).toHaveTextContent('Empate');
+    expect(stickers?.[1]).toHaveTextContent('Elena · Jokin');
+    expect(shareImage?.querySelectorAll('.share-image-ranking-row')).toHaveLength(1);
+    expect(shareImage?.querySelector('.share-image-ranking-row')).toHaveTextContent('Pablo');
+  });
+
   it('muestra la jornada actual y permite navegar por las jornadas', () => {
     vi.mocked(useAppContext).mockReturnValue(
       appContext({

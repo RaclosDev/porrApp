@@ -93,12 +93,47 @@ function Leaderboard() {
   // En móvil el desglose por fase va oculto hasta que se pide.
   const [showDetail, setShowDetail] = useState(false);
 
-  if (loading) return <PaperLoading label="Cargando clasificación" />;
-
-  const mid = Math.ceil(validResults.length / 2);
-
   const isMatchday =
     activeGroupPoolFormat === 'MATCH_DAY' || state.activeCompetitionFormatType === 'LEAGUE';
+
+  const sharePodium = React.useMemo(() => {
+    if (!isMatchday) {
+      return podium.map((leader) => ({
+        leader,
+        members: results.filter((row) => row.rank === leader.rank),
+      }));
+    }
+
+    const eligible = validResults.filter((row) => row.points.total > 0);
+    const scores = [...new Set(eligible.map((row) => row.points.total))]
+      .sort((a, b) => b - a)
+      .slice(0, 3);
+
+    return scores.map((score, index) => {
+      const members = eligible.filter((row) => row.points.total === score);
+      const first = members[0];
+      return {
+        leader: {
+          rank: index + 1,
+          name: members.length === 1 ? first.name : 'Empate',
+          userId: first.userId,
+          avatarUrl: first.avatarUrl,
+          total: score,
+        },
+        members,
+      };
+    });
+  }, [isMatchday, podium, results, validResults]);
+
+  if (loading) return <PaperLoading label="Cargando clasificación" />;
+
+  const showSharePodium = isMatchday ? sharePodium.length > 0 : sharePodium.length === 3;
+  const shareRows = validResults.filter((row) => {
+    if (!showSharePodium) return true;
+    if (isMatchday) return !sharePodium.some(({ leader }) => leader.total === row.points.total);
+    return typeof row.rank !== 'number' || row.rank > 3;
+  });
+  const shareMid = Math.ceil(shareRows.length / 2);
 
   const scorerColumn: LeaderboardColumn[] = activeGroupPichichi
     ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }]
@@ -541,15 +576,51 @@ function Leaderboard() {
             Clasificación: {activeGroupName}
           </p>
         </div>
+        {showSharePodium && (
+          <ul className="ranking-podium share-image-podium" aria-label="Podio de la clasificación">
+            {sharePodium.map(({ leader, members }) => (
+              <li
+                className={`ranking-podium-place ranking-podium-place-${leader.rank}`}
+                key={`${leader.rank}-${leader.total}`}
+              >
+                <StickerCard
+                  leader={leader}
+                  featured={leader.rank === 1}
+                  compact
+                  staticCard
+                  className="share-image-podium-card"
+                >
+                  {members.length > 1 && (
+                    <div className="share-image-podium-tie">
+                      <div className="matchday-podium-avatars" aria-hidden="true">
+                        {members.slice(0, 3).map((member) => (
+                          <UserAvatar
+                            key={member.key}
+                            url={member.avatarUrl}
+                            userId={member.userId}
+                            name={member.name}
+                            size={32}
+                          />
+                        ))}
+                      </div>
+                      <span>{members.map((member) => member.name).join(' · ')}</span>
+                    </div>
+                  )}
+                </StickerCard>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="flex gap-5 justify-between" id="share-image-columns">
           <div className="flex-1 flex flex-col gap-2" id="share-col-left">
-            {validResults.slice(0, mid).map((r) => {
+            {shareRows.slice(0, shareMid).map((r) => {
               const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
               const isMe = isOwnRow(r, userId, userName);
               return (
                 <div
-                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.08)] bg-none' : 'bg-panel bg-none'} ${isMe ? 'border border-accent' : 'border border-line'}`}
+                  data-share-row
+                  className={`share-image-ranking-row flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.08)] bg-none border border-accent' : 'bg-panel bg-none border border-line'}`}
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
@@ -566,13 +637,14 @@ function Leaderboard() {
             })}
           </div>
           <div className="flex-1 flex flex-col gap-2" id="share-col-right">
-            {validResults.slice(mid).map((r) => {
+            {shareRows.slice(shareMid).map((r) => {
               const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
               const isMe = isOwnRow(r, userId, userName);
               return (
                 <div
-                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.08)] bg-none' : 'bg-panel bg-none'} ${isMe ? 'border border-accent' : 'border border-line'}`}
+                  data-share-row
+                  className={`share-image-ranking-row flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.08)] bg-none border border-accent' : 'bg-panel bg-none border border-line'}`}
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">

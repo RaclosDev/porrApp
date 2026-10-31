@@ -495,6 +495,73 @@
     margin-top: 6px;
   }
 
+  .share-image-podium.ranking-podium {
+    width: 100%;
+    max-width: 660px;
+    gap: 12px;
+    padding: 16px 10px 20px;
+    margin: 0 auto 20px;
+  }
+
+  .share-image-podium .ranking-podium-place {
+    flex: 0 1 180px;
+  }
+
+  .share-image-podium .ranking-podium-place-1 {
+    flex-basis: 220px;
+    translate: none;
+    transform: translateY(-8px);
+  }
+
+  .share-image-podium .ranking-podium-place-2 {
+    rotate: none;
+    transform: rotate(-6deg);
+  }
+
+  .share-image-podium .ranking-podium-place-3 {
+    rotate: none;
+    transform: rotate(6deg);
+  }
+
+  .share-image-podium.ranking-podium .sticker {
+    width: 100%;
+    min-height: 200px;
+    gap: 8px;
+    padding: 22px 12px 16px;
+    border-width: 5px;
+    border-radius: 8px;
+  }
+
+  .share-image-podium.ranking-podium .sticker-featured {
+    min-height: 220px;
+    padding: 28px 14px 18px;
+  }
+
+  .share-image-podium.ranking-podium .poster-title {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .share-image-podium.ranking-podium .sticker-featured .poster-title {
+    font-size: 1.15rem;
+  }
+
+  .share-image-podium.ranking-podium .marker-ink {
+    font-size: 0.95rem;
+  }
+
+  .share-image-podium-tie {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+
   @media (max-width: 400px) {
     .matchday-ranking-share span {
       display: none;
