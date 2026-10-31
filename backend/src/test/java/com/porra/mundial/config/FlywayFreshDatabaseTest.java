@@ -119,6 +119,36 @@ class FlywayFreshDatabaseTest {
     }
 
     @Test
+    void v53KeepsOneUserEditionConstraintAndRejectsDuplicates() throws Exception {
+        String url = createDatabase("v53_uniqueness");
+        flyway(url, "51").migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM pg_constraint WHERE conrelid = 'predictions'::regclass"
+                    + " AND contype = 'u'")).isEqualTo(2);
+            st.execute("INSERT INTO app_users (id, google_email, google_name, participant_name) VALUES"
+                    + " (9531, 'unique@test.com', 'Unique', 'Unique')");
+            st.execute("INSERT INTO leagues (id, name, join_code, admin_user_id) VALUES"
+                    + " (9531, 'Unique', 'UNIQUE53', 9531)");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format)"
+                    + " OVERRIDING SYSTEM VALUE SELECT 9531, 9531, id, 'FULL_BRACKET'"
+                    + " FROM competitions WHERE external_id = 'fifa.world'");
+            st.execute("INSERT INTO predictions (user_id, edition_id, prediction_name) VALUES (9531, 9531, 'Unique')");
+        }
+        flyway(url, null).migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM pg_constraint WHERE conrelid = 'predictions'::regclass"
+                    + " AND contype = 'u'")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM predictions WHERE user_id = 9531")).isEqualTo(1);
+            assertThatThrownBy(() -> st.execute("INSERT INTO predictions (user_id, edition_id, prediction_name)"
+                    + " VALUES (9531, 9531, 'Duplicate')"))
+                    .isInstanceOf(java.sql.SQLException.class)
+                    .extracting(e -> ((java.sql.SQLException) e).getSQLState()).isEqualTo("23505");
+        }
+    }
+
+    @Test
     void v46LeavesOneIndexPerLookup() throws Exception {
         String url = createDatabase("v46_indexes");
         flyway(url, null).migrate();
