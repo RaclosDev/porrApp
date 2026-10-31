@@ -1,3 +1,4 @@
+import PaperLoading from '../components/PaperLoading';
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { openStats } from '../utils/navigation';
@@ -10,26 +11,7 @@ function Radar() {
   const { matchRadar, loading } = useAppContext();
   const [activeTab, setActiveTab] = useState('proximos');
 
-  if (loading)
-    return (
-      <section className="view-section active block paper-panel album-sheet landing-tape">
-        <div className="skeleton skeleton-text short h-6 mt-0 mb-7.5 mx-auto" />
-        <div className="flex flex-col gap-[15px] max-w-150 my-0 mx-auto">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="skeleton-card min-h-30">
-              <div className="skeleton skeleton-text short my-0 mx-auto" />
-              <div className="skeleton-row justify-center gap-5">
-                <div className="skeleton skeleton-avatar w-6 h-4.5" />
-                <div className="skeleton skeleton-bar max-w-25" />
-                <div className="skeleton w-15 h-6 rounded-[6px]" />
-                <div className="skeleton skeleton-bar max-w-25" />
-                <div className="skeleton skeleton-avatar w-6 h-4.5" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    );
+  if (loading) return <PaperLoading label="Cargando partidos" />;
 
   const liveMatches = matchRadar?.live || [];
   const lastMatches = (matchRadar?.last || []).slice(0, 10);

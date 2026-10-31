@@ -1,3 +1,4 @@
+import PaperLoading from '../PaperLoading';
 import type { ReactNode } from 'react';
 import type { useBracketInsights } from '../../hooks/useBracketInsights';
 import { InsightsNotice } from './InsightCard';
@@ -15,28 +16,6 @@ const formatLockDate = (value: string | null) => {
     minute: '2-digit',
   });
 };
-
-/** Esqueleto mientras llegan los cuadros. */
-function InsightsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-hidden="true">
-      {Array.from({ length: 2 }).map((_, i) => (
-        <div key={i} className="skeleton-card">
-          <div className="skeleton skeleton-text medium mb-4 h-5" />
-          {Array.from({ length: 5 }).map((_, j) => (
-            <div key={j} className="mb-3">
-              <div className="skeleton-row mb-1.5">
-                <div className="skeleton skeleton-avatar" />
-                <div className="skeleton skeleton-bar max-w-30" />
-              </div>
-              <div className="skeleton h-2 w-full rounded-[10px]" />
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 /**
  * Muestra las estadísticas solo cuando hay cuadros que comparar: antes del cierre los de los
@@ -57,14 +36,7 @@ export default function BracketInsightsGate({
     );
   }
   if (insights.loading) {
-    return (
-      <>
-        <p role="status" className="sr-only">
-          Cargando estadísticas…
-        </p>
-        <InsightsSkeleton />
-      </>
-    );
+    return <PaperLoading label="Cargando estadísticas" embedded />;
   }
   if (insights.error) {
     return (

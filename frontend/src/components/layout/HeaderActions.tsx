@@ -75,7 +75,7 @@ export default function HeaderActions({
 
           {showProfileMenu && (
             <div className="paper-panel album-sheet absolute top-full right-0 p-3 mt-2.5 z-[100] min-w-50 flex flex-col gap-2.5">
-              <div className="border-b border-b-[rgba(255,_255,_255,_0.08)] pb-2 flex items-center gap-2">
+              <div className="border-b border-b-line pb-2 flex items-center gap-2">
                 <UserAvatar url={userAvatarUrl} userId={userId} name={userName} size={32} />
                 <div className="overflow-hidden font-bold text-main text-[0.9rem] text-ellipsis whitespace-nowrap">
                   {userName || 'Usuario'}
@@ -94,7 +94,7 @@ export default function HeaderActions({
               </button>
 
               <button
-                className="bg-[rgba(255,_71,_87,_0.12)] bg-none border border-[rgba(255,_71,_87,_0.4)] text-[#ff4757] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"
+                className="bg-[rgba(185,_28,_28,_0.08)] bg-none border border-[var(--miss)] text-[var(--miss)] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"
                 onClick={() => {
                   setShowProfileMenu(false);
                   onLogout();

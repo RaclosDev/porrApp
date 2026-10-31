@@ -157,7 +157,7 @@ export default function MatchFriendsPredictionsModal({
             <div className="friends-predictions-skeletons" role="status">
               <span className="sr-only">Cargando pronósticos…</span>
               {[0, 1, 2].map((row) => (
-                <div key={row} className="friends-predictions-skeleton" />
+                <div key={row} className="friends-predictions-skeleton skeleton" />
               ))}
             </div>
           )}
