@@ -1,6 +1,6 @@
 package com.porra.mundial.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.porra.mundial.config.Constants;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +42,8 @@ public class MatchEventProcessor {
     private final TopScorerService topScorerService;
     private final WebSocketService webSocketService;
 
-    private final Map<String, Team> teamCache = new ConcurrentHashMap<>();
+    /** Se sustituye entero al refrescar: quien ya tiene el mapa anterior no lo ve vaciarse a medias. */
+    private volatile Map<String, Team> teamCache = new ConcurrentHashMap<>();
     private volatile long lastTeamCacheRefresh = 0;
 
     /** Acumula lo que cambia durante una sincronización o importación. */
@@ -51,6 +51,7 @@ public class MatchEventProcessor {
         private final Competition competition;
         private int teamsUpdated;
         private int matchesUpdated;
+        private boolean resultsChanged;
 
         public Batch(Competition competition) {
             this.competition = competition;
@@ -62,6 +63,15 @@ public class MatchEventProcessor {
 
         public int matchesUpdated() {
             return matchesUpdated;
+        }
+
+        public String competitionName() {
+            return competition != null ? competition.getName() : null;
+        }
+
+        /** Si ha cambiado algún resultado (equipos, marcador final, ganador o fin del partido). */
+        public boolean resultsChanged() {
+            return resultsChanged;
         }
     }
 
@@ -80,18 +90,19 @@ public class MatchEventProcessor {
     /** Equipos indexados por nombre, nombre en inglés e id externo; se refresca cada hora. */
     public Map<String, Team> teamCache() {
         long now = System.currentTimeMillis();
-        if (teamCache.isEmpty() || now - lastTeamCacheRefresh > TEAM_CACHE_TTL_MS) {
-            Map<String, Team> fresh = new HashMap<>();
+        Map<String, Team> current = teamCache;
+        if (current.isEmpty() || now - lastTeamCacheRefresh > TEAM_CACHE_TTL_MS) {
+            Map<String, Team> fresh = new ConcurrentHashMap<>();
             teamRepository.findAll().forEach(team -> {
                 if (team.getName() != null) fresh.put(team.getName(), team);
                 if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
                 if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
             });
-            teamCache.clear();
-            teamCache.putAll(fresh);
+            teamCache = fresh;
             lastTeamCacheRefresh = now;
+            return fresh;
         }
-        return teamCache;
+        return current;
     }
 
     /**
@@ -145,7 +156,7 @@ public class MatchEventProcessor {
 
         MatchStatus status = parseStatus(competition);
         Scores scores = parseScores(home, away, homeTeam, awayTeam, status);
-        MatchMetadata metadata = parseMetadata(competition, batch.competition);
+        MatchMetadata metadata = parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fairPlayPoints(competition, home, away, homeTeam, awayTeam);
 
         upsertMatch(eventId, homeTeam, awayTeam, scores, fairPlay, parseDate(event.path("date").asText(null)),
@@ -251,10 +262,27 @@ public class MatchEventProcessor {
         return new Scores(homeScore, awayScore, winner);
     }
 
-    /** Grupo y ronda a partir de las notas del evento. Las competiciones de liga no tienen ronda. */
-    private MatchMetadata parseMetadata(JsonNode competition, Competition comp) {
+    /** Ronda que ESPN indica en {@code season.slug}; null si el evento no la trae o no se reconoce. */
+    static String roundFromSlug(String slug) {
+        return switch (slug == null ? "" : slug.toLowerCase()) {
+            case "group-stage" -> "group";
+            case "round-of-32" -> "r32";
+            case "round-of-16" -> "r16";
+            case "quarterfinals" -> "qf";
+            case "semifinals" -> "sf";
+            case "3rd-place-match", "third-place-match" -> "third";
+            case "final" -> "final";
+            default -> null;
+        };
+    }
+
+    /**
+     * Grupo y ronda del evento. La ronda sale del {@code season.slug} de ESPN y, si no lo trae,
+     * de sus notas ("3rd-Place Match" se lee igual que "3rd place match"). Las ligas no tienen ronda.
+     */
+    private MatchMetadata parseMetadata(JsonNode competition, String seasonSlug, Competition comp) {
         String altNote = competition.path("altGameNote").asText("");
-        String note = (altNote + " " + competition.path("notes")).toLowerCase();
+        String note = (altNote + " " + competition.path("notes")).toLowerCase().replace('-', ' ');
 
         String group = null;
         if (altNote.contains("Group ")) {
@@ -266,7 +294,10 @@ public class MatchEventProcessor {
             return new MatchMetadata(group, null);
         }
 
-        String round;
+        String round = roundFromSlug(seasonSlug);
+        if (round != null) {
+            return new MatchMetadata(group, round);
+        }
         if (group != null || note.contains("group ") || note.contains("grupo ")) {
             round = "group";
         } else if (note.contains("round of 32") || note.contains("16avo") || note.contains("dieciseis")) {
@@ -301,13 +332,15 @@ public class MatchEventProcessor {
             match.setCompetition(batch.competition);
             updated = true;
         }
-        updated |= setIfChanged(match.getHomeTeam(), home, match::setHomeTeam);
-        updated |= setIfChanged(match.getAwayTeam(), away, match::setAwayTeam);
-        updated |= setIfChanged(match.getWinnerTeam(), scores.winner(), match::setWinnerTeam);
+        boolean homeChanged = setTeamIfChanged(match.getHomeTeam(), home, match::setHomeTeam);
+        boolean awayChanged = setTeamIfChanged(match.getAwayTeam(), away, match::setAwayTeam);
+        boolean winnerChanged = setTeamIfChanged(match.getWinnerTeam(), scores.winner(), match::setWinnerTeam);
+        updated |= homeChanged | awayChanged | winnerChanged;
         updated |= setIfChanged(match.getHomeScore(), scores.home(), match::setHomeScore);
         updated |= setIfChanged(match.getAwayScore(), scores.away(), match::setAwayScore);
         updated |= setIfChanged(match.getMatchDate(), date, match::setMatchDate);
-        updated |= setIfChanged(match.getFinished(), status.finished(), match::setFinished);
+        boolean finishedChanged = setIfChanged(match.getFinished(), status.finished(), match::setFinished);
+        updated |= finishedChanged;
         updated |= setIfChanged(match.getDisplayClock(), status.displayClock(), match::setDisplayClock);
         if (meta.groupName() != null) {
             updated |= setIfChanged(match.getGroupName(), meta.groupName(), match::setGroupName);
@@ -323,36 +356,69 @@ public class MatchEventProcessor {
                 status.live() ? "in" : (status.finished() ? "completed" : "scheduled"), status.finished());
         updated |= setIfChanged(match.getStatus(), normalized, match::setStatus);
 
-        if (!wasFinished && status.finished()) {
-            log.info("Partido finalizado: {} - {}. Evaluando pronósticos y goleadores", home.getName(), away.getName());
-            try {
-                matchPredictionService.evaluatePredictionsForMatch(match);
-            } catch (Exception e) {
-                log.warn("Falló la evaluación de pronósticos del partido", e);
+        if (updated) {
+            matchRepository.save(match);
+            batch.matchesUpdated++;
+            if (homeChanged || awayChanged || winnerChanged || finishedChanged || (status.finished() && scoreChanged)) {
+                batch.resultsChanged = true;
             }
-            try {
-                topScorerService.refresh();
-            } catch (Exception e) {
-                log.warn("Falló el refresco de goleadores", e);
+            if (scoreChanged) {
+                webSocketService.broadcastMatchScore(
+                        match.getId(),
+                        match.getHomeTeam() != null ? match.getHomeTeam().getName() : null,
+                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
+                        match.getHomeScore(),
+                        match.getAwayScore(),
+                        status.finished() ? "FINISHED" : (status.live() ? "IN_PLAY" : "SCHEDULED"));
             }
         }
 
-        if (!updated) return;
-        matchRepository.save(match);
-        batch.matchesUpdated++;
-        if (scoreChanged) {
-            webSocketService.broadcastMatchScore(
-                    match.getId(),
-                    match.getHomeTeam() != null ? match.getHomeTeam().getName() : null,
-                    match.getAwayTeam() != null ? match.getAwayTeam().getName() : null,
-                    match.getHomeScore(),
-                    match.getAwayScore(),
-                    status.finished() ? "FINISHED" : (status.live() ? "IN_PLAY" : "SCHEDULED"));
+        if (status.finished()) {
+            evaluateFinishedMatch(match, !wasFinished || scoreChanged);
         }
+    }
+
+    /**
+     * Puntúa los pronósticos de un partido terminado: al acabar, cuando ESPN corrige el marcador final
+     * o cuando queda alguno sin puntuar (por ejemplo, porque falló una evaluación anterior).
+     */
+    private void evaluateFinishedMatch(Match match, boolean resultChanged) {
+        try {
+            if (resultChanged || matchPredictionService.hasUnscoredPredictions(match.getId())) {
+                log.info("Evaluando pronósticos de {} - {} ({}-{})", teamName(match.getHomeTeam()),
+                        teamName(match.getAwayTeam()), match.getHomeScore(), match.getAwayScore());
+                matchPredictionService.evaluatePredictionsForMatch(match);
+            }
+        } catch (Exception e) {
+            log.warn("Falló la evaluación de pronósticos del partido", e);
+        }
+        if (!resultChanged) return;
+        try {
+            topScorerService.refresh();
+        } catch (Exception e) {
+            log.warn("Falló el refresco de goleadores", e);
+        }
+    }
+
+    private static String teamName(Team team) {
+        return team != null ? team.getName() : null;
     }
 
     private static <T> boolean setIfChanged(T current, T value, Consumer<T> setter) {
         if (Objects.equals(current, value)) return false;
+        setter.accept(value);
+        return true;
+    }
+
+    /**
+     * Compara equipos por id: el partido se carga en cada pasada con instancias nuevas de sus equipos,
+     * distintas de las de la caché, y compararlas por referencia daría siempre un cambio.
+     */
+    private static boolean setTeamIfChanged(Team current, Team value, Consumer<Team> setter) {
+        boolean same = current == value
+                || (current != null && value != null && current.getId() != null
+                        && current.getId().equals(value.getId()));
+        if (same) return false;
         setter.accept(value);
         return true;
     }

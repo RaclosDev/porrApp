@@ -88,7 +88,6 @@ class LeaderboardServiceTest {
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
         when(matchPredictionRepository.findByPredictionId(100L)).thenReturn(List.of(mp1, mp2));
         when(standingsService.getAllStandings()).thenReturn(Collections.emptyList());
-        when(matchRepository.findAll()).thenReturn(Collections.emptyList());
 
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
 

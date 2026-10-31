@@ -1,22 +1,33 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +41,12 @@ class StandingsServiceTest {
 
     @Mock
     private TeamRepository teamRepository;
+
+    @Mock
+    private CompetitionRepository competitionRepository;
+
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
 
     @InjectMocks
     private StandingsService standingsService;
@@ -145,5 +162,66 @@ class StandingsServiceTest {
         
         assertEquals(-1, result.get("L").get("T3_L").get("status"));
         assertEquals(-1, result.get("I").get("T3_I").get("status"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recalculationInvalidatesBracketScoresOnlyWhenTheStandingsChange() {
+        Team spain = Team.builder().id(1L).name("España").groupName("H").build();
+        Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
+        Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
+                .homeScore(2).awayScore(0).finished(true).matchDate(LocalDateTime.of(2026, 6, 15, 21, 0)).build();
+        when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
+        givenWorldCupMatches(played);
+        when(standingRepository.findAll()).thenReturn(List.of());
+
+        standingsService.recalculateStandingsFromMatches();
+
+        verify(scoreInvalidationService).invalidateWorldCup();
+        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
+        verify(standingRepository).saveAll(saved.capture());
+        assertEquals(3, saved.getValue().get(0).getPoints());
+
+        // Mismos partidos sobre la clasificación ya guardada: nada que recalcular.
+        clearInvocations(scoreInvalidationService, standingRepository);
+        when(standingRepository.findAll()).thenReturn(new ArrayList<>(saved.getValue()));
+
+        standingsService.recalculateStandingsFromMatches();
+
+        verify(standingRepository).saveAll(anyList());
+        verify(scoreInvalidationService, never()).invalidateWorldCup();
+    }
+
+    private static final long WORLD_CUP_ID = 2L;
+
+    private void givenWorldCupMatches(Match... matches) {
+        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(WORLD_CUP_ID));
+        when(matchRepository.findByCompetitionId(WORLD_CUP_ID)).thenReturn(List.of(matches));
+    }
+
+    @Test
+    void groupStageEndsWithTheWorldCupGroupMatchesWhateverOtherCompetitionsHavePending() {
+        List<GroupStanding> all = new java.util.ArrayList<>();
+        String[] groups = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"};
+        for (int i = 0; i < 12; i++) {
+            String g = groups[i];
+            all.add(GroupStanding.builder().groupName(g).team(Team.builder().id(i * 3L + 100).name("T1_" + g).build())
+                    .points(9).matchesPlayed(3).build());
+            all.add(GroupStanding.builder().groupName(g).team(Team.builder().id(i * 3L + 101).name("T2_" + g).build())
+                    .points(6).matchesPlayed(3).build());
+            // Ningún tercero tiene sus tres partidos: solo el fin de la fase de grupos decide los eliminados.
+            all.add(GroupStanding.builder().groupName(g).team(Team.builder().id(i * 3L + 102).name("T3_" + g).build())
+                    .points(i < 8 ? 3 : 0).matchesPlayed(2).build());
+        }
+        when(standingRepository.findAllByOrderByGroupNameAsc()).thenReturn(all);
+        Match worldCupGroupMatch = Match.builder().round("group").groupName("A").finished(true).build();
+        Match cupMatchStillToPlay = Match.builder().round("group").finished(false).build();
+        lenient().when(matchRepository.findAll()).thenReturn(List.of(worldCupGroupMatch, cupMatchStillToPlay));
+        givenWorldCupMatches(worldCupGroupMatch);
+
+        var result = standingsService.getOfficialPoints();
+
+        assertEquals(-1, result.get("L").get("T3_L").get("status"));
+        assertEquals(0, result.get("A").get("T3_A").get("status"));
     }
 }
