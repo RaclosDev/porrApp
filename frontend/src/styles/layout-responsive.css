@@ -191,10 +191,10 @@
       margin-left: auto !important;
     }
 
-    /* Por debajo de 360 px el texto "Demo" se montaba sobre el logo: queda solo el icono */
     @media (max-width: 359px) {
-      .header-demo-label {
-        display: none;
+      #btn-login-header,
+      #btn-header-demo {
+        padding-inline: 8px;
       }
     }
 

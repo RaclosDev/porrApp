@@ -385,6 +385,9 @@ export default function GroupStage({
                 return (
                   <button
                     key={t}
+                    type="button"
+                    aria-pressed={isSelected}
+                    aria-label={t}
                     onClick={() => toggleAdvancingThird(t)}
                     className={`glass-btn flex items-center gap-2 py-2 px-3 ${isSelected ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isSelected ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.2)]'}`}
                   >
