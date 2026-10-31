@@ -7,7 +7,7 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 | Paquete | Responsabilidad |
 | --- | --- |
 | `config/` | Seguridad (JWT, filtro de rate limiting), CORS, WebSocket, Flyway, OpenAPI y datos semilla |
-| `controller/` | Endpoints REST y el handler WebSocket; solo traducen HTTP y devuelven DTOs |
+| `controller/` | Endpoints REST, handler WebSocket y metadatos/tarjetas de invitación |
 | `dto/` | Contratos de la API (records y clases de respuesta) |
 | `model/` | Entidades JPA: `Competition`, `Edition`, `League`, `Membership`, `Match`, `Prediction`, `MatchPrediction`, `GroupStanding`, `Team`, `UserAccount`… |
 | `repository/` | Spring Data JPA |
@@ -32,9 +32,13 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 
 La sincronización inicial se lanza después de `ApplicationReadyEvent`, cuando los datos semilla ya están confirmados, mediante un ejecutor gestionado por Spring. Los fallos del proveedor se registran como sincronizaciones incompletas; una respuesta fallida no se interpreta como una jornada sin partidos.
 
+Los partidos históricos que conservan equipos provisionales de la primera importación se reparan mediante su identificador externo, no deduciendo qué equipo corresponde a un id local. `LegacyFixtureRepairService` consulta y valida el resumen de ESPN fuera de la transacción; después actualiza el mismo partido en una transacción breve, conservando los pronósticos que lo referencian. Cada pasada tiene límites de peticiones y tiempo, comparte el cerrojo de sincronización y retrasa los reintentos fallidos.
+
 ### Resultados oficiales y desempates
 
 `OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados. `GroupTiebreaker` ordena a los equipos empatados a puntos según el artículo 13 del reglamento del Mundial 2026: primero los partidos entre los empatados, luego la diferencia de goles y los goles de todo el grupo y después el fair play. La app no guarda el ranking FIFA, así que los empates que llegan a ese criterio se ordenan por nombre. Lo usan la clasificación de cada grupo y el orden de los mejores terceros. Mientras quedan partidos, el estado matemático enumera resultados por puntos y mantiene abiertos los desempates que dependen de goles o tarjetas futuros; no inventa marcadores para declarar un puesto asegurado.
+
+Los cuadros nuevos usan `topologyVersion: 2`, con las ramas del [apéndice A del procedimiento del sorteo de FIFA](https://digitalhub.fifa.com/m/2d1a1ac7bab78995/original/Draw-Procedures-for-the-FIFA-World-Cup-2026.pdf). Una versión ausente equivale a `1`: conserva las posiciones históricas durante la lectura, edición, reinicio y guardado. La versión de un pronóstico existente no se cambia al actualizarlo. En versión 2, el servidor comprueba también que cada clasificado procede de su partido anterior. Los partidos oficiales se colocan por sus antecedentes, nunca por su fecha de inicio; los huecos cuya rama no se puede determinar quedan vacíos.
 
 ### Puntuación
 
