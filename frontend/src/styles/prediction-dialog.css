@@ -295,19 +295,19 @@
   .friends-prediction-status.is-hidden {
     border: 1px solid rgba(59, 130, 246, 0.28);
     background: rgba(59, 130, 246, 0.14);
-    color: #93c5fd;
+    color: var(--marker-ink);
   }
 
   .friends-prediction-status.is-pending {
     border: 1px solid rgba(251, 191, 36, 0.28);
     background: rgba(251, 191, 36, 0.12);
-    color: #fbbf24;
+    color: #854d0e;
   }
 
   .friends-prediction-status.is-missed {
     border: 1px solid rgba(248, 113, 113, 0.28);
     background: rgba(248, 113, 113, 0.12);
-    color: #f87171;
+    color: var(--miss);
   }
 
   .friends-predictions-message {
@@ -318,7 +318,7 @@
   }
 
   .friends-predictions-message.is-error {
-    color: #ff7675;
+    color: var(--miss);
   }
 
   .friends-predictions-skeletons {

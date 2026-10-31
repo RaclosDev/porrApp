@@ -5,12 +5,6 @@ import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 
-const ZONE_LABELS = {
-  champions: 'Zona Champions League',
-  europa: 'Zona Europa League',
-  relegation: 'Zona de descenso',
-};
-
 export default function LeagueStandings() {
   const [showComplete, setShowComplete] = useState(false);
 
@@ -30,6 +24,7 @@ export default function LeagueStandings() {
     data: standings,
     isLoading,
     isError,
+    refetch,
   } = useQuery({
     queryKey: queryKeys.competitionStandings(activeCompetitionId),
     queryFn: () => fetchCompetitionStandings(activeCompetitionId),
@@ -77,7 +72,14 @@ export default function LeagueStandings() {
             <div key={index} className="skeleton-card standings-skeleton-row" />
           ))}
         </div>
-      ) : isError || !standings || !Array.isArray(standings) || standings.length === 0 ? (
+      ) : isError ? (
+        <div className="standings-empty" role="alert">
+          <p>No se pudo cargar la clasificación. Inténtalo de nuevo.</p>
+          <button type="button" className="glass-btn" onClick={() => void refetch()}>
+            Reintentar
+          </button>
+        </div>
+      ) : !standings || !Array.isArray(standings) || standings.length === 0 ? (
         <div className="paper-panel album-sheet landing-tape standings-empty">
           <div className="standings-empty-icon" aria-hidden="true">
             📊
@@ -130,28 +132,12 @@ export default function LeagueStandings() {
               </thead>
               <tbody>
                 {standings.map((row) => {
-                  const zone =
-                    row.rank >= 1 && row.rank <= 4
-                      ? 'champions'
-                      : row.rank >= 5 && row.rank <= 6
-                        ? 'europa'
-                        : row.rank >= 18
-                          ? 'relegation'
-                          : null;
                   const podium = row.rank >= 1 && row.rank <= 3 ? ` is-podium-${row.rank}` : '';
 
                   return (
-                    <tr
-                      key={`${row.rank}-${row.teamName}`}
-                      className={`standings-row${zone ? ` is-${zone}` : ''}`}
-                    >
+                    <tr key={`${row.rank}-${row.teamName}`} className="standings-row">
                       <td className="standings-rank-cell">
-                        <span
-                          className={`standings-rank${podium}`}
-                          title={zone ? ZONE_LABELS[zone] : undefined}
-                        >
-                          {row.rank}
-                        </span>
+                        <span className={`standings-rank${podium}`}>{row.rank}</span>
                       </td>
 
                       <td className="standings-team-cell" aria-label={`Equipo: ${row.teamName}`}>
@@ -160,7 +146,7 @@ export default function LeagueStandings() {
                             <>
                               <img
                                 src={row.teamLogo}
-                                alt={showComplete ? row.teamName : ''}
+                                alt=""
                                 width={28}
                                 height={28}
                                 className="standings-team-logo"
@@ -185,9 +171,7 @@ export default function LeagueStandings() {
                               🛡️
                             </span>
                           )}
-                          {!showComplete && (
-                            <span className="standings-team-name">{row.teamName}</span>
-                          )}
+                          <span className="standings-team-name">{row.teamName}</span>
                         </div>
                       </td>
 
@@ -223,18 +207,6 @@ export default function LeagueStandings() {
 
           {showComplete ? (
             <div className="standings-legend">
-              <span className="standings-legend-item">
-                <i className="is-champions" aria-hidden="true" />
-                Champions League
-              </span>
-              <span className="standings-legend-item">
-                <i className="is-europa" aria-hidden="true" />
-                Europa League
-              </span>
-              <span className="standings-legend-item">
-                <i className="is-relegation" aria-hidden="true" />
-                Descenso
-              </span>
               <span className="standings-legend-note">
                 V victorias · E empates · D derrotas · DG diferencia de goles
               </span>

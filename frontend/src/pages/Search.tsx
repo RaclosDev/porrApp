@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useBracketInsights } from '../hooks/useBracketInsights';
 import InsightsHeader from '../components/insights/InsightsHeader';
@@ -72,7 +72,31 @@ function realSituation(official: OfficialState, team: string): string | null {
  * ronda, quién lo pone y hasta dónde lo lleva el resto.
  */
 function Search() {
-  const { activeGroupPoolFormat, activeCompetitionFormatType } = useAppContext();
+  const {
+    activeGroupPoolFormat,
+    activeCompetitionFormatType,
+    activeGroupId,
+    userGroups,
+    changeGroup,
+  } = useAppContext();
+  const [params] = useSearchParams();
+  const requestedGroup = params.get('group');
+  if (requestedGroup && requestedGroup !== String(activeGroupId)) {
+    const group = userGroups.find((candidate) => String(candidate.id) === requestedGroup);
+    return (
+      <section className="paper-panel album-sheet p-5" role="status">
+        <h1>Esta búsqueda pertenece a otra liga</h1>
+        <p>Selecciona la liga del enlace para consultar sus resultados.</p>
+        {group ? (
+          <button type="button" className="glass-btn" onClick={() => changeGroup(group.id)}>
+            Abrir {group.name}
+          </button>
+        ) : (
+          <Link to="/mis-ligas">Ver mis ligas y comprobar el acceso</Link>
+        )}
+      </section>
+    );
+  }
   if (activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE') {
     return <Navigate to="/stats" replace />;
   }
@@ -80,6 +104,7 @@ function Search() {
 }
 
 function BracketSearch() {
+  const { activeGroupId } = useAppContext();
   const insights = useBracketInsights();
   const { entries, official, knockoutsOnly } = insights;
   const [params, setParams] = useSearchParams();
@@ -123,13 +148,14 @@ function BracketSearch() {
   const update = (next: { team?: string; stage?: StageId }) => {
     const nextTeam = next.team ?? team;
     const query = new URLSearchParams();
+    if (activeGroupId) query.set('group', String(activeGroupId));
     if (nextTeam) query.set('team', nextTeam);
     if (next.stage && nextTeam) query.set('stage', next.stage);
     setParams(query, { replace: true });
   };
 
   const share = () => {
-    const url = `${window.location.origin}/search?team=${encodeURIComponent(team)}&stage=${stage}`;
+    const url = `${window.location.origin}/search?group=${encodeURIComponent(activeGroupId)}&team=${encodeURIComponent(team)}&stage=${stage}`;
     const row = rows.find((r) => r.stage === stage);
     const text = `${team} · ${STAGE_LABEL[stage]}: lo pone el ${row?.percent ?? 0} % de "${insights.leagueName}". ¿Quién es quién?\n\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');

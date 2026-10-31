@@ -81,7 +81,7 @@ function Radar() {
               onClick={() => openStats()}
               className="glass-btn py-2 px-4.5 min-h-11 rounded-[8px] text-[0.9rem] font-bold inline-flex items-center justify-center"
             >
-              Ver en Sofascore
+              Abrir Sofascore (fútbol)
             </button>
           </div>
         )}
