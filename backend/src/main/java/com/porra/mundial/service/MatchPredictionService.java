@@ -307,8 +307,15 @@ public class MatchPredictionService {
         return savedCount;
     }
 
+    /** Si algún pronóstico del partido sigue sin puntuar. */
+    @Transactional(readOnly = true)
+    public boolean hasUnscoredPredictions(Long matchId) {
+        return matchId != null && matchPredictionRepository.existsByMatchIdAndPointsAwardedIsNull(matchId);
+    }
+
     /**
-     * Evalúa y actualiza los puntos de todos los pronósticos de un partido que acaba de finalizar.
+     * Evalúa y actualiza los puntos de todos los pronósticos de un partido terminado.
+     * Se puede repetir: si el marcador final cambia, los puntos se recalculan desde cero.
      */
     @Transactional
     @CacheEvict(value = "leaderboard", allEntries = true)

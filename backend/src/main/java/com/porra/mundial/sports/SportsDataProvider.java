@@ -22,6 +22,14 @@ public interface SportsDataProvider {
     boolean supports(String competitionCode);
 
     /**
+     * Si se le puede llamar ahora. Un proveedor con el circuit breaker abierto tras fallos repetidos
+     * devuelve respuestas vacías sin llamar a la API, y la sincronización no las debe dar por buenas.
+     */
+    default boolean isAvailable() {
+        return true;
+    }
+
+    /**
      * Recupera el listado de eventos y partidos para un rango de fechas o temporada.
      *
      * @param dateRange Rango en formato YYYYMMDD-YYYYMMDD o fecha YYYYMMDD.

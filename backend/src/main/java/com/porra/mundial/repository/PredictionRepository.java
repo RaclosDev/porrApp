@@ -2,6 +2,7 @@ package com.porra.mundial.repository;
 
 import com.porra.mundial.model.Prediction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -35,4 +36,14 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     Optional<Prediction> findByName(String name);
 
     Optional<Prediction> findByIsOfficialTrue();
+
+    /**
+     * Marca como pendientes de recalcular las puntuaciones guardadas de las porras de una competición.
+     *
+     * @return número de porras invalidadas
+     */
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE Prediction p SET p.scoreCalculatedAt = NULL WHERE p.scoreCalculatedAt IS NOT NULL"
+            + " AND p.edition.id IN (SELECT e.id FROM Edition e WHERE e.competition.id = :competitionId)")
+    int clearCalculatedScoresByCompetitionId(@Param("competitionId") Long competitionId);
 }

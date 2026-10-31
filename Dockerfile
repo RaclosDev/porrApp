@@ -54,7 +54,7 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:${PORT:-8080}/actuator/health > /dev/null || exit 1
+  CMD wget -qO- http://localhost:${PORT:-8080}/actuator/health/liveness > /dev/null || exit 1
 
 USER appuser:appgroup
 

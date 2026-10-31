@@ -39,6 +39,9 @@ class PredictionServiceTest {
     private EditionRepository editionRepository;@Mock
     private MembershipRepository membershipRepository;
 
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
+
     @InjectMocks
     private PredictionService predictionService;
 
@@ -116,6 +119,31 @@ class PredictionServiceTest {
 
         assertNotNull(updated);
         assertEquals("Corregido por Admin", updated.getName());
+    }
+
+    @Test
+    @DisplayName("Cambiar el cuadro de una porra obliga a recalcular sus puntos")
+    void updatingTheBracketClearsTheStoredScore() {
+        prediction.setScoreCalculatedAt(java.time.LocalDateTime.now());
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        predictionService.updatePrediction(1L, "owner@test.com", null, null, new PredictionDataDTO());
+
+        assertNull(prediction.getScoreCalculatedAt());
+        verify(scoreInvalidationService, never()).invalidateWorldCup();
+    }
+
+    @Test
+    @DisplayName("Cambiar el cuadro oficial obliga a recalcular los puntos de todas las porras del Mundial")
+    void updatingTheOfficialBracketInvalidatesEveryScore() {
+        prediction.setIsOfficial(true);
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        predictionService.updatePrediction(1L, "owner@test.com", null, null, new PredictionDataDTO());
+
+        verify(scoreInvalidationService).invalidateWorldCup();
     }
 
     

@@ -1,7 +1,7 @@
 package com.porra.mundial.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
@@ -16,8 +16,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -122,6 +124,43 @@ class MatchEventProcessorTest {
     }
 
     @Test
+    @DisplayName("El partido por el tercer puesto sale de season.slug, no como partido de grupo")
+    void parsesThirdPlaceFromSeasonSlug() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        JsonNode event = event("pre", false, "FIFA World Cup, 3rd-Place Match", "", "", "Spain", "164", "Uruguay", "212", "[]");
+        ((tools.jackson.databind.node.ObjectNode) event).putObject("season").put("slug", "3rd-place-match");
+
+        processor.process(event, cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertEquals("third", savedMatch().getRound());
+    }
+
+    @Test
+    @DisplayName("Sin season.slug, la nota \"3rd-Place Match\" también se reconoce como tercer puesto")
+    void parsesHyphenatedThirdPlaceNote() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(event("pre", false, "FIFA World Cup, 3rd-Place Match", "", "", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertEquals("third", savedMatch().getRound());
+    }
+
+    @Test
+    @DisplayName("Cada season.slug de ESPN se traduce a su ronda")
+    void mapsEverySeasonSlug() {
+        assertEquals("group", MatchEventProcessor.roundFromSlug("group-stage"));
+        assertEquals("r32", MatchEventProcessor.roundFromSlug("round-of-32"));
+        assertEquals("r16", MatchEventProcessor.roundFromSlug("round-of-16"));
+        assertEquals("qf", MatchEventProcessor.roundFromSlug("quarterfinals"));
+        assertEquals("sf", MatchEventProcessor.roundFromSlug("semifinals"));
+        assertEquals("third", MatchEventProcessor.roundFromSlug("3rd-place-match"));
+        assertEquals("final", MatchEventProcessor.roundFromSlug("final"));
+        assertNull(MatchEventProcessor.roundFromSlug("league-phase"));
+        assertNull(MatchEventProcessor.roundFromSlug(null));
+    }
+
+    @Test
     @DisplayName("Descarta huecos del calendario sin ningún equipo conocido")
     void skipsEventsWithoutKnownTeams() throws Exception {
         Team placeholder = Team.builder().id(99L).name(Team.PLACEHOLDER_NAME).nameEn(Team.PLACEHOLDER_NAME_EN).build();
@@ -150,5 +189,117 @@ class MatchEventProcessorTest {
 
         verify(matchRepository, never()).save(any());
         assertEquals(0, second.matchesUpdated());
+    }
+
+    @Test
+    @DisplayName("Un gol en directo no cambia los resultados que puntúan los cuadros; el final del partido, sí")
+    void flagsResultChangesOnlyWhenTheResultCounts() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        processor.process(event("in", false, "Round of 16", "1", "0", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+        Match stored = savedMatch();
+        stored.setId(10L);
+        reset(matchRepository);
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.of(stored));
+
+        MatchEventProcessor.Batch goal = new MatchEventProcessor.Batch(worldCup);
+        processor.process(event("in", false, "Round of 16", "2", "0", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, goal);
+        assertEquals(1, goal.matchesUpdated());
+        assertFalse(goal.resultsChanged());
+
+        MatchEventProcessor.Batch fullTime = new MatchEventProcessor.Batch(worldCup);
+        processor.process(event("post", true, "Round of 16", "2", "0", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, fullTime);
+        assertTrue(fullTime.resultsChanged());
+    }
+
+    @Test
+    @DisplayName("Los equipos cargados de nuevo con el partido no cuentan como cambio")
+    void comparesTeamsById() throws Exception {
+        JsonNode e = event("post", true, "Group H", "2", "1", "Spain", "164", "Uruguay", "212", "[]");
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        processor.process(e, cache, new MatchEventProcessor.Batch(worldCup));
+        Match stored = savedMatch();
+        stored.setId(10L);
+        stored.setHomeTeam(Team.builder().id(spain.getId()).name(spain.getName()).build());
+        stored.setAwayTeam(Team.builder().id(uruguay.getId()).name(uruguay.getName()).build());
+
+        reset(matchRepository);
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.of(stored));
+        MatchEventProcessor.Batch second = new MatchEventProcessor.Batch(worldCup);
+        processor.process(e, cache, second);
+
+        verify(matchRepository, never()).save(any());
+        assertFalse(second.resultsChanged());
+    }
+
+    /** Partido ya guardado y terminado con el marcador dado. */
+    private Match storedFinishedMatch(String homeScore, String awayScore) throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        processor.process(event("post", true, "Group H", homeScore, awayScore, "Spain", "164", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+        Match stored = savedMatch();
+        stored.setId(10L);
+        reset(matchRepository, matchPredictionService, topScorerService);
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.of(stored));
+        return stored;
+    }
+
+    @Test
+    @DisplayName("Si ESPN corrige el marcador de un partido terminado, se vuelven a puntuar sus pronósticos")
+    void reevaluatesWhenAFinishedScoreIsCorrected() throws Exception {
+        Match stored = storedFinishedMatch("2", "1");
+        MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(worldCup);
+
+        processor.process(event("post", true, "Group H", "2", "2", "Spain", "164", "Uruguay", "212", "[]"), cache, batch);
+
+        assertEquals(2, stored.getAwayScore());
+        verify(matchRepository).save(stored);
+        verify(matchPredictionService).evaluatePredictionsForMatch(stored);
+        verify(topScorerService).refresh();
+        assertTrue(batch.resultsChanged());
+    }
+
+    @Test
+    @DisplayName("Un partido terminado con pronósticos sin puntuar se puntúa aunque no cambie")
+    void evaluatesUnscoredPredictionsOfAnUnchangedFinishedMatch() throws Exception {
+        Match stored = storedFinishedMatch("2", "1");
+        when(matchPredictionService.hasUnscoredPredictions(10L)).thenReturn(true);
+
+        processor.process(event("post", true, "Group H", "2", "1", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        verify(matchRepository, never()).save(any());
+        verify(matchPredictionService).evaluatePredictionsForMatch(stored);
+        verify(topScorerService, never()).refresh();
+    }
+
+    @Test
+    @DisplayName("Un partido terminado sin cambios y ya puntuado no se vuelve a evaluar")
+    void skipsFinishedMatchesAlreadyScored() throws Exception {
+        storedFinishedMatch("2", "1");
+        when(matchPredictionService.hasUnscoredPredictions(10L)).thenReturn(false);
+
+        processor.process(event("post", true, "Group H", "2", "1", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        verify(matchPredictionService, never()).evaluatePredictionsForMatch(any());
+        verify(topScorerService, never()).refresh();
+    }
+
+    @Test
+    @DisplayName("Refrescar la caché de equipos la sustituye entera: el mapa que ya se usaba no se vacía")
+    void teamCacheRefreshReplacesTheMapAtomically() {
+        when(teamRepository.findAll()).thenReturn(List.of(spain), List.of(spain, uruguay));
+
+        Map<String, Team> inUse = processor.teamCache();
+        ReflectionTestUtils.setField(processor, "lastTeamCacheRefresh", 0L);
+        Map<String, Team> refreshed = processor.teamCache();
+
+        assertNotSame(inUse, refreshed);
+        assertSame(spain, inUse.get("España"), "una sincronización en curso conserva sus equipos");
+        assertSame(uruguay, refreshed.get("212"));
+        assertSame(refreshed, processor.teamCache());
     }
 }
