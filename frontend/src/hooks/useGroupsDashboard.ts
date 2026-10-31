@@ -4,7 +4,6 @@ import {
   createGroup,
   joinGroup,
   fetchGroup,
-  fetchGroupInvitationPreview,
   leaveGroup,
   fetchCompetitions,
   updateGroup,
@@ -23,9 +22,9 @@ import { errorMessage } from '../utils/errors';
 type GroupId = number | string;
 
 export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
-  { id: 'MATCH_DAY', label: 'Por Jornadas (1X2 y Marcador Exacto)' },
-  { id: 'FULL_BRACKET', label: 'Completa (Fase de grupos y cruces)' },
-  { id: 'KNOCKOUTS_ONLY', label: 'Bracket (Solo Cuadro Final)' },
+  { id: 'MATCH_DAY', label: 'Por jornadas (1X2 y marcador exacto)' },
+  { id: 'FULL_BRACKET', label: 'Completa (fase de grupos y cruces)' },
+  { id: 'KNOCKOUTS_ONLY', label: 'Solo eliminatorias' },
 ];
 
 const KNOWN_GROUPS_KEY = 'knownGroups';
@@ -84,9 +83,6 @@ export function useGroupsDashboard() {
   const [selectedPoolFormat, setSelectedPoolFormat] = useState<PoolFormat>('MATCH_DAY');
   const [includePichichi, setIncludePichichi] = useState(false);
   const [newlyCreatedGroup, setNewlyCreatedGroup] = useState<Group | null>(null);
-  const [pendingJoinCodeNotice, setPendingJoinCodeNotice] = useState('');
-  const [pendingInvite, setPendingInvite] = useState<Group | null>(null);
-  const [isJoiningInvite, setIsJoiningInvite] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [visibleCodes, setVisibleCodes] = useState(new Set<GroupId>());
@@ -156,60 +152,11 @@ export function useGroupsDashboard() {
     refetchMyGroups();
   }, [refetchMyGroups]);
 
-  useEffect(() => {
-    const pendingCode = localStorage.getItem('pendingJoinCode');
-    if (!pendingCode) return;
-    const normalizedCode = pendingCode.trim().toUpperCase();
-    setPendingJoinCodeNotice(normalizedCode);
-    let cancelled = false;
-    fetchGroupInvitationPreview(normalizedCode)
-      .then((preview) => {
-        if (!cancelled) setPendingInvite(preview);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(errorMessage(e, 'No se ha encontrado esta invitación'));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const handleAcceptPendingInvite = async () => {
-    const code = pendingJoinCodeNotice || localStorage.getItem('pendingJoinCode');
-    if (!code || isJoiningInvite) return;
-    setIsJoiningInvite(true);
-    setError('');
-    try {
-      const group = await joinGroup(code);
-      rememberKnownGroup(group.id);
-      const groupId = group.id.toString();
-      const fullGroup = await fetchGroup(groupId).catch(() => group);
-      queryClient.setQueryData(queryKeys.group(groupId), fullGroup);
-      // El alta afecta a la tarjeta, al listado de miembros y al ranking de esta liga.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) }),
-      ]);
-      localStorage.removeItem('pendingJoinCode');
-      setPendingJoinCodeNotice('');
-      setPendingInvite(null);
-      changeGroup(groupId);
-      toast.success(`¡Te has unido a "${fullGroup.name || group.name}"!`);
-      navigate('/', { replace: true });
-    } catch (e) {
-      setError(errorMessage(e, 'No se ha podido aceptar la invitación'));
-    } finally {
-      setIsJoiningInvite(false);
-    }
-  };
-
   const handleCreate = async (e?: { preventDefault?: () => void }) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isCreating) return;
     if (!newGroupName.trim() || !selectedCompetition || !selectedPoolFormat) {
-      setError('El nombre del grupo y la competición son obligatorios');
+      setError('El nombre de la liga y la competición son obligatorios');
       return;
     }
     setIsCreating(true);
@@ -225,7 +172,7 @@ export function useGroupsDashboard() {
       changeGroup(group.id.toString());
       refreshGroups();
     } catch (e) {
-      setError(errorMessage(e, 'Error al crear el grupo'));
+      setError(errorMessage(e, 'No se pudo crear la liga'));
     } finally {
       setIsCreating(false);
     }
@@ -247,7 +194,7 @@ export function useGroupsDashboard() {
       refreshGroups();
       return true;
     } catch (e) {
-      setError(errorMessage(e, 'Ha ocurrido un error'));
+      setError(errorMessage(e, 'No se pudieron guardar los cambios'));
       return false;
     }
   };
@@ -278,7 +225,7 @@ export function useGroupsDashboard() {
     if (
       !skipConfirm &&
       !window.confirm(
-        `⚠️ ADVERTENCIA ⚠️\n¿Estás seguro de que quieres BORRAR POR COMPLETO la liga "${groupName}"?\n\nEsta acción eliminará todos los pronósticos de todos los participantes y no se puede deshacer.`,
+        `¿Eliminar la liga "${groupName}"? Se borrarán todos sus pronósticos y no se puede deshacer.`,
       )
     )
       return false;
@@ -295,7 +242,7 @@ export function useGroupsDashboard() {
       toast.success(`La liga "${groupName}" ha sido eliminada.`);
       return true;
     } catch (e) {
-      setError(errorMessage(e, 'Ha ocurrido un error'));
+      setError(errorMessage(e, 'No se pudo eliminar la liga'));
       return false;
     }
   };
@@ -325,7 +272,7 @@ export function useGroupsDashboard() {
       // La portada adapta automáticamente el contenido al formato de esta liga.
       navigate('/', { replace: true });
     } catch (e) {
-      setError(errorMessage(e, 'Ha ocurrido un error'));
+      setError(errorMessage(e, 'No se pudo unir a la liga'));
     }
   };
 
@@ -354,7 +301,7 @@ export function useGroupsDashboard() {
       refreshGroups();
       toast.success(`Has abandonado la liga "${groupName}".`);
     } catch (e) {
-      setError(errorMessage(e, 'Ha ocurrido un error'));
+      setError(errorMessage(e, 'No se pudo salir de la liga'));
     }
   };
 
@@ -400,10 +347,6 @@ export function useGroupsDashboard() {
     setIncludePichichi,
     newlyCreatedGroup,
     setNewlyCreatedGroup,
-    pendingJoinCodeNotice,
-    pendingInvite,
-    handleAcceptPendingInvite,
-    isJoiningInvite,
     joinCode,
     setJoinCode,
     visibleCodes,

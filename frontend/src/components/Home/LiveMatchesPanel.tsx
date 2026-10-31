@@ -1,6 +1,7 @@
 import Flag from '../Flag';
 import { openStats } from '../../utils/navigation';
 import type { Match, MatchRadar } from '../../types/api';
+import InkStamp from '../InkStamp';
 
 interface LiveMatchesPanelProps {
   liveMatches: Match[];
@@ -51,11 +52,10 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
         {showStatsButton && (
           <div className="text-center">
             <button
-              className="bg-[#1e272e] bg-none text-[#00d2d3] border border-[rgba(0,210,211,0.3)] rounded-[8px] min-h-11 py-2.5 px-4.5 text-[0.9rem] font-bold cursor-pointer inline-flex items-center justify-center gap-[5px] shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+              className="glass-btn min-h-11 py-2.5 px-4.5 text-[0.9rem] rounded-[8px]"
               onClick={() => openStats()}
-              aria-label={`Ver estadísticas de ${m.home} contra ${m.away}`}
             >
-              Ver Estadísticas
+              Ver en Sofascore
             </button>
           </div>
         )}
@@ -72,7 +72,7 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
   if (!hasLive && nextMatches.length === 0) {
     return (
       <div
-        className="glass-panel w-full max-w-120 mt-0 mb-5 mx-auto p-6 text-center text-muted rounded-[12px]"
+        className="paper-panel album-sheet w-full max-w-120 mt-0 mb-5 mx-auto p-6 text-center text-muted"
         role="status"
       >
         <div className="text-[1.6rem] mb-2" aria-hidden="true">
@@ -89,13 +89,15 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
   }
 
   return (
-    <div className="w-full max-w-120 mt-0 mb-5 mx-auto flex flex-col gap-4">
+    <div className="paper-panel album-sheet w-full max-w-120 mt-0 mb-5 mx-auto flex flex-col gap-4">
       {hasLive && (
         <div className="flex flex-col gap-2">
-          <div
-            className={`text-center text-[1rem] font-bold p-1.5 rounded-[12px] ${isActuallyLive ? 'text-[#ff4757]' : 'text-[#ffa502]'} ${isActuallyLive ? 'bg-[rgba(255,_71,_87,_0.1)] bg-none' : 'bg-[rgba(255,_165,_2,_0.1)] bg-none'} ${isActuallyLive ? 'border border-[rgba(255,_71,_87,_0.3)]' : 'border border-[rgba(255,_165,_2,_0.3)]'}`}
-          >
-            {isActuallyLive ? '🔴 EN DIRECTO' : '⏳ A PUNTO DE COMENZAR'}
+          <div className="text-center">
+            {isActuallyLive ? (
+              <InkStamp>En directo</InkStamp>
+            ) : (
+              <InkStamp tone="ink">A punto de empezar</InkStamp>
+            )}
           </div>
           <div className="last-matches-grid grid-cols-[1fr] gap-2.5">
             {liveMatches.map((m) => renderLiveMatch(m))}
@@ -105,9 +107,9 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
 
       {nextMatches.length > 0 && (
         <div className="flex flex-col gap-2">
-          <div className="text-center text-[#a29bfe] text-[1rem] font-bold p-1.5 bg-[rgba(162,_155,_254,_0.1)] bg-none border border-[rgba(162,_155,_254,_0.3)] rounded-[12px]">
-            {nextMatches.length === 1 ? '🔜 PRÓXIMO PARTIDO' : '🔜 PRÓXIMOS PARTIDOS'}
-          </div>
+          <h3 className="album-sheet-title">
+            {nextMatches.length === 1 ? 'Próximo partido' : 'Próximos partidos'}
+          </h3>
           <div className="last-matches-grid grid-cols-[1fr] gap-2.5">
             {nextMatches.map((m) => renderLiveMatch(m))}
           </div>

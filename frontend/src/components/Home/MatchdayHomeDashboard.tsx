@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
+import { useAppStore } from '../../store/useAppStore';
 import { fetchCompetitionStandings } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
 import type { Match } from '../../types/api';
+import InkStamp from '../InkStamp';
 
 function formatKickOff(date: string | null) {
   if (!date) return 'VS';
@@ -48,6 +50,7 @@ export default function MatchdayHomeDashboard() {
     userId,
   } = useAppContext();
 
+  const activeGroupId = useAppStore((state) => state.activeGroupId);
   const navigate = useNavigate();
 
   const { data: leagueStandings } = useQuery({
@@ -121,13 +124,12 @@ export default function MatchdayHomeDashboard() {
     <section className="view-section active max-w-270 my-0 mx-auto pt-1 pb-6 px-0">
       {showRules && (
         <LeagueRulesModal
-          group={{ name: activeGroupName, rules: activeGroupRules }}
+          group={{ id: activeGroupId, name: activeGroupName, rules: activeGroupRules }}
           onClose={() => setShowRules(false)}
         />
       )}
 
-      {/* Cabecera de la liga */}
-      <header className="home-hero">
+      <header className="home-hero paper-panel album-sheet">
         <div className="home-hero-info">
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
           <div className="home-hero-pills">
@@ -140,13 +142,12 @@ export default function MatchdayHomeDashboard() {
           </div>
         </div>
         <button type="button" className="home-rules-btn" onClick={() => setShowRules(true)}>
-          📜 Reglas
+          Reglas
         </button>
       </header>
 
       <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
-        {/* Partidos */}
-        <div className="flex flex-col gap-2 min-w-0">
+        <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
           <div className="home-list-header">
             <h2>
               <span>Partidos{currentRound ? ` ${currentRound}` : ''}</span>
@@ -175,7 +176,7 @@ export default function MatchdayHomeDashboard() {
                 >
                   <div className="home-match-meta">
                     <span>{formatMatchDate(m.date)}</span>
-                    {isLive && <span className="home-live-badge">EN VIVO</span>}
+                    {isLive && <InkStamp size="sm">En directo</InkStamp>}
                   </div>
 
                   <div className="home-match-teams">
@@ -213,15 +214,14 @@ export default function MatchdayHomeDashboard() {
               );
             })
           ) : (
-            <div className="glass-panel p-6 text-center text-muted">
+            <div className="paper-panel album-sheet p-6 text-center text-muted">
               No hay partidos programados para esta jornada.
             </div>
           )}
         </div>
 
-        {/* Ranking y tabla */}
         <div className="flex flex-col gap-4.5 min-w-0">
-          <div className="glass-panel p-4 rounded-[14px]">
+          <div className="paper-panel album-sheet p-4">
             <div className="home-list-header mb-2.5">
               <h2>
                 <span aria-hidden="true">🏆</span>
@@ -243,13 +243,13 @@ export default function MatchdayHomeDashboard() {
 
                   return (
                     <div
-                      className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.12)] bg-none' : 'bg-[rgba(255,_255,_255,_0.03)] bg-none'} ${isMe ? 'border border-[rgba(0,_210,_211,_0.35)]' : 'border border-transparent'}`}
+                      className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.1)] bg-none' : 'bg-[rgba(17,_24,_39,_0.04)] bg-none'} ${isMe ? 'border border-[var(--marker-ink)]' : 'border border-transparent'}`}
                       key={p.id || index}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[1rem] w-5.5 text-center shrink-0">{medal}</span>
                         <span
-                          className={`text-[0.88rem] text-white overflow-hidden text-ellipsis whitespace-nowrap ${isMe ? 'font-bold' : 'font-medium'}`}
+                          className={`text-[0.88rem] text-main overflow-hidden text-ellipsis whitespace-nowrap ${isMe ? 'font-bold' : 'font-medium'}`}
                         >
                           {p.name}
                           {isMe ? ' (Tú)' : ''}
@@ -263,14 +263,14 @@ export default function MatchdayHomeDashboard() {
                 })
               ) : (
                 <div className="text-center text-muted text-[0.85rem] p-3">
-                  Aún no hay puntuaciones en esta peña.
+                  Aún no hay puntuaciones en esta liga.
                 </div>
               )}
             </div>
           </div>
 
           {topTeams.length > 0 && (
-            <div className="glass-panel p-4 rounded-[14px]">
+            <div className="paper-panel album-sheet p-4">
               <div className="home-list-header mb-2.5">
                 <h2>
                   <span aria-hidden="true">📊</span>
@@ -284,7 +284,7 @@ export default function MatchdayHomeDashboard() {
               <div className="flex flex-col gap-1.5">
                 {topTeams.map((t) => (
                   <div
-                    className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] bg-[rgba(255,_255,_255,_0.03)] bg-none"
+                    className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] bg-[rgba(17,_24,_39,_0.04)] bg-none"
                     key={t.rank + t.teamName}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -296,13 +296,13 @@ export default function MatchdayHomeDashboard() {
                         logo={t.teamLogo}
                         style={{ width: '20px', height: '20px' }}
                       />
-                      <span className="font-semibold text-[0.85rem] text-white overflow-hidden text-ellipsis whitespace-nowrap">
+                      <span className="font-semibold text-[0.85rem] text-main overflow-hidden text-ellipsis whitespace-nowrap">
                         {t.teamName}
                       </span>
                     </div>
                     <div className="flex gap-2.5 text-[0.85rem] items-baseline shrink-0">
                       <span className="text-muted text-[0.75rem]">{t.gamesPlayed} PJ</span>
-                      <span className="font-extrabold text-white">{t.points} pts</span>
+                      <span className="font-extrabold text-main">{t.points} pts</span>
                     </div>
                   </div>
                 ))}

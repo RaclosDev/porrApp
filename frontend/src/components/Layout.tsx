@@ -1,4 +1,3 @@
-import { getAuthToken } from '../services/api';
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 import type { CredentialResponse } from '@react-oauth/google';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -57,7 +56,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  const isUserLoggedIn = Boolean(getAuthToken()) && Boolean(userName);
+  const isUserLoggedIn = isAuthenticated && Boolean(userName);
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
@@ -68,7 +67,9 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
   // En la pantalla de acceso/invitación no mostrar la navegación global: la propia
   // pantalla ya contiene el acceso con Google y el contexto de la invitación.
-  const isInviteAuthScreen = !isUserLoggedIn && location.pathname === '/mis-ligas';
+  const isInviteAuthScreen =
+    location.pathname.startsWith('/join/') ||
+    (!isUserLoggedIn && location.pathname === '/mis-ligas');
 
   // Con sesión iniciada pero sin ninguna liga, la navegación queda bloqueada:
   // solo se puede crear o unirse a una liga desde Mis Ligas.
@@ -167,7 +168,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* Banner flotante de Modo Demo */}
       {isDemo && !isUserLoggedIn && (
         <DemoBanner
           exitDemoMode={exitDemoMode}
@@ -179,7 +179,6 @@ function Layout({ children }: { children: React.ReactNode }) {
       <header className={`top-bar${isLanding ? ' top-bar--landing' : ''}`}>
         <div className="header-left">
           <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
-            {/* Logo de PorrApp */}
             <NavLink
               to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
               className="header-brand-link"
@@ -187,48 +186,19 @@ function Layout({ children }: { children: React.ReactNode }) {
                 if (isNavLocked) e.preventDefault();
               }}
               aria-disabled={isNavLocked || undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                textDecoration: 'none',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: '1.25rem',
-                fontFamily: "'Outfit', sans-serif",
-                letterSpacing: '-0.3px',
-                flexShrink: 0,
-              }}
             >
-              <span className="brand-ball-icon text-[1.35rem]">⚽</span>
-              <span>
-                Porr<span className="text-cyan">App</span>
-              </span>
+              <span>PorrApp</span>
             </NavLink>
 
             {isLanding || isInviteAuthScreen ? null : isDemo ? (
-              <span className="inline-block min-w-0 truncate py-1 px-2.5 rounded-[16px] bg-[rgba(0,_210,_211,_0.12)] bg-none border border-[rgba(0,_210,_211,_0.4)] text-cyan text-[0.8rem] font-bold">
-                🌍 Mundial 2026
+              <span className="ink-stamp ink-stamp-sm ink-stamp-ink inline-block min-w-0 truncate">
+                Mundial 2026
               </span>
             ) : (
               <>
-                {/* Selector Global de Liga Activa */}
                 <ActiveLeagueDropdown />
 
-                {/* Botón Ver Mi Porra / Pronosticar Jornada */}
-                {loading ? null : isMatchDayLeague ? (
-                  <button
-                    id="btn-complete-my-prediction-header"
-                    className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
-                    onClick={() => navigate('/jornadas')}
-                    disabled={isNavLocked}
-                    aria-label="Pronosticar jornada"
-                    title="Pronosticar jornada"
-                  >
-                    <span aria-hidden="true">⚽</span>
-                    <span className="header-porra-cta-label"> Pronosticar Jornada</span>
-                  </button>
-                ) : userName && myPrediction ? null : (
+                {loading || isMatchDayLeague || (userName && myPrediction) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
                     className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
@@ -238,7 +208,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                     title="Completar mi porra"
                   >
                     <span aria-hidden="true">✍️</span>
-                    <span className="header-porra-cta-label"> Completar Mi Porra</span>
+                    <span className="header-porra-cta-label"> Completar mi porra</span>
                   </button>
                 )}
               </>
@@ -271,7 +241,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         )}
       </header>
 
-      {/* Contenido Principal */}
       <main className={`app-container ${!isLanding ? 'has-mobile-bottom-nav' : ''}`}>
         {isNavLocked && !isNoLeagueAllowedPath ? null : children}
       </main>
@@ -280,10 +249,8 @@ function Layout({ children }: { children: React.ReactNode }) {
         <ProfileSettingsModal onClose={() => setShowProfileSettings(false)} />
       )}
 
-      {/* Barra de navegación inferior fija para móviles */}
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}
 
-      {/* Banner PWA */}
       {showInstallBanner && (
         <InstallBanner
           handleDismissBanner={handleDismissBanner}
@@ -292,7 +259,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Modal de Autenticación / Registro */}
       <LoginModal
         exitDemoMode={exitDemoMode}
         handleGoogleSuccess={handleGoogleSuccess}
@@ -302,7 +268,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         showMyPredictionModal={showMyPredictionModal}
       />
 
-      {/* Visor Global de Porras (Portal Inyectado) */}
       {viewerPredictionId && (
         <Suspense fallback={null}>
           <PredictionViewer />
