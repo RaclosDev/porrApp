@@ -18,6 +18,8 @@ import { queryKeys } from '../services/queryKeys';
 import { myGroupsQuery } from '../services/queries';
 import type { Competition, Group, PoolFormat } from '../types/api';
 import { errorMessage } from '../utils/errors';
+import { isApiError } from '../services/apiError';
+import { useAppStore } from '../store/useAppStore';
 
 type GroupId = number | string;
 
@@ -117,8 +119,8 @@ export function useGroupsDashboard() {
     const invalidIds: string[] = [];
     Promise.all(
       missingIds.map((id) =>
-        fetchGroup(id).catch(() => {
-          invalidIds.push(id);
+        fetchGroup(id).catch((error: unknown) => {
+          if (isApiError(error, 404) || isApiError(error, 410)) invalidIds.push(id);
           return null;
         }),
       ),
@@ -234,7 +236,7 @@ export function useGroupsDashboard() {
       await deleteGroup(groupId);
       forgetKnownGroups([groupId]);
 
-      if (activeGroupId === groupId.toString()) {
+      if (useAppStore.getState().activeGroupId === groupId.toString()) {
         changeGroup(null);
       }
 
@@ -267,7 +269,7 @@ export function useGroupsDashboard() {
       ]);
       setJoinCode('');
       changeGroup(groupId);
-      await refreshGroups();
+      setError('');
       toast.success(`¡Te has unido a "${fullGroup.name || group.name}"!`);
       // La portada adapta automáticamente el contenido al formato de esta liga.
       navigate('/', { replace: true });
@@ -295,7 +297,7 @@ export function useGroupsDashboard() {
       return;
     try {
       await leaveGroup(groupId);
-      if (activeGroupId === groupId.toString()) changeGroup(null);
+      if (useAppStore.getState().activeGroupId === groupId.toString()) changeGroup(null);
       forgetKnownGroups([groupId]);
 
       refreshGroups();
