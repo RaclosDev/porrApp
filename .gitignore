@@ -7,6 +7,8 @@ dev-dist/
 .vite/
 *.tsbuildinfo
 coverage/
+playwright-report/
+test-results/
 
 # ==============================================================================
 # Maven / Backend

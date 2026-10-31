@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.config.JwtUtil;
+import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.dto.GroupResponseDTO;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
@@ -31,6 +32,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(GroupController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class GroupControllerTest {
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private MockMvc mockMvc;

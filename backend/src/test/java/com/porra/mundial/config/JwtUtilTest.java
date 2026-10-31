@@ -4,6 +4,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -16,6 +17,17 @@ import static org.junit.jupiter.api.Assertions.*;
 class JwtUtilTest {
 
     private static final String SECRET = "un-secreto-muy-seguro-de-mas-de-32-caracteres-123456";
+
+    @Test
+    void productionProfileFromASpringPropertySourceRejectsAnEmptySecret() {
+        try (var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.getEnvironment().getPropertySources().addFirst(
+                    new org.springframework.core.env.MapPropertySource("application-test", java.util.Map.of(
+                            "spring.profiles.active", "metrics,prod", "app.jwt.secret", "")));
+            context.register(JwtUtil.class);
+            assertThrows(org.springframework.beans.factory.BeanCreationException.class, context::refresh);
+        }
+    }
 
     /** JWT como los que emitía la versión anterior: sin typ, email en sub y en el claim email, 7 días. */
     static String legacyToken(String secret, String subject, String email, Instant expiresAt) {
@@ -30,7 +42,7 @@ class JwtUtilTest {
     @Test
     @DisplayName("El access token lleva typ at+jwt, el id en sub y el email, y dura 15 minutos")
     void accessTokenRoundTrip() {
-        JwtUtil jwtUtil = new JwtUtil(SECRET);
+        JwtUtil jwtUtil = new JwtUtil(SECRET, new MockEnvironment());
 
         String token = jwtUtil.generateAccessToken(42L, "ana@test.com");
         JwtUtil.VerifiedToken verified = jwtUtil.verify(token).orElseThrow();
@@ -47,7 +59,7 @@ class JwtUtilTest {
     @Test
     @DisplayName("Los JWT de 7 días de la versión anterior se aceptan hasta que caducan")
     void acceptsLegacyTokensUntilTheyExpire() {
-        JwtUtil jwtUtil = new JwtUtil(SECRET);
+        JwtUtil jwtUtil = new JwtUtil(SECRET, new MockEnvironment());
         Instant expiresAt = Instant.now().plus(Duration.ofDays(3));
 
         JwtUtil.VerifiedToken verified = jwtUtil.verify(legacyToken(SECRET, "ana@test.com", "ana@test.com", expiresAt))
@@ -67,7 +79,7 @@ class JwtUtilTest {
     @Test
     @DisplayName("Rechaza tokens caducados, de otra clave, de otro tipo o mal formados")
     void rejectsInvalidTokens() {
-        JwtUtil jwtUtil = new JwtUtil(SECRET);
+        JwtUtil jwtUtil = new JwtUtil(SECRET, new MockEnvironment());
         var key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
         String expired = Jwts.builder().header().type("at+jwt").and()
@@ -81,7 +93,7 @@ class JwtUtilTest {
         String withoutExpiry = Jwts.builder().header().type("at+jwt").and()
                 .subject("42").claim("email", "ana@test.com")
                 .signWith(key).compact();
-        String otherKey = new JwtUtil("otro-secreto-distinto-de-mas-de-32-caracteres-999")
+        String otherKey = new JwtUtil("otro-secreto-distinto-de-mas-de-32-caracteres-999", new MockEnvironment())
                 .generateAccessToken(42L, "ana@test.com");
 
         assertTrue(jwtUtil.verify(expired).isEmpty());
@@ -97,31 +109,24 @@ class JwtUtilTest {
     void insecureSecretFallsBackToAnEphemeralKey() {
         for (String secret : new String[] {"", "1234567890123456789012345678901234567890",
                 "super-secret-jwt-key-change-me-in-production"}) {
-            JwtUtil jwtUtil = new JwtUtil(secret);
+            JwtUtil jwtUtil = new JwtUtil(secret, new MockEnvironment());
             String token = jwtUtil.generateAccessToken(1L, "fallback@test.com");
             assertEquals("fallback@test.com", jwtUtil.verify(token).orElseThrow().email());
         }
         // La clave efímera no es el secreto de plantilla: un token firmado con él no vale.
         String template = "super-secret-jwt-key-change-me-in-production";
-        assertTrue(new JwtUtil(template).verify(legacyToken(template, "x@test.com", "x@test.com",
+        assertTrue(new JwtUtil(template, new MockEnvironment()).verify(legacyToken(template, "x@test.com", "x@test.com",
                 Instant.now().plusSeconds(60))).isEmpty());
     }
 
     @Test
     @DisplayName("Lanza IllegalStateException en perfil de producción si JWT_SECRET es inseguro")
     void testFailsInProductionWithInsecureSecret() {
-        String prev = System.getProperty("spring.profiles.active");
-        try {
-            System.setProperty("spring.profiles.active", "prod");
-            assertThrows(IllegalStateException.class, () -> new JwtUtil("super-secret-jwt-key-change-me-in-production"));
-            assertThrows(IllegalStateException.class, () -> new JwtUtil(""));
-            assertThrows(IllegalStateException.class, () -> new JwtUtil("too-short-key"));
-        } finally {
-            if (prev != null) {
-                System.setProperty("spring.profiles.active", prev);
-            } else {
-                System.clearProperty("spring.profiles.active");
-            }
-        }
+        MockEnvironment environment = new MockEnvironment();
+        environment.setActiveProfiles("metrics", "prod");
+        assertThrows(IllegalStateException.class,
+                () -> new JwtUtil("super-secret-jwt-key-change-me-in-production", environment));
+        assertThrows(IllegalStateException.class, () -> new JwtUtil("", environment));
+        assertThrows(IllegalStateException.class, () -> new JwtUtil("too-short-key", environment));
     }
 }

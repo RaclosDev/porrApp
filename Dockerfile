@@ -10,6 +10,7 @@ RUN npm ci
 
 # Copiamos el codigo fuente del frontend y compilamos
 COPY frontend/ ./
+ARG VITE_GOOGLE_CLIENT_ID
 RUN npm run build
 # El resultado queda en /app/frontend/dist
 

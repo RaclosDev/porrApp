@@ -190,6 +190,16 @@ class SessionServiceTest {
     }
 
     @Test
+    void legacyTokensCannotBeExchangedForAnAccountWithAStableGoogleIdentity() {
+        UserAccount currentOwner = user("reassigned@test.com");
+        currentOwner.setGoogleSub("google-new-owner");
+        em.flush();
+
+        assertThat(sessionService.exchangeLegacyToken(legacyToken("reassigned@test.com",
+                Instant.now().plusSeconds(60))).isPresent()).isFalse();
+    }
+
+    @Test
     void purgeDeletesExpiredSessionsAndTheirTokens() {
         UserAccount mar = user("mar@test.com");
         SessionTokens expired = sessionService.start(mar);

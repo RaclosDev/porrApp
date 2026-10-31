@@ -104,13 +104,15 @@ public class SessionService {
     /**
      * Cambia un JWT de 7 días de la versión anterior por una sesión. Esa sesión caduca cuando
      * caducaría el JWT: el canje no da más tiempo del que ya daba el token guardado en
-     * localStorage. Vacío si el token no es uno de esos o ya no es válido.
+     * localStorage. Solo se admite mientras la cuenta no haya migrado a una identidad estable
+     * de Google: después, un email reciclado no puede identificarla mediante un token antiguo.
      */
     @Transactional
     public Optional<SessionTokens> exchangeLegacyToken(String legacyJwt) {
         return jwtUtil.verify(legacyJwt)
                 .filter(JwtUtil.VerifiedToken::legacy)
                 .flatMap(legacy -> userAccountRepository.findByGoogleEmail(legacy.email())
+                        .filter(user -> user.getGoogleSub() == null)
                         .map(user -> start(user, earliest(legacy.expiresAt(), Instant.now().plus(SESSION_TTL)))));
     }
 
