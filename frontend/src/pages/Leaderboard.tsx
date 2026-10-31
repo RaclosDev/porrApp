@@ -1,3 +1,4 @@
+import PaperLoading from '../components/PaperLoading';
 import React, { useState, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Search } from 'lucide-react';
@@ -92,23 +93,7 @@ function Leaderboard() {
   // En móvil el desglose por fase va oculto hasta que se pide.
   const [showDetail, setShowDetail] = useState(false);
 
-  if (loading)
-    return (
-      <section className="view-section block">
-        <div className="table-container p-5">
-          <div className="skeleton skeleton-text medium h-5 mb-5" />
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="skeleton-row py-3 px-0 border-b border-b-line">
-              <div className="skeleton w-6 h-6 rounded-full shrink-0" />
-              <div className="skeleton skeleton-bar" />
-              <div className="skeleton w-10 h-4 rounded-[4px]" />
-              <div className="skeleton w-10 h-4 rounded-[4px]" />
-              <div className="skeleton w-12.5 h-5 rounded-[6px]" />
-            </div>
-          ))}
-        </div>
-      </section>
-    );
+  if (loading) return <PaperLoading label="Cargando clasificación" />;
 
   const mid = Math.ceil(validResults.length / 2);
 
@@ -221,7 +206,7 @@ function Leaderboard() {
 
       {activeTab === 'evolution' ? (
         <div className="w-full mt-2.5">
-          <Suspense fallback={<div className="skeleton-card h-100" />}>
+          <Suspense fallback={<PaperLoading label="Cargando gráfica" />}>
             <EvolutionChart
               validResults={validResults}
               userName={userName}

@@ -1,3 +1,4 @@
+import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
@@ -63,24 +64,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
 
   const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;
   if (loading && !hasGroupsData) {
-    return (
-      <section className="view-section block">
-        <div className="groups-grid">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="skeleton-card">
-              <div className="skeleton skeleton-text short h-4.5 mb-3.5" />
-              {Array.from({ length: 4 }).map((_, j) => (
-                <div key={j} className="skeleton-row">
-                  <div className="skeleton skeleton-avatar" />
-                  <div className="skeleton skeleton-bar" />
-                  <div className="skeleton w-7 h-3.5 rounded-[4px]" />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-    );
+    return <PaperLoading label="Cargando grupos" />;
   }
 
   const renderGroup = (groupName: string, teams: TeamOdds[]) => {

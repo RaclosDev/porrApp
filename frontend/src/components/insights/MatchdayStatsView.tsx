@@ -1,3 +1,4 @@
+import PaperLoading from '../PaperLoading';
 import { useId, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -29,13 +30,7 @@ export default function MatchdayStatsView({ groupId }: { groupId: string }) {
   const select = (label: string) => setParams({ jornada: label }, { replace: true });
 
   if (isPending) {
-    return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-hidden="true">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="skeleton-card h-55" />
-        ))}
-      </div>
-    );
+    return <PaperLoading label="Cargando estadísticas de la jornada" embedded />;
   }
   if (error) {
     return (

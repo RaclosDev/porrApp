@@ -361,18 +361,6 @@
     color: var(--text-muted);
   }
 
-  .standings-skeleton {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .standings-skeleton-row {
-    height: 46px;
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.04);
-  }
-
   @media (max-width: 760px) {
     .standings-table.is-complete th:nth-child(2),
     .standings-table.is-complete td:nth-child(2) {

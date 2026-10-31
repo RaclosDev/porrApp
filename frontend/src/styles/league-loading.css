@@ -4,6 +4,10 @@
     padding: clamp(20px, 4vw, 36px);
   }
 
+  .league-loading--embedded {
+    padding: 0;
+  }
+
   .league-loading__heading {
     display: flex;
     flex-direction: column;
@@ -49,13 +53,29 @@
     margin-left: auto;
   }
 
-  .league-loading .skeleton {
+  .skeleton {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    line-height: 0;
+    border-radius: 4px;
     background: rgba(17, 24, 39, 0.09);
     animation: none;
   }
 
-  .league-loading .skeleton::after {
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  }
+
+  @keyframes skeleton-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   .league-load-error h1 {
@@ -85,7 +105,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .league-loading .skeleton::after {
+    .skeleton::after {
       animation: none;
     }
   }

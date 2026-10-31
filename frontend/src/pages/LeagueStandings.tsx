@@ -1,3 +1,4 @@
+import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -67,11 +68,7 @@ export default function LeagueStandings() {
       </header>
 
       {isLoading ? (
-        <div className="standings-skeleton" aria-hidden="true">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <div key={index} className="skeleton-card standings-skeleton-row" />
-          ))}
-        </div>
+        <PaperLoading label="Cargando clasificación de equipos" embedded />
       ) : isError ? (
         <div className="standings-empty" role="alert">
           <p>No se pudo cargar la clasificación. Inténtalo de nuevo.</p>
