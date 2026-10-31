@@ -1,3 +1,4 @@
+import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useSortedGroups } from '../hooks/useSortedGroups';
@@ -50,8 +51,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
 
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
-  if (loadingGroup) return <p role="status">Cargando liga...</p>;
-  if (groupError) return <p role="alert">No se pudo cargar la liga. Inténtalo de nuevo.</p>;
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (isMatchDayLeague) {
     return <MatchdayHomeDashboard />;
   }

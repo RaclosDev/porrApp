@@ -1,3 +1,4 @@
+import LeagueLoadState from '../components/LeagueLoadState';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
@@ -10,18 +11,8 @@ import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 
 function MatchdayPredictor() {
   const context = useAppContext();
-  if (context.loadingGroup)
-    return (
-      <p className="p-6 text-center text-muted" role="status">
-        Cargando liga…
-      </p>
-    );
-  if (context.groupError)
-    return (
-      <p className="p-6 text-center text-[#ff7675]" role="alert">
-        No se pudo cargar la liga. Inténtalo de nuevo.
-      </p>
-    );
+  if (context.loadingGroup || context.groupError)
+    return <LeagueLoadState error={context.groupError} />;
   return (
     <MatchdayLeague
       key={`${context.userId || context.userName}:${context.activeGroupId}`}

@@ -1,3 +1,4 @@
+import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useMemo, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -26,18 +27,7 @@ function OfficialBracket() {
   const isMatchDay =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
-  if (loadingGroup)
-    return (
-      <p className="p-6 text-center text-muted" role="status">
-        Cargando liga...
-      </p>
-    );
-  if (groupError)
-    return (
-      <p className="p-6 text-center text-[#ff7675]" role="alert">
-        No se pudo cargar la liga. Inténtalo de nuevo.
-      </p>
-    );
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (activeCompetitionFormatType && isMatchDay) {
     return <Navigate to="/tabla" replace />;
   }

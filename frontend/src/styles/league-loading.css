@@ -1,0 +1,92 @@
+@layer components {
+  .league-loading,
+  .league-load-error {
+    padding: clamp(20px, 4vw, 36px);
+  }
+
+  .league-loading__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 620px;
+  }
+
+  .league-loading__tabs {
+    display: flex;
+    gap: 12px;
+    padding: 24px 0;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .league-loading__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .league-loading__card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--panel-bg);
+  }
+
+  .league-loading__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .league-loading__row > :first-child,
+  .league-loading__row > :last-child {
+    flex-shrink: 0;
+  }
+
+  .league-loading__row > :last-child {
+    margin-left: auto;
+  }
+
+  .league-loading .skeleton {
+    background: rgba(17, 24, 39, 0.09);
+    animation: none;
+  }
+
+  .league-loading .skeleton::after {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  }
+
+  .league-load-error h1 {
+    font-size: clamp(1.3rem, 3vw, 1.8rem);
+    margin-bottom: 12px;
+  }
+
+  .league-load-error__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .league-load-error__actions .landing-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  @media (max-width: 640px) {
+    .league-loading__grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .league-loading .skeleton::after {
+      animation: none;
+    }
+  }
+}

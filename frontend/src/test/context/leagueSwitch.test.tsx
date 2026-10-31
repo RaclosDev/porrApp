@@ -1,3 +1,4 @@
+import { ApiError } from '../../services/apiError';
 import { group, participantScore, predictionSummary } from './fixtures';
 import { game } from '../fixtures';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -89,6 +90,32 @@ describe('league switching', () => {
     expect(result.current.allGames).toEqual([]);
     expect(api.fetchMatches).not.toHaveBeenCalledWith(null);
   });
+
+  it.each([0, 503, 403, 404])(
+    'keeps cached league data only for transient refresh errors (%s)',
+    async (status) => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const { result } = renderHook(() => useAppContext(), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      });
+      await waitFor(() => expect(client.getQueryData(['group', '10'])).toBeDefined());
+      const error = new ApiError(status, 'No disponible');
+      vi.mocked(api.fetchGroup).mockRejectedValue(error);
+      await act(async () => {
+        await client.refetchQueries({ queryKey: ['group', '10'], exact: true });
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(client.getQueryState(['group', '10'])?.error).toBeTruthy();
+      expect(result.current.groupError).toBe(status === 0 || status >= 500 ? null : error);
+      expect(result.current.loadingGroup).toBe(false);
+      expect(result.current.activeCompetitionId).toBe(2);
+      expect(result.current.activeGroupPoolFormat).toBe('MATCH_DAY');
+    },
+  );
 
   it('fetchData only invalidates the active league queries', async () => {
     const client = new QueryClient({

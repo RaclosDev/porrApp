@@ -1,3 +1,4 @@
+import LeagueLoadState from '../components/LeagueLoadState';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
@@ -32,8 +33,7 @@ export default function LeagueStandings() {
     staleTime: 120_000,
   });
 
-  if (loadingGroup) return <p role="status">Cargando liga...</p>;
-  if (groupError) return <p role="alert">No se pudo cargar la liga. Inténtalo de nuevo.</p>;
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (activeCompetitionFormatType && !isMatchDay) {
     return <Navigate to="/bracket" replace />;
   }
