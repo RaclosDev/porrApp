@@ -68,26 +68,23 @@ public class GlobalLeagueInitializer implements CommandLineRunner {
                     && (currentAdmin == null || !adminUser.getId().equals(currentAdmin.getId()));
 
             if (metadataNeedsUpdate || adminNeedsUpdate) {
-                try {
-                    // Avoid a unique-code conflict if another league currently uses GLOBAL.
-                    leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).ifPresent(other -> {
-                        if (!League.isGlobalId(other.getId())) {
-                            log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
-                            other.setJoinCode(JoinCodeGenerator.next());
-                            leagueRepository.saveAndFlush(other);
-                        }
-                    });
-
-                    globalGroup.setJoinCode(League.GLOBAL_JOIN_CODE);
-                    globalGroup.setName(League.GLOBAL_NAME);
-                    if (adminNeedsUpdate) {
-                        log.info("Replacing placeholder administrator of Porra Global with the default Admin account.");
-                        globalGroup.setAdminUser(adminUser);
+                // Avoid a unique-code conflict if another league currently uses GLOBAL.
+                leagueRepository.findByJoinCode(League.GLOBAL_JOIN_CODE).ifPresent(other -> {
+                    if (!League.isGlobalId(other.getId())) {
+                        log.warn("Found another group with code GLOBAL: id={}. Renaming it to avoid conflict.", other.getId());
+                        other.setJoinCode(JoinCodeGenerator.next());
+                        leagueRepository.saveAndFlush(other);
                     }
-                    globalGroup = leagueRepository.saveAndFlush(globalGroup);
-                } catch (Exception e) {
-                    log.error("Failed to normalize the global league. Error: {}", e.getMessage(), e);
+                });
+
+                globalGroup.setJoinCode(League.GLOBAL_JOIN_CODE);
+                globalGroup.setName(League.GLOBAL_NAME);
+                if (adminNeedsUpdate) {
+                    log.info("Replacing placeholder administrator of Porra Global with the default Admin account.");
+                    globalGroup.setAdminUser(adminUser);
                 }
+                globalGroup = leagueRepository.saveAndFlush(globalGroup);
+
             }
         }
 
