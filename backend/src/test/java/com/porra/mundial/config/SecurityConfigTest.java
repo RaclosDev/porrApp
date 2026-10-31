@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Verifica las reglas de acceso de {@link SecurityConfig} con los filtros reales activos.
  */
 @WebMvcTest(TopScorerController.class)
-@Import({SecurityConfig.class, JwtAuthFilter.class, RateLimitingFilter.class})
+@Import({SecurityConfig.class, JwtAuthFilter.class, RateLimitingFilter.class, CsrfOriginFilter.class})
 class SecurityConfigTest {
 
     @Autowired

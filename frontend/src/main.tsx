@@ -7,6 +7,10 @@ import ErrorBoundary from './components/ErrorBoundary.tsx';
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './services/queryClient';
+import { initSession } from './services/api';
+
+// Antes de pintar: las consultas del primer render esperan a tener el access token.
+initSession();
 
 const googleClientId =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
