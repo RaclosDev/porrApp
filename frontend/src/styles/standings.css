@@ -29,7 +29,7 @@
     font-family: 'Outfit', sans-serif;
     font-size: 1.65rem;
     line-height: 1.15;
-    color: #fff;
+    color: var(--text-main);
   }
 
   .standings-toggle {
@@ -37,9 +37,9 @@
     gap: 4px;
     padding: 4px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(15, 23, 42, 0.85);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg);
+    box-shadow: inset 0 1px 0 rgba(17, 24, 39, 0.05);
   }
 
   .standings-toggle button {
@@ -60,22 +60,22 @@
   }
 
   .standings-toggle button:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-main);
+    background: rgba(17, 24, 39, 0.06);
   }
 
   .standings-toggle button.is-active {
-    background: linear-gradient(135deg, #00d2d3, #01a3a4);
-    color: #001318;
-    box-shadow: 0 4px 14px rgba(0, 210, 211, 0.3);
+    background: var(--ink);
+    color: var(--paper);
+    box-shadow: none;
   }
 
   .standings-card {
     overflow: hidden;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.72));
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg);
+    box-shadow: none;
   }
 
   .standings-table-wrap {
@@ -94,8 +94,8 @@
   }
 
   .standings-table thead tr {
-    background: rgba(15, 23, 42, 0.9);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
   }
 
   .standings-table th {
@@ -122,7 +122,7 @@
   }
 
   .standings-row {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--border-color);
     transition: background 0.15s ease;
   }
 
@@ -131,7 +131,7 @@
   }
 
   .standings-row:hover {
-    background: rgba(255, 255, 255, 0.045);
+    background: rgba(17, 24, 39, 0.045);
   }
 
   .standings-rank-cell {
@@ -141,15 +141,15 @@
   }
 
   .standings-row.is-champions .standings-rank-cell {
-    box-shadow: inset 3px 0 0 #00d2d3;
+    box-shadow: inset 3px 0 0 var(--accent-cyan);
   }
 
   .standings-row.is-europa .standings-rank-cell {
-    box-shadow: inset 3px 0 0 #f39c12;
+    box-shadow: inset 3px 0 0 var(--champion-gold);
   }
 
   .standings-row.is-relegation .standings-rank-cell {
-    box-shadow: inset 3px 0 0 #e74c3c;
+    box-shadow: inset 3px 0 0 var(--miss);
   }
 
   .standings-rank {
@@ -166,19 +166,19 @@
 
   .standings-rank.is-podium-1 {
     background: rgba(251, 191, 36, 0.16);
-    color: #fbbf24;
+    color: var(--champion-gold);
     box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
   }
 
   .standings-rank.is-podium-2 {
     background: rgba(203, 213, 225, 0.14);
-    color: #e2e8f0;
+    color: var(--text-main);
     box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.3);
   }
 
   .standings-rank.is-podium-3 {
     background: rgba(217, 119, 6, 0.16);
-    color: #f59e0b;
+    color: var(--champion-gold);
     box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.35);
   }
 
@@ -213,7 +213,7 @@
 
   .standings-team-name {
     font-weight: 600;
-    color: #fff;
+    color: var(--text-main);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -235,8 +235,8 @@
     text-align: center;
     font-weight: 800;
     font-size: 1rem;
-    color: #fff;
-    background: rgba(0, 210, 211, 0.06);
+    color: var(--text-main);
+    background: rgba(11, 95, 116, 0.06);
     white-space: nowrap;
   }
 
@@ -249,14 +249,14 @@
   .standings-win-cell {
     padding: 10px 8px;
     text-align: center;
-    color: #34d399;
+    color: var(--hit);
     font-weight: 600;
   }
 
   .standings-loss-cell {
     padding: 10px 8px;
     text-align: center;
-    color: #f87171;
+    color: var(--miss);
   }
 
   .standings-diff-cell {
@@ -267,11 +267,11 @@
   }
 
   .standings-diff-cell.is-positive {
-    color: #34d399;
+    color: var(--hit);
   }
 
   .standings-diff-cell.is-negative {
-    color: #f87171;
+    color: var(--miss);
   }
 
   .standings-footer,
@@ -281,8 +281,8 @@
     gap: 16px;
     flex-wrap: wrap;
     padding: 12px 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(15, 23, 42, 0.62);
+    border-top: 1px solid var(--border-color);
+    background: var(--panel-bg);
     font-size: 0.78rem;
     color: var(--text-muted);
   }
@@ -321,15 +321,15 @@
   }
 
   .standings-legend-item i.is-champions {
-    background: #00d2d3;
+    background: var(--accent-cyan);
   }
 
   .standings-legend-item i.is-europa {
-    background: #f39c12;
+    background: var(--champion-gold);
   }
 
   .standings-legend-item i.is-relegation {
-    background: #e74c3c;
+    background: var(--miss);
   }
 
   .standings-legend-note {
@@ -351,7 +351,7 @@
   .standings-empty-title {
     margin: 0;
     font-size: 1rem;
-    color: #fff;
+    color: var(--text-main);
     font-weight: 600;
   }
 
@@ -367,19 +367,19 @@
       position: sticky;
       left: 0;
       z-index: 2;
-      background: #121d31;
+      background: var(--paper);
       box-shadow:
-        1px 0 0 rgba(255, 255, 255, 0.07),
+        1px 0 0 rgba(17, 24, 39, 0.07),
         8px 0 14px rgba(0, 0, 0, 0.22);
     }
 
     .standings-table.is-complete thead th:nth-child(2) {
       z-index: 3;
-      background: #0d1728;
+      background: var(--paper);
     }
 
     .standings-table.is-complete .standings-row:hover td:nth-child(2) {
-      background: #1a2740;
+      background: #e7dfce;
     }
   }
 

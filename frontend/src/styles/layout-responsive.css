@@ -11,7 +11,7 @@
   .radar-column {
     flex: 1;
     min-width: 300px;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--panel-bg);
     border-radius: 12px;
     padding: 20px;
   }
@@ -23,14 +23,14 @@
   }
 
   .last-match-card {
-    background: #1e293b;
+    background: var(--panel-bg);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 16px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: none;
     width: 100%;
     min-height: 145px;
     justify-content: center;
@@ -99,7 +99,7 @@
   .last-match-score {
     font-size: 1.3rem;
     font-weight: bold;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--panel-bg);
     padding: 6px 14px;
     border-radius: 6px;
     color: var(--accent-cyan);
@@ -437,7 +437,7 @@
   }
 
   .mb-match-card {
-    background: #1e293b;
+    background: var(--panel-bg);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     overflow: hidden;

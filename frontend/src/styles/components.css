@@ -88,7 +88,6 @@
     border-radius: 10px !important;
   }
 
-  /* Texto blanco a 4,5:1 o más en todo el degradado (también al pasar el ratón). */
   /* Botón principal: pegatina de papel sobre el fondo oscuro; tinta sobre papel. */
   .primary-btn {
     background: var(--paper);

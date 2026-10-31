@@ -26,7 +26,7 @@ export default function TeamFunnel({ rows, total, selected, onSelect }: TeamFunn
               type="button"
               aria-pressed={active}
               onClick={() => onSelect(row.stage)}
-              className={`block min-h-11 w-full rounded-[10px] border px-2.5 py-2 text-left transition-colors ${active ? 'border-cyan bg-[rgba(0,210,211,0.1)]' : 'border-transparent hover:bg-[rgba(255,255,255,0.05)]'}`}
+              className={`block min-h-11 w-full rounded-[10px] border px-2.5 py-2 text-left transition-colors ${active ? 'border-cyan bg-[rgba(11,95,116,0.1)]' : 'border-transparent hover:bg-[rgba(17,24,39,0.05)]'}`}
             >
               <span className="flex items-center gap-2">
                 <span
@@ -38,7 +38,7 @@ export default function TeamFunnel({ rows, total, selected, onSelect }: TeamFunn
                 <span className="shrink-0 font-bold tabular-nums text-main">{row.percent} %</span>
               </span>
               <span className="mt-1.5 flex items-center gap-2">
-                <span className="h-2 flex-1 overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)]">
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-[rgba(17,24,39,0.08)]">
                   <span
                     className={`block h-full rounded-full ${isSub ? 'bg-accent-text' : 'bg-cyan'}`}
                     style={{ width: `${row.percent}%` }}

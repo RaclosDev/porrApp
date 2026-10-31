@@ -1,3 +1,4 @@
+import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useMemo, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
@@ -79,11 +80,7 @@ function OfficialBracketView() {
   }, [part]);
 
   if (!part) {
-    return (
-      <section className="view-section flex justify-center items-center min-h-[50vh]">
-        <h2 className="text-muted">Cargando cuadro oficial...</h2>
-      </section>
-    );
+    return <PaperLoading label="Cargando cuadro oficial" />;
   }
 
   const renderSlot = (teamOrObj: BracketSlot | undefined, context?: OfficialSlotContext) => {
@@ -91,7 +88,7 @@ function OfficialBracketView() {
     const name = slotName(teamOrObj);
     const isProv = isObj ? teamOrObj.isProvisional : false;
 
-    let style: CSSProperties = isProv ? { border: '1px dashed #ff4757' } : {};
+    let style: CSSProperties = isProv ? { border: '1px dashed var(--miss)' } : {};
 
     let scoreContent = null;
     let oppName: string | null = null;
@@ -147,7 +144,7 @@ function OfficialBracketView() {
 
         scoreContent = (
           <span
-            className={`ml-1 text-[0.85em] font-bold bg-[rgba(255,255,255,0.05)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[#2ecc71]' : 'text-muted'}`}
+            className={`ml-1 text-[0.85em] font-bold bg-[rgba(17,24,39,0.06)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[var(--hit)]' : 'text-muted'}`}
           >
             {score}
           </span>
@@ -171,7 +168,7 @@ function OfficialBracketView() {
     if (isFeatured) {
       style = {
         ...style,
-        border: isLive ? '2px solid #ff4757' : '2px solid #00d2d3',
+        border: isLive ? '2px solid var(--miss)' : '2px solid var(--accent-cyan)',
         position: 'relative',
         zIndex: 10,
         fontWeight: 'bold',

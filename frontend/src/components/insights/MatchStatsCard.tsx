@@ -5,7 +5,7 @@ import { realSign, signShares, type Sign } from '../../utils/matchdayStats';
 const SIGN_STYLE: Record<Sign, { bar: string; label: string }> = {
   '1': { bar: 'bg-cyan', label: 'Gana local' },
   X: { bar: 'bg-[#94a3b8]', label: 'Empate' },
-  '2': { bar: 'bg-accent-text', label: 'Gana visitante' },
+  '2': { bar: 'bg-gold', label: 'Gana visitante' },
 };
 
 const kickoff = (value: string | null) => {
@@ -55,19 +55,21 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
     >
       <div className="flex items-center gap-2">
         <Team name={match.homeTeam} logo={match.homeTeamLogo} align="left" />
-        <span className="shrink-0 rounded-[8px] bg-[rgba(255,255,255,0.06)] px-2.5 py-1 text-[1.05rem] font-extrabold tabular-nums text-main">
+        <span className="shrink-0 rounded-[8px] bg-[rgba(17,24,39,0.06)] px-2.5 py-1 text-[1.05rem] font-extrabold tabular-nums text-main">
           {hasScore ? `${match.homeScore} - ${match.awayScore}` : 'vs'}
         </span>
         <Team name={match.awayTeam} logo={match.awayTeamLogo} align="right" />
       </div>
       <p className="mt-1.5 mb-3 text-center text-[0.78rem] text-muted">
-        <span className={match.live ? 'font-bold text-[#f87171]' : 'font-semibold'}>{status}</span>
+        <span className={match.live ? 'font-bold text-[var(--miss)]' : 'font-semibold'}>
+          {status}
+        </span>
         {when ? ` · ${when}` : ''} · {match.predictions} de {members}{' '}
         {members === 1 ? 'miembro' : 'miembros'} han pronosticado
       </p>
 
       <div
-        className="flex h-3 overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)]"
+        className="flex h-3 overflow-hidden rounded-full bg-[rgba(17,24,39,0.08)]"
         aria-hidden="true"
       >
         {shares.map((s) =>
@@ -86,7 +88,7 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
           return (
             <li
               key={s.sign}
-              className={`rounded-[8px] px-1 py-1.5 ${isReal ? 'bg-[rgba(74,222,128,0.1)] ring-1 ring-[rgba(74,222,128,0.4)]' : ''}`}
+              className={`rounded-[8px] px-1 py-1.5 ${isReal ? 'bg-[rgba(22,101,52,0.1)] ring-1 ring-[rgba(22,101,52,0.4)]' : ''}`}
             >
               <span className="block text-[0.95rem] font-extrabold tabular-nums text-main">
                 {s.sign} · {s.percent} %
@@ -117,7 +119,7 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
               return (
                 <li
                   key={`${s.home}-${s.away}`}
-                  className={`rounded-full border px-3 py-1 text-[0.88rem] tabular-nums ${exact ? 'border-[rgba(74,222,128,0.5)] bg-[rgba(74,222,128,0.1)] text-[var(--hit)]' : 'border-line text-main'}`}
+                  className={`rounded-full border px-3 py-1 text-[0.88rem] tabular-nums ${exact ? 'border-[rgba(22,101,52,0.5)] bg-[rgba(22,101,52,0.1)] text-[var(--hit)]' : 'border-line text-main'}`}
                 >
                   <strong>
                     {s.home}-{s.away}

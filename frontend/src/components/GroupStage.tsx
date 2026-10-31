@@ -209,14 +209,14 @@ function GroupStageForm({
                 className="group-card paper-panel album-sheet relative flex flex-col gap-2"
                 style={{ zIndex: 50 - idx }}
               >
-                <h3 className="mt-0 mb-[5px] mx-0 text-center border-b border-b-[rgba(255,255,255,0.1)] pb-1.5 text-[1.1rem]">
+                <h3 className="mt-0 mb-[5px] mx-0 text-center border-b border-b-line pb-1.5 text-[1.1rem]">
                   Grupo {groupName}
                 </h3>
 
                 <div className="grid grid-cols-[1fr_1fr] gap-1.5 mb-3">
                   {teams.map((t) => (
                     <div
-                      className="flex items-center justify-center gap-1.5 text-[0.85rem] bg-[rgba(255,255,255,0.1)] bg-none p-1.5 rounded-[4px] overflow-hidden"
+                      className="flex items-center justify-center gap-1.5 text-[0.85rem] bg-panel bg-none p-1.5 rounded-[4px] overflow-hidden"
                       key={t.name}
                     >
                       <Flag
@@ -315,7 +315,7 @@ function GroupStageForm({
             Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los 8 que
             pasarán a las eliminatorias (
             <strong
-              className={`${advancingThirds.length === 8 ? 'text-[#00b894]' : 'text-[#ff4757]'}`}
+              className={`${advancingThirds.length === 8 ? 'text-[var(--hit)]' : 'text-[var(--miss)]'}`}
             >
               {advancingThirds.length}/8
             </strong>
@@ -337,7 +337,7 @@ function GroupStageForm({
                     aria-pressed={isSelected}
                     aria-label={t}
                     onClick={() => toggleAdvancingThird(t)}
-                    className={`glass-btn flex items-center gap-2 py-2 px-3 ${isSelected ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isSelected ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.2)]'}`}
+                    className={`glass-btn flex items-center gap-2 py-2 px-3 ${isSelected ? 'bg-[color-mix(in_srgb,var(--accent-cyan)_12%,transparent)] bg-none' : 'bg-panel bg-none'} ${isSelected ? 'border border-cyan' : 'border border-line'}`}
                   >
                     <Flag
                       team={t}
@@ -366,7 +366,7 @@ function GroupStageForm({
             Ir a eliminatorias
           </button>
           {advancingThirds.length !== 8 && (
-            <p className="text-[#ff4757] text-[0.9rem] mt-2.5">
+            <p className="text-[var(--miss)] text-[0.9rem] mt-2.5">
               Selecciona exactamente 8 terceros para continuar.
             </p>
           )}

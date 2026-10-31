@@ -19,7 +19,7 @@
     margin: 0;
     font-size: clamp(1.3rem, 5vw, 1.65rem);
     font-weight: 800;
-    color: #fff;
+    color: var(--text-main);
     line-height: 1.2;
   }
 
@@ -65,9 +65,9 @@
     height: 42px;
     border-radius: 10px;
     padding: 0 34px 0 14px;
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background-color: rgba(17, 24, 39, 0.05);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
     font-family: inherit;
     font-size: 0.9rem;
     font-weight: 700;
@@ -87,8 +87,8 @@
   }
 
   .md-round-select option {
-    background: #0f172a;
-    color: #fff;
+    background: var(--panel-bg);
+    color: var(--text-main);
   }
 
   .md-filters {
@@ -106,8 +106,8 @@
     font-size: 0.78rem;
     font-weight: 700;
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(17, 24, 39, 0.04);
+    border: 1px solid var(--border-color);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -122,26 +122,26 @@
   }
 
   .md-filter.is-active {
-    color: #000;
-    background: #00d2d3;
-    border-color: #00d2d3;
+    color: var(--paper);
+    background: var(--accent-cyan);
+    border-color: var(--accent-cyan);
   }
 
   .md-filter.is-pending {
-    color: #f39c12;
+    color: var(--champion-gold);
     border-color: rgba(243, 156, 18, 0.4);
   }
 
   .md-filter.is-pending.is-active {
-    color: #000;
-    background: #f39c12;
-    border-color: #f39c12;
+    color: var(--paper);
+    background: var(--champion-gold);
+    border-color: var(--champion-gold);
   }
 
   .md-filter.is-finished.is-active {
-    color: #000;
-    background: #2ecc71;
-    border-color: #2ecc71;
+    color: var(--paper);
+    background: var(--hit);
+    border-color: var(--hit);
   }
 
   .md-match {
@@ -186,7 +186,7 @@
   }
 
   .md-predictions-icon-btn:focus-visible {
-    outline: 2px solid #00d2d3;
+    outline: 2px solid var(--accent-cyan);
     outline-offset: 2px;
   }
 
@@ -205,17 +205,17 @@
 
   .md-badge.is-finished {
     background: rgba(46, 204, 113, 0.18);
-    color: #2ecc71;
+    color: var(--hit);
   }
 
   .md-badge.is-locked {
     background: rgba(231, 76, 60, 0.15);
-    color: #ff7675;
+    color: var(--miss);
   }
 
   .md-badge.is-open {
-    background: rgba(0, 210, 211, 0.15);
-    color: #00d2d3;
+    background: rgba(11, 95, 116, 0.15);
+    color: var(--accent-cyan);
   }
 
   .md-team-rows {
@@ -245,7 +245,7 @@
     min-width: 0;
     font-size: 0.95rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-main);
     line-height: 1.25;
   }
 
@@ -259,9 +259,9 @@
     font-size: 1.15rem;
     font-weight: 800;
     border-radius: 8px;
-    background: rgba(0, 0, 0, 0.55);
-    border: 1px solid #00d2d3;
-    color: #00d2d3;
+    background: var(--panel-bg);
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
     appearance: textfield;
     -moz-appearance: textfield;
   }
@@ -273,8 +273,8 @@
   }
 
   .md-score-input:disabled {
-    background: rgba(0, 0, 0, 0.35);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--panel-bg);
+    border-color: rgba(17, 24, 39, 0.1);
     color: var(--text-muted);
   }
 
@@ -292,9 +292,9 @@
     font-family: inherit;
     font-size: 0.85rem;
     font-weight: 800;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(17, 24, 39, 0.04);
     color: var(--text-muted);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
     cursor: pointer;
     transition:
       background 0.2s ease,
@@ -302,9 +302,9 @@
   }
 
   .md-sign-btn.is-active {
-    background: linear-gradient(135deg, #00d2d3, #00a8ff);
-    color: #000;
-    border-color: #00d2d3;
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--accent-cyan);
   }
 
   .md-sign-btn:disabled {
@@ -322,9 +322,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(0, 210, 211, 0.1);
-    border: 1px solid rgba(0, 210, 211, 0.25);
-    color: #00d2d3;
+    background: rgba(11, 95, 116, 0.1);
+    border: 1px solid rgba(11, 95, 116, 0.25);
+    color: var(--accent-cyan);
     cursor: pointer;
   }
 

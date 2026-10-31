@@ -9,7 +9,7 @@ import MatchStatsCard from './MatchStatsCard';
 import { InsightsNotice } from './InsightCard';
 
 const stepClass =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-[rgba(255,255,255,0.05)] text-main disabled:cursor-not-allowed disabled:opacity-35';
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-[rgba(17,24,39,0.05)] text-main disabled:cursor-not-allowed disabled:opacity-35';
 
 /**
  * Estadísticas de una liga por jornadas: por cada partido que ya ha empezado, qué ha

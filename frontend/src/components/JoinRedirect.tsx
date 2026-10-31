@@ -1,3 +1,4 @@
+import PaperLoading from './PaperLoading';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
@@ -78,7 +79,9 @@ export default function JoinRedirect() {
     <section className="max-w-130 mx-auto my-8">
       <div className="paper-panel album-sheet landing-tape p-6 sm:p-8 flex flex-col gap-5">
         <p className="marker-ink m-0">Te han invitado a jugar</p>
-        {invitation.isPending && normalizedCode ? <p role="status">Cargando invitación…</p> : null}
+        {invitation.isPending && normalizedCode ? (
+          <PaperLoading label="Cargando invitación" embedded />
+        ) : null}
         {preview && (
           <>
             <div className="flex items-center gap-4 min-w-0">

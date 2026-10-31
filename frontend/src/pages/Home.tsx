@@ -107,11 +107,11 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
             posColor = 'var(--champion-gold)';
             borderLeftStyle = '3px solid var(--champion-gold)';
           } else if (idx === 1) {
-            posColor = '#e0e0e0';
-            borderLeftStyle = '3px solid #e0e0e0';
+            posColor = 'var(--text-muted)';
+            borderLeftStyle = '3px solid var(--text-muted)';
           } else if (idx === 2) {
-            posColor = '#cd7f32';
-            borderLeftStyle = '3px solid #cd7f32';
+            posColor = 'var(--champion-gold)';
+            borderLeftStyle = '3px solid var(--champion-gold)';
           }
 
           let statusDot = null;

@@ -192,12 +192,18 @@ function Leaderboard() {
       </div>
 
       <nav aria-label="Estadísticas de la liga" className="mb-5 flex justify-center gap-2">
-        <Link to="/stats" className="glass-btn inline-flex items-center gap-1.5 font-bold">
+        <Link
+          to="/stats"
+          className="glass-btn header-paper-action inline-flex items-center gap-1.5 font-bold"
+        >
           <BarChart3 size={16} aria-hidden="true" />
           {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
         </Link>
         {!isMatchday && (
-          <Link to="/search" className="glass-btn inline-flex items-center gap-1.5 font-bold">
+          <Link
+            to="/search"
+            className="glass-btn header-paper-action inline-flex items-center gap-1.5 font-bold"
+          >
             <Search size={16} aria-hidden="true" />
             Buscador
           </Link>
@@ -354,13 +360,22 @@ function Leaderboard() {
                     </tr>
                   </thead>
                   <tbody id="leaderboard-body-tab">
+                    {results.length === 0 && (
+                      <tr>
+                        <td colSpan={columns.length + 2}>
+                          <p role="status" className="py-6 text-muted">
+                            Todavía no hay participantes en la clasificación.
+                          </p>
+                        </td>
+                      </tr>
+                    )}
                     {results.map((r) => {
                       const rankDisplay = rankLabel(r.rank, lowestPaidRank);
 
                       const isPending = !r.paid;
                       const isMe = isOwnRow(r, userId, userName);
                       const bgStyle = isMe
-                        ? 'rgba(0, 210, 211, 0.15)'
+                        ? 'rgba(11, 95, 116, 0.08)'
                         : isPending
                           ? 'rgba(255, 165, 0, 0.05)'
                           : 'transparent';
@@ -406,7 +421,7 @@ function Leaderboard() {
 
                               {r.id != null && (
                                 <button
-                                  className="glass-btn bg-[rgba(56,_173,_246,_0.2)] bg-none text-[#38adf6] border border-[#38adf6] py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
+                                  className="glass-btn bg-[rgba(11,_95,_116,_0.08)] bg-none text-accent-text border border-accent py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (isMatchday) {
@@ -466,16 +481,16 @@ function Leaderboard() {
 
       {/* Plantilla oculta de la imagen para WhatsApp */}
       <div
-        className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 bg-[#0f0f1a] bg-none text-white box-border rounded-[15px]"
+        className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 paper-panel bg-[var(--paper)] bg-none text-main box-border rounded-[4px]"
         id="share-image-template"
         aria-hidden="true"
         style={{ fontFamily: "'Outfit', sans-serif" }}
       >
-        <div className="text-center mb-5 border-b-2 border-b-[#00d2d3] pb-2.5">
-          <h1 className="text-[#00d2d3] m-0 text-[28px] uppercase">
+        <div className="text-center mb-5 border-b-2 border-b-[var(--ink)] pb-2.5">
+          <h1 className="text-accent-text m-0 text-[28px] uppercase">
             🏆 {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'PorrApp'}
           </h1>
-          <p className="text-[#ff9f43] mt-[5px] mb-0 mx-0 text-[18px] font-bold">
+          <p className="text-muted mt-[5px] mb-0 mx-0 text-[18px] font-bold">
             Clasificación: {activeGroupName}
           </p>
         </div>
@@ -487,16 +502,16 @@ function Leaderboard() {
               const isMe = isOwnRow(r, userId, userName);
               return (
                 <div
-                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
+                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.08)] bg-none' : 'bg-panel bg-none'} ${isMe ? 'border border-accent' : 'border border-line'}`}
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
                       {rankDisplay}
                     </span>
-                    <span className="text-[1.1rem] font-bold text-white">{r.name}</span>
+                    <span className="text-[1.1rem] font-bold text-main">{r.name}</span>
                   </div>
-                  <span className="text-[1.2rem] font-bold text-[#00d2d3]">
+                  <span className="text-[1.2rem] font-bold text-accent-text">
                     {r.points.total} pts
                   </span>
                 </div>
@@ -510,16 +525,16 @@ function Leaderboard() {
               const isMe = isOwnRow(r, userId, userName);
               return (
                 <div
-                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(0,_210,_211,_0.15)] bg-none' : 'bg-[rgba(255,255,255,0.05)] bg-none'} ${isMe ? 'border border-[#00d2d3]' : 'border border-[rgba(255,255,255,0.05)]'}`}
+                  className={`flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.08)] bg-none' : 'bg-panel bg-none'} ${isMe ? 'border border-accent' : 'border border-line'}`}
                   key={r.key}
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
                       {rankDisplay}
                     </span>
-                    <span className="text-[1.1rem] font-bold text-white">{r.name}</span>
+                    <span className="text-[1.1rem] font-bold text-main">{r.name}</span>
                   </div>
-                  <span className="text-[1.2rem] font-bold text-[#00d2d3]">
+                  <span className="text-[1.2rem] font-bold text-accent-text">
                     {r.points.total} pts
                   </span>
                 </div>

@@ -1,3 +1,4 @@
+import { Skeleton } from '../SkeletonBlock';
 import { useState } from 'react';
 import Flag from '../Flag';
 import type { TopScorer } from '../../types/api';
@@ -24,22 +25,36 @@ function TopScorersPanel({
     return (
       <div className="paper-panel album-sheet w-full max-w-145 my-0 mx-auto flex flex-col gap-2">
         {!hideTitle && <h3 className="album-sheet-title">Pichichi</h3>}
-        <div className="text-center text-muted p-5 text-[0.9rem]">
-          {loading
-            ? 'Cargando goleadores…'
-            : error
+        {loading ? (
+          <div
+            role="status"
+            aria-label="Cargando goleadores"
+            aria-busy="true"
+            className="flex flex-col gap-4 p-5"
+          >
+            {[0, 1, 2, 3].map((row) => (
+              <Skeleton key={row} height={32} />
+            ))}
+          </div>
+        ) : (
+          <div
+            className="text-center text-muted p-5 text-[0.9rem]"
+            role={error ? 'alert' : 'status'}
+          >
+            {error
               ? 'No se han podido cargar los goleadores.'
               : 'Todavía no hay datos de goleadores disponibles.'}
-          {error && onRetry && (
-            <button
-              className="block mt-3 mb-0 mx-auto py-2 px-3.5 rounded-[8px] border border-cyan bg-[rgba(0,_210,_211,_0.12)] bg-none text-main font-bold cursor-pointer"
-              type="button"
-              onClick={onRetry}
-            >
-              Reintentar
-            </button>
-          )}
-        </div>
+            {error && onRetry && (
+              <button
+                className="block mt-3 mb-0 mx-auto py-2 px-3.5 rounded-[8px] border border-cyan bg-[rgba(11,_95,_116,_0.1)] bg-none text-main font-bold cursor-pointer"
+                type="button"
+                onClick={onRetry}
+              >
+                Reintentar
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   }

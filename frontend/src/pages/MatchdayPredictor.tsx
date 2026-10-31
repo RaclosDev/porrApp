@@ -1,3 +1,4 @@
+import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -63,14 +64,14 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         />
       )}
 
-      {md.isLoading && (
-        <div className="text-center p-10 text-muted">Cargando partidos y pronósticos...</div>
-      )}
+      {md.isLoading && <PaperLoading label="Cargando partidos y predicciones" embedded />}
 
       {md.isError && (
         <p role="alert">
           No se pudieron cargar los partidos.{' '}
-          <button onClick={() => md.refetch()}>Reintentar</button>
+          <button type="button" className="glass-btn" onClick={() => md.refetch()}>
+            Reintentar
+          </button>
         </p>
       )}
       {!md.isLoading && !md.isError && md.fixtures.length === 0 && (

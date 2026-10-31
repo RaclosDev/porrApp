@@ -1,3 +1,4 @@
+import PaperLoading from '../components/PaperLoading';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -15,10 +16,5 @@ export default function LinkedInEntry() {
     navigate('/', { replace: true });
   }, [navigate, changeGroup]);
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-muted text-[1rem]">
-      <span className="text-[2.5rem]">⚽</span>
-      <span>Cargando Porra Global...</span>
-    </div>
-  );
+  return <PaperLoading label="Cargando Porra Global" />;
 }

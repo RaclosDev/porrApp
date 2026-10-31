@@ -64,7 +64,7 @@ export default function TeamPicker({ value, onChange, groups, shortcuts }: TeamP
                 type="button"
                 aria-pressed={team === value}
                 onClick={() => onChange(team)}
-                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[0.88rem] font-semibold ${team === value ? 'border-cyan bg-[rgba(0,210,211,0.15)] text-cyan' : 'border-line bg-[rgba(255,255,255,0.04)] text-main'}`}
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[0.88rem] font-semibold ${team === value ? 'border-cyan bg-[rgba(11,95,116,0.15)] text-cyan' : 'border-line bg-[rgba(17,24,39,0.04)] text-main'}`}
               >
                 <TeamFlag team={team} />
                 {team}

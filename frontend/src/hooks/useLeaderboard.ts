@@ -178,7 +178,7 @@ export function useLeaderboard() {
       const template = document.getElementById('share-image-template');
       if (!template) throw new Error('Falta la plantilla de la imagen');
       const canvas = await html2canvas(template, {
-        backgroundColor: '#0f0f1a',
+        backgroundColor: '#f3ecdc',
         scale: 2,
         logging: false,
         useCORS: true,

@@ -1,3 +1,4 @@
+import PaperLoading from './PaperLoading';
 import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -84,9 +85,7 @@ export default function LeagueRulesModal({
                   Elige una liga para ver su puntuación.
                 </p>
               )}
-              {isLoading && (
-                <p className="m-0 text-[#4b5563] text-[0.9rem]">Cargando la puntuación…</p>
-              )}
+              {isLoading && <PaperLoading label="Cargando puntuación" embedded />}
               {error && (
                 <p className="m-0 text-[#4b5563] text-[0.9rem]" role="alert">
                   {errorMessage(error, 'No se pudo cargar la puntuación.')}

@@ -170,7 +170,7 @@ export default function ProfileSettingsModal({
               {!onboarding && (
                 <button
                   type="button"
-                  className="glass-btn py-1.5 px-3.5 font-bold rounded-[8px] bg-[rgba(0,_210,_211,_0.15)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-cyan cursor-pointer"
+                  className="glass-btn primary-btn py-1.5 px-3.5 font-bold"
                   onClick={saveName}
                   disabled={saving || finishing || unchanged || name.trim().length < 2}
                 >

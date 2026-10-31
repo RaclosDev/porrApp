@@ -60,7 +60,7 @@ const DemoPredictionPage = () => {
 
   if (!predictionId) {
     return (
-      <section className="view-section block p-6">
+      <section className="view-section block paper-panel album-sheet p-6">
         <h2>Mi Porra · Demo</h2>
         <p role="status">No se ha encontrado la porra pública de Raclos en esta liga.</p>
       </section>

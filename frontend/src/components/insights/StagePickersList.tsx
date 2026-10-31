@@ -26,7 +26,7 @@ function PersonButton({
         type="button"
         onClick={() => onOpen(entry.id)}
         aria-label={`Ver el cuadro de ${entry.name}${note ? ` (${note})` : ''}`}
-        className={`flex min-h-11 w-full items-center gap-2.5 rounded-[10px] border px-2.5 py-1.5 text-left transition-colors hover:bg-[rgba(255,255,255,0.06)] ${muted ? 'border-line bg-transparent' : 'border-[rgba(0,210,211,0.35)] bg-[rgba(0,210,211,0.08)]'}`}
+        className={`flex min-h-11 w-full items-center gap-2.5 rounded-[10px] border px-2.5 py-1.5 text-left transition-colors hover:bg-[rgba(17,24,39,0.06)] ${muted ? 'border-line bg-transparent' : 'border-[rgba(11,95,116,0.35)] bg-[rgba(11,95,116,0.08)]'}`}
       >
         <UserAvatar
           url={entry.userId !== null ? avatarByUserId.get(entry.userId) : null}
