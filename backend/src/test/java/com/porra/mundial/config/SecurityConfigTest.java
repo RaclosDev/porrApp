@@ -31,6 +31,9 @@ class SecurityConfigTest {
     @MockitoBean
     private JwtUtil jwtUtil;
 
+    @MockitoBean
+    private com.porra.mundial.repository.UserAccountRepository userAccountRepository;
+
     @Test
     void publicReadsAreAllowedWithoutLogin() throws Exception {
         when(topScorerService.getTopScorers()).thenReturn(List.of());

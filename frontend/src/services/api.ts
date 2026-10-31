@@ -37,7 +37,12 @@ import type {
   UserPreferences,
 } from '../types/api';
 import { ApiError, NETWORK_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE } from './apiError';
-import { hasStoredSession, LEGACY_TOKEN_KEY, SESSION_HINT_KEY } from './sessionHint';
+import {
+  hasStoredSession,
+  LEGACY_TOKEN_KEY,
+  SESSION_HINT_KEY,
+  SESSION_REVISION_KEY,
+} from './sessionHint';
 
 const API_BASE = '/api';
 
@@ -49,20 +54,45 @@ const API_BASE = '/api';
 const SESSION_PATH = '/auth/session';
 
 /** Resultado de recuperar la sesión al cargar la aplicación. */
-export type SessionRestore = 'restored' | 'none' | 'unreachable';
+export type SessionRestore = 'restored' | 'none' | 'unreachable' | 'superseded';
 
 let accessToken: string | null = null;
 let sessionRestore: Promise<SessionRestore> | null = null;
 let restoring = false;
-let pendingRefresh: Promise<string | null> | null = null;
-/** Cambia al cerrar sesión, para que un refresco que ya iba en camino no la reabra. */
+let pendingRefresh: { epoch: number; promise: Promise<string | null> } | null = null;
+/** Cambia al sustituir la sesión; rotar su access token conserva la generación. */
 let sessionEpoch = 0;
+let boundRevision = localStorage.getItem(SESSION_REVISION_KEY);
+let localSessionQueue: Promise<void> | null = null;
+
+function currentSession(epoch: number): boolean {
+  return epoch === sessionEpoch && boundRevision === localStorage.getItem(SESSION_REVISION_KEY);
+}
+
+function ensureSession(epoch: number): void {
+  if (!currentSession(epoch))
+    throw new ApiError(401, 'La sesión ha cambiado. Vuelve a intentarlo.');
+}
+
+function publishSessionChange(): void {
+  boundRevision = crypto.randomUUID();
+  localStorage.setItem(SESSION_REVISION_KEY, boundRevision);
+}
 
 export function getAuthToken(): string | null {
   return accessToken;
 }
 
 export function setAuthToken(token: string | null): void {
+  const changed = token !== accessToken;
+  if (changed) sessionEpoch++;
+  if (token) localStorage.removeItem(LEGACY_TOKEN_KEY);
+  storeAuthToken(token);
+  if (changed) publishSessionChange();
+  else if (token === null) boundRevision = localStorage.getItem(SESSION_REVISION_KEY);
+}
+
+function storeAuthToken(token: string | null): void {
   accessToken = token;
   if (token) {
     localStorage.setItem(SESSION_HINT_KEY, '1');
@@ -89,23 +119,30 @@ export function whenSessionRestored(): Promise<SessionRestore> | null {
 }
 
 async function restoreSession(): Promise<SessionRestore> {
+  const epoch = sessionEpoch;
   if (!hasStoredSession()) return 'none';
   try {
-    if (await withSessionLock(exchangeLegacyToken)) return 'restored';
-    return (await refreshSession()) ? 'restored' : 'none';
+    const exchanged = await withSessionLock(() => exchangeLegacyToken(epoch));
+    if (!currentSession(epoch)) return 'superseded';
+    if (exchanged) return 'restored';
+    const refreshed = await refreshSession();
+    if (!currentSession(epoch)) return 'superseded';
+    return refreshed ? 'restored' : 'none';
   } catch {
-    return 'unreachable';
+    return currentSession(epoch) ? 'unreachable' : 'superseded';
   }
 }
 
 /** Canjea el JWT de 7 días de la versión anterior, si queda, por una sesión con cookie. */
-async function exchangeLegacyToken(): Promise<boolean> {
+async function exchangeLegacyToken(epoch: number): Promise<boolean> {
+  if (!currentSession(epoch)) return false;
   // Se lee dentro del cerrojo: otra pestaña puede haberlo canjeado ya.
   const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
   if (!legacyToken) return false;
   const token = await requestSessionToken('exchange', legacyToken);
+  if (!currentSession(epoch)) return false;
   localStorage.removeItem(LEGACY_TOKEN_KEY);
-  if (token) setAuthToken(token);
+  if (token) storeAuthToken(token);
   return token !== null;
 }
 
@@ -114,19 +151,20 @@ async function exchangeLegacyToken(): Promise<boolean> {
  * Resuelve null si la sesión ha terminado; falla si no se ha podido hablar con el servidor.
  */
 function refreshSession(): Promise<string | null> {
-  if (!pendingRefresh) {
-    const epoch = sessionEpoch;
-    pendingRefresh = withSessionLock(() => requestSessionToken('refresh'))
-      .then((token) => {
-        if (epoch !== sessionEpoch) return null;
-        setAuthToken(token);
-        return token;
-      })
-      .finally(() => {
-        pendingRefresh = null;
-      });
+  const epoch = sessionEpoch;
+  if (!pendingRefresh || pendingRefresh.epoch !== epoch) {
+    const promise = withSessionLock(async () => {
+      if (!currentSession(epoch)) return null;
+      const token = await requestSessionToken('refresh');
+      if (!currentSession(epoch)) return null;
+      storeAuthToken(token);
+      return token;
+    }).finally(() => {
+      if (pendingRefresh?.epoch === epoch) pendingRefresh = null;
+    });
+    pendingRefresh = { epoch, promise };
   }
-  return pendingRefresh;
+  return pendingRefresh.promise;
 }
 
 /**
@@ -137,7 +175,16 @@ function withSessionLock<T>(task: () => Promise<T>): Promise<T> {
   if (typeof navigator !== 'undefined' && 'locks' in navigator) {
     return navigator.locks.request('porrapp-session', task);
   }
-  return task();
+  const result = localSessionQueue ? localSessionQueue.then(task) : task();
+  const settled = result.then(
+    () => {},
+    () => {},
+  );
+  localSessionQueue = settled;
+  void settled.then(() => {
+    if (localSessionQueue === settled) localSessionQueue = null;
+  });
+  return result;
 }
 
 /** POST a /api/auth/session/*: el access token nuevo, o null si el servidor rechaza la sesión. */
@@ -153,23 +200,30 @@ async function requestSessionToken(
 }
 
 /** Cierra la sesión de este dispositivo: olvida el token y revoca el refresh en el servidor. */
-export function endSession(): void {
+export function endSession(): Promise<void> {
   sessionEpoch++;
-  setAuthToken(null);
+  storeAuthToken(null);
   localStorage.removeItem(LEGACY_TOKEN_KEY);
-  // keepalive: la petición sale aunque la página se cierre o recargue justo después.
-  fetch(`${API_BASE}${SESSION_PATH}/logout`, { method: 'POST', keepalive: true }).catch(() => {});
+  publishSessionChange();
+  // Serializar también logout evita que un Set-Cookie anterior reabra la sesión.
+  return withSessionLock(async () => {
+    await fetch(`${API_BASE}${SESSION_PATH}/logout`, {
+      method: 'POST',
+      keepalive: true,
+      signal: requestSignal(undefined, DEFAULT_TIMEOUT_MS),
+    });
+  }).catch(() => {});
 }
 
 /** Token con el que repetir una petición rechazada con 401, o null si no hay sesión. */
-async function tokenAfter401(rejected: string | null): Promise<string | null> {
+async function tokenAfter401(rejected: string | null, epoch: number): Promise<string | null> {
+  if (!currentSession(epoch)) return null;
   const current = getAuthToken();
   // Otra petición ya lo renovó (o se cerró la sesión) mientras esta iba en camino.
   if (current !== rejected) return current;
-  const epoch = sessionEpoch;
   try {
     const token = await refreshSession();
-    if (!token && epoch === sessionEpoch) window.dispatchEvent(new Event('auth-expired'));
+    if (!token && currentSession(epoch)) window.dispatchEvent(new Event('auth-expired'));
     return token;
   } catch {
     // Sin respuesta del servidor: se mantiene la sesión y se devuelve el 401.
@@ -238,10 +292,21 @@ async function send(
   }
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  if (restoring && sessionRestore) await sessionRestore;
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+  waitForSession = true,
+): Promise<T> {
+  const epoch = sessionEpoch;
+  const ensureCurrentSession = () => {
+    if (!currentSession(epoch))
+      throw new ApiError(401, 'La sesión ha cambiado. Vuelve a intentarlo.');
+  };
+  if (waitForSession && restoring && sessionRestore) await sessionRestore;
+  ensureCurrentSession();
   const sentToken = getAuthToken();
   let res = await send(path, options, sentToken);
+  ensureCurrentSession();
 
   // Access token caducado: se renueva una vez y se repite la petición. En /auth/ no, porque
   // ahí un 401 (p. ej. una credencial de Google inválida) no es de la sesión.
@@ -250,18 +315,22 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     !path.startsWith('/auth/') &&
     (sentToken !== null || hasStoredSession())
   ) {
-    const token = await tokenAfter401(sentToken);
-    if (token) res = await send(path, options, token);
+    const token = await tokenAfter401(sentToken, epoch);
+    if (token && currentSession(epoch)) res = await send(path, options, token);
   }
+  ensureCurrentSession();
 
   if (!res.ok) {
     const body = await res.json?.().catch(() => ({}));
+    ensureCurrentSession();
     throw new ApiError(
       res.status,
       body?.error || body?.message || options.fallbackError || `Error del servidor (${res.status})`,
     );
   }
-  return res.json();
+  const body = await res.json();
+  ensureCurrentSession();
+  return body;
 }
 
 const query = (params: Record<string, string | number | null | undefined>): string => {
@@ -460,12 +529,27 @@ export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId
 
 // --- Usuario ---
 
-export const loginWithGoogle = (credential: string) =>
-  request<LoginResponse>('/auth/google/login', {
-    method: 'POST',
-    json: { credential },
-    fallbackError: 'Error al iniciar sesión con Google',
+export async function loginWithGoogle(credential: string): Promise<LoginResponse> {
+  const epoch = sessionEpoch;
+  // La restauración necesita este mismo cerrojo: esperarla dentro lo bloquearía.
+  if (restoring && sessionRestore) await sessionRestore;
+  ensureSession(epoch);
+  return withSessionLock(async () => {
+    ensureSession(epoch);
+    const data = await request<LoginResponse>(
+      '/auth/google/login',
+      {
+        method: 'POST',
+        json: { credential },
+        fallbackError: 'Error al iniciar sesión con Google',
+      },
+      false,
+    );
+    ensureSession(epoch);
+    setAuthToken(data.token);
+    return data;
   });
+}
 
 export const fetchMe = () => request<Me>('/users/me');
 
