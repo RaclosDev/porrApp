@@ -137,5 +137,11 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/test/setup.ts',
     exclude: ['node_modules/**'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/test/**', 'src/**/*.d.ts', 'src/main.tsx'],
+      reporter: ['text-summary', 'html', 'json-summary'],
+    },
   },
 });
