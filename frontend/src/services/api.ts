@@ -19,6 +19,7 @@ import type {
   MatchdayFixture,
   MatchdayPoints,
   MatchdayPredictionInput,
+  MatchdayStats,
   MatchdaySubmissionResult,
   Me,
   ParticipantScore,
@@ -344,3 +345,9 @@ export const uploadMyAvatar = (blob: Blob) =>
 
 export const deleteMyAvatar = () =>
   request<ProfileResponse>('/users/me/avatar', { method: 'DELETE' });
+
+// --- Estadísticas ---
+
+/** Reparto 1X2 y marcadores más repetidos de los partidos ya empezados de una liga por jornadas. */
+export const fetchMatchdayStats = (groupId: number | string) =>
+  request<MatchdayStats>(`/predictions/matchday/stats${query({ groupId })}`);
