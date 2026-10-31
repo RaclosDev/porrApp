@@ -11,7 +11,8 @@ Los umbrales actuales conservan la cobertura observada durante la revisión del 
 ## Qué prueban los distintos niveles
 
 - Las pruebas unitarias verifican reglas de puntuación, permisos, estado de sesión, consultas y comportamiento de componentes.
-- Las integraciones con PostgreSQL verifican migraciones, restricciones reales, persistencia y arranque de Spring. Un mock de repositorio no reproduce restricciones únicas ni el orden de las escrituras de Hibernate.
+- Las pruebas de concurrencia usan respuestas diferidas para comprobar cambios de cuenta, orden de las operaciones de sesión, pagos simultáneos y respuestas de una liga que llegan después de seleccionar otra. Las ráfagas de WebSocket se prueban con consultas activas, contando peticiones y cancelaciones.
+- Las integraciones con PostgreSQL verifican migraciones, restricciones reales, persistencia y arranque de Spring. También comprueban que una importación fallida revierte partidos y puntuaciones, conserva las cachés anteriores y no emite actualizaciones de resultados. Un mock de repositorio no reproduce restricciones únicas ni el orden de las escrituras de Hibernate.
 - Las pruebas de la PWA usan Cache Storage y un service worker real en Chromium. Comprueban que una actualización borra la caché antigua de la API y que una petición sin conexión no recupera datos privados de otra sesión.
 - Las pruebas de interfaz cubren la portada, el diálogo de acceso y la entrada y salida de la demo, en tamaños de escritorio y móvil. La API está simulada y los servicios externos bloqueados. No comprueban el consentimiento de Google, todas las pantallas, ni todos los navegadores.
 
