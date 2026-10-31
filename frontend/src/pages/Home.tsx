@@ -10,6 +10,8 @@ import BestThirdsPanel from '../components/Home/BestThirdsPanel';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
 import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
+import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
+import InkStamp from '../components/InkStamp';
 
 /**
  * Página principal: estado del torneo oficial, clasificación por grupos en vivo,
@@ -87,10 +89,10 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
     return (
       <div
         key={groupName}
-        className={`group-card relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
+        className={`group-card paper-panel album-sheet relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
         role="button"
         tabIndex={0}
-        aria-label={`Ver detalles del Grupo ${groupName}`}
+        aria-label={`Ver detalles del grupo ${groupName}`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -105,12 +107,12 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
         }}
       >
         <div className="flex justify-between items-center mb-2.5">
-          <h3 className="m-0">Grupo {groupName}</h3>
+          <h3 className="album-sheet-title mb-0 text-left">Grupo {groupName}</h3>
           <div className="flex gap-2 text-[0.75em] font-bold text-muted pr-1.5">
             <span className="w-5 text-center">DG</span>
             <span className="w-4 text-center">GF</span>
             <span className="w-4.5 text-center">FP</span>
-            <span className="w-6 text-center">PTS</span>
+            <span className="w-6 text-center">Pts</span>
           </div>
         </div>
 
@@ -129,27 +131,23 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
           }
 
           let statusDot = null;
-          if (team.stats.status === 5) {
+          if (isMathematicallyQualified(team.stats.status)) {
             statusDot = (
-              <span
-                className="w-2 h-2 bg-[#3498db] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Clasificado Matemáticamente"
-                aria-label="Clasificado Matemáticamente"
-              />
+              <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente" className="ml-1">
+                Clas.
+              </InkStamp>
             );
-          } else if (team.stats.status === -1) {
+          } else if (isMathematicallyEliminated(team.stats.status)) {
             statusDot = (
-              <span
-                className="w-2 h-2 bg-[#ff4757] bg-none rounded-full ml-1 shrink-0 inline-block"
-                title="Eliminado Matemáticamente"
-                aria-label="Eliminado Matemáticamente"
-              />
+              <InkStamp size="sm" label="Eliminado matemáticamente" className="ml-1">
+                Elim.
+              </InkStamp>
             );
           }
 
           return (
             <div
-              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgba(255,_255,_255,_0.03)] bg-none' : 'bg-transparent bg-none'}`}
+              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgba(17,_24,_39,_0.04)] bg-none' : 'bg-transparent bg-none'}`}
               key={team.name}
               style={{ borderLeft: borderLeftStyle, borderRadius: '0 6px 6px 0' }}
             >
@@ -172,7 +170,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
                 >
                   {team.stats.fp || 0}
                 </span>
-                <span className="font-bold bg-[rgba(255,255,255,0.08)] bg-none py-0.5 px-1.5 rounded-[4px] text-white w-6 text-center">
+                <span className="font-bold bg-[rgba(17,24,39,0.08)] bg-none py-0.5 px-1.5 rounded-[4px] text-main w-6 text-center">
                   {team.stats.pts}
                 </span>
               </div>
@@ -188,59 +186,29 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
       {/* Pestañas y paneles de móvil (sólo en modo grupos) */}
       <div className="mb-tabs hide-on-desktop w-full max-w-105 mt-0 mb-5 mx-auto justify-center">
         <button
-          className={`mb-tab ${activeMobilePanel === 'thirds' ? 'mb-tab-active' : ''}`}
+          type="button"
+          aria-expanded={activeMobilePanel === 'thirds'}
+          className={`mb-tab flex-1 text-center ${activeMobilePanel === 'thirds' ? 'mb-tab-active' : ''}`}
           onClick={() => setActiveMobilePanel((p) => (p === 'thirds' ? null : 'thirds'))}
-          style={{
-            flex: 1,
-            textAlign: 'center',
-            ...(activeMobilePanel === 'thirds'
-              ? {
-                  background: 'rgba(0, 206, 201, 0.18)',
-                  borderColor: '#00cec9',
-                  color: '#00cec9',
-                  boxShadow: 'none',
-                }
-              : {}),
-          }}
         >
-          🥉 Terceros
+          Terceros
         </button>
         <button
-          className={`mb-tab ${activeMobilePanel === 'live' ? 'mb-tab-active' : ''}`}
+          type="button"
+          aria-expanded={activeMobilePanel === 'live'}
+          className={`mb-tab flex-1 text-center ${activeMobilePanel === 'live' ? 'mb-tab-active' : ''}`}
           onClick={() => setActiveMobilePanel((p) => (p === 'live' ? null : 'live'))}
-          style={{
-            flex: 1,
-            textAlign: 'center',
-            ...(activeMobilePanel === 'live'
-              ? {
-                  background: 'rgba(255, 71, 87, 0.18)',
-                  borderColor: '#ff4757',
-                  color: '#ff4757',
-                  boxShadow: 'none',
-                }
-              : {}),
-          }}
         >
-          🔴 Partidos
+          Partidos
         </button>
         {activeGroupPichichi && (
           <button
-            className={`mb-tab ${activeMobilePanel === 'scorers' ? 'mb-tab-active' : ''}`}
+            type="button"
+            aria-expanded={activeMobilePanel === 'scorers'}
+            className={`mb-tab flex-1 text-center ${activeMobilePanel === 'scorers' ? 'mb-tab-active' : ''}`}
             onClick={() => setActiveMobilePanel((p) => (p === 'scorers' ? null : 'scorers'))}
-            style={{
-              flex: 1,
-              textAlign: 'center',
-              ...(activeMobilePanel === 'scorers'
-                ? {
-                    background: 'rgba(255, 211, 42, 0.18)',
-                    borderColor: '#ffd32a',
-                    color: '#ffd32a',
-                    boxShadow: 'none',
-                  }
-                : {}),
-            }}
           >
-            🏆 Pichichi
+            Pichichi
           </button>
         )}
       </div>

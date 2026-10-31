@@ -6,11 +6,11 @@ import { useAppStore } from '../store/useAppStore';
 import { errorMessage } from '../utils/errors';
 
 /**
- * Inicia sesión con la credencial de Google: guarda el token, rellena el store
+ * Inicia sesión con la credencial de Google: guarda el access token en memoria, rellena el store
  * y lleva a "Mis ligas" si el usuario aún no ha elegido ninguna.
  * Devuelve si el inicio de sesión ha ido bien.
  */
-export function useGoogleSignIn() {
+export function useGoogleSignIn({ navigateAfterLogin = true } = {}) {
   const navigate = useNavigate();
 
   return async (credentialResponse: CredentialResponse): Promise<boolean> => {
@@ -21,8 +21,6 @@ export function useGoogleSignIn() {
     try {
       const data = await loginWithGoogle(credentialResponse.credential);
       setAuthToken(data.token);
-      localStorage.setItem('my_prediction_name', data.participantName);
-      if (data.userId) localStorage.setItem('my_user_id', String(data.userId));
 
       const store = useAppStore.getState();
       store.setIsAuthenticated(true);
@@ -35,7 +33,11 @@ export function useGoogleSignIn() {
       }
 
       toast.success(`¡Bienvenido, ${data.participantName}!`);
-      if (!localStorage.getItem('activeGroupId')) navigate('/mis-ligas');
+      if (navigateAfterLogin) {
+        const pendingCode = localStorage.getItem('pendingJoinCode');
+        if (pendingCode) navigate(`/join/${encodeURIComponent(pendingCode)}`, { replace: true });
+        else if (!localStorage.getItem('activeGroupId')) navigate('/mis-ligas');
+      }
       return true;
     } catch (err) {
       toast.error(errorMessage(err, 'Error al iniciar sesión con Google'));
