@@ -1,6 +1,6 @@
 package com.porra.mundial.sports;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import java.util.Collections;
 import java.util.List;

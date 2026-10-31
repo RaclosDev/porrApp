@@ -1,6 +1,7 @@
 package com.porra.mundial.config;
 
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.CoreErrorCode;
 import org.flywaydb.core.api.ErrorCode;
 import org.flywaydb.core.api.ErrorDetails;
 import org.flywaydb.core.api.output.ValidateOutput;
@@ -30,8 +31,8 @@ class FlywayConfigTest {
 
     @Test
     void repairsOnlyTheKnownV38ChecksumDrift() {
-        Flyway flyway = flywayWith(problem("38", ErrorCode.CHECKSUM_MISMATCH),
-                problem("42", ErrorCode.RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED));
+        Flyway flyway = flywayWith(problem("38", CoreErrorCode.CHECKSUM_MISMATCH),
+                problem("42", CoreErrorCode.RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED));
         runStrategy(flyway);
         verify(flyway).repair();
         verify(flyway).migrate();
@@ -39,7 +40,7 @@ class FlywayConfigTest {
 
     @Test
     void doesNotRepairOtherEditedMigrations() {
-        Flyway flyway = flywayWith(problem("38", ErrorCode.CHECKSUM_MISMATCH), problem("37", ErrorCode.CHECKSUM_MISMATCH));
+        Flyway flyway = flywayWith(problem("38", CoreErrorCode.CHECKSUM_MISMATCH), problem("37", CoreErrorCode.CHECKSUM_MISMATCH));
         runStrategy(flyway);
         verify(flyway, never()).repair();
         verify(flyway).migrate();
@@ -47,7 +48,7 @@ class FlywayConfigTest {
 
     @Test
     void doesNotRepairWhenOnlyPendingMigrations() {
-        Flyway flyway = flywayWith(problem("42", ErrorCode.RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED));
+        Flyway flyway = flywayWith(problem("42", CoreErrorCode.RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED));
         runStrategy(flyway);
         verify(flyway, never()).repair();
         verify(flyway).migrate();
