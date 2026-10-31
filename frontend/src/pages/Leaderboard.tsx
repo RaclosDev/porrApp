@@ -1,7 +1,7 @@
 import PaperLoading from '../components/PaperLoading';
 import React, { useState, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Search, Share2 } from 'lucide-react';
 import { useLeaderboard, type SortColumn } from '../hooks/useLeaderboard';
 
 interface LeaderboardColumn {
@@ -11,7 +11,6 @@ interface LeaderboardColumn {
   kind: 'total' | 'matchday' | 'detail';
 }
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
-import WhatsAppIcon from '../components/WhatsAppIcon';
 import { UserAvatar } from '../components/Avatar';
 import StickerCard, { type StickerLeader } from '../components/StickerCard';
 
@@ -89,7 +88,7 @@ function Leaderboard() {
   );
 
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('table'); // 'table' | 'evolution'
+  const [activeTab, setActiveTab] = useState<'table' | 'evolution'>('table');
   // En móvil el desglose por fase va oculto hasta que se pide.
   const [showDetail, setShowDetail] = useState(false);
 
@@ -152,42 +151,64 @@ function Leaderboard() {
 
   return (
     <section id="view-leaderboard" className="view-section block">
-      <div hidden style={{ display: 'none' }} aria-hidden="true">
-        <div
-          role="tablist"
-          aria-label="Vista de la clasificación"
-          className="paper-tabs w-auto relative"
-        >
-          <button
-            className={`paper-tab ${activeTab === 'table' ? 'is-active' : ''}`}
-            type="button"
-            onClick={() => setActiveTab('table')}
-            role="tab"
-            id="leaderboard-tab-table"
-            aria-selected={activeTab === 'table'}
+      <div className="flex flex-wrap justify-center items-center gap-3 mb-5">
+        {!isMatchday && (
+          <div
+            role="tablist"
+            aria-label="Vista de la clasificación"
+            className="paper-tabs w-auto relative"
+            onKeyDown={(event) => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const next =
+                event.key === 'Home'
+                  ? 'table'
+                  : event.key === 'End'
+                    ? 'evolution'
+                    : activeTab === 'table'
+                      ? 'evolution'
+                      : 'table';
+              setActiveTab(next);
+              document.getElementById(`leaderboard-tab-${next}`)?.focus();
+            }}
           >
-            Ranking
-          </button>
-          <button
-            className={`paper-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
-            type="button"
-            onClick={() => setActiveTab('evolution')}
-            role="tab"
-            id="leaderboard-tab-evolution"
-            aria-selected={activeTab === 'evolution'}
-          >
-            Gráfica
-          </button>
-        </div>
+            <button
+              className={`paper-tab ${activeTab === 'table' ? 'is-active' : ''}`}
+              type="button"
+              onClick={() => setActiveTab('table')}
+              role="tab"
+              id="leaderboard-tab-table"
+              aria-selected={activeTab === 'table'}
+              aria-controls="leaderboard-panel"
+              tabIndex={activeTab === 'table' ? 0 : -1}
+            >
+              Ranking
+            </button>
+            <button
+              className={`paper-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
+              type="button"
+              onClick={() => setActiveTab('evolution')}
+              role="tab"
+              id="leaderboard-tab-evolution"
+              aria-selected={activeTab === 'evolution'}
+              aria-controls="leaderboard-panel"
+              tabIndex={activeTab === 'evolution' ? 0 : -1}
+            >
+              Gráfica
+            </button>
+          </div>
+        )}
         <button
           className={`glass-btn primary-btn py-2 px-3.5 min-h-11 min-w-11 shrink-0 ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           id="btn-share-wa"
           onClick={handleShare}
           disabled={sharing}
-          title="Compartir en WhatsApp"
-          aria-label="Compartir en WhatsApp"
+          title="Compartir clasificación"
+          aria-label="Compartir clasificación"
+          aria-busy={sharing}
         >
-          {sharing ? <span className="text-[1rem]">⏳</span> : <WhatsAppIcon size={24} />}
+          <Share2 size={20} aria-hidden="true" />
+          <span className="ml-2">{sharing ? 'Generando…' : 'Compartir'}</span>
         </button>
       </div>
 
@@ -210,276 +231,287 @@ function Leaderboard() {
         )}
       </nav>
 
-      {activeTab === 'evolution' ? (
-        <div className="w-full mt-2.5">
-          <Suspense fallback={<PaperLoading label="Cargando gráfica" />}>
-            <EvolutionChart
-              validResults={validResults}
-              userName={userName}
-              allGames={state.allGames}
-            />
-          </Suspense>
-        </div>
-      ) : (
-        <>
-          {isMatchday && summaryMatchday && (
-            <div className="lb-matchday-panel paper-panel album-sheet">
-              <div className="lb-matchday-summary">
-                <div className="lb-matchday-heading">
-                  <span className="lb-matchday-eyebrow">
-                    <CalendarDays size={14} aria-hidden="true" />
-                    {selectedMatchdayInfo?.current ? 'Jornada actual' : 'Jornada seleccionada'}
-                  </span>
-                  <div className="lb-matchday-title-row">
-                    <strong className="lb-matchday-title">{summaryMatchday.label}</strong>
-                    <span
-                      className={`lb-matchday-status ${
-                        summaryMatchday.finished ? 'is-finished' : 'is-live'
-                      }`}
-                    >
-                      {summaryMatchday.finished ? 'Finalizada' : 'En juego'}
-                    </span>
-                  </div>
-                  {summaryMatchday.matchCount > 0 && (
-                    <span className="lb-matchday-meta">
-                      {summaryMatchday.matchCount}{' '}
-                      {summaryMatchday.matchCount === 1 ? 'partido' : 'partidos'}
-                    </span>
-                  )}
-                </div>
-
-                <div className="lb-matchday-kpis">
-                  <div className="lb-matchday-kpi">
-                    <span>Tus puntos</span>
-                    <strong>{matchdayStats?.myPoints ?? 0}</strong>
-                  </div>
-                  <div className="lb-matchday-kpi">
-                    <span>Líder de la jornada</span>
-                    <strong>
-                      {matchdayStats?.leader
-                        ? `${matchdayStats.leader.name} · ${matchdayStats.leader.points.matchday} pts`
-                        : 'Sin puntos todavía'}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lb-matchday-nav">
-                <button
-                  type="button"
-                  className="lb-matchday-step"
-                  onClick={() => handleStepMatchday(-1)}
-                  disabled={!canGoPrevMatchday}
-                  aria-label="Jornada anterior"
-                >
-                  <ChevronLeft size={18} aria-hidden="true" />
-                </button>
-
-                <select
-                  className="lb-matchday-select"
-                  value={selectedMatchday || ''}
-                  onChange={(event) => handleSelectMatchday(event.target.value)}
-                  aria-label="Seleccionar jornada"
-                >
-                  {matchdays.map((matchday) => (
-                    <option key={matchday.label} value={matchday.label}>
-                      {matchday.label}
-                      {matchday.current ? ' · actual' : ''}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  className="lb-matchday-step"
-                  onClick={() => handleStepMatchday(1)}
-                  disabled={!canGoNextMatchday}
-                  aria-label="Jornada siguiente"
-                >
-                  <ChevronRight size={18} aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {podium.length === 3 && (
-            <ul className="ranking-podium" aria-label="Podio">
-              {podium.map((row) => (
-                <li
-                  key={row.rank}
-                  className={`ranking-podium-place ranking-podium-place-${row.rank}`}
-                >
-                  <StickerCard leader={row} featured={row.rank === 1} compact />
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="flex gap-5 items-start flex-wrap justify-center w-full">
-            <div
-              className={`table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto ${showDetail ? 'show-detail' : ''}`}
-            >
-              <button
-                type="button"
-                className="lb-detail-toggle glass-btn py-1.5 px-3 text-[0.8rem]"
-                aria-pressed={showDetail}
-                onClick={() => setShowDetail((v) => !v)}
-              >
-                {showDetail ? 'Ocultar desglose' : 'Ver desglose por fase'}
-              </button>
-              <div className="ranking-table-scroll">
-                <table className="leaderboard-table">
-                  <thead>
-                    <tr>
-                      <th>Pos</th>
-                      <th>Participante</th>
-                      {columns.map((col) => (
-                        <th
-                          key={col.key}
-                          className={columnClass(col)}
-                          style={thStyle(col.key)}
-                          aria-sort={
-                            sortColumn === col.key
-                              ? sortDirection === 'asc'
-                                ? 'ascending'
-                                : 'descending'
-                              : 'none'
-                          }
-                        >
-                          <button
-                            type="button"
-                            className="leaderboard-sort-button"
-                            onClick={() => handleSort(col.key)}
-                            title={`Ordenar por ${col.label}`}
-                            aria-label={`Ordenar por ${col.label}`}
-                          >
-                            {col.shortLabel || col.label}
-                            <span aria-hidden="true">{sortIndicator(col.key)}</span>
-                          </button>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody id="leaderboard-body-tab">
-                    {results.length === 0 && (
-                      <tr>
-                        <td colSpan={columns.length + 2}>
-                          <p role="status" className="py-6 text-muted">
-                            Todavía no hay participantes en la clasificación.
-                          </p>
-                        </td>
-                      </tr>
-                    )}
-                    {results.map((r) => {
-                      const rankDisplay = rankLabel(r.rank, lowestPaidRank);
-
-                      const isPending = !r.paid;
-                      const isMe = isOwnRow(r, userId, userName);
-                      const bgStyle = isMe
-                        ? 'rgba(11, 95, 116, 0.08)'
-                        : isPending
-                          ? 'rgba(255, 165, 0, 0.05)'
-                          : 'transparent';
-
-                      const rowStyle = {
-                        background: bgStyle,
-                        boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
-                      };
-
-                      return (
-                        <tr key={r.key} style={rowStyle}>
-                          <td className="text-[1.2em] text-center">{rankDisplay}</td>
-                          <td>
-                            <div className="flex justify-start items-center flex-nowrap gap-1.5">
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <UserAvatar
-                                  url={r.avatarUrl}
-                                  userId={r.userId}
-                                  name={r.name}
-                                  size={28}
-                                />
-                                <div className="flex items-center flex-wrap gap-1.5 min-w-0">
-                                  <span className="text-[1.1em]">
-                                    <strong>
-                                      {r.name}
-                                      {isMe && (
-                                        <span className="text-accent-text ml-[5px] text-[0.8em]">
-                                          (Tú)
-                                        </span>
-                                      )}
-                                    </strong>
-                                  </span>
-                                  {isPending && (
-                                    <span
-                                      className="lb-unpaid-badge"
-                                      title="Pago pendiente. El administrador debe marcarlo como pagado para mostrar sus puntos."
-                                    >
-                                      Sin pagar
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {r.id != null && (
-                                <button
-                                  className="glass-btn bg-[rgba(11,_95,_116,_0.08)] bg-none text-accent-text border border-accent py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 text-[0.95rem] leading-[1] inline-flex items-center justify-center"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isMatchday) {
-                                      navigate('/jornadas');
-                                    } else {
-                                      state.setViewerPredictionId(r.id);
-                                    }
-                                  }}
-                                  title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
-                                >
-                                  <span aria-hidden="true" className="poster-title text-[0.75rem]">
-                                    Ver
-                                  </span>
-                                  <span className="sr-only">
-                                    {isMatchday ? 'Ver jornadas' : 'Ver porra'}
-                                  </span>
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          {columns.map((col) => (
-                            <td
-                              key={col.key}
-                              className={columnClass(col)}
-                              style={
-                                col.kind === 'total'
-                                  ? {
-                                      color: 'var(--accent-text)',
-                                      fontWeight: 'bold',
-                                      fontSize: '1.1em',
-                                      textAlign: 'center',
-                                    }
-                                  : undefined
-                              }
-                            >
-                              {col.kind === 'total' ? (
-                                <span className="lb-total-value">
-                                  {r.paid ? `${r.points.total ?? 0} pts` : '-'}
-                                </span>
-                              ) : r.paid ? (
-                                `${r.points[col.key] ?? 0}`
-                              ) : (
-                                '-'
-                              )}
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+      <div
+        id="leaderboard-panel"
+        role={isMatchday ? 'region' : 'tabpanel'}
+        aria-label={isMatchday ? 'Clasificación' : undefined}
+        aria-labelledby={isMatchday ? undefined : `leaderboard-tab-${activeTab}`}
+        tabIndex={isMatchday ? undefined : 0}
+      >
+        {!isMatchday && activeTab === 'evolution' ? (
+          <div className="w-full mt-2.5">
+            <Suspense fallback={<PaperLoading label="Cargando gráfica" />}>
+              <EvolutionChart
+                validResults={validResults}
+                userName={userName}
+                allGames={state.allGames}
+              />
+            </Suspense>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            {isMatchday && summaryMatchday && (
+              <div className="lb-matchday-panel paper-panel album-sheet">
+                <div className="lb-matchday-summary">
+                  <div className="lb-matchday-heading">
+                    <span className="lb-matchday-eyebrow">
+                      <CalendarDays size={14} aria-hidden="true" />
+                      {selectedMatchdayInfo?.current ? 'Jornada actual' : 'Jornada seleccionada'}
+                    </span>
+                    <div className="lb-matchday-title-row">
+                      <strong className="lb-matchday-title">{summaryMatchday.label}</strong>
+                      <span
+                        className={`lb-matchday-status ${
+                          summaryMatchday.finished ? 'is-finished' : 'is-live'
+                        }`}
+                      >
+                        {summaryMatchday.finished ? 'Finalizada' : 'En juego'}
+                      </span>
+                    </div>
+                    {summaryMatchday.matchCount > 0 && (
+                      <span className="lb-matchday-meta">
+                        {summaryMatchday.matchCount}{' '}
+                        {summaryMatchday.matchCount === 1 ? 'partido' : 'partidos'}
+                      </span>
+                    )}
+                  </div>
 
-      {/* Plantilla oculta de la imagen para WhatsApp */}
+                  <div className="lb-matchday-kpis">
+                    <div className="lb-matchday-kpi">
+                      <span>Tus puntos</span>
+                      <strong>{matchdayStats?.myPoints ?? 0}</strong>
+                    </div>
+                    <div className="lb-matchday-kpi">
+                      <span>Líder de la jornada</span>
+                      <strong>
+                        {matchdayStats?.leader
+                          ? `${matchdayStats.leader.name} · ${matchdayStats.leader.points.matchday} pts`
+                          : 'Sin puntos todavía'}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lb-matchday-nav">
+                  <button
+                    type="button"
+                    className="lb-matchday-step"
+                    onClick={() => handleStepMatchday(-1)}
+                    disabled={!canGoPrevMatchday}
+                    aria-label="Jornada anterior"
+                  >
+                    <ChevronLeft size={18} aria-hidden="true" />
+                  </button>
+
+                  <select
+                    className="lb-matchday-select"
+                    value={selectedMatchday || ''}
+                    onChange={(event) => handleSelectMatchday(event.target.value)}
+                    aria-label="Seleccionar jornada"
+                  >
+                    {matchdays.map((matchday) => (
+                      <option key={matchday.label} value={matchday.label}>
+                        {matchday.label}
+                        {matchday.current ? ' · actual' : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    className="lb-matchday-step"
+                    onClick={() => handleStepMatchday(1)}
+                    disabled={!canGoNextMatchday}
+                    aria-label="Jornada siguiente"
+                  >
+                    <ChevronRight size={18} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {podium.length === 3 && (
+              <ul className="ranking-podium" aria-label="Podio">
+                {podium.map((row) => (
+                  <li
+                    key={row.rank}
+                    className={`ranking-podium-place ranking-podium-place-${row.rank}`}
+                  >
+                    <StickerCard leader={row} featured={row.rank === 1} compact />
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex gap-5 items-start flex-wrap justify-center w-full">
+              <div
+                className={`table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto ${showDetail ? 'show-detail' : ''}`}
+              >
+                <button
+                  type="button"
+                  className="lb-detail-toggle glass-btn py-1.5 px-3 text-[0.8rem]"
+                  aria-pressed={showDetail}
+                  onClick={() => setShowDetail((v) => !v)}
+                >
+                  {showDetail ? 'Ocultar desglose' : 'Ver desglose por fase'}
+                </button>
+                <div className="ranking-table-scroll">
+                  <table className="leaderboard-table">
+                    <thead>
+                      <tr>
+                        <th>Pos</th>
+                        <th>Participante</th>
+                        {columns.map((col) => (
+                          <th
+                            key={col.key}
+                            className={columnClass(col)}
+                            style={thStyle(col.key)}
+                            aria-sort={
+                              sortColumn === col.key
+                                ? sortDirection === 'asc'
+                                  ? 'ascending'
+                                  : 'descending'
+                                : 'none'
+                            }
+                          >
+                            <button
+                              type="button"
+                              className="leaderboard-sort-button"
+                              onClick={() => handleSort(col.key)}
+                              title={`Ordenar por ${col.label}`}
+                              aria-label={`Ordenar por ${col.label}`}
+                            >
+                              {col.shortLabel || col.label}
+                              <span aria-hidden="true">{sortIndicator(col.key)}</span>
+                            </button>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody id="leaderboard-body-tab">
+                      {results.length === 0 && (
+                        <tr>
+                          <td colSpan={columns.length + 2}>
+                            <p role="status" className="py-6 text-muted">
+                              Todavía no hay participantes en la clasificación.
+                            </p>
+                          </td>
+                        </tr>
+                      )}
+                      {results.map((r) => {
+                        const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+
+                        const isPending = !r.paid;
+                        const isMe = isOwnRow(r, userId, userName);
+                        const bgStyle = isMe
+                          ? 'rgba(11, 95, 116, 0.08)'
+                          : isPending
+                            ? 'rgba(255, 165, 0, 0.05)'
+                            : 'transparent';
+
+                        const rowStyle = {
+                          background: bgStyle,
+                          boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
+                        };
+
+                        return (
+                          <tr key={r.key} style={rowStyle}>
+                            <td className="text-[1.2em] text-center">{rankDisplay}</td>
+                            <td>
+                              <div className="flex justify-start items-center flex-nowrap gap-1.5">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <UserAvatar
+                                    url={r.avatarUrl}
+                                    userId={r.userId}
+                                    name={r.name}
+                                    size={28}
+                                  />
+                                  <div className="flex items-center flex-wrap gap-1.5 min-w-0">
+                                    <span className="text-[1.1em]">
+                                      <strong>
+                                        {r.name}
+                                        {isMe && (
+                                          <span className="text-accent-text ml-[5px] text-[0.8em]">
+                                            (Tú)
+                                          </span>
+                                        )}
+                                      </strong>
+                                    </span>
+                                    {isPending && (
+                                      <span
+                                        className="lb-unpaid-badge"
+                                        title="Pago pendiente. El administrador debe marcarlo como pagado para mostrar sus puntos."
+                                      >
+                                        Sin pagar
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {r.id != null && (
+                                  <button
+                                    className="glass-btn bg-[rgba(11,_95,_116,_0.08)] bg-none text-accent-text border border-accent py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 whitespace-nowrap text-[0.95rem] leading-[1] inline-flex items-center justify-center"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isMatchday) {
+                                        navigate('/jornadas');
+                                      } else {
+                                        state.setViewerPredictionId(r.id);
+                                      }
+                                    }}
+                                    title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
+                                  >
+                                    <span
+                                      aria-hidden="true"
+                                      className="poster-title text-[0.75rem]"
+                                    >
+                                      Ver
+                                    </span>
+                                    <span className="sr-only">
+                                      {isMatchday ? 'Ver jornadas' : 'Ver porra'}
+                                    </span>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            {columns.map((col) => (
+                              <td
+                                key={col.key}
+                                className={columnClass(col)}
+                                style={
+                                  col.kind === 'total'
+                                    ? {
+                                        color: 'var(--accent-text)',
+                                        fontWeight: 'bold',
+                                        fontSize: '1.1em',
+                                        textAlign: 'center',
+                                      }
+                                    : undefined
+                                }
+                              >
+                                {col.kind === 'total' ? (
+                                  <span className="lb-total-value">
+                                    {r.paid ? `${r.points.total ?? 0} pts` : '-'}
+                                  </span>
+                                ) : r.paid ? (
+                                  `${r.points[col.key] ?? 0}`
+                                ) : (
+                                  '-'
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Plantilla de la imagen compartida; queda fuera de los paneles visibles. */}
       <div
         className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 paper-panel bg-[var(--paper)] bg-none text-main box-border rounded-[4px]"
         id="share-image-template"

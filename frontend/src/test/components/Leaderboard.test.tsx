@@ -58,7 +58,7 @@ describe('Leaderboard Component', () => {
     expect(
       screen.queryByRole('tablist', { name: 'Vista de la clasificación' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Compartir en WhatsApp' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Compartir clasificación' })).toBeVisible();
     expect(headers.map((h) => h.textContent?.replace(/[▼▲\s]/g, ''))).toEqual([
       'Pos',
       'Participante',
