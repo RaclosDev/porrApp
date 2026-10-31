@@ -60,7 +60,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // 1. Límite estricto anti-abuso para endpoints de login y autenticación (15 peticiones/minuto)
+        // Login: 15 peticiones por minuto e IP.
         if (path != null && path.startsWith("/api/auth/google/login")) {
             String clientIp = getClientIp(request);
             if (!isAllowedAuthLogin(clientIp)) {
@@ -73,7 +73,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             }
         }
 
-        // 2. Límite general para endpoints expuestos
+        // Lecturas públicas: 120 por minuto.
         if (isRateLimitedPath(path, request.getMethod())) {
             String clientIp = getClientIp(request);
             if (!isAllowed(clientIp)) {

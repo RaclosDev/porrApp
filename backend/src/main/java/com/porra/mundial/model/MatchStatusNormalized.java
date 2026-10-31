@@ -1,7 +1,7 @@
 package com.porra.mundial.model;
 
 /**
- * Estados deportivos canónicos y normalizados para partidos de cualquier competición (Fase 4).
+ * Estados deportivos canónicos y normalizados para partidos de cualquier competición.
  */
 public enum MatchStatusNormalized {
     SCHEDULED,

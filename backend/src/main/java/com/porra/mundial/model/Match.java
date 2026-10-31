@@ -4,17 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
-/**
- * Entidad 'Match' (Partido Real).
- * Representa un partido de fútbol real del torneo oficial.
- * Se sincroniza continuamente con proveedores deportivos para obtener resultados en vivo.
- */
+/** Partido real; se sincroniza con el proveedor deportivo para tener los resultados en directo. */
 @Entity
 @Table(name = "matches")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Match {
 
-    /** Identificador único interno. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,7 +37,6 @@ public class Match {
     /** Goles que ha marcado el local. Si es 'null', el partido aún no se ha jugado. */
     private Integer homeScore;
     
-    /** Goles que ha marcado el visitante. */
     private Integer awayScore;
 
     /** Fecha y hora del partido ajustada al horario configurado en el servidor. */

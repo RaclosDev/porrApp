@@ -153,12 +153,12 @@ export function buildStages(
       if (hasPts || hasMatches) lastPlayedIdx = idx;
     });
 
-    // El último eje debe ser SIEMPRE el del último dato disputado/evaluado
+    // El eje termina en el último dato disputado.
     const limitIdx = Math.min(Math.max(lastPlayedIdx + 1, 1), allRounds.length);
     return allRounds.slice(0, limitIdx);
   }
 
-  // Match-by-match mode starting directly at Grupos (sin Inicio)
+  // Partido a partido: empieza en Grupos, sin punto inicial.
   const list: ChartStage[] = [
     {
       key: 'r1',
@@ -175,7 +175,7 @@ export function buildStages(
     .filter((g) => g && g.round !== 'group' && g.round !== 'r1')
     .sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
 
-  // Find the last played knockout match index without buggy date checks
+  // Último partido de eliminatoria jugado, sin mirar las fechas.
   let lastPlayedKoIdx = -1;
   const maxKo = Math.max(ko.length, 32);
   for (let i = 0; i < maxKo; i++) {
@@ -187,7 +187,6 @@ export function buildStages(
     }
   }
 
-  // Strictly limit to the match that has been played or reached
   const limitKo = Math.max(lastPlayedKoIdx + 1, 0);
 
   for (let i = 0; i < limitKo; i++) {
@@ -260,7 +259,7 @@ export function buildStages(
     });
   }
 
-  // Only append Total if the tournament is completely finished (all 32 knockout matches played)
+  // El punto Total solo aparece con los 32 partidos de eliminatoria jugados.
   if (lastPlayedKoIdx >= 31) {
     list.push({
       key: 'total',
@@ -371,7 +370,6 @@ export function buildEvolution(
     });
   }
 
-  // Calculate ranks at each stage
   let maxRk = 1;
   const numStages = activeStages.length;
   for (let i = 0; i < numStages; i++) {
@@ -395,7 +393,7 @@ export function buildEvolution(
     });
   }
 
-  // Smart vertical zoom: calculate min/max points ONLY across selected participants
+  // Escala Y solo con los participantes seleccionados.
   let minPts = Infinity;
   let maxPts = -Infinity;
   const anySelected = Object.values(selectedUsers).some(Boolean);
