@@ -72,6 +72,7 @@ export const matchdayFixture = (fields: Partial<MatchdayFixture> = {}): Matchday
   round: null,
   groupName: null,
   finished: false,
+  status: null,
   actualHomeScore: null,
   actualAwayScore: null,
   displayClock: null,

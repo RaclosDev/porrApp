@@ -8,13 +8,6 @@ vi.mock('../../hooks/useLandingData', () => ({
   useLandingData: vi.fn(),
 }));
 
-// IntersectionObserver no existe en jsdom; la portada lo usa para animar al entrar en pantalla.
-class FakeIntersectionObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 const data = {
   leaders: [
     { rank: 1, userId: 10, name: 'Xegami', avatarUrl: null, total: 1905 },
@@ -31,7 +24,6 @@ const data = {
 
 describe('Landing', () => {
   beforeEach(() => {
-    vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
     vi.mocked(useLandingData).mockReturnValue(data);
   });
 

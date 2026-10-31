@@ -15,10 +15,17 @@ export default function ScoringRulesPanel({
   onChange?: (key: ScoringRuleKey, value: string) => void;
 }) {
   const editing = Boolean(draft && onChange);
+  const signOnly = scoring.matchSignOnly ?? true;
   const sections = scoringSections(scoring.poolFormat, scoring.pichichi);
 
   return (
     <div className="scoring-panel">
+      {scoring.poolFormat === 'MATCH_DAY' && signOnly && (
+        <p className="scoring-row-hint">
+          Provisionalmente solo puntúa el signo 1X2. El resultado exacto y la diferencia de goles
+          están pausados; sus valores se conservan para reactivarlos más adelante.
+        </p>
+      )}
       {sections.map((section) => (
         <section
           key={section.id}
@@ -28,6 +35,8 @@ export default function ScoringRulesPanel({
           <h4 id={`scoring-${section.id}`}>{section.title}</h4>
           <dl className="scoring-rows">
             {section.fields.map(({ key, label, hint }) => {
+              const paused =
+                signOnly && (key === 'exactScorePoints' || key === 'goalDiffBonusPoints');
               const inputId = `scoring-input-${key}`;
               const value = draft?.[key] ?? String(scoring.rules[key]);
               const error = editing ? scoringValueError(value, scoring.maxPoints) : null;
@@ -43,7 +52,9 @@ export default function ScoringRulesPanel({
                     ) : (
                       <span className="scoring-row-label">{label}</span>
                     )}
-                    <span className="scoring-row-hint">{hint}</span>
+                    <span className="scoring-row-hint">
+                      {paused ? `Pausado temporalmente. ${hint}` : hint}
+                    </span>
                     {error && (
                       <span className="scoring-row-error" id={`${inputId}-error`}>
                         {error}
@@ -60,6 +71,7 @@ export default function ScoringRulesPanel({
                           id={inputId}
                           className="glass-input scoring-input"
                           type="number"
+                          disabled={paused}
                           inputMode="numeric"
                           min={0}
                           max={scoring.maxPoints}
@@ -73,7 +85,13 @@ export default function ScoringRulesPanel({
                       </span>
                     ) : (
                       <span className="scoring-points">
-                        {scoring.rules[key]} <span>pts</span>
+                        {paused ? (
+                          'Pausado'
+                        ) : (
+                          <>
+                            {scoring.rules[key]} <span>pts</span>
+                          </>
+                        )}
                       </span>
                     )}
                   </dd>
