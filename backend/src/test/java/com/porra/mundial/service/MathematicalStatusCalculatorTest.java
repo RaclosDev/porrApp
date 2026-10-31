@@ -86,4 +86,69 @@ class MathematicalStatusCalculatorTest {
         assertEquals(1, status.get(1L), "El líder con 6 pts debe estar matemáticamente clasificado");
         assertEquals(4, status.get(4L), "El cuarto con 0 pts tiene asegurado exactamente el puesto 4");
     }
+
+    private static Match played(Team home, int homeGoals, int awayGoals, Team away) {
+        return Match.builder().homeTeam(home).awayTeam(away).homeScore(homeGoals).awayScore(awayGoals).finished(true).build();
+    }
+
+    private static GroupStanding standing(Team team, int points, int diff, int goalsFor, int fairPlay) {
+        return GroupStanding.builder().team(team).points(points).goalDiff(diff).goalsFor(goalsFor)
+                .fairPlayPoints(fairPlay).matchesPlayed(3).build();
+    }
+
+    @Test
+    @DisplayName("Con el grupo cerrado, el estado sigue el desempate del reglamento: mini-liga repetida entre los que siguen empatados")
+    void finishedGroupFollowsTheRegulationTiebreakers() {
+        Team a = createTeam(1L, "A");
+        Team b = createTeam(2L, "B");
+        Team c = createTeam(3L, "C");
+        Team d = createTeam(4L, "D");
+        // A, B y C con 6 puntos. Entre los tres, A primero por goles; B y C empatan y B ganó su partido,
+        // aunque C tenga mejor diferencia de goles total.
+        List<Match> matches = List.of(played(a, 2, 1, b), played(c, 2, 1, a), played(b, 1, 0, c),
+                played(a, 1, 0, d), played(b, 1, 0, d), played(c, 5, 0, d));
+        List<GroupStanding> standings = List.of(standing(a, 6, 1, 4, 0), standing(b, 6, 1, 3, 0),
+                standing(c, 6, 5, 7, 0), standing(d, 0, -7, 0, 0));
+
+        Map<Long, Integer> status = MathematicalStatusCalculator.calculateStatus(standings, matches);
+
+        assertEquals(Map.of(1L, 1, 2L, 2, 3L, 3, 4L, 4), status);
+    }
+
+    @Test
+    @DisplayName("Con el grupo cerrado, el fair play deshace el empate total")
+    void finishedGroupIsSettledByFairPlay() {
+        Team a = createTeam(1L, "A");
+        Team b = createTeam(2L, "B");
+        Team c = createTeam(3L, "C");
+        Team d = createTeam(4L, "D");
+        List<Match> matches = List.of(played(a, 1, 1, b), played(a, 1, 0, c), played(b, 1, 0, c),
+                played(a, 0, 0, d), played(b, 0, 0, d), played(c, 0, 0, d));
+        List<GroupStanding> standings = List.of(standing(a, 5, 1, 2, -5), standing(b, 5, 1, 2, -2),
+                standing(c, 1, -2, 0, 0), standing(d, 3, 0, 0, 0));
+
+        Map<Long, Integer> status = MathematicalStatusCalculator.calculateStatus(standings, matches);
+
+        assertEquals(1, status.get(2L), "B, con menos tarjetas, es primero");
+        assertEquals(2, status.get(1L));
+    }
+
+    @Test
+    @DisplayName("Con partidos pendientes, el fair play todavía no decide: faltan las tarjetas de esos partidos")
+    void fairPlayDoesNotSettleAGroupWithMatchesLeft() {
+        Team a = createTeam(1L, "A");
+        Team b = createTeam(2L, "B");
+        Team c = createTeam(3L, "C");
+        Team d = createTeam(4L, "D");
+        List<Match> matches = List.of(played(a, 1, 1, b), played(a, 1, 0, c), played(b, 1, 0, c),
+                played(a, 0, 0, d), played(b, 0, 0, d),
+                Match.builder().homeTeam(c).awayTeam(d).finished(false).build());
+        List<GroupStanding> standings = List.of(standing(a, 5, 1, 2, -5), standing(b, 5, 1, 2, -2),
+                standing(c, 0, -2, 0, 0), standing(d, 2, 0, 0, 0));
+
+        Map<Long, Integer> status = MathematicalStatusCalculator.calculateStatus(standings, matches);
+
+        assertEquals(5, status.get(1L), "A está entre los dos primeros pase lo que pase, pero no sabe en qué puesto");
+        assertEquals(5, status.get(2L));
+    }
 }

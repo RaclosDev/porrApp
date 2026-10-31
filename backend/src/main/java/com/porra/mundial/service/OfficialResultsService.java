@@ -29,14 +29,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OfficialResultsService {
 
-    /** Mejores terceros: puntos, diferencia de goles, goles a favor, fair play y nombre. */
-    private static final Comparator<GroupStanding> THIRD_PLACE_ORDER = Comparator
-            .comparingInt((GroupStanding gs) -> gs.getPoints() != null ? gs.getPoints() : 0).reversed()
-            .thenComparing(Comparator.comparingInt((GroupStanding gs) -> gs.getGoalDiff() != null ? gs.getGoalDiff() : 0).reversed())
-            .thenComparing(Comparator.comparingInt((GroupStanding gs) -> gs.getGoalsFor() != null ? gs.getGoalsFor() : 0).reversed())
-            .thenComparing(Comparator.comparingInt((GroupStanding gs) -> gs.getFairPlayPoints() != null ? gs.getFairPlayPoints() : 0).reversed())
-            .thenComparing(gs -> gs.getTeam().getName());
-
     private static final Predicate<Match> ROUND_OF_32 = m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis");
     private static final Predicate<Match> ROUND_OF_16 = m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32");
     private static final Predicate<Match> QUARTER_FINALS = m -> isRound(m.getRound(), "qf", "quarter", "cuart");
@@ -81,7 +73,7 @@ public class OfficialResultsService {
         }
         List<String> bestThirds = standings.stream()
                 .filter(gs -> Integer.valueOf(3).equals(gs.getPosition()) && gs.getTeam() != null)
-                .sorted(THIRD_PLACE_ORDER)
+                .sorted(GroupTiebreaker.THIRD_PLACE_ORDER)
                 .limit(8)
                 .map(gs -> gs.getTeam().getName())
                 .collect(Collectors.toList());
