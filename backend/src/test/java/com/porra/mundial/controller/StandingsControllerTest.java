@@ -1,7 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.service.StandingsService;
-import com.porra.mundial.service.KnockoutBracketService;
+import com.porra.mundial.service.OfficialResultsService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ class StandingsControllerTest {
     private StandingsService standingsService;
 
     @MockitoBean
-    private KnockoutBracketService knockoutBracketService;
+    private OfficialResultsService officialResultsService;
 
     @MockitoBean
     private com.porra.mundial.config.JwtUtil jwtUtil;

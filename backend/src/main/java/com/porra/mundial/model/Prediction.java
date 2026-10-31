@@ -54,11 +54,6 @@ public class Prediction {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    /** Flag que indica si este pronostico es el Cuadro Oficial del sistema. */
-    @Column(name = "is_official", nullable = false)
-    @Builder.Default
-    private Boolean isOfficial = false;
-
     /** Datos estructurados del pronóstico completo del cuadro (fase de grupos, eliminatorias, campeón, pichichi). */
     @Convert(converter = PredictionDataConverter.class)
     @Column(name = "bracket_data", columnDefinition = "TEXT")
@@ -104,10 +99,6 @@ public class Prediction {
 
     @Column(name = "score_calculated_at")
     private LocalDateTime scoreCalculatedAt;
-
-    public boolean isOfficial() {
-        return Boolean.TRUE.equals(isOfficial);
-    }
 
     public String getPredictionName() {
         return name;

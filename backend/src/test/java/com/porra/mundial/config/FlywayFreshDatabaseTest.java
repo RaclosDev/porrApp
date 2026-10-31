@@ -75,6 +75,33 @@ class FlywayFreshDatabaseTest {
         }
     }
 
+    @Test
+    void v47DropsTheOfficialPredictionAndItsFlag() throws Exception {
+        String url = createDatabase("v47_official");
+        flyway(url, "46").migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("INSERT INTO app_users (id, google_email, google_name, participant_name) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9201, 'admin@local', 'Admin', 'Admin'), (9202, 'ana@test.com', 'Ana', 'Ana')");
+            st.execute("INSERT INTO leagues (id, name, join_code, admin_user_id) OVERRIDING SYSTEM VALUE VALUES (9201, 'Liga', 'OFIC47', 9201)");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, status) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9201, 9201, (SELECT id FROM competitions WHERE external_id = 'fifa.world'), 'FULL_BRACKET', 'ACTIVE')");
+            st.execute("INSERT INTO predictions (id, user_id, edition_id, prediction_name, is_official, payment_status, created_at)"
+                    + " OVERRIDING SYSTEM VALUE VALUES (9301, 9201, 9201, 'Cuadro oficial', TRUE, 'PAID', now()),"
+                    + " (9302, 9202, 9201, 'Ana', FALSE, 'PAID', now())");
+        }
+
+        flyway(url, null).migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM predictions WHERE id = 9301")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM predictions WHERE id = 9302")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM information_schema.columns"
+                    + " WHERE table_name = 'predictions' AND column_name = 'is_official'")).isZero();
+        }
+    }
+
     /** Base vacía propia, para no compartir el esquema con el resto de tests de la clase. */
     private static String createDatabase(String name) throws Exception {
         try (Connection c = DriverManager.getConnection(
