@@ -107,12 +107,12 @@ export function selectViewerPoints(
   user: string | undefined,
 ): ViewerPoints {
   if (detailed && Array.isArray(detailed.log)) return detailed;
-  const found = (leaderboard || []).find((lb) => {
-    if (!lb) return false;
-    if (predictionId && String(lb.id) === String(predictionId)) return true;
-    return Boolean(user && lb.name && lb.name.toLowerCase() === user.toLowerCase());
-  });
-  return found || EMPTY_POINTS;
+  const rows = leaderboard || [];
+  if (predictionId != null && predictionId !== '') {
+    return rows.find((row) => String(row.id) === String(predictionId)) || EMPTY_POINTS;
+  }
+  const named = rows.filter((row) => user && row.name.toLowerCase() === user.toLowerCase());
+  return named.length === 1 ? named[0] : EMPTY_POINTS;
 }
 
 /** Dieciseisavos del pronóstico: los guardados o, si no hay, los que salen de los grupos. */

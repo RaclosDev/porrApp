@@ -59,7 +59,14 @@ describe('selectViewerPoints', () => {
     const detailed = { id: 5, total: 12, log: [] } as unknown as ParticipantScore;
     expect(selectViewerPoints(detailed, [row], 5, 'Ana')).toBe(detailed);
     expect(selectViewerPoints(null, [row], '5', undefined)).toBe(row);
-    expect(selectViewerPoints(null, [row], 99, 'ana')).toBe(row);
+    expect(selectViewerPoints(null, [row], null, 'ana')).toBe(row);
+  });
+
+  it('never substitutes a namesake for a requested prediction id', () => {
+    const other = { ...row, id: 6, total: 20 };
+    expect(selectViewerPoints(null, [row, other], 6, 'Ana')).toBe(other);
+    expect(selectViewerPoints(null, [row], 99, 'Ana').total).toBe(0);
+    expect(selectViewerPoints(null, [row, other], null, 'Ana').total).toBe(0);
   });
 
   it('falls back to zero points without a user', () => {

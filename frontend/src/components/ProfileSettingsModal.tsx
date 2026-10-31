@@ -50,6 +50,7 @@ export default function ProfileSettingsModal({
   };
 
   const saveName = async () => {
+    if (saving || finishing) return;
     setSaving(true);
     setError('');
     try {
@@ -89,6 +90,7 @@ export default function ProfileSettingsModal({
   };
 
   const dismiss = () => {
+    if (saving || finishing) return;
     if (onboarding) return finish(false);
     onClose();
   };
@@ -161,6 +163,7 @@ export default function ProfileSettingsModal({
                 id="profile-name-input"
                 className="glass-input flex-1 min-w-0"
                 value={name}
+                disabled={saving || finishing}
                 maxLength={30}
                 onChange={(e) => setName(e.target.value)}
               />

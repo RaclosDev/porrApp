@@ -87,6 +87,7 @@ export default function GroupMembersModal({
   const isDirty = settingsDirty || scoringEditor.isDirty;
 
   const requestClose = () => {
+    if (savingConfig) return;
     if (isDirty) {
       setLeaveConfirmOpen(true);
       return;
@@ -104,6 +105,7 @@ export default function GroupMembersModal({
 
   useDialogFocus(panelRef, {
     onEscape: () => {
+      if (savingConfig) return;
       if (leaveConfirmOpen) {
         setLeaveConfirmOpen(false);
         return;
@@ -260,6 +262,7 @@ export default function GroupMembersModal({
   };
 
   const handleSave = async () => {
+    if (savingConfig) return;
     const trimmedName = name.trim();
     if (!trimmedName) {
       setActionError('El nombre de la liga no puede estar vacío.');
@@ -476,6 +479,7 @@ export default function GroupMembersModal({
               deleteConfirmName={deleteConfirmName}
               deleteOpen={deleteOpen}
               deleting={deleting}
+              saving={savingConfig}
               groupName={groupName}
               handleDelete={handleDelete}
               imageUrl={imageUrl}

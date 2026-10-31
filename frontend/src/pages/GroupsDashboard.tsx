@@ -56,14 +56,9 @@ export default function GroupsDashboard() {
     navigate,
   } = useGroupsDashboard();
 
-  /** El usuario administra la liga (por id o, en ligas antiguas, por nombre). */
+  /** El nombre público puede repetirse; la administración pertenece al id de usuario. */
   const isGroupAdmin = (group: Group) =>
-    Boolean(
-      (group.adminUserId && userId && String(group.adminUserId) === String(userId)) ||
-      (group.adminParticipantName &&
-        userName &&
-        group.adminParticipantName.toLowerCase() === userName.toLowerCase()),
-    );
+    Boolean(group.adminUserId != null && userId && String(group.adminUserId) === String(userId));
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
