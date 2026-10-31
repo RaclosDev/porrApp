@@ -16,6 +16,7 @@ import {
   whenSessionRestored,
 } from '../services/api';
 import { isApiError } from '../services/apiError';
+import { SESSION_REVISION_KEY } from '../services/sessionHint';
 import { queryKeys } from '../services/queryKeys';
 import { leaguePredictionsQuery, myGroupsQuery } from '../services/queries';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -71,6 +72,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const isUserAuthed = useAppStore((state) => state.isAuthenticated);
 
   useWebSocket(userName, queryClient);
+
+  // Otra pestaña ha cambiado la cuenta compartida por la cookie. Recargar vacía todo el estado
+  // anterior y recupera la identidad nueva sin revocar la sesión de esa otra pestaña.
+  useEffect(() => {
+    const onSessionChange = (event: StorageEvent) => {
+      if (
+        event.storageArea === localStorage &&
+        (event.key === SESSION_REVISION_KEY || event.key === null)
+      )
+        window.location.reload();
+    };
+    window.addEventListener('storage', onSessionChange);
+    return () => window.removeEventListener('storage', onSessionChange);
+  }, []);
 
   // api.ts avisa con este evento cuando no ha podido renovar la sesión tras un 401.
   useEffect(() => {

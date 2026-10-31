@@ -37,7 +37,12 @@ import type {
   UserPreferences,
 } from '../types/api';
 import { ApiError, NETWORK_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE } from './apiError';
-import { hasStoredSession, LEGACY_TOKEN_KEY, SESSION_HINT_KEY } from './sessionHint';
+import {
+  hasStoredSession,
+  LEGACY_TOKEN_KEY,
+  SESSION_HINT_KEY,
+  SESSION_REVISION_KEY,
+} from './sessionHint';
 
 const API_BASE = '/api';
 
@@ -57,15 +62,34 @@ let restoring = false;
 let pendingRefresh: { epoch: number; promise: Promise<string | null> } | null = null;
 /** Cambia al sustituir la sesión; rotar su access token conserva la generación. */
 let sessionEpoch = 0;
+let boundRevision = localStorage.getItem(SESSION_REVISION_KEY);
+let localSessionQueue: Promise<void> | null = null;
+
+function currentSession(epoch: number): boolean {
+  return epoch === sessionEpoch && boundRevision === localStorage.getItem(SESSION_REVISION_KEY);
+}
+
+function ensureSession(epoch: number): void {
+  if (!currentSession(epoch))
+    throw new ApiError(401, 'La sesión ha cambiado. Vuelve a intentarlo.');
+}
+
+function publishSessionChange(): void {
+  boundRevision = crypto.randomUUID();
+  localStorage.setItem(SESSION_REVISION_KEY, boundRevision);
+}
 
 export function getAuthToken(): string | null {
   return accessToken;
 }
 
 export function setAuthToken(token: string | null): void {
-  if (token !== accessToken) sessionEpoch++;
+  const changed = token !== accessToken;
+  if (changed) sessionEpoch++;
   if (token) localStorage.removeItem(LEGACY_TOKEN_KEY);
   storeAuthToken(token);
+  if (changed) publishSessionChange();
+  else if (token === null) boundRevision = localStorage.getItem(SESSION_REVISION_KEY);
 }
 
 function storeAuthToken(token: string | null): void {
@@ -99,24 +123,24 @@ async function restoreSession(): Promise<SessionRestore> {
   if (!hasStoredSession()) return 'none';
   try {
     const exchanged = await withSessionLock(() => exchangeLegacyToken(epoch));
-    if (epoch !== sessionEpoch) return 'superseded';
+    if (!currentSession(epoch)) return 'superseded';
     if (exchanged) return 'restored';
     const refreshed = await refreshSession();
-    if (epoch !== sessionEpoch) return 'superseded';
+    if (!currentSession(epoch)) return 'superseded';
     return refreshed ? 'restored' : 'none';
   } catch {
-    return epoch === sessionEpoch ? 'unreachable' : 'superseded';
+    return currentSession(epoch) ? 'unreachable' : 'superseded';
   }
 }
 
 /** Canjea el JWT de 7 días de la versión anterior, si queda, por una sesión con cookie. */
 async function exchangeLegacyToken(epoch: number): Promise<boolean> {
-  if (epoch !== sessionEpoch) return false;
+  if (!currentSession(epoch)) return false;
   // Se lee dentro del cerrojo: otra pestaña puede haberlo canjeado ya.
   const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
   if (!legacyToken) return false;
   const token = await requestSessionToken('exchange', legacyToken);
-  if (epoch !== sessionEpoch) return false;
+  if (!currentSession(epoch)) return false;
   localStorage.removeItem(LEGACY_TOKEN_KEY);
   if (token) storeAuthToken(token);
   return token !== null;
@@ -129,17 +153,15 @@ async function exchangeLegacyToken(epoch: number): Promise<boolean> {
 function refreshSession(): Promise<string | null> {
   const epoch = sessionEpoch;
   if (!pendingRefresh || pendingRefresh.epoch !== epoch) {
-    const promise = withSessionLock(() =>
-      epoch === sessionEpoch ? requestSessionToken('refresh') : Promise.resolve(null),
-    )
-      .then((token) => {
-        if (epoch !== sessionEpoch) return null;
-        storeAuthToken(token);
-        return token;
-      })
-      .finally(() => {
-        if (pendingRefresh?.epoch === epoch) pendingRefresh = null;
-      });
+    const promise = withSessionLock(async () => {
+      if (!currentSession(epoch)) return null;
+      const token = await requestSessionToken('refresh');
+      if (!currentSession(epoch)) return null;
+      storeAuthToken(token);
+      return token;
+    }).finally(() => {
+      if (pendingRefresh?.epoch === epoch) pendingRefresh = null;
+    });
     pendingRefresh = { epoch, promise };
   }
   return pendingRefresh.promise;
@@ -153,7 +175,16 @@ function withSessionLock<T>(task: () => Promise<T>): Promise<T> {
   if (typeof navigator !== 'undefined' && 'locks' in navigator) {
     return navigator.locks.request('porrapp-session', task);
   }
-  return task();
+  const result = localSessionQueue ? localSessionQueue.then(task) : task();
+  const settled = result.then(
+    () => {},
+    () => {},
+  );
+  localSessionQueue = settled;
+  void settled.then(() => {
+    if (localSessionQueue === settled) localSessionQueue = null;
+  });
+  return result;
 }
 
 /** POST a /api/auth/session/*: el access token nuevo, o null si el servidor rechaza la sesión. */
@@ -169,23 +200,30 @@ async function requestSessionToken(
 }
 
 /** Cierra la sesión de este dispositivo: olvida el token y revoca el refresh en el servidor. */
-export function endSession(): void {
+export function endSession(): Promise<void> {
   sessionEpoch++;
   storeAuthToken(null);
   localStorage.removeItem(LEGACY_TOKEN_KEY);
-  // keepalive: la petición sale aunque la página se cierre o recargue justo después.
-  fetch(`${API_BASE}${SESSION_PATH}/logout`, { method: 'POST', keepalive: true }).catch(() => {});
+  publishSessionChange();
+  // Serializar también logout evita que un Set-Cookie anterior reabra la sesión.
+  return withSessionLock(async () => {
+    await fetch(`${API_BASE}${SESSION_PATH}/logout`, {
+      method: 'POST',
+      keepalive: true,
+      signal: requestSignal(undefined, DEFAULT_TIMEOUT_MS),
+    });
+  }).catch(() => {});
 }
 
 /** Token con el que repetir una petición rechazada con 401, o null si no hay sesión. */
 async function tokenAfter401(rejected: string | null, epoch: number): Promise<string | null> {
-  if (epoch !== sessionEpoch) return null;
+  if (!currentSession(epoch)) return null;
   const current = getAuthToken();
   // Otra petición ya lo renovó (o se cerró la sesión) mientras esta iba en camino.
   if (current !== rejected) return current;
   try {
     const token = await refreshSession();
-    if (!token && epoch === sessionEpoch) window.dispatchEvent(new Event('auth-expired'));
+    if (!token && currentSession(epoch)) window.dispatchEvent(new Event('auth-expired'));
     return token;
   } catch {
     // Sin respuesta del servidor: se mantiene la sesión y se devuelve el 401.
@@ -254,13 +292,17 @@ async function send(
   }
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+  waitForSession = true,
+): Promise<T> {
   const epoch = sessionEpoch;
   const ensureCurrentSession = () => {
-    if (epoch !== sessionEpoch)
+    if (!currentSession(epoch))
       throw new ApiError(401, 'La sesión ha cambiado. Vuelve a intentarlo.');
   };
-  if (restoring && sessionRestore) await sessionRestore;
+  if (waitForSession && restoring && sessionRestore) await sessionRestore;
   ensureCurrentSession();
   const sentToken = getAuthToken();
   let res = await send(path, options, sentToken);
@@ -274,7 +316,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     (sentToken !== null || hasStoredSession())
   ) {
     const token = await tokenAfter401(sentToken, epoch);
-    if (token && epoch === sessionEpoch) res = await send(path, options, token);
+    if (token && currentSession(epoch)) res = await send(path, options, token);
   }
   ensureCurrentSession();
 
@@ -487,12 +529,27 @@ export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId
 
 // --- Usuario ---
 
-export const loginWithGoogle = (credential: string) =>
-  request<LoginResponse>('/auth/google/login', {
-    method: 'POST',
-    json: { credential },
-    fallbackError: 'Error al iniciar sesión con Google',
+export async function loginWithGoogle(credential: string): Promise<LoginResponse> {
+  const epoch = sessionEpoch;
+  // La restauración necesita este mismo cerrojo: esperarla dentro lo bloquearía.
+  if (restoring && sessionRestore) await sessionRestore;
+  ensureSession(epoch);
+  return withSessionLock(async () => {
+    ensureSession(epoch);
+    const data = await request<LoginResponse>(
+      '/auth/google/login',
+      {
+        method: 'POST',
+        json: { credential },
+        fallbackError: 'Error al iniciar sesión con Google',
+      },
+      false,
+    );
+    ensureSession(epoch);
+    setAuthToken(data.token);
+    return data;
   });
+}
 
 export const fetchMe = () => request<Me>('/users/me');
 

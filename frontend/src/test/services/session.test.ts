@@ -93,10 +93,11 @@ describe('sesión con refresh token', () => {
       const saved = updateMyProfile('Nombre elegido por A');
       const rejected = expect(saved).rejects.toThrow('La sesión ha cambiado');
 
-      if (logoutFirst) endSession();
+      const ended = logoutFirst ? endSession() : Promise.resolve();
       setAuthToken('cuenta-B');
       pending.resolve(json(401));
       await rejected;
+      await ended;
 
       const writes = fetchMock.mock.calls.filter(([url]) => url === '/api/users/me/profile');
       expect(writes).toHaveLength(1);
@@ -164,10 +165,11 @@ describe('sesión con refresh token', () => {
     stubFetch((url) => (url.endsWith('/logout') ? json(204) : pending.promise));
     const login = loginWithGoogle('credencial-sintética');
     const rejected = expect(login).rejects.toThrow('La sesión ha cambiado');
-    endSession();
+    const ended = endSession();
     pending.resolve(json(200, { token: 'no-restaurar', participantName: 'A' }));
 
     await rejected;
+    await ended;
     expect(getAuthToken()).toBeNull();
     expect(localStorage.getItem('has_session')).toBeNull();
   });
@@ -187,7 +189,7 @@ describe('sesión con refresh token', () => {
     expect(getAuthToken()).toBe('cuenta-B');
   });
 
-  it('la sesión B puede refrescar aunque siga pendiente el refresco de A', async () => {
+  it('la sesión B refresca después de A sin reutilizar su resultado', async () => {
     setAuthToken('cuenta-A');
     const first = deferredReply();
     const second = deferredReply();
@@ -201,9 +203,13 @@ describe('sesión con refresh token', () => {
     await vi.waitFor(() => expect(refreshCount).toBe(1));
     setAuthToken('cuenta-B');
     const requestB = fetchMe();
-    await vi.waitFor(() => expect(refreshCount).toBe(2));
+    await vi.waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => url === '/api/users/me')).toHaveLength(2),
+    );
+    expect(refreshCount).toBe(1);
     first.resolve(json(200, { token: 'refresco-A' }));
     await rejected;
+    await vi.waitFor(() => expect(refreshCount).toBe(2));
     const anotherRequestB = fetchMe();
     await vi.waitFor(() =>
       expect(fetchMock.mock.calls.filter(([url]) => url === '/api/users/me')).toHaveLength(3),
@@ -338,10 +344,11 @@ describe('sesión con refresh token', () => {
       await vi.waitFor(() =>
         expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/exchange'))).toBe(true),
       );
-      endSession();
+      const ended = endSession();
       pending.resolve(json(status, { token: 'legacy-canjeado' }));
 
       await expect(restoring).resolves.toBe('superseded');
+      await ended;
       expect(getAuthToken()).toBeNull();
       expect(localStorage.getItem('has_session')).toBeNull();
       expect(localStorage.getItem('token')).toBeNull();
@@ -367,19 +374,21 @@ describe('sesión con refresh token', () => {
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/api/auth/session/exchange']);
   });
 
-  it('el logout olvida el token y revoca la sesión en el servidor', () => {
+  it('el logout olvida el token y revoca la sesión en el servidor', async () => {
     setAuthToken('vigente');
     localStorage.setItem('token', 'jwt-de-7-dias');
     const fetchMock = stubFetch(() => json(204));
 
-    endSession();
+    const ended = endSession();
 
     expect(getAuthToken()).toBeNull();
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('has_session')).toBeNull();
+    await ended;
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/session/logout', {
       method: 'POST',
       keepalive: true,
+      signal: expect.any(AbortSignal),
     });
   });
 });

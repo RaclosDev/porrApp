@@ -11,6 +11,7 @@ import {
 describe('api.ts service', () => {
   beforeEach(() => {
     localStorage.clear();
+    setAuthToken(null);
     vi.restoreAllMocks();
   });
 
