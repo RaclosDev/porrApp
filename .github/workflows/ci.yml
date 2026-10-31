@@ -13,10 +13,11 @@ on:
 permissions:
   contents: read
 
-# En un PR, un push nuevo cancela la ejecución anterior. En main no: cada push solo prueba lo que
-# cambia respecto al anterior, así que cancelar uno dejaría sus cambios sin probar.
+# Los PR comparten grupo y cancelan revisiones antiguas. Cada ejecución fuera de PR tiene su
+# propio grupo: GitHub descarta ejecuciones pendientes del mismo grupo incluso con cancel=false.
+# Con jobs por áreas, descartar un push intermedio podría dejar sus cambios sin comprobar.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
