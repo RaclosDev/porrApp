@@ -2,6 +2,7 @@ package com.porra.mundial.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 /**
  * Reparto de los pronósticos de una liga por jornadas en los partidos que ya han empezado.
@@ -28,7 +29,7 @@ public record MatchdayStatsDTO(long members, List<MatchStats> matches) {
     public record MatchStats(
             Long matchId,
             String round,
-            LocalDateTime matchDate,
+            @JsonSerialize(using = MadridDateTimeSerializer.class) LocalDateTime matchDate,
             String homeTeam,
             String awayTeam,
             String homeTeamLogo,

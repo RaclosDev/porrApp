@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 @Data
 @Builder
@@ -20,6 +21,7 @@ public class MatchdayFixturePredictionDTO {
     private Long awayTeamId;
     private String homeTeamLogo;
     private String awayTeamLogo;
+    @JsonSerialize(using = MadridDateTimeSerializer.class)
     private LocalDateTime matchDate;
     private String round;
     private String groupName;

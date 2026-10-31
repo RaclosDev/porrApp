@@ -42,7 +42,7 @@ public record MatchResponseDTO(
     public static MatchResponseDTO fromEntity(Match m) {
         boolean isStartingSoon = false;
         if (m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())) {
-            long diffMs = java.time.Duration.between(LocalDateTime.now(), m.getMatchDate()).toMillis();
+            long diffMs = java.time.Duration.between(LocalDateTime.now(MadridDateTimeSerializer.ZONE), m.getMatchDate()).toMillis();
             isStartingSoon = diffMs > 0 && diffMs <= com.porra.mundial.service.MatchService.STARTING_SOON_MINUTES * 60_000L;
         }
 
@@ -63,7 +63,7 @@ public record MatchResponseDTO(
                 m.getAwayScore(),
                 m.getHomeScore(), // Duplicado para retrocompatibilidad
                 m.getAwayScore(), // Duplicado para retrocompatibilidad
-                m.getMatchDate() != null ? m.getMatchDate().toString() : null,
+                MadridDateTimeSerializer.format(m.getMatchDate()),
                 m.getFinished(),
                 m.getRound(),
                 m.getGroupName(),

@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 /**
  * Resumen de puntos de una jornada concreta para una liga.
@@ -16,6 +17,7 @@ public class MatchdayPointsDTO {
     /** Etiqueta visible de la jornada (por ejemplo, "Jornada 12" o "Grupo A"). */
     private String label;
     /** Fecha del primer partido de la jornada. */
+    @JsonSerialize(using = MadridDateTimeSerializer.class)
     private LocalDateTime date;
     /** Indica si ya no queda ningún partido jugable pendiente. */
     private boolean finished;
