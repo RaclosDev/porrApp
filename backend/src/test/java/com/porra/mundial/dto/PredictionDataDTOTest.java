@@ -11,6 +11,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PredictionDataDTOTest {
     @Test
+    void preservesExplicitVersionAndDoesNotUpgradeHistoricalJson() {
+        ObjectMapper mapper = new ObjectMapper();
+        PredictionDataDTO legacy = mapper.readValue("{}", PredictionDataDTO.class);
+        assertEquals(null, legacy.getTopologyVersion());
+        PredictionDataDTO canonical = mapper.readValue("{\"topologyVersion\":2}", PredictionDataDTO.class);
+        assertEquals(2, canonical.getTopologyVersion());
+        assertEquals(2, mapper.readValue(mapper.writeValueAsString(canonical), PredictionDataDTO.class).getTopologyVersion());
+        assertEquals(null, mapper.readValue(mapper.writeValueAsString(legacy), PredictionDataDTO.class).getTopologyVersion());
+    }
+    @Test
     void testSerialization() throws Exception {
         PredictionDataDTO dto = new PredictionDataDTO();
         dto.setFinalMatch(List.of("España", "Brasil"));

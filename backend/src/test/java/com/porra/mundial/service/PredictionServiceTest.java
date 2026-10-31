@@ -52,6 +52,76 @@ class PredictionServiceTest {
     private Edition edition;
     private Prediction prediction;
 
+    @Test
+    void refusesMissingRequestedEditionInsteadOfSavingInGlobalLeague() {
+        group.setId(League.GLOBAL_ID);
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(999L, "ACTIVE")).thenReturn(Optional.empty());
+        lenient().when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        assertThrows(java.util.NoSuchElementException.class, () ->
+                predictionService.createPrediction("owner@test.com", "Mi liga", new PredictionDataDTO(), 999L));
+        verify(editionRepository, never()).findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE");
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    void refusesToSaveWithoutAnExistingUserAccount() {
+        when(userAccountRepository.findByGoogleEmail("missing@test.com")).thenReturn(Optional.empty());
+        lenient().when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        assertThrows(java.util.NoSuchElementException.class, () ->
+                predictionService.createPrediction("missing@test.com", "Sin cuenta", new PredictionDataDTO(), null));
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    void nullGroupExplicitlyUsesTheGlobalEdition() {
+        group.setId(League.GLOBAL_ID);
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(predictionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Prediction saved = predictionService.createPrediction("owner@test.com", "Global", new PredictionDataDTO(), null);
+        assertSame(edition, saved.getEdition());
+        assertSame(owner, saved.getUser());
+        verify(editionRepository).findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE");
+    }
+
+    @Test
+    void rejectsChangingTheTopologyOfAnExistingPredictionThroughUpdate() {
+        var stored = new PredictionDataDTO();
+        stored.setTopologyVersion(2);
+        prediction.setBracketData(stored);
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        assertThrows(IllegalArgumentException.class, () ->
+                predictionService.updatePrediction(1L, "owner@test.com", "Old client", new PredictionDataDTO()));
+        verify(predictionRepository, never()).save(any());
+        assertSame(stored, prediction.getBracketData());
+    }
+
+    @Test
+    void rejectsChangingHistoricalTopologyThroughUpsert() {
+        prediction.setBracketData(new PredictionDataDTO());
+        var canonical = new PredictionDataDTO();
+        canonical.setTopologyVersion(2);
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(membershipRepository.existsById(any())).thenReturn(true);
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("owner@test.com", 100L)).thenReturn(Optional.of(prediction));
+        assertThrows(IllegalArgumentException.class, () ->
+                predictionService.createPrediction("owner@test.com", "Nueva", canonical, 100L));
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    void canonicalPartialPredictionsAreNotFilledWithGuessedFinalistsOnRead() {
+        var data = new PredictionDataDTO();
+        data.setTopologyVersion(2);
+        data.setSf(List.of(List.of("A", "B"), List.of("C", "D")));
+        data.setChampion("A");
+        predictionService.ensureKnockoutFinals(data);
+        assertNull(data.getFinalMatch());
+        assertNull(data.getThirdPlaceMatch());
+    }
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(predictionService, "paymentService", new LeaguePaymentService(membershipRepository, predictionRepository));
@@ -242,6 +312,7 @@ class PredictionServiceTest {
     @DisplayName("cannotCreatePredictionWhenEditionIsLocked")
     void cannotCreatePredictionWhenEditionIsLocked() {
         edition.setStatus("LOCKED");
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
         when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
 
         assertThrows(IllegalStateException.class, () ->

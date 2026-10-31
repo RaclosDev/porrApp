@@ -247,4 +247,12 @@ class KnockoutBracketServiceTest {
         assertEquals(List.of("España", "Argentina"), dto.getFinalMatch());
         assertEquals("España", dto.getChampion());
     }
+    @Test
+    void spanishQuarterFinalIsNeverUsedAsTheFinal() {
+        Match semi = knockout("Semifinal", spain, france, 2, 0, 14);
+        Match quarter = knockout("Cuartos de final", placeholder, placeholder, null, null, 10);
+        assertEquals(0, service.propagateKnockoutWinners(List.of(semi, quarter)));
+        assertSame(placeholder, quarter.getHomeTeam());
+    }
+
 }

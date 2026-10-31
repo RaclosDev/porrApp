@@ -40,6 +40,84 @@ class BracketPredictionValidatorTest {
     }
 
     @Test
+    void legacyKeepsHistoricalBranchesButVersionTwoRejectsTwoWinnersFromOneMatch() {
+        var data = draft();
+        assertDoesNotThrow(() -> validator.validate(edition, data));
+        data.setTopologyVersion(1);
+        assertDoesNotThrow(() -> validator.validate(edition, data));
+        data.setTopologyVersion(2);
+        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+    }
+
+    @Test
+    void versionTwoAcceptsPartialSlotsAndRejectsCrossBranchAdvancement() {
+        var data = new PredictionDataDTO();
+        data.setTopologyVersion(2);
+        data.setR32(List.of(List.of("A1", "A2"), List.of("B1", "B2"), List.of("C1", "C2"), List.of("D1", "D2")));
+        data.setR16(List.of(List.of("A1", "B1"), List.of("C1", "D1")));
+        data.setQf(List.of(Arrays.asList("A1", null)));
+        assertDoesNotThrow(() -> validator.validate(edition, data));
+        data.setQf(List.of(Arrays.asList(null, "A1")));
+        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+    }
+
+    @Test
+    void versionTwoFinalistsAndThirdsMustComeFromTheirOwnSemifinal() {
+        var data = new PredictionDataDTO();
+        data.setTopologyVersion(2);
+        var round = new ArrayList<List<String>>();
+        for (char g = 'A'; g <= 'H'; g++) {
+            round.add(List.of(g + "1", g + "2"));
+            round.add(List.of(g + "3", g + "4"));
+        }
+        data.setR32(round);
+        data.setR16(next(round));
+        data.setQf(next(data.getR16()));
+        data.setSf(next(data.getQf()));
+        data.setFinalMatch(List.of("A1", "E1"));
+        data.setThirdPlaceMatch(List.of("C1", "G1"));
+        data.setChampion("A1");
+        data.setThirdPlaceWinner("G1");
+        assertDoesNotThrow(() -> validator.validate(edition, data));
+        data.setFinalMatch(List.of("E1", "A1"));
+        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        data.setFinalMatch(List.of("A1", "E1"));
+        data.setThirdPlaceMatch(List.of("G1", "C1"));
+        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+    }
+
+    private List<List<String>> next(List<List<String>> source) {
+        var next = new ArrayList<List<String>>();
+        for (int i = 0; i < source.size(); i += 2) next.add(List.of(source.get(i).get(0), source.get(i + 1).get(0)));
+        return next;
+    }
+
+    @Test
+    void rejectsUnsupportedTopologyVersion() {
+        var data = draft();
+        data.setTopologyVersion(3);
+        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+    }
+
+    @Test
+    void canonicalFullBracketRequiresTheFifaGroupPositionForEverySlot() {
+        edition.setPoolFormat(PoolFormat.FULL_BRACKET);
+        var data = new PredictionDataDTO();
+        data.setTopologyVersion(2);
+        Map<String, List<String>> groups = new HashMap<>();
+        for (char g = 'A'; g <= 'L'; g++) groups.put(String.valueOf(g), List.of(g + "1", g + "2", g + "3"));
+        data.setGroups(groups);
+        data.setThirds(List.of("A3"));
+        data.setR32(List.of(List.of("E1", "A3")));
+        assertDoesNotThrow(() -> validator.validate(edition, data));
+        data.setR32(List.of(List.of("I1", "A3")));
+        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        data.setThirds(List.of("L3"));
+        data.setR32(List.of(List.of("E1", "L3")));
+        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+    }
+
+    @Test
     void acceptsKnockoutDraftWithoutGroupsAndWithNullSlots() {
         var data = draft();
         data.setFinalMatch(Arrays.asList("A1", null));

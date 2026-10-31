@@ -4,7 +4,7 @@ import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.TopScorerDTO;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
-import com.porra.mundial.model.Team;
+import com.porra.mundial.model.KnockoutRound;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -29,13 +29,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OfficialResultsService {
 
-    private static final Predicate<Match> ROUND_OF_32 = m -> isRound(m.getRound(), "r32", "32", "16avo", "dieciseis");
-    private static final Predicate<Match> ROUND_OF_16 = m -> isRound(m.getRound(), "r16", "octav") && !isRound(m.getRound(), "r32", "32");
-    private static final Predicate<Match> QUARTER_FINALS = m -> isRound(m.getRound(), "qf", "quarter", "cuart");
-    private static final Predicate<Match> SEMI_FINALS = m -> isRound(m.getRound(), "sf", "semi");
-    private static final Predicate<Match> FINAL = m -> isRound(m.getRound(), "final")
-            && !isRound(m.getRound(), "semi", "quarter", "third", "tercer", "3rd", "3er");
-    private static final Predicate<Match> THIRD_PLACE = m -> isRound(m.getRound(), "third", "tercer", "3rd", "3er");
+    private static final Predicate<Match> ROUND_OF_32 = round(KnockoutRound.ROUND_OF_32);
+    private static final Predicate<Match> ROUND_OF_16 = round(KnockoutRound.ROUND_OF_16);
+    private static final Predicate<Match> QUARTER_FINALS = round(KnockoutRound.QUARTER_FINAL);
+    private static final Predicate<Match> SEMI_FINALS = round(KnockoutRound.SEMI_FINAL);
+    private static final Predicate<Match> FINAL = round(KnockoutRound.FINAL);
+    private static final Predicate<Match> THIRD_PLACE = round(KnockoutRound.THIRD_PLACE);
 
     private final StandingsService standingsService;
     private final KnockoutBracketService knockoutBracketService;
@@ -65,7 +64,8 @@ public class OfficialResultsService {
     public OfficialResults current() {
         List<GroupStanding> standings = standingsService.getAllStandings();
         Map<String, List<String>> orderedTeamsPerGroup = new TreeMap<>();
-        for (GroupStanding gs : standings) {
+        for (GroupStanding gs : standings.stream().sorted(Comparator.comparing(
+                GroupStanding::getPosition, Comparator.nullsLast(Comparator.naturalOrder()))).toList()) {
             if (gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && gs.getTeam() != null) {
                 orderedTeamsPerGroup.computeIfAbsent(gs.getGroupName().toUpperCase().trim(), k -> new ArrayList<>())
                         .add(gs.getTeam().getName());
@@ -87,23 +87,28 @@ public class OfficialResultsService {
         PredictionDataDTO bracket = new PredictionDataDTO();
         bracket.setGroups(orderedTeamsPerGroup);
         bracket.setThirds(bestThirds);
-        bracket.setR32(pairings(knockout, ROUND_OF_32));
-        bracket.setR16(pairings(knockout, ROUND_OF_16));
-        bracket.setQf(pairings(knockout, QUARTER_FINALS));
-        bracket.setSf(pairings(knockout, SEMI_FINALS));
+        bracket.setTopologyVersion(2);
+        List<Match> firstRound = knockout.stream().filter(ROUND_OF_32).toList();
+        List<Match> secondRound = knockout.stream().filter(ROUND_OF_16).toList();
+        List<Match> quarters = knockout.stream().filter(QUARTER_FINALS).toList();
+        List<Match> semis = knockout.stream().filter(SEMI_FINALS).toList();
+        bracket.setR32(OfficialBracketLayout.firstRound(orderedTeamsPerGroup, firstRound));
+        bracket.setR16(OfficialBracketLayout.nextRound(bracket.getR32(), secondRound));
+        bracket.setQf(OfficialBracketLayout.nextRound(bracket.getR16(), quarters));
+        bracket.setSf(OfficialBracketLayout.nextRound(bracket.getQf(), semis));
         bracket.setScorer(topScorerNames(topScorerService.getTopScorers()));
-        // Final, campeón y tercer puesto, incluido el cruce cuando solo se conocen las semifinales.
-        knockoutBracketService.enrichPredictionDataWithMatches(bracket);
+        List<String> finalists = OfficialBracketLayout.semifinalOutcomes(bracket.getSf(), semis, true);
+        List<String> thirdPlaceTeams = OfficialBracketLayout.semifinalOutcomes(bracket.getSf(), semis, false);
+        List<String> finalPair = OfficialBracketLayout.nextRound(bracket.getSf(),
+                knockout.stream().filter(FINAL).toList()).get(0);
+        bracket.setFinalMatch(mergeKnown(finalPair, finalists));
+        bracket.setChampion(finalMatch != null ? winnerName(finalMatch) : null);
+        // Tercer puesto comparte las dos ramas de semifinales, pero recibe sus perdedores.
+        List<String> thirdPair = OfficialBracketLayout.nextRound(bracket.getSf(),
+                knockout.stream().filter(THIRD_PLACE).toList()).get(0);
+        bracket.setThirdPlaceMatch(mergeKnown(thirdPair, thirdPlaceTeams));
         Match thirdPlaceMatch = knockout.stream().filter(THIRD_PLACE).findFirst().orElse(null);
-        if (thirdPlaceMatch != null) {
-            if (bracket.getThirdPlaceWinner() == null) {
-                bracket.setThirdPlaceWinner(winnerName(thirdPlaceMatch));
-            }
-            if ((bracket.getThirdPlaceMatch() == null || bracket.getThirdPlaceMatch().isEmpty())
-                    && thirdPlaceMatch.getHomeTeam() != null && thirdPlaceMatch.getAwayTeam() != null) {
-                bracket.setThirdPlaceMatch(List.of(thirdPlaceMatch.getHomeTeam().getName(), thirdPlaceMatch.getAwayTeam().getName()));
-            }
-        }
+        bracket.setThirdPlaceWinner(thirdPlaceMatch != null ? winnerName(thirdPlaceMatch) : null);
 
         return new OfficialResults(bracket, standingsService.getOfficialPoints(), orderedTeamsPerGroup, bestThirds,
                 winnersOf(knockout, ROUND_OF_32), winnersOf(knockout, ROUND_OF_16),
@@ -111,13 +116,9 @@ public class OfficialResultsService {
                 finalMatch != null ? winnerName(finalMatch) : null);
     }
 
-    /** Cruces de una ronda con los equipos reales; un hueco aún sin decidir queda a null. */
-    private static List<List<String>> pairings(List<Match> knockout, Predicate<Match> round) {
-        return knockout.stream()
-                .filter(round)
-                .map(m -> Arrays.asList(realName(m.getHomeTeam()), realName(m.getAwayTeam())))
-                .filter(pair -> pair.stream().anyMatch(Objects::nonNull))
-                .collect(Collectors.toList());
+    private static List<String> mergeKnown(List<String> actual, List<String> derived) {
+        return Arrays.asList(actual.get(0) != null ? actual.get(0) : derived.get(0),
+                actual.get(1) != null ? actual.get(1) : derived.get(1));
     }
 
     /** Los empatados en cabeza, separados por comas; null si aún no hay goles. */
@@ -139,41 +140,15 @@ public class OfficialResultsService {
     }
 
     /** Ganador declarado o, en un partido terminado, el que ganó en el marcador. */
-    private static String winnerName(Match m) {
-        if (m.getWinnerTeam() != null && m.getWinnerTeam().getName() != null) return m.getWinnerTeam().getName();
-        if (Boolean.TRUE.equals(m.getFinished()) && m.getHomeScore() != null && m.getAwayScore() != null) {
-            if (m.getHomeScore() > m.getAwayScore()) return m.getHomeTeam() != null ? m.getHomeTeam().getName() : null;
-            if (m.getAwayScore() > m.getHomeScore()) return m.getAwayTeam() != null ? m.getAwayTeam().getName() : null;
-        }
-        return null;
+    private static String winnerName(Match match) {
+        return OfficialBracketLayout.name(KnockoutBracketService.winnerOf(match));
     }
 
-    private static String realName(Team team) {
-        return Team.isPlaceholder(team) ? null : team.getName();
+    private static Predicate<Match> round(KnockoutRound round) {
+        return match -> KnockoutRound.fromLabel(match.getRound()) == round;
     }
 
-    private static boolean isRound(String round, String... targets) {
-        if (round == null) return false;
-        String lower = round.toLowerCase();
-        for (String target : targets) {
-            if (lower.contains(target.toLowerCase())) return true;
-        }
-        return false;
-    }
-
-    private static boolean isKnockoutMatch(Match m) {
-        if (m == null) return false;
-        if (m.getGroupName() != null && !"-".equals(m.getGroupName()) && !m.getGroupName().trim().isEmpty()) {
-            return false;
-        }
-        String r = m.getRound();
-        if (r == null) return false;
-        String lower = r.toLowerCase().trim();
-        if (lower.equals("group") || lower.startsWith("group") || lower.contains("grupo") || lower.contains("jornada")) {
-            return false;
-        }
-        return m.getHomeTeam() == null || m.getAwayTeam() == null
-                || m.getHomeTeam().getGroupName() == null || "-".equals(m.getHomeTeam().getGroupName())
-                || !m.getHomeTeam().getGroupName().equalsIgnoreCase(m.getAwayTeam().getGroupName());
+    private static boolean isKnockoutMatch(Match match) {
+        return KnockoutBracketService.isKnockoutMatch(match);
     }
 }

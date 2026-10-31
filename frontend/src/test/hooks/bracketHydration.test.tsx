@@ -5,7 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBracket } from '../../hooks/useBracket';
 import { useAppContext } from '../../context/AppContext';
 import * as api from '../../services/api';
-import { defaultBracketState, type BracketState } from '../../store/useAppStore';
+import {
+  defaultBracketState,
+  getDefaultBracketState,
+  type BracketState,
+} from '../../store/useAppStore';
 import type { PredictionSummary } from '../../types/api';
 import { readJsonDraft, writeDraft } from '../../utils/drafts';
 
@@ -92,6 +96,79 @@ describe('useBracket: hidratación desde fetchMyPredictions', () => {
   });
 
   const champion = (call: unknown[]) => (call[0] as BracketState).champion?.name;
+
+  it('keeps the historical layout when restarting an unversioned prediction from groups', () => {
+    const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    context.bracketState = { ...getDefaultBracketState(1), topologyVersion: undefined };
+    vi.mocked(api.fetchMyPredictions).mockResolvedValue([]);
+    const { result } = renderHook(() => useBracket(), { wrapper });
+    act(() => result.current.handleResetToGroupStage());
+    const reset = setBracketState.mock.calls[
+      setBracketState.mock.calls.length - 1
+    ][0] as BracketState;
+    expect(reset.topologyVersion).toBe(1);
+    expect(reset.r32.left[3].home?.name).toBe('1º Grupo C');
+    expect(reset.r32.right[0].home?.name).toBe('2º Grupo K');
+    scroll.mockRestore();
+  });
+
+  it.each([1, 2] as const)(
+    'applies group positions and third-place slots using version %s',
+    (version) => {
+      const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+      context.bracketState = getDefaultBracketState(version);
+      vi.mocked(api.fetchMyPredictions).mockResolvedValue([]);
+      const { result } = renderHook(() => useBracket(), { wrapper });
+      const groups = Object.fromEntries(
+        'ABCDEFGHIJKL'
+          .split('')
+          .map((g) => [g, { first: `${g}1`, second: `${g}2`, third: `${g}3` }]),
+      );
+      const thirds = 'ABCDEFGH'.split('').map((g) => `${g}3`);
+      act(() => result.current.handleGroupStageComplete(groups, thirds));
+      const state = setBracketState.mock.calls[
+        setBracketState.mock.calls.length - 1
+      ][0] as BracketState;
+      expect(state.topologyVersion).toBe(version);
+      const a = version === 2 ? state.r32.right[2] : state.r32.left[6];
+      const d = version === 2 ? state.r32.left[6] : state.r32.right[2];
+      expect(a.home?.name).toBe('A1');
+      expect(d.home?.name).toBe('D1');
+      expect(['C3', 'E3', 'F3', 'H3']).toContain(a.away?.name);
+      expect(['B3', 'E3', 'F3']).toContain(d.away?.name);
+      scroll.mockRestore();
+    },
+  );
+
+  it.each([undefined, 1, 2] as const)(
+    'saves and hydrates topology %s without reinterpreting its branches',
+    async (version) => {
+      const state = completedBracket();
+      state.topologyVersion = version;
+      context.bracketState = state;
+      context.activeGroupPichichi = false;
+      vi.mocked(api.fetchMyPredictions).mockResolvedValue([]);
+      const { result } = renderHook(() => useBracket(), { wrapper });
+      act(() => result.current.setPredictionName('Versionada'));
+      await act(() => result.current.generatePredictionData());
+      const payload = vi.mocked(api.createPrediction).mock.calls[0][0];
+      expect(payload.topologyVersion).toBe(version ?? 1);
+      expect(payload.r32?.[0]).toEqual(['left0', 'left1']);
+      expect(payload.r32?.[8]).toEqual(['right0', 'right1']);
+    },
+  );
+
+  it.each([undefined, 2] as const)(
+    'hydrates saved version %s without defaulting to the newest version',
+    async (version) => {
+      const saved = prediction(10, 'Brasil');
+      saved.data!.topologyVersion = version;
+      vi.mocked(api.fetchMyPredictions).mockResolvedValue([saved]);
+      renderHook(() => useBracket(), { wrapper });
+      await waitFor(() => expect(setBracketState).toHaveBeenCalledTimes(1));
+      expect(setBracketState.mock.calls[0][0].topologyVersion).toBe(version ?? 1);
+    },
+  );
 
   it('hidrata una sola vez por liga aunque cambien sus dependencias', async () => {
     vi.mocked(api.fetchMyPredictions).mockResolvedValue([prediction(10, 'Brasil')]);

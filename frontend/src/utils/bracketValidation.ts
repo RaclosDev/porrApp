@@ -20,6 +20,7 @@ const side = (value: unknown, length: number): boolean =>
 export function isBracketState(value: unknown): value is BracketState {
   return (
     record(value) &&
+    (value.topologyVersion == null || value.topologyVersion === 1 || value.topologyVersion === 2) &&
     side(value.r32, 8) &&
     side(value.r16, 4) &&
     side(value.qf, 2) &&

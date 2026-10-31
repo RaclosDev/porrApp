@@ -6,8 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
 import { isGlobalLeagueId } from '../utils/constants';
 import { advanceBracketWinner, replaceR32Team } from '../utils/bracketTransitions';
+import { r32SlotIndex, topologyVersion } from '../utils/bracketTopology';
 import {
   defaultBracketState,
+  getDefaultBracketState,
   type BracketMatch,
   type BracketState,
   type BracketTeam,
@@ -19,10 +21,14 @@ type Side = 'left' | 'right';
 
 const cloneBracket = (state: BracketState): BracketState => JSON.parse(JSON.stringify(state));
 
-const EMPTY_BRACKET_JSON = JSON.stringify(defaultBracketState);
 /** El cuadro no tiene nada rellenado (no hay borrador local que conservar). */
 const isEmptyBracket = (state: BracketState): boolean =>
-  state === defaultBracketState || JSON.stringify(state) === EMPTY_BRACKET_JSON;
+  state === defaultBracketState ||
+  JSON.stringify({ ...state, topologyVersion: undefined }) ===
+    JSON.stringify({
+      ...getDefaultBracketState(state.topologyVersion),
+      topologyVersion: undefined,
+    });
 
 /** Nombres de los dos equipos de un cruce, si ya están los dos. */
 const matchPair = (m: BracketMatch | null): string[] | undefined => {
@@ -213,6 +219,7 @@ export function useBracket() {
           const extracted = extractGroupsFromR32(
             currentData.r32 || currentData.r1,
             latest.groupOdds,
+            currentData.topologyVersion,
           );
           norm = extracted.groups;
           if (normThirds.length === 0) normThirds = extracted.thirds;
@@ -267,7 +274,11 @@ export function useBracket() {
     );
     if (!hasAnyRealTeam) return;
 
-    const extracted = extractGroupsFromR32(bracketState.r32, groupOdds);
+    const extracted = extractGroupsFromR32(
+      bracketState.r32,
+      groupOdds,
+      bracketState.topologyVersion,
+    );
     if (hasValidGroupSelections(extracted.groups)) {
       setSavedGroupsDraft(extracted.groups);
       writeDraft('groups', activeGroupId, userId, extracted.groups);
@@ -324,7 +335,11 @@ export function useBracket() {
 
     if (solvedMatrix) {
       THIRD_PLACE_RULES.forEach((rule, idx) => {
-        const match = ns.r32[rule.side][rule.matchIndex];
+        const index = r32SlotIndex(
+          (rule.side === 'right' ? 8 : 0) + rule.matchIndex,
+          ns.topologyVersion,
+        );
+        const match = ns.r32[index < 8 ? 'left' : 'right'][index % 8];
         const slot = rule.isHome ? match.home : match.away;
         if (slot?.name?.startsWith('3º ')) {
           slot.name = solvedMatrix[idx].team;
@@ -391,6 +406,7 @@ export function useBracket() {
     });
 
     const predictionData = {
+      topologyVersion: topologyVersion(bracketState.topologyVersion),
       user: userName,
       prediction: predictionName,
       r1: r32,
@@ -456,7 +472,11 @@ export function useBracket() {
   const handleResetToGroupStage = () => {
     // Si aún no tenemos selecciones válidas pero el cuadro actual tiene equipos, extraer antes de resetear
     if (!hasValidGroupSelections(savedGroupsDraft)) {
-      const extracted = extractGroupsFromR32(bracketState.r32, groupOdds);
+      const extracted = extractGroupsFromR32(
+        bracketState.r32,
+        groupOdds,
+        bracketState.topologyVersion,
+      );
       if (hasValidGroupSelections(extracted.groups)) {
         setSavedGroupsDraft(extracted.groups);
         writeDraft('groups', activeGroupId, userId, extracted.groups);
@@ -466,7 +486,7 @@ export function useBracket() {
         }
       }
     }
-    setBracketState(defaultBracketState);
+    setBracketState(getDefaultBracketState(bracketState.topologyVersion));
     removeDraft('bracket', activeGroupId, userId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

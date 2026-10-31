@@ -19,6 +19,7 @@ import { isMathematicallyEliminated } from './groupStatus';
 
 /** Cuadro vacío que se muestra si no se puede obtener el oficial. */
 export const EMPTY_OFFICIAL_BRACKET: PredictionData = {
+  topologyVersion: 2,
   r32: [
     ['1º Grupo E', '3º A/B/C/D/F'],
     ['1º Grupo I', '3º C/D/F/G/H'],
@@ -120,7 +121,7 @@ export function r32Source(part: ViewerPrediction | null): TeamPair[] | null {
   if (Array.isArray(part?.r32) && part.r32.length >= 16) return part.r32;
   if (Array.isArray(part?.r1) && part.r1.length >= 16) return part.r1;
   if (part?.groups && hasValidGroupSelections(part.groups)) {
-    return buildR32FromGroups(part.groups, part.thirds);
+    return buildR32FromGroups(part.groups, part.thirds, part.topologyVersion);
   }
   return [];
 }
@@ -219,7 +220,7 @@ export function isTeamImpossibleForRound(
 export function advancingThirds(part: ViewerPrediction | null, groupOdds: GroupOdds): string[] {
   if (Array.isArray(part?.thirds) && part.thirds.length > 0) return part.thirds;
   if (part?.r32 || part?.r1) {
-    return extractGroupsFromR32(part.r32 || part.r1, groupOdds).thirds || [];
+    return extractGroupsFromR32(part.r32 || part.r1, groupOdds, part.topologyVersion).thirds || [];
   }
   return [];
 }

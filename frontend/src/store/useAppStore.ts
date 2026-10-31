@@ -5,6 +5,7 @@ import { queryClient } from '../services/queryClient';
 import { GLOBAL_LEAGUE_ID } from '../utils/constants';
 import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
 import { isBracketState } from '../utils/bracketValidation';
+import { orderR32, topologyVersion, type TopologyVersion } from '../utils/bracketTopology';
 
 /** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
 export interface BracketTeam {
@@ -25,6 +26,7 @@ export interface BracketSide {
 
 /** Cuadro de eliminatorias que rellena el usuario. */
 export interface BracketState {
+  topologyVersion?: TopologyVersion;
   r32: BracketSide;
   r16: BracketSide;
   qf: BracketSide;
@@ -71,7 +73,8 @@ interface AppState {
   changeGroup: (groupId: string | number | null) => void;
 }
 
-export const defaultBracketState: BracketState = {
+const legacyBracketState: BracketState = {
+  topologyVersion: 1,
   r32: {
     left: [
       { home: { name: '1º Grupo E' }, away: { name: '3º A/B/C/D/F' }, id: 'L1' },
@@ -119,6 +122,16 @@ export const defaultBracketState: BracketState = {
   thirdPlaceMatch: null,
   thirdPlaceWinner: null,
 };
+
+const canonicalR32 = orderR32([...legacyBracketState.r32.left, ...legacyBracketState.r32.right], 2);
+export const defaultBracketState: BracketState = {
+  ...legacyBracketState,
+  topologyVersion: 2,
+  r32: { left: canonicalR32.slice(0, 8), right: canonicalR32.slice(8) },
+};
+
+export const getDefaultBracketState = (version?: TopologyVersion): BracketState =>
+  topologyVersion(version) === 2 ? defaultBracketState : legacyBracketState;
 
 /** Borrador del cuadro de este usuario en esta liga, o el cuadro vacío. */
 export const getInitialBracketState = (groupId: string, userId: string): BracketState => {

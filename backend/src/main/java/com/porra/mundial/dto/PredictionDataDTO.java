@@ -14,6 +14,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PredictionDataDTO {
+    /** Absent/1 preserves historical brackets; 2 follows the FIFA 2026 draw topology. */
+    private Integer topologyVersion;
     
     @NotBlank(message = "El nombre de usuario o porra es obligatorio")
     private String user;

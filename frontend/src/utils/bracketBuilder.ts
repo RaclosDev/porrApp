@@ -1,4 +1,5 @@
 import type { GroupOdds, GroupStandings, Match } from '../types/api';
+import { alignOfficialRound, nextPools } from './officialBracketLayout';
 
 /** Equipo clasificado según el marcador; provisional si el partido no ha terminado. */
 export type ProvisionalTeam = {
@@ -46,7 +47,13 @@ export const isMatchInRound = (match: Match, roundIndex: number | string | undef
   if (roundIndex === 1) return r === 'r16' || r === '16' || r.includes('16') || r.includes('octav');
   if (roundIndex === 2) return r === 'qf' || r.includes('quart') || r.includes('cuart');
   if (roundIndex === 3) return r === 'sf' || r.includes('semi') || r.includes('semis');
-  if (roundIndex === 'final') return r === 'final' || r.includes('final');
+  if (roundIndex === 'final')
+    return (
+      r.includes('final') &&
+      !['semi', 'quarter', 'cuart', 'octav', 'third', 'tercer', '3rd', '3er', '16avo'].some(
+        (other) => r.includes(other),
+      )
+    );
   if (roundIndex === 'thirdPlaceMatch')
     return r === 'third' || r.includes('tercer') || r.includes('3rd') || r.includes('3er');
   return true;
@@ -140,7 +147,7 @@ export function buildBracketData(
   const allR16 = safeGames
     .filter((m) => matchRound(m, 'r16', 'octav'))
     .sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
-  const realR32Matches = explicitR32.length > 0 ? explicitR32.slice(0, 16) : allR16.slice(0, 16);
+  const realR32Matches = explicitR32;
 
   const opponentMap: Record<string, string> = {};
   realR32Matches.forEach((m) => {
@@ -187,9 +194,11 @@ export function buildBracketData(
     });
   });
 
-  const r16: BracketSlot[][] = Array(8)
-    .fill(null)
-    .map(() => [null, null]);
+  const r32Pools = r32.map((pair) => pair.filter((name) => name && !name.includes('º')));
+  const r16Pools = nextPools(r32Pools);
+  const qfPools = nextPools(r16Pools);
+  const sfPools = nextPools(qfPools);
+  const r16: BracketSlot[][] = alignOfficialRound(allR16, r32Pools);
   for (let i = 0; i < 16; i += 2) {
     const r16Idx = Math.floor(i / 2);
     const homeTeam = r32[i][0];
@@ -197,11 +206,11 @@ export function buildBracketData(
 
     if (homeTeam && !homeTeam.includes('º')) {
       const winner = r32WinnerOf[homeTeam];
-      if (winner) r16[r16Idx][0] = winner;
+      if (winner && !r16[r16Idx][0]) r16[r16Idx][0] = winner;
     }
     if (awayTeam && !awayTeam.includes('º')) {
       const winner = r32WinnerOf[awayTeam];
-      if (winner) r16[r16Idx][1] = winner;
+      if (winner && !r16[r16Idx][1]) r16[r16Idx][1] = winner;
     }
   }
 
@@ -214,28 +223,13 @@ export function buildBracketData(
   const realFinal = safeGames.filter(
     (m) =>
       matchRound(m, 'final') &&
-      !matchRound(m, 'semi', 'quarter', 'octav', 'third', 'tercer', '3rd', '3er'),
+      !matchRound(m, 'semi', 'quarter', 'cuart', 'octav', 'third', 'tercer', '3rd', '3er', '16avo'),
   );
   const realThird = safeGames.filter((m) => matchRound(m, 'third', 'tercer', '3rd', '3er'));
-  const cleanName = (n: string | null | undefined): BracketSlot =>
-    !n || n === 'Por definir' || n === '???' ? null : n;
-
-  const qf: BracketSlot[][] = Array.from({ length: 4 }, (_, i) => [
-    cleanName(realQF[i]?.home),
-    cleanName(realQF[i]?.away),
-  ]);
-  const sf: BracketSlot[][] = Array.from({ length: 2 }, (_, i) => [
-    cleanName(realSF[i]?.home),
-    cleanName(realSF[i]?.away),
-  ]);
-  const final_: BracketSlot[] =
-    realFinal.length > 0
-      ? [cleanName(realFinal[0].home), cleanName(realFinal[0].away)]
-      : [null, null];
-  const thirdPlaceMatch: BracketSlot[] =
-    realThird.length > 0
-      ? [cleanName(realThird[0].home), cleanName(realThird[0].away)]
-      : [null, null];
+  const qf: BracketSlot[][] = alignOfficialRound(realQF, r16Pools);
+  const sf: BracketSlot[][] = alignOfficialRound(realSF, qfPools);
+  const final_: BracketSlot[] = alignOfficialRound(realFinal, sfPools)[0];
+  const thirdPlaceMatch: BracketSlot[] = alignOfficialRound(realThird, sfPools)[0];
 
   const findMatch = (n1: string, n2: string) =>
     safeGames.find(
@@ -312,6 +306,7 @@ export function buildBracketData(
   }
 
   return {
+    topologyVersion: 2 as const,
     r32,
     r16,
     qf,

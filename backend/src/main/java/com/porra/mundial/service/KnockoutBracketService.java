@@ -3,6 +3,7 @@ package com.porra.mundial.service;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
+import com.porra.mundial.model.KnockoutRound;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
@@ -126,14 +127,14 @@ public class KnockoutBracketService {
     private FinalRounds findFinalRounds(List<Match> worldCupMatches) {
         List<Match> knockout = worldCupMatches.stream().filter(KnockoutBracketService::isKnockoutMatch).toList();
         List<Match> semis = knockout.stream()
-                .filter(m -> isRound(m.getRound(), "sf", "semi"))
+                .filter(m -> KnockoutRound.fromLabel(m.getRound()) == KnockoutRound.SEMI_FINAL)
                 .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
         Match finalMatch = knockout.stream()
-                .filter(m -> isRound(m.getRound(), "final") && !isRound(m.getRound(), "semi", "quarter", "octav", "third", "tercer", "3rd", "3er"))
+                .filter(m -> KnockoutRound.fromLabel(m.getRound()) == KnockoutRound.FINAL)
                 .findFirst().orElse(null);
         Match thirdPlace = knockout.stream()
-                .filter(m -> isRound(m.getRound(), "third", "tercer", "3rd", "3er"))
+                .filter(m -> KnockoutRound.fromLabel(m.getRound()) == KnockoutRound.THIRD_PLACE)
                 .findFirst().orElse(null);
         return new FinalRounds(semis, finalMatch, thirdPlace);
     }
@@ -178,17 +179,11 @@ public class KnockoutBracketService {
     static boolean isKnockoutMatch(Match m) {
         if (m == null) return false;
         if (m.getGroupName() != null && !"-".equals(m.getGroupName()) && !m.getGroupName().isBlank()) return false;
-        return !isRound(m.getRound(), "group", "jornada");
+        return KnockoutRound.fromLabel(m.getRound()) != null;
     }
 
     private static boolean hasDecisiveScore(Match m) {
         return m.getHomeScore() != null && m.getAwayScore() != null && !Objects.equals(m.getHomeScore(), m.getAwayScore());
-    }
-
-    private static boolean isRound(String round, String... keys) {
-        if (round == null) return false;
-        String lower = round.toLowerCase();
-        return Arrays.stream(keys).anyMatch(lower::contains);
     }
 
     private static String nameOf(Team team) {

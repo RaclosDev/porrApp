@@ -1,8 +1,50 @@
 import { describe, it, expect } from 'vitest';
-import { buildBracketData } from '../../utils/bracketBuilder';
+import { buildBracketData, isMatchInRound } from '../../utils/bracketBuilder';
 import { game, standing } from '../fixtures';
 
+const canonicalPoints = Object.fromEntries(
+  'ABCDEFGHIJKL'
+    .split('')
+    .map((g) => [g, { [`${g}1`]: standing({ pos: 1 }), [`${g}2`]: standing({ pos: 2 }) }]),
+);
+const canonicalQf = [
+  ['E1', 'A2'],
+  ['K2', 'D1'],
+  ['C1', 'A1'],
+  ['J1', 'B1'],
+];
+
 describe('bracketBuilder', () => {
+  it.each([
+    'cuartos de final',
+    'semifinal',
+    'quarter-final',
+    'octavos de final',
+    'third place final',
+  ])('does not classify %s as the final', (round) => {
+    const fixture = game({
+      round,
+      home: 'E1',
+      away: 'A2',
+      finished: true,
+      home_score: 1,
+      away_score: 0,
+    });
+    expect(isMatchInRound(fixture, 'final')).toBe(false);
+    expect(buildBracketData(canonicalPoints, {}, [fixture]).champion).toBeNull();
+  });
+  it('anchors rescheduled and reversed quarterfinals to their FIFA branches', () => {
+    const result = buildBracketData(canonicalPoints, {}, [
+      game({ round: 'qf', home: 'B1', away: 'J1', date: '2026-07-01T12:00:00Z' }),
+      game({ round: 'qf', home: 'A2', away: 'E1', date: '2026-07-20T12:00:00Z' }),
+    ]);
+    expect(result.qf).toEqual([
+      ['E1', 'A2'],
+      [null, null],
+      [null, null],
+      ['J1', 'B1'],
+    ]);
+  });
   it('deduce cuartos distintos desde octavos sin partidos explícitos de cuartos', () => {
     const points = Object.fromEntries(
       'ABCDEFGHIJKL'.split('').map((group) => [
@@ -55,9 +97,7 @@ describe('bracketBuilder', () => {
       Array.from({ length: count }, (_, i) => game({ round: 'qf', home: `L${i}`, away: `V${i}` })),
     );
     expect(result.qf).toHaveLength(4);
-    expect(result.qf.slice(0, count)).toEqual(
-      Array.from({ length: count }, (_, i) => [`L${i}`, `V${i}`]),
-    );
+    expect(result.qf).toEqual(Array.from({ length: 4 }, () => [null, null]));
   });
 
   it.each([0, 1, 2])('conserva dos huecos con %s semifinales publicadas', (count) => {
@@ -67,20 +107,18 @@ describe('bracketBuilder', () => {
       Array.from({ length: count }, (_, i) => game({ round: 'sf', home: `L${i}`, away: `V${i}` })),
     );
     expect(result.sf).toHaveLength(2);
-    expect(result.sf.slice(0, count)).toEqual(
-      Array.from({ length: count }, (_, i) => [`L${i}`, `V${i}`]),
-    );
+    expect(result.sf).toEqual(Array.from({ length: 2 }, () => [null, null]));
   });
 
   it('propaga ganadores de cuartos a semifinales independientes', () => {
     const result = buildBracketData(
-      {},
+      canonicalPoints,
       {},
       Array.from({ length: 4 }, (_, i) =>
         game({
           round: 'qf',
-          home: `L${i}`,
-          away: `V${i}`,
+          home: canonicalQf[i][0],
+          away: canonicalQf[i][1],
           home_score: 1,
           away_score: 0,
           finished: true,
@@ -89,12 +127,12 @@ describe('bracketBuilder', () => {
     );
     expect(result.sf).toEqual([
       [
-        { name: 'L0', isProvisional: false },
-        { name: 'L1', isProvisional: false },
+        { name: 'E1', isProvisional: false },
+        { name: 'K2', isProvisional: false },
       ],
       [
-        { name: 'L2', isProvisional: false },
-        { name: 'L3', isProvisional: false },
+        { name: 'C1', isProvisional: false },
+        { name: 'J1', isProvisional: false },
       ],
     ]);
     expect(new Set(result.qf).size).toBe(4);
@@ -158,7 +196,16 @@ describe('bracketBuilder', () => {
       },
     ];
 
-    const result = buildBracketData({}, {}, mockGames.map(game));
+    const result = buildBracketData(
+      {
+        H: { España: standing({ pos: 1 }) },
+        C: { Francia: standing({ pos: 1 }) },
+        E: { Brasil: standing({ pos: 1 }) },
+        J: { Argentina: standing({ pos: 1 }) },
+      },
+      {},
+      mockGames.map(game),
+    );
 
     expect(result.final).toEqual(['España', 'Francia']);
     expect(result.champion).toEqual({ name: 'España', isProvisional: false });

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Validates saved drafts without assuming a particular ordering of knockout pairings. */
+/** Historical brackets retain their ordering; version 2 validates the FIFA feeder match of each slot. */
 @Component
 @RequiredArgsConstructor
 public class BracketPredictionValidator {
@@ -22,6 +22,8 @@ public class BracketPredictionValidator {
             throw invalid("Esta edición no admite predicciones de cuadro del Mundial");
         }
         if (data == null) throw invalid("Falta el cuadro");
+        if (data.getTopologyVersion() != null && data.getTopologyVersion() != 1 && data.getTopologyVersion() != 2)
+            throw invalid("Versión de cuadro desconocida");
         Map<String, Set<String>> catalog = teams.findAllByOrderByGroupNameAscNameAsc().stream()
                 .filter(t -> t.getGroupName() != null && t.getGroupName().matches("[A-L]") && !Team.isPlaceholder(t))
                 .collect(Collectors.groupingBy(Team::getGroupName, Collectors.mapping(Team::getName, Collectors.toSet())));
@@ -57,6 +59,59 @@ public class BracketPredictionValidator {
         losers.removeAll(finalists);
         Set<String> third = checked(data.getThirdPlaceMatch(), 2, losers, "tercer puesto");
         checked(data.getThirdPlaceWinner() == null ? null : List.of(data.getThirdPlaceWinner()), 1, third, "tercer clasificado");
+        if (Integer.valueOf(2).equals(data.getTopologyVersion())) {
+            if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET) validateGroupSlots(data);
+            validateFeeders(data.getR32(), data.getR16(), "octavos");
+            validateFeeders(data.getR16(), data.getQf(), "cuartos");
+            validateFeeders(data.getQf(), data.getSf(), "semifinales");
+            validateFeeders(data.getSf(), data.getFinalMatch() == null ? null : List.of(data.getFinalMatch()), "final");
+            for (int side = 0; side < 2; side++) {
+                String loser = slot(data.getThirdPlaceMatch(), side);
+                if (loser == null) continue;
+                String finalist = slot(data.getFinalMatch(), side);
+                if (finalist == null || loser.equals(finalist) || !pair(data.getSf(), side).contains(loser))
+                    throw invalid("El tercer puesto debe corresponder al perdedor de su semifinal");
+            }
+        }
+    }
+
+    private void validateGroupSlots(PredictionDataDTO data) {
+        if (data.getR32() == null) return;
+        Map<String, List<String>> groups = data.getGroups() == null ? Map.of() : data.getGroups();
+        for (int index = 0; index < data.getR32().size(); index++) {
+            for (int side = 0; side < 2; side++) {
+                String name = slot(data.getR32().get(index), side);
+                if (name == null) continue;
+                String position = WorldCupBracketTopology.ROUND_OF_32.get(index).get(side);
+                boolean valid;
+                if (position.charAt(0) == '3') {
+                    valid = position.substring(1).chars().anyMatch(group ->
+                            name.equals(slot(groups.get(String.valueOf((char) group)), 2)));
+                } else {
+                    valid = name.equals(slot(groups.get(position.substring(1)), position.charAt(0) - '1'));
+                }
+                if (!valid) throw invalid("El equipo no corresponde a su posición FIFA en dieciseisavos");
+            }
+        }
+    }
+
+    private void validateFeeders(List<List<String>> previous, List<List<String>> current, String label) {
+        if (current == null) return;
+        for (int index = 0; index < current.size(); index++) {
+            for (int side = 0; side < current.get(index).size(); side++) {
+                String name = current.get(index).get(side);
+                if (name != null && !pair(previous, index * 2 + side).contains(name))
+                    throw invalid("El equipo no procede de su partido anterior en " + label);
+            }
+        }
+    }
+
+    private List<String> pair(List<List<String>> pairs, int index) {
+        return pairs != null && index < pairs.size() ? pairs.get(index) : List.of();
+    }
+
+    private String slot(List<String> slots, int index) {
+        return slots != null && index < slots.size() ? slots.get(index) : null;
     }
 
     private Set<String> round(List<List<String>> pairs, int maximum, Set<String> previous, String label) {
