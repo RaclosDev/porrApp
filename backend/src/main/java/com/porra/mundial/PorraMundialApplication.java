@@ -2,9 +2,6 @@ package com.porra.mundial;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 import jakarta.annotation.PostConstruct;
 import java.util.TimeZone;
@@ -12,16 +9,11 @@ import java.util.TimeZone;
 /**
  *  Clase principal (Entry Point) de la aplicación Spring Boot "Porra Mundial".
  * 
- * Anotaciones importantes:
- * - @SpringBootApplication: Autoconfiguración y escaneo de componentes.
- * - @EnableScheduling: Habilita los cron jobs (como el de SyncService y TopScorerService).
- * - @EnableCaching: Habilita la caché en memoria (Redis/ConcurrentMapCache) usada en LeaderboardService.
- * - @EnableAsync: Permite tareas en segundo plano, como importar el calendario de una liga recién creada.
+ * La caché, las tareas programadas y las asíncronas se activan en
+ * {@link com.porra.mundial.config.ApplicationFeaturesConfig}, fuera de esta clase, para que los
+ * tests de capa (@WebMvcTest, @DataJpaTest) no las arrastren.
  */
 @SpringBootApplication
-@EnableScheduling
-@EnableCaching
-@EnableAsync
 public class PorraMundialApplication {
 
     /**

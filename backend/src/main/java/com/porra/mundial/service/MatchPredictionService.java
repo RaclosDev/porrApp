@@ -433,7 +433,7 @@ public class MatchPredictionService {
                     .userId(member.getId())
                     .participantName(member.getParticipantName() != null ? member.getParticipantName() : "Anónimo")
                     .avatarUrl(member.getAvatarUrl())
-                    .isCaller(isCaller);
+                    .caller(isCaller);
 
             if (mp != null) {
                 builder.hasPredicted(true);

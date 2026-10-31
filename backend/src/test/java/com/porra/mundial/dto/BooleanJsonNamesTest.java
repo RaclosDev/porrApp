@@ -1,8 +1,7 @@
 package com.porra.mundial.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,12 +13,12 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class BooleanJsonNamesTest {
 
-    private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     @DisplayName("GroupMemberDTO publica isAdmin")
     void groupMemberExposesIsAdmin() {
-        JsonNode json = mapper.valueToTree(GroupMemberDTO.builder().userId(1L).isAdmin(true).build());
+        JsonNode json = mapper.valueToTree(GroupMemberDTO.builder().userId(1L).admin(true).build());
         assertTrue(json.path("isAdmin").asBoolean(), json.toString());
         assertFalse(json.has("admin"), json.toString());
     }
@@ -27,7 +26,7 @@ class BooleanJsonNamesTest {
     @Test
     @DisplayName("MatchdayFriendPredictionDTO publica isCaller y hasPredicted")
     void friendPredictionExposesIsCaller() {
-        JsonNode json = mapper.valueToTree(MatchdayFriendPredictionDTO.builder().userId(1L).isCaller(true).hasPredicted(true).build());
+        JsonNode json = mapper.valueToTree(MatchdayFriendPredictionDTO.builder().userId(1L).caller(true).hasPredicted(true).build());
         assertTrue(json.path("isCaller").asBoolean(), json.toString());
         assertTrue(json.path("hasPredicted").asBoolean(), json.toString());
         assertFalse(json.has("caller"), json.toString());
