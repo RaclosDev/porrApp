@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
+import { useLeaguePredictions } from './hooks/useLeaguePredictions';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import { PageSkeleton } from './components/Skeleton';
@@ -48,7 +49,7 @@ const RootPage = () => {
 };
 
 const DemoPredictionPage = () => {
-  const { participantsHashes = [] } = useAppContext();
+  const participantsHashes = useLeaguePredictions();
 
   // La demo muestra la porra pública de Raclos en modo estrictamente de solo lectura.
   const raclosPrediction = participantsHashes.find((participant) =>

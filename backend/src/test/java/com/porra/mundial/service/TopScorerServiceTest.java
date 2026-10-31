@@ -144,7 +144,7 @@ class TopScorerServiceTest {
         assertEquals(1, scorers.get(1).goals());
         assertEquals("Argentina", scorers.get(1).team());
 
-        verify(webSocketService, times(1)).invalidateAndNotify();
+        verify(webSocketService, times(1)).broadcastUpdate("DATA_UPDATED");
     }
 
     private JsonNode goalBy(String player) throws Exception {
@@ -191,7 +191,7 @@ class TopScorerServiceTest {
 
         assertDoesNotThrow(() -> topScorerService.refresh());
         assertTrue(topScorerService.getTopScorers().isEmpty());
-        verify(webSocketService, never()).invalidateAndNotify();
+        verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
     @Test
@@ -201,7 +201,7 @@ class TopScorerServiceTest {
 
         assertDoesNotThrow(() -> topScorerService.refresh());
         assertTrue(topScorerService.getTopScorers().isEmpty());
-        verify(webSocketService, never()).invalidateAndNotify();
+        verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
     @Test
@@ -212,7 +212,8 @@ class TopScorerServiceTest {
         topScorerService.scheduledRefresh();
 
         verify(sportsDataProvider, times(1)).fetchScoreboardEvents(anyString());
-        verify(webSocketService, times(1)).invalidateAndNotify();
+        // Misma lista que la anterior (vacía): no hay nada que avisar.
+        verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
     @Configuration

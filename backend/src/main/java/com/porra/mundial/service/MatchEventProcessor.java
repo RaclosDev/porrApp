@@ -69,9 +69,16 @@ public class MatchEventProcessor {
             return competition != null ? competition.getName() : null;
         }
 
-        /** Si ha cambiado algún resultado (equipos, marcador final, ganador o fin del partido). */
+        /**
+         * Si ha cambiado algún resultado: equipos, marcador final, ganador, fin del partido o las
+         * tarjetas de un partido terminado (el fair play desempata los grupos).
+         */
         public boolean resultsChanged() {
             return resultsChanged;
+        }
+
+        void markResultsChanged() {
+            resultsChanged = true;
         }
     }
 
@@ -349,8 +356,9 @@ public class MatchEventProcessor {
         if (meta.round() != null && !"group".equals(meta.round())) {
             updated |= setIfChanged(match.getRound(), meta.round(), match::setRound);
         }
-        updated |= setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay);
-        updated |= setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
+        boolean fairPlayChanged = setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay)
+                | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
+        updated |= fairPlayChanged;
 
         MatchStatusNormalized normalized = MatchStatusNormalized.fromExternal(
                 status.live() ? "in" : (status.finished() ? "completed" : "scheduled"), status.finished());
@@ -359,8 +367,9 @@ public class MatchEventProcessor {
         if (updated) {
             matchRepository.save(match);
             batch.matchesUpdated++;
-            if (homeChanged || awayChanged || winnerChanged || finishedChanged || (status.finished() && scoreChanged)) {
-                batch.resultsChanged = true;
+            if (homeChanged || awayChanged || winnerChanged || finishedChanged
+                    || (status.finished() && (scoreChanged || fairPlayChanged))) {
+                batch.markResultsChanged();
             }
             if (scoreChanged) {
                 webSocketService.broadcastMatchScore(

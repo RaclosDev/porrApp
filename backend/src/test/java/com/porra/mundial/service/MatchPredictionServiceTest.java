@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -285,13 +286,15 @@ class MatchPredictionServiceTest {
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
         Match groupAMatch = Match.builder().id(201L).groupName("A").finished(false).matchDate(LocalDateTime.now().plusDays(1)).build();
         Match groupBMatch = Match.builder().id(202L).groupName("B").finished(false).matchDate(LocalDateTime.now().plusDays(1)).build();
-        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(groupAMatch, groupBMatch));
+        when(matchRepository.findRoundCandidates(eq(2L), eq(List.of("grupo a", "a")), any(), any(), eq(false)))
+                .thenReturn(List.of(groupAMatch, groupBMatch));
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.empty());
 
         List<MatchdayFixturePredictionDTO> fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, "Grupo A");
 
         assertEquals(1, fixtures.size());
         assertEquals(201L, fixtures.get(0).getMatchId());
+        verify(matchRepository, never()).findByCompetitionIdOrderByMatchDateAsc(any());
     }
 
     @Test
@@ -313,8 +316,10 @@ class MatchPredictionServiceTest {
     void groupsUnknownRoundsByDateAndAllowsFilteringThatDate() {
         futureMatch.setRound("group");
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
-        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch, pastMatch));
         String dateRound = "Fecha " + futureMatch.getMatchDate().toLocalDate();
+        LocalDateTime day = futureMatch.getMatchDate().toLocalDate().atStartOfDay();
+        when(matchRepository.findRoundCandidates(2L, List.of(dateRound.toLowerCase()), day, day.plusDays(1), false))
+                .thenReturn(List.of(futureMatch, pastMatch));
 
         var fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, dateRound);
         assertEquals(1, fixtures.size());

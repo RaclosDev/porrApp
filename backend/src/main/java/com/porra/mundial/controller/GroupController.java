@@ -69,8 +69,8 @@ public class GroupController {
         League group = groupService.getGroupByJoinCode(payload.getJoinCode().trim().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado con ese código"));
         groupService.joinGroupMembership(group.getId(), principal.getName());
-        // Refresca rankings, miembros y contadores en las sesiones de todos los participantes.
-        webSocketService.invalidateAndNotify();
+        // Refresca ranking, miembros y contadores de esa liga en las sesiones que la estén viendo.
+        webSocketService.notifyLeagueChanged(group.getId());
         return groupService.toResponse(group, true);
     }
 
@@ -92,7 +92,7 @@ public class GroupController {
     @DeleteMapping("/{id}/leave")
     public StatusResponse leaveGroup(@PathVariable Long id, Principal principal) {
         groupService.leaveGroup(id, principal.getName());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success();
     }
 
@@ -100,7 +100,7 @@ public class GroupController {
     @PutMapping("/{id}/predictions/{predictionId}/accept")
     public StatusResponse acceptPrediction(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
         groupService.togglePredictionPaymentStatus(id, predictionId, principal.getName(), true);
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success();
     }
 
@@ -108,7 +108,7 @@ public class GroupController {
     @PutMapping("/{id}/predictions/{predictionId}/reject")
     public StatusResponse rejectPrediction(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
         groupService.togglePredictionPaymentStatus(id, predictionId, principal.getName(), false);
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success();
     }
 
@@ -116,7 +116,7 @@ public class GroupController {
     @DeleteMapping("/{id}/predictions/{predictionId}")
     public StatusResponse deletePrediction(@PathVariable Long id, @PathVariable Long predictionId, Principal principal) {
         groupService.deletePrediction(id, predictionId, principal.getName());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success();
     }
 
@@ -132,7 +132,7 @@ public class GroupController {
                                                      @Valid @RequestBody MemberPaymentRequest body, Principal principal) {
         String status = body.statusOrDefault();
         groupService.toggleMemberPayment(id, userId, principal.getName(), status);
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(id);
         return PaymentStatusResponse.success(status);
     }
 
@@ -140,7 +140,7 @@ public class GroupController {
     @DeleteMapping("/{id}/members/{userId}")
     public StatusResponse kickMember(@PathVariable Long id, @PathVariable Long userId, Principal principal) {
         groupService.kickMember(id, userId, principal.getName());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success("Miembro expulsado");
     }
 

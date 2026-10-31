@@ -13,6 +13,7 @@ import PredictionViewer from '../components/PredictionViewer';
 import { PredictionSkeleton } from '../components/Skeleton';
 import { useBracket } from '../hooks/useBracket';
 import { useAppContext } from '../context/AppContext';
+import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 
 /**
  * Componente principal para crear o ver una Porra (Pronóstico).
@@ -24,7 +25,8 @@ import { useAppContext } from '../context/AppContext';
  * @returns {JSX.Element} Vista interactiva para ver o rellenar el bracket.
  */
 function Bracket() {
-  const { participantsHashes, userId } = useAppContext();
+  const { userId } = useAppContext();
+  const myPred = useMyLeaguePrediction();
   const {
     bracketState,
     userName,
@@ -58,11 +60,6 @@ function Bracket() {
   const [mobileStep, setMobileStep] = useState('bracket'); // 'bracket' | 'save'
   const [isEditing, setIsEditing] = useState(false);
 
-  const myPred = participantsHashes?.find(
-    (h) =>
-      (userName && h.participantName?.toLowerCase() === userName.toLowerCase()) ||
-      (userId && h.userId?.toString() === userId?.toString()),
-  );
   const effectivePredictionId = savedPredictionId || myPred?.key;
 
   if (loadingGroup)

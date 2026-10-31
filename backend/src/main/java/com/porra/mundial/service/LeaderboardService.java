@@ -117,12 +117,14 @@ public class LeaderboardService {
         List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
 
+        Map<Long, List<MatchPrediction>> matchPredsByPrediction = matchPredictionsByPrediction(groupPredictions);
+
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
         List<Prediction> toUpdate = new ArrayList<>();
         for (Prediction pred : groupPredictions) {
             if (pred.getParticipantName() != null && pred.getParticipantName().equalsIgnoreCase("Admin")) continue;
 
-            List<MatchPrediction> matchPreds = matchPredictionRepository.findByPredictionId(pred.getId());
+            List<MatchPrediction> matchPreds = matchPredsByPrediction.getOrDefault(pred.getId(), List.of());
             if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
 
             ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers);
@@ -143,6 +145,14 @@ public class LeaderboardService {
         addLeagueMembersWithoutPredictions(groupId, leaderboard);
         leaderboard.sort(LEADERBOARD_ORDER);
         return leaderboard;
+    }
+
+    /** Una sola consulta para los pronósticos por partido de todas las porras de la clasificación. */
+    private Map<Long, List<MatchPrediction>> matchPredictionsByPrediction(List<Prediction> predictions) {
+        List<Long> ids = predictions.stream().map(Prediction::getId).filter(Objects::nonNull).toList();
+        if (ids.isEmpty()) return Map.of();
+        return matchPredictionRepository.findWithMatchByPredictionIdIn(ids).stream()
+                .collect(Collectors.groupingBy(mp -> mp.getPrediction().getId()));
     }
 
     private Map<Long, String> getMembershipPaymentStatus(Long groupId) {

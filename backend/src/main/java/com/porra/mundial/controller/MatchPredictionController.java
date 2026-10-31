@@ -4,6 +4,7 @@ import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
 import com.porra.mundial.dto.MatchdayFriendPredictionDTO;
 import com.porra.mundial.dto.MatchdaySubmissionDTO;
 import com.porra.mundial.dto.MatchdaySubmissionResponse;
+import com.porra.mundial.model.League;
 import com.porra.mundial.service.MatchPredictionService;
 import com.porra.mundial.service.WebSocketService;
 import jakarta.validation.Valid;
@@ -39,7 +40,7 @@ public class MatchPredictionController {
                                                                 Principal principal) {
         int saved = matchPredictionService.saveMatchdayPredictions(
                 CurrentUser.email(principal), submission.getGroupId(), submission.getPredictions());
-        webSocketService.invalidateAndNotify();
+        webSocketService.notifyLeagueChanged(submission.getGroupId() != null ? submission.getGroupId() : League.GLOBAL_ID);
         return MatchdaySubmissionResponse.of(saved);
     }
 
