@@ -2,12 +2,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import GroupMembersModal from '../../components/GroupMembersModal';
+import { DEFAULT_SCORING, leagueScoring } from '../fixtures';
 
 const api = vi.hoisted(() => ({
   fetchGroupMembers: vi.fn(),
   toggleGroupMemberPayment: vi.fn(),
   kickGroupMember: vi.fn(),
   regenerateGroupJoinCode: vi.fn(),
+  fetchLeagueScoring: vi.fn(),
+  updateLeagueScoring: vi.fn(),
 }));
 
 vi.mock('../../services/api', () => api);
@@ -38,6 +41,8 @@ describe('GroupMembersModal', () => {
     api.toggleGroupMemberPayment.mockReset().mockResolvedValue({ paymentStatus: 'PAID' });
     api.kickGroupMember.mockReset().mockResolvedValue({ status: 'success' });
     api.regenerateGroupJoinCode.mockReset().mockResolvedValue({ joinCode: 'NEW123' });
+    api.fetchLeagueScoring.mockReset().mockResolvedValue(leagueScoring());
+    api.updateLeagueScoring.mockReset();
   });
 
   const setup = (props = {}) => {
@@ -91,7 +96,8 @@ describe('GroupMembersModal', () => {
     fireEvent.change(screen.getByLabelText('Nombre de la liga'), {
       target: { value: 'Liga renovada' },
     });
-    fireEvent.change(screen.getByLabelText('Reglas de la liga'), {
+    fireEvent.click(screen.getByRole('tab', { name: 'Normas' }));
+    fireEvent.change(screen.getByLabelText('Normas de la liga'), {
       target: { value: 'Cuota de 15 €' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
@@ -102,6 +108,77 @@ describe('GroupMembersModal', () => {
         rules: 'Cuota de 15 €',
       }),
     );
+    expect(api.updateLeagueScoring).not.toHaveBeenCalled();
+  });
+
+  it('edita la puntuación y la guarda completa sin tocar nombre ni normas', async () => {
+    api.updateLeagueScoring.mockImplementation((_id, rules) =>
+      Promise.resolve(leagueScoring({ rules })),
+    );
+    const { onSaveSettings } = setup();
+    await screen.findByText('Bruno');
+
+    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    expect(screen.getByRole('tab', { name: /Puntuación/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    fireEvent.change(await screen.findByLabelText('Campeón'), { target: { value: '300' } });
+    expect(screen.getByText('Por defecto: 200')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
+
+    await waitFor(() =>
+      expect(api.updateLeagueScoring).toHaveBeenCalledWith('1', {
+        ...DEFAULT_SCORING,
+        championPoints: 300,
+      }),
+    );
+    expect(onSaveSettings).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Guardar cambios/i })).not.toBeInTheDocument(),
+    );
+  });
+
+  it('no deja guardar un valor no válido y restaura los valores por defecto', async () => {
+    api.fetchLeagueScoring.mockResolvedValue(
+      leagueScoring({
+        poolFormat: 'MATCH_DAY',
+        rules: { ...DEFAULT_SCORING, exactScorePoints: 10 },
+      }),
+    );
+    setup();
+    await screen.findByText('Bruno');
+    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+
+    const exact = await screen.findByLabelText('Resultado exacto');
+    expect(exact).toHaveValue(10);
+    expect(screen.queryByLabelText('Campeón')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Signo 1X2'), { target: { value: '-2' } });
+    expect(screen.getByText('Escribe un número entero, 0 o más.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Guardar cambios/i })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Signo 1X2'), { target: { value: '1001' } });
+    expect(screen.getByText('Como máximo 1000.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Restaurar valores por defecto/i }));
+    expect(screen.getByLabelText('Resultado exacto')).toHaveValue(5);
+    expect(screen.getByLabelText('Signo 1X2')).toHaveValue(3);
+    expect(screen.getByRole('button', { name: /Guardar cambios/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /Restaurar valores por defecto/i })).toBeDisabled();
+  });
+
+  it('muestra la puntuación fija, sin campos, cuando la liga no se puede cambiar', async () => {
+    api.fetchLeagueScoring.mockResolvedValue(leagueScoring({ editable: false }));
+    setup();
+    await screen.findByText('Bruno');
+    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+
+    expect(
+      await screen.findByText('La puntuación de esta liga es fija y no se puede cambiar.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+    expect(screen.getByText('Campeón')).toBeInTheDocument();
   });
 
   it('marca un pago como recibido desde la fila del miembro', async () => {

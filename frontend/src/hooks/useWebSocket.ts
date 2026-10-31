@@ -21,6 +21,7 @@ const SCORE_DEPENDENT_KEYS = [
 const leagueKeys = (leagueId: string | number) => [
   queryKeys.group(leagueId),
   queryKeys.groupMembers(leagueId),
+  queryKeys.leagueScoring(leagueId),
   queryKeys.predictions(leagueId),
   // El aviso no dice de quién es el cambio: puede ser la porra propia (o su borrado).
   queryKeys.myPredictions(),

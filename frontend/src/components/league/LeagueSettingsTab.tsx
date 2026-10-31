@@ -1,6 +1,19 @@
+import { useState } from 'react';
 import { LeagueAvatar } from '../Avatar';
 import ImagePicker from '../ImagePicker';
-import { Check, Loader2, Settings2, ShieldCheck, Trash2, TriangleAlert } from 'lucide-react';
+import {
+  Check,
+  Loader2,
+  RotateCcw,
+  Settings2,
+  ShieldCheck,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
+import RulesTabs, { type RulesTab } from './RulesTabs';
+import ScoringRulesPanel from './ScoringRulesPanel';
+import type { ScoringEditor } from '../../hooks/useScoringEditor';
+import { errorMessage } from '../../utils/errors';
 
 interface LeagueSettingsTabProps {
   deleteConfirmName: string;
@@ -15,6 +28,7 @@ interface LeagueSettingsTabProps {
   onRemoveImage: () => Promise<void>;
   onUploadImage: (blob: Blob) => Promise<void>;
   rulesText: string;
+  scoringEditor: ScoringEditor;
   setDeleteConfirmName: (value: string) => void;
   setDeleteOpen: (open: boolean) => void;
   setName: (value: string) => void;
@@ -22,7 +36,7 @@ interface LeagueSettingsTabProps {
   setRulesText: (value: string) => void;
 }
 
-/** Ajustes de la liga: nombre, reglas, imagen y borrado. */
+/** Ajustes de la liga: nombre, reglas (puntuación y normas), imagen y borrado. */
 export default function LeagueSettingsTab({
   deleteConfirmName,
   deleteOpen,
@@ -36,12 +50,16 @@ export default function LeagueSettingsTab({
   onRemoveImage,
   onUploadImage,
   rulesText,
+  scoringEditor,
   setDeleteConfirmName,
   setDeleteOpen,
   setName,
   setNotice,
   setRulesText,
 }: LeagueSettingsTabProps) {
+  const [rulesTab, setRulesTab] = useState<RulesTab>('scoring');
+  const { scoring } = scoringEditor;
+
   return (
     <div
       id="league-admin-panel-settings"
@@ -98,25 +116,104 @@ export default function LeagueSettingsTab({
             <Settings2 size={14} aria-hidden="true" />
             Reglas de la liga
           </h3>
-          <span className="league-admin-card-meta">{rulesText.length}/8000</span>
+          {rulesTab === 'norms' && (
+            <span className="league-admin-card-meta">{rulesText.length}/8000</span>
+          )}
         </div>
-        <p className="league-admin-muted">
-          Cuota, plazos de pago, criterios de desempate o premios. Se muestran a todos los
-          participantes.
-        </p>
-        <textarea
-          id="league-admin-rules"
-          className="glass-input league-admin-textarea"
-          value={rulesText}
-          maxLength={8000}
-          rows={7}
-          onChange={(event) => {
-            setRulesText(event.target.value);
-            setNotice('');
+        <RulesTabs
+          idPrefix="league-admin-rules"
+          tab={rulesTab}
+          onChange={setRulesTab}
+          badges={{
+            scoring: scoringEditor.isDirty ? (
+              <span className="league-admin-unsaved-dot" aria-label="Cambios sin guardar" />
+            ) : null,
           }}
-          placeholder="Ej.: Cuota de 10 €. El pago se cierra el 10 de junio. En caso de empate gana quien acierte más marcadores exactos…"
-          aria-label="Reglas de la liga"
         />
+
+        {rulesTab === 'scoring' && (
+          <div
+            id="league-admin-rules-panel-scoring"
+            role="tabpanel"
+            aria-labelledby="league-admin-rules-tab-scoring"
+            className="rules-tab-panel"
+          >
+            {scoringEditor.isLoading && (
+              <p className="league-admin-muted">
+                <Loader2 className="league-admin-spin" size={14} aria-hidden="true" /> Cargando la
+                puntuación…
+              </p>
+            )}
+            {scoringEditor.error && (
+              <p className="league-admin-muted" role="alert">
+                {errorMessage(scoringEditor.error, 'No se pudo cargar la puntuación.')}
+              </p>
+            )}
+            {scoring && scoring.editable && (
+              <>
+                <p className="league-admin-muted">
+                  Puntos por cada acierto. Al guardar, los puntos de todos los participantes se
+                  recalculan con estos valores.
+                </p>
+                <ScoringRulesPanel
+                  scoring={scoring}
+                  draft={scoringEditor.draft}
+                  onChange={(key, value) => {
+                    scoringEditor.setValue(key, value);
+                    setNotice('');
+                  }}
+                />
+                <button
+                  type="button"
+                  className="league-admin-btn is-ghost scoring-restore"
+                  onClick={() => {
+                    scoringEditor.restoreDefaults();
+                    setNotice('');
+                  }}
+                  disabled={scoringEditor.isDefault || scoringEditor.isSaving}
+                >
+                  <RotateCcw size={14} aria-hidden="true" />
+                  Restaurar valores por defecto
+                </button>
+              </>
+            )}
+            {scoring && !scoring.editable && (
+              <>
+                <p className="league-admin-muted">
+                  La puntuación de esta liga es fija y no se puede cambiar.
+                </p>
+                <ScoringRulesPanel scoring={scoring} />
+              </>
+            )}
+          </div>
+        )}
+
+        {rulesTab === 'norms' && (
+          <div
+            id="league-admin-rules-panel-norms"
+            role="tabpanel"
+            aria-labelledby="league-admin-rules-tab-norms"
+            className="rules-tab-panel"
+          >
+            <p className="league-admin-muted">
+              Cuota, a quién pagar, plazos, criterios de desempate o reparto de premios. Se muestran
+              a todos los participantes.
+            </p>
+            <textarea
+              id="league-admin-rules"
+              className="glass-input league-admin-textarea"
+              value={rulesText}
+              maxLength={8000}
+              rows={7}
+              onChange={(event) => {
+                setRulesText(event.target.value);
+                setNotice('');
+              }}
+              placeholder="Ej.: Cuota de 10 € por Bizum a Ana antes del 10 de junio. Premios: 60 % al primero, 30 % al segundo y 10 % al tercero."
+              aria-label="Normas de la liga"
+            />
+          </div>
+        )}
         {notice && (
           <p className="league-admin-notice" role="status">
             <Check size={14} aria-hidden="true" />

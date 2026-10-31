@@ -42,4 +42,14 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     @Query("UPDATE Prediction p SET p.scoreCalculatedAt = NULL WHERE p.scoreCalculatedAt IS NOT NULL"
             + " AND p.edition.id IN (SELECT e.id FROM Edition e WHERE e.competition.id = :competitionId)")
     int clearCalculatedScoresByCompetitionId(@Param("competitionId") Long competitionId);
+
+    /**
+     * Marca como pendientes de recalcular las puntuaciones guardadas de las porras de una edición.
+     *
+     * @return número de porras invalidadas
+     */
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE Prediction p SET p.scoreCalculatedAt = NULL WHERE p.scoreCalculatedAt IS NOT NULL"
+            + " AND p.edition.id = :editionId")
+    int clearCalculatedScoresByEditionId(@Param("editionId") Long editionId);
 }

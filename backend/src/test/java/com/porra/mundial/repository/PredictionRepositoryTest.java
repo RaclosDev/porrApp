@@ -3,6 +3,8 @@ package com.porra.mundial.repository;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
+import com.porra.mundial.model.Match;
+import com.porra.mundial.model.MatchPrediction;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
@@ -39,6 +41,9 @@ class PredictionRepositoryTest {
     @Autowired
     private CompetitionRepository competitionRepository;
 
+    @Autowired
+    private MatchPredictionRepository matchPredictionRepository;
+
     private Prediction persistScoredPrediction(String email, Competition competition) {
         UserAccount user = em.persist(UserAccount.builder().googleEmail(email).googleName(email)
                 .participantName(email).build());
@@ -48,6 +53,39 @@ class PredictionRepositoryTest {
                 .poolFormat(PoolFormat.FULL_BRACKET).build());
         return em.persist(Prediction.builder().user(user).edition(edition).name("Porra")
                 .totalPoints(42).scoreCalculatedAt(LocalDateTime.now()).build());
+    }
+
+    @Test
+    void clearsTheStoredScoresOfOneEditionOnly() {
+        Competition worldCup = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElseThrow();
+        Prediction changedRules = persistScoredPrediction("reglas@test.com", worldCup);
+        Prediction otherLeague = persistScoredPrediction("otra01@test.com", worldCup);
+
+        int cleared = predictionRepository.clearCalculatedScoresByEditionId(changedRules.getEdition().getId());
+        em.clear();
+
+        assertThat(cleared).isEqualTo(1);
+        assertThat(predictionRepository.findById(changedRules.getId()).orElseThrow().getScoreCalculatedAt()).isNull();
+        assertThat(predictionRepository.findById(otherLeague.getId()).orElseThrow().getScoreCalculatedAt()).isNotNull();
+    }
+
+    @Test
+    void findsTheMatchPredictionsOfOneEdition() {
+        Competition laLiga = competitionRepository.findByExternalId("esp.1").orElseThrow();
+        Prediction league = persistScoredPrediction("jornada@test.com", laLiga);
+        Prediction otherLeague = persistScoredPrediction("vecina@test.com", laLiga);
+        Match match = em.persist(Match.builder().competition(laLiga).externalId("test-reglas-1")
+                .matchDate(LocalDateTime.now()).finished(true).homeScore(1).awayScore(0).build());
+        MatchPrediction mine = em.persist(MatchPrediction.builder().prediction(league).match(match)
+                .homeScore(1).awayScore(0).predictionSign("1").build());
+        em.persist(MatchPrediction.builder().prediction(otherLeague).match(match).predictionSign("2").build());
+        em.flush();
+        em.clear();
+
+        var found = matchPredictionRepository.findWithMatchByPredictionEditionId(league.getEdition().getId());
+
+        assertThat(found).extracting(MatchPrediction::getId).containsExactly(mine.getId());
+        assertThat(found.get(0).getMatch().getHomeScore()).isEqualTo(1);
     }
 
     @Test
