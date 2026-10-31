@@ -2,6 +2,7 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.dto.MatchdayPointsDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
+import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
@@ -44,16 +45,13 @@ class LeaderboardServiceTest {
     private PredictionRepository predictionRepository;
 
     @Mock
-    private StandingsService standingsService;
+    private OfficialResultsService officialResultsService;
 
     @Mock
     private TopScorerService topScorerService;
 
     @Mock
     private MatchRepository matchRepository;
-
-    @Mock
-    private KnockoutBracketService knockoutBracketService;
 
     @Mock
     private MatchPredictionRepository matchPredictionRepository;
@@ -87,7 +85,9 @@ class LeaderboardServiceTest {
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
         when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(100L))).thenReturn(List.of(mp1, mp2));
-        when(standingsService.getAllStandings()).thenReturn(Collections.emptyList());
+        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+                new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of(), null));
 
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
 

@@ -70,7 +70,7 @@ public class GroupService {
     public void initDefaultGroup() {
         UserAccount adminUser = userAccountRepository.findByParticipantName("Admin")
                 .orElseGet(() -> userAccountRepository.save(UserAccount.builder()
-                        .googleEmail("admin@local")
+                        .googleEmail(UserAccount.SYSTEM_ADMIN_EMAIL)
                         .googleName("Admin")
                         .participantName("Admin")
                         .build()));
@@ -93,7 +93,7 @@ public class GroupService {
             UserAccount currentAdmin = globalGroup.getAdminUser();
             String currentAdminEmail = currentAdmin != null ? currentAdmin.getGoogleEmail() : null;
             boolean currentAdminIsPlaceholder = currentAdmin == null
-                    || "admin@local".equalsIgnoreCase(currentAdminEmail)
+                    || UserAccount.SYSTEM_ADMIN_EMAIL.equalsIgnoreCase(currentAdminEmail)
                     || (currentAdminEmail != null && currentAdminEmail.toLowerCase(java.util.Locale.ROOT).endsWith("@auto.generated"));
 
             boolean metadataNeedsUpdate = !League.GLOBAL_JOIN_CODE.equals(globalGroup.getJoinCode())

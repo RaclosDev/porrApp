@@ -32,14 +32,11 @@ class LeaderboardBenchmarkTest {
     private PredictionRepository predictionRepository;
 
     @Mock
-    private StandingsService standingsService;
-
-    @Mock
     private TopScorerService topScorerService;@Mock
     private MatchRepository matchRepository;
 
     @Mock
-    private KnockoutBracketService knockoutBracketService;
+    private OfficialResultsService officialResultsService;
 
     @Mock
     private MatchPredictionRepository matchPredictionRepository;
@@ -53,13 +50,6 @@ class LeaderboardBenchmarkTest {
     @Test
     @DisplayName("Benchmark: calcula el ranking de 1000 participantes en menos de 2 segundos")
     void benchmark1000ParticipantsScoring() {
-        Prediction official = Prediction.builder()
-                .id(1L)
-                .name("official")
-                .isOfficial(true)
-                .build();
-        when(predictionRepository.findByIsOfficialTrue()).thenReturn(Optional.of(official));
-
         PredictionDataDTO officialData = new PredictionDataDTO();
         officialData.setChampion("España");
         officialData.setScorer("Kylian Mbappé");
@@ -69,9 +59,10 @@ class LeaderboardBenchmarkTest {
         officialData.setSf(List.of(List.of("España", "Alemania")));
         officialData.setFinalMatch(List.of("España", "Alemania"));
 
-        official.setBracketData(officialData);
-        when(standingsService.getOfficialPoints()).thenReturn(Collections.emptyMap());
-        when(standingsService.getAllStandings()).thenReturn(Collections.emptyList());
+        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+                officialData, Collections.emptyMap(), officialData.getGroups(), List.of(),
+                List.of("España", "Francia", "Brasil", "Alemania"), List.of("España", "Brasil"),
+                List.of("España", "Alemania"), List.of("España", "Alemania"), "España"));
         when(topScorerService.getTopScorers()).thenReturn(Collections.emptyList());
 
         int participantCount = 1000;

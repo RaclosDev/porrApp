@@ -33,10 +33,6 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 
     Optional<Prediction> findByUserGoogleEmailAndEditionLeagueId(String email, Long groupId);
 
-    Optional<Prediction> findByName(String name);
-
-    Optional<Prediction> findByIsOfficialTrue();
-
     /**
      * Marca como pendientes de recalcular las puntuaciones guardadas de las porras de una competición.
      *
