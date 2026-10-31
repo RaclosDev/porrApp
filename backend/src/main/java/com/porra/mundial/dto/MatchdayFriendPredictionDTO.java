@@ -1,0 +1,35 @@
+package com.porra.mundial.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+/**
+ * DTO para visualizar los pronósticos de los miembros de un grupo para un partido concreto.
+ * Oculta los marcadores si el partido no ha comenzado (salvo para el propio usuario).
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class MatchdayFriendPredictionDTO {
+    private Long userId;
+    private String participantName;
+    private String avatarUrl;
+    private Integer homeScore;
+    private Integer awayScore;
+    private String sign;
+    private Integer pointsAwarded;
+    private Boolean isExactScore;
+    private Boolean isCorrectSign;
+    private String scoringDetails;
+    private LocalDateTime updatedAt;
+    // Lombok genera isCaller(); sin @JsonProperty, Jackson lo publicaría como "caller".
+    @JsonProperty("isCaller")
+    private boolean caller;
+    private boolean hasPredicted;
+}

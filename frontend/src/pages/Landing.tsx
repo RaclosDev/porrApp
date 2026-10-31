@@ -1,559 +1,207 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
+import MarkerHeading from '../components/landing/MarkerHeading';
+import StickerCard from '../components/StickerCard';
+import NetLine from '../components/landing/NetLine';
+import GhostWord from '../components/landing/GhostWord';
+import FixtureSheet from '../components/landing/FixtureSheet';
+import {
+  fanContainer,
+  fanItem,
+  inViewOnce,
+  rise,
+  useLandingMotion,
+} from '../components/landing/motion';
+import { useLandingData } from '../hooks/useLandingData';
 
+const FAN_ANGLES = [-8, -3, 0, 3, 8];
+
+/**
+ * Portada para quien aún no ha entrado: un cartel con la porra real del Mundial, los cromos de
+ * los primeros de la Porra Global y los dos formatos de liga.
+ */
 export default function Landing() {
+  const { reduced } = useLandingMotion();
+  const { leaders, participants, champion, nextFixtures, loading, error } = useLandingData();
+  const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
+  const leader = leaders[0];
+  const initial = reduced ? 'show' : 'hidden';
+
   return (
-    <div
-      className="landing-page"
-      style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px 16px 60px' }}
-    >
-      {/* Hero Section */}
-      <section
-        style={{
-          textAlign: 'center',
-          padding: '50px 20px 40px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '20px',
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: 'clamp(2.2rem, 5vw, 3.8rem)',
-            fontWeight: 800,
-            lineHeight: 1.15,
-            letterSpacing: '-0.5px',
-            color: '#fff',
-            maxWidth: '850px',
-            margin: '0 auto',
-          }}
-        >
-          La porra de toda la vida,{' '}
-          <span
-            style={{
-              background: 'linear-gradient(135deg, #00d2d3 0%, #38bdf8 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
+    <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
+      <section className="landing-poster landing-tape mt-6 px-6 py-10 sm:px-10 sm:py-14 grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-center">
+        <div className="flex flex-col gap-6">
+          <MarkerHeading
+            as="h1"
+            onLoad
+            text="La porra de toda la vida,"
+            marked="pero bien hecha."
+            className="text-[clamp(2.6rem,7vw,5.5rem)]"
+          />
+          <motion.p
+            variants={rise}
+            initial={initial}
+            animate="show"
+            className="text-[#1f2937] text-lg max-w-130 leading-snug"
           >
-            pero bien hecha.
-          </span>
-        </h1>
-
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: '8px 12px',
-            maxWidth: '650px',
-            margin: '8px auto 0',
-            padding: '0 10px',
-          }}
-        >
-          {[
-            { icon: '🏆', text: '+10 Competiciones' },
-            { icon: '⚡', text: 'Puntos en tiempo real' },
-            { icon: '👥', text: 'Ligas con amigos' },
-            { icon: '❌', text: 'Cero líos de Excel' },
-          ].map((item) => (
-            <div
-              key={item.text}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '7px 14px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '9999px',
-                fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
-                color: '#e2e8f0',
-                fontWeight: 500,
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
-              }}
+            Rellena tu cuadro del Mundial o pronostica jornada a jornada, y compite con tus amigos.
+            Los puntos se calculan solos con los resultados reales.
+          </motion.p>
+          <motion.div
+            variants={rise}
+            initial={initial}
+            animate="show"
+            className="flex flex-wrap gap-3"
+          >
+            <button
+              id="btn-hero-login"
+              type="button"
+              onClick={openLogin}
+              className="landing-btn landing-btn-ink"
             >
-              <span style={{ fontSize: '1rem', lineHeight: 1 }}>{item.icon}</span>
-              <span>{item.text}</span>
-            </div>
-          ))}
+              Entrar con Google
+            </button>
+            <Link to="/demo" className="landing-btn">
+              Ver la porra del Mundial
+            </Link>
+          </motion.div>
         </div>
-
-        {/* CTA Buttons */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '15px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            marginTop: '15px',
-          }}
+        <motion.div
+          initial={reduced ? false : { opacity: 0, y: 40, rotate: 0 }}
+          animate={{ opacity: 1, y: 0, rotate: 0 }}
+          transition={{ duration: 0.7, delay: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+          className="landing-hero-podium min-w-0 w-full justify-self-center"
         >
-          <button
-            id="btn-hero-login"
-            onClick={() => window.dispatchEvent(new CustomEvent('open-login-modal'))}
-            className="glass-btn primary-btn"
-            style={{
-              padding: '14px 28px',
-              fontSize: '1.05rem',
-              fontWeight: 800,
-              minHeight: '50px',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              boxShadow: '0 8px 25px rgba(0, 210, 211, 0.3)',
-            }}
-          >
-            <span>⚽</span>
-            <span>Empezar a Jugar</span>
-          </button>
-        </div>
+          {leader ? (
+            <div>
+              <ul className="ranking-podium" aria-label="Podio de la Porra Global">
+                {leaders.slice(0, 3).map((row) => (
+                  <li
+                    key={row.userId ?? row.name}
+                    className={`ranking-podium-place ranking-podium-place-${row.rank}`}
+                  >
+                    <StickerCard leader={row} featured={row.rank === 1} compact />
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[#4b5563] text-sm text-center">
+                Va primero de {participants} en la Porra Global
+              </p>
+            </div>
+          ) : (
+            <p className="text-[#4b5563] text-sm" role="status">
+              {error
+                ? 'La clasificación no responde ahora mismo.'
+                : loading
+                  ? 'Cargando la clasificación…'
+                  : 'Todavía no hay cuadros en la Porra Global.'}
+            </p>
+          )}
+        </motion.div>
       </section>
 
-      {/* Feature Grid */}
-      <section style={{ margin: '45px 0 25px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <h2
-            style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: 'clamp(1.5rem, 3.2vw, 2.1rem)',
-              color: '#fff',
-              marginBottom: '8px',
-            }}
-          >
-            Todo lo que necesitas para tu porra
-          </h2>
-          <p
-            style={{
-              color: 'var(--text-muted, #94a3b8)',
-              fontSize: '0.95rem',
-              maxWidth: '560px',
-              margin: '0 auto',
-            }}
-          >
-            Sin líos de Excel ni hojas de cálculo. Todo automatizado para competir con tus amigos.
-          </p>
-        </div>
+      <NetLine />
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '16px',
-          }}
+      <GhostWord word="Álbum" className="py-10">
+        <MarkerHeading
+          text="Los cromos de la Porra Global"
+          className="text-[clamp(2rem,5vw,3.6rem)] text-white"
+        />
+        {leaders.length > 0 ? (
+          <motion.ul
+            variants={fanContainer}
+            initial={initial}
+            whileInView="show"
+            viewport={inViewOnce}
+            className="landing-sticker-album mt-10 list-none"
+            aria-label="Cromos de la Porra Global"
+            tabIndex={0}
+          >
+            {leaders.map((row, index) => (
+              <motion.li
+                key={row.userId ?? row.name}
+                variants={fanItem(FAN_ANGLES[index] ?? 0)}
+                className="lg:-ml-6 lg:first:ml-0"
+              >
+                <StickerCard leader={row} />
+              </motion.li>
+            ))}
+          </motion.ul>
+        ) : null}
+        <motion.div
+          variants={rise}
+          initial={initial}
+          whileInView="show"
+          viewport={inViewOnce}
+          className="mt-10 flex flex-wrap items-center justify-center gap-6"
         >
-          {/* Feature 1 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(251, 191, 36, 0.15)',
-                color: '#fbbf24',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
-              🏆
-            </div>
-            <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
-            >
-              Cuadros Eliminatorios
-            </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
-              Árbol visual interactivo hasta la Gran Final con cruces automáticos, desempates y
-              Pichichi.
-            </p>
-          </div>
+          {champion ? (
+            <span className="ink-stamp ink-stamp-paper">
+              {champion.team} campeona en {champion.count} de {champion.total} cuadros
+            </span>
+          ) : null}
+          <Link to="/demo" className="landing-link-light">
+            Ver la clasificación completa
+          </Link>
+        </motion.div>
+      </GhostWord>
 
-          {/* Feature 2 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(0, 210, 211, 0.15)',
-                color: '#00d2d3',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
-              ⚽
-            </div>
-            <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
-            >
-              Ligas por Jornadas
-            </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
-              Para LaLiga, Premier y Champions. Pronósticos fecha a fecha con marcadores al minuto.
-            </p>
-          </div>
+      <NetLine />
 
-          {/* Feature 3 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
+      <GhostWord word="Formatos" className="py-10">
+        <MarkerHeading
+          text="Dos formas de jugar"
+          className="text-[clamp(2rem,5vw,3.6rem)] text-white"
+        />
+        <div className="grid gap-8 lg:grid-cols-2 mt-10 items-start">
+          <motion.article
+            variants={rise}
+            initial={initial}
+            whileInView="show"
+            viewport={inViewOnce}
+            className="landing-poster landing-tape rotate-1 p-6 sm:p-8 flex flex-col gap-4"
           >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(56, 189, 248, 0.15)',
-                color: '#38bdf8',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
-              👥
-            </div>
-            <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
-            >
-              Ligas Privadas
-            </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
-              Crea tu liga en 10 segundos e invita a tus amigos por WhatsApp con un simple enlace.
+            <h3 className="poster-title text-4xl">Cuadro</h3>
+            <p className="text-[#1f2937] leading-snug">
+              Para el Mundial. Ordenas los grupos, rellenas las eliminatorias hasta el campeón y
+              eliges al pichichi. Los cruces se calculan solos y los puntos llegan con cada partido.
             </p>
-          </div>
+            <img
+              src="/landing/cuadro.png"
+              alt="El cuadro del Mundial 2026 en PorrApp: de dieciseisavos a la final, con España campeona."
+              loading="lazy"
+              width="800"
+              height="422"
+              className="w-full h-auto rounded-md border border-[rgba(17,24,39,0.2)]"
+            />
+            <Link to="/demo" className="landing-link self-start">
+              Abrir la porra del Mundial
+            </Link>
+          </motion.article>
 
-          {/* Feature 4 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
+          <motion.article
+            variants={rise}
+            initial={initial}
+            whileInView="show"
+            viewport={inViewOnce}
+            className="landing-poster landing-tape p-6 sm:p-8 flex flex-col gap-4"
           >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(168, 85, 247, 0.15)',
-                color: '#a855f7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
-              📊
-            </div>
-            <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
-            >
-              Directo y Clasificación
-            </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
-              Tabla de posiciones en tiempo real, desglose detallado de puntos y evolución del
-              ranking.
+            <h3 className="poster-title text-4xl">Jornadas</h3>
+            <p className="text-[#1f2937] leading-snug">
+              Para LaLiga, la Premier, la Champions y otras ocho competiciones. Pronosticas el
+              marcador de cada partido, y cada uno se cierra solo cuando empieza.
             </p>
-          </div>
-
-          {/* Feature 5 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(34, 197, 94, 0.15)',
-                color: '#22c55e',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
-              📱
-            </div>
-            <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
-            >
-              App Instalable (PWA)
-            </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
-              Instálala en tu móvil iOS o Android con un toque para consultar los partidos en
-              cualquier lugar.
-            </p>
-          </div>
-
-          {/* Feature 6 */}
-          <div
-            className="glass-panel"
-            style={{
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#ef4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.3rem',
-              }}
-            >
-              🔒
-            </div>
-            <h3
-              style={{
-                fontSize: '1.08rem',
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Outfit', sans-serif",
-              }}
-            >
-              Cierre Automático
-            </h3>
-            <p
-              style={{
-                color: 'var(--text-muted, #94a3b8)',
-                fontSize: '0.86rem',
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
-              Bloqueo estricto antes del pitido inicial de cada partido para garantizar total juego
-              limpio.
-            </p>
-          </div>
+            <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
+          </motion.article>
         </div>
-      </section>
+        <p className="text-muted text-sm text-center mt-8">
+          Se instala en el móvil como una app. Los pronósticos quedan a la vista de la liga en
+          cuanto empieza cada partido.
+        </p>
+      </GhostWord>
 
-      {/* How it works */}
-      <section style={{ margin: '45px 0 30px', textAlign: 'center' }}>
-        <h2
-          style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: 'clamp(1.4rem, 2.8vw, 1.9rem)',
-            color: '#fff',
-            marginBottom: '20px',
-          }}
-        >
-          ¿Cómo empezar en 3 pasos?
-        </h2>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '16px',
-            textAlign: 'center',
-          }}
-        >
-          <div className="glass-panel" style={{ padding: '18px 14px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--accent-cyan, #00d2d3)',
-                color: '#0f172a',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px',
-                fontSize: '0.95rem',
-              }}
-            >
-              1
-            </div>
-            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
-              Inicia Sesión
-            </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
-              Identifícate con tu cuenta de Google en un solo clic.
-            </p>
-          </div>
-
-          <div className="glass-panel" style={{ padding: '18px 14px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--accent-cyan, #00d2d3)',
-                color: '#0f172a',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px',
-                fontSize: '0.95rem',
-              }}
-            >
-              2
-            </div>
-            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
-              Crea o Únete
-            </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
-              Crea una liga para tus amigos o introduce su código de invitación.
-            </p>
-          </div>
-
-          <div className="glass-panel" style={{ padding: '18px 14px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--accent-cyan, #00d2d3)',
-                color: '#0f172a',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px',
-                fontSize: '0.95rem',
-              }}
-            >
-              3
-            </div>
-            <h4 style={{ color: '#fff', marginBottom: '4px', fontSize: '0.98rem' }}>
-              Pronostica y Compite
-            </h4>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.84rem', margin: 0 }}>
-              Rellena tus resultados, sigue los partidos en vivo y lidera la clasificación.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer
-        style={{
-          marginTop: '45px',
-          paddingTop: '20px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          color: '#94a3b8',
-          fontSize: '0.85rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>⚽</span>
-          <strong style={{ color: '#fff' }}>PorrApp</strong>
-          <span>· Porras Deportivas</span>
-        </div>
+      <footer className="mt-10 pt-5 border-t border-t-[rgba(255,255,255,0.08)] flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-[#94a3b8] text-[0.85rem]">
+        <strong className="text-white">PorrApp</strong>
       </footer>
     </div>
   );

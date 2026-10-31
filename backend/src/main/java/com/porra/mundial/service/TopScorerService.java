@@ -1,11 +1,11 @@
 package com.porra.mundial.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.sports.SportsDataProvider;
+import com.porra.mundial.dto.TopScorerDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -16,13 +16,9 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.Comparator;
 
-/**
- * Servicio de Pichichi : Extracts top scorers from ESPN match details
- * - Refreshes every 30 minutes via @Scheduled
- * - Also refreshable on demand (e.g., when a match finishes)
- * - Uses ESPN's free public API (no API key needed)
- */
+/** Goleadores del Mundial a partir de los partidos de ESPN; se refresca cada 30 min y al terminar un partido. */
 @Service
 @Slf4j
 public class TopScorerService {
@@ -31,26 +27,31 @@ public class TopScorerService {
     private final WebSocketService webSocketService;
     private final HttpClient httpClient;
     private final SportsDataProvider sportsDataProvider;
+    private final ScoreInvalidationService scoreInvalidationService;
 
     public TopScorerService(
             ObjectMapper objectMapper,
             WebSocketService webSocketService,
             HttpClient httpClient,
-            @Qualifier("espnSportsDataProvider") SportsDataProvider sportsDataProvider) {
+            @Qualifier("espnSportsDataProvider") SportsDataProvider sportsDataProvider,
+            ScoreInvalidationService scoreInvalidationService) {
         this.objectMapper = objectMapper;
         this.webSocketService = webSocketService;
         this.httpClient = httpClient;
         this.sportsDataProvider = sportsDataProvider;
+        this.scoreInvalidationService = scoreInvalidationService;
     }
 
     // Date range covering the entire World Cup
     private static final String WC_DATE_RANGE = "2026";
 
     // Cached list of top scorers (thread-safe)
-    private final AtomicReference<List<Map<String, Object>>> cachedScorers = new AtomicReference<>(Collections.emptyList());
+    private final AtomicReference<List<TopScorerDTO>> cachedScorers = new AtomicReference<>(Collections.emptyList());
 
-    // Persistent cache of player name -> image URL (avoids re-fetching every 30 min)
-    private final Map<String, String> imageCache = new java.util.concurrent.ConcurrentHashMap<>();
+    // También se cachean búsquedas vacías; las imágenes se vuelven a buscar a las seis horas.
+    private record CachedImage(String url, long expiresAt) {}
+    private final Map<String, CachedImage> imageCache = new LinkedHashMap<>();
+    private static final long IMAGE_CACHE_TTL_MS = Duration.ofHours(6).toMillis();
 
     // Hardcoded cartoon URLs for known pichichi contenders (from thesportsdb)
     private static final Map<String, String> CARTOON_MAP = new HashMap<>(Map.of(
@@ -61,14 +62,16 @@ public class TopScorerService {
         "Vinicius Junior", "https://r2.thesportsdb.com/images/media/player/cartoon/vq5z4u1771264896.png"
     ));
 
-    /** Called every 30 minutes */
     @Scheduled(initialDelay = 5_000, fixedDelay = 1_800_000)
     public void scheduledRefresh() {
         refresh();
     }
 
-    /** Call this when a match just finished */
+    private final java.util.concurrent.locks.ReentrantLock refreshLock = new java.util.concurrent.locks.ReentrantLock();
+
+    /** Una sola actualización simultánea; las llamadas solapadas aprovechan la que está en curso. */
     public void refresh() {
+        if (!refreshLock.tryLock()) return;
         try {
             JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);
             if (events == null) return;
@@ -78,22 +81,31 @@ public class TopScorerService {
             Map<String, String> playerPositions = new HashMap<>();
             Map<String, String> playerIds = new HashMap<>();
             Map<String, String> playerTeams = new HashMap<>();
-            Map<String, String> playerImages = new HashMap<>();
 
-            processEvents(events, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams, playerImages);
+            processEvents(events, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
 
-            List<Map<String, Object>> scorers = buildScorersList(playerGoals, playerShortNames, playerPositions, playerIds, playerTeams, playerImages);
-            
+            List<TopScorerDTO> scorers = buildScorersList(playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
+            List<TopScorerDTO> previous = cachedScorers.get();
+            if (scorers.isEmpty() && !previous.isEmpty()) {
+                // Los goles no se pierden: una lista vacía tras tener goleadores es que ESPN no ha respondido.
+                log.warn("TopScorerService: ESPN no ha devuelto goleadores; se conservan los {} anteriores", previous.size());
+                return;
+            }
             cachedScorers.set(scorers);
+            if (!scorers.equals(previous)) {
+                // El pichichi puntúa los cuadros.
+                scoreInvalidationService.invalidateWorldCup();
+                webSocketService.broadcastUpdate("DATA_UPDATED");
+            }
             log.info("TopScorerService: Refreshed {} scorers from ESPN. Leader: {} ({} goals)",
                     scorers.size(),
-                    scorers.isEmpty() ? "none" : scorers.get(0).get("name"),
-                    scorers.isEmpty() ? 0 : scorers.get(0).get("goals"));
-
-            webSocketService.invalidateAndNotify();
+                    scorers.isEmpty() ? "none" : scorers.get(0).name(),
+                    scorers.isEmpty() ? 0 : scorers.get(0).goals());
 
         } catch (Exception e) {
             log.error("TopScorerService: Failed to fetch scorers from ESPN: {}", e.getMessage());
+        } finally {
+            refreshLock.unlock();
         }
     }
 
@@ -101,7 +113,7 @@ public class TopScorerService {
 
     private void processEvents(JsonNode events, Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                Map<String, String> playerPositions, Map<String, String> playerIds,
-                               Map<String, String> playerTeams, Map<String, String> playerImages) {
+                               Map<String, String> playerTeams) {
         for (JsonNode event : events) {
             JsonNode competitionNode = event.path("competitions").get(0);
             if (competitionNode == null) continue;
@@ -111,7 +123,7 @@ public class TopScorerService {
             if (!details.isArray()) continue;
 
             for (JsonNode detail : details) {
-                processDetail(detail, teamNames, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams, playerImages);
+                processDetail(detail, teamNames, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
             }
         }
     }
@@ -132,7 +144,7 @@ public class TopScorerService {
     private void processDetail(JsonNode detail, Map<String, String> teamNames,
                                Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                Map<String, String> playerPositions, Map<String, String> playerIds,
-                               Map<String, String> playerTeams, Map<String, String> playerImages) {
+                               Map<String, String> playerTeams) {
         if (!detail.path("scoringPlay").asBoolean(false)) return;
         if (detail.path("ownGoal").asBoolean(false)) return;
 
@@ -147,14 +159,12 @@ public class TopScorerService {
         String position = scorer.path("position").asText("");
         String playerId = scorer.path("id").asText("");
         String teamName = getTeamName(scorer, detail, teamNames);
-        String imageUrl = fetchImageUrl(fullName);
 
         playerGoals.computeIfAbsent(fullName, k -> new int[1])[0]++;
         playerShortNames.put(fullName, shortName);
         playerPositions.put(fullName, position);
         playerIds.put(fullName, playerId);
         playerTeams.put(fullName, teamName);
-        playerImages.put(fullName, imageUrl);
     }
 
     private String getShortName(JsonNode scorer, String fullName) {
@@ -186,10 +196,17 @@ public class TopScorerService {
         String imageUrl = CARTOON_MAP.get(fullName);
         if (imageUrl != null) return imageUrl;
         
-        imageUrl = imageCache.get(fullName);
-        if (imageUrl != null && !imageUrl.isEmpty()) return imageUrl;
+        long now = System.currentTimeMillis();
+        CachedImage cached = imageCache.get(fullName);
+        if (cached != null && cached.expiresAt() > now) return cached.url();
+        String resolved = lookupImageUrl(fullName);
+        if (imageCache.size() >= 1000) imageCache.remove(imageCache.keySet().iterator().next());
+        imageCache.put(fullName, new CachedImage(resolved, now + IMAGE_CACHE_TTL_MS));
+        return resolved;
+    }
 
-        imageUrl = "";
+    private String lookupImageUrl(String fullName) {
+        String imageUrl = "";
         try {
             String encodedName = java.net.URLEncoder.encode(fullName, "UTF-8").replace("+", "%20");
             
@@ -229,34 +246,33 @@ public class TopScorerService {
                 }
             }
         } catch (Exception e) {
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
             log.warn("TopScorerService: image lookup failed for {}: {}", fullName, e.getMessage());
-        }
-        if (imageUrl != null && !imageUrl.isEmpty()) {
-            imageCache.put(fullName, imageUrl);
         }
         return imageUrl != null ? imageUrl : "";
     }
 
-    private List<Map<String, Object>> buildScorersList(Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
+    private List<TopScorerDTO> buildScorersList(Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                                        Map<String, String> playerPositions, Map<String, String> playerIds,
-                                                       Map<String, String> playerTeams, Map<String, String> playerImages) {
-        List<Map<String, Object>> scorers = new ArrayList<>();
+                                                       Map<String, String> playerTeams) {
+        List<TopScorerDTO> scorers = new ArrayList<>();
         for (Map.Entry<String, int[]> entry : playerGoals.entrySet()) {
-            Map<String, Object> scorer = new LinkedHashMap<>();
-            scorer.put("name", entry.getKey());
-            scorer.put("shortName", playerShortNames.getOrDefault(entry.getKey(), entry.getKey()));
-            scorer.put("goals", entry.getValue()[0]);
-            scorer.put("position", playerPositions.getOrDefault(entry.getKey(), ""));
-            scorer.put("playerId", playerIds.getOrDefault(entry.getKey(), ""));
-            scorer.put("team", playerTeams.getOrDefault(entry.getKey(), ""));
-            scorer.put("imageUrl", playerImages.getOrDefault(entry.getKey(), ""));
-            scorers.add(scorer);
+            if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException("Refresco interrumpido");
+            String name = entry.getKey();
+            scorers.add(new TopScorerDTO(
+                    name,
+                    playerShortNames.getOrDefault(name, name),
+                    entry.getValue()[0],
+                    playerPositions.getOrDefault(name, ""),
+                    playerIds.getOrDefault(name, ""),
+                    playerTeams.getOrDefault(name, ""),
+                    fetchImageUrl(name)));
         }
-        scorers.sort((a, b) -> Integer.compare((int) b.get("goals"), (int) a.get("goals")));
+        scorers.sort(Comparator.comparingInt(TopScorerDTO::goals).reversed());
         return scorers;
     }
 
-    public List<Map<String, Object>> getTopScorers() {
+    public List<TopScorerDTO> getTopScorers() {
         return cachedScorers.get();
     }
 }

@@ -1,7 +1,80 @@
 import { create } from 'zustand';
-import { updateUserPreferences } from '../services/api';
+import { endSession, updateUserPreferences } from '../services/api';
+import { hasStoredSession } from '../services/sessionHint';
+import { queryClient } from '../services/queryClient';
+import { GLOBAL_LEAGUE_ID } from '../utils/constants';
+import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
+import { isBracketState } from '../utils/bracketValidation';
+import { orderR32, topologyVersion, type TopologyVersion } from '../utils/bracketTopology';
 
-export const defaultBracketState = {
+/** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
+export interface BracketTeam {
+  name: string;
+  [extra: string]: unknown;
+}
+
+export interface BracketMatch {
+  id: string;
+  home: BracketTeam | null;
+  away: BracketTeam | null;
+}
+
+export interface BracketSide {
+  left: BracketMatch[];
+  right: BracketMatch[];
+}
+
+/** Cuadro de eliminatorias que rellena el usuario. */
+export interface BracketState {
+  topologyVersion?: TopologyVersion;
+  r32: BracketSide;
+  r16: BracketSide;
+  qf: BracketSide;
+  sf: BracketSide;
+  final: BracketMatch | null;
+  champion: BracketTeam | null;
+  thirdPlaceMatch: BracketMatch | null;
+  thirdPlaceWinner: BracketTeam | null;
+}
+
+interface AppState {
+  profileSetupCompleted: boolean | null;
+  setProfileSetupCompleted: (completed: boolean) => void;
+  userName: string;
+  setUserName: (userName: string) => void;
+  userAvatarUrl: string;
+  setUserAvatarUrl: (url: string | null) => void;
+  userId: string;
+  setUserId: (userId: string) => void;
+  activeGroupId: string;
+  setActiveGroupId: (groupId: string | null) => void;
+  activeCompetitionId: number | null;
+  setActiveCompetitionId: (competitionId: number | null) => void;
+  bracketState: BracketState;
+  setBracketState: (bracketState: BracketState) => void;
+  topScorer: string;
+  setTopScorer: (topScorer: string) => void;
+  viewerPredictionId: string | number | null;
+  setViewerPredictionId: (id: string | number | null) => void;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (isAuthenticated: boolean) => void;
+  isDemoMode: boolean;
+  setIsDemoMode: (isDemoMode: boolean) => void;
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
+  /**
+   * Cierra la sesión: la revoca en el servidor, olvida el token, borra los datos del usuario,
+   * la liga activa y los borradores de localStorage, vacía la caché de consultas y deja el
+   * store como recién abierto.
+   * Es la única forma de cerrar sesión (menú de perfil, token caducado y salida de la demo).
+   */
+  logout: () => void;
+  /** Cambia de liga guardando el borrador del cuadro de la anterior. */
+  changeGroup: (groupId: string | number | null) => void;
+}
+
+const legacyBracketState: BracketState = {
+  topologyVersion: 1,
   r32: {
     left: [
       { home: { name: '1º Grupo E' }, away: { name: '3º A/B/C/D/F' }, id: 'L1' },
@@ -50,33 +123,64 @@ export const defaultBracketState = {
   thirdPlaceWinner: null,
 };
 
-export const getInitialBracketState = (groupId) => {
-  if (!groupId || typeof window === 'undefined') return defaultBracketState;
-  try {
-    const saved = localStorage.getItem(`draft_bracket_${groupId}`);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && typeof parsed === 'object' && parsed.r32) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.warn('Error parsing bracket from localStorage, using default:', e);
-  }
-  return defaultBracketState;
+const canonicalR32 = orderR32([...legacyBracketState.r32.left, ...legacyBracketState.r32.right], 2);
+export const defaultBracketState: BracketState = {
+  ...legacyBracketState,
+  topologyVersion: 2,
+  r32: { left: canonicalR32.slice(0, 8), right: canonicalR32.slice(8) },
 };
+
+export const getDefaultBracketState = (version?: TopologyVersion): BracketState =>
+  topologyVersion(version) === 2 ? defaultBracketState : legacyBracketState;
+
+/** Borrador del cuadro de este usuario en esta liga, o el cuadro vacío. */
+export const getInitialBracketState = (groupId: string, userId: string): BracketState => {
+  if (!groupId || typeof window === 'undefined') return defaultBracketState;
+  const parsed = readJsonDraft('bracket', groupId, userId);
+  return isBracketState(parsed) ? parsed : defaultBracketState;
+};
+
+/** Mapa local liga -> timestamp de la última vez que se abrió, para ordenar "Mis Ligas". */
+export const readGroupVisits = (): Record<string, number> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('group_last_visited');
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+/** Claves de localStorage que pertenecen a la sesión del usuario. */
+const SESSION_KEYS = [
+  'my_prediction_name',
+  'my_user_id',
+  'my_avatar_url',
+  'activeGroupId',
+  'activeCompetitionId',
+  'isDemoMode',
+];
+
+// Sin sesión, los datos de un usuario anterior no son de nadie.
+if (typeof window !== 'undefined' && !hasStoredSession()) {
+  ['my_prediction_name', 'my_user_id', 'my_avatar_url'].forEach((k) => localStorage.removeItem(k));
+}
 
 const initialGroupId =
   typeof window !== 'undefined' ? localStorage.getItem('activeGroupId') || '' : '';
+const initialUserId = typeof window !== 'undefined' ? localStorage.getItem('my_user_id') || '' : '';
 
-export const useAppStore = create((set, get) => ({
-  userName: localStorage.getItem('my_prediction_name') || localStorage.getItem('my_bet_name') || '',
+export const useAppStore = create<AppState>((set, get) => ({
+  profileSetupCompleted: null,
+  setProfileSetupCompleted: (completed) =>
+    set((state) => ({ profileSetupCompleted: state.profileSetupCompleted === true || completed })),
+  userName: localStorage.getItem('my_prediction_name') || '',
   setUserName: (userName) => {
     if (userName) {
       localStorage.setItem('my_prediction_name', userName);
     } else {
       localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_bet_name');
     }
     set({ userName });
   },
@@ -91,8 +195,23 @@ export const useAppStore = create((set, get) => ({
     set({ userAvatarUrl: userAvatarUrl || '' });
   },
 
-  userId: localStorage.getItem('my_user_id') || '',
-  setUserId: (userId) => set({ userId }),
+  userId: initialUserId,
+  setUserId: (userId) => {
+    const current = get();
+    if (current.userId === userId) return;
+    // Copia local para cargar los borradores al arrancar; la fuente es /api/users/me.
+    if (userId) {
+      localStorage.setItem('my_user_id', userId);
+    } else {
+      localStorage.removeItem('my_user_id');
+    }
+    // El borrador del cuadro es de cada usuario: al cambiar de usuario se carga el suyo.
+    set({
+      userId,
+      profileSetupCompleted: null,
+      bracketState: getInitialBracketState(current.activeGroupId, userId),
+    });
+  },
 
   activeGroupId: initialGroupId,
   setActiveGroupId: (activeGroupId) => {
@@ -117,19 +236,17 @@ export const useAppStore = create((set, get) => ({
     set({ activeCompetitionId });
   },
 
-  bracketState: getInitialBracketState(initialGroupId),
+  bracketState: getInitialBracketState(initialGroupId, initialUserId),
   setBracketState: (bracketState) => set({ bracketState }),
 
   topScorer: '',
   setTopScorer: (topScorer) => set({ topScorer }),
 
   viewerPredictionId: null,
-  setViewerPredictionId: (id) => set({ viewerPredictionId: id, viewerBetId: id }),
+  setViewerPredictionId: (id) => set({ viewerPredictionId: id }),
 
-  viewerBetId: null,
-  setViewerBetId: (id) => set({ viewerPredictionId: id, viewerBetId: id }),
-
-  isAuthenticated: !!localStorage.getItem('token'),
+  // Optimista: la sesión se comprueba con el servidor al arrancar (initSession).
+  isAuthenticated: hasStoredSession(),
   setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
 
   isDemoMode: localStorage.getItem('isDemoMode') === 'true',
@@ -144,32 +261,38 @@ export const useAppStore = create((set, get) => ({
 
   enterDemoMode: () => {
     localStorage.setItem('isDemoMode', 'true');
-    localStorage.setItem('activeGroupId', '1');
-    localStorage.setItem('activeCompetitionId', '2');
+    localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
+    localStorage.removeItem('activeCompetitionId');
     set({
       isDemoMode: true,
-      activeGroupId: '1',
-      activeCompetitionId: 2,
-      viewerBetId: null,
+      activeGroupId: GLOBAL_LEAGUE_ID,
+      activeCompetitionId: null,
       viewerPredictionId: null,
     });
   },
 
   exitDemoMode: () => {
-    localStorage.removeItem('isDemoMode');
-    localStorage.setItem('activeGroupId', '1');
-    localStorage.removeItem('activeCompetitionId');
-    localStorage.removeItem('my_prediction_name');
-    localStorage.removeItem('my_bet_name');
-    localStorage.removeItem('my_user_id');
+    get().logout();
+    localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
+    set({ activeGroupId: GLOBAL_LEAGUE_ID });
+  },
+
+  logout: () => {
+    endSession();
+    SESSION_KEYS.forEach((k) => localStorage.removeItem(k));
+    clearAllDrafts();
+    queryClient.clear();
     set({
-      isDemoMode: false,
       isAuthenticated: false,
+      isDemoMode: false,
       userName: '',
       userId: '',
-      activeGroupId: '1',
+      userAvatarUrl: '',
+      profileSetupCompleted: null,
+      activeGroupId: '',
       activeCompetitionId: null,
-      viewerBetId: null,
+      bracketState: defaultBracketState,
+      topScorer: '',
       viewerPredictionId: null,
     });
   },
@@ -179,18 +302,18 @@ export const useAppStore = create((set, get) => ({
     const current = get();
     if (current.activeGroupId === nextGroupId) return;
     if (current.activeGroupId) {
-      try {
-        localStorage.setItem(
-          `draft_bracket_${current.activeGroupId}`,
-          JSON.stringify(current.bracketState),
-        );
-      } catch {
-        /* ignore */
-      }
+      writeDraft('bracket', current.activeGroupId, current.userId, current.bracketState);
     }
     localStorage.removeItem('activeCompetitionId');
     if (groupId) {
       localStorage.setItem('activeGroupId', groupId.toString());
+      try {
+        const visits = readGroupVisits();
+        visits[groupId.toString()] = Date.now();
+        localStorage.setItem('group_last_visited', JSON.stringify(visits));
+      } catch {
+        /* ignore */
+      }
       try {
         const num = Number(groupId);
         if (!isNaN(num) && num > 0) {
@@ -203,13 +326,12 @@ export const useAppStore = create((set, get) => ({
       localStorage.removeItem('activeGroupId');
     }
 
-    const parsedBracket = getInitialBracketState(groupId ? groupId.toString() : '');
+    const parsedBracket = getInitialBracketState(nextGroupId, current.userId);
     set({
       activeGroupId: groupId ? groupId.toString() : '',
       activeCompetitionId: null,
       bracketState: parsedBracket,
       topScorer: '',
-      viewerBetId: null,
       viewerPredictionId: null,
     });
   },

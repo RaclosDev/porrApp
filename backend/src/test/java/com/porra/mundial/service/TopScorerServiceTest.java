@@ -1,10 +1,11 @@
 package com.porra.mundial.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.porra.mundial.sports.ApiFootballSportsDataProvider;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
+import com.porra.mundial.dto.TopScorerDTO;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,22 +36,63 @@ class TopScorerServiceTest {
     @Mock
     private SportsDataProvider sportsDataProvider;
 
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
+
     private ObjectMapper objectMapper;
     private TopScorerService topScorerService;
 
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        topScorerService = new TopScorerService(objectMapper, webSocketService, httpClient, sportsDataProvider);
+        topScorerService = new TopScorerService(objectMapper, webSocketService, httpClient, sportsDataProvider,
+                scoreInvalidationService);
     }
 
     @Test
-    @DisplayName("Debe resolver la inyeccion de Spring sin ambiguedad teniendo Espn y ApiFootball registrados")
+    void overlappingRefreshDoesNotQueueAnotherProviderRequest() throws Exception {
+        var started = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenAnswer(invocation -> {
+            started.countDown();
+            if (!release.await(2, java.util.concurrent.TimeUnit.SECONDS)) throw new IllegalStateException("timeout");
+            return objectMapper.createArrayNode();
+        });
+        var running = java.util.concurrent.CompletableFuture.runAsync(topScorerService::refresh);
+        assertTrue(started.await(2, java.util.concurrent.TimeUnit.SECONDS));
+        try {
+            assertTimeoutPreemptively(java.time.Duration.ofMillis(500), topScorerService::refresh);
+        } finally {
+            release.countDown();
+            running.get(2, java.util.concurrent.TimeUnit.SECONDS);
+        }
+        verify(sportsDataProvider, times(1)).fetchScoreboardEvents(anyString());
+    }
+
+    @Test
+    void missingPlayerImageIsLookedUpOnceAcrossGoalsAndRefreshes() throws Exception {
+        JsonNode goal = goalBy("New Scorer");
+        var events = objectMapper.createArrayNode().add(goal.get(0)).add(goal.get(0));
+        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(events);
+        @SuppressWarnings("unchecked")
+        var response = (java.net.http.HttpResponse<String>) mock(java.net.http.HttpResponse.class);
+        when(response.statusCode()).thenReturn(200);
+        when(response.body()).thenReturn("{}");
+        when(httpClient.<String>send(any(java.net.http.HttpRequest.class), any())).thenReturn(response);
+
+        topScorerService.refresh();
+        topScorerService.refresh();
+
+        assertEquals(2, topScorerService.getTopScorers().getFirst().goals());
+        verify(httpClient, times(2)).send(any(java.net.http.HttpRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("Debe resolver la inyeccion de Spring con el proveedor ESPN registrado")
     void springContext_resolvesSportsDataProviderWithoutAmbiguity() {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
         context.register(TestContextConfig.class);
         context.register(EspnSportsDataProvider.class);
-        context.register(ApiFootballSportsDataProvider.class);
         context.register(TopScorerService.class);
         context.refresh();
 
@@ -128,19 +170,56 @@ class TopScorerServiceTest {
 
         topScorerService.refresh();
 
-        List<Map<String, Object>> scorers = topScorerService.getTopScorers();
+        List<TopScorerDTO> scorers = topScorerService.getTopScorers();
         assertNotNull(scorers);
         assertEquals(2, scorers.size());
 
-        assertEquals("Kylian Mbappé", scorers.get(0).get("name"));
-        assertEquals(2, scorers.get(0).get("goals"));
-        assertEquals("France", scorers.get(0).get("team"));
+        assertEquals("Kylian Mbappé", scorers.get(0).name());
+        assertEquals(2, scorers.get(0).goals());
+        assertEquals("France", scorers.get(0).team());
 
-        assertEquals("Lionel Messi", scorers.get(1).get("name"));
-        assertEquals(1, scorers.get(1).get("goals"));
-        assertEquals("Argentina", scorers.get(1).get("team"));
+        assertEquals("Lionel Messi", scorers.get(1).name());
+        assertEquals(1, scorers.get(1).goals());
+        assertEquals("Argentina", scorers.get(1).team());
 
-        verify(webSocketService, times(1)).invalidateAndNotify();
+        verify(webSocketService, times(1)).broadcastUpdate("DATA_UPDATED");
+    }
+
+    private JsonNode goalBy(String player) throws Exception {
+        return objectMapper.readTree("""
+                [{"competitions": [{
+                  "competitors": [{"id": "1", "team": {"displayName": "France"}}],
+                  "details": [{"scoringPlay": true, "ownGoal": false, "team": {"id": "1"},
+                               "athletesInvolved": [{"id": "10", "displayName": "%s", "shortName": "%s", "position": "FW"}]}]
+                }]}]
+                """.formatted(player, player));
+    }
+
+    @Test
+    @DisplayName("Invalida las puntuaciones de los cuadros solo cuando cambian los goleadores")
+    void refresh_invalidatesBracketScoresOnlyWhenScorersChange() throws Exception {
+        JsonNode events = goalBy("Kylian Mbappé");
+        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(events);
+
+        topScorerService.refresh();
+        topScorerService.refresh();
+
+        verify(scoreInvalidationService, times(1)).invalidateWorldCup();
+    }
+
+    @Test
+    @DisplayName("Conserva los goleadores si ESPN deja de devolverlos")
+    void refresh_keepsScorersWhenProviderReturnsNoEvents() throws Exception {
+        JsonNode events = goalBy("Kylian Mbappé");
+        when(sportsDataProvider.fetchScoreboardEvents(anyString()))
+                .thenReturn(events)
+                .thenReturn(objectMapper.createArrayNode());
+
+        topScorerService.refresh();
+        topScorerService.refresh();
+
+        assertEquals(1, topScorerService.getTopScorers().size());
+        verify(scoreInvalidationService, times(1)).invalidateWorldCup();
     }
 
     @Test
@@ -150,7 +229,7 @@ class TopScorerServiceTest {
 
         assertDoesNotThrow(() -> topScorerService.refresh());
         assertTrue(topScorerService.getTopScorers().isEmpty());
-        verify(webSocketService, never()).invalidateAndNotify();
+        verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
     @Test
@@ -160,7 +239,7 @@ class TopScorerServiceTest {
 
         assertDoesNotThrow(() -> topScorerService.refresh());
         assertTrue(topScorerService.getTopScorers().isEmpty());
-        verify(webSocketService, never()).invalidateAndNotify();
+        verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
     @Test
@@ -171,7 +250,8 @@ class TopScorerServiceTest {
         topScorerService.scheduledRefresh();
 
         verify(sportsDataProvider, times(1)).fetchScoreboardEvents(anyString());
-        verify(webSocketService, times(1)).invalidateAndNotify();
+        // Misma lista que la anterior (vacía): no hay nada que avisar.
+        verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
     @Configuration
@@ -189,6 +269,16 @@ class TopScorerServiceTest {
         @Bean
         public HttpClient httpClient() {
             return mock(HttpClient.class);
+        }
+
+        @Bean
+        public CircuitBreakerRegistry circuitBreakerRegistry() {
+            return CircuitBreakerRegistry.ofDefaults();
+        }
+
+        @Bean
+        public ScoreInvalidationService scoreInvalidationService() {
+            return mock(ScoreInvalidationService.class);
         }
     }
 }

@@ -1,12 +1,12 @@
 package com.porra.mundial.dto;
 
+import com.porra.mundial.model.Team;
 import com.porra.mundial.model.Match;
 
 import java.time.LocalDateTime;
 
 /**
  * Record DTO para enviar la información de los Partidos Reales (ESPN).
- * Es un record de Java 14+ que proporciona inmutabilidad y un constructor compacto.
  * Contiene alias snake_case y camelCase para compatibilidad con código Frontend antiguo.
  */
 public record MatchResponseDTO(
@@ -41,11 +41,9 @@ public record MatchResponseDTO(
      */
     public static MatchResponseDTO fromEntity(Match m) {
         boolean isStartingSoon = false;
-        // Si el partido tiene fecha y aún no ha terminado, calculamos cuánto falta.
         if (m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())) {
-            long diffMs = java.time.Duration.between(LocalDateTime.now(), m.getMatchDate()).toMillis();
-            // Está en la franja de los próximos 30 minutos
-            isStartingSoon = diffMs > 0 && diffMs <= 30 * 60 * 1000;
+            long diffMs = java.time.Duration.between(LocalDateTime.now(MadridDateTimeSerializer.ZONE), m.getMatchDate()).toMillis();
+            isStartingSoon = diffMs > 0 && diffMs <= com.porra.mundial.service.MatchService.STARTING_SOON_MINUTES * 60_000L;
         }
 
         String homeLogo = m.getHomeTeam() != null ? m.getHomeTeam().getLogoUrl() : null;
@@ -53,8 +51,8 @@ public record MatchResponseDTO(
 
         return new MatchResponseDTO(
                 m.getId(),
-                m.getHomeTeam() != null ? m.getHomeTeam().getName() : "Por definir",
-                m.getAwayTeam() != null ? m.getAwayTeam().getName() : "Por definir",
+                m.getHomeTeam() != null ? m.getHomeTeam().getName() : Team.PLACEHOLDER_NAME,
+                m.getAwayTeam() != null ? m.getAwayTeam().getName() : Team.PLACEHOLDER_NAME,
                 m.getHomeTeam() != null ? m.getHomeTeam().getId() : null,
                 m.getAwayTeam() != null ? m.getAwayTeam().getId() : null,
                 homeLogo,
@@ -65,7 +63,7 @@ public record MatchResponseDTO(
                 m.getAwayScore(),
                 m.getHomeScore(), // Duplicado para retrocompatibilidad
                 m.getAwayScore(), // Duplicado para retrocompatibilidad
-                m.getMatchDate() != null ? m.getMatchDate().toString() : null,
+                MadridDateTimeSerializer.format(m.getMatchDate()),
                 m.getFinished(),
                 m.getRound(),
                 m.getGroupName(),

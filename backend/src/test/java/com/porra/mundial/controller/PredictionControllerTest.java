@@ -1,22 +1,22 @@
 package com.porra.mundial.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.porra.mundial.repository.UserAccountRepository;
+
+import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
+import com.porra.mundial.model.League;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.WebSocketService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -32,25 +32,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class PredictionControllerTest {
 
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
+
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private PredictionService predictionService;
 
-    @MockBean
+    @MockitoBean
     private com.porra.mundial.service.GroupService groupService;
 
-    @MockBean
+    @MockitoBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
-    @MockBean
+    @MockitoBean
     private com.porra.mundial.service.LeaderboardService leaderboardService;
 
-    @MockBean
+    @MockitoBean
     private WebSocketService webSocketService;
 
     @Test
@@ -60,22 +63,19 @@ class PredictionControllerTest {
                 .participantName("Juan")
                 .build();
 
-        Mockito.when(predictionService.getAllPredictions()).thenReturn(List.of());
-        Mockito.when(predictionService.toPredictionDtoList(any(), any())).thenReturn(List.of(dto));
+        List<Prediction> predictions = List.of(Prediction.builder().id(1L).build());
+        Mockito.when(predictionService.getPredictionsByGroupId(League.GLOBAL_ID)).thenReturn(predictions);
+        Mockito.when(predictionService.toPredictionDtoList(predictions, null)).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/predictions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].participantName").value("Juan"));
+        Mockito.verify(groupService).assertCanView(League.GLOBAL_ID, null);
+        Mockito.verify(predictionService).getPredictionsByGroupId(League.GLOBAL_ID);
     }
 
     @Test
     void createPrediction_SavesAndReturnsPrediction() throws Exception {
-        Authentication authentication = Mockito.mock(Authentication.class);
-        Mockito.when(authentication.getName()).thenReturn("Ana");
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        SecurityContextHolder.setContext(securityContext);
-
         PredictionDataDTO body = new PredictionDataDTO();
         body.setUser("Ana");
         body.setPrediction("Mi Porra");
@@ -92,6 +92,7 @@ class PredictionControllerTest {
         Mockito.when(predictionService.createPrediction(anyString(), anyString(), any(PredictionDataDTO.class), any())).thenReturn(saved);
 
         mockMvc.perform(post("/api/predictions")
+                        .principal(() -> "ana@test.com")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -127,7 +128,7 @@ class PredictionControllerTest {
         body.setR16(List.of(List.of("Team1", "Team2")));
 
         Mockito.doThrow(new SecurityException("No tienes permiso para modificar o eliminar este pronostico."))
-                .when(predictionService).updatePrediction(Mockito.eq(99L), any(), any(), any(), any());
+                .when(predictionService).updatePrediction(Mockito.eq(99L), any(), any(), any());
 
         mockMvc.perform(put("/api/predictions/99")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -147,23 +148,9 @@ class PredictionControllerTest {
     }
 
     @Test
-    void getAllBets_LegacyRoute_ReturnsList() throws Exception {
-        PredictionResponseDTO dto = PredictionResponseDTO.builder()
-                .key("1")
-                .participantName("Carlos")
-                .build();
-
-        Mockito.when(predictionService.getPredictionsByGroupId(1L)).thenReturn(List.of());
-        Mockito.when(predictionService.toPredictionDtoList(any(), any())).thenReturn(List.of(dto));
-
-        mockMvc.perform(get("/api/bets"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].participantName").value("Carlos"));
-    }
-
-    @Test
     void getAllPredictions_Forbidden_WhenNotMemberOfPrivateGroup() throws Exception {
-        Mockito.when(groupService.isUserMemberOrAdmin(Mockito.eq(6L), any())).thenReturn(false);
+        Mockito.doThrow(new SecurityException("No perteneces a esta liga privada"))
+                .when(groupService).assertCanView(Mockito.eq(6L), any());
 
         mockMvc.perform(get("/api/predictions?groupId=6"))
                 .andExpect(status().isForbidden())

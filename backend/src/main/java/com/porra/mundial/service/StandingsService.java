@@ -1,8 +1,10 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
@@ -14,9 +16,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- *  Servicio de Clasificaciones (StandingsService).
- * Gestiona y calcula la clasificación real de los grupos del Mundial.
- * Utiliza las reglas oficiales de desempate (Puntos > H2H > Goal Average > Goles).
+ * Clasificación de los grupos del Mundial.
+ * Los desempates son los del artículo 13 del reglamento, en {@link GroupTiebreaker}.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,8 @@ public class StandingsService {
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
     private final TeamRepository teamRepository;
+    private final CompetitionRepository competitionRepository;
+    private final ScoreInvalidationService scoreInvalidationService;
 
     /**
      * Obtiene la clasificación completa de todos los grupos ya ordenada.
@@ -43,7 +46,7 @@ public class StandingsService {
         }
 
         List<GroupStanding> standings = raw.stream()
-                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !Team.PLACEHOLDER_NAME.equalsIgnoreCase(gs.getTeam().getName())))
                 .collect(Collectors.toList());
 
         boolean hasPositions = !standings.isEmpty() && standings.stream().anyMatch(gs -> gs.getPosition() != null && gs.getPosition() > 0);
@@ -52,8 +55,7 @@ public class StandingsService {
         }
 
         Map<String, List<GroupStanding>> byGroup = standings.stream().collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
-        List<Match> allMatches = matchRepository.findAll();
-        if (allMatches == null) allMatches = Collections.emptyList();
+        List<Match> allMatches = worldCupMatches();
         List<GroupStanding> sorted = new ArrayList<>();
         List<Match> finalMatches = allMatches;
         byGroup.keySet().stream().sorted().forEach(group -> {
@@ -67,111 +69,17 @@ public class StandingsService {
     }
 
     /**
-     * Obtiene la clasificación ordenada de un grupo específico.
-     */
-    public List<GroupStanding> getStandingsByGroup(String groupName) {
-        if (groupName == null || "-".equals(groupName)) return Collections.emptyList();
-        String cleanGroup = groupName.toUpperCase().trim();
-        List<GroupStanding> standings = standingRepository.findByGroupName(cleanGroup);
-        if (standings.isEmpty()) standings = standingRepository.findByGroupName(cleanGroup.toLowerCase());
-        standings = standings.stream()
-                .filter(gs -> gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName()))
-                .collect(Collectors.toList());
-
-        boolean hasPositions = !standings.isEmpty() && standings.stream().anyMatch(gs -> gs.getPosition() != null && gs.getPosition() > 0);
-        if (hasPositions) {
-            standings.sort(Comparator.comparing(gs -> gs.getPosition() != null && gs.getPosition() > 0 ? gs.getPosition() : 999));
-            return standings;
-        }
-
-        List<Match> matches = matchRepository.findByGroupNameOrderByMatchDateAsc(cleanGroup);
-        if (matches.isEmpty()) matches = matchRepository.findByGroupNameOrderByMatchDateAsc(cleanGroup.toLowerCase());
-        return sortGroupStandings(standings, matches);
-    }
-
-    /**
-     * Motor de ordenación. Aplica las reglas de desempate de la FIFA/UEFA.
+     * Ordena un grupo con los desempates del artículo 13 del reglamento del Mundial (ver {@link GroupTiebreaker}).
      * @param standings Equipos desordenados.
-     * @param allGroupMatches Partidos del grupo para calcular H2H en caso de empate.
-     * @return Clasificación perfectamente ordenada.
+     * @param allGroupMatches Partidos del grupo, para los enfrentamientos directos entre empatados.
+     * @return Clasificación ordenada.
      */
     public List<GroupStanding> sortGroupStandings(List<GroupStanding> standings, List<Match> allGroupMatches) {
         if (standings == null || standings.isEmpty()) return Collections.emptyList();
-
-        List<Match> finishedMatches = allGroupMatches != null ? allGroupMatches.stream()
-            .filter(m -> Boolean.TRUE.equals(m.getFinished()) && m.getHomeScore() != null && m.getAwayScore() != null)
-            .collect(Collectors.toList()) : Collections.emptyList();
-
-        // Group by points, overall GD, and overall GF to identify ties
-        Map<String, List<GroupStanding>> tieGroups = standings.stream().collect(Collectors.groupingBy(
-            gs -> String.format("%d_%d_%d", gs.getPoints(), gs.getGoalDiff(), gs.getGoalsFor())
-        ));
-
-        // Precalculate H2H stats for tied groups
-        Map<Long, H2HStats> h2hStatsCache = new HashMap<>();
-        tieGroups.values().stream().filter(group -> group.size() > 1).forEach(tiedGroup -> {
-            List<Long> tiedTeamIds = tiedGroup.stream().map(gs -> gs.getTeam().getId()).collect(Collectors.toList());
-            List<Match> h2hMatches = finishedMatches.stream()
-                .filter(m -> tiedTeamIds.contains(m.getHomeTeam().getId()) && tiedTeamIds.contains(m.getAwayTeam().getId()))
-                .collect(Collectors.toList());
-            
-            for (GroupStanding gs : tiedGroup) {
-                h2hStatsCache.put(gs.getTeam().getId(), calculateH2HStats(gs.getTeam().getId(), h2hMatches));
-            }
-        });
-
-        standings.sort((a, b) -> {
-            if (!Objects.equals(a.getPoints(), b.getPoints())) return Integer.compare(b.getPoints(), a.getPoints());
-
-            String tieKeyA = String.format("%d_%d_%d", a.getPoints(), a.getGoalDiff(), a.getGoalsFor());
-            String tieKeyB = String.format("%d_%d_%d", b.getPoints(), b.getGoalDiff(), b.getGoalsFor());
-
-            if (tieKeyA.equals(tieKeyB) && h2hStatsCache.containsKey(a.getTeam().getId()) && h2hStatsCache.containsKey(b.getTeam().getId())) {
-                H2HStats statsA = h2hStatsCache.get(a.getTeam().getId());
-                H2HStats statsB = h2hStatsCache.get(b.getTeam().getId());
-                if (statsA.pts != statsB.pts) return Integer.compare(statsB.pts, statsA.pts);
-                if (statsA.gd != statsB.gd) return Integer.compare(statsB.gd, statsA.gd);
-                if (statsA.gf != statsB.gf) return Integer.compare(statsB.gf, statsA.gf);
-            }
-
-            if (!Objects.equals(a.getGoalDiff(), b.getGoalDiff())) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
-            if (!Objects.equals(a.getGoalsFor(), b.getGoalsFor())) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
-            if (!Objects.equals(a.getFairPlayPoints(), b.getFairPlayPoints())) {
-                int fpA = a.getFairPlayPoints() != null ? a.getFairPlayPoints() : 0;
-                int fpB = b.getFairPlayPoints() != null ? b.getFairPlayPoints() : 0;
-                if (fpA != fpB) return Integer.compare(fpB, fpA);
-            }
-
-            return a.getTeam().getName().compareTo(b.getTeam().getName());
-        });
-
-        return standings;
+        return GroupTiebreaker.sort(standings, allGroupMatches);
     }
 
-    private H2HStats calculateH2HStats(Long teamId, List<Match> matches) {
-        int pts = 0, gd = 0, gf = 0;
-        for (Match m : matches) {
-            boolean isHome = m.getHomeTeam().getId().equals(teamId);
-            boolean isAway = m.getAwayTeam().getId().equals(teamId);
-            if (!isHome && !isAway) continue;
-
-            int teamScore = isHome ? m.getHomeScore() : m.getAwayScore();
-            int oppScore = isHome ? m.getAwayScore() : m.getHomeScore();
-
-            gf += teamScore;
-            gd += (teamScore - oppScore);
-            if (teamScore > oppScore) pts += 3;
-            else if (teamScore == oppScore) pts += 1;
-        }
-        return new H2HStats(pts, gd, gf);
-    }
-
-    private record H2HStats(int pts, int gd, int gf) {}
-
-    /**
-     * Construye un mapa ultra-optimizado con las estadísticas de la vida real.
-     * Formato: Map<Grupo, Map<Equipo, Map<StatName, Valor>>>
-     */
+    /** grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). */
     @org.springframework.cache.annotation.Cacheable("officialPoints")
     public Map<String, Map<String, Map<String, Integer>>> getOfficialPoints() {
         Map<String, Map<String, Map<String, Integer>>> result = new TreeMap<>();
@@ -181,7 +89,7 @@ public class StandingsService {
 
         List<GroupStanding> thirdPlaceTeams = new ArrayList<>();
         Map<String, List<GroupStanding>> groupedStandings = allStandings.stream()
-                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !"Por definir".equalsIgnoreCase(gs.getTeam().getName())))
+                .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !Team.PLACEHOLDER_NAME.equalsIgnoreCase(gs.getTeam().getName())))
                 .collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
 
         for (Map.Entry<String, List<GroupStanding>> entry : groupedStandings.entrySet()) {
@@ -209,21 +117,9 @@ public class StandingsService {
 
         // If positions and third-place statuses were not materialized, calculate third place elimination on the fly
         if (!hasPositions && thirdPlaceTeams.size() >= 8) {
-            thirdPlaceTeams.sort((a, b) -> {
-                if (!Objects.equals(a.getPoints(), b.getPoints())) return Integer.compare(b.getPoints(), a.getPoints());
-                if (!Objects.equals(a.getGoalDiff(), b.getGoalDiff())) return Integer.compare(b.getGoalDiff(), a.getGoalDiff());
-                if (!Objects.equals(a.getGoalsFor(), b.getGoalsFor())) return Integer.compare(b.getGoalsFor(), a.getGoalsFor());
-                if (!Objects.equals(a.getFairPlayPoints(), b.getFairPlayPoints())) {
-                    int fpA = a.getFairPlayPoints() != null ? a.getFairPlayPoints() : 0;
-                    int fpB = b.getFairPlayPoints() != null ? b.getFairPlayPoints() : 0;
-                    if (fpA != fpB) return Integer.compare(fpB, fpA);
-                }
-                return a.getTeam().getName().compareTo(b.getTeam().getName());
-            });
+            thirdPlaceTeams.sort(GroupTiebreaker.THIRD_PLACE_ORDER);
 
-            List<Match> allMatches = matchRepository.findAll();
-            if (allMatches == null) allMatches = Collections.emptyList();
-            List<Match> allGroupMatches = allMatches.stream()
+            List<Match> allGroupMatches = worldCupMatches().stream()
                     .filter(m -> "group".equalsIgnoreCase(m.getRound()))
                     .toList();
             boolean isGroupStageDone = !allGroupMatches.isEmpty() && allGroupMatches.stream().allMatch(m -> Boolean.TRUE.equals(m.getFinished()));
@@ -246,51 +142,38 @@ public class StandingsService {
     }
 
     /**
-     * Actualiza la tabla de posiciones de un equipo tras un sincronizado.
-     */
-    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard", "matches"}, allEntries = true)
-    public void updateStanding(Team team, String groupName, int points, int goalDiff, int goalsFor, int matchesPlayed, int fairPlayPoints) {
-        if (groupName == null || "-".equals(groupName) || team == null || "Por definir".equalsIgnoreCase(team.getName())) {
-            return;
-        }
-        String cleanGroup = groupName.toUpperCase().trim();
-        GroupStanding standing = standingRepository.findByTeamIdAndGroupName(team.getId(), cleanGroup)
-                .orElseGet(() -> GroupStanding.builder().team(team).groupName(cleanGroup).build());
-
-        standing.setGroupName(cleanGroup);
-        standing.setPoints(points);
-        standing.setGoalDiff(goalDiff);
-        standing.setGoalsFor(goalsFor);
-        standing.setMatchesPlayed(matchesPlayed);
-        standing.setFairPlayPoints(fairPlayPoints);
-        standingRepository.save(standing);
-    }
-
-    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard", "matches"}, allEntries = true)
-    public void clearAll() {
-        standingRepository.deleteAll();
-    }
-
-    /**
      * Recalcula la clasificación de todos los grupos a partir de los partidos reales
      * finalizados en la tabla de matches y materializa posiciones y estados matemáticos.
      */
-    @org.springframework.cache.annotation.CacheEvict(value = {"standings", "officialPoints", "leaderboard"}, allEntries = true)
     @org.springframework.transaction.annotation.Transactional
     public void recalculateStandingsFromMatches() {
+        recalculateWithLock(this::worldCupMatches);
+    }
+
+    /**
+     * Igual que {@link #recalculateStandingsFromMatches()}, con los partidos del Mundial ya cargados:
+     * la sincronización los lee una vez y los comparte con el cuadro de eliminatorias.
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public void recalculateStandingsFromMatches(List<Match> worldCupMatches) {
+        recalculateWithLock(() -> worldCupMatches);
+    }
+
+    private void recalculateWithLock(java.util.function.Supplier<List<Match>> worldCupMatches) {
         if (!recalculateLock.tryLock()) {
             log.info("Recálculo de clasificaciones omitido: ya hay otra ejecución en curso.");
             return;
         }
         try {
-            doRecalculateStandings();
+            doRecalculateStandings(worldCupMatches.get());
+            scoreInvalidationService.evictStandingsAfterCommit();
         } finally {
             recalculateLock.unlock();
         }
     }
 
-    private void doRecalculateStandings() {
-        List<Match> groupMatches = matchRepository.findAll().stream()
+    private void doRecalculateStandings(List<Match> allMatches) {
+        List<Match> groupMatches = allMatches.stream()
                 .filter(m -> "group".equalsIgnoreCase(m.getRound()) && Boolean.TRUE.equals(m.getFinished())
                         && m.getHomeTeam() != null && m.getAwayTeam() != null
                         && m.getHomeScore() != null && m.getAwayScore() != null)
@@ -334,12 +217,14 @@ public class StandingsService {
         Map<Long, GroupStanding> existingByTeam = standingRepository.findAll().stream()
                 .filter(gs -> gs.getTeam() != null && gs.getTeam().getId() != null)
                 .collect(Collectors.toMap(gs -> gs.getTeam().getId(), gs -> gs, (a, b) -> a));
+        Map<Long, List<Object>> previousStandings = new HashMap<>();
+        existingByTeam.forEach((teamId, gs) -> previousStandings.put(teamId, scoringFields(gs)));
 
         List<Team> allTeams = teamRepository.findAll();
         Map<String, List<GroupStanding>> standingsByGroup = new TreeMap<>();
 
         for (Team team : allTeams) {
-            if (team.getGroupName() == null || "-".equals(team.getGroupName()) || "Por definir".equalsIgnoreCase(team.getName())) {
+            if (team.getGroupName() == null || "-".equals(team.getGroupName()) || Team.PLACEHOLDER_NAME.equalsIgnoreCase(team.getName())) {
                 continue;
             }
             String groupName = team.getGroupName().toUpperCase().trim();
@@ -363,7 +248,6 @@ public class StandingsService {
             standingsByGroup.computeIfAbsent(groupName, k -> new ArrayList<>()).add(standing);
         }
 
-        List<Match> allMatches = matchRepository.findAll();
         List<GroupStanding> allSortedStandings = new ArrayList<>();
         List<GroupStanding> thirdPlaceTeams = new ArrayList<>();
 
@@ -390,25 +274,7 @@ public class StandingsService {
             allSortedStandings.addAll(sortedGroup);
         }
 
-        thirdPlaceTeams.sort((a, b) -> {
-            int ptsA = a.getPoints() != null ? a.getPoints() : 0;
-            int ptsB = b.getPoints() != null ? b.getPoints() : 0;
-            if (ptsA != ptsB) return Integer.compare(ptsB, ptsA);
-
-            int gdA = a.getGoalDiff() != null ? a.getGoalDiff() : 0;
-            int gdB = b.getGoalDiff() != null ? b.getGoalDiff() : 0;
-            if (gdA != gdB) return Integer.compare(gdB, gdA);
-
-            int gfA = a.getGoalsFor() != null ? a.getGoalsFor() : 0;
-            int gfB = b.getGoalsFor() != null ? b.getGoalsFor() : 0;
-            if (gfA != gfB) return Integer.compare(gfB, gfA);
-
-            int fpA = a.getFairPlayPoints() != null ? a.getFairPlayPoints() : 0;
-            int fpB = b.getFairPlayPoints() != null ? b.getFairPlayPoints() : 0;
-            if (fpA != fpB) return Integer.compare(fpB, fpA);
-
-            return a.getTeam().getName().compareTo(b.getTeam().getName());
-        });
+        thirdPlaceTeams.sort(GroupTiebreaker.THIRD_PLACE_ORDER);
 
         List<Match> allGroupMatches = allMatches.stream()
                 .filter(m -> "group".equalsIgnoreCase(m.getRound()))
@@ -426,5 +292,24 @@ public class StandingsService {
         }
 
         standingRepository.saveAll(allSortedStandings);
+
+        boolean changed = allSortedStandings.stream()
+                .anyMatch(gs -> !scoringFields(gs).equals(previousStandings.get(gs.getTeam().getId())));
+        if (changed) {
+            scoreInvalidationService.invalidateWorldCup();
+        }
+    }
+
+    /** Partidos del Mundial: los grupos son los suyos y no se mezclan con los de ligas u otros torneos. */
+    private List<Match> worldCupMatches() {
+        return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
+                .map(matchRepository::findByCompetitionId)
+                .orElse(Collections.emptyList());
+    }
+
+    /** Datos de la clasificación que puntúan los cuadros: si cambia alguno, hay que recalcular las porras. */
+    private static List<Object> scoringFields(GroupStanding gs) {
+        return Arrays.asList(gs.getGroupName(), gs.getPoints(), gs.getGoalDiff(), gs.getGoalsFor(),
+                gs.getMatchesPlayed(), gs.getFairPlayPoints(), gs.getPosition(), gs.getStatus());
     }
 }

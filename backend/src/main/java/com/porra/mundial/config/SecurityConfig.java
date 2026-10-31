@@ -15,9 +15,14 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 
 /**
  * Configuración global de Spring Security.
- * Define las reglas de acceso (Rutas públicas vs privadas), desactiva CSRF
- * (por ser una API Stateless con JWT), registra RateLimitingFilter y JwtAuthFilter,
- * e implementa cabeceras de seguridad HTTP endurecidas (CSP, HSTS, X-Content-Type-Options, etc.).
+ * Define las reglas de acceso (Rutas públicas vs privadas), registra RateLimitingFilter,
+ * CsrfOriginFilter y JwtAuthFilter, e implementa cabeceras de seguridad HTTP endurecidas
+ * (CSP, HSTS, X-Content-Type-Options, etc.).
+ * <p>
+ * El CSRF de Spring Security está desactivado: la API se autentica con la cabecera
+ * Authorization, que el navegador no manda solo, y las rutas que usan la cookie del refresh
+ * token ({@code /api/auth/}) las protegen SameSite=Strict y {@link CsrfOriginFilter}.
+ * </p>
  */
 @Configuration
 @EnableWebSecurity
@@ -26,6 +31,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final CsrfOriginFilter csrfOriginFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -35,26 +41,26 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/google/**").permitAll()
-                .requestMatchers("/api/predictions/mine", "/api/bets/mine").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/predictions/**", "/api/bets/**").permitAll()
-                .requestMatchers("/api/matches/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/standings/**").permitAll()
-                .requestMatchers("/api/scorers/**").permitAll()
-                .requestMatchers("/api/rules/**").permitAll()
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                .requestMatchers("/api/teams/odds").permitAll()
-                .requestMatchers("/api/leaderboard").permitAll()
-                .requestMatchers("/api/ws").permitAll()
-                .requestMatchers("/api/groups/mine").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/groups/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/users/*/avatar").permitAll()
-                .requestMatchers("/api/competitions/**").permitAll()
-
-                .requestMatchers(HttpMethod.POST, "/api/predictions", "/api/bets").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/api/predictions/**", "/api/bets/**").authenticated()
-                .requestMatchers(HttpMethod.DELETE, "/api/predictions/**", "/api/bets/**").authenticated()
-
+                .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
+                // Refresco, logout y canje del JWT antiguo: se autentican con la cookie o el JWT.
+                .requestMatchers(HttpMethod.POST, "/api/auth/session/**").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/info").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
+                .requestMatchers("/api/predictions/mine", "/api/groups/mine").authenticated()
+                .requestMatchers(HttpMethod.GET,
+                        "/api/groups/*/members").authenticated()
+                // Lecturas públicas: cada controlador filtra los datos de ligas privadas.
+                .requestMatchers(HttpMethod.GET,
+                        "/api/predictions/**",
+                        "/api/matches/**",
+                        "/api/standings/**",
+                        "/api/scorers/**",
+                        "/api/rules/**",
+                        "/api/teams/odds",
+                        "/api/leaderboard", "/api/leaderboard/**",
+                        "/api/groups/**",
+                        "/api/users/*/avatar",
+                        "/api/competitions/**").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/**").permitAll()
             )
@@ -74,15 +80,17 @@ public class SecurityConfig {
                             "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://pagead2.googlesyndication.com; " +
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                             "font-src 'self' https://fonts.gstatic.com; " +
-                            "img-src 'self' data: https:; " +
+                            // blob: para la vista previa local de una foto antes de subirla.
+                            "img-src 'self' data: blob: https:; " +
                             "connect-src 'self' ws: wss: https://accounts.google.com https://site.api.espn.com https://a.espncdn.com; " +
                             "frame-src 'self' https://accounts.google.com https://googleads.g.doubleclick.net;")
                 )
-                .permissionsPolicy(perm -> perm
+                .permissionsPolicyHeader(perm -> perm
                     .policy("camera=(), microphone=(), geolocation=()")
                 )
             )
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(csrfOriginFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -1,119 +1,118 @@
-import React from 'react';
+import { useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useDialogFocus } from '../hooks/useDialogFocus';
+import { fetchLeagueScoring } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
+import { errorMessage } from '../utils/errors';
+import RulesTabs, { type RulesTab } from './league/RulesTabs';
+import ScoringRulesPanel from './league/ScoringRulesPanel';
 
 /**
- * Modal de solo lectura con las reglas personalizadas de una liga.
- * Cada liga define las suyas desde el panel de administración.
+ * Modal de solo lectura con las reglas de una liga: cuánto da cada acierto ("Puntuación") y las
+ * normas en texto libre que escribe el administrador ("Normas").
  */
-export default function LeagueRulesModal({ group, onClose }) {
+export default function LeagueRulesModal({
+  group,
+  onClose,
+}: {
+  group: { id?: number | string | null; name?: string; rules?: string | null } | null | undefined;
+  onClose: () => void;
+}) {
   const rules = (group?.rules || '').trim();
+  // Sin liga activa el id llega vacío.
+  const groupId = group?.id || null;
+  const [tab, setTab] = useState<RulesTab>('scoring');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Escape propio: desde Inicio no hay otro manejador que cierre este modal.
+  useDialogFocus(dialogRef, { onEscape: onClose });
+
+  const {
+    data: scoring,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.leagueScoring(groupId),
+    queryFn: () => fetchLeagueScoring(groupId as number | string),
+    enabled: groupId != null,
+  });
 
   return (
     <div
+      className="paper-dialog-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="league-rules-title"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '16px',
-      }}
+      ref={dialogRef}
+      tabIndex={-1}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
-        className="glass-panel"
-        style={{
-          width: '100%',
-          maxWidth: '520px',
-          maxHeight: '85vh',
-          background: '#0f172a',
-          border: '1px solid rgba(0, 210, 211, 0.3)',
-          borderRadius: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                color: '#00d2d3',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-              }}
-            >
-              📖 Reglas de la liga
+      <div className="paper-panel landing-tape paper-dialog">
+        <div className="py-4 px-5 border-b border-b-[rgba(17,_24,_39,_0.15)] flex flex-col gap-3">
+          <div className="flex justify-between items-center gap-3">
+            <div className="min-w-0">
+              <div className="marker-ink text-[1rem]">Reglas de la liga</div>
+              <h2
+                className="m-0 poster-title text-[1.35rem] text-[#111827] overflow-hidden text-ellipsis whitespace-nowrap"
+                id="league-rules-title"
+              >
+                {group?.name}
+              </h2>
             </div>
-            <h2
-              id="league-rules-title"
-              style={{
-                margin: 0,
-                fontSize: '1.15rem',
-                color: '#fff',
-                fontWeight: 800,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
+            <button
+              className="bg-[rgba(17,_24,_39,_0.08)] bg-none border-none text-[#111827] w-11 h-11 rounded-full cursor-pointer shrink-0"
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar"
             >
-              {group?.name}
-            </h2>
+              ✕
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Cerrar reglas"
-            style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: 'none',
-              color: '#fff',
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
-            ✕
-          </button>
+          <RulesTabs idPrefix="league-rules" tab={tab} onChange={setTab} />
         </div>
 
-        <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1 }}>
-          {rules ? (
-            <p
-              style={{
-                margin: 0,
-                whiteSpace: 'pre-wrap',
-                lineHeight: 1.6,
-                fontSize: '0.92rem',
-                color: '#e2e8f0',
-              }}
+        <div className="py-4.5 px-5 overflow-y-auto flex-1">
+          {tab === 'scoring' && (
+            <div
+              id="league-rules-panel-scoring"
+              role="tabpanel"
+              aria-labelledby="league-rules-tab-scoring"
             >
-              {rules}
-            </p>
-          ) : (
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              El administrador de esta liga todavía no ha definido reglas propias.
-            </p>
+              {groupId == null && (
+                <p className="m-0 text-[#4b5563] text-[0.9rem]">
+                  Elige una liga para ver su puntuación.
+                </p>
+              )}
+              {isLoading && (
+                <p className="m-0 text-[#4b5563] text-[0.9rem]">Cargando la puntuación…</p>
+              )}
+              {error && (
+                <p className="m-0 text-[#4b5563] text-[0.9rem]" role="alert">
+                  {errorMessage(error, 'No se pudo cargar la puntuación.')}
+                </p>
+              )}
+              {scoring && <ScoringRulesPanel scoring={scoring} />}
+            </div>
+          )}
+
+          {tab === 'norms' && (
+            <div
+              id="league-rules-panel-norms"
+              role="tabpanel"
+              aria-labelledby="league-rules-tab-norms"
+            >
+              {rules ? (
+                <p className="m-0 whitespace-pre-wrap leading-[1.6] text-[0.95rem] text-[#1f2937]">
+                  {rules}
+                </p>
+              ) : (
+                <p className="m-0 text-[#4b5563] text-[0.9rem]">
+                  El administrador de esta liga todavía no ha escrito normas: cuota, pagos o
+                  premios.
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>

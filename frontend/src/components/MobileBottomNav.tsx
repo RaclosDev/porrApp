@@ -1,13 +1,18 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, Trophy, Users, Calendar, Pencil, Swords, LayoutGrid } from 'lucide-react';
+import React, { useState } from 'react';
+import { NavLink, matchPath, useLocation } from 'react-router-dom';
+import {
+  Home,
+  Trophy,
+  Users,
+  Calendar,
+  Pencil,
+  Swords,
+  LayoutGrid,
+  ListOrdered,
+} from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
-/**
- * Barra de navegación móvil estilo "Isla Flotante" / "Cápsula" (Floating Dock)
- * Elevada respecto al fondo, centrada con bordes redondeados y efecto glassmorphic.
- * Proporciona acceso ergonómico sin sensación de pie de página tosco.
- */
+/** Navegación inferior en móvil (hasta 768 px); el resalte se desliza a la pestaña activa. */
 export default function MobileBottomNav() {
   const {
     activeGroupPoolFormat,
@@ -15,13 +20,11 @@ export default function MobileBottomNav() {
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
-    isRaclos,
     isDemoMode,
   } = useAppContext();
 
   const isDemo = isDemoMode;
-  const isNavLocked =
-    isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo && !isRaclos;
+  const isNavLocked = isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo;
   const isMatchDay =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
@@ -31,53 +34,53 @@ export default function MobileBottomNav() {
         { to: '/prediction', label: 'Mi Porra', icon: Pencil },
         { to: '/bracket', label: 'Resultados', icon: Swords },
         { to: '/grupos', label: 'Grupos', icon: LayoutGrid },
-        { to: '/clasificacion', label: 'Ranking', icon: Trophy },
+        { to: '/ranking', label: 'Ranking', icon: Trophy },
       ]
     : isMatchDay
       ? [
           { to: '/', label: 'Inicio', icon: Home, end: true },
           { to: '/jornadas', label: 'Jornadas', icon: Calendar },
-          { to: '/clasificacion', label: 'Puntos', icon: Trophy },
+          { to: '/ranking', label: 'Ranking', icon: Trophy },
+          { to: '/tabla', label: 'Tabla', icon: ListOrdered },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
         ]
       : [
           { to: '/', label: 'Inicio', icon: Home, end: true },
           { to: '/prediction', label: 'Mi Porra', icon: Pencil },
           { to: '/bracket', label: 'Resultados', icon: Swords },
-          { to: '/clasificacion', label: 'Ranking', icon: Trophy },
+          { to: '/ranking', label: 'Ranking', icon: Trophy },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
         ];
 
+  const { pathname } = useLocation();
+  const activeIndex = navItems.findIndex((item) =>
+    matchPath({ path: item.to, end: item.end ?? false }, pathname),
+  );
+  // Si la ruta no tiene pestaña, el indicador se oculta en la última posición para que al
+  // volver salga de ahí y no desde la primera pestaña.
+  const [lastActiveIndex, setLastActiveIndex] = useState(Math.max(activeIndex, 0));
+  if (activeIndex !== -1 && activeIndex !== lastActiveIndex) {
+    setLastActiveIndex(activeIndex);
+  }
+  const indicatorIndex = activeIndex === -1 ? lastActiveIndex : activeIndex;
+
   return (
     <nav
-      className="mobile-bottom-nav floating-capsule-nav"
+      className={`mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 flex items-center justify-around py-0 px-1.5 z-[1000]  ${isNavLocked ? 'opacity-[0.45]' : 'opacity-[1]'} ${isNavLocked ? 'pointer-events-none' : 'pointer-events-auto'}`}
       aria-label="Navegación principal móvil"
       inert={isNavLocked}
       aria-disabled={isNavLocked || undefined}
-      style={{
-        position: 'fixed',
-        bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'calc(100% - 24px)',
-        maxWidth: '430px',
-        height: '62px',
-        background: 'rgba(12, 18, 34, 0.88)',
-        backdropFilter: 'blur(24px) saturate(190%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(190%)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        borderRadius: '32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        padding: '0 6px',
-        zIndex: 1000,
-        opacity: isNavLocked ? 0.45 : 1,
-        pointerEvents: isNavLocked ? 'none' : 'auto',
-        boxShadow:
-          '0 16px 36px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
-      }}
+      style={
+        {
+          '--nav-active': indicatorIndex,
+          '--nav-count': navItems.length,
+        } as React.CSSProperties
+      }
     >
+      <span
+        className={`mobile-nav-indicator ${activeIndex === -1 ? 'is-hidden' : ''}`}
+        aria-hidden="true"
+      />
       {navItems.map((item) => {
         const IconComponent = item.icon;
         return (
@@ -97,39 +100,22 @@ export default function MobileBottomNav() {
               flex: 1,
               height: '50px',
               borderRadius: '25px',
-              background: isActive ? 'rgba(0, 210, 211, 0.14)' : 'transparent',
-              color: isActive ? 'var(--accent-cyan, #00d2d3)' : '#94a3b8',
+              color: isActive ? 'var(--ink)' : '#94a3b8',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               WebkitTapHighlightColor: 'transparent',
             })}
           >
             {({ isActive }) => (
               <>
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    lineHeight: 1,
-                    filter: isActive ? 'drop-shadow(0 0 8px rgba(0, 210, 211, 0.55))' : 'none',
-                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
-                    transition: 'transform 0.2s ease',
-                  }}
-                >
+                <span className="flex items-center justify-center leading-[1]">
                   <IconComponent
                     size={20}
                     strokeWidth={isActive ? 2.4 : 1.8}
-                    color={isActive ? 'var(--accent-cyan, #00d2d3)' : '#94a3b8'}
+                    color={isActive ? 'var(--ink)' : '#94a3b8'}
                   />
                 </span>
                 <span
-                  style={{
-                    fontSize: '0.64rem',
-                    fontWeight: isActive ? 700 : 500,
-                    letterSpacing: '0.2px',
-                    color: isActive ? 'var(--accent-cyan, #00d2d3)' : '#8899a6',
-                    transition: 'color 0.2s ease',
-                  }}
+                  className={`text-[0.64rem] tracking-[0.2px] [transition:color_0.2s_ease] ${isActive ? 'font-bold' : 'font-medium'} ${isActive ? 'text-[#111827]' : 'text-[#94a3b8]'}`}
                 >
                   {item.label}
                 </span>

@@ -1,6 +1,7 @@
 package com.porra.mundial.scoring;
 
 import com.porra.mundial.dto.PredictionDataDTO;
+import com.porra.mundial.dto.TopScorerDTO;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +15,7 @@ public record CalculationContext(
         Map<String, Map<String, Map<String, Integer>>> officialPoints,
         Map<String, List<String>> orderedTeamsPerGroup,
         List<String> bestVirtualThirds,
-        List<Map<String, Object>> allScorers,
+        List<TopScorerDTO> allScorers,
         List<String> offOctavos,
         List<String> offQf,
         List<String> offSf,

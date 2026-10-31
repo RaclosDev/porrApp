@@ -26,3 +26,22 @@ describe('TeamSlot component flag rendering', () => {
     expect(screen.getByText('1º Grupo A')).toBeInTheDocument();
   });
 });
+
+describe('TeamSlot interaction', () => {
+  it('renders a pressable button when it can be picked', () => {
+    render(<TeamSlot name="España" onClick={() => {}} pressed />);
+    const btn = screen.getByRole('button', { name: 'Pasar a España' });
+    expect(btn).toHaveAttribute('type', 'button');
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('stays a plain element for placeholders and read-only slots', () => {
+    render(
+      <>
+        <TeamSlot name="1º Grupo A" onClick={() => {}} />
+        <TeamSlot name="Italia" />
+      </>,
+    );
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+});

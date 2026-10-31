@@ -2,8 +2,8 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
-import com.porra.mundial.repository.EditionRepository;
-import com.porra.mundial.repository.LeagueRepository;
+import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.ProfileImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
@@ -12,23 +12,44 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.HtmlUtils;
 
+import javax.imageio.ImageIO;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontFormatException;
+import java.awt.geom.Path2D;
+import java.util.Locale;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-/** Serves crawler-readable Open Graph metadata for league invitation links. */
+/** Serves crawler-readable Open Graph metadata and invitation-card images for league links. */
 @RestController
 @RequiredArgsConstructor
 public class JoinPreviewController {
 
     private static final String BASE_URL = "https://porra.raclos.es";
-    private static final String DEFAULT_TITLE = "Invitación a una porra | PorrApp";
-    private static final String DEFAULT_DESCRIPTION = "Únete a esta porra y compite con tus amigos.";
-    private static final String DEFAULT_IMAGE = "/world-cup-icon.png";
+    private static final String DEFAULT_TITLE = "Invitación a una porra";
+    private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
+    private static final String IMAGE_VERSION = "3";
+    private static final int IMAGE_WIDTH = 1200;
+    private static final int IMAGE_HEIGHT = 630;
+    private static final Color PAPER = new Color(243, 236, 220);
+    private static final Color INK = new Color(17, 24, 39);
+    private static final Color MARKER = new Color(11, 95, 116);
+    private static final Font POSTER = loadFont("fonts/anton/Anton-Regular.ttf");
+    private static final Font HANDWRITING = loadFont("fonts/permanent-marker/PermanentMarker-Regular.ttf");
 
-    private final LeagueRepository leagueRepository;
-    private final EditionRepository editionRepository;
+    private final GroupService groupService;
+    private final ProfileImageService profileImageService;
 
     @GetMapping(value = "/join/{code}", produces = MediaType.TEXT_HTML_VALUE)
     public String preview(@PathVariable String code) throws IOException {
@@ -38,49 +59,225 @@ public class JoinPreviewController {
         String canonicalUrl = BASE_URL + "/join/" + encodePathSegment(code);
         String title = DEFAULT_TITLE;
         String description = DEFAULT_DESCRIPTION;
-        String imageUrl = BASE_URL + DEFAULT_IMAGE;
+        String imageAlt = "Invitación a una porra de PorrApp";
+        String imageVersion = IMAGE_VERSION;
 
-        Optional<League> leagueOptional = leagueRepository.findByJoinCode(code.trim().toUpperCase());
+        Optional<League> leagueOptional = findLeague(code);
         if (leagueOptional.isPresent()) {
             League league = leagueOptional.get();
-            title = league.getName();
+            String leagueName = league.getName() == null || league.getName().isBlank()
+                    ? "Mi liga"
+                    : league.getName();
+            // El nombre de la liga arriba; competición y formato debajo.
+            title = leagueName;
+            imageAlt = leagueName;
+            description = "Porra de fútbol";
 
-            Optional<Edition> activeEdition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE");
+            Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
             if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
                 String competitionName = activeEdition.get().getCompetition().getName();
                 String format = activeEdition.get().getPoolFormat() != null
-                        ? activeEdition.get().getPoolFormat().name()
+                        ? formatLabel(activeEdition.get().getPoolFormat().name())
                         : null;
-                description = competitionName
-                        + (format != null ? " · " + formatLabel(format) : "")
-                        + " · Únete a la porra en PorrApp.";
-            } else {
-                description = "Únete a la porra \"" + league.getName() + "\" en PorrApp.";
+                description = competitionName + (format != null ? " · " + format : "");
             }
-
-            if (league.getImageUrl() != null && !league.getImageUrl().isBlank()) {
-                imageUrl = absoluteUrl(league.getImageUrl());
+            if (league.getImageUpdatedAt() != null) {
+                imageVersion += "-" + league.getImageUpdatedAt().toEpochSecond(ZoneOffset.UTC);
             }
         }
+
+        // Mismo PNG que se adjunta al compartir por WhatsApp, con versión para
+        // evitar que WhatsApp reutilice una vista previa antigua en caché.
+        String imageUrl = BASE_URL + "/join/" + encodePathSegment(code) + "/image.png?v=" + imageVersion;
 
         html = replaceTitle(html, title);
         html = replaceMeta(html, "property", "og:title", title);
         html = replaceMeta(html, "property", "og:description", description);
+        html = replaceMeta(html, "property", "og:type", "website");
         html = replaceMeta(html, "property", "og:url", canonicalUrl);
         html = replaceMeta(html, "property", "og:image", imageUrl);
+        html = replaceMeta(html, "property", "og:image:type", "image/png");
+        html = replaceMeta(html, "property", "og:image:width", Integer.toString(IMAGE_WIDTH));
+        html = replaceMeta(html, "property", "og:image:height", Integer.toString(IMAGE_HEIGHT));
+        html = replaceMeta(html, "property", "og:image:alt", imageAlt);
+        html = replaceMeta(html, "property", "og:site_name", "PorrApp");
+        html = replaceMeta(html, "property", "og:locale", "es_ES");
         html = replaceMeta(html, "name", "description", description);
         html = replaceMeta(html, "name", "twitter:card", "summary_large_image");
         html = replaceMeta(html, "name", "twitter:title", title);
         html = replaceMeta(html, "name", "twitter:description", description);
         html = replaceMeta(html, "name", "twitter:image", imageUrl);
+        html = replaceMeta(html, "name", "twitter:image:alt", imageAlt);
         return html;
     }
 
-    private String absoluteUrl(String imageUrl) {
-        if (imageUrl.startsWith("https://") || imageUrl.startsWith("http://")) {
-            return imageUrl;
+    /** Public PNG endpoint used by WhatsApp and other Open Graph crawlers. */
+    @GetMapping(value = "/join/{code}/image.png", produces = MediaType.IMAGE_PNG_VALUE)
+    public byte[] invitationImage(@PathVariable String code) throws IOException {
+        String name = "Invitación a una porra";
+        String competition = "Fútbol";
+        String format = "Cuadro completo";
+        byte[] leagueImage = null;
+
+        Optional<League> leagueOptional = findLeague(code);
+        if (leagueOptional.isPresent()) {
+            League league = leagueOptional.get();
+            name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
+            leagueImage = profileImageService.getLeagueImage(league.getId())
+                    .map(ProfileImageService.StoredImage::data).orElse(null);
+            Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
+            if (activeEdition.isPresent()) {
+                Edition edition = activeEdition.get();
+                if (edition.getCompetition() != null && edition.getCompetition().getName() != null) {
+                    competition = edition.getCompetition().getName();
+                }
+                if (edition.getPoolFormat() != null) {
+                    format = formatLabel(edition.getPoolFormat().name());
+                }
+            }
         }
-        return BASE_URL + (imageUrl.startsWith("/") ? imageUrl : "/" + imageUrl);
+
+        // ARGB conserva la transparencia del lienzo y de logotipos PNG con fondo transparente.
+        BufferedImage image = new BufferedImage(IMAGE_WIDTH, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            graphics.setColor(new Color(15, 23, 42));
+            graphics.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+            // Solo se inclina el soporte, como en la web: texto y foto permanecen rectos.
+            graphics.setColor(new Color(216, 207, 185));
+            graphics.fillRoundRect(42, 66, 1122, 514, 6, 6);
+            Path2D sheet = new Path2D.Double();
+            sheet.moveTo(32, 60);
+            sheet.lineTo(1152, 48);
+            sheet.lineTo(1152, 558);
+            sheet.lineTo(32, 570);
+            sheet.closePath();
+            graphics.setColor(PAPER);
+            graphics.fill(sheet);
+            graphics.setColor(new Color(255, 230, 140, 220));
+            graphics.fillPolygon(new int[]{520, 672, 674, 522}, new int[]{32, 26, 66, 72}, 4);
+
+            graphics.setColor(MARKER);
+            graphics.setFont(HANDWRITING.deriveFont(32f));
+            graphics.drawString("PorrApp", 72, 116);
+
+            if (!drawLeaguePhoto(graphics, leagueImage)) {
+                graphics.setColor(new Color(231, 223, 206));
+                graphics.fillRoundRect(72, 162, 244, 244, 6, 6);
+                graphics.setColor(MARKER);
+                graphics.setStroke(new BasicStroke(3));
+                graphics.drawRoundRect(90, 180, 208, 208, 4, 4);
+                graphics.setFont(POSTER.deriveFont(48f));
+                graphics.drawString("TU LIGA", 120, 305);
+            }
+
+            graphics.setColor(INK);
+            graphics.setFont(POSTER.deriveFont(64f));
+            drawFittedText(graphics, name.toUpperCase(Locale.ROOT), 364, 224, 744, 64);
+            graphics.setFont(POSTER.deriveFont(32f));
+            drawFittedText(graphics, competition.toUpperCase(Locale.ROOT), 364, 293, 744, 32);
+            drawStamp(graphics, format.toUpperCase(Locale.ROOT), 364, 332, 744);
+
+            graphics.setColor(new Color(17, 24, 39, 45));
+            graphics.setStroke(new BasicStroke(2));
+            graphics.drawLine(72, 454, 1112, 454);
+            graphics.setColor(MARKER);
+            graphics.setFont(HANDWRITING.deriveFont(32f));
+            graphics.drawString("Te han invitado a jugar.", 72, 520);
+            graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 22));
+            graphics.setColor(INK);
+            graphics.drawString("porra.raclos.es", 944, 520);
+        } finally {
+            graphics.dispose();
+        }
+
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            ImageIO.write(image, "png", output);
+            return output.toByteArray();
+        }
+    }
+
+    private boolean drawLeaguePhoto(Graphics2D graphics, byte[] imageData) {
+        if (imageData == null || imageData.length == 0) {
+            return false;
+        }
+        try (ByteArrayInputStream input = new ByteArrayInputStream(imageData)) {
+            BufferedImage photo = ImageIO.read(input);
+            if (photo == null) {
+                return false;
+            }
+
+            int x = 72;
+            int y = 162;
+            int size = 244;
+            double scale = Math.max((double) size / photo.getWidth(), (double) size / photo.getHeight());
+            int width = (int) Math.round(photo.getWidth() * scale);
+            int height = (int) Math.round(photo.getHeight() * scale);
+            int cropX = (width - size) / 2;
+            int cropY = (height - size) / 2;
+
+            BufferedImage square = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D photoGraphics = square.createGraphics();
+            try {
+                photoGraphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                photoGraphics.drawImage(photo, -cropX, -cropY, width, height, null);
+            } finally {
+                photoGraphics.dispose();
+            }
+
+            graphics.setColor(Color.WHITE);
+            graphics.fillRoundRect(x - 6, y - 6, size + 12, size + 12, 6, 6);
+            graphics.setClip(new RoundRectangle2D.Float(x, y, size, size, 4, 4));
+            graphics.drawImage(square, x, y, null);
+            graphics.setClip(null);
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            // Si la foto no está disponible, conservar la tarjeta con el nombre de la liga.
+            return false;
+        }
+    }
+
+    private Optional<League> findLeague(String code) {
+        return groupService.getGroupByJoinCode(code.trim().toUpperCase());
+    }
+
+    private static Font loadFont(String path) {
+        try (var stream = new ClassPathResource(path).getInputStream()) {
+            return Font.createFont(Font.TRUETYPE_FONT, stream);
+        } catch (IOException | FontFormatException exception) {
+            throw new IllegalStateException("No se pudo cargar la tipografía de invitación: " + path, exception);
+        }
+    }
+
+    private void drawStamp(Graphics2D graphics, String text, int x, int y, int maxWidth) {
+        graphics.setFont(POSTER.deriveFont(28f));
+        int width = Math.min(graphics.getFontMetrics().stringWidth(text) + 32, maxWidth);
+        graphics.setColor(MARKER);
+        graphics.setStroke(new BasicStroke(3));
+        graphics.drawRoundRect(x, y, width, 52, 4, 4);
+        drawFittedText(graphics, text, x + 16, y + 36, width - 32, 28);
+    }
+
+    private void drawFittedText(Graphics2D graphics, String value, int x, int y, int maxWidth, int initialSize) {
+        int size = initialSize;
+        Font baseFont = graphics.getFont();
+        Font font = baseFont.deriveFont((float) size);
+        graphics.setFont(font);
+        while (graphics.getFontMetrics().stringWidth(value) > maxWidth && size > 30) {
+            size -= 2;
+            font = baseFont.deriveFont((float) size);
+            graphics.setFont(font);
+        }
+        String fitted = value;
+        while (graphics.getFontMetrics().stringWidth(fitted) > maxWidth && fitted.length() > 4) {
+            fitted = fitted.substring(0, fitted.length() - 2) + "…";
+        }
+        graphics.drawString(fitted, x, y);
     }
 
     private String encodePathSegment(String value) {
@@ -90,16 +287,16 @@ public class JoinPreviewController {
 
     private String formatLabel(String format) {
         return switch (format) {
-            case "MATCH_DAY" -> "por jornadas";
-            case "FULL_BRACKET" -> "cuadro completo";
-            case "KNOCKOUTS_ONLY" -> "eliminatorias";
+            case "MATCH_DAY" -> "Por jornadas";
+            case "FULL_BRACKET" -> "Cuadro completo";
+            case "KNOCKOUTS_ONLY" -> "Eliminatorias";
             default -> format.toLowerCase().replace('_', ' ');
         };
     }
 
     private String replaceTitle(String html, String title) {
         return html.replaceFirst("(?is)<title>.*?</title>",
-                "<title>" + HtmlUtils.htmlEscape(title) + "</title>");
+                java.util.regex.Matcher.quoteReplacement("<title>" + HtmlUtils.htmlEscape(title) + "</title>"));
     }
 
     private String replaceMeta(String html, String attribute, String key, String value) {

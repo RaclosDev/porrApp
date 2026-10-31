@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.model.League;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Edition;
@@ -22,10 +23,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-/**
- * Servicio principal de gestión de pronósticos (Prediction).
- * Almacena y sirve el árbol del cuadro directamente como documento estructurado.
- */
+/** Guarda y sirve el árbol del cuadro como un único documento estructurado. */
 @Slf4j
 @Service
 @Transactional
@@ -36,6 +34,8 @@ public class PredictionService {
     private final UserAccountRepository userAccountRepository;
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
+    private final BracketPredictionValidator bracketValidator;
+    private final LeaguePaymentService paymentService;
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
@@ -54,7 +54,7 @@ public class PredictionService {
             return;
         }
 
-        throw new SecurityException("No tienes permiso para modificar o eliminar este pronostico.");
+        throw new SecurityException("No tienes permiso para modificar o eliminar este pronóstico.");
     }
 
     public void verifyGroupAdminForPayment(Prediction prediction, String requesterEmail) {
@@ -69,17 +69,7 @@ public class PredictionService {
             return;
         }
 
-        throw new SecurityException("Solo el administrador del grupo puede marcar el pronostico como pagado.");
-    }
-
-    @Transactional(readOnly = true)
-    public List<Prediction> getAllPredictions() {
-        return predictionRepository.findAllByOrderByCreatedAtDesc();
-    }
-
-    @Transactional(readOnly = true)
-    public List<Prediction> getAllBets() {
-        return getAllPredictions();
+        throw new SecurityException("Solo el administrador de la liga puede marcar el pronóstico como pagado.");
     }
 
     @Transactional(readOnly = true)
@@ -88,28 +78,8 @@ public class PredictionService {
     }
 
     @Transactional(readOnly = true)
-    public List<Prediction> getBetsByGroupId(Long groupId) {
-        return getPredictionsByGroupId(groupId);
-    }
-
-    @Transactional(readOnly = true)
     public List<Prediction> getPredictionsByGoogleEmail(String email) {
         return predictionRepository.findByUserGoogleEmailWithUserAndEdition(email);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Prediction> getBetsByGoogleEmail(String email) {
-        return getPredictionsByGoogleEmail(email);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Prediction> getPaidPredictions() {
-        return predictionRepository.findByPaymentStatus("PAID");
-    }
-
-    @Transactional(readOnly = true)
-    public List<Prediction> getPaidBets() {
-        return getPaidPredictions();
     }
 
     @Transactional(readOnly = true)
@@ -117,114 +87,101 @@ public class PredictionService {
         return predictionRepository.findById(id);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public Prediction createPrediction(String email, String predictionName, PredictionDataDTO betData, Long groupId) {
-        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
-        Long effectiveGroupId = groupId != null ? groupId : 1L;
+    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
+    public Prediction createPrediction(String email, String predictionName, PredictionDataDTO predictionData, Long groupId) {
+        UserAccount user = userAccountRepository.findByGoogleEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+        Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
         Edition edition = editionRepository.findByLeagueIdAndStatus(effectiveGroupId, "ACTIVE")
-                .or(() -> editionRepository.findByLeagueIdAndStatus(1L, "ACTIVE"))
-                .orElse(null);
+                .orElseThrow(() -> new NoSuchElementException("No hay una edición activa para esta liga"));
 
-        if (edition != null && edition.isLocked()) {
-            throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
+        if (edition.isLocked()) {
+            throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
-        if (groupId != null && user != null && edition != null && edition.getLeague() != null) {
+        if (groupId != null && edition.getLeague() != null) {
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-            boolean isGlobal = "GLOBAL".equalsIgnoreCase(edition.getLeague().getJoinCode());
+            boolean isGlobal = edition.getLeague().isGlobal();
             if (!membershipRepository.existsById(memId) && !isGlobal) {
                 throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
             }
         }
 
-        if (groupId != null) {
-            predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
-                    .ifPresent(predictionRepository::delete);
+        bracketValidator.validate(edition, predictionData);
+
+        Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, effectiveGroupId);
+        if (existing.isPresent()) {
+            Prediction prediction = existing.get();
+            requireSameTopology(prediction.getBracketData(), predictionData);
+            prediction.setName(predictionName);
+            prediction.setBracketData(predictionData);
+            prediction.setScoreCalculatedAt(null);
+            return predictionRepository.save(prediction);
         }
 
-        boolean isOfficial = "official".equalsIgnoreCase(predictionName) || "Admin".equalsIgnoreCase(email);
+        String paymentStatus = "PENDING";
+        if (groupId != null) {
+            Membership.MembershipId memberId = new Membership.MembershipId(user.getId(), groupId);
+            paymentStatus = membershipRepository.findById(memberId)
+                    .map(Membership::getPaymentStatus)
+                    .filter(status -> status != null && !status.isBlank())
+                    .orElse("PENDING");
+        }
 
         Prediction prediction = Prediction.builder()
                 .user(user)
                 .edition(edition)
                 .name(predictionName)
-                .isOfficial(isOfficial)
-                .bracketData(betData)
-                .paymentStatus("PENDING")
+                .bracketData(predictionData)
+                .paymentStatus(paymentStatus)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         return predictionRepository.save(prediction);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public Prediction createBet(String email, String betName, PredictionDataDTO betData, Long groupId) {
-        return createPrediction(email, betName, betData, groupId);
-    }
-
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
-    public Prediction updatePrediction(Long id, String requesterEmail, String participantName, String predictionName, PredictionDataDTO betData) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
+    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
+    public Prediction updatePrediction(Long id, String requesterEmail, String predictionName, PredictionDataDTO predictionData) {
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
         if (prediction.getEdition() != null && prediction.getEdition().isLocked()) {
-            throw new IllegalStateException("El plazo para enviar o modificar pronosticos en esta porra ha finalizado.");
+            throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
-        if (participantName != null) prediction.setParticipantName(participantName);
+        if (predictionData != null) {
+            requireSameTopology(prediction.getBracketData(), predictionData);
+            bracketValidator.validate(prediction.getEdition(), predictionData);
+        }
         if (predictionName != null) prediction.setName(predictionName);
-        if (betData != null) prediction.setBracketData(betData);
+        if (predictionData != null) {
+            prediction.setBracketData(predictionData);
+            prediction.setScoreCalculatedAt(null);
+        }
 
         return predictionRepository.save(prediction);
     }
 
-    public Prediction updateBet(Long id, String requesterEmail, String participantName, String betName, PredictionDataDTO betData) {
-        return updatePrediction(id, requesterEmail, participantName, betName, betData);
-    }
-
-    public Prediction updateBet(Long id, String participantName, String betName, PredictionDataDTO betData) {
-        return updatePrediction(id, null, participantName, betName, betData);
-    }
-
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction markAsPaid(Long id, String requesterEmail) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
 
         verifyGroupAdminForPayment(prediction, requesterEmail);
 
-        prediction.setPaid(true);
-
-        if (requesterEmail != null) {
-            userAccountRepository.findByGoogleEmail(requesterEmail).ifPresent(prediction::setPaymentMarkedBy);
-        }
-
-        return predictionRepository.save(prediction);
+        UserAccount admin = userAccountRepository.findByGoogleEmail(requesterEmail)
+                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+        paymentService.setPayment(prediction.getEdition().getLeague().getId(), prediction.getUser().getId(), "PAID", admin);
+        return prediction;
     }
 
-    public Prediction markAsPaid(Long id) {
-        return markAsPaid(id, null);
-    }
-
-    @CacheEvict(value = {"leaderboard", "userGroups", "allBetsDto", "allPredictionsDto", "myBetsDto", "myPredictionsDto", "rebuiltBetData", "rebuiltPredictionData"}, allEntries = true)
+    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public void deletePrediction(Long id, String requesterEmail) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronostico no encontrado: " + id));
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
         predictionRepository.delete(prediction);
-    }
-
-    public void deleteBet(Long id, String requesterEmail) {
-        deletePrediction(id, requesterEmail);
-    }
-
-    public void deleteBet(Long id) {
-        deletePrediction(id, null);
-    }
-
-    public List<PredictionResponseDTO> toBetDtoList(List<Prediction> predictions, String requesterEmail) {
-        return toPredictionDtoList(predictions, requesterEmail);
     }
 
     @Transactional(readOnly = true)
@@ -234,9 +191,8 @@ public class PredictionService {
         }
         return predictions.stream().map(pred -> {
             boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-            boolean isOfficial = pred.isOfficial();
             boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
-            boolean canViewDetails = isLocked || isOwner || isOfficial;
+            boolean canViewDetails = isLocked || isOwner;
 
             PredictionDataDTO dataDto = null;
             if (canViewDetails) {
@@ -248,7 +204,7 @@ public class PredictionService {
                 if (dataDto != null) {
                     ensureKnockoutFinals(dataDto);
                     dataDto.setUser(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
-                    dataDto.setPrediction(pred.getBetName());
+                    dataDto.setPrediction(pred.getPredictionName());
                 }
             }
 
@@ -265,7 +221,7 @@ public class PredictionService {
                     .paid(pred.getPaid())
                     .participantName(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()))
                     .userId(pred.getUser() != null ? pred.getUser().getId() : null)
-                    .predictionName(pred.getBetName())
+                    .predictionName(pred.getPredictionName())
                     .groupId(effectiveGroupId)
                     .data(dataDto)
                     .build();
@@ -274,39 +230,60 @@ public class PredictionService {
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id, String requesterEmail) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-        
-        boolean isOfficial = pred.isOfficial();
+
+        if (!isOwner) {
+            assertMemberOfPredictionLeague(pred, requesterEmail);
+        }
+
         boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
 
-        if (!isLocked && !isOwner && !isOfficial) {
-            throw new SecurityException("Los pronosticos de otros participantes estaran ocultos hasta que finalice el plazo de inscripcion.");
+        if (!isLocked && !isOwner) {
+            throw new SecurityException("Los pronósticos de otros participantes estarán ocultos hasta que finalice el plazo de inscripción.");
         }
 
         return getPredictionData(id);
     }
 
-    @Transactional(readOnly = true)
-    public PredictionDataDTO getBetData(Long id, String requesterEmail) {
-        return getPredictionData(id, requesterEmail);
+    /** Los pronósticos de una liga privada solo los ven sus miembros; los de la Porra Global, todos. */
+    private void assertMemberOfPredictionLeague(Prediction pred, String requesterEmail) {
+        League league = pred.getEdition() != null ? pred.getEdition().getLeague() : null;
+        if (league == null || league.isGlobal() || League.isGlobalId(league.getId())) {
+            return;
+        }
+        boolean member = requesterEmail != null && !requesterEmail.isBlank()
+                && userAccountRepository.findByGoogleEmail(requesterEmail)
+                        .map(user -> membershipRepository.existsById(new Membership.MembershipId(user.getId(), league.getId())))
+                        .orElse(false);
+        if (!member) {
+            throw new SecurityException("No perteneces a esta liga privada");
+        }
     }
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Prediction not found: " + id));
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
         PredictionDataDTO dto = pred.getBracketData();
         if (dto == null) {
             dto = new PredictionDataDTO();
         }
         ensureKnockoutFinals(dto);
         dto.setUser(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()));
-        dto.setPrediction(pred.getBetName());
+        dto.setPrediction(pred.getPredictionName());
         return dto;
     }
 
+    private void requireSameTopology(PredictionDataDTO stored, PredictionDataDTO incoming) {
+        if (stored == null) return;
+        int previous = stored.getTopologyVersion() == null ? 1 : stored.getTopologyVersion();
+        int next = incoming.getTopologyVersion() == null ? 1 : incoming.getTopologyVersion();
+        if (previous != next)
+            throw new IllegalArgumentException("La versión del cuadro guardado no puede cambiar al editarlo");
+    }
+
     public void ensureKnockoutFinals(PredictionDataDTO dto) {
-        if (dto == null) return;
+        if (dto == null || Integer.valueOf(2).equals(dto.getTopologyVersion())) return;
         if ((dto.getFinalMatch() == null || dto.getFinalMatch().isEmpty()) && dto.getSf() != null && dto.getSf().size() >= 2 && dto.getChampion() != null) {
             List<String> sf1 = dto.getSf().get(0);
             List<String> sf2 = dto.getSf().get(1);
@@ -339,10 +316,5 @@ public class PredictionService {
                 }
             }
         }
-    }
-
-    @Transactional(readOnly = true)
-    public PredictionDataDTO getBetData(Long id) {
-        return getPredictionData(id);
     }
 }

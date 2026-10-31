@@ -1,28 +1,52 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId, type KeyboardEvent } from 'react';
 import Flag from './Flag';
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface CustomSelectProps {
+  /** Valor seleccionado (nombre del equipo). */
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  /** Texto si no hay valor seleccionado. */
+  placeholder?: string;
+  /** Nombre accesible del control, p. ej. "Grupo A, 1º clasificado". */
+  label?: string;
+  /** Id de un elemento visible que nombra el control (alternativa a `label`). */
+  'aria-labelledby'?: string;
+}
+
+const sameValue = (a: string, b: string) =>
+  a === b || (!!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase());
+
 /**
- * Componente Select (Dropdown) personalizado para seleccionar equipos.
- * Permite mostrar banderas junto a las opciones y mantener un estilo visual 'glass'.
- *
- * @component
- * @param {Object} props - Propiedades del componente.
- * @param {string} props.value - Valor actualmente seleccionado (nombre del equipo).
- * @param {Array<{value: string, label: string}>} props.options - Opciones disponibles.
- * @param {Function} props.onChange - Callback que se ejecuta cuando el usuario selecciona una opción.
- * @param {string} props.placeholder - Texto que se muestra si no hay valor seleccionado.
- * @returns {JSX.Element} Dropdown interactivo.
+ * Select personalizado para elegir equipos: muestra banderas junto a las opciones
+ * y mantiene el estilo visual 'glass'. Sigue el patrón combobox + listbox de ARIA:
+ * el foco se queda en el combobox y ↑/↓ mueven la opción activa.
  */
-export default function CustomSelect({ value, options, onChange, placeholder }) {
+export default function CustomSelect({
+  value,
+  options,
+  onChange,
+  placeholder,
+  label,
+  'aria-labelledby': labelledBy,
+}: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
+  const optionId = (idx: number) => `${listboxId}-opt-${idx}`;
 
   /**
    * Cierra el desplegable si el usuario hace click fuera del componente.
    */
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -30,48 +54,88 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedOption = options.find(
-    (o) =>
-      o.value === value ||
-      (value && o.value && o.value.trim().toLowerCase() === value.trim().toLowerCase()),
-  );
+  /** Mantiene visible la opción activa al moverse con el teclado. */
+  useEffect(() => {
+    if (!isOpen || activeIndex < 0) return;
+    document
+      .getElementById(`${listboxId}-opt-${activeIndex}`)
+      ?.scrollIntoView?.({ block: 'nearest' });
+  }, [isOpen, activeIndex, listboxId]);
+
+  const selectedIndex = options.findIndex((o) => sameValue(o.value, value));
+  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined;
+
+  const open = () => {
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setIsOpen(true);
+  };
+
+  const choose = (idx: number) => {
+    const opt = options[idx];
+    if (opt) onChange(opt.value);
+    setIsOpen(false);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const last = options.length - 1;
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        if (!isOpen) open();
+        else setActiveIndex((i) => Math.min(i + 1, last));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (!isOpen) open();
+        else setActiveIndex((i) => Math.max(i - 1, 0));
+        break;
+      case 'Home':
+        if (isOpen) {
+          e.preventDefault();
+          setActiveIndex(0);
+        }
+        break;
+      case 'End':
+        if (isOpen) {
+          e.preventDefault();
+          setActiveIndex(last);
+        }
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (isOpen && activeIndex >= 0) choose(activeIndex);
+        else open();
+        break;
+      case 'Escape':
+        if (isOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(false);
+        }
+        break;
+      case 'Tab':
+        setIsOpen(false);
+        break;
+    }
+  };
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', flex: 1, zIndex: isOpen ? 1000 : 1 }}>
+    <div className={`relative flex-1 ${isOpen ? 'z-[1000]' : 'z-[1]'}`} ref={dropdownRef}>
       <div
-        className="glass-input"
+        className="glass-input py-1.5 px-2 text-[0.85rem] cursor-pointer flex justify-between items-center min-h-11"
         role="combobox"
+        aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={isOpen && activeIndex >= 0 ? optionId(activeIndex) : undefined}
         tabIndex={0}
-        aria-label={placeholder || 'Seleccionar'}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setIsOpen(!isOpen);
-          } else if (e.key === 'Escape') {
-            setIsOpen(false);
-          }
-        }}
-        style={{
-          padding: '6px 8px',
-          fontSize: '0.85rem',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          minHeight: '44px',
-        }}
-        onClick={() => setIsOpen(!isOpen)}
+        aria-label={labelledBy ? undefined : label || placeholder || 'Seleccionar'}
+        aria-labelledby={labelledBy}
+        onKeyDown={handleKeyDown}
+        onClick={() => (isOpen ? setIsOpen(false) : open())}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            flex: 1,
-          }}
-        >
+        <div className="flex items-center justify-center gap-2 flex-1">
           {selectedOption ? (
             <>
               {selectedOption.value !== '' && (
@@ -84,61 +148,33 @@ export default function CustomSelect({ value, options, onChange, placeholder }) 
               <span>{selectedOption.label}</span>
             </>
           ) : (
-            <span style={{ color: 'var(--text-muted)' }}>{placeholder}</span>
+            <span className="text-muted">{placeholder}</span>
           )}
         </div>
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>▼</span>
+        <span className="text-[0.7rem] text-muted" aria-hidden="true">
+          ▼
+        </span>
       </div>
 
       {isOpen && (
         <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            background: '#0f172a',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px',
-            marginTop: '4px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-            zIndex: 100,
-            overflow: 'hidden',
-          }}
+          id={listboxId}
+          role="listbox"
+          aria-label={labelledBy ? undefined : label || placeholder}
+          aria-labelledby={labelledBy}
+          className="absolute top-full left-0 right-0 bg-[#0f172a] bg-none border border-[rgba(255,255,255,0.2)] rounded-[8px] mt-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] z-[100] overflow-hidden"
         >
           {options.map((opt, idx) => (
             <div
+              className={`min-h-11 py-2 px-2.5 text-[0.85rem] cursor-pointer flex items-center justify-center gap-2 ${idx === activeIndex || idx === selectedIndex ? 'bg-[rgba(255,255,255,0.1)] bg-none' : 'bg-transparent bg-none'} ${idx === activeIndex ? 'outline outline-1 -outline-offset-1 outline-[rgba(0,210,211,0.6)]' : ''} ${idx < options.length - 1 ? 'border-b border-b-[rgba(255,255,255,0.05)]' : 'border-b-0'}`}
               key={idx}
+              id={optionId(idx)}
               role="option"
-              tabIndex={0}
-              aria-selected={value === opt.value}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onChange(opt.value);
-                  setIsOpen(false);
-                }
-              }}
-              style={{
-                padding: '8px 10px',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                background: value === opt.value ? 'rgba(255,255,255,0.1)' : 'transparent',
-                borderBottom:
-                  idx < options.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
-              onMouseLeave={(e) => {
-                if (value !== opt.value) e.currentTarget.style.background = 'transparent';
-              }}
-              onClick={() => {
-                onChange(opt.value);
-                setIsOpen(false);
-              }}
+              aria-selected={idx === selectedIndex}
+              onMouseEnter={() => setActiveIndex(idx)}
+              // Evita que el combobox pierda el foco al pulsar una opción.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => choose(idx)}
             >
               {opt.value !== '' && (
                 <Flag

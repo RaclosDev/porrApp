@@ -1,10 +1,12 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
+import { useLeaguePredictions } from './hooks/useLeaguePredictions';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import { PageSkeleton } from './components/Skeleton';
 import { Toaster } from 'react-hot-toast';
+import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
 
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const Home = React.lazy(() => import('./pages/Home'));
@@ -27,6 +29,7 @@ const GUEST_ALLOWED_PATHS = [
   '/demo',
   '/bracket',
   '/grupos',
+  '/ranking',
   '/clasificacion',
   '/search',
   '/stats',
@@ -47,26 +50,24 @@ const RootPage = () => {
 };
 
 const DemoPredictionPage = () => {
-  const { participantsHashes = [] } = useAppContext();
+  const participantsHashes = useLeaguePredictions();
 
   // La demo muestra la porra pública de Raclos en modo estrictamente de solo lectura.
   const raclosPrediction = participantsHashes.find((participant) =>
-    /raclos/i.test(
-      String(participant?.participantName || participant?.name || participant?.data?.participantName || ''),
-    ),
+    /raclos/i.test(participant?.participantName || ''),
   );
-  const predictionId = raclosPrediction?.key ?? raclosPrediction?.id;
+  const predictionId = raclosPrediction?.key;
 
   if (!predictionId) {
     return (
-      <section className="view-section" style={{ display: 'block', padding: '24px' }}>
+      <section className="view-section block p-6">
         <h2>Mi Porra · Demo</h2>
         <p role="status">No se ha encontrado la porra pública de Raclos en esta liga.</p>
       </section>
     );
   }
 
-  return <PredictionViewer inline betId={predictionId} />;
+  return <PredictionViewer inline predictionId={predictionId} />;
 };
 
 const DemoPage = () => {
@@ -80,7 +81,13 @@ const DemoPage = () => {
   return <Home />;
 };
 
-const ProtectedRoute = ({ children, guestAllowed = false }) => {
+const ProtectedRoute = ({
+  children,
+  guestAllowed = false,
+}: {
+  children: React.ReactNode;
+  guestAllowed?: boolean;
+}) => {
   const { isAuthenticated, userName, isDemoMode } = useAppContext();
   const isAuthed = isAuthenticated && Boolean(userName);
   const location = useLocation();
@@ -102,18 +109,28 @@ const ProtectedRoute = ({ children, guestAllowed = false }) => {
 };
 
 function App() {
+  usePaperTapeAngles();
   return (
     <AppProvider>
       <Toaster
         position="top-center"
         toastOptions={{
+          className: 'paper-panel landing-tape paper-toast',
+          iconTheme: { primary: '#111827', secondary: '#f3ecdc' },
+          success: { iconTheme: { primary: '#15803d', secondary: '#f3ecdc' } },
+          error: { iconTheme: { primary: '#b91c1c', secondary: '#f3ecdc' } },
           style: {
-            background: '#1e293b',
-            color: '#f8fafc',
-            border: '1px solid #334155',
-            borderRadius: '12px',
+            background: 'var(--paper)',
+            backgroundImage:
+              'repeating-linear-gradient(0deg, rgba(17, 24, 39, 0.025) 0 1px, transparent 1px 3px)',
+            color: '#111827',
+            border: '1.5px solid #111827',
+            borderRadius: '4px',
             fontSize: '0.95rem',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+            fontFamily: "'Outfit', sans-serif",
+            padding: '14px 18px',
+            maxWidth: 'min(380px, calc(100vw - 32px))',
+            boxShadow: '4px 4px 0 rgba(0, 0, 0, 0.2)',
           },
         }}
       />
@@ -137,14 +154,16 @@ function App() {
                 }
               />
               <Route
-                path="/clasificacion"
+                path="/ranking"
                 element={
                   <ProtectedRoute guestAllowed>
                     <Leaderboard />
                   </ProtectedRoute>
                 }
               />
-              <Route path="/grupos" element={<Home defaultMode="groups" hideToggle={true} />} />
+              {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
+              <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
+              <Route path="/grupos" element={<Home defaultMode="groups" />} />
               <Route
                 path="/stats"
                 element={

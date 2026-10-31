@@ -7,19 +7,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- *  Calculadora de Estatus Matemático para la Fase de Grupos.
- * Esta clase NO es un @Service de Spring, es una utilidad estática.
- * 
- * ¿Qué hace?
- * Analiza un grupo y, calculando TODAS las combinaciones posibles de los partidos
- * que faltan por jugar (victoria local, empate, victoria visitante), determina si
- * un equipo está:
- *  - Matemáticamente Clasificado (status 1)
- *  - Matemáticamente Eliminado (status -1)
- *  - Todavía con vida / Posible (status 0)
- * 
- * Esencialmente es un algoritmo de fuerza bruta (permutaciones) que prueba todos
- * los futuros paralelos posibles.
+ * Estado matemático de cada equipo del grupo, probando todos los resultados pendientes (3^n; con
+ * más de 6 pendientes no calcula). 0 abierto, 1-4 puesto asegurado, 5 entre los dos primeros, -1 eliminado.
  */
 public class MathematicalStatusCalculator {
 
@@ -46,8 +35,7 @@ public class MathematicalStatusCalculator {
                 .filter(m -> Boolean.TRUE.equals(m.getFinished()) && m.getHomeScore() != null)
                 .collect(Collectors.toList());
 
-        // Si faltan demasiados partidos (más de 6, por ejemplo), el cálculo es muy pesado.
-        // Mejor decir que todo está abierto. (3^7 = 2187 permutaciones, 3^8 = 6561).
+        // Con 7 o más pendientes (3^7 = 2187 combinaciones) no se calcula: todo queda abierto.
         if (unplayed.size() > 6) {
             standings.forEach(gs -> statusMap.put(gs.getTeam().getId(), 0));
             return statusMap;
@@ -61,13 +49,13 @@ public class MathematicalStatusCalculator {
             worstRanks.put(gs.getTeam().getId(), 1);
         });
 
-        // Número total de futuros posibles: 3 ^ (número de partidos restantes)
         int combinations = (int) Math.pow(3, unplayed.size());
+        // Las tarjetas de los partidos que faltan no se conocen: el fair play solo desempata con el grupo cerrado.
+        boolean fairPlayKnown = unplayed.isEmpty();
 
-        // Simular cada uno de esos futuros paralelos
         for (int i = 0; i < combinations; i++) {
             List<Outcome> outcomes = decodeOutcomes(i, unplayed.size());
-            simulatePermutation(standings, played, unplayed, outcomes, bestRanks, worstRanks);
+            simulatePermutation(standings, played, unplayed, outcomes, fairPlayKnown, bestRanks, worstRanks);
         }
 
         return resolveFinalStatus(standings, bestRanks, worstRanks);
@@ -110,129 +98,79 @@ public class MathematicalStatusCalculator {
     }
 
     /**
-     * Ejecuta una simulación concreta sumando puntos y goles de forma temporal.
+     * Ejecuta una combinación de puntos sin inventar marcadores y actualiza el mejor y el peor
+     * puesto conservador de cada equipo. Los equipos que el reglamento no
+     * separa en la simulación pueden acabar en cualquiera de los puestos que comparten.
      */
-    private static void simulatePermutation(List<GroupStanding> standings, List<Match> played, List<Match> unplayed, 
-                                            List<Outcome> outcomes, Map<Long, Integer> bestRanks, Map<Long, Integer> worstRanks) {
-        Map<Long, TeamSim> simStats = new HashMap<>();
-        standings.forEach(gs -> simStats.put(gs.getTeam().getId(), new TeamSim(gs.getTeam().getId(), gs.getPoints() != null ? gs.getPoints() : 0, gs.getGoalDiff() != null ? gs.getGoalDiff() : 0, gs.getGoalsFor() != null ? gs.getGoalsFor() : 0)));
-
-        List<Match> allMatches = new ArrayList<>(played);
+    private static void simulatePermutation(List<GroupStanding> standings, List<Match> played, List<Match> unplayed,
+                                            List<Outcome> outcomes, boolean fairPlayKnown,
+                                            Map<Long, Integer> bestRanks, Map<Long, Integer> worstRanks) {
+        Map<Long, GroupStanding> simStats = new LinkedHashMap<>();
+        for (GroupStanding gs : standings) {
+            simStats.put(gs.getTeam().getId(), GroupStanding.builder()
+                    .team(gs.getTeam())
+                    .points(orZero(gs.getPoints()))
+                    .goalDiff(orZero(gs.getGoalDiff()))
+                    .goalsFor(orZero(gs.getGoalsFor()))
+                    .fairPlayPoints(fairPlayKnown ? orZero(gs.getFairPlayPoints()) : 0)
+                    .build());
+        }
 
         for (int i = 0; i < unplayed.size(); i++) {
             Match m = unplayed.get(i);
             Outcome out = outcomes.get(i);
-            Long homeId = m.getHomeTeam().getId();
-            Long awayId = m.getAwayTeam().getId();
-            
-            if (!simStats.containsKey(homeId) || !simStats.containsKey(awayId)) continue;
-            
-            TeamSim home = simStats.get(homeId);
-            TeamSim away = simStats.get(awayId);
-            
-            Match simMatch = new Match();
-            simMatch.setHomeTeam(m.getHomeTeam());
-            simMatch.setAwayTeam(m.getAwayTeam());
+            GroupStanding home = simStats.get(m.getHomeTeam().getId());
+            GroupStanding away = simStats.get(m.getAwayTeam().getId());
+            if (home == null || away == null) continue;
 
-            if (out == Outcome.HOME_WIN) {
-                home.addWin(); away.addLoss();
-                simMatch.setHomeScore(1); simMatch.setAwayScore(0);
-            } else if (out == Outcome.AWAY_WIN) {
-                away.addWin(); home.addLoss();
-                simMatch.setHomeScore(0); simMatch.setAwayScore(1);
-            } else {
-                home.addDraw(); away.addDraw();
-                simMatch.setHomeScore(0); simMatch.setAwayScore(0);
-            }
-            allMatches.add(simMatch);
+            home.setPoints(home.getPoints() + (out == Outcome.HOME_WIN ? 3 : out == Outcome.DRAW ? 1 : 0));
+            away.setPoints(away.getPoints() + (out == Outcome.AWAY_WIN ? 3 : out == Outcome.DRAW ? 1 : 0));
         }
 
-        rankTeams(simStats, allMatches, bestRanks, worstRanks);
+        int position = 1;
+        for (List<GroupStanding> tier : fairPlayKnown
+                ? GroupTiebreaker.tiers(new ArrayList<>(simStats.values()), played)
+                : uncertainTiers(new ArrayList<>(simStats.values()), played)) {
+            int lastPosition = position + tier.size() - 1;
+            for (GroupStanding gs : tier) {
+                Long tid = gs.getTeam().getId();
+                bestRanks.put(tid, Math.min(bestRanks.get(tid), position));
+                worstRanks.put(tid, Math.max(worstRanks.get(tid), lastPosition));
+            }
+            position = lastPosition + 1;
+        }
     }
 
-    /**
-     * Ordena los equipos según la simulación actual y actualiza el best/worst rank general.
-     */
-    private static void rankTeams(Map<Long, TeamSim> simStats, List<Match> allMatches, Map<Long, Integer> bestRanks, Map<Long, Integer> worstRanks) {
-        List<TeamSim> teams = new ArrayList<>(simStats.values());
-        
-        // Aplica reglas de desempate UEFA/FIFA
-        teams.sort((t1, t2) -> {
-            if (t1.pts != t2.pts) return Integer.compare(t2.pts, t1.pts);
-            
-            List<Long> tiedGroup = teams.stream().filter(t -> t.pts == t1.pts).map(t -> t.id).collect(Collectors.toList());
-            int[] h2h1 = calculateH2HStats(t1.id, tiedGroup, allMatches);
-            int[] h2h2 = calculateH2HStats(t2.id, tiedGroup, allMatches);
-            
-            if (h2h1[0] != h2h2[0]) return Integer.compare(h2h2[0], h2h1[0]);
-            if (h2h1[1] != h2h2[1]) return Integer.compare(h2h2[1], h2h1[1]);
-            if (h2h1[2] != h2h2[2]) return Integer.compare(h2h2[2], h2h1[2]);
-            if (t1.gd != t2.gd) return Integer.compare(t2.gd, t1.gd);
-            return Integer.compare(t2.gf, t1.gf);
-        });
-
-        int currentRank = 1;
-        for (int i = 0; i < teams.size(); i++) {
-            if (i > 0) {
-                TeamSim prev = teams.get(i - 1);
-                TeamSim curr = teams.get(i);
-                if (compareTeams(prev, curr, teams, allMatches) != 0) {
-                    currentRank = i + 1;
+    /** Sin marcadores futuros, un empate solo se separa por enfrentamientos internos ya terminados. */
+    private static List<List<GroupStanding>> uncertainTiers(List<GroupStanding> standings, List<Match> played) {
+        Map<Integer, List<GroupStanding>> points = standings.stream().collect(Collectors.groupingBy(
+                GroupStanding::getPoints, () -> new TreeMap<>(Comparator.reverseOrder()), Collectors.toList()));
+        List<List<GroupStanding>> result = new ArrayList<>();
+        for (List<GroupStanding> tied : points.values()) {
+            boolean headToHeadComplete = true;
+            for (int i = 0; i < tied.size(); i++) {
+                for (int j = i + 1; j < tied.size(); j++) {
+                    Long first = tied.get(i).getTeam().getId();
+                    Long second = tied.get(j).getTeam().getId();
+                    boolean playedEachOther = played.stream().anyMatch(m ->
+                            (Objects.equals(m.getHomeTeam().getId(), first) && Objects.equals(m.getAwayTeam().getId(), second))
+                            || (Objects.equals(m.getHomeTeam().getId(), second) && Objects.equals(m.getAwayTeam().getId(), first)));
+                    if (!playedEachOther) headToHeadComplete = false;
                 }
             }
-            Long tid = teams.get(i).id;
-            bestRanks.put(tid, Math.min(bestRanks.get(tid), currentRank));
-            
-            int worstRank = currentRank;
-            for (int j = i + 1; j < teams.size(); j++) {
-                if (compareTeams(teams.get(i), teams.get(j), teams, allMatches) == 0) worstRank++;
-                else break;
+            if (!headToHeadComplete) {
+                result.add(tied);
+                continue;
             }
-            worstRanks.put(tid, Math.max(worstRanks.get(tid), worstRank));
+            // Los goles totales y las tarjetas que faltan no pueden desempatar como si fueran conocidos.
+            List<GroupStanding> withoutUnknownTotals = tied.stream().map(gs -> GroupStanding.builder()
+                    .team(gs.getTeam()).points(gs.getPoints()).goalDiff(0).goalsFor(0).fairPlayPoints(0).build()).toList();
+            result.addAll(GroupTiebreaker.tiers(withoutUnknownTotals, played));
         }
+        return result;
     }
 
-    private static int compareTeams(TeamSim t1, TeamSim t2, List<TeamSim> allTeams, List<Match> allMatches) {
-        if (t1.pts != t2.pts) return Integer.compare(t2.pts, t1.pts);
-        List<Long> tiedGroup = allTeams.stream().filter(t -> t.pts == t1.pts).map(t -> t.id).collect(Collectors.toList());
-        int[] h2h1 = calculateH2HStats(t1.id, tiedGroup, allMatches);
-        int[] h2h2 = calculateH2HStats(t2.id, tiedGroup, allMatches);
-        if (h2h1[0] != h2h2[0]) return Integer.compare(h2h2[0], h2h1[0]);
-        if (h2h1[1] != h2h2[1]) return Integer.compare(h2h2[1], h2h1[1]);
-        if (h2h1[2] != h2h2[2]) return Integer.compare(h2h2[2], h2h1[2]);
-        if (t1.gd != t2.gd) return Integer.compare(t2.gd, t1.gd);
-        return Integer.compare(t2.gf, t1.gf);
-    }
-
-    private static int[] calculateH2HStats(Long teamId, List<Long> tiedGroup, List<Match> matches) {
-        int pts = 0, gd = 0, gf = 0;
-        for (Match m : matches) {
-            if (m.getHomeTeam() != null && m.getAwayTeam() != null) {
-                Long hId = m.getHomeTeam().getId();
-                Long aId = m.getAwayTeam().getId();
-                if (tiedGroup.contains(hId) && tiedGroup.contains(aId)) {
-                    Integer hs = m.getHomeScore();
-                    Integer as = m.getAwayScore();
-                    if (hs != null && as != null) {
-                        if (hId.equals(teamId)) {
-                            gf += hs; gd += (hs - as);
-                            if (hs > as) pts += 3; else if (hs.equals(as)) pts += 1;
-                        } else if (aId.equals(teamId)) {
-                            gf += as; gd += (as - hs);
-                            if (as > hs) pts += 3; else if (as.equals(hs)) pts += 1;
-                        }
-                    }
-                }
-            }
-        }
-        return new int[]{pts, gd, gf};
-    }
-
-    private static class TeamSim {
-        Long id; int pts, gd, gf;
-        public TeamSim(Long id, int pts, int gd, int gf) { this.id = id; this.pts = pts; this.gd = gd; this.gf = gf; }
-        public void addWin() { pts += 3; gd += 1; gf += 1; }
-        public void addLoss() { gd -= 1; }
-        public void addDraw() { pts += 1; }
+    private static int orZero(Integer value) {
+        return value != null ? value : 0;
     }
 }

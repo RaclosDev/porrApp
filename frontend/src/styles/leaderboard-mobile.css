@@ -1,0 +1,71 @@
+@layer components {
+  /* Ranking móvil: mostrar participante y puntos totales sin scroll horizontal. */
+  @media (max-width: 600px) {
+    #view-leaderboard .table-container {
+      width: 100%;
+      min-width: 0 !important;
+      overflow-x: hidden;
+    }
+
+    #view-leaderboard .leaderboard-table {
+      width: 100%;
+      min-width: 0 !important;
+      table-layout: fixed;
+    }
+
+    #view-leaderboard .leaderboard-table th,
+    #view-leaderboard .leaderboard-table td {
+      padding: 8px 5px;
+      font-size: 0.78rem;
+    }
+
+    #view-leaderboard .leaderboard-table th:first-child,
+    #view-leaderboard .leaderboard-table td:first-child {
+      width: 42px;
+    }
+
+    #view-leaderboard .leaderboard-table th:nth-child(2),
+    #view-leaderboard .leaderboard-table td:nth-child(2) {
+      width: auto;
+      min-width: 0;
+    }
+
+    #view-leaderboard .leaderboard-table th:nth-child(3),
+    #view-leaderboard .leaderboard-table td:nth-child(3) {
+      width: 72px;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    #view-leaderboard .leaderboard-table .leaderboard-mobile-detail {
+      display: none;
+    }
+
+    #view-leaderboard .leaderboard-table td:nth-child(2) > div {
+      min-width: 0;
+      gap: 5px;
+    }
+
+    #view-leaderboard .leaderboard-table td:nth-child(2) > div > div:first-child {
+      min-width: 0;
+      flex: 0 1 auto;
+    }
+
+    #view-leaderboard .leaderboard-table td:nth-child(2) > div > div:first-child > div {
+      min-width: 0;
+    }
+
+    #view-leaderboard .leaderboard-table td:nth-child(2) strong {
+      overflow-wrap: anywhere;
+      font-size: 0.82rem;
+    }
+
+    #view-leaderboard .leaderboard-table td:nth-child(2) .glass-btn {
+      min-width: 30px !important;
+      width: 30px;
+      min-height: 30px !important;
+      height: 30px;
+      padding: 3px !important;
+    }
+  }
+}

@@ -48,7 +48,7 @@ public class ProfileImageService {
     public record StoredImage(byte[] data, String contentType, LocalDateTime updatedAt) {
     }
 
-    // ---------------------------------------------------------------- Ligas
+    // Ligas
 
     @Transactional
     public League saveLeagueImage(Long groupId, String email, byte[] raw) {
@@ -94,7 +94,7 @@ public class ProfileImageService {
         return league;
     }
 
-    // --------------------------------------------------------------- Perfil
+    // Perfil
 
     @Transactional
     public UserAccount saveAvatar(String email, byte[] raw) {
@@ -162,7 +162,7 @@ public class ProfileImageService {
             throw new IllegalArgumentException(
                     "El nombre solo puede contener letras, números, espacios y los símbolos . _ ' -");
         }
-        // "Admin" está reservado: la clasificación oculta a ese participante.
+        // "Admin" está reservado: es el nombre de la cuenta que administra la Porra Global.
         if (name.toLowerCase(Locale.ROOT).equals("admin")) {
             throw new IllegalArgumentException("Ese nombre no está disponible.");
         }

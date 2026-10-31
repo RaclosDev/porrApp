@@ -8,23 +8,33 @@ import java.time.LocalDateTime;
 /**
  * Entidad 'UserAccount'.
  * Guarda la relación entre una cuenta de Google (email) y el nombre de participante en la porra.
- * Esto evita suplantaciones de identidad y permite el SSO seguro.
  */
 @Entity
 @Table(name = "app_users")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserAccount {
 
-    /** Identificador autogenerado del usuario en la base de datos. */
+    /**
+     * Cuenta interna "Admin" que crea {@code GroupService.initDefaultGroup}. Ningún login de
+     * Google puede devolver este email, así que solo el servidor actúa en su nombre.
+     */
+    public static final String SYSTEM_ADMIN_EMAIL = "admin@local";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** El email verificado de Google de la persona (Ej: raclo@gmail.com). */
+    /**
+     * Identificador de la cuenta de Google (claim "sub"). Es lo que identifica al usuario al
+     * iniciar sesión; null en las cuentas que no han vuelto a entrar desde que se guarda.
+     */
+    @Column(name = "google_sub", unique = true)
+    private String googleSub;
+
+    /** El email verificado de Google de la persona (Ej: raclo@gmail.com). Se actualiza si cambia en Google. */
     @Column(nullable = false, unique = true)
     private String googleEmail;
 
-    /** El nombre real que tiene configurado en su cuenta de Google. */
     private String googleName;
 
     /** El apodo o nombre visible con el que se identifica en el ranking y grupos (Ej: "Raclos"). */
@@ -45,6 +55,9 @@ public class UserAccount {
     /** Momento de la última subida de foto de perfil. Null si no tiene foto. Sirve para versionar la URL. */
     @Column(name = "avatar_updated_at")
     private LocalDateTime avatarUpdatedAt;
+
+    @Column(name = "profile_setup_completed", nullable = false)
+    private boolean profileSetupCompleted;
 
     /** URL pública (versionada) de la foto de perfil, o null si no tiene. */
     @Transient

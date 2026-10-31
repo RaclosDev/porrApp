@@ -1,43 +1,100 @@
 import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { acceptGroupPrediction, deleteGroupPrediction } from '../services/api';
+import type { MatchdayPoints, ParticipantScore } from '../types/api';
+
+/** Fila de la clasificación tal como la pinta la interfaz. */
+export interface LeaderboardRow {
+  /** id del pronóstico, o `member-<userId>` para miembros sin pronóstico. */
+  key: number | string;
+  id: number;
+  userId: number | null;
+  name: string;
+  predictionName: string;
+  avatarUrl: string;
+  points: ParticipantScore & { matchday: number };
+  matchdayPoints: number;
+  paid: boolean;
+  thirdPlaceMatch: string[] | null;
+  thirdPlaceWinner: string | null;
+  /** Posición entre los que han pagado; '-' si no cuenta. */
+  rank?: number | '-';
+}
+
+/** Columnas numéricas por las que se puede ordenar la clasificación. */
+export type SortColumn =
+  'total' | 'matchday' | 'matchPoints' | 'r1' | 'r32' | 'r16' | 'qf' | 'sf' | 'finals' | 'scorer';
+
+const EMPTY_MATCHDAYS: MatchdayPoints[] = [];
 
 export function useLeaderboard() {
   const state = useAppContext();
   const {
     leaderboardData,
+    leaderboardMatchdays,
     loading,
-    isRaclos,
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
     activeGroupPoolFormat,
-    activeGroupBetMode,
     activeGroupAdminId,
     userId,
     userName,
   } = state;
   const [sharing, setSharing] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [sortColumn, setSortColumn] = useState('total');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [sortColumn, setSortColumn] = useState<SortColumn>('total');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedMatchdayState, setSelectedMatchdayState] = useState<string | null>(null);
 
-  const isLeagueAdmin =
-    activeGroupAdminId?.toString() === userId?.toString() || state.activeGroupAdmin === userName;
+  const isLeagueAdmin = Boolean(
+    activeGroupAdminId != null && userId && String(activeGroupAdminId) === String(userId),
+  );
 
-  const { results, lowestPaidRank } = useMemo(() => {
-    const list = (leaderboardData || []).map((backendScore) => ({
-      key: backendScore.id,
-      id: backendScore.id,
-      userId: backendScore.userId,
-      name: backendScore.name || 'Anónimo',
-      betName: backendScore.betName || '',
-      points: backendScore,
-      paid: !backendScore.pending,
-      thirdPlaceMatch: backendScore.thirdPlaceMatch,
-      thirdPlaceWinner: backendScore.thirdPlaceWinner,
-    }));
+  const matchdays = Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_MATCHDAYS;
+
+  const currentMatchday = useMemo(
+    () => matchdays.find((matchday) => matchday.current) || matchdays[matchdays.length - 1] || null,
+    [matchdays],
+  );
+
+  // Sin elección explícita se muestra la jornada actual.
+  const selectedMatchdayInfo = useMemo(() => {
+    if (selectedMatchdayState === null) return currentMatchday;
+    return (
+      matchdays.find((matchday) => matchday.label === selectedMatchdayState) || currentMatchday
+    );
+  }, [selectedMatchdayState, matchdays, currentMatchday]);
+
+  const selectedMatchday = selectedMatchdayInfo?.label || null;
+  const matchdayIndex = selectedMatchdayInfo
+    ? matchdays.findIndex((matchday) => matchday.label === selectedMatchdayInfo.label)
+    : -1;
+
+  const { results, lowestPaidRank, matchdayStats } = useMemo(() => {
+    const getMatchdayPoints = (backendScore: ParticipantScore) => {
+      if (!selectedMatchdayInfo || backendScore.id == null) return 0;
+      const pointsByPrediction = selectedMatchdayInfo.pointsByPrediction;
+      if (!pointsByPrediction) return 0;
+      const value = pointsByPrediction[String(backendScore.id)];
+      return Number(value) || 0;
+    };
+
+    const list: LeaderboardRow[] = (leaderboardData || []).map((backendScore: ParticipantScore) => {
+      const matchdayPoints = getMatchdayPoints(backendScore);
+      return {
+        key: backendScore.id ?? `member-${backendScore.userId}`,
+        id: backendScore.id,
+        userId: backendScore.userId,
+        name: backendScore.name || 'Anónimo',
+        predictionName: backendScore.predictionName || '',
+        avatarUrl: backendScore.avatarUrl || '',
+        points: { ...backendScore, matchday: matchdayPoints },
+        matchdayPoints,
+        paid: !backendScore.pending,
+        thirdPlaceMatch: backendScore.thirdPlaceMatch,
+        thirdPlaceWinner: backendScore.thirdPlaceWinner,
+      };
+    });
 
     const col = sortColumn || 'total';
 
@@ -52,7 +109,7 @@ export function useLeaderboard() {
     });
 
     let currentRank = 1;
-    let previousVal = null;
+    let previousVal: number | null = null;
 
     list.forEach((r) => {
       if (r.paid) {
@@ -86,8 +143,32 @@ export function useLeaderboard() {
       });
     }
 
-    return { results: list, lowestPaidRank: lowestRank };
-  }, [leaderboardData, sortColumn, sortDirection]);
+    let stats: { myPoints: number; leader: LeaderboardRow | null } | null = null;
+    if (selectedMatchdayInfo) {
+      const paidList = list.filter((r) => r.paid);
+      const namedRows = paidList.filter((r) => Boolean(userName) && r.name === userName);
+      const me = userId
+        ? paidList.find((r) => r.userId != null && String(r.userId) === String(userId))
+        : namedRows.length === 1
+          ? namedRows[0]
+          : undefined;
+      const leader =
+        [...paidList]
+          .filter((r) => Number(r.points.matchday) > 0)
+          .sort(
+            (a, b) =>
+              Number(b.points.matchday) - Number(a.points.matchday) ||
+              Number(b.points.total) - Number(a.points.total),
+          )[0] || null;
+
+      stats = {
+        myPoints: Number(me?.points.matchday) || 0,
+        leader,
+      };
+    }
+
+    return { results: list, lowestPaidRank: lowestRank, matchdayStats: stats };
+  }, [leaderboardData, sortColumn, sortDirection, selectedMatchdayInfo, userId, userName]);
 
   const handleShare = async () => {
     setSharing(true);
@@ -95,6 +176,7 @@ export function useLeaderboard() {
       const html2canvasModule = await import('html2canvas');
       const html2canvas = html2canvasModule.default;
       const template = document.getElementById('share-image-template');
+      if (!template) throw new Error('Falta la plantilla de la imagen');
       const canvas = await html2canvas(template, {
         backgroundColor: '#0f0f1a',
         scale: 2,
@@ -122,36 +204,7 @@ export function useLeaderboard() {
     }
   };
 
-  const handleAcceptPrediction = async (predictionId) => {
-    if (!window.confirm('¿Confirmar que este jugador ha pagado / es aceptado en la liga?')) return;
-    setActionLoading(true);
-    try {
-      await acceptGroupPrediction(activeGroupId, predictionId);
-      state.fetchData();
-    } catch (e) {
-      toast.error(e.message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-  const handleAcceptBet = handleAcceptPrediction;
-
-  const handleDeletePrediction = async (predictionId) => {
-    if (!window.confirm('¿Estás seguro de ELIMINAR esta porra? Esta acción no se puede deshacer.'))
-      return;
-    setActionLoading(true);
-    try {
-      await deleteGroupPrediction(activeGroupId, predictionId);
-      state.fetchData();
-    } catch (e) {
-      toast.error(e.message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-  const handleDeleteBet = handleDeletePrediction;
-
-  const handleSort = (column) => {
+  const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
     } else {
@@ -160,30 +213,45 @@ export function useLeaderboard() {
     }
   };
 
+  const handleSelectMatchday = (label: string) => {
+    if (label) setSelectedMatchdayState(label);
+  };
+
+  const handleStepMatchday = (direction: 1 | -1) => {
+    const nextIndex = matchdayIndex + direction;
+    if (nextIndex >= 0 && nextIndex < matchdays.length) {
+      setSelectedMatchdayState(matchdays[nextIndex].label);
+    }
+  };
+
   return {
     state,
     results,
     loading,
-    isRaclos,
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
-    activeGroupPoolFormat: activeGroupPoolFormat || activeGroupBetMode,
-    activeGroupBetMode,
+    activeGroupPoolFormat,
     userId,
     userName,
     isLeagueAdmin,
     lowestPaidRank,
     sharing,
-    actionLoading,
     handleShare,
-    handleAcceptBet,
-    handleDeleteBet,
-    handleAcceptPrediction,
-    handleDeletePrediction,
     validResults: results.filter((r) => r.paid),
     sortColumn,
     sortDirection,
     handleSort,
+    matchdays,
+    currentMatchday,
+    selectedMatchday,
+    selectedMatchdayInfo,
+    matchdayStats,
+    matchdayIndex,
+    canGoPrevMatchday: matchdayIndex > 0,
+    canGoNextMatchday:
+      matchdays.length > 0 && (matchdayIndex === -1 || matchdayIndex < matchdays.length - 1),
+    handleSelectMatchday,
+    handleStepMatchday,
   };
 }

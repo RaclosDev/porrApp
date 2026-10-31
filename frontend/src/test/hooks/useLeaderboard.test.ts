@@ -7,13 +7,19 @@ vi.mock('../../context/AppContext', () => ({
   useAppContext: vi.fn(),
 }));
 
+// El hook solo lee una parte del contexto; los mocks rellenan esa parte.
+const mockAppContext = (value: Record<string, unknown>) =>
+  vi
+    .mocked(AppContextModule.useAppContext)
+    .mockReturnValue(value as unknown as ReturnType<typeof AppContextModule.useAppContext>);
+
 describe('useLeaderboard hook', () => {
   const mockLeaderboardData = [
     {
       id: 1,
       userId: 10,
       name: 'Carlos',
-      betName: 'Porra Carlos',
+      predictionName: 'Porra Carlos',
       total: 100,
       matchPoints: 40,
       pending: false,
@@ -22,7 +28,7 @@ describe('useLeaderboard hook', () => {
       id: 2,
       userId: 20,
       name: 'Elena',
-      betName: 'Porra Elena',
+      predictionName: 'Porra Elena',
       total: 120,
       matchPoints: 50,
       pending: false,
@@ -31,7 +37,7 @@ describe('useLeaderboard hook', () => {
       id: 3,
       userId: 30,
       name: 'Moroso',
-      betName: 'Porra Moroso',
+      predictionName: 'Porra Moroso',
       total: 150,
       matchPoints: 60,
       pending: true, // No pagado
@@ -40,15 +46,13 @@ describe('useLeaderboard hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    AppContextModule.useAppContext.mockReturnValue({
+    mockAppContext({
       leaderboardData: mockLeaderboardData,
       loading: false,
-      isRaclos: false,
       activeGroupName: 'Liga Amigos',
       activeGroupId: 10,
       activeGroupPichichi: true,
       activeGroupPoolFormat: 'FULL_BRACKET',
-      activeGroupBetMode: 'BRACKET',
       activeGroupAdminId: 10,
       userId: 10,
       userName: 'Carlos',
@@ -91,5 +95,55 @@ describe('useLeaderboard hook', () => {
 
     // activeGroupAdminId = 10, userId = 10 -> isLeagueAdmin = true
     expect(result.current.isLeagueAdmin).toBe(true);
+  });
+
+  it('carga los puntos de la jornada actual y permite navegar entre jornadas', () => {
+    mockAppContext({
+      leaderboardData: mockLeaderboardData,
+      leaderboardMatchdays: [
+        {
+          label: 'Jornada 1',
+          current: false,
+          finished: true,
+          matchCount: 2,
+          pointsByPrediction: { 1: 1, 2: 2 },
+        },
+        {
+          label: 'Jornada 2',
+          current: true,
+          finished: false,
+          matchCount: 2,
+          pointsByPrediction: { 1: 3, 2: 5 },
+        },
+      ],
+      loading: false,
+      activeGroupName: 'Liga Amigos',
+      activeGroupId: 10,
+      activeGroupPichichi: true,
+      activeGroupPoolFormat: 'MATCH_DAY',
+      activeGroupAdminId: 10,
+      userId: 10,
+      userName: 'Carlos',
+    });
+
+    const { result } = renderHook(() => useLeaderboard());
+
+    expect(result.current.selectedMatchday).toBe('Jornada 2');
+    expect(result.current.matchdayStats?.myPoints).toBe(3);
+    expect(result.current.matchdayStats?.leader?.name).toBe('Elena');
+
+    const carlos = result.current.results.find((row) => row.name === 'Carlos');
+    expect(carlos?.points.matchday).toBe(3);
+
+    act(() => {
+      result.current.handleStepMatchday(-1);
+    });
+
+    expect(result.current.selectedMatchday).toBe('Jornada 1');
+
+    const carlosJornada1 = result.current.results.find((row) => row.name === 'Carlos');
+    expect(carlosJornada1?.points.matchday).toBe(1);
+    const elenaJornada1 = result.current.results.find((row) => row.name === 'Elena');
+    expect(elenaJornada1?.points.matchday).toBe(2);
   });
 });

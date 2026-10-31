@@ -1,13 +1,16 @@
 package com.porra.mundial.sports;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -26,8 +29,12 @@ import java.util.zip.GZIPInputStream;
 @Slf4j
 public class EspnSportsDataProvider implements SportsDataProvider {
 
+    /** Circuit breaker de las llamadas a ESPN, configurado en application.properties. */
+    public static final String CIRCUIT_BREAKER = "sportsApi";
+
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     private static final String BASE_SOCCER_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer";
     private static final String BASE_STANDINGS_URL = "https://site.api.espn.com/apis/v2/sports/soccer";
@@ -76,7 +83,30 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         JsonNode root = executeGet(url);
         if (root == null) return objectMapper.createArrayNode();
         JsonNode events = root.path("events");
-        return events.isArray() ? events : objectMapper.createArrayNode();
+        if (!events.isArray()) throw new IOException("ESPN devolvió un marcador sin events");
+        return events;
+    }
+
+    @Override
+    public JsonNode fetchEvent(String competitionSlug, String eventId) throws Exception {
+        String slug = resolveSlug(competitionSlug);
+        if (!KNOWN_SLUGS.contains(slug) || eventId == null || !eventId.matches("[0-9]{1,20}")) {
+            throw new IllegalArgumentException("Competición o identificador de evento no válido");
+        }
+        JsonNode header = executeGet(BASE_SOCCER_URL + "/" + slug + "/summary?event=" + eventId).path("header");
+        JsonNode competitions = header.path("competitions");
+        if (!eventId.equals(header.path("id").asText()) || !slug.equals(header.path("league").path("slug").asText())
+                || !competitions.isArray() || competitions.size() != 1
+                || !eventId.equals(competitions.get(0).path("id").asText())) {
+            throw new IOException("El resumen de ESPN no corresponde al evento y competición solicitados");
+        }
+        var event = objectMapper.createObjectNode();
+        event.put("id", eventId);
+        event.put("date", competitions.get(0).path("date").asText());
+        event.set("competitions", competitions);
+        event.set("season", header.path("season"));
+        event.set("league", header.path("league"));
+        return event;
     }
 
     @Override
@@ -125,52 +155,71 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         return dates;
     }
 
-    private JsonNode executeGet(String url) {
+    /** Un fallo no equivale a una jornada vacía; el sincronizador registra el error. */
+    private JsonNode executeGet(String url) throws Exception {
+        CircuitBreaker breaker = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER);
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(15))
-                    .header("Accept", "application/json")
-                    .header("Accept-Encoding", "identity")
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    .GET()
-                    .build();
+            JsonNode result = breaker.executeCallable(() -> request(url));
+            if (result == null) throw new IOException("ESPN no devolvió datos válidos");
+            return result;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw e;
+        }
+    }
 
-            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            byte[] bodyBytes = response.body();
+    @Override
+    public boolean isAvailable() {
+        CircuitBreaker.State state = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER).getState();
+        return state != CircuitBreaker.State.OPEN && state != CircuitBreaker.State.FORCED_OPEN;
+    }
 
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.warn("ESPN API returned HTTP {}: {}", response.statusCode(), url);
-                return null;
-            }
+    private JsonNode request(String url) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(15))
+                .header("Accept", "application/json")
+                .header("Accept-Encoding", "identity")
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .GET()
+                .build();
 
-            if (bodyBytes == null || bodyBytes.length == 0) {
-                return null;
-            }
+        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        byte[] bodyBytes = response.body();
 
-            String json;
-            String contentEncoding = response.headers().firstValue("Content-Encoding").orElse("");
-            boolean isGzip = "gzip".equalsIgnoreCase(contentEncoding)
-                    || (bodyBytes.length >= 2 && bodyBytes[0] == (byte) 0x1f && bodyBytes[1] == (byte) 0x8b);
-
-            if (isGzip) {
-                try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bodyBytes))) {
-                    json = new String(gis.readAllBytes(), StandardCharsets.UTF_8);
-                }
-            } else {
-                json = new String(bodyBytes, StandardCharsets.UTF_8);
-            }
-
-            if (json == null || !json.trim().startsWith("{")) {
-                log.warn("ESPN API response is not JSON from {}: {}", url, json != null && json.length() > 200 ? json.substring(0, 200) : json);
-                return null;
-            }
-
-            return objectMapper.readTree(json);
-        } catch (Exception e) {
-            log.warn("Failed ESPN request to {}: {}", url, e.getMessage());
+        int status = response.statusCode();
+        if (status >= 500 || status == 429) {
+            throw new IOException("ESPN API returned HTTP " + status);
+        }
+        if (status < 200 || status >= 300) {
+            // Un 4xx es de la petición (slug o fecha que ESPN no conoce), no de que ESPN esté caído.
+            log.warn("ESPN API returned HTTP {}: {}", status, url);
             return null;
         }
+
+        if (bodyBytes == null || bodyBytes.length == 0) {
+            return null;
+        }
+
+        String json;
+        String contentEncoding = response.headers().firstValue("Content-Encoding").orElse("");
+        boolean isGzip = "gzip".equalsIgnoreCase(contentEncoding)
+                || (bodyBytes.length >= 2 && bodyBytes[0] == (byte) 0x1f && bodyBytes[1] == (byte) 0x8b);
+
+        if (isGzip) {
+            try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bodyBytes))) {
+                json = new String(gis.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } else {
+            json = new String(bodyBytes, StandardCharsets.UTF_8);
+        }
+
+        if (json == null || !json.trim().startsWith("{")) {
+            log.warn("ESPN API response is not JSON from {}: {}", url, json != null && json.length() > 200 ? json.substring(0, 200) : json);
+            return null;
+        }
+
+        return objectMapper.readTree(json);
     }
 
     private String resolveSlug(String code) {

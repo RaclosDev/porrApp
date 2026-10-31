@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.config.JwtUtil;
+import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.ProfileImageService;
@@ -9,9 +10,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -30,11 +31,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class ProfileImageControllersTest {
 
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
+
     @Autowired private MockMvc mockMvc;
 
-    @MockBean private ProfileImageService profileImageService;
-    @MockBean private WebSocketService webSocketService;
-    @MockBean private JwtUtil jwtUtil;
+    @MockitoBean private ProfileImageService profileImageService;
+    @MockitoBean private WebSocketService webSocketService;
+    @MockitoBean private JwtUtil jwtUtil;
 
     private Principal user(String email) {
         return () -> email;
@@ -54,7 +58,7 @@ class ProfileImageControllersTest {
                         .principal(user("admin@test.com")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.startsWith("/api/groups/10/image?v=")));
-        Mockito.verify(webSocketService).invalidateAndNotify();
+        Mockito.verify(webSocketService).notifyLeagueChanged(10L);
     }
 
     @Test

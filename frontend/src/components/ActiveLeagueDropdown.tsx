@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { readGroupVisits } from '../store/useAppStore';
 import { LeagueAvatar } from './Avatar';
 
-function getCompetitionBadge(competitionName) {
+function getCompetitionBadge(competitionName: string | null | undefined) {
   if (!competitionName) return '🏆';
   const lower = competitionName.toLowerCase();
   if (lower.includes('laliga') || lower.includes('copa del rey') || lower.includes('españa'))
@@ -33,16 +34,32 @@ export default function ActiveLeagueDropdown() {
   } = useAppContext();
 
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  // La liga activa primero y, después, las visitadas más recientemente.
+  const sortedGroups = useMemo(() => {
+    const visits = readGroupVisits();
+    return [...(userGroups || [])].sort((a, b) => {
+      const aSelected = String(a.id) === String(activeGroupId);
+      const bSelected = String(b.id) === String(activeGroupId);
+      if (aSelected !== bSelected) return aSelected ? -1 : 1;
+
+      const aVisited = Number(visits[a.id]) || 0;
+      const bVisited = Number(visits[b.id]) || 0;
+      if (aVisited !== bVisited) return bVisited - aVisited;
+
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    });
+  }, [userGroups, activeGroupId]);
+
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
-    function handleKeyDown(event) {
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setIsOpen(false);
       }
@@ -61,32 +78,11 @@ export default function ActiveLeagueDropdown() {
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => navigate('/mis-ligas')}
-        className="glass-btn"
+        className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-11 rounded-[10px] border-dashed cursor-pointer text-[0.82rem]"
         title="Crear o unirse a una liga"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '4px 10px',
-          minHeight: '34px',
-          borderRadius: '16px',
-          border: '1px dashed rgba(0, 210, 211, 0.6)',
-          background: 'rgba(0, 210, 211, 0.1)',
-          color: '#00d2d3',
-          cursor: 'pointer',
-          fontSize: '0.82rem',
-          fontWeight: 700,
-        }}
       >
         <span>➕</span>
-        <span
-          style={{
-            maxWidth: '130px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <span className="max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
           Crear o unirse
         </span>
       </button>
@@ -101,143 +97,51 @@ export default function ActiveLeagueDropdown() {
     activeCompetitionName || (activeCompetitionFormatType === 'LEAGUE' ? 'Liga' : 'Mundial');
 
   return (
-    <div
-      ref={dropdownRef}
-      style={{
-        position: 'relative',
-        display: 'inline-flex',
-        alignItems: 'center',
-        zIndex: 105,
-      }}
-    >
+    <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
       <button
         type="button"
         id="btn-active-league-dropdown"
         onClick={() => setIsOpen(!isOpen)}
-        className="glass-btn"
+        className="glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem]"
         aria-expanded={isOpen}
-        aria-haspopup="true"
-        title="Cambiar de liga o peña"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 12px',
-          minHeight: '38px',
-          borderRadius: '10px',
-          border: '1px solid rgba(0, 210, 211, 0.4)',
-          background: isOpen ? 'rgba(0, 210, 211, 0.15)' : 'rgba(15, 23, 42, 0.75)',
-          color: 'var(--text-main, #fff)',
-          cursor: 'pointer',
-          fontWeight: 600,
-          fontSize: '0.88rem',
-          boxShadow: isOpen ? '0 0 15px rgba(0, 210, 211, 0.25)' : 'none',
-          transition: 'all 0.2s ease',
-        }}
+        title="Cambiar de liga"
       >
         <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
         <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            textAlign: 'left',
-            lineHeight: 1.15,
-          }}
+          key={activeGroupId}
+          className="league-selection flex flex-col items-start text-left leading-[1.15] min-w-0"
         >
-          <span
-            style={{
-              maxWidth: '140px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: '#fff',
-            }}
-          >
+          <span className="poster-title w-full max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-main text-[0.95rem] tracking-[0.02em]">
             {displayLeagueName}
           </span>
-          <span
-            style={{
-              fontSize: '0.7rem',
-              color: 'var(--accent-color, #00d2d3)',
-              fontWeight: 500,
-              maxWidth: '130px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <span className="w-full text-[0.7rem] text-muted font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
             {displayCompName}
           </span>
         </div>
         <span
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted, #94a3b8)',
-            transform: isOpen ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.2s ease',
-            marginLeft: '2px',
-          }}
+          className={`text-[0.75rem] text-muted [transition:transform_0.2s_ease] ml-0.5 ${isOpen ? '[transform:rotate(180deg)]' : '[transform:none]'}`}
         >
           ▾
         </span>
       </button>
 
       {isOpen && (
-        <div
-          role="menu"
-          className="active-league-menu"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            background: '#111827',
-            border: '1px solid rgba(0, 210, 211, 0.35)',
-            borderRadius: '12px',
-            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 210, 211, 0.15)',
-            backdropFilter: 'blur(12px)',
-            padding: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-            animation: 'fadeIn 0.15s ease-out',
-          }}
-        >
-          <div
-            style={{
-              padding: '6px 10px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              color: 'var(--text-muted, #94a3b8)',
-              textTransform: 'uppercase',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              marginBottom: '4px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+        <div className="active-league-menu paper-panel absolute top-[calc(100%_+_8px)] rounded-[6px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.6)] p-2 flex flex-col gap-1">
+          <div className="poster-title py-1.5 px-2.5 text-[0.8rem] text-muted border-b border-b-line mb-1 flex justify-between items-center">
             <span>Mis Ligas</span>
-            <span style={{ fontSize: '0.7rem', color: '#00d2d3' }}>
+            <span className="text-[0.7rem] text-muted normal-case font-[Inter,sans-serif] tracking-normal">
               {userGroups?.length || 0} {userGroups?.length === 1 ? 'liga' : 'ligas'}
             </span>
           </div>
 
-          <div
-            style={{
-              maxHeight: '240px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '3px',
-            }}
-          >
-            {userGroups && userGroups.length > 0 ? (
-              userGroups.map((g) => {
+          <div className="max-h-60 overflow-y-auto flex flex-col gap-[3px]">
+            {sortedGroups.length > 0 ? (
+              sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
                 const gBadge = getCompetitionBadge(g.competitionName);
                 return (
                   <button
+                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(17,_24,_39,_0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)]'} text-main`}
                     key={g.id}
                     type="button"
                     onClick={() => {
@@ -245,68 +149,27 @@ export default function ActiveLeagueDropdown() {
                       setIsOpen(false);
                       navigate('/');
                     }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px',
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      border: isSelected
-                        ? '1px solid rgba(0, 210, 211, 0.4)'
-                        : '1px solid transparent',
-                      background: isSelected ? 'rgba(0, 210, 211, 0.12)' : 'transparent',
-                      color: isSelected ? '#00d2d3' : '#fff',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'background 0.15s ease',
-                      width: '100%',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected)
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) e.currentTarget.style.background = 'transparent';
-                    }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <div className="flex items-center gap-2 min-w-0">
                       <LeagueAvatar url={g.imageUrl} badge={gBadge} size={30} />
-                      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                      <div className="min-w-0 flex flex-col">
                         <span
-                          style={{
-                            fontWeight: isSelected ? 700 : 500,
-                            fontSize: '0.88rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
+                          className={`text-[0.88rem] overflow-hidden text-ellipsis whitespace-nowrap ${isSelected ? 'font-bold' : 'font-medium'}`}
                         >
                           {g.name}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94a3b8)' }}>
+                        <span className="text-[0.72rem] text-muted">
                           {g.competitionName || 'Mundial'} ·{' '}
                           {g.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
                         </span>
                       </div>
                     </div>
-                    {isSelected && (
-                      <span style={{ color: '#00d2d3', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                        ✓
-                      </span>
-                    )}
+                    {isSelected && <span className="marker-ink text-[1rem]">✓</span>}
                   </button>
                 );
               })
             ) : (
-              <div
-                style={{
-                  padding: '12px 10px',
-                  textAlign: 'center',
-                  color: 'var(--text-muted, #94a3b8)',
-                  fontSize: '0.8rem',
-                }}
-              >
+              <div className="py-3 px-2.5 text-center text-muted text-[0.8rem]">
                 {isAuthenticated
                   ? 'No te has unido a ninguna liga privada todavía.'
                   : 'Inicia sesión para unirte o ver tus ligas.'}
@@ -314,44 +177,17 @@ export default function ActiveLeagueDropdown() {
             )}
           </div>
 
-          <div
-            style={{
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-              paddingTop: '6px',
-              marginTop: '4px',
-            }}
-          >
+          <div className="border-t border-t-line pt-1.5 mt-1">
             <button
+              className="glass-btn w-full py-2 px-2.5 rounded-[8px] border-dashed text-[0.82rem] cursor-pointer flex items-center justify-center gap-1.5"
               type="button"
               onClick={() => {
                 setIsOpen(false);
                 navigate('/mis-ligas');
               }}
-              style={{
-                width: '100%',
-                padding: '8px 10px',
-                borderRadius: '8px',
-                border: '1px dashed rgba(0, 210, 211, 0.35)',
-                background: 'rgba(0, 210, 211, 0.05)',
-                color: '#00d2d3',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 210, 211, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 210, 211, 0.05)';
-              }}
             >
               <span>➕</span>
-              <span>Crear o Unirse a una Liga</span>
+              <span>Crear o unirse a una liga</span>
             </button>
           </div>
         </div>

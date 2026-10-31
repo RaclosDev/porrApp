@@ -1,18 +1,18 @@
 package com.porra.mundial.sports;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Puerto de integración con proveedores de datos deportivos (ESPN, API-Football, Sportmonks).
+ * Puerto de integración con proveedores de datos deportivos (ESPN).
  * Permite desacoplar el motor de sincronización de una API concreta.
  */
 public interface SportsDataProvider {
 
     /**
-     * Nombre identificativo del proveedor activo (ej. "ESPN", "API-Football").
+     * Nombre identificativo del proveedor activo (ej. "ESPN").
      */
     String getProviderName();
 
@@ -20,6 +20,14 @@ public interface SportsDataProvider {
      * Comprueba si este proveedor soporta la competición indicada.
      */
     boolean supports(String competitionCode);
+
+    /**
+     * Si se le puede llamar ahora. Un proveedor con el circuit breaker abierto tras fallos repetidos
+     * no llama a la API; los fallos de una petición se propagan, no equivalen a un calendario vacío.
+     */
+    default boolean isAvailable() {
+        return true;
+    }
 
     /**
      * Recupera el listado de eventos y partidos para un rango de fechas o temporada.
@@ -39,6 +47,11 @@ public interface SportsDataProvider {
      */
     default JsonNode fetchScoreboardEvents(String competitionSlug, String dateRange) throws Exception {
         return fetchScoreboardEvents(dateRange);
+    }
+
+    /** Evento concreto, independiente del calendario de la temporada. */
+    default JsonNode fetchEvent(String competitionSlug, String eventId) throws Exception {
+        throw new UnsupportedOperationException("El proveedor no ofrece consultas por evento");
     }
 
     /**

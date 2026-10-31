@@ -3,24 +3,29 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.ZoneId;
 
-/**
- *  Entidad 'Edition' (Edición).
- * Es el enlace central que une a una Liga (League) con una Competición (Competition).
- * Permite que un mismo grupo ("Los Amigos") juegue múltiples ediciones
- * a lo largo de los años ("Mundial 22", "Euro 24", "Mundial 26") sin perder el grupo.
- */
+/** Une una liga con una competición; una liga puede tener varias ediciones. */
 @Entity
 @Table(name = "editions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Edition {
 
-    /** Identificador autogenerado de la edición del grupo. */
+    private static final ZoneId TOURNAMENT_ZONE = ZoneId.of("Europe/Madrid");
+    // Fecha de cierre de cuadros ya establecida por V24, también para las nuevas ligas.
+    private static final LocalDateTime WORLD_CUP_DEADLINE = LocalDateTime.of(2026, 6, 11, 20, 0);
+
+    public static LocalDateTime defaultLockDate(Competition competition, PoolFormat format) {
+        return competition != null
+                && Competition.WORLD_CUP_EXTERNAL_ID.equals(competition.getExternalId())
+                && format != PoolFormat.MATCH_DAY ? WORLD_CUP_DEADLINE : null;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** La liga que está participando. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "league_id", nullable = false)
     private League league;
@@ -61,35 +66,14 @@ public class Edition {
      * Comprueba si la edición/porra se encuentra bloqueada para nuevos envíos o cambios.
      */
     public boolean isLocked() {
+        return isLocked(Clock.system(TOURNAMENT_ZONE));
+    }
+
+    public boolean isLocked(Clock clock) {
         if (!"ACTIVE".equalsIgnoreCase(status)) {
             return true;
         }
-        return lockDate != null && LocalDateTime.now().isAfter(lockDate);
+        return lockDate != null && !LocalDateTime.now(clock.withZone(TOURNAMENT_ZONE)).isBefore(lockDate);
     }
 
-    // Métodos de compatibilidad hacia atrás para betMode
-
-    public PoolFormat getBetMode() {
-        return poolFormat != null ? poolFormat : PoolFormat.FULL_BRACKET;
-    }
-
-    public void setBetMode(PoolFormat format) {
-        this.poolFormat = format;
-    }
-
-    public void setBetMode(BetMode legacyMode) {
-        this.poolFormat = legacyMode != null ? legacyMode.toPoolFormat() : PoolFormat.FULL_BRACKET;
-    }
-
-    public static class EditionBuilder {
-        public EditionBuilder betMode(BetMode mode) {
-            this.poolFormat = mode != null ? mode.toPoolFormat() : PoolFormat.FULL_BRACKET;
-            return this;
-        }
-
-        public EditionBuilder betMode(PoolFormat format) {
-            this.poolFormat = format;
-            return this;
-        }
-    }
 }

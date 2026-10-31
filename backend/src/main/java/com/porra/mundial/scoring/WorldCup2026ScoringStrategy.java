@@ -2,6 +2,7 @@ package com.porra.mundial.scoring;
 
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
+import com.porra.mundial.dto.TopScorerDTO;
 import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
@@ -31,6 +32,11 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
     }
 
     @Override
+    public ScoringStrategy withRules(ScoringRuleSet rules) {
+        return new WorldCup2026ScoringStrategy(rules);
+    }
+
+    @Override
     public void evaluateScores(ParticipantScoreDTO score, CalculationContext ctx) {
         evaluateGroupStage(score, ctx);
         evaluateKnockouts(score, ctx);
@@ -41,6 +47,7 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
     private void evaluateGroupStage(ParticipantScoreDTO score, CalculationContext ctx) {
         if (ctx.part().getGroups() == null) return;
 
+        Set<String> awardedQualifiers = new HashSet<>();
         for (String g : ctx.part().getGroups().keySet()) {
             List<String> pTeams = ctx.part().getGroups().get(g);
             List<String> oTeams = (ctx.off() != null && ctx.off().getGroups() != null) ? ctx.off().getGroups().get(g) : null;
@@ -77,9 +84,9 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
             boolean p2Exact = actualO2 != null && actualO2.equals(p2);
             boolean p3Exact = actualO3 != null && actualO3.equals(p3) && p3Selected && p3ActuallyPassed;
 
-            awardGroupPoints(score, p1, g, "1º", p1Passed, p1Exact);
-            awardGroupPoints(score, p2, g, "2º", p2Passed, p2Exact);
-            awardGroupPoints(score, p3, g, "Mejor 3º", p3Passed, p3Exact);
+            if (p1 != null && awardedQualifiers.add(p1)) awardGroupPoints(score, p1, g, "1º", p1Passed, p1Exact);
+            if (p2 != null && awardedQualifiers.add(p2)) awardGroupPoints(score, p2, g, "2º", p2Passed, p2Exact);
+            if (p3 != null && awardedQualifiers.add(p3)) awardGroupPoints(score, p3, g, "Mejor 3º", p3Passed, p3Exact);
 
             Map<String, Object> exact = new HashMap<>();
             exact.put("1", p1Exact);
@@ -139,17 +146,18 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
         boolean scorerAwarded = false;
 
         if (ctx.allScorers() != null && !ctx.allScorers().isEmpty()) {
-            int maxGoals = (int) ctx.allScorers().get(0).get("goals");
+            int maxGoals = ctx.allScorers().get(0).goals();
             if (maxGoals > 0) {
-                List<Map<String, Object>> topScorers = ctx.allScorers().stream()
-                        .filter(s -> (int) s.get("goals") == maxGoals)
+                List<TopScorerDTO> topScorers = ctx.allScorers().stream()
+                        .filter(s -> s.goals() == maxGoals)
                         .collect(Collectors.toList());
 
                 long validScorersCount = topScorers.size();
                 if (validScorersCount > 0) {
                     int points = (int) (rules.getTopScorerPoints() / validScorersCount);
+                    List<ScorerName> knownScorers = ScorerName.of(ctx.allScorers());
                     boolean isMatch = topScorers.stream()
-                            .anyMatch(s -> isScorerMatch(ctx.part().getScorer(), (String) s.get("name"), (String) s.get("shortName")));
+                            .anyMatch(s -> isScorerMatch(ctx.part().getScorer(), new ScorerName(s.name(), s.shortName()), knownScorers));
 
                     if (isMatch) {
                         String msg = validScorersCount > 1
@@ -171,10 +179,13 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
 
             if (validScorersCount > 0) {
                 int points = (int) (rules.getTopScorerPoints() / validScorersCount);
-                boolean isMatch = Arrays.stream(officialScorers)
+                List<ScorerName> knownScorers = Arrays.stream(officialScorers)
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
-                        .anyMatch(s -> isScorerMatch(ctx.part().getScorer(), s, s));
+                        .map(s -> new ScorerName(s, s))
+                        .toList();
+                boolean isMatch = knownScorers.stream()
+                        .anyMatch(s -> isScorerMatch(ctx.part().getScorer(), s, knownScorers));
 
                 if (isMatch) {
                     String msg = validScorersCount > 1
@@ -193,7 +204,7 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
     private void checkRound(ParticipantScoreDTO score, List<String> pTeams, Collection<String> oTeams, int pts, String stage, String msgTemplate) {
         if (pTeams == null || oTeams == null) return;
         List<String> flatO = oTeams.stream().filter(Objects::nonNull).collect(Collectors.toList());
-        for (String t : pTeams) {
+        for (String t : new LinkedHashSet<>(pTeams)) {
             if (t != null && flatO.contains(t)) {
                 award(score, pts, stage, String.format(msgTemplate, t));
             }
@@ -253,38 +264,135 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
         return false;
     }
 
-    private String normalizeStr(String input) {
+    /** Nombre de un goleador: el completo y el corto con el que lo muestra ESPN ("K. Mbappé"). */
+    private record ScorerName(String name, String shortName) {
+        static List<ScorerName> of(List<TopScorerDTO> scorers) {
+            return scorers == null ? List.of() : scorers.stream().map(s -> new ScorerName(s.name(), s.shortName())).toList();
+        }
+    }
+
+    /**
+     * Formas normalizadas con las que se puede escribir a un goleador.
+     *
+     * @param full     nombre completo
+     * @param exact    nombre completo, nombre corto e "inicial apellido"
+     * @param surnames lo que va tras el nombre de pila y la última palabra; un nombre de una sola palabra es su apellido
+     * @param initial  inicial del nombre de pila
+     */
+    private record PlayerForms(String full, Set<String> exact, Set<String> surnames, String initial) {
+        static PlayerForms of(ScorerName scorer) {
+            String full = normalizeName(scorer.name());
+            String[] tokens = full.split(" ");
+            Set<String> exact = new HashSet<>();
+            Set<String> surnames = new HashSet<>();
+            exact.add(full);
+            String shortName = normalizeName(scorer.shortName());
+            if (!shortName.isEmpty()) exact.add(shortName);
+            if (tokens.length > 1) {
+                String afterFirstName = String.join(" ", Arrays.copyOfRange(tokens, 1, tokens.length));
+                String lastName = tokens[tokens.length - 1];
+                surnames.add(afterFirstName);
+                surnames.add(lastName);
+                exact.add(tokens[0].charAt(0) + " " + afterFirstName);
+                exact.add(tokens[0].charAt(0) + " " + lastName);
+            } else {
+                surnames.add(full);
+            }
+            return new PlayerForms(full, exact, surnames, full.isEmpty() ? "" : full.substring(0, 1));
+        }
+    }
+
+    /**
+     * Si el pichichi que escribió el participante es este goleador. El texto se identifica con un único jugador
+     * de entre todos los goleadores conocidos y solo cuenta si es este: así "Sergio Ramos" nunca da por bueno a
+     * "Gonçalo Ramos". Admite tildes y mayúsculas, el nombre completo, el corto ("K. Mbappé"), "Inicial. Apellido",
+     * pequeñas erratas y el apellido solo, siempre que ningún otro goleador encaje igual.
+     */
+    private static boolean isScorerMatch(String userScorer, ScorerName scorer, List<ScorerName> knownScorers) {
+        String user = normalizeName(userScorer);
+        if (user.isEmpty()) return false;
+        PlayerForms target = PlayerForms.of(scorer);
+        if (target.full().isEmpty()) return false;
+
+        Map<String, PlayerForms> players = new LinkedHashMap<>();
+        players.put(target.full(), target);
+        for (ScorerName known : knownScorers) {
+            PlayerForms forms = PlayerForms.of(known);
+            if (!forms.full().isEmpty()) players.putIfAbsent(forms.full(), forms);
+        }
+        PlayerForms chosen = resolveScorer(user, new ArrayList<>(players.values()));
+        return chosen != null && chosen.full().equals(target.full());
+    }
+
+    /** El goleador al que se refiere el texto, o null si no encaja con ninguno o encaja con más de uno. */
+    private static PlayerForms resolveScorer(String user, List<PlayerForms> players) {
+        List<PlayerForms> exact = players.stream().filter(p -> p.exact().contains(user)).toList();
+        if (!exact.isEmpty()) return onlyOne(exact);
+
+        String[] tokens = user.split(" ");
+        if (tokens.length == 2 && tokens[0].length() == 1) {
+            // "K. Mbape": la inicial tiene que coincidir; el apellido admite erratas.
+            return onlyOne(players.stream()
+                    .filter(p -> p.initial().equals(tokens[0]) && p.surnames().stream().anyMatch(s -> isTypoOf(tokens[1], s)))
+                    .toList());
+        }
+
+        List<PlayerForms> bySurname = players.stream()
+                .filter(p -> p.surnames().stream().anyMatch(s -> isTypoOf(user, s)))
+                .toList();
+        if (!bySurname.isEmpty()) return onlyOne(bySurname);
+
+        // Nombre completo con erratas: el más parecido, si lo es claramente.
+        PlayerForms closest = null;
+        int bestDistance = Integer.MAX_VALUE;
+        boolean tied = false;
+        for (PlayerForms p : players) {
+            int distance = levenshteinDistance(user, p.full());
+            if (distance < bestDistance) {
+                closest = p;
+                bestDistance = distance;
+                tied = false;
+            } else if (distance == bestDistance) {
+                tied = true;
+            }
+        }
+        return closest != null && !tied && bestDistance <= maxTypos(closest.full()) ? closest : null;
+    }
+
+    private static PlayerForms onlyOne(List<PlayerForms> candidates) {
+        return candidates.size() == 1 ? candidates.get(0) : null;
+    }
+
+    /** Si {@code text} es {@code expected} o lo escribe con alguna errata, según su longitud. */
+    private static boolean isTypoOf(String text, String expected) {
+        return levenshteinDistance(text, expected) <= maxTypos(expected);
+    }
+
+    /** Erratas admitidas: ninguna en nombres de menos de 5 letras, una hasta 11 y dos a partir de 12. */
+    private static int maxTypos(String expected) {
+        int length = expected.length();
+        if (length < 5) return 0;
+        return length < 12 ? 1 : 2;
+    }
+
+    /** Minúsculas, sin tildes ni signos, espacios simples y "Jr" como "Junior". */
+    private static String normalizeName(String input) {
         if (input == null) return "";
-        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
-        return normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "").toLowerCase().trim();
+        String text = Normalizer.normalize(input, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT)
+                .replace("ø", "o").replace("æ", "ae").replace("œ", "oe").replace("ß", "ss")
+                .replace("đ", "d").replace("ł", "l").replace("ı", "i")
+                .replaceAll("['’`´]", "")
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim();
+        if (text.isEmpty()) return "";
+        return Arrays.stream(text.split(" "))
+                .map(token -> token.equals("jr") ? "junior" : token)
+                .collect(Collectors.joining(" "));
     }
 
-    private boolean isScorerMatch(String userScorer, String apiName, String apiShortName) {
-        if (userScorer == null || userScorer.trim().isEmpty()) return false;
-        String user = normalizeStr(userScorer);
-        String name = normalizeStr(apiName);
-        String shortName = normalizeStr(apiShortName);
-
-        if (name.equals(user) || shortName.equals(user)) return true;
-        if (name.contains(user) || user.contains(name)) return true;
-        if (shortName.contains(" ")) {
-            String lastName = shortName.substring(shortName.lastIndexOf(" ") + 1);
-            if (user.contains(lastName) || lastName.contains(user)) return true;
-        }
-
-        if (levenshteinDistance(user, name) <= 2 || levenshteinDistance(user, shortName) <= 2) {
-            return true;
-        }
-
-        if (shortName.contains(" ")) {
-            String lastName = shortName.substring(shortName.lastIndexOf(" ") + 1);
-            if (levenshteinDistance(user, lastName) <= 2) return true;
-        }
-
-        return false;
-    }
-
-    private int levenshteinDistance(String a, String b) {
+    private static int levenshteinDistance(String a, String b) {
         int[] costs = new int[b.length() + 1];
         for (int j = 0; j < costs.length; j++) costs[j] = j;
         for (int i = 1; i <= a.length(); i++) {

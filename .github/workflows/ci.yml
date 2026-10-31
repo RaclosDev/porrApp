@@ -2,50 +2,129 @@ name: Porra Mundial CI/CD
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
+  # Semanal: construye la imagen y pasa todo aunque nadie haya tocado el repo (dependencias, imágenes base).
+  schedule:
+    - cron: '23 4 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Los PR comparten grupo y cancelan revisiones antiguas. Cada ejecución fuera de PR tiene su
+# propio grupo: GitHub descarta ejecuciones pendientes del mismo grupo incluso con cancel=false.
+# Con jobs por áreas, descartar un push intermedio podría dejar sus cambios sin comprobar.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  frontend-check:
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      frontend: ${{ steps.diff.outputs.frontend }}
+      backend: ${{ steps.diff.outputs.backend }}
+      docker: ${{ steps.diff.outputs.docker }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Detect changed areas
+        id: diff
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        # shell: bash activa pipefail; sin él un fallo del script quedaría oculto tras el tee.
+        shell: bash
+        run: bash .github/scripts/detect-changes.sh | tee -a "$GITHUB_OUTPUT"
+
+  frontend-check:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22.x'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Check formatting (Prettier)
+        # Mismos ficheros que formatea lint-staged en el pre-commit.
+        run: npx prettier --check "**/*.{ts,tsx,json,css,md}"
       - name: Run ESLint
         run: npm run lint
-      - name: Run Vitest Tests
-        run: npm test
+      - name: Run Vitest Tests with coverage
+        run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          node -e "const t=require('./coverage/coverage-summary.json').total;
+          const row=k=>'| '+k+' | '+t[k].pct+' % | '+t[k].covered+' / '+t[k].total+' |';
+          console.log(['### Cobertura del frontend','','| | % | Cubierto |','| --- | --- | --- |',row('lines'),row('branches'),row('functions')].join('\n'))" >> "$GITHUB_STEP_SUMMARY"
       - name: Build Frontend
         run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser regression tests
+        run: npm run test:e2e
 
   backend-test:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
           cache-dependency-path: backend/pom.xml
+      - name: Require Docker for PostgreSQL integration tests
+        run: docker info > /dev/null
       - name: Build and Test with Maven
-        run: mvn -B test --file pom.xml
+        run: ./mvnw -B test
+      - name: Coverage summary
+        if: always()
+        run: |
+          awk -F, 'NR>1 {lm+=$8; lc+=$9; bm+=$6; bc+=$7} END {
+            printf "### Cobertura del backend\n\n| | %% | Cubierto |\n| --- | --- | --- |\n";
+            printf "| lines | %.1f %% | %d / %d |\n", 100*lc/(lm+lc), lc, lm+lc;
+            printf "| branches | %.1f %% | %d / %d |\n", 100*bc/(bm+bc), bc, bm+bc }' target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+
+  # En paralelo con los tests: Railway espera a la CI antes de desplegar y construye esta misma imagen,
+  # así que encadenarla detrás de los tests solo retrasaba el despliegue.
+  docker-build:
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Build image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

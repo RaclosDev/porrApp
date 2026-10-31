@@ -1,7 +1,7 @@
 package com.porra.mundial.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.PredictionDataDTO;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
@@ -20,7 +20,7 @@ public class PredictionDataConverter implements AttributeConverter<PredictionDat
         }
         try {
             return objectMapper.writeValueAsString(attribute);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Error serializando PredictionDataDTO a JSON", e);
             throw new IllegalArgumentException("Error serializando predicción a JSON", e);
         }

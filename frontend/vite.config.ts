@@ -17,16 +17,8 @@ export default defineConfig({
           if (!id.includes('node_modules')) return;
 
           if (id.includes('lucide-react')) return 'icons';
-          if (id.includes('@tanstack') || id.includes('axios')) return 'data-vendor';
+          if (id.includes('@tanstack')) return 'data-vendor';
           if (id.includes('@react-oauth')) return 'auth-vendor';
-          if (
-            id.includes('@radix-ui') ||
-            id.includes('class-variance-authority') ||
-            id.includes('clsx') ||
-            id.includes('tailwind-merge')
-          ) {
-            return 'ui-vendor';
-          }
           if (id.includes('react-hot-toast')) return 'toast-vendor';
           if (id.includes('html2canvas')) return 'html2canvas';
           if (id.includes('zustand')) return 'store-vendor';
@@ -49,19 +41,56 @@ export default defineConfig({
     VitePWA({
       strategies: 'generateSW',
       registerType: 'autoUpdate',
+      includeAssets: [
+        'favicon-paper.png',
+        'apple-touch-icon-paper.png',
+        'icon-paper-192.png',
+        'icon-paper-512.png',
+        'maskable-paper-512.png',
+      ],
+      manifest: {
+        name: 'PorrApp · Porras de fútbol',
+        short_name: 'PorrApp',
+        description:
+          'La porra de toda la vida, pero bien hecha: crea porras de tus competiciones y compite con tus amigos.',
+        lang: 'es',
+        dir: 'ltr',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        background_color: '#0f172a',
+        theme_color: '#0f172a',
+        categories: ['sports', 'entertainment'],
+        icons: [
+          { src: '/icon-paper-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-paper-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          {
+            src: '/maskable-paper-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
       workbox: {
+        importScripts: ['/sw-cleanup.js'],
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,svg}'],
-        globIgnores: ['**/updates/**', '**/world-cup-icon.png'],
+        // html2canvas solo se carga con import() al compartir la clasificación: se baja al usarlo.
+        globIgnores: ['**/updates/**', '**/og-image.jpg', '**/assets/html2canvas-*.js'],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkFirst',
+            urlPattern: ({ url }) => /^\/assets\/html2canvas-[\w-]+\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
             options: {
-              cacheName: 'api-runtime-cache',
-              networkTimeoutSeconds: 4,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+              cacheName: 'lazy-chunks-cache',
+              expiration: { maxEntries: 2 },
               cacheableResponse: { statuses: [200] },
             },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            handler: 'NetworkOnly',
           },
           {
             urlPattern: ({ url }) =>
@@ -84,7 +113,13 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      // API_PROXY_TARGET permite usar otra API (p. ej. la de producción en modo demo).
       '/api': {
+        target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      // Permite probar la imagen de invitación contra el backend local.
+      '/join': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
@@ -94,6 +129,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
-    exclude: ['e2e/**', 'node_modules/**'],
+    exclude: ['node_modules/**', 'e2e/**'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/test/**', 'src/**/*.d.ts', 'src/main.tsx'],
+      reporter: ['text-summary', 'html', 'json-summary'],
+      thresholds: { lines: 52, statements: 50, functions: 46, branches: 42 },
+    },
   },
 });

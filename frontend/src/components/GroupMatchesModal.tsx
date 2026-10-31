@@ -1,149 +1,120 @@
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Flag from './Flag';
 import { openStats } from '../utils/navigation';
+import type { Match } from '../types/api';
+import { useDialogFocus } from '../hooks/useDialogFocus';
+
+export interface SelectedGroup {
+  name: string;
+  teams: { name: string }[];
+}
+
+interface GroupMatchesModalProps {
+  selectedGroup: SelectedGroup | null;
+  allGames: Match[];
+  onClose: () => void;
+}
 
 /**
  * Modal flotante que muestra la lista de partidos de un grupo específico.
  */
-const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
-  useEffect(() => {
-    if (!selectedGroup) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedGroup, onClose]);
+const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesModalProps) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, { active: Boolean(selectedGroup), onEscape: onClose });
 
   if (!selectedGroup) return null;
 
   const groupNames = selectedGroup.teams.map((t) => t.name);
-  let groupMatches = allGames.filter(
+  const groupMatches = allGames.filter(
     (g) => groupNames.includes(g.home) && groupNames.includes(g.away),
   );
-  groupMatches.sort((a, b) => new Date(a.date) - new Date(b.date));
+  groupMatches.sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
 
   return createPortal(
-    <>
+    <div className="paper-dialog-overlay" onClick={onClose}>
       <div
-        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99998 }}
-        onClick={onClose}
-        className="modal-backdrop-mobile"
-      />
-      <div
-        className="group-matches-popover"
+        className="paper-panel landing-tape paper-dialog"
         role="dialog"
         aria-modal="true"
         aria-label={`Partidos del Grupo ${selectedGroup.name}`}
+        ref={dialogRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '15px',
-          }}
-        >
-          <h4 style={{ margin: 0, color: 'var(--accent-cyan)', textAlign: 'center', flex: 1 }}>
-            Partidos del Grupo {selectedGroup.name}
-          </h4>
+        <div className="paper-dialog-heading">
+          <h4 className="m-0 poster-title text-xl">Partidos del Grupo {selectedGroup.name}</h4>
           <button
+            type="button"
+            className="paper-dialog-close"
             onClick={onClose}
-            aria-label="Cerrar modal"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#aaa',
-              fontSize: '1.4rem',
-              cursor: 'pointer',
-              position: 'absolute',
-              right: '15px',
-              top: '10px',
-              zIndex: 2,
-            }}
+            aria-label="Cerrar"
           >
             ×
           </button>
         </div>
-        <div className="last-matches-grid" style={{ gridTemplateColumns: '1fr', gap: '8px' }}>
+        <div className="paper-dialog-body last-matches-grid grid-cols-[1fr] gap-2">
           {groupMatches.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-              No hay partidos registrados.
-            </p>
+            <p className="text-center text-muted">No hay partidos registrados.</p>
           ) : (
             groupMatches.map((m) => {
-              const d = new Date(m.date);
-              const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-              const hasStarted = new Date() >= d;
-              const hasFinished = m.finished === true;
+              const d = m.date ? new Date(m.date) : null;
+              const validDate = d && !Number.isNaN(d.getTime());
+              const dateFormatted = validDate
+                ? d.toLocaleString('es-ES', {
+                    day: 'numeric',
+                    month: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'Fecha por confirmar';
+              const status = m.status?.toUpperCase() ?? '';
+              const live = ['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS'].includes(status);
+              const stateLabel = m.finished
+                ? 'Final'
+                : live
+                  ? 'En directo'
+                  : ['POSTPONED', 'SUSPENDED'].includes(status)
+                    ? 'Aplazado'
+                    : ['CANCELLED', 'CANCELED'].includes(status)
+                      ? 'Cancelado'
+                      : validDate && d > new Date()
+                        ? 'Próx'
+                        : 'Pendiente';
+              const homeScore = m.homeScore ?? m.home_score;
+              const awayScore = m.awayScore ?? m.away_score;
+              const hasScore = homeScore != null && awayScore != null && (m.finished || live);
 
               return (
                 <div
+                  className="cursor-pointer grid grid-cols-[70px_minmax(0,_1fr)_45px_minmax(0,_1fr)] gap-1.5 items-center bg-[rgba(255,255,255,0.05)] bg-none border border-[rgba(255,255,255,0.05)] py-2 px-2.5 min-h-11 rounded-[6px] text-[0.85rem] whitespace-nowrap"
                   key={m.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => openStats(m.home, m.away)}
+                  onClick={() => openStats()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      openStats(m.home, m.away);
+                      openStats();
                     }
                   }}
-                  aria-label={`Ver estadísticas de ${m.home} contra ${m.away}`}
-                  style={{
-                    cursor: 'pointer',
-                    display: 'grid',
-                    gridTemplateColumns: '70px minmax(0, 1fr) 45px minmax(0, 1fr)',
-                    gap: '6px',
-                    alignItems: 'center',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    padding: '8px 10px',
-                    minHeight: '44px',
-                    borderRadius: '6px',
-                    fontSize: '0.85rem',
-                    whiteSpace: 'nowrap',
-                  }}
+                  aria-label={`${m.home} contra ${m.away}. Abrir el portal de fútbol de Sofascore`}
                 >
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                    {hasFinished ? 'Final' : 'Próx'} {dateFormatted}
+                  <div className="text-muted text-[0.75rem] whitespace-normal">
+                    {stateLabel} {dateFormatted}
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '6px',
-                      textAlign: 'right',
-                    }}
-                  >
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.home}</span>
+                  <div className="flex items-center justify-end gap-1.5 text-right">
+                    <span className="overflow-hidden text-ellipsis">{m.home}</span>
                     <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
                   </div>
                   <div
-                    style={{
-                      padding: '2px 0',
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                      color: hasStarted ? 'white' : 'var(--text-muted)',
-                      background: hasStarted ? 'rgba(0,0,0,0.3)' : 'transparent',
-                      borderRadius: '4px',
-                    }}
+                    className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasScore ? 'text-main' : 'text-muted'} ${hasScore ? 'bg-[rgba(0,0,0,0.3)] bg-none' : 'bg-transparent bg-none'}`}
                   >
-                    {hasStarted ? `${m.homeScore} - ${m.awayScore}` : 'VS'}
+                    {hasScore ? `${homeScore} - ${awayScore}` : 'VS'}
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-start',
-                      gap: '6px',
-                    }}
-                  >
+                  <div className="flex items-center justify-start gap-1.5">
                     <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.away}</span>
+                    <span className="overflow-hidden text-ellipsis">{m.away}</span>
                   </div>
                 </div>
               );
@@ -151,7 +122,7 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }) => {
           )}
         </div>
       </div>
-    </>,
+    </div>,
     document.body,
   );
 };

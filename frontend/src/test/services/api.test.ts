@@ -1,22 +1,31 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getAuthToken, setAuthToken, fetchStandings, fetchMatches } from '../../services/api';
+import { hasStoredSession } from '../../services/sessionHint';
+import {
+  ApiError,
+  isApiError,
+  NETWORK_ERROR_MESSAGE,
+  TIMEOUT_ERROR_MESSAGE,
+} from '../../services/apiError';
 
 describe('api.ts service', () => {
   beforeEach(() => {
     localStorage.clear();
+    setAuthToken(null);
     vi.restoreAllMocks();
   });
 
-  it('guarda y recupera tokens de autenticación correctamente', () => {
+  it('guarda el access token solo en memoria', () => {
     expect(getAuthToken()).toBeNull();
 
     setAuthToken('my-secret-jwt-token');
     expect(getAuthToken()).toBe('my-secret-jwt-token');
-    expect(localStorage.getItem('token')).toBe('my-secret-jwt-token');
+    expect(Object.values(localStorage)).not.toContain('my-secret-jwt-token');
+    expect(hasStoredSession()).toBe(true);
 
     setAuthToken(null);
     expect(getAuthToken()).toBeNull();
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(hasStoredSession()).toBe(false);
   });
 
   it('adjunta la cabecera Authorization: Bearer cuando el token existe', async () => {
@@ -44,12 +53,9 @@ describe('api.ts service', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await fetchMatches('laliga-2026');
+    await fetchMatches(7);
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/api/matches?competitionId=laliga-2026',
-      expect.anything(),
-    );
+    expect(mockFetch).toHaveBeenCalledWith('/api/matches?competitionId=7', expect.anything());
   });
 
   it('lanza un error si la respuesta HTTP no es ok (4xx/5xx)', async () => {
@@ -59,7 +65,7 @@ describe('api.ts service', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(fetchStandings()).rejects.toThrow('HTTP error! status: 404');
+    await expect(fetchStandings()).rejects.toThrow('Error del servidor (404)');
   });
 
   it('mantiene la sesión ante un 403 de una liga y muestra el motivo', async () => {
@@ -85,7 +91,7 @@ describe('api.ts service', () => {
         return { ok: false, status: 401, json: async () => ({}) };
       }),
     );
-    await expect(fetchStandings()).rejects.toThrow('401');
+    await expect(fetchStandings()).rejects.toThrow('La sesión ha cambiado');
     expect(getAuthToken()).toBe('new-test-token');
   });
 
@@ -94,5 +100,44 @@ describe('api.ts service', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }));
     await expect(fetchStandings()).rejects.toThrow('401');
     expect(getAuthToken()).toBeNull();
+  });
+
+  it('lanza un ApiError con el código HTTP', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: 'No perteneces a esta liga' }),
+      }),
+    );
+    const err = await fetchStandings().catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(403);
+    expect(isApiError(err, 403)).toBe(true);
+    expect(isApiError(err, 404)).toBe(false);
+  });
+
+  it('traduce un fallo de red a un mensaje en español', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    const err = await fetchStandings().catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(0);
+    expect(err.message).toBe(NETWORK_ERROR_MESSAGE);
+  });
+
+  it('distingue el tiempo de espera agotado de la falta de red', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new DOMException('timed out', 'TimeoutError')),
+    );
+    await expect(fetchStandings()).rejects.toThrow(TIMEOUT_ERROR_MESSAGE);
+  });
+
+  it('pasa siempre una señal con tiempo de espera', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', mockFetch);
+    await fetchStandings();
+    expect(mockFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
   });
 });

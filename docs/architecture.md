@@ -1,153 +1,78 @@
-# Documentación Arquitectónica del Backend: Porra Mundial 2026
+# Arquitectura del backend
 
-Este documento detalla exhaustivamente la estructura, arquitectura y flujos de datos del Backend de la aplicación "Porra Mundial 2026", diseñada para un entorno de producción de alto rendimiento.
+Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La base de datos es PostgreSQL y el esquema sale entero de las migraciones Flyway de `src/main/resources/db/migration/`.
 
----
+## Paquetes
 
-## 1. Stack Tecnológico y Arquitectura Base
+| Paquete | Responsabilidad |
+| --- | --- |
+| `config/` | Seguridad (JWT, filtro de rate limiting), CORS, WebSocket, Flyway, OpenAPI y datos semilla |
+| `controller/` | Endpoints REST, handler WebSocket y metadatos/tarjetas de invitación |
+| `dto/` | Contratos de la API (records y clases de respuesta) |
+| `model/` | Entidades JPA: `Competition`, `Edition`, `League`, `Membership`, `Match`, `Prediction`, `MatchPrediction`, `GroupStanding`, `Team`, `UserAccount`… |
+| `repository/` | Spring Data JPA |
+| `service/` | Lógica de negocio |
+| `scoring/` | Reglas y estrategias de puntuación |
+| `sports/` | Proveedores de datos deportivos |
 
-El backend está construido sobre **Java 21** y **Spring Boot 3.3.0**, siguiendo un patrón arquitectónico clásico de capas (MVC/REST), pero orientado al tipado fuerte y la inmutabilidad.
+## Flujos principales
 
-*   **Framework Principal**: Spring Boot (Web, Data JPA, Security, WebSocket).
-*   **Base de Datos**: PostgreSQL para producción; H2 en memoria para desarrollo y pruebas. Control de versiones de esquema gestionado mediante **Flyway**.
-*   **Autenticación**: Basada en JWT (JSON Web Tokens) stateless con Spring Security, permitiendo escalabilidad horizontal sin necesidad de compartir sesiones.
-*   **Tiempo Real**: Spring WebSockets configurados para propagar actualizaciones en vivo a los clientes cuando los partidos cambian de estado.
+### Sincronización de resultados
 
-La arquitectura se divide en los siguientes paquetes bajo `com.porra.mundial`:
-1.  `config/`: Configuración global (Seguridad, CORS, JWT, WebSockets).
-2.  `controller/`: Capa de presentación REST (Endpoints).
-3.  `dto/`: Objetos de Transferencia de Datos.
-4.  `model/`: Entidades JPA mapeadas a las tablas de la base de datos.
-5.  `repository/`: Interfaces de acceso a datos (Spring Data JPA).
-6.  `service/`: Lógica de negocio core y algoritmos.
+`SyncService` se ejecuta con `@Scheduled` (intervalo en `app.sync.interval-ms`) y bajo un `ReentrantLock` para no solaparse:
 
----
+1. Pide los partidos de cada competición a su proveedor a través de `SportsDataProviderRegistry` (hoy, `EspnSportsDataProvider`).
+2. `MatchEventProcessor` aplica los cambios de marcador y estado a cada `Match`.
+3. Al final de la pasada, y solo si cambió algún resultado del Mundial (o falló el recálculo anterior), se cargan una vez sus partidos y se recalcula todo lo que depende de ellos:
+   - `KnockoutBracketService` coloca a los ganadores y perdedores de semifinales en la final y en el partido por el tercer puesto.
+   - `StandingsService` recalcula la clasificación de grupos y `MathematicalStatusCalculator` marca a los equipos ya clasificados o eliminados.
+4. `WebSocketService` avisa a los clientes (`DATA_UPDATED`, `LEAGUE_UPDATED` o `MATCH_SCORE_UPDATED`) y el frontend invalida las consultas afectadas.
 
-## 2. Modelos de Datos (Entidades JPA) - `/model`
+`TopScorerService` refresca la tabla de goleadores cada 30 minutos de forma independiente y una vez por lote de resultados del Mundial. Las imágenes se buscan una vez por jugador; también se cachean temporalmente las búsquedas sin resultado.
 
-La base de datos relacional almacena el estado completo del torneo y las predicciones de los usuarios. Las clases más críticas son:
+La sincronización inicial se lanza después de `ApplicationReadyEvent`, cuando los datos semilla ya están confirmados, mediante un ejecutor gestionado por Spring. Los fallos del proveedor se registran como sincronizaciones incompletas; una respuesta fallida no se interpreta como una jornada sin partidos.
 
-*   **`Team`**: Entidad que representa a un país o un "placeholder" (ej. "1º Grupo A").
-*   **`Match`**: Entidad central del torneo. Almacena equipos, fecha, ronda, resultados, estado (`SCHEDULED`, `IN_PLAY`, `FINISHED`) y URLs de escudos.
-*   **`UserAccount`**: Representa a un jugador de la porra.
-*   **`Prediction`**: Almacena los pronosticos (relaciones normalizadas y backups) enviados por un jugador para una porra/edicion.
-*   **`GroupStanding`**: Guarda el estado actual (puntos, goles) de un equipo en la fase de grupos real del torneo.
+Los partidos históricos que conservan equipos provisionales de la primera importación se reparan mediante su identificador externo, no deduciendo qué equipo corresponde a un id local. `LegacyFixtureRepairService` consulta y valida el resumen de ESPN fuera de la transacción; después actualiza el mismo partido en una transacción breve, conservando los pronósticos que lo referencian. Cada pasada tiene límites de peticiones y tiempo, comparte el cerrojo de sincronización y retrasa los reintentos fallidos.
 
-```java
-// Ejemplo de la entidad Match
-@Entity
-@Table(name = "matches")
-@Data
-@Builder
-public class Match {
-    @Id
-    private Long id; // ID real proveído por APIs externas (ej. football-data.org)
+La importación manual descarga primero el catálogo y los calendarios, con límites de tamaño y tiempo entre llamadas. Después aplica el lote en una única transacción: si falla un partido o su puntuación, se deshacen todos los cambios. La caché de equipos y los avisos de WebSocket se publican después de confirmar los datos.
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "home_team_id")
-    private Team homeTeam;
+En el cliente, los marcadores recibidos por WebSocket actualizan la caché de inmediato. Las consultas derivadas se agrupan durante 100 ms para evitar peticiones repetidas en una ráfaga; al reconectar se vuelven a validar los datos visibles que podrían haber cambiado durante el corte.
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "away_team_id")
-    private Team awayTeam;
+### Resultados oficiales y desempates
 
-    private Integer homeScore;
-    private Integer awayScore;
-    private String status; // SCHEDULED, IN_PLAY, PAUSED, FINISHED
-    // ...
-}
-```
+`OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados. `GroupTiebreaker` ordena a los equipos empatados a puntos según el artículo 13 del reglamento del Mundial 2026: primero los partidos entre los empatados, luego la diferencia de goles y los goles de todo el grupo y después el fair play. La app no guarda el ranking FIFA, así que los empates que llegan a ese criterio se ordenan por nombre. Lo usan la clasificación de cada grupo y el orden de los mejores terceros. Mientras quedan partidos, el estado matemático enumera resultados por puntos y mantiene abiertos los desempates que dependen de goles o tarjetas futuros; no inventa marcadores para declarar un puesto asegurado.
 
----
+Los cuadros nuevos usan `topologyVersion: 2`, con las ramas del [apéndice A del procedimiento del sorteo de FIFA](https://digitalhub.fifa.com/m/2d1a1ac7bab78995/original/Draw-Procedures-for-the-FIFA-World-Cup-2026.pdf). Una versión ausente equivale a `1`: conserva las posiciones históricas durante la lectura, edición, reinicio y guardado. La versión de un pronóstico existente no se cambia al actualizarlo. En versión 2, el servidor comprueba también que cada clasificado procede de su partido anterior. Los partidos oficiales se colocan por sus antecedentes, nunca por su fecha de inicio; los huecos cuya rama no se puede determinar quedan vacíos.
 
-## 3. Objetos de Transferencia (DTOs) - `/dto`
+### Puntuación
 
-Para aislar el modelo de base de datos de los datos expuestos por la API y evitar *Code Smells* como la "Obsesión por Primitivos" (usar `Map<String, Object>`), se utilizan DTOs estrictamente tipados.
+`ScoringStrategy` define cómo se puntúa un pronóstico y `ScoringRuleSet` guarda los valores de cada regla. `WorldCup2026ScoringStrategy` puntúa los cuadros completos (grupos, cruces, campeón, pichichi) y `MatchScoringCalculator` los pronósticos jornada a jornada (signo 1X2, marcador exacto y bonus por diferencia de goles). `LeaderboardService` reúne esos resultados en la clasificación de cada liga.
 
-```java
-// Ejemplo del MatchResponseDTO usando inmutabilidad (Record pattern)
-public record MatchResponseDTO(
-    Long id,
-    String home,
-    String away,
-    Integer homeScore,
-    Integer awayScore,
-    String status,
-    boolean isStartingSoon
-) {
-    public static MatchResponseDTO fromEntity(Match match) {
-        // Mapea la entidad JPA segura a la respuesta JSON
-        return new MatchResponseDTO(
-            match.getId(),
-            match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Por definir",
-            match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Por definir",
-            match.getHomeScore(),
-            match.getAwayScore(),
-            match.getStatus(),
-            isStartingSoon(match.getUtcDate())
-        );
-    }
-}
-```
+Cada liga tiene sus propios valores, guardados en su edición activa. El administrador los cambia con `PUT /api/groups/{id}/scoring` (`LeagueScoringService`; la Porra Global no se puede cambiar); cada regla es un entero entre 0 y 1000. Si cambian, se vuelven a puntuar los partidos terminados y se invalidan las puntuaciones guardadas para que la clasificación se recalcule con `ScoringStrategy#withRules`.
 
----
+El pichichi elegido se resuelve a un único jugador entre todos los goleadores de ESPN y solo puntúa si ese jugador es el máximo goleador. Acepta tildes, mayúsculas, nombre completo o corto, "Inicial. Apellido" y erratas pequeñas; un apellido o nombre corto que comparten varios goleadores no puntúa.
 
-## 4. Controladores (API REST) - `/controller`
+### Ligas y pronósticos
 
-Los controladores gestionan las peticiones HTTP y delegan el trabajo pesado a los servicios. Responden exclusivamente con JSON.
+- `GroupService` gestiona las ligas (`League`), sus miembros (`Membership`), los códigos de invitación y los pagos. La Porra Global usa un id fijo (`League.GLOBAL_ID`).
+- `LeaguePaymentService` actualiza la membresía y los pronósticos de sus ediciones en una misma transacción, tanto desde la gestión de miembros como desde la ruta de pago de un pronóstico. La autorización de administrador se comprueba antes de delegar.
+- `PredictionService` guarda los cuadros completos; `MatchPredictionService`, los pronósticos por partido, con cierre individual cuando empieza cada encuentro.
+- El formato de cada liga (`PoolFormat`) decide qué se pronostica: `FULL_BRACKET`, `KNOCKOUTS_ONLY` o `MATCH_DAY`.
+- Las nuevas ligas de cuadro del Mundial heredan el cierre que ya usaba el proyecto: 11 de junio de 2026 a las 20:00, hora de Madrid, tanto para cuadro completo como para solo eliminatorias. V50 completa las fechas ausentes de esas ediciones y conserva las fechas explícitas. Las jornadas mantienen su cierre por partido. El instante exacto de cierre ya está bloqueado.
+- `MatchdayStatsService` (`GET /api/predictions/matchday/stats`) da, para cada partido ya empezado de una liga por jornadas, el reparto 1X2, los marcadores más repetidos y, al terminar, cuántos acertaron. Solo lo leen los miembros de la liga. Más elegidos y Buscador, en las ligas de cuadro, se calculan en el frontend (`utils/bracketStats.ts`) con los cuadros visibles de la liga.
 
-*   **`MatchController`**: Expone endpoints como `/api/matches/live` o `/api/matches/radar`. Intercepta peticiones, invoca a `MatchService` y mapea entidades a `MatchResponseDTO`.
-*   **`PredictionController`**: Permite crear, listar y borrar pronosticos. Valida los payloads usando Jakarta Validation (`@Valid` en `PredictionDataDTO`).
-*   **`StandingsController`**: Devuelve la clasificación oficial de los grupos generada algorítmicamente.
-*   **`LeaderboardController`**: Devuelve el ranking de los usuarios basado en los aciertos de sus predicciones frente a la realidad.
+## Seguridad
 
----
+- Inicio de sesión con Google: `AuthService` valida el ID token e identifica la cuenta por su `sub` (las cuentas antiguas se asocian por email la primera vez; si el email de la cuenta de Google cambia, se actualiza).
+- El filtro resuelve los access tokens por el id estable de la cuenta y entrega su correo actual a los servicios. Un correo antiguo dentro de un JWT no permite acceder a otra cuenta que lo haya recibido después. Los tokens heredados basados solo en correo se aceptan únicamente mientras la cuenta no esté vinculada a un `googleSub`.
+- Sesión (`SessionService`): access token JWT de 15 minutos, que el frontend guarda solo en memoria y `JwtAuthFilter` valida en cada petición, y refresh token opaco en una cookie `HttpOnly`, `Secure`, `SameSite=Strict` con `Path=/api/auth/session`. Cada refresco rota el refresh token; si llega uno ya rotado se revoca la sesión entera (su familia). La sesión caduca a los 30 días del inicio de sesión y el logout la revoca en el servidor. En la base solo se guarda el SHA-256 del refresh token.
+- El navegador serializa las operaciones que cambian la cookie (inicio, restauración, renovación y cierre de sesión) mediante Web Locks; cuando no están disponibles, mantiene una cola dentro de la pestaña. Un identificador local sin credenciales señala los cambios de cuenta o el cierre de sesión. Las otras pestañas recargan su estado y las peticiones de una sesión anterior se rechazan.
+- Las rutas de `/api/auth/` usan la cookie, así que `CsrfOriginFilter` exige además que la petición venga de la propia aplicación (cabecera `Origin` o `Sec-Fetch-Site`). El resto de la API se autentica con la cabecera `Authorization` y no necesita protección CSRF.
+- `SecurityConfig` deja públicas las lecturas GET (partidos, clasificación, goleadores, pronósticos, ligas, competiciones y avatares) y el login; el resto de la API requiere sesión. Los controladores y servicios filtran los datos de las ligas privadas (`assertCanView` y similares).
+- `RateLimitingFilter` limita las peticiones por IP, con un límite más estricto en el login.
 
-## 5. Lógica de Negocio (Servicios) - `/service`
+## Despliegue
 
-Esta es la capa donde reside la inteligencia y los algoritmos críticos.
+Flyway valida los checksums en cada arranque y no ejecuta `repair()` automáticamente, tampoco para V38. Las bases que ya pasaron por la reconciliación histórica conservan su historial; una copia antigua con discrepancias debe revisarse antes de actualizar. Si aparece una discrepancia, compara el script aplicado y el esquema con las migraciones del repositorio y realiza una copia de seguridad antes de una reparación administrativa. No edites migraciones aplicadas ni desactives la validación para arrancar.
 
-### A. `StandingsService`
-Se encarga de computar la tabla de clasificación de la fase de grupos. Recientemente refactorizado, utiliza un motor `O(N log N)` con pre-caché (`H2HStats`) para gestionar los complejos sistemas de desempates FIFA:
-1. Puntos.
-2. Diferencia de Goles.
-3. Goles a favor.
-4. Enfrentamientos directos (Head-to-Head).
-
-### B. `PredictionService`
-Recibe los complejos JSON de la fase eliminatoria (Fase de Grupos, Octavos, Cuartos...) y los serializa en base de datos. Utiliza fuertemente la **Stream API** de Java y Optionals para navegar jerarquías sin riesgo de `NullPointerException`. Además, gestiona transacciones (`@Transactional`).
-
-### C. `SyncService`
-El motor que se conecta a orígenes de datos de terceros (ej. Football-Data.org) mediante tareas programadas (`@Scheduled`). 
-- Parsea el JSON externo.
-- Encuentra o crea los equipos (`TeamRepository`).
-- Actualiza el marcador (`MatchRepository`).
-- Al finalizar, lanza un evento de WebSocket (`webSocketService.sendUpdate("DATA_UPDATED")`) para que los clientes React refresquen sus vistas automáticamente.
-
-### D. `MathematicalStatusCalculator`
-Calcula dinámicamente si un equipo está "Matemáticamente Clasificado" o "Matemáticamente Eliminado" comparando los puntos máximos posibles con el estado actual del grupo.
-
-```java
-// Ejemplo del corazón transaccional de un Servicio
-@Service
-@RequiredArgsConstructor
-public class BetService {
-    private final BetRepository betRepository;
-
-    @Transactional
-    public Bet createBet(String email, String participantName, BetDataDTO betData) {
-        // 1. Lógica de verificación
-        // 2. Mapeo de datos limpios usando Streams
-        // 3. Persistencia
-        return betRepository.save(newBet);
-    }
-}
-```
-
----
-
-## 6. Integración Frontend-Backend y Seguridad
-
-1.  **Seguridad Base**: `SecurityConfig` bloquea mutaciones (POST, PUT, DELETE) si la cabecera `Authorization: Bearer <token>` no incluye un JWT válido.
-2.  **WebSockets**: El cliente React se suscribe a `/topic/updates`. Cuando el Backend, mediante `SyncService`, detecta un gol, lanza un evento. El Frontend invalida el caché de React Query y solicita el JSON fresco instantáneamente.
-3.  **Persistencia y Despliegue**: En producción, Docker compila el React app mediante Vite y ubica los assets (JS, CSS, HTML) dentro de la carpeta `src/main/resources/static` del Backend, logrando que Spring Boot sirva tanto la API como la vista en el mismo puerto `8080`.
+El `Dockerfile` compila el frontend con Vite y copia el resultado a los recursos estáticos de Spring Boot, de modo que la API y la aplicación se sirven desde el mismo servicio y puerto. En producción corre en Railway; el health check usa Spring Boot Actuator.

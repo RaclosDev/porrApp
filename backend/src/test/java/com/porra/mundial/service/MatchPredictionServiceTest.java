@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,6 +47,9 @@ class MatchPredictionServiceTest {
 
     @Mock
     private MatchScoringCalculator matchScoringCalculator;
+
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
 
     @InjectMocks
     private MatchPredictionService matchPredictionService;
@@ -113,7 +117,7 @@ class MatchPredictionServiceTest {
                 .awayScore(1)
                 .round("Jornada 1")
                 .build();
-    
+
         lenient().when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
         lenient().when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(true);
     }
@@ -250,18 +254,50 @@ class MatchPredictionServiceTest {
     }
 
     @Test
+    @DisplayName("Si se corrige el marcador final, los puntos del pronóstico se recalculan")
+    void evaluatePredictionsForMatch_ReplacesPointsAfterACorrection() {
+        Prediction prediction = Prediction.builder().id(50L).edition(edition).scoreCalculatedAt(LocalDateTime.now()).build();
+        MatchPrediction mp = MatchPrediction.builder().id(1L).match(finishedMatch).prediction(prediction)
+                .homeScore(2).awayScore(1).build();
+        when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(mp));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(1), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(3, true, true, true, "Resultado exacto 2-1 (3 pts)"));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(2), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(0, false, false, false, "Fallo (0 pts)"));
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+        prediction.setScoreCalculatedAt(LocalDateTime.now());
+
+        finishedMatch.setAwayScore(2);
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+
+        assertEquals(0, mp.getPointsAwarded());
+        assertFalse(mp.getIsExactScore());
+        assertNull(prediction.getScoreCalculatedAt(), "la porra tiene que recalcular su total");
+    }
+
+    @Test
+    void hasUnscoredPredictionsAsksForPredictionsWithoutPoints() {
+        when(matchPredictionRepository.existsByMatchIdAndPointsAwardedIsNull(103L)).thenReturn(true);
+
+        assertTrue(matchPredictionService.hasUnscoredPredictions(103L));
+        assertFalse(matchPredictionService.hasUnscoredPredictions(null));
+    }
+
+    @Test
     @DisplayName("getMatchdayFixtures filtra correctamente por 'Grupo A' cuando el partido tiene groupName 'A'")
     void getMatchdayFixtures_FiltersByRoundGroup() {
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
         Match groupAMatch = Match.builder().id(201L).groupName("A").finished(false).matchDate(LocalDateTime.now().plusDays(1)).build();
         Match groupBMatch = Match.builder().id(202L).groupName("B").finished(false).matchDate(LocalDateTime.now().plusDays(1)).build();
-        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(groupAMatch, groupBMatch));
+        when(matchRepository.findRoundCandidates(eq(2L), eq(List.of("grupo a", "a")), any(), any(), eq(false)))
+                .thenReturn(List.of(groupAMatch, groupBMatch));
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.empty());
 
         List<MatchdayFixturePredictionDTO> fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, "Grupo A");
 
         assertEquals(1, fixtures.size());
         assertEquals(201L, fixtures.get(0).getMatchId());
+        verify(matchRepository, never()).findByCompetitionIdOrderByMatchDateAsc(any());
     }
 
     @Test
@@ -283,8 +319,10 @@ class MatchPredictionServiceTest {
     void groupsUnknownRoundsByDateAndAllowsFilteringThatDate() {
         futureMatch.setRound("group");
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
-        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch, pastMatch));
         String dateRound = "Fecha " + futureMatch.getMatchDate().toLocalDate();
+        LocalDateTime day = futureMatch.getMatchDate().toLocalDate().atStartOfDay();
+        when(matchRepository.findRoundCandidates(2L, List.of(dateRound.toLowerCase()), day, day.plusDays(1), false))
+                .thenReturn(List.of(futureMatch, pastMatch));
 
         var fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, dateRound);
         assertEquals(1, fixtures.size());
@@ -333,6 +371,45 @@ class MatchPredictionServiceTest {
     }
 
     @Test
+    @DisplayName("rescoreEdition vuelve a puntuar los partidos terminados con las reglas nuevas de la edición")
+    void rescoreEdition_AppliesTheNewRulesToFinishedMatches() {
+        // Calculador real: lo que se comprueba son los puntos que salen de las reglas de la liga.
+        MatchPredictionService service = new MatchPredictionService(matchRepository, matchPredictionRepository,
+                predictionRepository, userAccountRepository, editionRepository, membershipRepository,
+                new MatchScoringCalculator(), scoreInvalidationService);
+        edition.setScoringRulesJson(ScoringRuleSet.builder()
+                .exactScorePoints(10).correctSignPoints(2).goalDiffBonusPoints(0).build().toJson());
+        Prediction prediction = Prediction.builder().id(50L).edition(edition).build();
+        MatchPrediction exact = MatchPrediction.builder().id(1L).prediction(prediction).match(finishedMatch)
+                .homeScore(2).awayScore(1).pointsAwarded(5).build();
+        MatchPrediction sameGoalDiff = MatchPrediction.builder().id(2L).prediction(prediction).match(finishedMatch)
+                .homeScore(3).awayScore(2).pointsAwarded(4).build();
+        MatchPrediction signOnly = MatchPrediction.builder().id(3L).prediction(prediction).match(finishedMatch)
+                .predictionSign("1").pointsAwarded(3).build();
+        MatchPrediction notPlayed = MatchPrediction.builder().id(4L).prediction(prediction).match(futureMatch)
+                .homeScore(1).awayScore(0).build();
+        when(matchPredictionRepository.findWithMatchByPredictionEditionId(100L))
+                .thenReturn(List.of(exact, sameGoalDiff, signOnly, notPlayed));
+
+        int rescored = service.rescoreEdition(edition);
+
+        assertEquals(3, rescored);
+        assertEquals(10, exact.getPointsAwarded());
+        assertTrue(exact.getIsExactScore());
+        assertEquals(2, sameGoalDiff.getPointsAwarded(), "sin bonus por diferencia de goles en esta liga");
+        assertEquals(2, signOnly.getPointsAwarded());
+        assertNull(notPlayed.getPointsAwarded(), "un partido por jugar sigue sin puntos");
+        verify(matchPredictionRepository).saveAll(List.of(exact, sameGoalDiff, signOnly));
+    }
+
+    @Test
+    void rescoreEditionIgnoresAnUnsavedEdition() {
+        assertEquals(0, matchPredictionService.rescoreEdition(null));
+        assertEquals(0, matchPredictionService.rescoreEdition(Edition.builder().build()));
+        verifyNoInteractions(matchPredictionRepository);
+    }
+
+    @Test
     @DisplayName("getMatchdayFixtures retorna lista vacía cuando el grupo es la Porra Global o no es modalidad MATCH_DAY")
     void getMatchdayFixtures_ReturnsEmptyList_WhenNotMatchDay() {
         List<MatchdayFixturePredictionDTO> globalFixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 1L, null);
@@ -351,5 +428,24 @@ class MatchPredictionServiceTest {
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.empty());
         List<MatchdayFixturePredictionDTO> noEditionFixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null);
         assertTrue(noEditionFixtures.isEmpty(), "Una liga sin edición activa no debe devolver partidos de jornada");
+    }
+
+    @Test
+    void friendPredictionsQueryIsScopedToTheLeagueAndKeepsUnpredictedMembers() {
+        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        when(membershipRepository.existsById(new Membership.MembershipId(1L, 10L))).thenReturn(true);
+        var friend = UserAccount.builder().id(2L).participantName("Friend").build();
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().user(user).build(), Membership.builder().user(friend).build()));
+        var prediction = MatchPrediction.builder().match(futureMatch).homeScore(2).awayScore(1)
+                .prediction(Prediction.builder().user(user).edition(edition).build()).build();
+        when(matchPredictionRepository.findFriendsByMatchAndLeague(101L, 10L)).thenReturn(List.of(prediction));
+        var result = matchPredictionService.getFriendPredictionsForMatch("player@test.com", 10L, 101L);
+        assertEquals(2, result.size());
+        assertEquals(2, result.get(0).getHomeScore());
+        assertFalse(result.get(1).isHasPredicted());
+        verify(matchPredictionRepository, never()).findByMatchId(any());
     }
 }

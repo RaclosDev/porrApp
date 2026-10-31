@@ -1,0 +1,778 @@
+@layer components {
+  /* Administración de liga */
+  @keyframes league-admin-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes league-admin-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes league-admin-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .league-admin-spin {
+    animation: league-admin-spin 0.8s linear infinite;
+  }
+
+  .league-admin-overlay {
+    position: fixed;
+    inset: 0;
+    /* Por debajo del Toaster (9999) para que los avisos sigan siendo visibles. */
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(2, 6, 23, 0.74);
+    backdrop-filter: blur(var(--overlay-blur));
+    -webkit-backdrop-filter: blur(var(--overlay-blur));
+    animation: league-admin-fade 0.18s ease-out;
+  }
+
+  .league-admin-panel {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    max-height: min(880px, 90dvh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: linear-gradient(180deg, #121d33 0%, #0b1222 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    box-shadow: 0 32px 80px -24px rgba(0, 0, 0, 0.85);
+    outline: none;
+    animation: league-admin-in 0.22s ease-out;
+  }
+
+  /* Cabecera */
+  .league-admin-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    flex-shrink: 0;
+  }
+
+  .league-admin-heading {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .league-admin-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+  }
+
+  .league-admin-title {
+    margin: 3px 0 0;
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+  }
+
+  .league-admin-subtitle {
+    margin: 2px 0 0;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+  }
+
+  .league-admin-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .league-admin-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-main);
+  }
+
+  /* Pestañas */
+  .league-admin-tabs {
+    display: flex;
+    gap: 22px;
+    flex-shrink: 0;
+    padding: 0 22px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(255, 255, 255, 0.015);
+  }
+
+  .league-admin-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 46px;
+    margin-bottom: -1px;
+    padding: 0 2px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .league-admin-tab:hover {
+    color: var(--text-main);
+  }
+
+  .league-admin-tab.is-active {
+    color: var(--text-main);
+    border-bottom-color: var(--accent-cyan);
+  }
+
+  .league-admin-tab-count {
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+
+  .league-admin-tab.is-active .league-admin-tab-count {
+    background: rgba(0, 210, 211, 0.16);
+    color: var(--accent-cyan);
+  }
+
+  .league-admin-unsaved-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fbbf24;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
+  }
+
+  /* Cuerpo y tarjetas */
+  .league-admin-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 22px 22px;
+  }
+
+  .league-admin-panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .league-admin-card {
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .league-admin-card.is-danger {
+    border-color: rgba(248, 113, 113, 0.25);
+    background: rgba(248, 113, 113, 0.04);
+  }
+
+  .league-admin-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .league-admin-card-head h3 {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    color: var(--text-main);
+    font-size: 0.8rem;
+    font-weight: 800;
+  }
+
+  .league-admin-card.is-danger .league-admin-card-head h3 {
+    color: var(--miss);
+  }
+
+  .league-admin-card-meta {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  .league-admin-muted {
+    margin: 0;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+
+  /* Resumen de pagos */
+  .league-admin-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .league-admin-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--panel-bg);
+  }
+
+  .league-admin-stat span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .league-admin-stat strong {
+    color: var(--text-main);
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .league-admin-stat.is-paid strong {
+    color: var(--hit);
+  }
+
+  .league-admin-stat.is-pending strong {
+    color: var(--miss);
+  }
+
+  .league-admin-progress {
+    height: 6px;
+    margin-top: 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+
+  .league-admin-progress > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #00d2d3, #4ade80);
+    transition: width 0.25s ease;
+  }
+
+  .league-admin-progress-label {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+  }
+
+  /* Invitación */
+  .league-admin-invite {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .league-admin-code {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px dashed rgba(0, 210, 211, 0.4);
+    border-radius: 10px;
+    background: rgba(0, 210, 211, 0.08);
+    color: var(--accent-cyan);
+    font-family: inherit;
+    font-size: 1.02rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .league-admin-code:hover {
+    border-color: rgba(0, 210, 211, 0.6);
+    background: rgba(0, 210, 211, 0.14);
+  }
+
+  .league-admin-code:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .league-admin-invite-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  /* Botones */
+  .league-admin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 13px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.12s ease;
+  }
+
+  .league-admin-btn:hover {
+    border-color: rgba(148, 163, 184, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .league-admin-btn:active {
+    transform: translateY(1px);
+  }
+
+  .league-admin-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .league-admin-btn.is-primary {
+    border-color: rgba(0, 210, 211, 0.5);
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: var(--text-main);
+  }
+
+  .league-admin-btn.is-primary:hover {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+  }
+
+  .league-admin-btn.is-ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-muted);
+  }
+
+  .league-admin-btn.is-ghost:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-main);
+  }
+
+  .league-admin-btn.is-danger {
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--miss);
+  }
+
+  .league-admin-btn.is-danger:hover {
+    background: rgba(248, 113, 113, 0.18);
+  }
+
+  .league-admin-btn.is-success {
+    border-color: rgba(74, 222, 128, 0.4);
+    background: rgba(74, 222, 128, 0.14);
+    color: #86efac;
+  }
+
+  .league-admin-text-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 2px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .league-admin-text-btn:hover {
+    color: var(--accent-cyan);
+  }
+
+  .league-admin-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .league-admin-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    color: var(--text-main);
+  }
+
+  .league-admin-icon-btn.is-danger {
+    border-color: rgba(248, 113, 113, 0.25);
+    background: rgba(248, 113, 113, 0.07);
+    color: var(--miss);
+  }
+
+  .league-admin-icon-btn.is-danger:hover {
+    background: rgba(248, 113, 113, 0.15);
+  }
+
+  .league-admin-mini-btn {
+    min-height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .league-admin-mini-btn.is-danger {
+    border-color: rgba(248, 113, 113, 0.4);
+    background: rgba(248, 113, 113, 0.16);
+    color: #fecaca;
+  }
+
+  /* Confirmaciones en línea */
+  .league-admin-confirm-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(248, 113, 113, 0.25);
+    border-radius: 10px;
+    background: rgba(248, 113, 113, 0.08);
+  }
+
+  .league-admin-confirm-box > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #fecaca;
+    font-size: 0.76rem;
+  }
+
+  .league-admin-confirm-box > div {
+    display: flex;
+    gap: 6px;
+  }
+
+  .league-admin-inline-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 4px 3px 8px;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 8px;
+    background: rgba(248, 113, 113, 0.1);
+  }
+
+  .league-admin-inline-confirm > span {
+    color: #fecaca;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  /* Buscador y filtros */
+  .league-admin-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .league-admin-search {
+    position: relative;
+    flex: 1 1 190px;
+    min-width: 0;
+  }
+
+  .league-admin-search > svg {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .league-admin-search .glass-input {
+    width: 100%;
+    min-height: 40px;
+    padding-left: 36px;
+    font-size: 0.84rem;
+  }
+
+  .league-admin-filter {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .league-admin-filter button {
+    min-height: 32px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .league-admin-filter button:hover {
+    color: var(--text-main);
+  }
+
+  .league-admin-filter button.is-active {
+    background: rgba(0, 210, 211, 0.16);
+    color: var(--accent-cyan);
+  }
+
+  /* Reglas: pestañas Puntuación / Normas y tabla de puntos */
+  .rules-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .rules-tabs button {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .rules-tabs button:hover {
+    color: #fff;
+  }
+
+  .rules-tabs button.is-active {
+    background: rgba(0, 210, 211, 0.16);
+    color: #67e8f9;
+  }
+
+  .rules-tabs button:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 1px;
+  }
+
+  .rules-tab-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .scoring-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .scoring-section h4 {
+    margin: 0 0 6px;
+    color: var(--accent-cyan);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .scoring-rows {
+    margin: 0;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .scoring-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+
+  .scoring-row + .scoring-row {
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .scoring-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .scoring-row-label {
+    color: #f1f5f9;
+    font-size: 0.86rem;
+    font-weight: 700;
+  }
+
+  .scoring-row-hint {
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    line-height: 1.4;
+  }
+
+  .scoring-row-error {
+    color: #fca5a5;
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+
+  .scoring-row-default {
+    color: #fbbf24;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .scoring-row-value {
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .scoring-points {
+    color: #f8fafc;
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .scoring-points span,
+  .scoring-input-wrap > span {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .scoring-input-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .scoring-input-wrap .scoring-input {
+    width: 84px;
+    min-height: 40px;
+    padding: 0 10px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scoring-input[aria-invalid='true'] {
+    border-color: rgba(248, 113, 113, 0.7);
+  }
+
+  .scoring-restore {
+    align-self: flex-start;
+  }
+
+  @media (max-width: 640px) {
+    .rules-tabs button {
+      min-height: 44px;
+    }
+
+    .scoring-input-wrap .scoring-input {
+      width: 76px;
+      min-height: 44px;
+    }
+  }
+}

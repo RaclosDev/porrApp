@@ -1,64 +1,78 @@
-import { useState, useRef, useEffect } from 'react';
-import { MATCH_H } from './BracketCanvas';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
+import BracketFinale from './BracketFinale';
+import { MATCH_H, type CanvasMatch, type RenderSlot, type SlotTeam } from './BracketCanvas';
 
-/**
- * Pestañas del bracket móvil, una por cada ronda eliminatoria.
- */
-const ALL_TABS = [
+type Side = 'left' | 'right';
+
+interface PlacedMatch<T extends SlotTeam> {
+  data: CanvasMatch<T>;
+  side: Side;
+  index: number;
+}
+
+/** 2 partidos de una ronda y el de la siguiente al que alimentan. */
+interface MatchGroup<T extends SlotTeam> {
+  matchA: PlacedMatch<T>;
+  matchB: PlacedMatch<T>;
+  nextMatch: (PlacedMatch<T> & { roundIndex: number }) | null;
+}
+
+interface Tab {
+  key: string;
+  label: string;
+  roundIndex: number;
+}
+
+const ALL_TABS: Tab[] = [
   { key: 'r32', label: '16avos', roundIndex: 0 },
   { key: 'r16', label: 'Octavos', roundIndex: 1 },
   { key: 'qf', label: 'Cuartos', roundIndex: 2 },
-  { key: 'sf', label: 'Semis', roundIndex: 3 },
-  { key: 'final', label: 'Final', roundIndex: -1 },
+  { key: 'final', label: 'Semis y final', roundIndex: -1 },
 ];
 
-/**
- * Visualización optimizada del cuadro eliminatorio para dispositivos móviles.
- * Muestra las eliminatorias en formato lineal vertical con pestañas por ronda.
- * Cada ronda muestra sus partidos agrupados en pares que alimentan la siguiente ronda,
- * con líneas SVG conectoras estilo árbol.
- *
- * @component
- * @param {Object} props
- * @param {Array[]} props.leftRounds  - Rondas del lado izquierdo del bracket.
- * @param {Array[]} props.rightRounds - Rondas del lado derecho del bracket.
- * @param {Function} props.renderSlot - Función inyectada para pintar un slot de equipo.
- * @param {Function} [props.mobileCenter] - Render prop para la pestaña "Final" (flow layout).
- * @param {number} [props.defaultTab=0] - Pestaña activa por defecto.
- * @returns {JSX.Element} El bracket móvil con pestañas.
- */
-export default function MobileBracket({
+const getTabs = (hasR32: boolean) => (hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32'));
+
+const resolveTabIndex = (tabs: Tab[], target: number) => {
+  if (typeof target === 'number') {
+    const byRound = tabs.findIndex((t) => t.roundIndex === (target === 3 ? -1 : target));
+    if (byRound !== -1) return byRound;
+    if (target >= 0 && target < tabs.length) return target;
+  }
+  return 0;
+};
+
+/** Cuadro móvil: una pestaña por ronda, con los partidos en pares que alimentan al siguiente. */
+export default function MobileBracket<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
-  mobileCenter,
+  renderFinal,
   defaultTab = 0,
+  renderRoundFooter,
+}: {
+  leftRounds: CanvasMatch<T>[][];
+  rightRounds: CanvasMatch<T>[][];
+  renderSlot: RenderSlot<T>;
+  /** Contenido de la pestaña "Semis y final". */
+  renderFinal?: () => ReactNode;
+  defaultTab?: number;
+  renderRoundFooter?: (roundIndex: number, side: Side) => ReactNode;
 }) {
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
-  const tabs = hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32');
+  const tabs = getTabs(hasR32);
 
-  const resolveTabIndex = (target) => {
-    if (typeof target === 'number') {
-      const byRound = tabs.findIndex((t) => t.roundIndex === target);
-      if (byRound !== -1) return byRound;
-      if (target >= 0 && target < tabs.length) return target;
-    }
-    return 0;
-  };
-
-  const [activeTab, setActiveTab] = useState(() => resolveTabIndex(defaultTab));
+  const [activeTab, setActiveTab] = useState(() => resolveTabIndex(tabs, defaultTab));
   const [slideDir, setSlideDir] = useState('right');
   const [animKey, setAnimKey] = useState(0);
   const hasUserNavigated = useRef(false);
 
   useEffect(() => {
     if (!hasUserNavigated.current) {
-      setActiveTab(resolveTabIndex(defaultTab));
+      setActiveTab(resolveTabIndex(getTabs(hasR32), defaultTab));
     }
   }, [defaultTab, hasR32]);
 
-  /** Cambia de pestaña con animación de deslizamiento */
-  const goToTab = (newTab) => {
+  const goToTab = (newTab: number) => {
     if (newTab === activeTab) return;
     hasUserNavigated.current = true;
     setSlideDir(newTab > activeTab ? 'right' : 'left');
@@ -66,17 +80,10 @@ export default function MobileBracket({
     setAnimKey((k) => k + 1);
   };
 
-  /**
-   * Agrupa los partidos de una ronda en pares.
-   * Cada par son 2 partidos de la ronda actual que alimentan 1 partido de la siguiente.
-   *
-   * @param {number} roundIndex - Índice de la ronda (0-2).
-   * @returns {Array} Lista de grupos { matchA, matchB, nextMatch }.
-   */
-  const buildGroups = (roundIndex) => {
-    const groups = [];
+  const buildGroups = (roundIndex: number) => {
+    const groups: MatchGroup<T>[] = [];
 
-    for (const side of ['left', 'right']) {
+    for (const side of ['left', 'right'] as const) {
       const rounds = side === 'left' ? leftRounds : rightRounds;
       const matches = rounds[roundIndex] || [];
       const nextRoundMatches = roundIndex < 3 ? rounds[roundIndex + 1] || [] : [];
@@ -104,101 +111,23 @@ export default function MobileBracket({
     return groups;
   };
 
-  /**
-   * Renderiza el contenido de la pestaña activa.
-   */
   const renderTabContent = () => {
     const tab = tabs[activeTab] || tabs[0];
 
-    // Final
     if (tab.key === 'final') {
-      return mobileCenter ? (
-        <div className="mb-final-content">{mobileCenter()}</div>
-      ) : (
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
-          Final aún por definir
-        </div>
+      return (
+        <BracketFinale
+          leftRounds={leftRounds}
+          rightRounds={rightRounds}
+          renderSlot={renderSlot}
+          center={renderFinal}
+          renderRoundFooter={renderRoundFooter}
+        />
       );
     }
 
     const roundIndex = tab.roundIndex;
 
-    // Semifinales
-    if (roundIndex === 3) {
-      const leftSF = leftRounds[3]?.[0];
-      const rightSF = rightRounds[3]?.[0];
-
-      return (
-        <div className="mb-round">
-          {leftSF && (
-            <div
-              className="mb-sf-card"
-              role="button"
-              tabIndex={0}
-              aria-label="Ir a la Final"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  goToTab(tabs.findIndex((t) => t.key === 'final'));
-                }
-              }}
-              onClick={() => goToTab(tabs.findIndex((t) => t.key === 'final'))}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="mb-sf-label">Semifinal 1</div>
-              <div className="mb-match-card">
-                {renderSlot(leftSF.home, {
-                  side: 'left',
-                  roundIndex: 3,
-                  matchIndex: 0,
-                  isHome: true,
-                })}
-                {renderSlot(leftSF.away, {
-                  side: 'left',
-                  roundIndex: 3,
-                  matchIndex: 0,
-                  isHome: false,
-                })}
-              </div>
-            </div>
-          )}
-          {rightSF && (
-            <div
-              className="mb-sf-card"
-              role="button"
-              tabIndex={0}
-              aria-label="Ir a la Final"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  goToTab(4);
-                }
-              }}
-              onClick={() => goToTab(4)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="mb-sf-label">Semifinal 2</div>
-              <div className="mb-match-card">
-                {renderSlot(rightSF.home, {
-                  side: 'right',
-                  roundIndex: 3,
-                  matchIndex: 0,
-                  isHome: true,
-                })}
-                {renderSlot(rightSF.away, {
-                  side: 'right',
-                  roundIndex: 3,
-                  matchIndex: 0,
-                  isHome: false,
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Rondas previas
     const groups = buildGroups(roundIndex);
 
     return (
@@ -209,20 +138,26 @@ export default function MobileBracket({
             group={group}
             roundIndex={roundIndex}
             renderSlot={renderSlot}
-            onNavigateNext={() => goToTab(activeTab + 1)}
           />
         ))}
+        <button type="button" className="mb-next-btn" onClick={() => goToTab(activeTab + 1)}>
+          Siguiente ronda →
+        </button>
       </div>
     );
   };
 
   return (
     <div className="mobile-bracket">
-      {/* Pestañas */}
-      <div className="mb-tabs">
+      <div className="mb-tabs" role="tablist" aria-label="Rondas del cuadro">
         {tabs.map((t, i) => (
           <button
             key={t.key}
+            type="button"
+            role="tab"
+            id={`mb-tab-${t.key}`}
+            aria-selected={activeTab === i}
+            aria-controls="mb-tabpanel"
             className={`mb-tab ${activeTab === i ? 'mb-tab-active' : ''}`}
             onClick={() => goToTab(i)}
           >
@@ -231,28 +166,31 @@ export default function MobileBracket({
         ))}
       </div>
 
-      {/* Contenido */}
-      <div key={animKey} className={`mb-content mb-slide-${slideDir}`}>
+      <div
+        key={animKey}
+        id="mb-tabpanel"
+        role="tabpanel"
+        aria-labelledby={`mb-tab-${(tabs[activeTab] || tabs[0]).key}`}
+        className={`mb-content mb-slide-${slideDir}`}
+      >
         {renderTabContent()}
       </div>
     </div>
   );
 }
 
-// Subcomponente: par de partidos con conector SVG y partido siguiente
-
-/**
- * Grupo visual de 2 partidos de la ronda actual que alimentan 1 partido de la siguiente.
- * Dibuja líneas SVG estilo bracket entre los partidos actuales y el siguiente.
- *
- * @param {Object} props.group      - Datos del grupo { matchA, matchB, nextMatch }.
- * @param {number} props.roundIndex - Índice de la ronda actual.
- * @param {Function} props.renderSlot - Función para pintar un slot de equipo.
- */
-function BracketGroup({ group, roundIndex, renderSlot, onNavigateNext }) {
+/** Dos partidos de la ronda, unidos por un conector SVG al partido siguiente. */
+function BracketGroup<T extends SlotTeam>({
+  group,
+  roundIndex,
+  renderSlot,
+}: {
+  group: MatchGroup<T>;
+  roundIndex: number;
+  renderSlot: RenderSlot<T>;
+}) {
   const { matchA, matchB, nextMatch } = group;
 
-  // Posiciones SVG
   const CARD_GAP = 10;
   const totalH = MATCH_H * 2 + CARD_GAP;
   const midA = MATCH_H / 2;
@@ -261,11 +199,7 @@ function BracketGroup({ group, roundIndex, renderSlot, onNavigateNext }) {
 
   return (
     <div className="mb-group">
-      {/* Columna izquierda: partidos de la ronda actual */}
-      <div
-        className="mb-current"
-        style={{ display: 'flex', flexDirection: 'column', gap: CARD_GAP }}
-      >
+      <div className="mb-current flex flex-col" style={{ gap: CARD_GAP }}>
         <div className="mb-match-card">
           {renderSlot(matchA.data.home, {
             side: matchA.side,
@@ -296,40 +230,19 @@ function BracketGroup({ group, roundIndex, renderSlot, onNavigateNext }) {
         </div>
       </div>
 
-      {/* Conector SVG (estilo bracket/árbol) */}
-      <svg className="mb-connector" width="18" height={totalH} viewBox={`0 0 18 ${totalH}`}>
-        {/* Línea horizontal desde Match A */}
-        <line x1="0" y1={midA} x2="9" y2={midA} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        {/* Línea horizontal desde Match B */}
-        <line x1="0" y1={midB} x2="9" y2={midB} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        {/* Línea vertical conectando A y B */}
-        <line x1="9" y1={midA} x2="9" y2={midB} stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        {/* Línea horizontal desde el punto medio al partido siguiente */}
-        <line
-          x1="9"
-          y1={center}
-          x2="18"
-          y2={center}
-          stroke="rgba(255,255,255,0.15)"
-          strokeWidth="1.5"
-        />
+      <svg
+        className="mb-connector bracket-connector"
+        width="18"
+        height={totalH}
+        viewBox={`0 0 18 ${totalH}`}
+      >
+        <line x1="0" y1={midA} x2="9" y2={midA} stroke="currentColor" strokeWidth="2" />
+        <line x1="0" y1={midB} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
+        <line x1="9" y1={midA} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
+        <line x1="9" y1={center} x2="18" y2={center} stroke="currentColor" strokeWidth="2" />
       </svg>
 
-      {/* Columna derecha: partido de la siguiente ronda */}
-      <div
-        className="mb-next"
-        role="button"
-        tabIndex={0}
-        aria-label="Navegar a la siguiente ronda"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onNavigateNext();
-          }
-        }}
-        onClick={onNavigateNext}
-        style={{ cursor: 'pointer' }}
-      >
+      <div className="mb-next">
         {nextMatch ? (
           <div className="mb-match-card mb-match-next">
             {renderSlot(nextMatch.data.home, {

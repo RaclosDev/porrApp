@@ -1,8 +1,18 @@
-import React, { Component } from 'react';
+import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Trash2 } from 'lucide-react';
 
-export class ErrorBoundary extends Component {
-  constructor(props) {
+interface ErrorBoundaryProps {
+  children?: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
+
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
       hasError: false,
@@ -11,11 +21,11 @@ export class ErrorBoundary extends Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary capturó un error no controlado:', error, errorInfo);
     this.setState({ errorInfo });
   }
@@ -42,22 +52,20 @@ export class ErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 shadow-2xl backdrop-blur text-center space-y-6">
-            <div className="w-16 h-16 mx-auto bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center text-amber-400">
+          <div className="paper-panel album-sheet landing-tape w-full max-w-md p-6 text-center space-y-6">
+            <div className="w-16 h-16 mx-auto flex items-center justify-center marker-ink">
               <AlertTriangle className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-xl font-bold tracking-tight text-white">
-                Algo no ha salido como esperábamos
-              </h1>
-              <p className="text-sm text-slate-400 leading-relaxed">
+              <h1 className="poster-title text-xl">Esta pantalla ha fallado</h1>
+              <p className="text-sm text-muted leading-relaxed">
                 Ha ocurrido un problema inesperado en la aplicación. Puedes intentar recargar la
                 página o volver a la pantalla de inicio.
               </p>
             </div>
 
-            {this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <div className="text-left bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-xs text-rose-300 font-mono break-all max-h-28 overflow-y-auto">
                 {this.state.error.message || 'Error desconocido'}
               </div>
@@ -66,7 +74,7 @@ export class ErrorBoundary extends Component {
             <div className="space-y-2 pt-2">
               <button
                 onClick={this.handleReload}
-                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30"
+                className="glass-btn primary-btn w-full flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 Recargar página
@@ -74,7 +82,7 @@ export class ErrorBoundary extends Component {
 
               <button
                 onClick={this.handleGoHome}
-                className="w-full py-3 px-4 bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-slate-200 font-medium rounded-xl transition flex items-center justify-center gap-2"
+                className="glass-btn w-full flex items-center justify-center gap-2"
               >
                 <Home className="w-4 h-4" />
                 Volver al inicio
@@ -82,7 +90,7 @@ export class ErrorBoundary extends Component {
 
               <button
                 onClick={this.handleResetStorage}
-                className="w-full py-2 px-3 text-xs text-slate-500 hover:text-slate-300 transition flex items-center justify-center gap-1.5"
+                className="w-full min-h-11 py-2 px-3 text-xs text-muted transition flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Limpiar datos locales y reiniciar

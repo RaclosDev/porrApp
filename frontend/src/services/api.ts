@@ -1,520 +1,579 @@
 /**
- * Servicio de API: Comunicación con el backend de Spring Boot.
- * Centraliza todas las llamadas HTTP de la aplicación.
+ * Cliente HTTP del backend. Todas las llamadas pasan por {@link request}, que añade el access
+ * token, lo renueva una vez si el servidor responde 401 y convierte los errores en excepciones
+ * con el mensaje del servidor.
  */
+import type {
+  Competition,
+  FriendPrediction,
+  Group,
+  GroupMember,
+  GroupOdds,
+  GroupStandings,
+  JoinCodeResponse,
+  LeagueScoring,
+  LoginResponse,
+  LeagueImageResponse,
+  LeagueStanding,
+  Match,
+  MatchRadar,
+  MatchdayFixture,
+  MatchdayPoints,
+  MatchdayPredictionInput,
+  MatchdayStats,
+  MatchdaySubmissionResult,
+  Me,
+  ParticipantScore,
+  PaymentStatus,
+  PaymentStatusResponse,
+  PoolFormat,
+  PredictionData,
+  PredictionSaved,
+  PredictionSummary,
+  ProfileResponse,
+  ScoringRules,
+  StatusResponse,
+  TopScorer,
+  UserPreferences,
+} from '../types/api';
+import { ApiError, NETWORK_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE } from './apiError';
+import {
+  hasStoredSession,
+  LEGACY_TOKEN_KEY,
+  SESSION_HINT_KEY,
+  SESSION_REVISION_KEY,
+} from './sessionHint';
+
 const API_BASE = '/api';
 
-/**
- * Obtiene el token JWT de autenticación del usuario desde localStorage.
- * @returns {string|null} Token JWT o null si no existe.
- */
-export function getAuthToken() {
-  return localStorage.getItem('token') || null;
+// --- Sesión ---
+// El access token (JWT de 15 minutos) vive solo en memoria. Lo que mantiene la sesión es el
+// refresh token, en una cookie HttpOnly que el navegador manda solo a /api/auth/session. En
+// localStorage queda solo una marca, sin valor secreto, de que este dispositivo tiene sesión.
+
+const SESSION_PATH = '/auth/session';
+
+/** Resultado de recuperar la sesión al cargar la aplicación. */
+export type SessionRestore = 'restored' | 'none' | 'unreachable' | 'superseded';
+
+let accessToken: string | null = null;
+let sessionRestore: Promise<SessionRestore> | null = null;
+let restoring = false;
+let pendingRefresh: { epoch: number; promise: Promise<string | null> } | null = null;
+/** Cambia al sustituir la sesión; rotar su access token conserva la generación. */
+let sessionEpoch = 0;
+let boundRevision = localStorage.getItem(SESSION_REVISION_KEY);
+let localSessionQueue: Promise<void> | null = null;
+
+function currentSession(epoch: number): boolean {
+  return epoch === sessionEpoch && boundRevision === localStorage.getItem(SESSION_REVISION_KEY);
 }
 
-/**
- * Guarda o elimina el token JWT de autenticación en localStorage.
- * @param {string|null} token - El token a guardar (o null para borrarlo).
- */
-export function setAuthToken(token) {
+function ensureSession(epoch: number): void {
+  if (!currentSession(epoch))
+    throw new ApiError(401, 'La sesión ha cambiado. Vuelve a intentarlo.');
+}
+
+function publishSessionChange(): void {
+  boundRevision = crypto.randomUUID();
+  localStorage.setItem(SESSION_REVISION_KEY, boundRevision);
+}
+
+export function getAuthToken(): string | null {
+  return accessToken;
+}
+
+export function setAuthToken(token: string | null): void {
+  const changed = token !== accessToken;
+  if (changed) sessionEpoch++;
+  if (token) localStorage.removeItem(LEGACY_TOKEN_KEY);
+  storeAuthToken(token);
+  if (changed) publishSessionChange();
+  else if (token === null) boundRevision = localStorage.getItem(SESSION_REVISION_KEY);
+}
+
+function storeAuthToken(token: string | null): void {
+  accessToken = token;
   if (token) {
-    localStorage.setItem('token', token);
+    localStorage.setItem(SESSION_HINT_KEY, '1');
   } else {
-    localStorage.removeItem('token');
+    localStorage.removeItem(SESSION_HINT_KEY);
   }
 }
-
-async function fetchJson(url, options = {}) {
-  const currentToken = getAuthToken();
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
-    },
-  });
-  if (!res.ok) {
-    if (res.status === 401 && currentToken && getAuthToken() === currentToken) {
-      setAuthToken(null);
-      localStorage.removeItem('token');
-      localStorage.removeItem('my_prediction_name');
-      localStorage.removeItem('my_bet_name');
-      localStorage.removeItem('my_user_id');
-      localStorage.removeItem('my_avatar_url');
-      window.dispatchEvent(new Event('auth-expired'));
-    }
-    const error = await res.json?.().catch(() => ({}));
-    throw new Error(error?.error || error?.message || `HTTP error! status: ${res.status}`);
-  }
-  return await res.json();
-}
-
-export async function fetchStandings() {
-  return fetchJson(`${API_BASE}/standings`);
-}
-
-export async function fetchMatches(competitionId = null) {
-  const url = competitionId
-    ? `${API_BASE}/matches?competitionId=${competitionId}`
-    : `${API_BASE}/matches`;
-  return fetchJson(url);
-}
-
-export async function fetchMatchRadar(competitionId = null) {
-  const url = competitionId
-    ? `${API_BASE}/matches/radar?competitionId=${competitionId}`
-    : `${API_BASE}/matches/radar`;
-  return fetchJson(url);
-}
-
-const OFFICIAL_BRACKET_TTL = 60_000;
-let officialBracketCache = null;
-let officialBracketCachedAt = 0;
-let officialBracketRequest = null;
 
 /**
- * Devuelve el cuadro oficial reutilizando la última respuesta durante 60 s.
- * Evita repetir la petición cada vez que se abre una porra.
- *
- * @param {Object} [options]
- * @param {boolean} [options.force] - Ignora la caché y vuelve a pedir los datos.
- * @returns {Promise<Object>} Cuadro oficial de eliminatorias.
+ * Recupera la sesión al arrancar: canjea el JWT antiguo si queda alguno y, si no, rota el
+ * refresh token de la cookie. Las peticiones que salgan mientras tanto esperan a que acabe.
  */
-export async function fetchOfficialBracket({ force = false } = {}) {
-  const now = Date.now();
-  if (!force && officialBracketCache && now - officialBracketCachedAt < OFFICIAL_BRACKET_TTL) {
-    return officialBracketCache;
+export function initSession(): Promise<SessionRestore> {
+  restoring = true;
+  sessionRestore = restoreSession().finally(() => {
+    restoring = false;
+  });
+  return sessionRestore;
+}
+
+/** La recuperación lanzada por {@link initSession}, o null si no se ha lanzado. */
+export function whenSessionRestored(): Promise<SessionRestore> | null {
+  return sessionRestore;
+}
+
+async function restoreSession(): Promise<SessionRestore> {
+  const epoch = sessionEpoch;
+  if (!hasStoredSession()) return 'none';
+  try {
+    const exchanged = await withSessionLock(() => exchangeLegacyToken(epoch));
+    if (!currentSession(epoch)) return 'superseded';
+    if (exchanged) return 'restored';
+    const refreshed = await refreshSession();
+    if (!currentSession(epoch)) return 'superseded';
+    return refreshed ? 'restored' : 'none';
+  } catch {
+    return currentSession(epoch) ? 'unreachable' : 'superseded';
   }
-  if (!force && officialBracketRequest) {
-    return officialBracketRequest;
-  }
-  officialBracketRequest = fetchJson(`${API_BASE}/standings/official-bracket`)
-    .then((data) => {
-      officialBracketCache = data;
-      officialBracketCachedAt = Date.now();
-      return data;
-    })
-    .finally(() => {
-      officialBracketRequest = null;
+}
+
+/** Canjea el JWT de 7 días de la versión anterior, si queda, por una sesión con cookie. */
+async function exchangeLegacyToken(epoch: number): Promise<boolean> {
+  if (!currentSession(epoch)) return false;
+  // Se lee dentro del cerrojo: otra pestaña puede haberlo canjeado ya.
+  const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
+  if (!legacyToken) return false;
+  const token = await requestSessionToken('exchange', legacyToken);
+  if (!currentSession(epoch)) return false;
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  if (token) storeAuthToken(token);
+  return token !== null;
+}
+
+/**
+ * Rota el refresh token y guarda el access token nuevo, uno a la vez por pestaña.
+ * Resuelve null si la sesión ha terminado; falla si no se ha podido hablar con el servidor.
+ */
+function refreshSession(): Promise<string | null> {
+  const epoch = sessionEpoch;
+  if (!pendingRefresh || pendingRefresh.epoch !== epoch) {
+    const promise = withSessionLock(async () => {
+      if (!currentSession(epoch)) return null;
+      const token = await requestSessionToken('refresh');
+      if (!currentSession(epoch)) return null;
+      storeAuthToken(token);
+      return token;
+    }).finally(() => {
+      if (pendingRefresh?.epoch === epoch) pendingRefresh = null;
     });
-  return officialBracketRequest;
+    pendingRefresh = { epoch, promise };
+  }
+  return pendingRefresh.promise;
 }
-
-const PREDICTION_SCORE_TTL = 60_000;
-const predictionScoreCache = new Map();
 
 /**
- * Desglose detallado de puntos de una porra. Se cachea 60 s porque el cálculo es costoso
- * y el visor puede abrirse varias veces seguidas.
- *
- * @param {string|number} id - ID de la porra.
- * @returns {Promise<Object|null>} Puntuación detallada o null.
+ * Las pestañas comparten la cookie: si dos rotaran a la vez el mismo refresh token, la segunda
+ * parecería una reutilización y el servidor cerraría la sesión. Web Locks las pone en fila.
  */
-export async function fetchPredictionScore(id) {
-  if (id == null) return null;
-  const key = String(id);
-  const cached = predictionScoreCache.get(key);
-  if (cached && Date.now() - cached.at < PREDICTION_SCORE_TTL) {
-    return cached.data;
+function withSessionLock<T>(task: () => Promise<T>): Promise<T> {
+  if (typeof navigator !== 'undefined' && 'locks' in navigator) {
+    return navigator.locks.request('porrapp-session', task);
   }
-  const data = await fetchJson(`${API_BASE}/predictions/${key}/score`);
-  if (predictionScoreCache.size > 100) predictionScoreCache.clear();
-  predictionScoreCache.set(key, { data, at: Date.now() });
-  return data;
-}
-
-export async function fetchPredictions(groupId = null) {
-  const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
-  return fetchJson(url);
-}
-export const fetchBets = fetchPredictions;
-
-export async function fetchMyPredictions() {
-  return fetchJson(`${API_BASE}/predictions/mine`);
-}
-export const fetchMyBets = fetchMyPredictions;
-
-export async function createPrediction(predictionData, groupId = null) {
-  const url = groupId ? `${API_BASE}/predictions?groupId=${groupId}` : `${API_BASE}/predictions`;
-  const token = getAuthToken();
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(predictionData),
-  });
-  return res.json();
-}
-export const createBet = createPrediction;
-
-export async function deletePrediction(key) {
-  const token = getAuthToken();
-  return fetch(`${API_BASE}/predictions/${key}`, {
-    method: 'DELETE',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-}
-export const deleteBet = deletePrediction;
-
-export async function updatePrediction(key, data) {
-  const token = getAuthToken();
-  return fetch(`${API_BASE}/predictions/${key}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify(data),
-  });
-}
-export const updateBet = updatePrediction;
-
-export async function acceptPrediction(key) {
-  const token = getAuthToken();
-  return fetch(`${API_BASE}/predictions/${key}/pay`, {
-    method: 'PUT',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-}
-export const acceptBet = acceptPrediction;
-
-export async function fetchTeamOdds() {
-  return fetchJson(`${API_BASE}/teams/odds`);
-}
-
-export async function fetchTopScorers() {
-  // Evita que el panel Pichichi permanezca cargando indefinidamente si el backend no responde.
-  return fetchJson(`${API_BASE}/scorers`, { signal: AbortSignal.timeout(12_000) });
-}
-
-export async function fetchLeaderboard(groupId = null) {
-  const url = groupId ? `${API_BASE}/leaderboard?groupId=${groupId}` : `${API_BASE}/leaderboard`;
-  return fetchJson(url);
-}
-
-export async function fetchCompetitionStandings(competitionId) {
-  if (!competitionId) return [];
-  return fetchJson(`${API_BASE}/competitions/${competitionId}/standings`);
-}
-
-// Groups API
-export async function fetchMyGroups() {
-  return fetchJson(`${API_BASE}/groups/mine`);
-}
-
-export async function fetchGroup(id) {
-  return fetchJson(`${API_BASE}/groups/${id}`);
-}
-
-/** Obtiene los metadatos públicos de una invitación sin aceptar la invitación. */
-export async function fetchGroupInvitationPreview(joinCode) {
-  return fetchJson(`${API_BASE}/groups/preview/${encodeURIComponent(joinCode)}`);
-}
-
-export async function leaveGroup(id) {
-  const token = getAuthToken();
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const res = await fetch(`${API_BASE}/groups/${id}/leave`, {
-    method: 'DELETE',
-    headers,
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al abandonar el grupo');
-  }
-  return res.json();
-}
-
-export async function acceptGroupPrediction(groupId, predictionId) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/predictions/${predictionId}/accept`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al confirmar la porra');
-  }
-  return res.json();
-}
-export const acceptGroupBet = acceptGroupPrediction;
-
-export async function deleteGroupPrediction(groupId, predictionId) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/predictions/${predictionId}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al eliminar la porra');
-  }
-  return res.json();
-}
-export const deleteGroupBet = deleteGroupPrediction;
-
-let cachedCompetitions = null;
-export async function fetchCompetitions() {
-  if (cachedCompetitions) return cachedCompetitions;
-  const data = await fetchJson(`${API_BASE}/competitions`);
-  cachedCompetitions = data;
-  return data;
-}
-
-export async function createGroup(name, competitionId, poolFormat, pichichi = true) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ name, competitionId, poolFormat, betMode: poolFormat, pichichi }),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al crear la liga');
-  }
-  return res.json();
-}
-
-export async function updateGroup(id, name, rules) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ name, rules }),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al actualizar la liga');
-  }
-  return res.json();
-}
-
-export async function deleteGroup(id) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${id}`, {
-    method: 'DELETE',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al borrar la liga');
-  }
-  return res.json();
-}
-
-export async function joinGroup(joinCode) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/join`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ joinCode }),
-  });
-  if (res.ok) return res.json();
-  const error = await res.json().catch(() => ({}));
-  throw new Error(error.error || 'Grupo no encontrado o código inválido');
-}
-
-export async function fetchMe() {
-  return fetchJson(`${API_BASE}/users/me`);
-}
-
-export async function updateUserPreferences(preferences) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/users/me/preferences`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify(preferences),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al actualizar preferencias');
-  }
-  return res.json();
-}
-
-export async function fetchRules() {
-  return fetchJson(`${API_BASE}/rules`);
-}
-
-export async function fetchRulePreview(predHome, predAway, actualHome, actualAway) {
-  return fetchJson(
-    `${API_BASE}/rules/preview?predHome=${predHome}&predAway=${predAway}&actualHome=${actualHome}&actualAway=${actualAway}`,
+  const result = localSessionQueue ? localSessionQueue.then(task) : task();
+  const settled = result.then(
+    () => {},
+    () => {},
   );
-}
-
-export async function fetchMatchdayFixtures(groupId, round = '') {
-  const query = round
-    ? `groupId=${groupId}&round=${encodeURIComponent(round)}`
-    : `groupId=${groupId}`;
-  return fetchJson(`${API_BASE}/predictions/matchday?${query}`);
-}
-
-export async function submitMatchdayPredictions(groupId, predictions) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/predictions/matchday`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify({ groupId: Number(groupId), predictions }),
+  localSessionQueue = settled;
+  void settled.then(() => {
+    if (localSessionQueue === settled) localSessionQueue = null;
   });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al guardar pronósticos de jornada');
+  return result;
+}
+
+/** POST a /api/auth/session/*: el access token nuevo, o null si el servidor rechaza la sesión. */
+async function requestSessionToken(
+  action: 'refresh' | 'exchange',
+  bearer: string | null = null,
+): Promise<string | null> {
+  const res = await send(`${SESSION_PATH}/${action}`, { method: 'POST' }, bearer);
+  if (res.status === 401) return null;
+  if (!res.ok) throw new ApiError(res.status, `HTTP error! status: ${res.status}`);
+  const body = (await res.json()) as { token: string };
+  return body.token;
+}
+
+/** Cierra la sesión de este dispositivo: olvida el token y revoca el refresh en el servidor. */
+export function endSession(): Promise<void> {
+  sessionEpoch++;
+  storeAuthToken(null);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  publishSessionChange();
+  // Serializar también logout evita que un Set-Cookie anterior reabra la sesión.
+  return withSessionLock(async () => {
+    await fetch(`${API_BASE}${SESSION_PATH}/logout`, {
+      method: 'POST',
+      keepalive: true,
+      signal: requestSignal(undefined, DEFAULT_TIMEOUT_MS),
+    });
+  }).catch(() => {});
+}
+
+/** Token con el que repetir una petición rechazada con 401, o null si no hay sesión. */
+async function tokenAfter401(rejected: string | null, epoch: number): Promise<string | null> {
+  if (!currentSession(epoch)) return null;
+  const current = getAuthToken();
+  // Otra petición ya lo renovó (o se cerró la sesión) mientras esta iba en camino.
+  if (current !== rejected) return current;
+  try {
+    const token = await refreshSession();
+    if (!token && currentSession(epoch)) window.dispatchEvent(new Event('auth-expired'));
+    return token;
+  } catch {
+    // Sin respuesta del servidor: se mantiene la sesión y se devuelve el 401.
+    return null;
   }
-  return res.json();
 }
 
-export async function fetchMatchdayFriendBets(groupId, matchId) {
-  const token = getAuthToken();
-  return fetchJson(`${API_BASE}/predictions/matchday/matches/${matchId}/bets?groupId=${groupId}`, {
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
+interface RequestOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  /** Se envía como JSON. */
+  json?: unknown;
+  /** Se envía como multipart (el navegador pone el boundary). */
+  form?: FormData;
+  signal?: AbortSignal;
+  /** Tiempo máximo de espera; por defecto {@link DEFAULT_TIMEOUT_MS}. */
+  timeoutMs?: number;
+  /** Mensaje si el servidor no explica el error. */
+  fallbackError?: string;
 }
 
-export async function fetchGroupMembers(groupId) {
-  const token = getAuthToken();
-  return fetchJson(`${API_BASE}/groups/${groupId}/members`, {
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
+const DEFAULT_TIMEOUT_MS = 20_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+/** Señal que se aborta al agotarse el tiempo o cuando lo pide quien llama. */
+function requestSignal(
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): AbortSignal | undefined {
+  if (typeof AbortSignal.timeout !== 'function') return signal;
+  const timeout = AbortSignal.timeout(timeoutMs);
+  if (!signal) return timeout;
+  return typeof AbortSignal.any === 'function' ? AbortSignal.any([signal, timeout]) : signal;
 }
 
-export async function toggleGroupMemberPayment(groupId, userId, status) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/members/${userId}/payment`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify({ status }),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al actualizar estado de pago');
+/** Una petición HTTP; los fallos de red y de tiempo se convierten en {@link ApiError}. */
+async function send(
+  path: string,
+  options: RequestOptions,
+  token: string | null,
+): Promise<Response> {
+  const {
+    method = 'GET',
+    json,
+    form,
+    signal,
+    timeoutMs = form ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
+  } = options;
+  const headers: Record<string, string> = {};
+  if (json !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  try {
+    return await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: form ?? (json !== undefined ? JSON.stringify(json) : undefined),
+      signal: requestSignal(signal, timeoutMs),
+    });
+  } catch (err) {
+    // Una cancelación pedida por quien llama (p. ej. TanStack Query) se propaga tal cual.
+    if (signal?.aborted) throw err;
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new ApiError(0, TIMEOUT_ERROR_MESSAGE);
+    }
+    throw new ApiError(0, NETWORK_ERROR_MESSAGE);
   }
-  return res.json();
 }
 
-export async function kickGroupMember(groupId, userId) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/members/${userId}`, {
-    method: 'DELETE',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al expulsar al miembro');
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+  waitForSession = true,
+): Promise<T> {
+  const epoch = sessionEpoch;
+  const ensureCurrentSession = () => {
+    if (!currentSession(epoch))
+      throw new ApiError(401, 'La sesión ha cambiado. Vuelve a intentarlo.');
+  };
+  if (waitForSession && restoring && sessionRestore) await sessionRestore;
+  ensureCurrentSession();
+  const sentToken = getAuthToken();
+  let res = await send(path, options, sentToken);
+  ensureCurrentSession();
+
+  // Access token caducado: se renueva una vez y se repite la petición. En /auth/ no, porque
+  // ahí un 401 (p. ej. una credencial de Google inválida) no es de la sesión.
+  if (
+    res.status === 401 &&
+    !path.startsWith('/auth/') &&
+    (sentToken !== null || hasStoredSession())
+  ) {
+    const token = await tokenAfter401(sentToken, epoch);
+    if (token && currentSession(epoch)) res = await send(path, options, token);
   }
-  return res.json();
-}
+  ensureCurrentSession();
 
-export async function regenerateGroupJoinCode(groupId) {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}/groups/${groupId}/regenerate-code`, {
-    method: 'POST',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || 'Error al regenerar código');
+    const body = await res.json?.().catch(() => ({}));
+    ensureCurrentSession();
+    throw new ApiError(
+      res.status,
+      body?.error || body?.message || options.fallbackError || `Error del servidor (${res.status})`,
+    );
   }
-  return res.json();
+  const body = await res.json();
+  ensureCurrentSession();
+  return body;
 }
 
-export async function fetchMissingRoundUsers(groupId, round = '') {
-  const token = getAuthToken();
-  const query = round ? `?round=${encodeURIComponent(round)}` : '';
-  return fetchJson(`${API_BASE}/groups/${groupId}/missing-users${query}`, {
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-}
+const query = (params: Record<string, string | number | null | undefined>): string => {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== null && v !== undefined && v !== '',
+  );
+  if (entries.length === 0) return '';
+  return '?' + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+};
 
-// Imágenes de liga y perfil de usuario
-async function sendJson(url, method, body) {
-  const token = getAuthToken();
-  const res = await fetch(url, {
-    method,
-    headers: {
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || data.message || `Error ${res.status}`);
-  return data;
-}
-
-async function sendFile(url, blob) {
-  const token = getAuthToken();
+const imageForm = (blob: Blob): FormData => {
   const form = new FormData();
   form.append('file', blob, blob.type === 'image/png' ? 'image.png' : 'image.jpg');
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form, // el navegador añade el boundary del multipart
+  return form;
+};
+
+// --- Torneo y partidos ---
+
+export const fetchStandings = () => request<GroupStandings>('/standings');
+
+export const fetchMatches = (competitionId: number | null = null) =>
+  request<Match[]>(`/matches${query({ competitionId })}`);
+
+export const fetchMatchRadar = (competitionId: number | null = null) =>
+  request<MatchRadar>(`/matches/radar${query({ competitionId })}`);
+
+export const fetchTeamOdds = () => request<GroupOdds>('/teams/odds');
+
+// Evita que el panel Pichichi se quede cargando indefinidamente si el backend no responde.
+export const fetchTopScorers = () => request<TopScorer[]>('/scorers', { timeoutMs: 12_000 });
+
+export const fetchCompetitionStandings = async (
+  competitionId: number | null,
+): Promise<LeagueStanding[]> =>
+  competitionId ? request<LeagueStanding[]>(`/competitions/${competitionId}/standings`) : [];
+
+let cachedCompetitions: Competition[] | null = null;
+export async function fetchCompetitions(): Promise<Competition[]> {
+  cachedCompetitions ??= await request<Competition[]>('/competitions');
+  return cachedCompetitions;
+}
+
+/** Cuadro oficial. Se cachea como consulta de TanStack (`officialBracketQuery`). */
+export const fetchOfficialBracket = () => request<PredictionData>('/standings/official-bracket');
+
+// --- Pronósticos de cuadro completo ---
+
+export const fetchPrediction = (id: number | string) =>
+  request<PredictionData>(`/predictions/${id}`, { fallbackError: 'Error al cargar la porra' });
+
+/** Desglose de puntos de un pronóstico. Se cachea como consulta (`predictionScoreQuery`). */
+export const fetchPredictionScore = (id: number | string) =>
+  request<ParticipantScore>(`/predictions/${id}/score`);
+
+export const fetchPredictions = (groupId: number | string | null = null) =>
+  request<PredictionSummary[]>(`/predictions${query({ groupId })}`);
+
+export const fetchMyPredictions = () => request<PredictionSummary[]>('/predictions/mine');
+
+export const createPrediction = (
+  predictionData: PredictionData,
+  groupId: number | string | null = null,
+) =>
+  request<PredictionSaved>(`/predictions${query({ groupId })}`, {
+    method: 'POST',
+    json: predictionData,
+    fallbackError: 'Hubo un error al guardar la porra.',
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || data.message || `Error ${res.status}`);
-  return data;
+
+// --- Clasificación ---
+
+export const fetchLeaderboard = (groupId: number | string | null = null) =>
+  request<ParticipantScore[]>(`/leaderboard${query({ groupId })}`);
+
+export const fetchLeaderboardMatchdays = (groupId: number | string | null = null) =>
+  request<MatchdayPoints[]>(`/leaderboard/matchdays${query({ groupId })}`);
+
+// --- Ligas ---
+
+export const fetchMyGroups = () => request<Group[]>('/groups/mine');
+
+export const fetchGroup = (id: number | string) => request<Group>(`/groups/${id}`);
+
+/** Metadatos públicos de una invitación, sin unirse a la liga. */
+export const fetchGroupInvitationPreview = (joinCode: string) =>
+  request<Group>(`/groups/preview/${encodeURIComponent(joinCode)}`);
+
+export const createGroup = (
+  name: string,
+  competitionId: number | string,
+  poolFormat: PoolFormat,
+  pichichi = true,
+) =>
+  request<Group>('/groups', {
+    method: 'POST',
+    json: { name, competitionId, poolFormat, pichichi },
+    fallbackError: 'Error al crear la liga',
+  });
+
+export const updateGroup = (
+  id: number | string,
+  name: string | undefined,
+  rules: string | undefined,
+) =>
+  request<Group>(`/groups/${id}`, {
+    method: 'PUT',
+    json: { name, rules },
+    fallbackError: 'Error al actualizar la liga',
+  });
+
+export const deleteGroup = (id: number | string) =>
+  request<StatusResponse>(`/groups/${id}`, {
+    method: 'DELETE',
+    fallbackError: 'Error al borrar la liga',
+  });
+
+export const joinGroup = (joinCode: string) =>
+  request<Group>('/groups/join', {
+    method: 'POST',
+    json: { joinCode },
+    fallbackError: 'Grupo no encontrado o código inválido',
+  });
+
+export const leaveGroup = (id: number | string) =>
+  request<StatusResponse>(`/groups/${id}/leave`, {
+    method: 'DELETE',
+    fallbackError: 'Error al abandonar el grupo',
+  });
+
+/** Reglas de puntuación de la liga, las de por defecto y si quien consulta puede cambiarlas. */
+export const fetchLeagueScoring = (groupId: number | string) =>
+  request<LeagueScoring>(`/groups/${groupId}/scoring`);
+
+/** Cambia la puntuación de la liga; el servidor recalcula los puntos. Solo el administrador. */
+export const updateLeagueScoring = (groupId: number | string, rules: ScoringRules) =>
+  request<LeagueScoring>(`/groups/${groupId}/scoring`, {
+    method: 'PUT',
+    json: rules,
+    fallbackError: 'No se pudo guardar la puntuación',
+  });
+
+export const fetchGroupMembers = (groupId: number | string) =>
+  request<GroupMember[]>(`/groups/${groupId}/members`);
+
+export const toggleGroupMemberPayment = (
+  groupId: number | string,
+  userId: number,
+  status: PaymentStatus,
+) =>
+  request<PaymentStatusResponse>(`/groups/${groupId}/members/${userId}/payment`, {
+    method: 'PUT',
+    json: { status },
+    fallbackError: 'Error al actualizar estado de pago',
+  });
+
+export const kickGroupMember = (groupId: number | string, userId: number) =>
+  request<StatusResponse>(`/groups/${groupId}/members/${userId}`, {
+    method: 'DELETE',
+    fallbackError: 'Error al expulsar al miembro',
+  });
+
+export const regenerateGroupJoinCode = (groupId: number | string) =>
+  request<JoinCodeResponse>(`/groups/${groupId}/regenerate-code`, {
+    method: 'POST',
+    fallbackError: 'Error al regenerar código',
+  });
+
+export const uploadGroupImage = (groupId: number | string, blob: Blob) =>
+  request<LeagueImageResponse>(`/groups/${groupId}/image`, {
+    method: 'PUT',
+    form: imageForm(blob),
+  });
+
+export const deleteGroupImage = (groupId: number | string) =>
+  request<LeagueImageResponse>(`/groups/${groupId}/image`, { method: 'DELETE' });
+
+// --- Pronósticos por jornada ---
+
+export const fetchMatchdayFixtures = (groupId: number | string, round = '') =>
+  request<MatchdayFixture[]>(`/predictions/matchday${query({ groupId, round })}`);
+
+export const submitMatchdayPredictions = (
+  groupId: number | string,
+  predictions: MatchdayPredictionInput[],
+) =>
+  request<MatchdaySubmissionResult>('/predictions/matchday', {
+    method: 'POST',
+    json: { groupId: Number(groupId), predictions },
+    fallbackError: 'Error al guardar pronósticos de jornada',
+  });
+
+export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId: number) =>
+  request<FriendPrediction[]>(
+    `/predictions/matchday/matches/${matchId}/predictions${query({ groupId })}`,
+  );
+
+// --- Usuario ---
+
+export async function loginWithGoogle(credential: string): Promise<LoginResponse> {
+  const epoch = sessionEpoch;
+  // La restauración necesita este mismo cerrojo: esperarla dentro lo bloquearía.
+  if (restoring && sessionRestore) await sessionRestore;
+  ensureSession(epoch);
+  return withSessionLock(async () => {
+    ensureSession(epoch);
+    const data = await request<LoginResponse>(
+      '/auth/google/login',
+      {
+        method: 'POST',
+        json: { credential },
+        fallbackError: 'Error al iniciar sesión con Google',
+      },
+      false,
+    );
+    ensureSession(epoch);
+    setAuthToken(data.token);
+    return data;
+  });
 }
 
-export async function uploadGroupImage(groupId, blob) {
-  return sendFile(`${API_BASE}/groups/${groupId}/image`, blob);
-}
+export const fetchMe = () => request<Me>('/users/me');
 
-export async function deleteGroupImage(groupId) {
-  return sendJson(`${API_BASE}/groups/${groupId}/image`, 'DELETE');
-}
+export const completeProfileSetup = () =>
+  request<StatusResponse>('/users/me/profile-setup', { method: 'PUT' });
 
-export async function updateMyProfile(participantName) {
-  return sendJson(`${API_BASE}/users/me/profile`, 'PUT', { participantName });
-}
+export const updateUserPreferences = (preferences: UserPreferences) =>
+  request<StatusResponse>('/users/me/preferences', {
+    method: 'PUT',
+    json: preferences,
+    fallbackError: 'Error al actualizar preferencias',
+  });
 
-export async function uploadMyAvatar(blob) {
-  return sendFile(`${API_BASE}/users/me/avatar`, blob);
-}
+export const updateMyProfile = (participantName: string) =>
+  request<ProfileResponse>('/users/me/profile', { method: 'PUT', json: { participantName } });
 
-export async function deleteMyAvatar() {
-  return sendJson(`${API_BASE}/users/me/avatar`, 'DELETE');
-}
+export const uploadMyAvatar = (blob: Blob) =>
+  request<ProfileResponse>('/users/me/avatar', { method: 'PUT', form: imageForm(blob) });
+
+export const deleteMyAvatar = () =>
+  request<ProfileResponse>('/users/me/avatar', { method: 'DELETE' });
+
+// --- Estadísticas ---
+
+/** Reparto 1X2 y marcadores más repetidos de los partidos ya empezados de una liga por jornadas. */
+export const fetchMatchdayStats = (groupId: number | string) =>
+  request<MatchdayStats>(`/predictions/matchday/stats${query({ groupId })}`);

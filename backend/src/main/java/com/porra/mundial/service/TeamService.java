@@ -2,6 +2,7 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.dto.TeamOddsDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,11 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * ️ Servicio de Equipos (TeamService).
- * Gestiona a las selecciones del Torneo. Proporciona métodos para 
- * obtener sus datos básicos y las probabilidades calculadas (cuotas).
- */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -21,22 +17,14 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
 
-    /**
-     * "Dame a todos los equipos ordenados"
-     * @return Lista completa de todos los equipos ordenados por grupo y luego alfabéticamente.
-     */
     @org.springframework.cache.annotation.Cacheable("allTeams")
     public List<Team> getAllTeams() {
         return teamRepository.findAllByOrderByGroupNameAscNameAsc();
     }
 
-    /**
-     * "Agrupa a los equipos por letra de grupo" (Devuelve algo así como A -> [España, Francia...])
-     * Útil para renderizar la pantalla inicial de predicción de Fase de Grupos.
-     */
     public Map<String, List<Team>> getTeamsByGroup() {
         return getAllTeams().stream()
-                .filter(t -> t.getGroupName() != null && !"-".equals(t.getGroupName()) && !"Por definir".equalsIgnoreCase(t.getName()))
+                .filter(t -> t.getGroupName() != null && !"-".equals(t.getGroupName()) && !Team.PLACEHOLDER_NAME.equalsIgnoreCase(t.getName()))
                 .collect(Collectors.groupingBy(
                         t -> t.getGroupName().toUpperCase().trim(),
                         TreeMap::new,
@@ -67,26 +55,16 @@ public class TeamService {
         return teamRepository.save(team);
     }
 
-    /**
-     *  Traductor de Cuotas de Apuestas.
-     * Este método sustituye a tu antiguo archivo estático `data.js`.
-     * Convierte los datos almacenados en BD al mismo formato JSON que antes leías
-     * por HTTP para que el frontend siga funcionando sin tener que reescribirlo.
-     */
+    /** Probabilidades por grupo con la forma que espera el frontend. */
     @org.springframework.cache.annotation.Cacheable("groupOdds")
-    public Map<String, List<Map<String, Object>>> getGroupOdds() {
-        Map<String, List<Map<String, Object>>> result = new TreeMap<>();
+    public Map<String, List<TeamOddsDTO>> getGroupOdds() {
+        Map<String, List<TeamOddsDTO>> result = new TreeMap<>();
         Map<String, List<Team>> groups = getTeamsByGroup();
 
         groups.forEach((groupName, teams) -> {
-            List<Map<String, Object>> teamList = teams.stream().map(t -> {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("name", t.getName());
-                entry.put("win", t.getWinOdds());
-                entry.put("qualify", t.getQualifyOdds());
-                entry.put("outright", t.getOutrightOdds());
-                return entry;
-            }).collect(Collectors.toList());
+            List<TeamOddsDTO> teamList = teams.stream()
+                    .map(t -> new TeamOddsDTO(t.getName(), t.getWinOdds(), t.getQualifyOdds(), t.getOutrightOdds()))
+                    .collect(Collectors.toList());
             result.put(groupName, teamList);
         });
 

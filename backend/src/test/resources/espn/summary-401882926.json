@@ -1,0 +1,51 @@
+{
+  "header": {
+    "id": "401882926",
+    "league": {
+      "slug": "esp.1"
+    },
+    "season": {
+      "year": 2026,
+      "current": true,
+      "type": 14357,
+      "name": "2026-27 LALIGA"
+    },
+    "competitions": [
+      {
+        "id": "401882926",
+        "date": "2026-08-15T17:30Z",
+        "status": {
+          "type": {
+            "id": "28",
+            "name": "STATUS_FULL_TIME",
+            "state": "post",
+            "completed": true,
+            "description": "Full Time",
+            "detail": "FT",
+            "shortDetail": "FT"
+          }
+        },
+        "competitors": [
+          {
+            "homeAway": "home",
+            "winner": true,
+            "team": {
+              "id": "96",
+              "displayName": "Alavés"
+            },
+            "score": "3"
+          },
+          {
+            "homeAway": "away",
+            "winner": false,
+            "team": {
+              "id": "2922",
+              "displayName": "Getafe"
+            },
+            "score": "0"
+          }
+        ]
+      }
+    ]
+  }
+}

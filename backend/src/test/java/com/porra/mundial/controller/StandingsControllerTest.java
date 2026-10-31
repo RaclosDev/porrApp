@@ -1,16 +1,15 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.repository.PredictionRepository;
-import com.porra.mundial.service.LeaderboardService;
-import com.porra.mundial.service.PredictionService;
+import com.porra.mundial.repository.UserAccountRepository;
+
 import com.porra.mundial.service.StandingsService;
-import com.porra.mundial.service.SyncService;
+import com.porra.mundial.service.OfficialResultsService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.HashMap;
@@ -23,29 +22,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class StandingsControllerTest {
 
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
+
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private StandingsService standingsService;
 
-    @MockBean
-    private SyncService syncService;
+    @MockitoBean
+    private OfficialResultsService officialResultsService;
 
-    @MockBean
+    @MockitoBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
-
-    @MockBean
-    private PredictionRepository predictionRepository;
-
-    @MockBean
-    private PredictionService predictionService;
-
-    @MockBean
-    private LeaderboardService leaderboardService;
-
-    @MockBean
-    private com.porra.mundial.service.GroupService groupService;
 
     @Test
     void getStandings_ReturnsGroupedStandingsMap() throws Exception {
@@ -66,17 +56,5 @@ class StandingsControllerTest {
                 .andExpect(jsonPath("$.A").exists())
                 .andExpect(jsonPath("$.A.España.pts").value(9))
                 .andExpect(jsonPath("$.A.España.diff").value(5));
-    }
-
-    @Test
-    void exportStandingsCsv_ReturnsCsvContent() throws Exception {
-        Mockito.when(leaderboardService.exportLeaderboardCsv(1L))
-                .thenReturn("Posicion,Participante,Nombre Porra,Puntos Totales\n1,Carlos,Mi Porra,100\n");
-
-        mockMvc.perform(get("/api/standings/export/csv?groupId=1"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", "attachment; filename=\"clasificacion-porra.csv\""))
-                .andExpect(content().contentType("text/csv;charset=UTF-8"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Carlos")));
     }
 }

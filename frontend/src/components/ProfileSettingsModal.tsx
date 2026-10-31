@@ -1,31 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { updateMyProfile, uploadMyAvatar, deleteMyAvatar } from '../services/api';
+import {
+  updateMyProfile,
+  uploadMyAvatar,
+  deleteMyAvatar,
+  completeProfileSetup,
+} from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
 import { UserAvatar } from './Avatar';
+import { errorMessage } from '../utils/errors';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 /**
  * Ajustes de cuenta: nombre público y foto de perfil.
  * No cambia el correo ni el nombre de Google ni la vinculación de la cuenta.
  */
-export default function ProfileSettingsModal({ onClose }) {
+export default function ProfileSettingsModal({
+  onClose,
+  onboarding = false,
+}: {
+  onClose: () => void;
+  onboarding?: boolean;
+}) {
   const queryClient = useQueryClient();
   const userName = useAppStore((s) => s.userName);
+  const userId = useAppStore((s) => s.userId);
   const avatarUrl = useAppStore((s) => s.userAvatarUrl);
   const setUserName = useAppStore((s) => s.setUserName);
   const setUserAvatarUrl = useAppStore((s) => s.setUserAvatarUrl);
 
   const [name, setName] = useState(userName || '');
   const [saving, setSaving] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, {
+    onEscape: () => {
+      void dismiss();
+    },
+  });
 
   const refreshEverywhere = () => {
     queryClient.invalidateQueries({ queryKey: ['myGroups'] });
@@ -34,17 +50,18 @@ export default function ProfileSettingsModal({ onClose }) {
   };
 
   const saveName = async () => {
+    if (saving || finishing) return;
     setSaving(true);
     setError('');
     try {
       const res = await updateMyProfile(name);
       setUserName(res.participantName);
-      localStorage.setItem('my_bet_name', res.participantName);
+      localStorage.setItem('my_prediction_name', res.participantName);
       setName(res.participantName);
       refreshEverywhere();
       toast.success('Nombre actualizado');
     } catch (err) {
-      setError(err.message || 'No se pudo guardar el nombre');
+      setError(errorMessage(err, 'No se pudo guardar el nombre'));
     } finally {
       setSaving(false);
     }
@@ -52,121 +69,146 @@ export default function ProfileSettingsModal({ onClose }) {
 
   const unchanged = name.trim() === (userName || '');
 
+  const finish = async (saveChanges: boolean) => {
+    if (finishing || saving) return;
+    setFinishing(true);
+    setError('');
+    try {
+      if (saveChanges && !unchanged) {
+        const result = await updateMyProfile(name.trim());
+        setUserName(result.participantName);
+        refreshEverywhere();
+      }
+      await completeProfileSetup();
+      useAppStore.getState().setProfileSetupCompleted(true);
+      onClose();
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se pudo guardar tu elección. Inténtalo de nuevo.'));
+    } finally {
+      setFinishing(false);
+    }
+  };
+
+  const dismiss = () => {
+    if (saving || finishing) return;
+    if (onboarding) return finish(false);
+    onClose();
+  };
+
   return (
     <div
+      className="paper-dialog-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-settings-title"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '16px',
+      ref={dialogRef}
+      tabIndex={-1}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) void dismiss();
       }}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '460px',
-          background: '#151525',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 id="profile-settings-title" style={{ margin: 0, color: '#fff', fontSize: '1.2rem' }}>
-            Ajustes de cuenta
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar ajustes"
-            className="glass-btn"
-            style={{ width: 32, height: 32, borderRadius: '50%', cursor: 'pointer' }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-            Foto de perfil
-          </span>
-          <ImagePicker
-            idPrefix="avatar-picker"
-            currentUrl={avatarUrl}
-            renderPreview={(url) => <UserAvatar url={url} name={userName} size={72} />}
-            onUpload={async (blob) => {
-              const res = await uploadMyAvatar(blob);
-              setUserAvatarUrl(res.avatarUrl || '');
-              refreshEverywhere();
-              toast.success('Foto actualizada');
-            }}
-            onRemove={async () => {
-              await deleteMyAvatar();
-              setUserAvatarUrl('');
-              refreshEverywhere();
-              toast.success('Foto eliminada');
-            }}
-          />
-        </section>
-
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label
-            htmlFor="profile-name-input"
-            style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}
-          >
-            Nombre público
-          </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input
-              id="profile-name-input"
-              className="glass-input"
-              value={name}
-              maxLength={30}
-              onChange={(e) => setName(e.target.value)}
-              style={{ flex: 1, minWidth: 0 }}
-            />
+      <div className="paper-panel landing-tape paper-dialog">
+        <div className="paper-dialog-body flex flex-col gap-4.5">
+          <div className="flex justify-between items-center">
+            <h3 className="m-0 poster-title text-main text-[1.2rem]" id="profile-settings-title">
+              {onboarding ? 'Así te verán tus amigos' : 'Ajustes de cuenta'}
+            </h3>
             <button
               type="button"
-              className="glass-btn"
-              onClick={saveName}
-              disabled={saving || unchanged || name.trim().length < 2}
-              style={{
-                padding: '6px 14px',
-                fontWeight: 700,
-                borderRadius: '8px',
-                background: 'rgba(0, 210, 211, 0.15)',
-                border: '1px solid rgba(0, 210, 211, 0.45)',
-                color: '#00d2d3',
-                cursor: 'pointer',
+              onClick={() => {
+                void dismiss();
               }}
+              disabled={finishing || saving}
+              aria-label="Cerrar"
+              className="glass-btn w-11 h-11 p-0 rounded-full cursor-pointer"
             >
-              {saving ? 'Guardando…' : 'Guardar'}
+              ✕
             </button>
           </div>
-          {error && (
-            <span role="alert" style={{ fontSize: '0.8rem', color: '#ff6b7a' }}>
-              {error}
-            </span>
+
+          {onboarding && (
+            <p className="m-0 text-muted">
+              Elige tu nombre y, si te apetece, una foto. Puedes cambiarlos después desde tu cuenta.
+            </p>
           )}
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-            Es el nombre que ven tus amigos en clasificaciones y ligas. Tu cuenta de Google y su
-            vinculación no cambian.
-          </span>
-        </section>
+          <section className="flex flex-col gap-2">
+            <span className="text-[0.8rem] font-bold text-muted">Foto de perfil</span>
+            <ImagePicker
+              idPrefix="avatar-picker"
+              currentUrl={avatarUrl}
+              renderPreview={(url) => (
+                <UserAvatar url={url} userId={userId} name={userName} size={72} />
+              )}
+              onUpload={async (blob) => {
+                const res = await uploadMyAvatar(blob);
+                setUserAvatarUrl(res.avatarUrl || '');
+                refreshEverywhere();
+                toast.success('Foto actualizada');
+              }}
+              onRemove={async () => {
+                await deleteMyAvatar();
+                setUserAvatarUrl('');
+                refreshEverywhere();
+                toast.success('Foto eliminada');
+              }}
+            />
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <label className="text-[0.8rem] font-bold text-muted" htmlFor="profile-name-input">
+              Nombre público
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="profile-name-input"
+                className="glass-input flex-1 min-w-0"
+                value={name}
+                disabled={saving || finishing}
+                maxLength={30}
+                onChange={(e) => setName(e.target.value)}
+              />
+              {!onboarding && (
+                <button
+                  type="button"
+                  className="glass-btn py-1.5 px-3.5 font-bold rounded-[8px] bg-[rgba(0,_210,_211,_0.15)] bg-none border border-[rgba(0,_210,_211,_0.45)] text-cyan cursor-pointer"
+                  onClick={saveName}
+                  disabled={saving || finishing || unchanged || name.trim().length < 2}
+                >
+                  {saving ? 'Guardando…' : 'Guardar'}
+                </button>
+              )}
+            </div>
+            {error && (
+              <span className="text-[0.8rem] text-[#b91c1c]" role="alert">
+                {error}
+              </span>
+            )}
+            <span className="text-[0.74rem] text-muted">
+              Es el nombre que ven tus amigos en clasificaciones y ligas. Tu cuenta de Google y su
+              vinculación no cambian.
+            </span>
+          </section>
+        </div>
+        {onboarding && (
+          <div className="flex gap-2 justify-between shrink-0 p-4 border-t border-line">
+            <button
+              type="button"
+              className="glass-btn text-[0.8rem]"
+              disabled={finishing || saving}
+              onClick={() => finish(false)}
+            >
+              Ahora no
+            </button>
+            <button
+              type="button"
+              className="glass-btn primary-btn text-[0.8rem]"
+              disabled={finishing || saving || name.trim().length < 2}
+              onClick={() => finish(true)}
+            >
+              {finishing ? 'Guardando…' : 'Guardar y continuar'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

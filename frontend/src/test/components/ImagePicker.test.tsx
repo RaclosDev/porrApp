@@ -5,7 +5,7 @@ import ImagePicker from '../../components/ImagePicker';
 const prepare = vi.fn();
 vi.mock('../../utils/image', async () => {
   const actual = await vi.importActual('../../utils/image');
-  return { ...actual, prepareImageForUpload: (...a) => prepare(...a) };
+  return { ...actual, prepareImageForUpload: (file: File) => prepare(file) };
 });
 
 const pngFile = () => new File([new Uint8Array([1, 2, 3])], 'foto.png', { type: 'image/png' });
@@ -38,25 +38,35 @@ describe('ImagePicker', () => {
     expect(input).toHaveAttribute('accept', 'image/*');
   });
 
-  it('muestra vista previa al elegir archivo y solo sube al guardar', async () => {
+  it('muestra la foto inmediatamente mientras se prepara y solo sube al guardar', async () => {
+    let finishPreparation: (blob: Blob) => void = () => {};
     const blob = new Blob(['x'], { type: 'image/jpeg' });
-    prepare.mockResolvedValue(blob);
+    prepare.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishPreparation = resolve;
+        }),
+    );
     const { container, onUpload } = setup();
 
-    fireEvent.change(container.querySelector('input[type="file"]'), {
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
       target: { files: [pngFile()] },
     });
-    await waitFor(() => expect(screen.getByTestId('shown')).toHaveTextContent('blob:preview'));
+
+    // La vista previa no debe esperar al recorte/compresión asíncronos.
+    expect(screen.getByTestId('shown')).toHaveTextContent('blob:preview');
+    expect(screen.getByRole('button', { name: /Preparando imagen/i })).toBeDisabled();
     expect(onUpload).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: /Guardar imagen/i }));
+    finishPreparation(blob);
+    fireEvent.click(await screen.findByRole('button', { name: /Guardar imagen/i }));
     await waitFor(() => expect(onUpload).toHaveBeenCalledWith(blob));
   });
 
   it('rechaza archivos que no son imagen sin llamar a la subida', async () => {
     const { container, onUpload } = setup();
     const txt = new File(['hola'], 'nota.txt', { type: 'text/plain' });
-    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [txt] } });
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [txt] } });
     expect(await screen.findByRole('alert')).toHaveTextContent(/JPG, PNG o WebP/);
     expect(prepare).not.toHaveBeenCalled();
     expect(onUpload).not.toHaveBeenCalled();
@@ -68,7 +78,7 @@ describe('ImagePicker', () => {
     onUpload.mockRejectedValueOnce(
       new Error('Solo el administrador de la liga puede cambiar su imagen.'),
     );
-    fireEvent.change(container.querySelector('input[type="file"]'), {
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
       target: { files: [pngFile()] },
     });
     fireEvent.click(await screen.findByRole('button', { name: /Guardar imagen/i }));

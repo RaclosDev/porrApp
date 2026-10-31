@@ -1,0 +1,343 @@
+.bracket-finale {
+  --marker-ink: #0b5f74;
+  --text-main: var(--ink);
+  --text-muted: #596371;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+  grid-template-areas: 'left center right';
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 4px;
+}
+
+.finale-semifinal-left {
+  grid-area: left;
+}
+.finale-semifinal-right {
+  grid-area: right;
+}
+.finale-center {
+  grid-area: center;
+  min-width: 0;
+}
+.finale-semifinal {
+  min-width: 0;
+}
+
+.finale-semifinal h3,
+.finale-final h3,
+.finale-champion h4 {
+  font-family: 'Permanent Marker', cursive;
+  font-weight: 400;
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+
+.finale-semifinal h3 {
+  font-size: 1rem;
+}
+.finale-final h3 {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+}
+
+.bracket-finale .mb-match-card {
+  background: #fffdf7;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bracket-finale .mb-match-card .team-slot {
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  border-radius: 0;
+  min-height: 48px;
+  padding: 8px 12px !important;
+}
+
+.bracket-finale .mb-match-card .team-slot + .team-slot {
+  border-top: 1px solid rgba(17, 24, 39, 0.12);
+}
+
+.finale-final {
+  text-align: center;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  padding: 24px 16px;
+  background: #fffdf7;
+}
+
+.finale-hint {
+  margin: 8px 0;
+  font-size: 0.8rem;
+  color: #596371;
+}
+
+.finale-duel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  margin: 24px 0;
+}
+
+.finale-contender {
+  min-width: 0;
+}
+.finale-versus {
+  font-family: 'Permanent Marker', cursive;
+  color: #596371;
+}
+
+.bracket-finale .finale-contender .team-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: auto !important;
+  min-height: 124px;
+  padding: 12px 4px !important;
+  gap: 12px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.bracket-finale .finale-contender .team-slot img {
+  width: 36px !important;
+  height: 26px !important;
+  margin: 0 !important;
+}
+
+.bracket-finale .finale-contender .team-slot > span:first-of-type {
+  flex: none;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.bracket-finale .finale-contender .team-slot > span + span {
+  font-family: 'Anton', sans-serif;
+  font-size: 2rem;
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  background: transparent;
+}
+
+.bracket-finale .team-slot-btn:hover,
+.bracket-finale .team-slot-btn[aria-pressed='true'] {
+  background: rgba(11, 95, 116, 0.08);
+  box-shadow: inset 0 0 0 1px var(--marker-ink);
+}
+
+.finale-champion {
+  border-top: 1px solid rgba(17, 24, 39, 0.18);
+  padding-top: 20px;
+}
+
+.finale-champion h4 {
+  font-size: 0.9rem;
+  color: #596371;
+}
+
+.bracket-finale .finale-champion .team-slot {
+  height: auto !important;
+  min-height: 48px;
+  justify-content: center;
+  padding: 4px !important;
+  background: transparent;
+  color: var(--marker-ink);
+  border: 0;
+}
+
+.bracket-finale .finale-champion .team-slot > span:first-of-type {
+  flex: none;
+  white-space: normal;
+  font-family: 'Permanent Marker', cursive;
+  font-size: 1.6rem;
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 4px;
+}
+
+.finale-third {
+  margin-top: 24px;
+  border-top: 1px solid rgba(17, 24, 39, 0.18);
+}
+
+.finale-third summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.finale-third summary::-webkit-details-marker {
+  display: none;
+}
+.finale-third summary span {
+  margin-right: auto;
+  font-family: 'Permanent Marker', cursive;
+}
+.finale-third summary strong {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.finale-third summary::after {
+  content: '+';
+  font-size: 1.2rem;
+}
+.finale-third[open] summary::after {
+  content: '−';
+}
+.finale-points {
+  margin: 16px 0 0;
+  color: var(--marker-ink);
+  font-weight: 700;
+}
+
+@media (max-width: 1024px) {
+  .bracket-finale {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: 'left right' 'center center';
+    align-items: start;
+    padding: 12px 0;
+    gap: 24px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bracket-finale {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'left' 'right' 'center';
+    gap: 20px;
+  }
+}
+
+.bracket-mobile-sheet {
+  display: none;
+}
+
+.bracket-desktop-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 24px 8px 16px;
+}
+
+.bracket-paper-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.95fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 24px;
+  min-width: 1160px;
+}
+
+.bracket-sheet {
+  min-width: 0;
+  margin: 0;
+  padding: 60px 16px 24px;
+  --paper-angle: -0.4deg;
+}
+
+.bracket-sheet-center {
+  --paper-angle: 0.3deg;
+  padding: 28px 16px 24px;
+}
+.bracket-sheet-right {
+  --paper-angle: -0.25deg;
+}
+
+.bracket-tree-columns {
+  position: relative;
+  display: flex;
+  gap: 20px;
+}
+
+.bracket-tree-column {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+}
+
+.bracket-round-title {
+  position: absolute;
+  top: -38px;
+  left: 0;
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  font-family: 'Permanent Marker', cursive;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.bracket-round-points {
+  position: absolute;
+  top: -20px;
+  width: 100%;
+  text-align: center;
+}
+
+.bracket-tree-match {
+  position: absolute;
+  left: 0;
+  width: 100%;
+}
+.bracket-tree-match .team-slot {
+  min-height: 36px;
+}
+
+.bracket-sheet-center .bracket-finale {
+  padding: 0;
+  background: transparent;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas: 'left right' 'center center';
+  align-items: start;
+  gap: 24px 12px;
+}
+
+.bracket-sheet-center .finale-semifinal h3 {
+  font-size: 0.85rem;
+}
+.bracket-sheet-center .finale-semifinal .team-slot {
+  padding: 8px 6px !important;
+  gap: 4px;
+}
+.bracket-sheet-center .finale-semifinal .team-slot img {
+  margin-right: 0 !important;
+}
+.bracket-sheet-center .finale-final {
+  padding: 20px 12px;
+}
+.bracket-sheet-center .finale-duel {
+  margin: 16px 0;
+}
+
+@media (max-width: 1024px) {
+  .bracket-desktop-scroll {
+    display: none;
+  }
+  .bracket-mobile-sheet {
+    display: block;
+  }
+}
+
+.viewer-bracket-heading {
+  padding: 16px 20px 4px;
+  margin-bottom: 16px;
+}
+
+.modal-content.viewer-with-bracket {
+  background: var(--bg-color);
+  padding: 24px 12px;
+}

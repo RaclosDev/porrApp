@@ -1,25 +1,11 @@
 package com.porra.mundial.config;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Clase de utilidades y constantes globales de la aplicación.
- * <p>
- * Principalmente contiene el diccionario de traducción estático para convertir 
- * los nombres de los países devueltos por la API de ESPN (en inglés o con alias raros) 
- * a su nomenclatura oficial en español que utiliza nuestro Frontend.
- * </p>
- */
+/** Nombres de selecciones de ESPN traducidos al español del frontend. */
 public class Constants {
 
-    /**
-     * Diccionario inmutable en memoria que mapea el nombre del equipo de la API (Key)
-     * a su versión localizada en español (Value).
-     * Se usa un LinkedHashMap para mantener el orden de inserción por claridad,
-     * aunque a nivel de búsqueda (get) el orden no importe.
-     */
     private static final Map<String, String> API_TO_LOCAL = new LinkedHashMap<>();
     static {
         API_TO_LOCAL.put("Mexico", "México");
@@ -74,7 +60,6 @@ public class Constants {
         
         // Alias extra de la API de ESPN (cuando ESPN devuelve acrónimos o nombres distintos)
         API_TO_LOCAL.put("USA", "EEUU");
-        API_TO_LOCAL.put("United States", "EEUU");
         API_TO_LOCAL.put("Turkiye", "Turquía");
         API_TO_LOCAL.put("Türkiye", "Turquía");
         API_TO_LOCAL.put("Czechia", "Chequia");
@@ -82,23 +67,8 @@ public class Constants {
         API_TO_LOCAL.put("Congo DR", "RD Congo");
     }
 
-    /**
-     * Convierte un nombre de equipo proveniente de la API externa (ESPN) a su 
-     * nombre correspondiente en Español (local).
-     * 
-     * @param apiName Nombre original proporcionado por la API (ej. "United States")
-     * @return El nombre traducido (ej. "EEUU"). Si no está en el mapa, devuelve el original.
-     */
+    /** @return nombre en español, o el original si no está en el mapa */
     public static String getLocalName(String apiName) {
         return API_TO_LOCAL.getOrDefault(apiName, apiName);
-    }
-
-    /**
-     * Recupera el mapa completo de traducciones. Es de solo lectura.
-     * 
-     * @return Mapa no modificable de API Name -> Local Name.
-     */
-    public static Map<String, String> getApiToLocalMap() {
-        return Collections.unmodifiableMap(API_TO_LOCAL);
     }
 }

@@ -6,27 +6,24 @@ import java.util.Map;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.NotEmpty;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * DTO Principal para las Predicciones (PredictionData).
- * Representa la estructura de la porra: elecciones de fase de grupos hasta la final.
- */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PredictionDataDTO {
+    /** Absent/1 preserves historical brackets; 2 follows the FIFA 2026 draw topology. */
+    private Integer topologyVersion;
     
     @NotBlank(message = "El nombre de usuario o porra es obligatorio")
     private String user;
     
+    // "bet" se mantiene para leer pronósticos guardados antes del renombrado a "prediction".
     @JsonAlias({"bet", "predictionName", "name"})
     private String prediction;
     
-    @NotEmpty(message = "Las predicciones de la fase de grupos no pueden estar vacías")
     private Map<String, List<String>> groups;
     
     private List<String> thirds;
@@ -85,14 +82,6 @@ public class PredictionDataDTO {
         if (this.r32 == null) {
             this.r32 = r1;
         }
-    }
-
-    public String getBet() {
-        return prediction;
-    }
-
-    public void setBet(String bet) {
-        this.prediction = bet;
     }
 
     @com.fasterxml.jackson.annotation.JsonIgnore

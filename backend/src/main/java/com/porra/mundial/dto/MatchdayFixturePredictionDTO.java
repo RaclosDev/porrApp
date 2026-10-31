@@ -6,10 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import tools.jackson.databind.annotation.JsonSerialize;
 
-/**
- * DTO que representa un partido del calendario junto con el pronóstico del usuario y su estado de bloqueo y puntos.
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -23,6 +21,7 @@ public class MatchdayFixturePredictionDTO {
     private Long awayTeamId;
     private String homeTeamLogo;
     private String awayTeamLogo;
+    @JsonSerialize(using = MadridDateTimeSerializer.class)
     private LocalDateTime matchDate;
     private String round;
     private String groupName;

@@ -6,15 +6,17 @@ dist/
 dev-dist/
 .vite/
 *.tsbuildinfo
+coverage/
 playwright-report/
 test-results/
-coverage/
 
 # ==============================================================================
 # Maven / Backend
 # ==============================================================================
 backend/target/
 backend/data/
+# La build del frontend se copia aquí en el Dockerfile; no se versiona
+backend/src/main/resources/static/
 !backend/src/
 
 # ==============================================================================
@@ -77,19 +79,14 @@ public/workbox-*.js
 AGENTS.md
 GEMINI.md
 .agents/
+.claude/
+tmp/
 graphify-out/
 .graphify*
 
 apache-maven-3.9.6/
 maven/
 maven.zip
-*.json
-!package.json
-!package-lock.json
-!frontend/package.json
-!frontend/package-lock.json
-!tsconfig*.json
-!frontend/tsconfig*.json
 cv*.html
 *.zip
 scratch/

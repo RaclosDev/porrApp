@@ -2,6 +2,7 @@ package com.porra.mundial.util;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
@@ -15,6 +16,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Validación y normalización de imágenes subidas por los usuarios (logos de liga y fotos de perfil).
@@ -28,12 +34,19 @@ public final class ImageProcessor {
 
     /** Tamaño máximo del archivo subido. */
     public static final int MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
-    /** Máximo de píxeles de la imagen original (~25 MP). */
-    public static final long MAX_SOURCE_PIXELS = 25_000_000L;
+    /** Máximo de píxeles de la imagen original (~6 MP: una foto de móvil reducida o un logo). */
+    public static final long MAX_SOURCE_PIXELS = 6_000_000L;
     /** Lado máximo de la imagen guardada. */
     public static final int MAX_OUTPUT_DIMENSION = 512;
 
     private static final float JPEG_QUALITY = 0.85f;
+
+    /**
+     * Decodificar ocupa varios MB por imagen: como mucho dos a la vez, para que muchas subidas
+     * simultáneas no agoten la memoria del contenedor.
+     */
+    private static final Semaphore DECODE_SLOTS = new Semaphore(2);
+    private static final long DECODE_WAIT_MILLIS = 5_000;
 
     static {
         ImageIO.setUseCache(false);
@@ -52,6 +65,10 @@ public final class ImageProcessor {
      * @throws IllegalArgumentException con un mensaje apto para mostrar al usuario si no es válida.
      */
     public static ProcessedImage process(byte[] raw) {
+        return process(raw, DECODE_SLOTS, DECODE_WAIT_MILLIS);
+    }
+
+    static ProcessedImage process(byte[] raw, Semaphore slots, long waitMillis) {
         if (raw == null || raw.length == 0) {
             throw new IllegalArgumentException("El archivo está vacío.");
         }
@@ -64,9 +81,36 @@ public final class ImageProcessor {
             throw new IllegalArgumentException("Formato no admitido. Usa una imagen JPG o PNG.");
         }
 
-        BufferedImage source = decode(raw, format);
-        BufferedImage scaled = scaleDown(source, format);
-        return encode(scaled, format);
+        acquire(slots, waitMillis);
+        try {
+            BufferedImage source = decode(raw, format);
+            BufferedImage scaled = scaleDown(source, format);
+            return encode(scaled, format);
+        } finally {
+            slots.release();
+        }
+    }
+
+    private static void acquire(Semaphore slots, long waitMillis) {
+        boolean acquired;
+        try {
+            acquired = slots.tryAcquire(waitMillis, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            acquired = false;
+        }
+        if (!acquired) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Hay muchas imágenes subiéndose a la vez. Inténtalo de nuevo en unos segundos.");
+        }
+    }
+
+    /**
+     * Factor de submuestreo al decodificar: lee una de cada {@code n} filas y columnas mientras
+     * quede al menos el doble del lado final, así no se decodifica a tamaño completo para tirarlo.
+     */
+    static int subsampling(int width, int height) {
+        return Math.max(1, Math.max(width, height) / (2 * MAX_OUTPUT_DIMENSION));
     }
 
     /** Detecta el formato por su firma ("png", "jpeg") o devuelve null si no es ninguno de los admitidos. */
@@ -99,10 +143,13 @@ public final class ImageProcessor {
             int width = reader.getWidth(0);
             int height = reader.getHeight(0);
             if (width <= 0 || height <= 0 || (long) width * height > MAX_SOURCE_PIXELS) {
-                throw new IllegalArgumentException("La imagen es demasiado grande (máximo 25 megapíxeles).");
+                throw new IllegalArgumentException("La imagen es demasiado grande (máximo 6 megapíxeles).");
             }
 
-            BufferedImage image = reader.read(0);
+            ImageReadParam param = reader.getDefaultReadParam();
+            int step = subsampling(width, height);
+            param.setSourceSubsampling(step, step, 0, 0);
+            BufferedImage image = reader.read(0, param);
             if (image == null) {
                 throw invalid();
             }
