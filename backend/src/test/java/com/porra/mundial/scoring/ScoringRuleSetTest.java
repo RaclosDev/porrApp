@@ -1,5 +1,6 @@
 package com.porra.mundial.scoring;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Edition;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -109,11 +110,11 @@ class ScoringRuleSetTest {
     @Test
     @DisplayName("Una regla negativa o por encima del máximo no es válida")
     void validateRejectsOutOfRangeValues() {
-        IllegalArgumentException negative = assertThrows(IllegalArgumentException.class,
+        BusinessException negative = assertThrows(BusinessException.class,
                 () -> ScoringRuleSet.builder().correctSignPoints(-1).build().validate());
         assertTrue(negative.getMessage().contains("correctSignPoints"), negative.getMessage());
 
-        IllegalArgumentException tooHigh = assertThrows(IllegalArgumentException.class,
+        BusinessException tooHigh = assertThrows(BusinessException.class,
                 () -> ScoringRuleSet.builder().championPoints(ScoringRuleSet.MAX_POINTS + 1).build().validate());
         assertTrue(tooHigh.getMessage().contains("championPoints"), tooHigh.getMessage());
     }
@@ -132,11 +133,11 @@ class ScoringRuleSetTest {
         for (String body : new String[]{"{\"exactScorePoints\":2.5}", "{\"exactScorePoints\":\"5\"}",
                 "{\"exactScorePoints\":null}", "{\"exactScorePoints\":-1}", "{\"exactScorePoints\":1001}",
                 "{\"exactScorePoints\":3000000000}", "[1,2]"}) {
-            IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+            BusinessException error = assertThrows(BusinessException.class,
                     () -> ScoringRuleSet.fromRequest(MAPPER.readTree(body)), body);
             assertFalse(error.getMessage().isBlank(), body);
         }
-        assertThrows(IllegalArgumentException.class, () -> ScoringRuleSet.fromRequest(null));
+        assertThrows(BusinessException.class, () -> ScoringRuleSet.fromRequest(null));
     }
     @Test
     void disabledPichichiChangesEffectivePointsButPreservesConfiguredRules() {
