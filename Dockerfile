@@ -15,7 +15,7 @@ RUN npm run build
 # El resultado queda en /app/frontend/dist
 
 # Etapa 2: Build del Backend (Spring Boot + Maven Wrapper, misma versión de Maven que en local y CI)
-FROM eclipse-temurin:21-jdk-alpine@sha256:b78a1d385da875588e21207f07dddf9a1418849971ae857fb24c8f3a7d441a72 AS backend-build
+FROM eclipse-temurin:25-jdk-alpine@sha256:425f0b733cb23843bd78dbe5552513976d0cf12b9722752c48a5161cf5cd2f32 AS backend-build
 WORKDIR /app
 
 # Copiamos el wrapper y el pom.xml y descargamos dependencias (cache)
@@ -33,7 +33,7 @@ COPY --from=frontend-build /app/frontend/dist ./src/main/resources/static
 RUN sh ./mvnw clean package -DskipTests -B
 
 # Etapa 3: Imagen de produccion (JRE minimo Alpine)
-FROM eclipse-temurin:21-jre-alpine@sha256:82cf3d9ccbe1ed46252008d51b2f2329e6b9e8a2f4394c4bebefc3ea7f4b1372
+FROM eclipse-temurin:25-jre-alpine@sha256:56f273059de6b13a6b49fe0ded691ed2d0399bbee76156a8f2d385f7524a3d43
 WORKDIR /app
 
 # Crear usuario y grupo sin privilegios para mitigar riesgos de contenedor
