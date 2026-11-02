@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.repository.UserAccountRepository;
 
 import tools.jackson.databind.ObjectMapper;
@@ -107,7 +108,7 @@ class MatchPredictionControllerTest {
                 .build();
 
         Mockito.when(matchPredictionService.saveMatchdayPredictions(eq("user@test.com"), eq(10L), any()))
-                .thenThrow(new IllegalStateException("El partido ya ha comenzado y está bloqueado."));
+                .thenThrow(BusinessException.conflict("El partido ya ha comenzado y está bloqueado."));
 
         mockMvc.perform(post("/api/predictions/matchday").principal(USER)
                         .contentType(MediaType.APPLICATION_JSON)

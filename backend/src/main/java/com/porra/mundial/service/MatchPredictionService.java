@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
 import com.porra.mundial.dto.MatchdayFriendPredictionDTO;
@@ -54,7 +55,7 @@ public class MatchPredictionService {
                 }
             }
             if (!isMember) {
-                throw new SecurityException("No perteneces a esta liga privada.");
+                throw BusinessException.forbidden("No perteneces a esta liga privada.");
             }
         }
         Edition edition = groupId != null
@@ -66,7 +67,7 @@ public class MatchPredictionService {
         }
 
         if (edition.getCompetition() == null) {
-            throw new IllegalStateException("La liga no tiene una competición configurada.");
+            throw BusinessException.conflict("La liga no tiene una competición configurada.");
         }
         Long competitionId = edition.getCompetition().getId();
         List<Match> matches;
@@ -195,33 +196,33 @@ public class MatchPredictionService {
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public int saveMatchdayPredictions(String email, Long groupId, List<MatchPredictionItemDTO> items) {
         if (email == null || email.isBlank()) {
-            throw new SecurityException("Usuario no autenticado");
+            throw BusinessException.forbidden("Usuario no autenticado");
         }
         if (groupId == null) {
-            throw new IllegalArgumentException("El identificador de grupo es obligatorio");
+            throw BusinessException.badRequest("El identificador de grupo es obligatorio");
         }
         if (items == null || items.isEmpty()) {
             return 0;
         }
 
         UserAccount user = userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + email));
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
 
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró una edición activa para la liga " + groupId));
+                .orElseThrow(() -> BusinessException.notFound("No se encontró una edición activa para esta liga"));
 
         if (edition.getPoolFormat() != PoolFormat.MATCH_DAY) {
-            throw new IllegalArgumentException("Esta liga no utiliza la modalidad de pronósticos por jornadas.");
+            throw BusinessException.badRequest("Esta liga no utiliza la modalidad de pronósticos por jornadas.");
         }
 
         if (edition.isLocked()) {
-            throw new IllegalStateException("El plazo general de la porra ha finalizado.");
+            throw BusinessException.conflict("El plazo general de la porra ha finalizado.");
         }
 
         Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
         boolean isGlobal = edition.getLeague() != null && edition.getLeague().isGlobal();
         if (!membershipRepository.existsById(memId) && !isGlobal) {
-            throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
+            throw BusinessException.forbidden("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
         }
 
         Prediction prediction = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
@@ -249,23 +250,23 @@ public class MatchPredictionService {
             if (item.getMatchId() == null) continue;
 
             Match match = matchRepository.findById(item.getMatchId())
-                    .orElseThrow(() -> new IllegalArgumentException("Partido no encontrado con ID: " + item.getMatchId()));
+                    .orElseThrow(() -> BusinessException.notFound("Partido no encontrado"));
 
             if (edition.getCompetition() == null || match.getCompetition() == null
                     || !Objects.equals(edition.getCompetition().getId(), match.getCompetition().getId())) {
-                throw new IllegalArgumentException("El partido no pertenece a la competición de esta liga.");
+                throw BusinessException.badRequest("El partido no pertenece a la competición de esta liga.");
             }
 
             if (Boolean.TRUE.equals(match.getFinished())) {
-                throw new IllegalStateException(String.format("El partido %s vs %s ya ha finalizado y no puede modificarse.",
+                throw BusinessException.conflict(String.format("El partido %s vs %s ya ha finalizado y no puede modificarse.",
                         match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Local",
                         match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante"));
             }
             if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
-                throw new IllegalStateException("El estado del partido no admite pronósticos.");
+                throw BusinessException.conflict("El estado del partido no admite pronósticos.");
             }
             if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) {
-                throw new IllegalStateException(String.format("El partido %s vs %s ya ha comenzado (hora de inicio: %s) y su pronóstico está bloqueado.",
+                throw BusinessException.conflict(String.format("El partido %s vs %s ya ha comenzado (hora de inicio: %s) y su pronóstico está bloqueado.",
                         match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Local",
                         match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante",
                         match.getMatchDate()));
@@ -274,14 +275,14 @@ public class MatchPredictionService {
             // Calcular signo automáticamente si no se especifica explícitamente pero hay goles
             String sign = item.getSign();
             if ((item.getHomeScore() == null) != (item.getAwayScore() == null)) {
-                throw new IllegalArgumentException("Completa los dos marcadores del partido.");
+                throw BusinessException.badRequest("Completa los dos marcadores del partido.");
             }
             if (item.getHomeScore() != null && item.getAwayScore() != null) {
                 int cmp = Integer.compare(item.getHomeScore(), item.getAwayScore());
                 sign = cmp > 0 ? "1" : (cmp == 0 ? "X" : "2");
             }
             if (!Set.of("1", "X", "2").contains(sign == null ? "" : sign)) {
-                throw new IllegalArgumentException("El pronóstico debe incluir un marcador completo o un signo 1, X o 2.");
+                throw BusinessException.badRequest("El pronóstico debe incluir un marcador completo o un signo 1, X o 2.");
             }
 
             MatchPrediction matchPred = matchPredictionRepository.findByPredictionIdAndMatchId(prediction.getId(), match.getId())
@@ -392,11 +393,11 @@ public class MatchPredictionService {
     @Transactional(readOnly = true)
     public List<MatchdayFriendPredictionDTO> getFriendPredictionsForMatch(String email, Long groupId, Long matchId) {
         if (groupId == null || matchId == null) {
-            throw new IllegalArgumentException("El grupo y el partido son obligatorios");
+            throw BusinessException.badRequest("El grupo y el partido son obligatorios");
         }
 
         Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new IllegalArgumentException("Partido no encontrado: " + matchId));
+                .orElseThrow(() -> BusinessException.notFound("Partido no encontrado"));
 
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
 
@@ -413,7 +414,7 @@ public class MatchPredictionService {
                     isMember = membershipRepository.existsById(memId);
                 }
             if (!isMember) {
-                throw new SecurityException("No perteneces a esta liga privada.");
+                throw BusinessException.forbidden("No perteneces a esta liga privada.");
             }
         }
 

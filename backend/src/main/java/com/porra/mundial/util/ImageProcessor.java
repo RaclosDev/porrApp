@@ -1,5 +1,6 @@
 package com.porra.mundial.util;
 
+import com.porra.mundial.exception.BusinessException;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReadParam;
@@ -62,7 +63,7 @@ public final class ImageProcessor {
     /**
      * Valida y normaliza la imagen.
      *
-     * @throws IllegalArgumentException con un mensaje apto para mostrar al usuario si no es válida.
+     * @throws BusinessException con un mensaje apto para mostrar al usuario si no es válida.
      */
     public static ProcessedImage process(byte[] raw) {
         return process(raw, DECODE_SLOTS, DECODE_WAIT_MILLIS);
@@ -70,15 +71,15 @@ public final class ImageProcessor {
 
     static ProcessedImage process(byte[] raw, Semaphore slots, long waitMillis) {
         if (raw == null || raw.length == 0) {
-            throw new IllegalArgumentException("El archivo está vacío.");
+            throw BusinessException.badRequest("El archivo está vacío.");
         }
         if (raw.length > MAX_UPLOAD_BYTES) {
-            throw new IllegalArgumentException("La imagen supera el tamaño máximo de 3 MB.");
+            throw BusinessException.badRequest("La imagen supera el tamaño máximo de 3 MB.");
         }
 
         String format = detectFormat(raw);
         if (format == null) {
-            throw new IllegalArgumentException("Formato no admitido. Usa una imagen JPG o PNG.");
+            throw BusinessException.badRequest("Formato no admitido. Usa una imagen JPG o PNG.");
         }
 
         acquire(slots, waitMillis);
@@ -143,7 +144,7 @@ public final class ImageProcessor {
             int width = reader.getWidth(0);
             int height = reader.getHeight(0);
             if (width <= 0 || height <= 0 || (long) width * height > MAX_SOURCE_PIXELS) {
-                throw new IllegalArgumentException("La imagen es demasiado grande (máximo 6 megapíxeles).");
+                throw BusinessException.badRequest("La imagen es demasiado grande (máximo 6 megapíxeles).");
             }
 
             ImageReadParam param = reader.getDefaultReadParam();
@@ -155,8 +156,8 @@ public final class ImageProcessor {
             }
             return image;
         } catch (IOException | RuntimeException e) {
-            if (e instanceof IllegalArgumentException iae) {
-                throw iae;
+            if (e instanceof BusinessException businessException) {
+                throw businessException;
             }
             throw invalid();
         } finally {
@@ -222,7 +223,7 @@ public final class ImageProcessor {
         }
     }
 
-    private static IllegalArgumentException invalid() {
-        return new IllegalArgumentException("La imagen no es válida o está dañada. Prueba con otra JPG o PNG.");
+    private static BusinessException invalid() {
+        return BusinessException.badRequest("La imagen no es válida o está dañada. Prueba con otra JPG o PNG.");
     }
 }

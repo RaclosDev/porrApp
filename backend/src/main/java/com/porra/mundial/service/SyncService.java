@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import tools.jackson.databind.JsonNode;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
@@ -251,7 +252,7 @@ public class SyncService {
     private ImportSnapshot downloadImport(Long competitionId) {
         checkImportCancellation();
         Competition competition = competitionRepository.findById(competitionId)
-                .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada con ID: " + competitionId));
+                .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
         String slug = competition.getExternalId();
         if (slug == null || slug.isBlank()) {
             throw new IllegalArgumentException("La competición no tiene proveedor externo configurado");

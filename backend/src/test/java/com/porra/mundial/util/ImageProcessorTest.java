@@ -1,5 +1,6 @@
 package com.porra.mundial.util;
 
+import com.porra.mundial.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -54,12 +55,12 @@ class ImageProcessorTest {
     @Test
     @DisplayName("Rechaza archivos vacíos, texto, SVG y GIF aunque lleguen con otro Content-Type")
     void rejectsNonImages() {
-        assertThrows(IllegalArgumentException.class, () -> ImageProcessor.process(new byte[0]));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BusinessException.class, () -> ImageProcessor.process(new byte[0]));
+        assertThrows(BusinessException.class,
                 () -> ImageProcessor.process("<script>alert(1)</script>".getBytes(StandardCharsets.UTF_8)));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BusinessException.class,
                 () -> ImageProcessor.process("<svg xmlns='http://www.w3.org/2000/svg'/>".getBytes(StandardCharsets.UTF_8)));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BusinessException.class,
                 () -> ImageProcessor.process("GIF89a....".getBytes(StandardCharsets.UTF_8)));
     }
 
@@ -68,14 +69,14 @@ class ImageProcessorTest {
     void rejectsSpoofedHeaders() {
         byte[] fakePng = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4};
         byte[] fakeJpeg = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 1, 2};
-        assertThrows(IllegalArgumentException.class, () -> ImageProcessor.process(fakePng));
-        assertThrows(IllegalArgumentException.class, () -> ImageProcessor.process(fakeJpeg));
+        assertThrows(BusinessException.class, () -> ImageProcessor.process(fakePng));
+        assertThrows(BusinessException.class, () -> ImageProcessor.process(fakeJpeg));
     }
 
     @Test
     @DisplayName("Rechaza archivos por encima de 3 MB")
     void rejectsOversizedUpload() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        BusinessException ex = assertThrows(BusinessException.class,
                 () -> ImageProcessor.process(new byte[ImageProcessor.MAX_UPLOAD_BYTES + 1]));
         assertTrue(ex.getMessage().contains("3 MB"));
     }
@@ -85,7 +86,7 @@ class ImageProcessorTest {
     void rejectsPixelBomb() throws Exception {
         byte[] bomb = image(6000, 6000, "png", false); // ~36 MP, pesa muy poco comprimido
         assertTrue(bomb.length < ImageProcessor.MAX_UPLOAD_BYTES);
-        assertThrows(IllegalArgumentException.class, () -> ImageProcessor.process(bomb));
+        assertThrows(BusinessException.class, () -> ImageProcessor.process(bomb));
     }
 
     @Test
@@ -105,7 +106,7 @@ class ImageProcessorTest {
     @Test
     @DisplayName("El máximo es de unos 6 MP; por debajo se decodifica submuestreada y se reduce a 512 px")
     void enforcesSixMegapixelsAndSubsamples() throws Exception {
-        assertThrows(IllegalArgumentException.class, () -> ImageProcessor.process(image(3000, 2400, "png", false)));
+        assertThrows(BusinessException.class, () -> ImageProcessor.process(image(3000, 2400, "png", false)));
 
         assertEquals(2, ImageProcessor.subsampling(2400, 2400));
         assertEquals(1, ImageProcessor.subsampling(1000, 500));
@@ -127,7 +128,7 @@ class ImageProcessorTest {
         Semaphore slots = new Semaphore(1);
         ImageProcessor.process(png, slots, 10);
         byte[] fakePng = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4};
-        assertThrows(IllegalArgumentException.class, () -> ImageProcessor.process(fakePng, slots, 10));
+        assertThrows(BusinessException.class, () -> ImageProcessor.process(fakePng, slots, 10));
         assertEquals(1, slots.availablePermits());
     }
 }
