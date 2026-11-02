@@ -77,7 +77,10 @@ public/workbox-*.js
 # AI Config & Graphify
 # ==============================================================================
 AGENTS.md
+AGENTS.override.md
+CLAUDE.md
 GEMINI.md
+.codex/
 .agents/
 .claude/
 tmp/
@@ -96,3 +99,5 @@ anti-slop/
 frontend/dev-dist/
 backend/.mvn/wrapper/maven-wrapper.jar
 DESIGN.md
+docs/audits/
+docs/plans/
