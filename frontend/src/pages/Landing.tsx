@@ -177,11 +177,11 @@ export default function Landing() {
               eliges al pichichi. Los cruces se calculan solos y los puntos llegan con cada partido.
             </p>
             <img
-              src="/landing/cuadro.png"
+              src="/landing/cuadro.jpg"
               alt="El cuadro del Mundial 2026 en PorrApp: de dieciseisavos a la final, con España campeona."
               loading="lazy"
-              width="800"
-              height="422"
+              width="1600"
+              height="1082"
               className="w-full h-auto rounded-md border border-[rgba(17,24,39,0.2)]"
             />
             <Link to="/demo" className="landing-link self-start">
@@ -201,6 +201,19 @@ export default function Landing() {
               Para LaLiga, la Premier, la Champions y otras ocho competiciones. Pronosticas el
               marcador de cada partido, y cada uno se cierra solo cuando empieza.
             </p>
+            <figure className="m-0">
+              <img
+                src="/landing/jornadas.jpg"
+                alt="Ejemplo de predicciones por jornada: marcadores y opciones 1X2 para cada partido."
+                loading="lazy"
+                width="900"
+                height="997"
+                className="w-full h-auto rounded-md border border-[rgba(17,24,39,0.2)]"
+              />
+              <figcaption className="text-sm text-[#374151] mt-2">
+                Ejemplo de una jornada con datos de demostración.
+              </figcaption>
+            </figure>
             <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
           </motion.article>
         </div>

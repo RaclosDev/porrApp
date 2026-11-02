@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import java.util.Map;
 import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
@@ -60,7 +61,7 @@ public class GroupService {
         } while (leagueRepository.findByJoinCode(joinCode).isPresent());
 
         UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado por email: " + email));
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
 
         // Proteccion contra doble-click / peticiones concurrentes duplicadas
         List<League> existingLeagues = leagueRepository.findByNameAndAdminUser(name, adminUser);
@@ -74,7 +75,7 @@ public class GroupService {
         }
 
         Competition comp = competitionRepository.findById(competitionId)
-                .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
         comp = resolveCanonicalCompetition(comp);
 
         League group = League.builder()
@@ -161,13 +162,13 @@ public class GroupService {
     public League updateGroup(Long groupId, String newName, String newRules, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         boolean changed = false;
 
         if (newName != null) {
             if (newName.trim().isEmpty()) {
-                throw new IllegalArgumentException("El nombre no puede estar vacío");
+                throw BusinessException.badRequest("El nombre no puede estar vacío");
             }
             group.setName(newName.trim());
             changed = true;
@@ -179,7 +180,7 @@ public class GroupService {
         }
 
         if (!changed) {
-            throw new IllegalArgumentException("No hay cambios que guardar");
+            throw BusinessException.badRequest("No hay cambios que guardar");
         }
 
         return leagueRepository.save(group);
@@ -292,13 +293,13 @@ public class GroupService {
      * Comprueba que el usuario puede ver los datos de una liga: la Porra Global es pública,
      * el resto solo para sus miembros.
      *
-     * @throws SecurityException si la liga es privada y el usuario no pertenece a ella
+     * @throws BusinessException si la liga es privada y el usuario no pertenece a ella
      */
     @Transactional(readOnly = true)
     public void assertCanView(Long groupId, String email) {
         if (groupId == null || League.isGlobalId(groupId)) return;
         if (!isUserMemberOrAdmin(groupId, email)) {
-            throw new SecurityException("No perteneces a esta liga privada");
+            throw BusinessException.forbidden("No perteneces a esta liga privada");
         }
     }
 
@@ -319,10 +320,10 @@ public class GroupService {
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void leaveGroup(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-            .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+            .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         if (group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
-            throw new IllegalArgumentException("El creador de la liga no puede abandonarla.");
+            throw BusinessException.badRequest("El creador de la liga no puede abandonarla.");
         }
 
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
@@ -342,10 +343,10 @@ public class GroupService {
     /** Falla si el usuario no administra la liga. */
     private void verifyGroupAdmin(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
                                
         if (!group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
-            throw new SecurityException("No tienes permiso para administrar esta liga.");
+            throw BusinessException.forbidden("No tienes permiso para administrar esta liga.");
         }
     }
 
@@ -355,7 +356,7 @@ public class GroupService {
     @Transactional(readOnly = true)
     public List<GroupMemberDTO> getGroupMembers(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         boolean isGlobal = group.isGlobal();
         boolean callerIsAdmin = false;
@@ -366,11 +367,11 @@ public class GroupService {
             if (!callerIsAdmin && !isGlobal) {
                 UserAccount caller = userAccountRepository.findByGoogleEmail(email).orElse(null);
                 if (caller == null || !membershipRepository.existsById(new Membership.MembershipId(caller.getId(), groupId))) {
-                    throw new SecurityException("No perteneces a esta liga privada.");
+                    throw BusinessException.forbidden("No perteneces a esta liga privada.");
                 }
             }
         } else if (!isGlobal) {
-            throw new SecurityException("No autenticado para consultar miembros de una liga privada.");
+            throw BusinessException.forbidden("No autenticado para consultar miembros de una liga privada.");
         }
 
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
@@ -428,7 +429,7 @@ public class GroupService {
         verifyGroupAdmin(groupId, email);
 
         UserAccount admin = userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Usuario no encontrado"));
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
         paymentService.setPayment(groupId, targetUserId, status, admin);
     }
 
@@ -440,10 +441,10 @@ public class GroupService {
     public void kickMember(Long groupId, Long targetUserId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         if (group.getAdminUser() != null && group.getAdminUser().getId().equals(targetUserId)) {
-            throw new IllegalArgumentException("No puedes expulsar al administrador creador de la liga.");
+            throw BusinessException.badRequest("No puedes expulsar al administrador creador de la liga.");
         }
 
         List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
@@ -465,7 +466,7 @@ public class GroupService {
     public String regenerateJoinCode(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         String newCode;
         do {

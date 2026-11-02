@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
 import com.porra.mundial.model.*;
@@ -183,7 +184,7 @@ class MatchPredictionServiceTest {
                 .awayScore(1)
                 .build();
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
 
         assertTrue(ex.getMessage().contains("ya ha comenzado"));
@@ -206,7 +207,7 @@ class MatchPredictionServiceTest {
                 .awayScore(1)
                 .build();
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
 
         assertTrue(ex.getMessage().contains("ya ha finalizado"));
@@ -222,7 +223,7 @@ class MatchPredictionServiceTest {
 
         MatchPredictionItemDTO item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
 
-        SecurityException ex = assertThrows(SecurityException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
 
         assertTrue(ex.getMessage().contains("No perteneces a esta liga privada"));
@@ -326,7 +327,7 @@ class MatchPredictionServiceTest {
         when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
 
         var item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
-        var error = assertThrows(IllegalArgumentException.class, () ->
+        var error = assertThrows(BusinessException.class, () ->
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
         assertTrue(error.getMessage().contains("no pertenece"));
         verify(matchPredictionRepository, never()).save(any());

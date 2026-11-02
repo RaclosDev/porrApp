@@ -56,6 +56,18 @@ for (const viewport of [
       await page.getByRole('button', { name: 'Entrar con Google', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Iniciar sesión' });
       await expect(dialog).toBeVisible();
+      const panel = dialog.locator('.modal-content');
+      expect(
+        await panel.evaluate((element) => {
+          const style = getComputedStyle(element);
+          return { x: style.overflowX, y: style.overflowY };
+        }),
+      ).toEqual({ x: 'visible', y: 'visible' });
+      await page.setViewportSize({ width: viewport.width, height: 240 });
+      const back = dialog.getByRole('button', { name: 'Volver al inicio' });
+      await back.scrollIntoViewIfNeeded();
+      await expect(back).toBeInViewport();
+
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();
       expect(errors).toEqual([]);
