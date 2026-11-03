@@ -226,6 +226,38 @@ class FlywayFreshDatabaseTest {
         }
     }
 
+    @Test
+    void v54PausesMatchBonusesWithoutChangingPredictionsOrConfiguredRules() throws Exception {
+        String url = createDatabase("v54_sign_only");
+        flyway(url, "53").migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("INSERT INTO app_users (id, google_email, google_name, participant_name) OVERRIDING SYSTEM VALUE"
+                    + " VALUES (9541, 'sign@test.com', 'Sign', 'Sign')");
+            st.execute("INSERT INTO leagues (id, name, join_code, admin_user_id) OVERRIDING SYSTEM VALUE"
+                    + " VALUES (9541, 'Sign', 'SIGN54', 9541)");
+            st.execute("INSERT INTO editions (id, league_id, competition_id, pool_format, scoring_rules_json) OVERRIDING SYSTEM VALUE"
+                    + " VALUES (9541, 9541, (SELECT id FROM competitions WHERE external_id = 'fifa.world'),"
+                    + " 'MATCH_DAY', '{\"correctSignPoints\":2,\"exactScorePoints\":10,\"goalDiffBonusPoints\":4}')");
+            st.execute("INSERT INTO predictions (id, user_id, edition_id, prediction_name, score_calculated_at) OVERRIDING SYSTEM VALUE"
+                    + " VALUES (9541, 9541, 9541, 'Sign', now())");
+            st.execute("INSERT INTO matches (id, finished, home_score, away_score) OVERRIDING SYSTEM VALUE VALUES"
+                    + " (9541, TRUE, 2, 1), (9542, TRUE, 1, 1), (9543, TRUE, 0, 2), (9544, FALSE, NULL, NULL)");
+            st.execute("INSERT INTO pronosticos_partido (prediction_id, match_id, home_score, away_score, prediction_sign, points_awarded) VALUES"
+                    + " (9541, 9541, 2, 1, '1', 10), (9541, 9542, 0, 0, 'X', 2),"
+                    + " (9541, 9543, NULL, NULL, '1', 0), (9541, 9544, 2, 0, '1', NULL)");
+        }
+        flyway(url, null).migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT sum(points_awarded) FROM pronosticos_partido WHERE prediction_id = 9541")).isEqualTo(4);
+            assertThat(queryLong(st, "SELECT home_score FROM pronosticos_partido WHERE match_id = 9541")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM pronosticos_partido WHERE match_id = 9544 AND points_awarded IS NULL")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM predictions WHERE id = 9541 AND score_calculated_at IS NULL")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT (scoring_rules_json::jsonb ->> 'exactScorePoints')::int FROM editions WHERE id = 9541")).isEqualTo(10);
+        }
+    }
+
     /** Base vacía propia, para no compartir el esquema con el resto de tests de la clase. */
     private static String createDatabase(String name) throws Exception {
         try (Connection c = DriverManager.getConnection(
