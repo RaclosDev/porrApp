@@ -204,14 +204,14 @@ export default function Landing() {
             <figure className="m-0">
               <img
                 src="/landing/jornadas.jpg"
-                alt="Ejemplo de predicciones por jornada: marcadores y opciones 1X2 para cada partido."
+                alt="Inicio de una liga por jornadas: partidos, clasificación de participantes y tabla de LaLiga."
                 loading="lazy"
-                width="900"
-                height="997"
+                width="1080"
+                height="706"
                 className="w-full h-auto rounded-md border border-[rgba(17,24,39,0.2)]"
               />
               <figcaption className="text-sm text-[#374151] mt-2">
-                Ejemplo de una jornada con datos de demostración.
+                Ejemplo del inicio de una liga por jornadas con datos de demostración.
               </figcaption>
             </figure>
             <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
