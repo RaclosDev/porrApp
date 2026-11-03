@@ -1,26 +1,48 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CustomBracket from '../../pages/CustomBracket';
 import * as api from '../../services/api';
 import * as appContextModule from '../../context/AppContext';
+import * as leaguePredictions from '../../hooks/useLeaguePredictions';
 import { appContext } from '../context/fixtures';
 import type { Match } from '../../types/api';
 
 vi.mock('../../services/api');
 vi.mock('../../context/AppContext');
+vi.mock('../../hooks/useLeaguePredictions', () => ({ useMyLeaguePrediction: vi.fn() }));
 
-describe('CustomBracket component', () => {
-  let queryClient: QueryClient;
+const knockout = (id: number, home: string, away: string, fields: Partial<Match> = {}) =>
+  ({
+    id,
+    home,
+    away,
+    home_team_id: id * 2,
+    away_team_id: id * 2 + 1,
+    round: 'bracket-1',
+    finished: false,
+    ...fields,
+  }) as unknown as Match;
 
+const renderBracket = () =>
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <CustomBracket />
+    </QueryClientProvider>,
+  );
+
+/** Pulsa la casilla del equipo en el lienzo de escritorio. */
+const pick = (name: string, index = 0) => {
+  const board = screen.getAllByRole('button', { name: `Pasar a ${name}` });
+  fireEvent.click(board[index]);
+};
+
+describe('CustomBracket', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-  });
-
-  it('carga y renderiza las rondas del cuadro incluso si activeCompetitionId es null', async () => {
+    vi.mocked(leaguePredictions.useMyLeaguePrediction).mockReturnValue(undefined);
     vi.mocked(appContextModule.useAppContext).mockReturnValue(
       appContext({
         activeGroupId: '10',
@@ -32,88 +54,82 @@ describe('CustomBracket component', () => {
         userName: 'Tester',
       }),
     );
+    vi.mocked(api.fetchCustomTeams).mockResolvedValue([]);
+  });
 
-    vi.mocked(api.fetchCustomTeams).mockResolvedValue([
-      { id: 102, name: 'T1', groupName: null, logoUrl: null },
-      { id: 103, name: 'Gen.G', groupName: null, logoUrl: null },
-      { id: 104, name: 'HLE', groupName: null, logoUrl: null },
-      { id: 105, name: 'DK', groupName: null, logoUrl: null },
-      { id: 106, name: 'BLG', groupName: null, logoUrl: null },
-      { id: 107, name: 'TES', groupName: null, logoUrl: null },
-      { id: 108, name: 'WBG', groupName: null, logoUrl: null },
-      { id: 109, name: 'LNG', groupName: null, logoUrl: null },
-    ]);
-
+  it('se rellena en el cuadro oficial pulsando equipos y guarda todas las rondas', async () => {
     vi.mocked(api.fetchCustomMatches).mockResolvedValue([
-      {
-        id: 697,
-        home: 'T1',
-        away: 'Gen.G',
-        away_team_id: 103,
-        home_team_id: 102,
-        round: 'bracket-1',
-        finished: false,
-      } as unknown as Match,
-      {
-        id: 698,
-        home: 'HLE',
-        away: 'DK',
-        away_team_id: 105,
-        home_team_id: 104,
-        round: 'bracket-1',
-        finished: false,
-      } as unknown as Match,
-      {
-        id: 699,
-        home: 'BLG',
-        away: 'TES',
-        away_team_id: 107,
-        home_team_id: 106,
-        round: 'bracket-1',
-        finished: false,
-      } as unknown as Match,
-      {
-        id: 700,
-        home: 'WBG',
-        away: 'LNG',
-        away_team_id: 109,
-        home_team_id: 108,
-        round: 'bracket-1',
-        finished: false,
-      } as unknown as Match,
+      knockout(1, 'T1', 'Gen.G'),
+      knockout(2, 'HLE', 'DK'),
+      knockout(3, 'BLG', 'TES'),
+      knockout(4, 'WBG', 'LNG'),
+    ]);
+    vi.mocked(api.createPrediction).mockResolvedValue(undefined as never);
+
+    renderBracket();
+
+    await waitFor(() => expect(api.fetchCustomMatches).toHaveBeenCalledWith(10));
+    const left = within(await screen.findByRole('region', { name: 'Cruces del lado izquierdo' }));
+    expect(left.getByRole('heading', { name: 'Cuartos' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab', { name: 'Cuartos' })[0]).toBeInTheDocument();
+    const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
+    expect(center.getAllByText('Ganador C1').length).toBeGreaterThan(0);
+
+    pick('T1');
+    expect(screen.getAllByRole('button', { name: 'Pasar a T1' })[0]).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    pick('HLE');
+    pick('BLG');
+    pick('WBG');
+    // Semifinales: T1 y BLG pasan a la final.
+    fireEvent.click(center.getByRole('button', { name: 'Pasar a T1' }));
+    fireEvent.click(center.getByRole('button', { name: 'Pasar a BLG' }));
+    // Final.
+    fireEvent.click(center.getAllByRole('button', { name: 'Pasar a T1' })[1]);
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Nombre del pronóstico' }), {
+      target: { value: 'Mi pronóstico' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar pronóstico' }));
+
+    await waitFor(() =>
+      expect(api.createPrediction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prediction: 'Mi pronóstico',
+          customRounds: [['T1', 'HLE', 'BLG', 'WBG'], ['T1', 'BLG'], ['T1']],
+          champion: 'T1',
+        }),
+        '10',
+      ),
+    );
+  });
+
+  it('marca aciertos y fallos del pronóstico guardado y pasa los descansos solos', async () => {
+    vi.mocked(leaguePredictions.useMyLeaguePrediction).mockReturnValue({
+      key: '7',
+      predictionName: 'Guardado',
+      data: { customRounds: [['Rayo', 'Club', 'Solo']] },
+    } as unknown as ReturnType<typeof leaguePredictions.useMyLeaguePrediction>);
+    vi.mocked(api.fetchCustomMatches).mockResolvedValue([
+      knockout(1, 'Rayo', 'Barrio', { finished: true, winner: 'Rayo' }),
+      knockout(2, 'Peña', 'Club', { finished: true, winner: 'Peña' }),
+      knockout(3, 'Solo', '', { away_team_id: null }),
     ]);
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <CustomBracket />
-      </QueryClientProvider>,
-    );
+    renderBracket();
 
-    await waitFor(() => {
-      expect(api.fetchCustomTeams).toHaveBeenCalledWith(10);
-      expect(api.fetchCustomMatches).toHaveBeenCalledWith(10);
-    });
-
-    // Debe mostrar los títulos de las tres rondas del torneo
-    expect(await screen.findByText('Cuartos de final')).toBeInTheDocument();
-    expect(screen.getByText('Semifinales')).toBeInTheDocument();
-    expect(screen.getByText('Final')).toBeInTheDocument();
-
-    // Comprobar que los equipos de primera ronda aparecen
-    expect(screen.getByText('T1')).toBeInTheDocument();
-    expect(screen.getByText('Gen.G')).toBeInTheDocument();
-
-    // Seleccionar T1 y DK en cuartos de final
-    const t1Radio = screen.getByRole('radio', { name: 'T1' });
-    fireEvent.click(t1Radio);
-    expect(t1Radio).toBeChecked();
-
-    const dkRadio = screen.getByRole('radio', { name: 'DK' });
-    fireEvent.click(dkRadio);
-    expect(dkRadio).toBeChecked();
-
-    // En semifinales, Cruce 1 ahora debe tener a T1 y DK
-    const allT1 = screen.getAllByText('T1');
-    expect(allT1.length).toBeGreaterThanOrEqual(2); // Uno en cuartos, uno en semis
+    const left = within(await screen.findByRole('region', { name: 'Cruces del lado izquierdo' }));
+    const right = within(screen.getByRole('region', { name: 'Cruces del lado derecho' }));
+    expect(left.getByTitle('Acertado')).toHaveTextContent('✓ Acertado');
+    expect(left.getByTitle('Fallado').closest('.team-slot')).toHaveTextContent('Club');
+    expect(left.getByTitle('Acertado').closest('.team-slot')).toHaveTextContent('Rayo');
+    expect(right.getAllByText('Descanso').length).toBeGreaterThan(0);
+    // El equipo que descansa no se elige: pasa solo a semifinales.
+    expect(right.queryByRole('button', { name: 'Pasar a Solo' })).toBeNull();
+    const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
+    expect(center.getAllByText('Solo').length).toBeGreaterThan(0);
+    expect(screen.getByRole('status')).toHaveTextContent('Ya tienes un pronóstico guardado');
   });
 });

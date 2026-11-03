@@ -1,4 +1,4 @@
-import type { Match } from '../types/api';
+import type { Match, MatchRadar } from '../types/api';
 
 export type CustomPair = [string, string | null];
 
@@ -277,4 +277,79 @@ export function computeCustomResultRounds(matches: Match[]): CustomResultRound[]
     result.push({ roundIndex, title: getCustomRoundTitle(roundIndex, totalRounds), slots });
   }
   return result;
+}
+
+/** Nombre corto de una ronda, como en las columnas del cuadro oficial. */
+export function getCustomRoundShortTitle(roundIndex: number, totalRounds: number): string {
+  const titles = ['Final', 'Semis', 'Cuartos', 'Octavos', '16avos'];
+  return titles[totalRounds - 1 - roundIndex] ?? `Ronda ${roundIndex + 1}`;
+}
+
+export interface CustomCanvasLayout<S> {
+  /** Rondas antes de la final; la última son las semifinales. */
+  roundLabels: string[];
+  left: S[][];
+  right: S[][];
+  /** Cruce de la final, si el cuadro tiene alguno. */
+  final: S | null;
+}
+
+/**
+ * Reparte las rondas de un cuadro personalizado entre las dos mitades del lienzo del cuadro oficial:
+ * el cruce `m` de una ronda sale de los cruces `2m` y `2m + 1` de la anterior, así que cada mitad
+ * se queda con los cruces que acaban en su semifinal.
+ */
+export function splitCustomRounds<S>(rounds: S[][]): CustomCanvasLayout<S> {
+  const total = rounds.length;
+  const left: S[][] = [];
+  const right: S[][] = [];
+  for (let roundIndex = 0; roundIndex < total - 1; roundIndex++) {
+    const half = 2 ** (total - 2 - roundIndex);
+    left.push(rounds[roundIndex].slice(0, half));
+    right.push(rounds[roundIndex].slice(half));
+  }
+  return {
+    roundLabels: left.map((_, roundIndex) => getCustomRoundShortTitle(roundIndex, total)),
+    left,
+    right,
+    final: rounds[total - 1]?.[0] ?? null,
+  };
+}
+
+/** Posición del cruce en su ronda a partir de su mitad del lienzo. */
+export function customRoundMatchIndex(
+  layout: CustomCanvasLayout<unknown>,
+  side: 'left' | 'right',
+  roundIndex: number,
+  matchIndex: number,
+): number {
+  return side === 'left' ? matchIndex : (layout.left[roundIndex]?.length ?? 0) + matchIndex;
+}
+
+const byDate = (left: Match, right: Match) =>
+  (left.date ?? '￿').localeCompare(right.date ?? '￿') || left.id - right.id;
+
+/** Partidos pendientes con los dos rivales, por fecha y los que no tienen fecha al final. */
+function pendingCustomMatches(matches: Match[]): Match[] {
+  return matches.filter((match) => match.away_team_id && !match.finished).sort(byDate);
+}
+
+/**
+ * Partidos para el panel de partidos: los próximos con fecha y los jugados, del más reciente. No hay
+ * directos: el resultado lo apunta el administrador al acabar.
+ */
+export function customMatchRadar(matches: Match[], now = new Date()): MatchRadar {
+  return {
+    live: [],
+    next: pendingCustomMatches(matches).filter((match) => match.date && new Date(match.date) > now),
+    last: matches
+      .filter((match) => match.away_team_id && match.finished)
+      .sort(byDate)
+      .reverse(),
+  };
+}
+
+/** Próximo cruce pendiente del cuadro con los dos rivales decididos. */
+export function nextCustomBracketMatch(matches: Match[]): Match | null {
+  return pendingCustomMatches(matches).find((match) => roundNumber(match) != null) ?? null;
 }

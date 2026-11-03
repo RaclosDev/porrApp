@@ -5,33 +5,36 @@ export default function BracketFinale<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
+  semiIndex = 3,
   center,
   renderRoundFooter,
 }: {
   leftRounds: CanvasMatch<T>[][];
   rightRounds: CanvasMatch<T>[][];
   renderSlot: RenderSlot<T>;
+  /** Ronda de las semifinales; negativa si el torneo empieza en la final. */
+  semiIndex?: number;
   center?: () => ReactNode;
   renderRoundFooter?: (roundIndex: number, side: 'left' | 'right') => ReactNode;
 }) {
   const semifinal = (side: 'left' | 'right') => {
-    const match = (side === 'left' ? leftRounds : rightRounds)[3]?.[0];
+    const match = (side === 'left' ? leftRounds : rightRounds)[semiIndex]?.[0];
     return (
       <section className={`finale-semifinal finale-semifinal-${side}`}>
         <h3>Semifinal {side === 'left' ? '1' : '2'}</h3>
         <div className="mb-match-card">
-          {renderSlot(match?.home, { side, roundIndex: 3, matchIndex: 0, isHome: true })}
-          {renderSlot(match?.away, { side, roundIndex: 3, matchIndex: 0, isHome: false })}
+          {renderSlot(match?.home, { side, roundIndex: semiIndex, matchIndex: 0, isHome: true })}
+          {renderSlot(match?.away, { side, roundIndex: semiIndex, matchIndex: 0, isHome: false })}
         </div>
-        {renderRoundFooter?.(3, side)}
+        {renderRoundFooter?.(semiIndex, side)}
       </section>
     );
   };
 
   return (
     <div className="bracket-finale">
-      {semifinal('left')}
-      {semifinal('right')}
+      {semiIndex >= 0 && semifinal('left')}
+      {semiIndex >= 0 && semifinal('right')}
       <div className="finale-center">
         {center ? center() : <p className="text-center">Final aún por definir</p>}
       </div>
@@ -53,7 +56,8 @@ export function BracketFinalMatch({
   home: ReactNode;
   away: ReactNode;
   champion: ReactNode;
-  thirdPlace: ReactNode;
+  /** Sin él no hay partido por el tercer puesto. */
+  thirdPlace?: ReactNode;
   thirdWinner?: string | null;
   footer?: ReactNode;
   editable?: boolean;
@@ -79,14 +83,16 @@ export function BracketFinalMatch({
         </div>
         {footer}
       </section>
-      <details className="finale-third" open={expandedThirdPlace}>
-        <summary>
-          <span>Tercer puesto</span>
-          {thirdWinner && <strong>{thirdWinner}</strong>}
-        </summary>
-        {editable && <p className="finale-hint">Elige quién queda tercero</p>}
-        <div className="mb-match-card">{thirdPlace}</div>
-      </details>
+      {thirdPlace != null && (
+        <details className="finale-third" open={expandedThirdPlace}>
+          <summary>
+            <span>Tercer puesto</span>
+            {thirdWinner && <strong>{thirdWinner}</strong>}
+          </summary>
+          {editable && <p className="finale-hint">Elige quién queda tercero</p>}
+          <div className="mb-match-card">{thirdPlace}</div>
+        </details>
+      )}
     </>
   );
 }

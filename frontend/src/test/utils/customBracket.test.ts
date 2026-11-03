@@ -6,6 +6,11 @@ import {
   computeCustomBracketRounds,
   computeCustomGroupTables,
   computeCustomResultRounds,
+  customMatchRadar,
+  customRoundMatchIndex,
+  getCustomRoundShortTitle,
+  nextCustomBracketMatch,
+  splitCustomRounds,
   type CustomPair,
 } from '../../utils/customBracket';
 import type { Match } from '../../types/api';
@@ -251,5 +256,60 @@ describe('resultados de una competición personalizada', () => {
 
   it('no muestra cuadro si no hay cruces de primera ronda', () => {
     expect(computeCustomResultRounds([match({ id: 1, round: 'group' })])).toEqual([]);
+  });
+});
+
+describe('cuadro personalizado en el lienzo del cuadro oficial', () => {
+  it('reparte cada ronda entre las mitades que acaban en cada semifinal', () => {
+    // 5 cruces: 5 → 3 → 2 → 1; el quinto y su descanso van a la derecha.
+    const layout = splitCustomRounds([
+      ['a', 'b', 'c', 'd', 'e'],
+      ['ab', 'cd', 'e'],
+      ['abcd', 'e'],
+      ['final'],
+    ]);
+    expect(layout.roundLabels).toEqual(['Octavos', 'Cuartos', 'Semis']);
+    expect(layout.left).toEqual([['a', 'b', 'c', 'd'], ['ab', 'cd'], ['abcd']]);
+    expect(layout.right).toEqual([['e'], ['e'], ['e']]);
+    expect(layout.final).toBe('final');
+    expect(customRoundMatchIndex(layout, 'right', 1, 0)).toBe(2);
+    expect(customRoundMatchIndex(layout, 'left', 1, 1)).toBe(1);
+  });
+
+  it('un cuadro que empieza en la final no tiene laterales', () => {
+    expect(splitCustomRounds([['final']])).toEqual({
+      roundLabels: [],
+      left: [],
+      right: [],
+      final: 'final',
+    });
+    expect(splitCustomRounds([])).toMatchObject({ roundLabels: [], final: null });
+  });
+
+  it('nombra las rondas como las columnas del cuadro oficial', () => {
+    expect(getCustomRoundShortTitle(0, 5)).toBe('16avos');
+    expect(getCustomRoundShortTitle(1, 5)).toBe('Octavos');
+    expect(getCustomRoundShortTitle(3, 5)).toBe('Semis');
+    expect(getCustomRoundShortTitle(4, 5)).toBe('Final');
+    expect(getCustomRoundShortTitle(0, 7)).toBe('Ronda 1');
+  });
+
+  it('ordena los próximos partidos con fecha y omite los descansos', () => {
+    const later = match({ id: 1, round: 'bracket-2', date: '2026-11-10T18:00:00Z' });
+    const sooner = match({ id: 2, round: 'group', date: '2026-11-05T18:00:00Z' });
+    const undated = match({ id: 3, round: 'bracket-1' });
+    const bye = match({ id: 4, round: 'bracket-1', away_team_id: null });
+    const played = match({ id: 5, round: 'bracket-1', finished: true, date: '2026-11-01' });
+    const overdue = match({ id: 6, round: 'group', date: '2026-11-02T18:00:00Z' });
+    const radar = customMatchRadar(
+      [later, undated, bye, played, sooner, overdue],
+      new Date('2026-11-03T12:00:00Z'),
+    );
+    // Sin fecha o con la fecha pasada no son próximos: el panel los daría por en juego.
+    expect(radar.next.map((item) => item.id)).toEqual([2, 1]);
+    expect(radar.last.map((item) => item.id)).toEqual([5]);
+    expect(radar.live).toEqual([]);
+    expect(nextCustomBracketMatch([later, undated, bye, played, sooner])?.id).toBe(1);
+    expect(nextCustomBracketMatch([sooner])).toBeNull();
   });
 });
