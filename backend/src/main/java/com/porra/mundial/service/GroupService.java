@@ -67,8 +67,8 @@ public class GroupService {
         if (custom == (competitionId != null)) {
             throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
         }
-        if (custom && (customCompetitionName.trim().length() > 100 || poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY)) {
-            throw BusinessException.badRequest("La competición personalizada requiere el formato por jornadas y un nombre de hasta 100 caracteres");
+        if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
+            throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
         }
         String joinCode;
         do {
@@ -109,7 +109,7 @@ public class GroupService {
         if (custom) {
             comp = competitionRepository.save(Competition.builder()
                     .name(customCompetitionName.trim())
-                    .formatType("LEAGUE")
+                    .formatType(poolFormat == com.porra.mundial.model.PoolFormat.MATCH_DAY ? "LEAGUE" : "TOURNAMENT")
                     .ownerLeague(group)
                     .build());
         }

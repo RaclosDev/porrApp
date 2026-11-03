@@ -140,6 +140,7 @@ export interface PredictionData {
   prediction?: string;
   groups?: Record<string, string[]>;
   thirds?: string[];
+  customRounds?: string[][];
   r32?: TeamPair[];
   /** Mismo contenido que r32; el backend lo sigue enviando para pronósticos antiguos. */
   r1?: TeamPair[];

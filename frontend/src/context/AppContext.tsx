@@ -4,6 +4,7 @@ import { normalizeCountryName, isGlobalLeagueId } from '../utils/constants';
 import {
   fetchStandings,
   fetchMatches,
+  fetchCustomMatches,
   fetchMatchRadar,
   fetchTeamOdds,
   fetchLeaderboard,
@@ -293,7 +294,8 @@ export const useAppContext = () => {
 
   const { data: radar } = useQuery({
     queryKey: queryKeys.radar(activeCompetitionId),
-    queryFn: () => fetchMatchRadar(activeCompetitionId),
+    queryFn: () =>
+      groupInfo?.customCompetition ? EMPTY_RADAR : fetchMatchRadar(activeCompetitionId),
     enabled: competitionReady,
   });
 
@@ -356,12 +358,16 @@ export const useAppContext = () => {
     queryKey: queryKeys.matches(activeCompetitionId),
     enabled: competitionReady,
     queryFn: async () => {
+      if (groupInfo?.customCompetition && activeGroupId) {
+        return fetchCustomMatches(Number(activeGroupId));
+      }
       const data = await fetchMatches(activeCompetitionId);
       saveCachedJson(`cached_matches_${activeCompetitionId || 'all'}`, data || []);
       return data || [];
     },
     placeholderData: () => {
       if (!competitionReady) return undefined;
+      if (groupInfo?.customCompetition) return undefined;
       const cached = loadCachedJson(`cached_matches_${activeCompetitionId || 'all'}`);
       if (Array.isArray(cached) && cached.length > 0) {
         return cached;
@@ -446,6 +452,7 @@ export const useAppContext = () => {
     activeGroupAdmin,
     activeGroupAdminId,
     activeGroupPoolFormat,
+    activeGroupCustomCompetition: Boolean(groupInfo?.customCompetition),
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,

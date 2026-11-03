@@ -27,6 +27,9 @@ public class PredictionDataDTO {
     private Map<String, List<String>> groups;
     
     private List<String> thirds;
+
+    /** Ganadores por ronda de una competición personalizada, en el orden de sus cruces. */
+    private List<List<String>> customRounds;
     
     @JsonProperty("r32")
     @JsonAlias({"r1", "r32", "r_32"})

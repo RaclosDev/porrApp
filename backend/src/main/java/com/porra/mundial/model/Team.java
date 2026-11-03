@@ -44,7 +44,7 @@ public class Team {
     private String logoUrl;
 
     /** Letra del grupo en el que juegan si aplica ("A" hasta la "L"), o "-" en ligas regulares. */
-    @Column(name = "group_name", length = 2)
+    @Column(name = "group_name", length = 50)
     private String groupName;
 
     /** Probabilidad de ganar el partido (cuota para lógica del simulador). */

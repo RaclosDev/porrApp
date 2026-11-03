@@ -151,17 +151,23 @@ function Leaderboard() {
           : { key: 'matchPoints', label: 'Puntos de jornada', kind: 'detail' },
         ...scorerColumn,
       ]
-    : [
-        { key: 'total', label: 'Total', kind: 'total' },
-        { key: 'matchPoints', label: 'Jornadas', kind: 'detail' },
-        { key: 'r1', label: 'F.Grupos', kind: 'detail' },
-        { key: 'r32', label: 'Dieciseisavos', kind: 'detail' },
-        { key: 'r16', label: 'Octavos', kind: 'detail' },
-        { key: 'qf', label: 'Cuartos', kind: 'detail' },
-        { key: 'sf', label: 'Semis', kind: 'detail' },
-        { key: 'finals', label: 'Finales', kind: 'detail' },
-        ...scorerColumn,
-      ];
+    : state.activeGroupCustomCompetition
+      ? [
+          { key: 'total', label: 'Total', kind: 'total' },
+          { key: 'r1', label: 'Grupos', kind: 'detail' },
+          { key: 'r32', label: 'Cuadro', kind: 'detail' },
+        ]
+      : [
+          { key: 'total', label: 'Total', kind: 'total' },
+          { key: 'matchPoints', label: 'Jornadas', kind: 'detail' },
+          { key: 'r1', label: 'F.Grupos', kind: 'detail' },
+          { key: 'r32', label: 'Dieciseisavos', kind: 'detail' },
+          { key: 'r16', label: 'Octavos', kind: 'detail' },
+          { key: 'qf', label: 'Cuartos', kind: 'detail' },
+          { key: 'sf', label: 'Semis', kind: 'detail' },
+          { key: 'finals', label: 'Finales', kind: 'detail' },
+          ...scorerColumn,
+        ];
 
   const sortIndicator = (colKey: SortColumn) => {
     if (sortColumn !== colKey) return '';

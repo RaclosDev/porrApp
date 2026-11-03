@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { fetchCompetitionStandings } from '../services/api';
+import { fetchCompetitionStandings, fetchCustomStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 
 export default function LeagueStandings() {
@@ -12,6 +12,8 @@ export default function LeagueStandings() {
 
   const {
     activeCompetitionId,
+    activeGroupId,
+    activeGroupCustomCompetition,
     activeCompetitionName,
     activeCompetitionFormatType,
     activeGroupPoolFormat,
@@ -29,7 +31,10 @@ export default function LeagueStandings() {
     refetch,
   } = useQuery({
     queryKey: queryKeys.competitionStandings(activeCompetitionId),
-    queryFn: () => fetchCompetitionStandings(activeCompetitionId),
+    queryFn: () =>
+      activeGroupCustomCompetition && activeGroupId
+        ? fetchCustomStandings(Number(activeGroupId))
+        : fetchCompetitionStandings(activeCompetitionId),
     enabled: Boolean(activeCompetitionId && isMatchDay),
     staleTime: 120_000,
   });

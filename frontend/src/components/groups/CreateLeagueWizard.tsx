@@ -121,15 +121,11 @@ export default function CreateLeagueWizard({
               </label>
               <select
                 id="new-league-format"
-                disabled={!selectedCompetition}
                 value={selectedPoolFormat}
                 onChange={(e) => setSelectedPoolFormat(e.target.value as PoolFormat)}
                 className="glass-input w-full"
               >
-                {(selectedCompetition
-                  ? POOL_FORMATS
-                  : POOL_FORMATS.filter((m) => m.id === 'MATCH_DAY')
-                ).map((m) => (
+                {POOL_FORMATS.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.label}
                   </option>

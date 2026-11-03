@@ -109,6 +109,23 @@ class GroupServiceTest {
     }
 
     @Test
+    void createCustomBracketCompetitionUsesTournamentFormat() {
+        when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
+        when(leagueRepository.save(any(League.class))).thenReturn(league);
+        when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        groupService.createGroup("Liga Privada", "admin@test.com", null,
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET, false, "Copa local");
+
+        verify(competitionRepository).save(argThat(competition -> "TOURNAMENT".equals(competition.getFormatType())
+                && competition.getOwnerLeague() == league));
+        verify(editionRepository).save(argThat(edition -> edition.getPoolFormat()
+                == com.porra.mundial.model.PoolFormat.FULL_BRACKET));
+    }
+
+    @Test
     void existingCustomCompetitionCannotBeReusedByAnotherLeague() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));

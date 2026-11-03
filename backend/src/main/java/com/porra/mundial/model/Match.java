@@ -47,7 +47,7 @@ public class Match {
     private Boolean finished = false;
 
     /** La letra del grupo (Ej: "A", "B"). Si es una final o eliminatoria, esto estará vacío. */
-    @Column(name = "group_name", length = 2)
+    @Column(name = "group_name", length = 50)
     private String groupName;
 
     /** En qué fase del torneo estamos: "group" (grupos), "r16" (octavos), "final", etc. */

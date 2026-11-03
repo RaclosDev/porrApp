@@ -51,6 +51,9 @@ public class CompetitionService {
     public List<LeagueStandingDTO> getStandings(Long competitionId) {
         Competition competition = competitionRepository.findById(competitionId)
                 .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
+        if (competition.getOwnerLeague() != null) {
+            throw BusinessException.notFound("Competición no encontrada");
+        }
 
         List<LeagueStandingDTO> standings = new ArrayList<>();
         if (competition.getExternalId() != null && !competition.getExternalId().isBlank()) {
@@ -65,6 +68,10 @@ public class CompetitionService {
         }
         standings.sort(Comparator.comparingInt(LeagueStandingDTO::getRank));
         return standings;
+    }
+
+    public List<LeagueStandingDTO> getCustomStandings(Long competitionId) {
+        return standingsFromMatches(competitionId);
     }
 
     private List<LeagueStandingDTO> parseEspnStandings(JsonNode root) {

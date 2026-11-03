@@ -35,6 +35,7 @@ public class PredictionService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final BracketPredictionValidator bracketValidator;
+    private final CustomBracketPredictionValidator customBracketValidator;
     private final LeaguePaymentService paymentService;
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
@@ -107,7 +108,7 @@ public class PredictionService {
             }
         }
 
-        bracketValidator.validate(edition, predictionData);
+        validateBracket(edition, predictionData);
 
         Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, effectiveGroupId);
         if (existing.isPresent()) {
@@ -152,7 +153,7 @@ public class PredictionService {
 
         if (predictionData != null) {
             requireSameTopology(prediction.getBracketData(), predictionData);
-            bracketValidator.validate(prediction.getEdition(), predictionData);
+            validateBracket(prediction.getEdition(), predictionData);
         }
         if (predictionName != null) prediction.setName(predictionName);
         if (predictionData != null) {
@@ -161,6 +162,17 @@ public class PredictionService {
         }
 
         return predictionRepository.save(prediction);
+    }
+
+    private void validateBracket(Edition edition, PredictionDataDTO data) {
+        if (edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null) {
+            if (edition.getLockDate() == null) {
+                throw BusinessException.badRequest("El administrador debe fijar el cierre de pronósticos");
+            }
+            customBracketValidator.validate(edition, data);
+        } else {
+            bracketValidator.validate(edition, data);
+        }
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)

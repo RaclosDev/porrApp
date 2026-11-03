@@ -434,31 +434,50 @@ export const createGroup = (
 export interface CustomTeam {
   id: number;
   name: string;
+  groupName: string | null;
 }
 export const fetchCustomTeams = (groupId: number) =>
   request<CustomTeam[]>(`/groups/${groupId}/competition/teams`);
-export const addCustomTeam = (groupId: number, name: string) =>
-  request<CustomTeam>(`/groups/${groupId}/competition/teams`, { method: 'POST', json: { name } });
+export const fetchCustomMatches = (groupId: number) =>
+  request<Match[]>(`/groups/${groupId}/competition/matches`);
+export const fetchCustomStandings = (groupId: number) =>
+  request<LeagueStanding[]>(`/groups/${groupId}/competition/standings`);
+export const addCustomTeam = (groupId: number, name: string, groupName?: string) =>
+  request<CustomTeam>(`/groups/${groupId}/competition/teams`, {
+    method: 'POST',
+    json: { name, groupName },
+  });
+export const deleteCustomTeam = (groupId: number, teamId: number) =>
+  request<void>(`/groups/${groupId}/competition/teams/${teamId}`, { method: 'DELETE' });
+export const setCustomLockDate = (groupId: number, lockDate: string) =>
+  request<string>(`/groups/${groupId}/competition/lock-date`, {
+    method: 'PUT',
+    json: { lockDate },
+  });
 export const addCustomMatch = (
   groupId: number,
   homeTeamId: number,
-  awayTeamId: number,
-  matchDate: string,
+  awayTeamId: number | null,
+  matchDate: string | null,
+  round?: string,
 ) =>
   request<Match>(`/groups/${groupId}/competition/matches`, {
     method: 'POST',
-    json: { homeTeamId, awayTeamId, matchDate },
+    json: { homeTeamId, awayTeamId, matchDate, round },
   });
 export const setCustomResult = (
   groupId: number,
   matchId: number,
   homeScore: number,
   awayScore: number,
+  winnerTeamId?: number,
 ) =>
   request<Match>(`/groups/${groupId}/competition/matches/${matchId}/result`, {
     method: 'PUT',
-    json: { homeScore, awayScore },
+    json: { homeScore, awayScore, winnerTeamId },
   });
+export const deleteCustomMatch = (groupId: number, matchId: number) =>
+  request<void>(`/groups/${groupId}/competition/matches/${matchId}`, { method: 'DELETE' });
 
 export const updateGroup = (
   id: number | string,

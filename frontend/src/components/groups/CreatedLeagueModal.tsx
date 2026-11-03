@@ -91,8 +91,11 @@ export default function CreatedLeagueModal({
               type="button"
               onClick={() => {
                 const format = newlyCreatedGroup.poolFormat;
+                const needsSetup = newlyCreatedGroup.customCompetition && format !== 'MATCH_DAY';
                 setNewlyCreatedGroup(null);
-                if (format === 'MATCH_DAY') {
+                if (needsSetup) {
+                  navigate('/mis-ligas');
+                } else if (format === 'MATCH_DAY') {
                   navigate('/jornadas');
                 } else {
                   navigate('/prediction');
@@ -100,9 +103,11 @@ export default function CreatedLeagueModal({
               }}
               className="glass-btn primary-btn w-full p-3 text-[0.95rem] font-bold"
             >
-              {newlyCreatedGroup.poolFormat === 'MATCH_DAY'
-                ? 'Pronosticar la jornada'
-                : 'Rellenar mi porra'}
+              {newlyCreatedGroup.customCompetition && newlyCreatedGroup.poolFormat !== 'MATCH_DAY'
+                ? 'Configurar competición'
+                : newlyCreatedGroup.poolFormat === 'MATCH_DAY'
+                  ? 'Pronosticar la jornada'
+                  : 'Rellenar mi porra'}
             </button>
           </div>
         </div>
