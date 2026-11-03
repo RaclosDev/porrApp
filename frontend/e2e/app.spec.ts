@@ -49,9 +49,7 @@ for (const viewport of [
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1 })).toContainText(
-        'La porra de toda la vida',
-      );
+      await expect(page.getByRole('heading', { level: 1 })).toContainText('La porra del Mundial');
 
       await page.getByRole('button', { name: 'Entrar con Google', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Iniciar sesión' });
@@ -59,6 +57,67 @@ for (const viewport of [
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();
       expect(errors).toEqual([]);
+    });
+
+    test('distinguishes loading, failure and empty fixtures and retries both feeds', async ({
+      page,
+    }) => {
+      let fail = true;
+      await page.route('**/api/competitions', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        await route.fulfill(fail ? { status: 503, json: {} } : { json: [] });
+      });
+      await page.route('**/api/leaderboard?*', (route) =>
+        route.fulfill(fail ? { status: 503, json: {} } : { json: [] }),
+      );
+      await page.goto('/');
+      await expect(page.getByText('Cargando próximos partidos de LaLiga…')).toBeVisible();
+      await expect(
+        page.getByText('No se han podido cargar los próximos partidos de LaLiga.'),
+      ).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Reintentar clasificación' })).toBeVisible();
+      fail = false;
+      await page.getByRole('button', { name: 'Reintentar partidos' }).click();
+      await expect(page.getByText('No hay próximos partidos de LaLiga disponibles.')).toBeVisible();
+      await page.getByRole('button', { name: 'Reintentar clasificación' }).click();
+      await expect(page.getByText('Todavía no hay cuadros en la Porra Global.')).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+    });
+
+    test('shows fixtures with an explicit login action', async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.route('**/api/competitions', (route) =>
+        route.fulfill({ json: [{ id: 2, externalId: 'esp.1' }] }),
+      );
+      await page.route('**/api/matches?*', (route) =>
+        route.fulfill({
+          json: [
+            {
+              id: 1,
+              home: 'Real Madrid',
+              away: 'Barcelona',
+              date: '2099-11-03T18:00:00Z',
+              round: 'Jornada 12',
+              finished: false,
+            },
+          ],
+        }),
+      );
+      await page.goto('/');
+      const login = page.getByRole('button', { name: 'Iniciar sesión para pronosticar' });
+      await expect(login).toBeVisible();
+      await login.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `test-results/landing-${viewport.name}.png`, fullPage: true });
+      await login.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('dialog', { name: 'Iniciar sesión' })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(login).toBeFocused();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
     });
 
     test('opens the public demo and returns to the landing page', async ({ page }) => {
@@ -75,9 +134,7 @@ for (const viewport of [
       await page.getByRole('button', { name: 'Salir', exact: true }).click();
       await expect(page).toHaveURL('/');
       await expect(page.getByText('Modo demo:', { exact: true })).toHaveCount(0);
-      await expect(page.getByRole('heading', { level: 1 })).toContainText(
-        'La porra de toda la vida',
-      );
+      await expect(page.getByRole('heading', { level: 1 })).toContainText('La porra del Mundial');
       expect(errors).toEqual([]);
     });
   });

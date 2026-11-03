@@ -912,24 +912,4 @@
   .paper-panel .scoring-row-hint {
     color: #4b5563;
   }
-
-  .landing-pick {
-    min-width: 44px;
-    min-height: 44px;
-    border: 2px solid var(--ink);
-    border-radius: 8px;
-    background: #ffffff;
-    color: var(--ink);
-    font-family: 'Anton', 'Outfit', sans-serif;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition:
-      background 0.15s ease,
-      color 0.15s ease;
-  }
-
-  .landing-pick:hover {
-    background: var(--ink);
-    color: #ffffff;
-  }
 }

@@ -23,7 +23,20 @@ const FAN_ANGLES = [-8, -3, 0, 3, 8];
  */
 export default function Landing() {
   const { reduced } = useLandingMotion();
-  const { leaders, participants, champion, nextFixtures, loading, error } = useLandingData();
+  const {
+    leaders,
+    participants,
+    champion,
+    nextFixtures,
+    loading,
+    error,
+    refreshing,
+    retryLeaderboard,
+    fixturesLoading,
+    fixturesError,
+    fixturesRefreshing,
+    retryFixtures,
+  } = useLandingData();
   const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
   const leader = leaders[0];
   const initial = reduced ? 'show' : 'hidden';
@@ -35,8 +48,8 @@ export default function Landing() {
           <MarkerHeading
             as="h1"
             onLoad
-            text="La porra de toda la vida,"
-            marked="pero bien hecha."
+            text="La porra del Mundial,"
+            marked="con tus amigos."
             className="text-[clamp(2.6rem,7vw,5.5rem)]"
           />
           <motion.p
@@ -101,11 +114,23 @@ export default function Landing() {
               <Skeleton width="30%" height={130} radius={4} />
             </div>
           ) : (
-            <p className="text-[#4b5563] text-sm" role="status">
-              {error
-                ? 'La clasificación no responde ahora mismo.'
-                : 'Todavía no hay cuadros en la Porra Global.'}
-            </p>
+            <div className="text-[#4b5563] text-sm">
+              <p role="status">
+                {error
+                  ? 'La clasificación no responde ahora mismo.'
+                  : 'Todavía no hay cuadros en la Porra Global.'}
+              </p>
+              {error && (
+                <button
+                  type="button"
+                  className="landing-btn mt-3"
+                  onClick={retryLeaderboard}
+                  disabled={refreshing}
+                >
+                  {refreshing ? 'Reintentando…' : 'Reintentar clasificación'}
+                </button>
+              )}
+            </div>
           )}
         </motion.div>
       </section>
@@ -198,10 +223,17 @@ export default function Landing() {
           >
             <h3 className="poster-title text-4xl">Jornadas</h3>
             <p className="text-[#1f2937] leading-snug">
-              Para LaLiga, la Premier, la Champions y otras ocho competiciones. Pronosticas el
-              marcador de cada partido, y cada uno se cierra solo cuando empieza.
+              Para LaLiga, la Premier, la Champions y otras competiciones. Pronosticas el marcador
+              de cada partido, y cada uno se cierra solo cuando empieza.
             </p>
-            <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
+            <FixtureSheet
+              fixtures={nextFixtures}
+              onPick={openLogin}
+              loading={fixturesLoading}
+              error={fixturesError}
+              refreshing={fixturesRefreshing}
+              onRetry={retryFixtures}
+            />
           </motion.article>
         </div>
         <p className="text-muted text-sm text-center mt-8">

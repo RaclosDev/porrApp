@@ -68,6 +68,15 @@ export function useLandingData() {
     champion,
     nextFixtures,
     loading: leaderboard.isPending,
+    refreshing: leaderboard.isFetching,
+    retryLeaderboard: () => void leaderboard.refetch(),
+    fixturesLoading: competitions.isPending || (competitionId != null && fixtures.isPending),
+    fixturesError: competitions.isError || fixtures.isError,
+    fixturesRefreshing: competitions.isFetching || fixtures.isFetching,
+    retryFixtures: () => {
+      if (competitionId == null) void competitions.refetch();
+      else void fixtures.refetch();
+    },
     error: leaderboard.isError,
   };
 }

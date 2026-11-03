@@ -4,6 +4,10 @@ import type { Match } from '../../types/api';
 interface FixtureSheetProps {
   fixtures: Match[];
   onPick: () => void;
+  loading: boolean;
+  error: boolean;
+  refreshing: boolean;
+  onRetry: () => void;
 }
 
 const formatKickoff = (date: string | null) => {
@@ -12,16 +16,35 @@ const formatKickoff = (date: string | null) => {
   return `${d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })} · ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
-/**
- * Hoja de la próxima jornada de LaLiga con los partidos reales. Los botones 1 X 2 funcionan:
- * abren el inicio de sesión, que es lo que hace falta para pronosticar.
- */
-export default function FixtureSheet({ fixtures, onPick }: FixtureSheetProps) {
+export default function FixtureSheet({
+  fixtures,
+  onPick,
+  loading,
+  error,
+  refreshing,
+  onRetry,
+}: FixtureSheetProps) {
   if (fixtures.length === 0) {
     return (
-      <p className="text-[#4b5563] text-sm">
-        LaLiga no tiene partidos programados ahora mismo; la hoja se rellena sola cuando los hay.
-      </p>
+      <div className="text-[#4b5563] text-sm">
+        <p role="status">
+          {error
+            ? 'No se han podido cargar los próximos partidos de LaLiga.'
+            : loading
+              ? 'Cargando próximos partidos de LaLiga…'
+              : 'No hay próximos partidos de LaLiga disponibles.'}
+        </p>
+        {error && (
+          <button
+            type="button"
+            className="landing-btn mt-3"
+            onClick={onRetry}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Reintentando…' : 'Reintentar partidos'}
+          </button>
+        )}
+      </div>
     );
   }
   const round = fixtures[0].round;
@@ -48,27 +71,13 @@ export default function FixtureSheet({ fixtures, onPick }: FixtureSheetProps) {
             </span>
             <span className="col-span-3 flex items-center justify-between gap-3">
               <span className="text-xs text-[#4b5563]">{formatKickoff(m.date)}</span>
-              <span
-                className="flex gap-1.5"
-                role="group"
-                aria-label={`Pronóstico ${m.home} contra ${m.away}`}
-              >
-                {['1', 'X', '2'].map((sign) => (
-                  <button
-                    key={sign}
-                    type="button"
-                    onClick={onPick}
-                    className="landing-pick"
-                    aria-label={`${sign}: inicia sesión para pronosticar`}
-                  >
-                    {sign}
-                  </button>
-                ))}
-              </span>
             </span>
           </li>
         ))}
       </ul>
+      <button type="button" className="landing-btn self-start" onClick={onPick}>
+        Iniciar sesión para pronosticar
+      </button>
     </div>
   );
 }

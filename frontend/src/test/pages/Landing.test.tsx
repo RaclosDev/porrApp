@@ -20,6 +20,12 @@ const data = {
   nextFixtures: [],
   loading: false,
   error: false,
+  refreshing: false,
+  retryLeaderboard: vi.fn(),
+  fixturesLoading: false,
+  fixturesError: false,
+  fixturesRefreshing: false,
+  retryFixtures: vi.fn(),
 };
 
 describe('Landing', () => {
@@ -75,6 +81,6 @@ describe('Landing', () => {
       error: true,
     });
     renderLanding();
-    expect(screen.getByRole('status')).toHaveTextContent('La clasificación no responde');
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent('La clasificación no responde');
   });
 });
