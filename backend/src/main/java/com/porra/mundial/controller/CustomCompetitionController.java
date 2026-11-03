@@ -110,6 +110,14 @@ public class CustomCompetitionController {
         return service.setResult(leagueId, matchId, principal.getName(), request);
     }
 
+    public record MatchDateRequest(LocalDateTime matchDate) {}
+
+    @PutMapping("/matches/{matchId}/date")
+    public MatchResponseDTO setMatchDate(@PathVariable Long leagueId, @PathVariable Long matchId,
+                                         @RequestBody MatchDateRequest request, Principal principal) {
+        return service.setMatchDate(leagueId, matchId, principal.getName(), request.matchDate());
+    }
+
     @DeleteMapping("/matches/{matchId}")
     public void deleteMatch(@PathVariable Long leagueId, @PathVariable Long matchId,
                             Principal principal) {
