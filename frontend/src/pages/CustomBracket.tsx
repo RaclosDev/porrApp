@@ -8,7 +8,12 @@ import type { CustomTeam } from '../services/api';
 import type { Match, PredictionData } from '../types/api';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
-import { pairWinners, computeCustomBracketRounds, type CustomPair } from '../utils/customBracket';
+import {
+  pairWinners,
+  computeCustomBracketRounds,
+  customMatchWinner,
+  type CustomPair,
+} from '../utils/customBracket';
 import PaperLoading from '../components/PaperLoading';
 
 type Pair = CustomPair;
@@ -94,6 +99,27 @@ export default function CustomBracket() {
     [matches],
   );
 
+  // Ganadores reales de cada ronda, para marcar aciertos y fallos en el pronóstico.
+  const realWinners = useMemo(() => {
+    const result: Set<string>[] = [];
+    for (const match of matches) {
+      const found = /^bracket-(\d+)$/.exec(match.round ?? '');
+      const winner = found && match.away_team_id ? customMatchWinner(match) : null;
+      if (found && winner) (result[Number(found[1]) - 1] ??= new Set()).add(winner);
+    }
+    return result;
+  }, [matches]);
+  const decidedRounds = useMemo(() => {
+    const result: boolean[] = [];
+    for (const match of matches) {
+      const found = /^bracket-(\d+)$/.exec(match.round ?? '');
+      if (!found) continue;
+      const index = Number(found[1]) - 1;
+      result[index] = (result[index] ?? true) && (!match.away_team_id || match.finished);
+    }
+    return result;
+  }, [matches]);
+
   const displayRounds = useMemo(
     () => computeCustomBracketRounds(firstRound, picks),
     [firstRound, picks],
@@ -169,11 +195,19 @@ export default function CustomBracket() {
   };
 
   return (
-    <section className="view-section max-w-205 mx-auto" aria-label={`Cuadro de ${activeGroupName}`}>
+    <section
+      className="view-section active max-w-205 mx-auto"
+      aria-label={`Cuadro de ${activeGroupName}`}
+    >
       <h1 className="poster-title">Mi pronóstico · {activeGroupName}</h1>
       {error && (
         <p role="alert" className="text-[var(--miss)]">
           {error}
+        </p>
+      )}
+      {saved && !activeGroupIsLocked && (
+        <p className="paper-panel album-sheet p-4" role="status">
+          Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.
         </p>
       )}
       {activeGroupPoolFormat === 'FULL_BRACKET' && (
@@ -245,6 +279,11 @@ export default function CustomBracket() {
                             onChange={() => selectWinner(round.roundIndex, matchIndex, match.home!)}
                           />
                           <span className="font-medium">{match.home}</span>
+                          <PickOutcome
+                            picked={!match.isBye && currentPick === match.home}
+                            won={realWinners[round.roundIndex]?.has(match.home!)}
+                            decided={Boolean(decidedRounds[round.roundIndex])}
+                          />
                         </label>
                       ) : (
                         <div className="flex items-center gap-2 min-h-11 text-muted italic">
@@ -266,6 +305,11 @@ export default function CustomBracket() {
                               }
                             />
                             <span className="font-medium">{match.away}</span>
+                            <PickOutcome
+                              picked={currentPick === match.away}
+                              won={realWinners[round.roundIndex]?.has(match.away!)}
+                              decided={Boolean(decidedRounds[round.roundIndex])}
+                            />
                           </label>
                         ) : (
                           <div className="flex items-center gap-2 min-h-11 text-muted italic">
@@ -319,4 +363,19 @@ export default function CustomBracket() {
       )}
     </section>
   );
+}
+
+function PickOutcome({
+  picked,
+  won,
+  decided,
+}: {
+  picked: boolean;
+  won: boolean | undefined;
+  decided: boolean;
+}) {
+  if (!picked) return null;
+  if (won) return <span className="ml-auto text-xs font-bold text-[var(--hit)]">✓ Acertado</span>;
+  if (!decided) return null;
+  return <span className="ml-auto text-xs font-bold text-[var(--miss)]">✗ Fallado</span>;
 }
