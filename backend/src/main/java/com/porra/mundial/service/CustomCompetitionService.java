@@ -48,10 +48,7 @@ public class CustomCompetitionService {
         return setLockConfig(leagueId, email, PredictionLockMode.FIXED_DATE, 0, lockDate).getLockDate();
     }
 
-    /**
-     * Cambia cómo se cierran los pronósticos. Solo antes del primer pronóstico, para no cambiar las
-     * reglas a quien ya ha jugado.
-     */
+    /** Cambia el cierre sin volver a abrir partes ya cerradas de pronósticos existentes. */
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
     public Edition setLockConfig(Long leagueId, String email, PredictionLockMode mode, Integer offsetMinutes,
@@ -67,9 +64,11 @@ public class CustomCompetitionService {
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
         }
-        if (!predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
-            throw BusinessException.conflict("No se puede cambiar el cierre después del primer pronóstico");
-        }
+        boolean hasPredictions = !predictionRepository.findByEditionLeagueId(leagueId).isEmpty();
+        CustomLockService.LockState previousState = hasPredictions ? lockService.state(edition) : null;
+        PredictionLockMode previousMode = edition.getLockMode();
+        int previousOffset = edition.getLockOffsetMinutes();
+        LocalDateTime previousDate = edition.getLockDate();
         LocalDateTime now = LocalDateTime.now(CustomLockService.ZONE);
         edition.setLockMode(mode);
         if (mode == PredictionLockMode.FIXED_DATE) {
@@ -86,7 +85,27 @@ public class CustomCompetitionService {
                 throw BusinessException.badRequest("Con ese margen el cierre ya habría pasado");
             }
         }
+        if (previousState != null && previousState.anyLocked()
+                && reopensClosedParts(previousState, lockService.state(edition))) {
+            edition.setLockMode(previousMode);
+            edition.setLockOffsetMinutes(previousOffset);
+            edition.setLockDate(previousDate);
+            throw BusinessException.conflict("El nuevo cierre volvería a abrir pronósticos que ya estaban cerrados");
+        }
         return edition;
+    }
+
+    private static boolean reopensClosedParts(CustomLockService.LockState before, CustomLockService.LockState after) {
+        if (before.fullyLocked() && !after.fullyLocked()) return true;
+        for (String group : before.groups()) {
+            if (!after.groupLocked(group)) return true;
+        }
+        for (int round = 0; round < before.picks().size(); round++) {
+            for (int index = 0; index < before.picks().get(round).size(); index++) {
+                if (before.pickLocked(round, index) && !after.pickLocked(round, index)) return true;
+            }
+        }
+        return false;
     }
 
     /** Estado del cierre para los miembros: qué grupos y ganadores siguen abiertos. */
