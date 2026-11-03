@@ -1,6 +1,7 @@
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import CustomBracket from '../../pages/CustomBracket';
 import * as api from '../../services/api';
 import * as appContextModule from '../../context/AppContext';
@@ -10,6 +11,7 @@ import type { Match } from '../../types/api';
 
 vi.mock('../../services/api');
 vi.mock('../../context/AppContext');
+vi.mock('react-hot-toast', () => ({ default: Object.assign(vi.fn(), { success: vi.fn() }) }));
 vi.mock('../../hooks/useLeaguePredictions', () => ({ useMyLeaguePrediction: vi.fn() }));
 
 const knockout = (id: number, home: string, away: string, fields: Partial<Match> = {}) =>
@@ -89,15 +91,14 @@ describe('CustomBracket', () => {
     // Final.
     fireEvent.click(center.getAllByRole('button', { name: 'Pasar a T1' })[1]);
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'Nombre del pronóstico' }), {
-      target: { value: 'Mi pronóstico' },
-    });
+    // Solo hay un pronóstico por persona: no se pide nombre.
+    expect(screen.queryByRole('textbox')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Guardar pronóstico' }));
 
     await waitFor(() =>
       expect(api.createPrediction).toHaveBeenCalledWith(
         expect.objectContaining({
-          prediction: 'Mi pronóstico',
+          prediction: 'Tester',
           customRounds: [['T1', 'HLE', 'BLG', 'WBG'], ['T1', 'BLG'], ['T1']],
           champion: 'T1',
         }),
@@ -130,6 +131,12 @@ describe('CustomBracket', () => {
     expect(right.queryByRole('button', { name: 'Pasar a Solo' })).toBeNull();
     const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
     expect(center.getAllByText('Solo').length).toBeGreaterThan(0);
-    expect(screen.getByRole('status')).toHaveTextContent('Ya tienes un pronóstico guardado');
+    // El aviso de pronóstico guardado es una notificación temporal, no un bloque fijo.
+    expect(toast).toHaveBeenCalledOnce();
+    expect(toast).toHaveBeenCalledWith(
+      'Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.',
+      expect.anything(),
+    );
+    expect(screen.queryByText(/Ya tienes un pronóstico guardado/)).toBeNull();
   });
 });
