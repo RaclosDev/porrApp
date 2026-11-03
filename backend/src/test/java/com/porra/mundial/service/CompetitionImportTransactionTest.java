@@ -171,7 +171,7 @@ class CompetitionImportTransactionTest {
                 .homeScore(2).awayScore(1).pointsAwarded(0).build());
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(events());
         doAnswer(invocation -> {
-            assertThat(matchPredictions.findById(selection.getId()).orElseThrow().getPointsAwarded()).isEqualTo(5);
+            assertThat(matchPredictions.findById(selection.getId()).orElseThrow().getPointsAwarded()).isEqualTo(3);
             throw new IllegalStateException("Rollback after evaluating the first match");
         }).when(processor).process(argThat(event -> event != null && "990002".equals(event.path("id").asText())), any(), any());
 
@@ -186,7 +186,7 @@ class CompetitionImportTransactionTest {
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(json.createArrayNode().add(events().get(0)));
         sync.importCompetitionData(competitionId);
 
-        assertThat(matchPredictions.findById(selection.getId()).orElseThrow().getPointsAwarded()).isEqualTo(5);
+        assertThat(matchPredictions.findById(selection.getId()).orElseThrow().getPointsAwarded()).isEqualTo(3);
         assertThat(predictions.findById(prediction.getId()).orElseThrow().getScoreCalculatedAt()).isNull();
     }
 

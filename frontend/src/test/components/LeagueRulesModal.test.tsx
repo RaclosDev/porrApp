@@ -52,7 +52,11 @@ describe('LeagueRulesModal', () => {
     setup({ id: 7, name: 'Jornadas' });
 
     expect(await screen.findByText('Resultado exacto')).toBeInTheDocument();
-    expect(pointsOf('Resultado exacto')).toContain('8');
+    expect(screen.getByText(/Provisionalmente solo puntúa/)).toBeInTheDocument();
+    expect(screen.getAllByText('Pausado')).toHaveLength(2);
+    expect(
+      screen.getByText('Signo 1X2').closest('.scoring-row')?.querySelector('.scoring-points'),
+    ).toHaveTextContent('3 pts');
     expect(screen.queryByText('Campeón')).not.toBeInTheDocument();
     expect(screen.queryByText('Pichichi')).not.toBeInTheDocument();
   });
