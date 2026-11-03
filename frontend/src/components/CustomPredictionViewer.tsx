@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { fetchPrediction } from '../services/api';
 import type { PredictionData } from '../types/api';
 import { errorMessage } from '../utils/errors';
+import { getCustomRoundTitle } from '../utils/customBracket';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { ViewerModal } from './prediction/ViewerFrame';
 
@@ -62,7 +63,7 @@ export default function CustomPredictionViewer({
         ))}
       {prediction?.customRounds?.map((round, index) => (
         <section key={index} className="border-b border-line py-3">
-          <h3>Ronda {index + 1}</h3>
+          <h3>{getCustomRoundTitle(index, prediction.customRounds!.length)}</h3>
           <ol>
             {round.map((winner, position) => (
               <li key={position}>{winner}</li>
