@@ -54,15 +54,20 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("classpath:/static/assets/")
                 .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable());
 
-        // Archivos dinámicos que no deben cachearse en cliente
+        // Archivos dinámicos que no deben cachearse en cliente. Sin Last-Modified: dentro del
+        // jar todos los archivos tienen la fecha fija de 1980, así que la revalidación con
+        // If-Modified-Since respondía 304 tras cada despliegue y el navegador conservaba el
+        // sw.js antiguo (el Service Worker nunca detectaba la versión nueva).
         registry.addResourceHandler("/index.html", "/sw.js", "/workbox-*.js")
                 .addResourceLocations("classpath:/static/")
-                .setCacheControl(CacheControl.noCache());
+                .setCacheControl(CacheControl.noCache())
+                .setUseLastModified(false);
 
         // SPA Fallback
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
                 .setCacheControl(CacheControl.noCache())
+                .setUseLastModified(false)
                 .resourceChain(true)
                 .addResolver(new PathResourceResolver() {
                     @Override
