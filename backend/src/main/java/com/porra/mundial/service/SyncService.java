@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ public class SyncService {
 
     private static final String WORLD_CUP_DATE_RANGE = "2026";
     private static final DateTimeFormatter ESPN_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final DateTimeFormatter ESPN_MONTH = DateTimeFormatter.ofPattern("yyyyMM");
     /** Lo que espera una importación a que termine la sincronización en curso. */
     private static final long IMPORT_LOCK_TIMEOUT_MINUTES = 5;
 
@@ -75,6 +77,8 @@ public class SyncService {
     private volatile String lastErrorMessage;
     /** El último recálculo de la clasificación y el cuadro del Mundial falló: se repite en la siguiente pasada. */
     private volatile boolean worldCupRefreshPending;
+    /** Cada competición amplía su calendario una vez al día; los resultados siguen sincronizándose cada cinco minutos. */
+    private final Map<Long, LocalDate> lastCalendarRefresh = new HashMap<>();
 
     /** Resultado de importar el catálogo y calendario de una competición. */
     public record ImportResult(String competition, int importedTeams, int importedMatches) {
@@ -185,6 +189,16 @@ public class SyncService {
                     } catch (Exception e) {
                         batch.recordError(day + ": " + e.getMessage());
                     }
+                }
+                if (!today.equals(lastCalendarRefresh.get(competition.getId())) && !batch.hasErrors()) {
+                    for (LocalDate month : List.of(today, today.plusMonths(1))) {
+                        try {
+                            processEvents(provider.fetchScoreboardEvents(slug, month.format(ESPN_MONTH)), teams, batch);
+                        } catch (Exception e) {
+                            batch.recordError(month.format(ESPN_MONTH) + ": " + e.getMessage());
+                        }
+                    }
+                    if (!batch.hasErrors()) lastCalendarRefresh.put(competition.getId(), today);
                 }
             }
 

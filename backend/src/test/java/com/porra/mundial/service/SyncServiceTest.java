@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -183,6 +184,21 @@ class SyncServiceTest {
         assertEquals("error", syncService.getLastSyncStatus());
         verify(provider, times(3)).fetchScoreboardEvents(anyString(), anyString());
         assertTrue(syncService.getLastErrorMessage().contains("HTTP 503"));
+    }
+
+    @Test
+    void refreshesThisAndNextMonthOncePerDayWithoutRepeatingTheCalendarEveryFiveMinutes() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+        LocalDate today = LocalDate.now();
+        var monthFormat = java.time.format.DateTimeFormatter.ofPattern("yyyyMM");
+
+        syncService.syncAll();
+        syncService.syncAll();
+
+        verify(provider).fetchScoreboardEvents("esp.1", today.format(monthFormat));
+        verify(provider).fetchScoreboardEvents("esp.1", today.plusMonths(1).format(monthFormat));
+        verify(provider, times(2)).fetchScoreboardEvents("esp.1", today.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")));
     }
 
     @Test
