@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import Flag from './Flag';
 import { openStats } from '../utils/navigation';
@@ -14,12 +14,19 @@ interface GroupMatchesModalProps {
   selectedGroup: SelectedGroup | null;
   allGames: Match[];
   onClose: () => void;
+  /** Cada partido abre Sofascore; no aplica a equipos de competiciones personalizadas. */
+  linkToStats?: boolean;
 }
 
 /**
  * Modal flotante que muestra la lista de partidos de un grupo específico.
  */
-const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesModalProps) => {
+const GroupMatchesModal = ({
+  selectedGroup,
+  allGames,
+  onClose,
+  linkToStats = true,
+}: GroupMatchesModalProps) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(dialogRef, { active: Boolean(selectedGroup), onEscape: onClose });
 
@@ -87,18 +94,20 @@ const GroupMatchesModal = ({ selectedGroup, allGames, onClose }: GroupMatchesMod
 
               return (
                 <div
-                  className="cursor-pointer grid grid-cols-[70px_minmax(0,_1fr)_45px_minmax(0,_1fr)] gap-1.5 items-center bg-panel border border-line py-2 px-2.5 min-h-11 rounded-[6px] text-[0.85rem] whitespace-nowrap"
+                  className={`${linkToStats ? 'cursor-pointer ' : ''}grid grid-cols-[70px_minmax(0,_1fr)_45px_minmax(0,_1fr)] gap-1.5 items-center bg-panel border border-line py-2 px-2.5 min-h-11 rounded-[6px] text-[0.85rem] whitespace-nowrap`}
                   key={m.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openStats()}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openStats();
-                    }
-                  }}
-                  aria-label={`${m.home} contra ${m.away}. Abrir el portal de fútbol de Sofascore`}
+                  {...(linkToStats && {
+                    role: 'button',
+                    tabIndex: 0,
+                    onClick: () => openStats(),
+                    onKeyDown: (e: KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openStats();
+                      }
+                    },
+                    'aria-label': `${m.home} contra ${m.away}. Abrir el portal de fútbol de Sofascore`,
+                  })}
                 >
                   <div className="text-muted text-[0.75rem] whitespace-normal">
                     {stateLabel} {dateFormatted}

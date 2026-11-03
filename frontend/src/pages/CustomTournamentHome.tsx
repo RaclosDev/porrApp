@@ -1,23 +1,40 @@
-import { useMemo } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { fetchCustomTeams, fetchCustomMatches } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
-import type { Match } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { formatMatchDate } from '../utils/matchday';
 import {
   computeCustomGroupTables,
   computeCustomResultRounds,
+  customMatchRadar,
   customMatchWinner,
+  nextCustomBracketMatch,
+  splitCustomRounds,
   type CustomResultSlot,
 } from '../utils/customBracket';
 import PaperLoading from '../components/PaperLoading';
-import Flag from '../components/Flag';
+import BracketCanvas, { TeamSlot, type CanvasMatch } from '../components/BracketCanvas';
+import { BracketFinalMatch } from '../components/BracketFinale';
+import OfficialBracketTabs from '../components/official/OfficialBracketTabs';
+import FeaturedMatchBanner from '../components/official/FeaturedMatchBanner';
+import BracketInfoPanel from '../components/official/BracketInfoPanel';
+import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
+import GroupStandingsCard from '../components/Home/GroupStandingsCard';
+import GroupMatchesModal, { type SelectedGroup } from '../components/GroupMatchesModal';
 
-/** Portada de una competición personalizada: grupos, cuadro real y partidos con resultado. */
+const toCanvasMatch = (slot: CustomResultSlot): CanvasMatch<string | null> => ({
+  home: slot.home,
+  away: slot.away,
+});
+
+/**
+ * Portada de una competición personalizada con el aspecto del cuadro oficial: pestañas de cuadro y
+ * grupos, el cuadro real con sus resultados y la clasificación de cada grupo.
+ */
 export default function CustomTournamentHome() {
   const {
     activeGroupId,
@@ -28,6 +45,9 @@ export default function CustomTournamentHome() {
   } = useAppContext();
   const saved = useMyLeaguePrediction();
   const groupId = activeGroupId ? Number(activeGroupId) : null;
+  const [activeTab, setActiveTab] = useState<'cuadro' | 'grupos'>('cuadro');
+  const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
 
   const teamsQuery = useQuery({
     queryKey: queryKeys.customTeams(activeGroupId),
@@ -42,30 +62,29 @@ export default function CustomTournamentHome() {
 
   const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
   const matches = useMemo(() => matchesQuery.data ?? [], [matchesQuery.data]);
-  const logos = useMemo(
-    () =>
-      Object.fromEntries(
-        teams.filter((team) => team.logoUrl).map((team) => [team.name, team.logoUrl as string]),
-      ),
-    [teams],
-  );
+  const logos = useMemo(() => {
+    const result: Record<string, string> = {};
+    for (const match of matches) {
+      if (match.homeLogo) result[match.home] = match.homeLogo;
+      if (match.awayLogo) result[match.away] = match.awayLogo;
+    }
+    for (const team of teams) if (team.logoUrl) result[team.name] = team.logoUrl;
+    return result;
+  }, [teams, matches]);
   const groupTables = useMemo(() => computeCustomGroupTables(teams, matches), [teams, matches]);
-  const rounds = useMemo(() => computeCustomResultRounds(matches), [matches]);
-  const groupMatches = useMemo(
-    () =>
-      matches
-        .filter((match) => match.round === 'group')
-        .sort(
-          (left, right) => (left.date ?? '').localeCompare(right.date ?? '') || left.id - right.id,
-        ),
+  const layout = useMemo(
+    () => splitCustomRounds(computeCustomResultRounds(matches).map((round) => round.slots)),
     [matches],
   );
+  const radar = useMemo(() => customMatchRadar(matches), [matches]);
+  const featuredMatch = useMemo(() => nextCustomBracketMatch(matches), [matches]);
+  const groupMatches = useMemo(() => matches.filter((match) => match.round === 'group'), [matches]);
 
   const loading = teamsQuery.isPending || matchesQuery.isPending;
   const loadError = teamsQuery.error ?? matchesQuery.error;
-  const finalMatch = rounds[rounds.length - 1]?.slots[0]?.match;
-  const champion = finalMatch ? customMatchWinner(finalMatch) : null;
   const hasGroups = Object.keys(groupTables).length > 0;
+  const finalMatch = layout.final?.match;
+  const champion = finalMatch ? customMatchWinner(finalMatch) : null;
 
   let lockCopy = 'El administrador aún no ha fijado el cierre de pronósticos.';
   if (activeGroupIsLocked) lockCopy = 'Pronósticos cerrados.';
@@ -73,22 +92,73 @@ export default function CustomTournamentHome() {
     lockCopy = `Pronósticos abiertos hasta el ${formatMatchDate(activeGroupLockDate)}.`;
   }
 
+  /** Casilla de un equipo con su marcador, como en el cuadro oficial. */
+  const renderResultSlot = (slot: CustomResultSlot | null | undefined, isHome: boolean) => {
+    if (!slot) return <TeamSlot name={null} />;
+    const name = isHome ? slot.home : slot.isBye ? null : slot.away;
+    const label = name ?? (isHome ? slot.homePlaceholder : slot.awayPlaceholder);
+    const match = slot.match;
+    const played = Boolean(match?.finished && match.homeScore != null && match.awayScore != null);
+    const isWinner = Boolean(name && match && played && customMatchWinner(match) === name);
+
+    let style: CSSProperties = {};
+    if (name && match && featuredMatch?.id === match.id) {
+      style = {
+        border: '2px solid var(--accent-cyan)',
+        position: 'relative',
+        zIndex: 10,
+        fontWeight: 'bold',
+      };
+    }
+
+    return (
+      <TeamSlot
+        name={label}
+        logo={name ? logos[name] : null}
+        placeholder={!name}
+        slotStyle={style}
+        rightContent={
+          played && name ? (
+            <span
+              className={`ml-1 text-[0.85em] font-bold bg-[rgba(17,24,39,0.06)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[var(--hit)]' : 'text-muted'}`}
+            >
+              {isHome ? match?.homeScore : match?.awayScore}
+              {isWinner && <span className="sr-only"> (ganador)</span>}
+            </span>
+          ) : null
+        }
+      />
+    );
+  };
+
+  const groupRows = (group: string) =>
+    (groupTables[group] ?? []).map((row) => ({
+      name: row.team,
+      logo: logos[row.team],
+      diff: row.goalsFor - row.goalsAgainst,
+      gls: row.goalsFor,
+      pts: row.points,
+    }));
+
   return (
-    <section className="view-section active max-w-270 mx-auto pb-6">
-      <header className="paper-panel album-sheet p-5 mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <span className="text-muted text-xs uppercase tracking-wide font-bold">
-            {activeGroupName}
-          </span>
-          <h1 className="poster-title m-0 break-words">
-            {activeCompetitionName || activeGroupName}
-          </h1>
-          <p className="m-0 mt-1 text-sm">{lockCopy}</p>
-        </div>
+    <section className="view-section active block pt-0 relative">
+      <h1 className="sr-only">{activeCompetitionName || activeGroupName}</h1>
+      <OfficialBracketTabs
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        activePanel={activePanel}
+        setActivePanel={setActivePanel}
+        activeGroupPichichi={false}
+        showGroups={hasGroups}
+        label="Vista de la competición"
+      />
+
+      <div className="paper-panel mt-0 mb-3 mx-auto py-2 px-4.5 border border-[var(--ink)] rounded-[4px] flex items-center justify-center gap-2.5 flex-wrap max-w-145">
+        <span className="text-main text-[0.9rem]">{lockCopy}</span>
         <Link className="glass-btn primary-btn inline-flex items-center min-h-11" to="/prediction">
           {saved || activeGroupIsLocked ? 'Ver mi pronóstico' : 'Rellenar mi pronóstico'}
         </Link>
-      </header>
+      </div>
 
       {loadError && (
         <p role="alert" className="paper-panel album-sheet p-4 text-[var(--miss)]">
@@ -97,196 +167,87 @@ export default function CustomTournamentHome() {
       )}
       {loading && <PaperLoading label="Cargando competición…" />}
 
-      {!loading && !loadError && (
+      {!loading && !loadError && activeTab === 'grupos' && hasGroups && (
+        <div className="w-full">
+          <div className="flex justify-center mb-7.5 w-full">
+            <LiveMatchesPanel
+              liveMatches={[]}
+              matchRadar={customMatchRadar(groupMatches)}
+              maxNext={1}
+              showStats={false}
+            />
+          </div>
+          <div id="home-standings-grid" className="groups-grid">
+            {Object.keys(groupTables).map((group) => (
+              <GroupStandingsCard
+                key={group}
+                groupName={group}
+                rows={groupRows(group)}
+                selected={selectedGroup?.name === group}
+                onToggle={() =>
+                  setSelectedGroup(
+                    selectedGroup?.name === group ? null : { name: group, teams: groupRows(group) },
+                  )
+                }
+              />
+            ))}
+          </div>
+          <GroupMatchesModal
+            selectedGroup={selectedGroup}
+            allGames={groupMatches.filter((match) => match.groupName === selectedGroup?.name)}
+            onClose={() => setSelectedGroup(null)}
+            linkToStats={false}
+          />
+        </div>
+      )}
+
+      {!loading && !loadError && (activeTab === 'cuadro' || !hasGroups) && (
         <>
-          {champion && (
-            <p className="paper-panel album-sheet p-4 mb-5 text-center border-2 border-[var(--gold)]">
-              <span className="text-xs uppercase tracking-wider text-muted font-bold block mb-1">
-                Campeón
-              </span>
-              <span className="poster-title text-xl text-[var(--gold)]">🏆 {champion}</span>
+          {featuredMatch && <FeaturedMatchBanner featuredMatch={featuredMatch} />}
+
+          {activePanel && (
+            <div className="flex flex-col items-center mb-2.5 relative z-[50]">
+              <BracketInfoPanel activePanel={activePanel} setActivePanel={setActivePanel}>
+                <LiveMatchesPanel
+                  liveMatches={[]}
+                  matchRadar={radar}
+                  maxNext={3}
+                  showStats={false}
+                />
+              </BracketInfoPanel>
+            </div>
+          )}
+
+          {layout.final ? (
+            <BracketCanvas
+              leftRounds={layout.left.map((round) => round.map(toCanvasMatch))}
+              rightRounds={layout.right.map((round) => round.map(toCanvasMatch))}
+              roundLabels={layout.roundLabels}
+              centerLabel={layout.roundLabels.length ? 'Semifinales y final' : 'Final'}
+              renderSlot={(_, { side, roundIndex, matchIndex, isHome }) =>
+                renderResultSlot(layout[side][roundIndex]?.[matchIndex], isHome)
+              }
+              renderFinal={() => (
+                <BracketFinalMatch
+                  home={renderResultSlot(layout.final, true)}
+                  away={renderResultSlot(layout.final, false)}
+                  champion={
+                    <TeamSlot
+                      name={champion}
+                      logo={champion ? logos[champion] : null}
+                      placeholder={!champion}
+                    />
+                  }
+                />
+              )}
+            />
+          ) : (
+            <p className="paper-panel album-sheet p-5 text-center max-w-145 mx-auto">
+              El administrador aún no ha configurado los cruces.
             </p>
-          )}
-
-          {hasGroups && (
-            <section aria-labelledby="custom-groups-title" className="mb-6">
-              <h2 id="custom-groups-title" className="poster-title">
-                Fase de grupos
-              </h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                {Object.entries(groupTables).map(([group, rows]) => (
-                  <div key={group} className="paper-panel album-sheet p-4 overflow-x-auto">
-                    <table className="w-full text-sm border-collapse">
-                      <caption className="poster-title text-left mb-2">Grupo {group}</caption>
-                      <thead>
-                        <tr className="text-muted text-xs uppercase border-b border-line">
-                          <th scope="col" className="text-left py-1 pr-2 w-6">
-                            #
-                          </th>
-                          <th scope="col" className="text-left py-1">
-                            Equipo
-                          </th>
-                          <th scope="col" className="py-1 px-1 w-8" title="Partidos jugados">
-                            PJ
-                          </th>
-                          <th scope="col" className="py-1 px-1 w-10" title="Diferencia de goles">
-                            DG
-                          </th>
-                          <th scope="col" className="py-1 pl-1 w-10" title="Puntos">
-                            Pts
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((row, index) => (
-                          <tr key={row.team} className="border-b border-line last:border-0">
-                            <td className="py-2 pr-2 text-muted">{index + 1}</td>
-                            <td className="py-2 font-medium break-words">
-                              <TeamName name={row.team} logo={logos[row.team]} />
-                            </td>
-                            <td className="py-2 px-1 text-center">{row.played}</td>
-                            <td className="py-2 px-1 text-center">
-                              {row.goalsFor - row.goalsAgainst > 0 ? '+' : ''}
-                              {row.goalsFor - row.goalsAgainst}
-                            </td>
-                            <td className="py-2 pl-1 text-center font-bold">{row.points}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section aria-labelledby="custom-bracket-title" className="mb-6">
-            <h2 id="custom-bracket-title" className="poster-title">
-              Cuadro
-            </h2>
-            {rounds.length === 0 ? (
-              <p className="paper-panel album-sheet p-5">
-                El administrador aún no ha configurado los cruces.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4 md:flex-row md:overflow-x-auto md:pb-2">
-                {rounds.map((round) => (
-                  <div key={round.roundIndex} className="flex flex-col md:min-w-60 md:flex-1">
-                    <h3 className="text-xs uppercase tracking-wide font-bold text-muted mb-2">
-                      {round.title}
-                    </h3>
-                    <ol className="list-none m-0 p-0 flex flex-1 flex-col gap-3 md:justify-around">
-                      {round.slots.map((slot, index) => (
-                        <li key={slot.match?.id ?? `pending-${index}`}>
-                          <ResultCard slot={slot} logos={logos} />
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {groupMatches.length > 0 && (
-            <section aria-labelledby="custom-group-matches-title">
-              <h2 id="custom-group-matches-title" className="poster-title">
-                Partidos de grupos
-              </h2>
-              <ul className="list-none m-0 p-0 grid gap-3 sm:grid-cols-2">
-                {groupMatches.map((match) => (
-                  <li key={match.id} className="paper-panel album-sheet p-4">
-                    <span className="text-muted text-xs uppercase tracking-wide font-bold">
-                      Grupo {match.groupName} · {formatMatchDate(match.date)}
-                    </span>
-                    <MatchLine match={match} logos={logos} />
-                  </li>
-                ))}
-              </ul>
-            </section>
           )}
         </>
       )}
     </section>
-  );
-}
-
-/** Nombre de equipo con su escudo, si lo tiene. */
-function TeamName({ name, logo }: { name: string; logo?: string | null }) {
-  return (
-    <span className="inline-flex items-center gap-2 min-w-0 align-middle">
-      {logo && <Flag team={name} logo={logo} />}
-      <span className="break-words">{name}</span>
-    </span>
-  );
-}
-
-function MatchLine({ match, logos }: { match: Match; logos: Record<string, string> }) {
-  const played = match.finished && match.homeScore != null && match.awayScore != null;
-  return (
-    <p className="m-0 mt-1 flex items-center justify-between gap-3 font-bold">
-      <span className="min-w-0 break-words">
-        <TeamName name={match.home} logo={match.homeLogo ?? logos[match.home]} /> ·{' '}
-        <TeamName name={match.away} logo={match.awayLogo ?? logos[match.away]} />
-      </span>
-      <span className={played ? 'whitespace-nowrap' : 'whitespace-nowrap text-muted font-normal'}>
-        {played ? `${match.homeScore} - ${match.awayScore}` : 'Por jugar'}
-      </span>
-    </p>
-  );
-}
-
-function ResultCard({ slot, logos }: { slot: CustomResultSlot; logos: Record<string, string> }) {
-  const match = slot.match;
-  const winner = match ? customMatchWinner(match) : null;
-  const played = Boolean(match?.finished && match.homeScore != null && match.awayScore != null);
-  const sides = [
-    { name: slot.home, placeholder: slot.homePlaceholder, score: match?.homeScore },
-    {
-      name: slot.away,
-      placeholder: slot.awayPlaceholder,
-      score: match?.awayScore,
-      bye: slot.isBye,
-    },
-  ];
-
-  return (
-    <div className="paper-panel album-sheet p-3">
-      {sides.map((side, index) => {
-        const isWinner = Boolean(side.name && winner === side.name);
-        return (
-          <div
-            key={index}
-            className={`flex items-center justify-between gap-3 min-h-9 ${
-              index === 0 ? 'border-b border-line' : ''
-            }`}
-          >
-            <span
-              className={`min-w-0 break-words ${
-                side.name && !side.bye
-                  ? isWinner
-                    ? 'font-bold'
-                    : winner
-                      ? 'text-muted line-through'
-                      : 'font-medium'
-                  : 'text-muted italic'
-              }`}
-            >
-              {side.name && !side.bye ? (
-                <TeamName name={side.name} logo={logos[side.name]} />
-              ) : (
-                side.placeholder
-              )}
-              {isWinner && <span className="sr-only"> (ganador)</span>}
-            </span>
-            {played && <span className="font-bold tabular-nums">{side.score}</span>}
-          </div>
-        );
-      })}
-      {match && !played && !slot.isBye && match.date && (
-        <p className="m-0 mt-1 text-xs text-muted">{formatMatchDate(match.date)}</p>
-      )}
-      {slot.isBye && <p className="m-0 mt-1 text-xs text-muted">Pasa por descanso</p>}
-    </div>
   );
 }
