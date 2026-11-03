@@ -62,12 +62,16 @@ export default function CustomTournamentHome() {
     return result;
   }, [teams, matches]);
   const groupTables = useMemo(() => computeCustomGroupTables(teams, matches), [teams, matches]);
+  const resultRounds = useMemo(() => computeCustomResultRounds(matches), [matches]);
   const layout = useMemo(
-    () => splitCustomRounds(computeCustomResultRounds(matches).map((round) => round.slots)),
-    [matches],
+    () => splitCustomRounds(resultRounds.map((round) => round.slots)),
+    [resultRounds],
   );
   const radar = useMemo(() => customMatchRadar(matches), [matches]);
   const featuredMatch = useMemo(() => nextCustomBracketMatch(matches), [matches]);
+  const featuredRound = resultRounds.find((round) =>
+    round.slots.some((slot) => slot.match?.id === featuredMatch?.id),
+  );
   const groupMatches = useMemo(() => matches.filter((match) => match.round === 'group'), [matches]);
 
   const loading = teamsQuery.isPending || matchesQuery.isPending;
@@ -180,7 +184,14 @@ export default function CustomTournamentHome() {
 
       {!loading && !loadError && (activeTab === 'cuadro' || !hasGroups) && (
         <>
-          {featuredMatch && <FeaturedMatchBanner featuredMatch={featuredMatch} />}
+          {featuredMatch && (
+            <FeaturedMatchBanner
+              featuredMatch={featuredMatch}
+              roundTitle={featuredRound?.title}
+              homeLogo={logos[featuredMatch.home]}
+              awayLogo={logos[featuredMatch.away]}
+            />
+          )}
 
           {activePanel && (
             <div className="flex flex-col items-center mb-2.5 relative z-[50]">

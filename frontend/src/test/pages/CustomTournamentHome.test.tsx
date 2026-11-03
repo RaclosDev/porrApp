@@ -70,7 +70,9 @@ describe('CustomTournamentHome', () => {
     expect(center.getByText('Ganador C2')).toBeInTheDocument();
     // El escudo sale también en la final, donde el cruce aún no existe.
     expect(center.getAllByRole('img', { name: 'T1' })).toHaveLength(2);
-    expect(screen.getByText(/Próximo partido del cuadro/)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Próximo partido del cuadro' })).toHaveTextContent(
+      /Semifinales.*HLE.*VS.*DK/,
+    );
     expect(screen.getByRole('tab', { name: 'Cuadro' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('tab', { name: 'Grupos' })).toBeNull();
     expect(screen.queryByText(/Pronósticos abiertos/)).toBeNull();
