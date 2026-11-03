@@ -1,28 +1,85 @@
+import Flag from '../Flag';
+import InkStamp from '../InkStamp';
+import { formatMatchDate } from '../../utils/matchday';
 import type { Match } from '../../types/api';
+
 interface FeaturedMatchBannerProps {
   featuredMatch: Match;
+  /** Nombre de la ronda del cruce («Cuartos de final»…). */
+  roundTitle?: string | null;
+  /** Escudos que no vienen en el partido (equipos de competiciones personalizadas). */
+  homeLogo?: string | null;
+  awayLogo?: string | null;
 }
 
+/** Escudo un poco mayor que en las casillas; las banderas conservan su proporción. */
+const emblemStyle = (logo: string | null | undefined) => ({
+  width: '32px',
+  height: logo ? '32px' : '24px',
+});
+
 /** Aviso del próximo partido de eliminatorias. */
-export default function FeaturedMatchBanner({ featuredMatch }: FeaturedMatchBannerProps) {
-  return (
-    <div className="paper-panel mt-0 mb-3 mx-auto py-2 px-4.5 border border-[var(--ink)] rounded-[4px] flex items-center justify-center gap-2.5 flex-wrap max-w-145 ">
-      <span className="text-[0.75rem] bg-[var(--ink)] text-[var(--paper)] font-black py-0.5 px-2 rounded-[4px]">
-        Próximo partido del cuadro
+export default function FeaturedMatchBanner({
+  featuredMatch,
+  roundTitle,
+  homeLogo,
+  awayLogo,
+}: FeaturedMatchBannerProps) {
+  const home = featuredMatch.home || 'Por definir';
+  const away = featuredMatch.away || 'Por definir';
+  const resolvedHomeLogo = homeLogo || featuredMatch.homeLogo || featuredMatch.homeTeamLogo;
+  const resolvedAwayLogo = awayLogo || featuredMatch.awayLogo || featuredMatch.awayTeamLogo;
+  const hasScore = featuredMatch.homeScore != null && featuredMatch.awayScore != null;
+  const started = Boolean(featuredMatch.date && new Date(featuredMatch.date) <= new Date());
+
+  let status: string | null = null;
+  if (featuredMatch.finished) status = 'Final';
+  else if (started) status = featuredMatch.displayClock || 'En juego';
+
+  const renderTeam = (name: string, logo: string | null | undefined) => (
+    <div className="flex flex-col items-center gap-1.5 min-w-0 text-center">
+      <Flag team={name} logo={logo} style={emblemStyle(logo)} />
+      <span
+        title={name}
+        className="text-main font-bold text-[0.95rem] leading-tight line-clamp-2 break-words max-w-full"
+      >
+        {name}
       </span>
-      <span className="text-main font-bold text-[0.9rem]">
-        {featuredMatch.home || 'Por definir'} vs {featuredMatch.away || 'Por definir'}
-      </span>
-      {featuredMatch.date && (
-        <span className="text-muted text-[0.8rem]">
-          {new Date(featuredMatch.date).toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </span>
-      )}
     </div>
+  );
+
+  return (
+    <section
+      aria-label="Próximo partido del cuadro"
+      className="paper-panel album-sheet w-full max-w-145 mt-0 mb-3 mx-auto py-3 px-4 flex flex-col gap-3"
+    >
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="album-sheet-title m-0 text-[1.05rem]">Próximo partido del cuadro</h2>
+        {roundTitle && <span className="text-muted font-bold text-[0.8rem]">{roundTitle}</span>}
+      </div>
+
+      <div className="last-match-teams">
+        {renderTeam(home, resolvedHomeLogo)}
+        {hasScore ? (
+          <span className="last-match-score min-w-0">
+            {featuredMatch.homeScore} - {featuredMatch.awayScore}
+          </span>
+        ) : (
+          <span className="text-[0.9em] text-muted font-bold">VS</span>
+        )}
+        {renderTeam(away, resolvedAwayLogo)}
+      </div>
+
+      <div className="flex items-center justify-center gap-2 flex-wrap text-muted text-[0.85rem] font-bold">
+        {status && (
+          <InkStamp tone={featuredMatch.finished ? 'ink' : 'red'} size="sm">
+            {status}
+          </InkStamp>
+        )}
+        <span className="inline-block first-letter:uppercase">
+          {formatMatchDate(featuredMatch.date)}
+        </span>
+      </div>
+    </section>
   );
 }
