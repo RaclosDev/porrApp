@@ -1,12 +1,9 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
-import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { fetchCustomTeams, fetchCustomMatches } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
-import { formatMatchDate } from '../utils/matchday';
 import {
   computeCustomGroupTables,
   computeCustomResultRounds,
@@ -36,14 +33,7 @@ const toCanvasMatch = (slot: CustomResultSlot): CanvasMatch<string | null> => ({
  * grupos, el cuadro real con sus resultados y la clasificación de cada grupo.
  */
 export default function CustomTournamentHome() {
-  const {
-    activeGroupId,
-    activeGroupName,
-    activeCompetitionName,
-    activeGroupIsLocked,
-    activeGroupLockDate,
-  } = useAppContext();
-  const saved = useMyLeaguePrediction();
+  const { activeGroupId, activeGroupName, activeCompetitionName } = useAppContext();
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const [activeTab, setActiveTab] = useState<'cuadro' | 'grupos'>('cuadro');
   const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
@@ -85,12 +75,6 @@ export default function CustomTournamentHome() {
   const hasGroups = Object.keys(groupTables).length > 0;
   const finalMatch = layout.final?.match;
   const champion = finalMatch ? customMatchWinner(finalMatch) : null;
-
-  let lockCopy = 'El administrador aún no ha fijado el cierre de pronósticos.';
-  if (activeGroupIsLocked) lockCopy = 'Pronósticos cerrados.';
-  else if (activeGroupLockDate) {
-    lockCopy = `Pronósticos abiertos hasta el ${formatMatchDate(activeGroupLockDate)}.`;
-  }
 
   /** Casilla de un equipo con su marcador, como en el cuadro oficial. */
   const renderResultSlot = (slot: CustomResultSlot | null | undefined, isHome: boolean) => {
@@ -152,13 +136,6 @@ export default function CustomTournamentHome() {
         showGroups={hasGroups}
         label="Vista de la competición"
       />
-
-      <div className="paper-panel mt-0 mb-3 mx-auto py-2 px-4.5 border border-[var(--ink)] rounded-[4px] flex items-center justify-center gap-2.5 flex-wrap max-w-145">
-        <span className="text-main text-[0.9rem]">{lockCopy}</span>
-        <Link className="glass-btn primary-btn inline-flex items-center min-h-11" to="/prediction">
-          {saved || activeGroupIsLocked ? 'Ver mi pronóstico' : 'Rellenar mi pronóstico'}
-        </Link>
-      </div>
 
       {loadError && (
         <p role="alert" className="paper-panel album-sheet p-4 text-[var(--miss)]">

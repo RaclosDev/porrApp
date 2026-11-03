@@ -73,10 +73,8 @@ describe('CustomTournamentHome', () => {
     expect(screen.getByText(/Próximo partido del cuadro/)).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Cuadro' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('tab', { name: 'Grupos' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Rellenar mi pronóstico' })).toHaveAttribute(
-      'href',
-      '/prediction',
-    );
+    expect(screen.queryByText(/Pronósticos abiertos/)).toBeNull();
+    expect(screen.queryByRole('link', { name: /pronóstico/ })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Partidos' }));
     const dialog = within(screen.getByRole('dialog', { name: 'Partidos en directo' }));
