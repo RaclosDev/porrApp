@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
@@ -45,7 +45,9 @@ export default function CustomBracket() {
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const [groups, setGroups] = useState<Record<string, string[]>>({});
   const [picks, setPicks] = useState<string[][]>([]);
+  // Solo hay un pronóstico por persona: se guarda con el nombre que ya tuviera o el del participante.
   const [predictionName, setPredictionName] = useState('');
+  const savedNoticeShown = useRef(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loadedKey, setLoadedKey] = useState('');
@@ -69,6 +71,7 @@ export default function CustomBracket() {
     setGroups({});
     setPicks([]);
     setPredictionName('');
+    savedNoticeShown.current = false;
     setLoadedKey('');
     setError('');
   }, [activeGroupId]);
@@ -79,7 +82,13 @@ export default function CustomBracket() {
     setGroups(saved.data?.groups ?? {});
     setPicks(saved.data?.customRounds ?? []);
     setPredictionName(saved.predictionName ?? '');
-  }, [saved, loadedKey]);
+    if (!activeGroupIsLocked && !savedNoticeShown.current) {
+      savedNoticeShown.current = true;
+      toast('Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.', {
+        id: 'custom-prediction-saved',
+      });
+    }
+  }, [saved, loadedKey, activeGroupIsLocked]);
 
   const logos = useMemo(
     () => Object.fromEntries(teams.map((team) => [team.name, team.logoUrl] as const)),
@@ -236,15 +245,16 @@ export default function CustomBracket() {
       current = next;
     }
     const championPick = completed[completed.length - 1]?.[0];
-    if (!championPick || !predictionName.trim()) {
-      setError('Indica un nombre para tu pronóstico');
+    if (!championPick) {
+      setError('Elige un ganador en todos los cruces');
       return;
     }
+    savedNoticeShown.current = true;
     setBusy(true);
     try {
       const data: PredictionData = {
         user: userName,
-        prediction: predictionName.trim(),
+        prediction: predictionName.trim() || userName || 'Mi pronóstico',
         groups: orderedGroups,
         customRounds: completed,
         r16: [],
@@ -262,16 +272,7 @@ export default function CustomBracket() {
   };
 
   return (
-    <section
-      id="view-bracket"
-      className="view-section active block"
-      aria-label={`Pronóstico de ${activeGroupName}`}
-    >
-      {saved && editable && (
-        <p className="paper-panel album-sheet p-4 max-w-145 mx-auto text-center" role="status">
-          Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.
-        </p>
-      )}
+    <section className="view-section active block" aria-label={`Pronóstico de ${activeGroupName}`}>
       {activeGroupIsLocked && (
         <p className="flex items-center justify-center gap-3 mb-[15px] text-[0.9rem] text-muted">
           <InkStamp>Pronóstico cerrado</InkStamp>
@@ -416,17 +417,6 @@ export default function CustomBracket() {
                   {error}
                 </p>
               )}
-              <div className="flex gap-[15px] flex-wrap mb-[15px]">
-                <input
-                  type="text"
-                  placeholder="Nombre del pronóstico (p. ej.: Mi pronóstico 1)"
-                  aria-label="Nombre del pronóstico"
-                  maxLength={100}
-                  value={predictionName}
-                  onChange={(event) => setPredictionName(event.target.value)}
-                  className="glass-input flex-1 min-w-50"
-                />
-              </div>
               <button
                 type="button"
                 className="glass-btn primary-btn"
