@@ -75,4 +75,15 @@ describe('FeaturedMatchBanner', () => {
     expect(screen.getByText('En juego')).toBeInTheDocument();
     expect(screen.queryByText('VS')).toBeNull();
   });
+
+  it('en una competición personalizada pide el resultado después de la hora del partido', () => {
+    render(
+      <FeaturedMatchBanner featuredMatch={match({ date: '2020-01-01T10:00:00Z' })} manualResults />,
+    );
+
+    expect(
+      screen.getByRole('region', { name: 'Partido pendiente de resultado' }),
+    ).toHaveTextContent('Resultado pendiente');
+    expect(screen.queryByText('En juego')).toBeNull();
+  });
 });

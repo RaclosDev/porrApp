@@ -187,6 +187,7 @@ export default function CustomTournamentHome() {
           {featuredMatch && (
             <FeaturedMatchBanner
               featuredMatch={featuredMatch}
+              manualResults
               roundTitle={featuredRound?.title}
               homeLogo={logos[featuredMatch.home]}
               awayLogo={logos[featuredMatch.away]}

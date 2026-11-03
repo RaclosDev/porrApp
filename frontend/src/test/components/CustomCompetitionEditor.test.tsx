@@ -162,6 +162,9 @@ describe('CustomCompetitionEditor', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['myGroups'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['customTeams', '7'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['customMatches', '7'] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['leaderboard', '7'] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['leaderboardMatchdays', '7'] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['predictionScore'] });
   });
 
   it('cierra por partidos con un margen en horas', async () => {
@@ -267,6 +270,7 @@ describe('CustomCompetitionEditor', () => {
     await openTab(/Partidos/);
 
     expect(screen.queryByLabelText('Fase')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Ronda')).toHaveAttribute('max', '1');
     fireEvent.change(screen.getByLabelText('Local'), { target: { value: '3' } });
     expect(screen.getByLabelText('Visitante')).toHaveDisplayValue('Descanso (pasa directo)');
     fireEvent.click(screen.getByRole('button', { name: 'Añadir partido' }));

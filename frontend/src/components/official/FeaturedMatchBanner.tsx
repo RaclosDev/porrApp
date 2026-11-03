@@ -10,6 +10,8 @@ interface FeaturedMatchBannerProps {
   /** Escudos que no vienen en el partido (equipos de competiciones personalizadas). */
   homeLogo?: string | null;
   awayLogo?: string | null;
+  /** Las competiciones personalizadas esperan a que el administrador introduzca el resultado. */
+  manualResults?: boolean;
 }
 
 /** Escudo un poco mayor que en las casillas; las banderas conservan su proporción. */
@@ -24,6 +26,7 @@ export default function FeaturedMatchBanner({
   roundTitle,
   homeLogo,
   awayLogo,
+  manualResults = false,
 }: FeaturedMatchBannerProps) {
   const home = featuredMatch.home || 'Por definir';
   const away = featuredMatch.away || 'Por definir';
@@ -34,7 +37,13 @@ export default function FeaturedMatchBanner({
 
   let status: string | null = null;
   if (featuredMatch.finished) status = 'Final';
-  else if (started) status = featuredMatch.displayClock || 'En juego';
+  else if (started)
+    status = manualResults ? 'Resultado pendiente' : featuredMatch.displayClock || 'En juego';
+
+  const heading =
+    manualResults && started && !featuredMatch.finished
+      ? 'Partido pendiente de resultado'
+      : 'Próximo partido del cuadro';
 
   const renderTeam = (name: string, logo: string | null | undefined) => (
     <div className="flex flex-col items-center gap-1.5 min-w-0 text-center">
@@ -50,11 +59,11 @@ export default function FeaturedMatchBanner({
 
   return (
     <section
-      aria-label="Próximo partido del cuadro"
+      aria-label={heading}
       className="paper-panel album-sheet w-full max-w-145 mt-0 mb-3 mx-auto py-3 px-4 flex flex-col gap-3"
     >
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="album-sheet-title m-0 text-[1.05rem]">Próximo partido del cuadro</h2>
+        <h2 className="album-sheet-title m-0 text-[1.05rem]">{heading}</h2>
         {roundTitle && <span className="text-muted font-bold text-[0.8rem]">{roundTitle}</span>}
       </div>
 

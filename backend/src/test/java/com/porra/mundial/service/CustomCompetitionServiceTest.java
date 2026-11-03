@@ -98,6 +98,46 @@ class CustomCompetitionServiceTest {
                 && match.getAwayTeam() == null));
     }
 
+    @Test
+    void rejectsRoundsBeyondTheFinalAndExtraMatchesInARound() {
+        bracketEdition();
+        Team home = Team.builder().id(1L).name("Azules").competition(competition).build();
+        Team away = Team.builder().id(2L).name("Rojos").competition(competition).build();
+        when(teams.findById(1L)).thenReturn(Optional.of(home));
+        when(teams.findById(2L)).thenReturn(Optional.of(away));
+        Match first = Match.builder().round("bracket-1").build();
+        Match second = Match.builder().round("bracket-1").build();
+        when(matches.findByCompetitionId(competition.getId())).thenReturn(java.util.List.of(first, second));
+
+        assertThrows(BusinessException.class, () -> service.addMatch(leagueId, "admin@example.com",
+                new CustomMatchRequest(1L, 2L, null, "bracket-3")));
+
+        when(matches.findByCompetitionId(competition.getId())).thenReturn(java.util.List.of(
+                first, second, Match.builder().round("bracket-2").build()));
+        assertThrows(BusinessException.class, () -> service.addMatch(leagueId, "admin@example.com",
+                new CustomMatchRequest(1L, 2L, null, "bracket-2")));
+        verify(matches, never()).save(any());
+    }
+
+    @Test
+    void rejectsTheSameTeamTwiceInALaterRound() {
+        bracketEdition();
+        Team home = Team.builder().id(1L).name("Azules").competition(competition).build();
+        Team away = Team.builder().id(2L).name("Rojos").competition(competition).build();
+        when(teams.findById(1L)).thenReturn(Optional.of(home));
+        when(teams.findById(2L)).thenReturn(Optional.of(away));
+        when(matches.findByCompetitionId(competition.getId())).thenReturn(java.util.List.of(
+                Match.builder().round("bracket-1").build(),
+                Match.builder().round("bracket-1").build(),
+                Match.builder().round("bracket-1").build(),
+                Match.builder().round("bracket-1").build(),
+                Match.builder().round("bracket-2").homeTeam(home).build()));
+
+        assertThrows(BusinessException.class, () -> service.addMatch(leagueId, "admin@example.com",
+                new CustomMatchRequest(1L, 2L, null, "bracket-2")));
+        verify(matches, never()).save(any());
+    }
+
     private Edition bracketEdition() {
         Edition edition = Edition.builder().league(competition.getOwnerLeague()).competition(competition)
                 .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();

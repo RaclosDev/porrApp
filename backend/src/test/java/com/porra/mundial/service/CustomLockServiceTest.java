@@ -11,6 +11,7 @@ import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.repository.TeamRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +29,8 @@ class CustomLockServiceTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 5, 18, 0);
 
     private final MatchRepository matches = mock(MatchRepository.class);
-    private final CustomLockService service = new CustomLockService(matches);
+    private final TeamRepository teams = mock(TeamRepository.class);
+    private final CustomLockService service = new CustomLockService(matches, teams);
     private final Competition competition = Competition.builder().name("Copa").ownerLeague(new League()).build();
     private final List<Match> fixtures = new ArrayList<>();
     private long nextId = 1;
@@ -96,6 +98,20 @@ class CustomLockServiceTest {
         assertFalse(state.pickLocked(1, 1));
         assertTrue(state.fullyLocked());
         assertNull(state.nextLockAt());
+    }
+
+    @Test
+    void aGroupWithoutFixturesRemainsOpenAfterTheBracketCloses() {
+        when(teams.findByCompetitionIdOrderByNameAsc(9L)).thenReturn(List.of(
+                Team.builder().name("A").groupName("A").build(),
+                Team.builder().name("B").groupName("A").build()));
+        match("bracket-1", null, "A", "B", NOW.minusDays(1));
+
+        var state = service.state(edition(PredictionLockMode.PER_MATCH, 0));
+
+        assertTrue(state.anyLocked());
+        assertFalse(state.fullyLocked());
+        assertFalse(state.groupLocked("A"));
     }
 
     @Test

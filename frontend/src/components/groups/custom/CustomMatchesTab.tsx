@@ -4,6 +4,7 @@ import { addCustomMatch, deleteCustomMatch } from '../../../services/api';
 import type { CustomTeam } from '../../../services/api';
 import type { Group, Match } from '../../../types/api';
 import Flag from '../../Flag';
+import { getTotalRounds } from '../../../utils/customBracket';
 import { formatMatchDate, groupByPhase, isBye, type SaveAction } from './customCompetition';
 
 /** Alta y borrado de partidos: grupos, rondas del cuadro (con descansos) o jornadas. */
@@ -28,6 +29,10 @@ export default function CustomMatchesTab({
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const knockout = !matchDay && phase === 'bracket';
+  const maxRound = Math.max(
+    1,
+    getTotalRounds(matches.filter((match) => match.round === 'bracket-1').length),
+  );
   const home = teams.find((team) => String(team.id) === homeId);
   // En grupos solo se enfrentan equipos del mismo grupo.
   const awayOptions = teams.filter(
@@ -117,7 +122,7 @@ export default function CustomMatchesTab({
                   className="glass-input"
                   type="number"
                   min="1"
-                  max="31"
+                  max={maxRound}
                   step="1"
                   required
                   value={round}
