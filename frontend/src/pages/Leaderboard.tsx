@@ -470,7 +470,21 @@ function Leaderboard() {
                         };
 
                         return (
-                          <tr key={r.key} style={rowStyle}>
+                          <tr
+                            key={r.key}
+                            style={r.id != null ? { ...rowStyle, cursor: 'pointer' } : rowStyle}
+                            onClick={
+                              r.id != null
+                                ? () => {
+                                    if (isMatchday) {
+                                      navigate('/jornadas');
+                                    } else {
+                                      state.setViewerPredictionId(r.id);
+                                    }
+                                  }
+                                : undefined
+                            }
+                          >
                             <td className="text-[1.2em] text-center">{rankDisplay}</td>
                             <td>
                               <div className="flex justify-start items-center flex-nowrap gap-1.5">
