@@ -27,6 +27,7 @@ const fixture = (matchId: number, extra: Partial<MatchdayFixture> = {}): Matchda
   round: 'Jornada 1',
   groupName: null,
   finished: false,
+  status: null,
   actualHomeScore: null,
   actualAwayScore: null,
   displayClock: null,

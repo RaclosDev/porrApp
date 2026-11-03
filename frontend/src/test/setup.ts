@@ -28,3 +28,12 @@ vi.mock('@react-oauth/google', () => ({
     React.createElement('button', { 'data-testid': 'google-login-btn' }, 'Google Sign In'),
   useGoogleLogin: () => vi.fn(),
 }));
+
+// IntersectionObserver no existe en jsdom; los cromos lo usan para animar al entrar en pantalla.
+class FakeIntersectionObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);

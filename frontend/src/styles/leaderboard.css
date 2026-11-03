@@ -143,41 +143,6 @@
     color: var(--text-muted);
   }
 
-  .lb-matchday-kpis {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .lb-matchday-kpi {
-    min-width: 120px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    background: rgba(17, 24, 39, 0.04);
-    border: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .lb-matchday-kpi span {
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-  }
-
-  .lb-matchday-kpi strong {
-    font-size: 0.95rem;
-    color: var(--text-main);
-  }
-
-  .lb-matchday-kpi:first-child strong {
-    color: var(--accent-cyan);
-    font-size: 1.15rem;
-  }
-
   .lb-matchday-nav {
     display: flex;
     align-items: center;
@@ -279,15 +244,6 @@
       flex: 1 1 100%;
     }
 
-    .lb-matchday-kpis {
-      width: 100%;
-    }
-
-    .lb-matchday-kpi {
-      flex: 1 1 120px;
-      min-width: 0;
-    }
-
     .lb-matchday-nav {
       width: 100%;
     }
@@ -339,6 +295,276 @@
 
     .leaderboard-table td button {
       margin: 0;
+    }
+  }
+
+  .ranking-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px 24px;
+    max-width: 1400px;
+    margin: 0 auto 20px;
+  }
+
+  .ranking-view-tabs {
+    display: flex;
+    gap: 16px;
+  }
+
+  .ranking-view-tab {
+    min-height: 44px;
+    padding: 8px 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .ranking-view-tab.is-active {
+    border-bottom-color: var(--paper);
+    color: var(--paper);
+  }
+
+  .ranking-secondary-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px 20px;
+  }
+
+  .ranking-secondary-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+
+  .ranking-secondary-link:hover {
+    color: var(--paper);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .ranking-share-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--tab-border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--paper);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .ranking-share-button:hover:not(:disabled) {
+    background: rgba(243, 236, 220, 0.08);
+  }
+
+  .ranking-share-button:disabled {
+    cursor: wait;
+  }
+
+  .ranking-toolbar:has(> .ranking-view-tabs) .ranking-secondary-links {
+    grid-column: 2;
+  }
+
+  .ranking-toolbar:not(:has(> .ranking-view-tabs)) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  @media (max-width: 640px) {
+    .ranking-toolbar {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 4px 12px;
+      margin-bottom: 12px;
+    }
+
+    .ranking-toolbar:has(> .ranking-view-tabs) .ranking-secondary-links {
+      grid-column: 1;
+      grid-row: 2;
+      justify-content: flex-start;
+      gap: 4px 16px;
+    }
+
+    .ranking-toolbar:has(> .ranking-view-tabs) .ranking-share-button {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      align-self: start;
+    }
+  }
+
+  .lb-matchday-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    width: 100%;
+    border-top: 1px solid var(--border-color);
+    padding-top: 4px;
+    font-size: 0.8rem;
+  }
+
+  .lb-matchday-footer strong {
+    margin-left: 6px;
+    color: var(--marker-ink);
+  }
+  .lb-matchday-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    color: var(--marker-ink);
+    text-underline-offset: 4px;
+  }
+
+  .matchday-ranking-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .matchday-ranking-heading h2 {
+    margin: 0;
+    font-size: clamp(1rem, 3.8vw, 1.35rem);
+  }
+  .matchday-ranking-share {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 6px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--marker-ink);
+    font: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .matchday-ranking-share:hover {
+    background: rgba(11, 95, 116, 0.08);
+  }
+  .matchday-ranking-share:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  .matchday-podium .ranking-podium-place-1 {
+    margin-inline: 0;
+  }
+
+  .matchday-podium-avatars {
+    display: flex;
+    justify-content: center;
+    max-width: 100%;
+  }
+  .matchday-podium-avatars > * + * {
+    margin-left: -18px;
+  }
+  .matchday-podium-ties {
+    width: 100%;
+    font-size: 0.75rem;
+  }
+  .matchday-podium-ties summary {
+    cursor: pointer;
+    min-height: 44px;
+    align-content: center;
+  }
+  .matchday-podium-ties ul {
+    list-style: none;
+    padding: 0;
+    overflow-wrap: anywhere;
+  }
+  .matchday-podium-ties li + li {
+    margin-top: 6px;
+  }
+
+  .share-image-podium.ranking-podium {
+    width: 100%;
+    max-width: 660px;
+    gap: 12px;
+    padding: 16px 10px 20px;
+    margin: 0 auto 20px;
+  }
+
+  .share-image-podium .ranking-podium-place {
+    flex: 0 1 180px;
+  }
+
+  .share-image-podium .ranking-podium-place-1 {
+    flex-basis: 220px;
+    translate: none;
+    transform: translateY(-8px);
+  }
+
+  .share-image-podium .ranking-podium-place-2 {
+    rotate: none;
+    transform: rotate(-6deg);
+  }
+
+  .share-image-podium .ranking-podium-place-3 {
+    rotate: none;
+    transform: rotate(6deg);
+  }
+
+  .share-image-podium.ranking-podium .sticker {
+    width: 100%;
+    min-height: 200px;
+    gap: 8px;
+    padding: 22px 12px 16px;
+    border-width: 5px;
+    border-radius: 8px;
+  }
+
+  .share-image-podium.ranking-podium .sticker-featured {
+    min-height: 220px;
+    padding: 28px 14px 18px;
+  }
+
+  .share-image-podium.ranking-podium .poster-title {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .share-image-podium.ranking-podium .sticker-featured .poster-title {
+    font-size: 1.15rem;
+  }
+
+  .share-image-podium.ranking-podium .marker-ink {
+    font-size: 0.95rem;
+  }
+
+  .share-image-podium-tie {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+
+  @media (max-width: 400px) {
+    .matchday-ranking-share span {
+      display: none;
     }
   }
 }

@@ -205,8 +205,8 @@ class MatchEventProcessorTest {
     }
 
     @Test
-    @DisplayName("Un gol en directo no cambia los resultados que puntúan los cuadros; el final del partido, sí")
-    void flagsResultChangesOnlyWhenTheResultCounts() throws Exception {
+    @DisplayName("Un gol en directo actualiza el ranking provisional; el final confirma el resultado")
+    void flagsLiveAndFinalScoreChanges() throws Exception {
         when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
         processor.process(event("in", false, "Round of 16", "1", "0", "Spain", "164", "Uruguay", "212", "[]"),
                 cache, new MatchEventProcessor.Batch(worldCup));
@@ -219,7 +219,7 @@ class MatchEventProcessorTest {
         processor.process(event("in", false, "Round of 16", "2", "0", "Spain", "164", "Uruguay", "212", "[]"),
                 cache, goal);
         assertEquals(1, goal.matchesUpdated());
-        assertFalse(goal.resultsChanged());
+        assertTrue(goal.resultsChanged());
 
         MatchEventProcessor.Batch fullTime = new MatchEventProcessor.Batch(worldCup);
         processor.process(event("post", true, "Round of 16", "2", "0", "Spain", "164", "Uruguay", "212", "[]"),
