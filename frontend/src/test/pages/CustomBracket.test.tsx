@@ -59,7 +59,7 @@ describe('CustomBracket', () => {
     vi.mocked(api.fetchCustomTeams).mockResolvedValue([]);
   });
 
-  it('se rellena en el cuadro oficial pulsando equipos y guarda todas las rondas', async () => {
+  it('guarda automáticamente el cuadro completo sin botón al pie', async () => {
     vi.mocked(api.fetchCustomMatches).mockResolvedValue([
       knockout(1, 'T1', 'Gen.G'),
       knockout(2, 'HLE', 'DK'),
@@ -103,7 +103,7 @@ describe('CustomBracket', () => {
 
     // Solo hay un pronóstico por persona: no se pide nombre.
     expect(screen.queryByRole('textbox')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar pronóstico' }));
+    expect(screen.queryByRole('button', { name: 'Guardar pronóstico' })).toBeNull();
 
     await waitFor(() =>
       expect(api.createPrediction).toHaveBeenCalledWith(
@@ -115,6 +115,16 @@ describe('CustomBracket', () => {
         '10',
       ),
     );
+    expect(await screen.findByText('Pronóstico guardado')).toBeInTheDocument();
+
+    fireEvent.click(center.getAllByRole('button', { name: 'Pasar a BLG' })[1]);
+    await waitFor(() =>
+      expect(api.createPrediction).toHaveBeenLastCalledWith(
+        expect.objectContaining({ champion: 'BLG' }),
+        '10',
+      ),
+    );
+    expect(api.createPrediction).toHaveBeenCalledTimes(2);
   });
 
   it('en el cierre por partidos bloquea solo los cruces que ya han empezado', async () => {
