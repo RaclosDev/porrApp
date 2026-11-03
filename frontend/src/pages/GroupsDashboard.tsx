@@ -11,12 +11,14 @@ import GroupCard from '../components/groups/GroupCard';
 import JoinGroupPanel from '../components/groups/JoinGroupPanel';
 import CreateLeagueWizard from '../components/groups/CreateLeagueWizard';
 import CreatedLeagueModal from '../components/groups/CreatedLeagueModal';
+import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
 import type { Group } from '../types/api';
 
 /** Mis ligas: crear, unirse con código y administrar. */
 export default function GroupsDashboard() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<Group | null>(null);
   const [selectedGroupForRules, setSelectedGroupForRules] = useState<Group | null>(null);
+  const [selectedCustomCompetition, setSelectedCustomCompetition] = useState<Group | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
@@ -29,6 +31,8 @@ export default function GroupsDashboard() {
     retryGroups,
     newGroupName,
     setNewGroupName,
+    customCompetitionName,
+    setCustomCompetitionName,
     selectedCompetition,
     setSelectedCompetition,
     selectedPoolFormat,
@@ -157,6 +161,8 @@ export default function GroupsDashboard() {
           competitions={competitions}
           newGroupName={newGroupName}
           setNewGroupName={setNewGroupName}
+          customCompetitionName={customCompetitionName}
+          setCustomCompetitionName={setCustomCompetitionName}
           selectedCompetition={selectedCompetition}
           setSelectedCompetition={setSelectedCompetition}
           selectedPoolFormat={selectedPoolFormat}
@@ -192,6 +198,13 @@ export default function GroupsDashboard() {
             Reintentar
           </button>
         </div>
+      )}
+
+      {selectedCustomCompetition && isGroupAdmin(selectedCustomCompetition) && (
+        <CustomCompetitionEditor
+          group={selectedCustomCompetition}
+          onClose={() => setSelectedCustomCompetition(null)}
+        />
       )}
 
       {loading ? (
@@ -246,6 +259,7 @@ export default function GroupsDashboard() {
                 handleShareWhatsApp={handleShareWhatsApp}
                 setSelectedGroupForMembers={setSelectedGroupForMembers}
                 setSelectedGroupForRules={setSelectedGroupForRules}
+                setSelectedCustomCompetition={setSelectedCustomCompetition}
               />
             );
           })}

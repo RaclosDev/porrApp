@@ -220,7 +220,8 @@ public class StandingsService {
         Map<Long, List<Object>> previousStandings = new HashMap<>();
         existingByTeam.forEach((teamId, gs) -> previousStandings.put(teamId, scoringFields(gs)));
 
-        List<Team> allTeams = teamRepository.findAll();
+        List<Team> allTeams = teamRepository.findAll().stream()
+                .filter(team -> team.getCompetition() == null).toList();
         Map<String, List<GroupStanding>> standingsByGroup = new TreeMap<>();
 
         for (Team team : allTeams) {

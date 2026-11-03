@@ -82,7 +82,7 @@ class GroupControllerTest {
                 .joinCode("NUEVA30")
                 .adminUser(UserAccount.builder().id(2L).participantName("User2").build())
                 .build();
-        Mockito.when(groupService.createGroup(eq("Liga Nueva"), eq("user@test.com"), eq(1L), eq(PoolFormat.FULL_BRACKET), eq(true)))
+        Mockito.when(groupService.createGroup(eq("Liga Nueva"), eq("user@test.com"), eq(1L), eq(PoolFormat.FULL_BRACKET), eq(true), eq(null)))
                 .thenReturn(createdGroup);
         Mockito.when(groupService.toResponse(createdGroup, true))
                 .thenReturn(GroupResponseDTO.builder().id(30L).name("Liga Nueva").joinCode("NUEVA30").poolFormat("FULL_BRACKET").build());
