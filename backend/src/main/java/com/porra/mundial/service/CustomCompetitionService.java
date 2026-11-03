@@ -48,10 +48,7 @@ public class CustomCompetitionService {
         return setLockConfig(leagueId, email, PredictionLockMode.FIXED_DATE, 0, lockDate).getLockDate();
     }
 
-    /**
-     * Cambia cómo se cierran los pronósticos. Solo antes del primer pronóstico, para no cambiar las
-     * reglas a quien ya ha jugado.
-     */
+    /** Cambia el cierre sin volver a abrir partes ya cerradas de pronósticos existentes. */
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
     public Edition setLockConfig(Long leagueId, String email, PredictionLockMode mode, Integer offsetMinutes,
@@ -67,9 +64,11 @@ public class CustomCompetitionService {
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
         }
-        if (!predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
-            throw BusinessException.conflict("No se puede cambiar el cierre después del primer pronóstico");
-        }
+        boolean hasPredictions = !predictionRepository.findByEditionLeagueId(leagueId).isEmpty();
+        CustomLockService.LockState previousState = hasPredictions ? lockService.state(edition) : null;
+        PredictionLockMode previousMode = edition.getLockMode();
+        int previousOffset = edition.getLockOffsetMinutes();
+        LocalDateTime previousDate = edition.getLockDate();
         LocalDateTime now = LocalDateTime.now(CustomLockService.ZONE);
         edition.setLockMode(mode);
         if (mode == PredictionLockMode.FIXED_DATE) {
@@ -86,7 +85,27 @@ public class CustomCompetitionService {
                 throw BusinessException.badRequest("Con ese margen el cierre ya habría pasado");
             }
         }
+        if (previousState != null && previousState.anyLocked()
+                && reopensClosedParts(previousState, lockService.state(edition))) {
+            edition.setLockMode(previousMode);
+            edition.setLockOffsetMinutes(previousOffset);
+            edition.setLockDate(previousDate);
+            throw BusinessException.conflict("El nuevo cierre volvería a abrir pronósticos que ya estaban cerrados");
+        }
         return edition;
+    }
+
+    private static boolean reopensClosedParts(CustomLockService.LockState before, CustomLockService.LockState after) {
+        if (before.fullyLocked() && !after.fullyLocked()) return true;
+        for (String group : before.groups()) {
+            if (!after.groupLocked(group)) return true;
+        }
+        for (int round = 0; round < before.picks().size(); round++) {
+            for (int index = 0; index < before.picks().get(round).size(); index++) {
+                if (before.pickLocked(round, index) && !after.pickLocked(round, index)) return true;
+            }
+        }
+        return false;
     }
 
     /** Estado del cierre para los miembros: qué grupos y ganadores siguen abiertos. */
@@ -322,6 +341,43 @@ public class CustomCompetitionService {
     }
 
     @Transactional
+    @CacheEvict(value = {"matches", "matchRadar", "matchdayStats", "userGroups", "groupById", "groupByCode"}, allEntries = true)
+    public MatchResponseDTO setMatchDate(Long leagueId, Long matchId, String email, LocalDateTime date) {
+        Competition competition = ownedCompetition(leagueId, email);
+        Match match = matchRepository.findById(matchId)
+                .filter(candidate -> candidate.getCompetition() != null
+                        && competition.getId().equals(candidate.getCompetition().getId()))
+                .orElseThrow(() -> BusinessException.notFound("Partido no encontrado"));
+        if (Boolean.TRUE.equals(match.getFinished())) {
+            throw BusinessException.conflict("No se puede cambiar la fecha de un partido finalizado");
+        }
+        if (match.getAwayTeam() == null) {
+            throw BusinessException.badRequest("Un descanso no necesita fecha");
+        }
+        if (date == null && (match.getRound() == null || !match.getRound().startsWith("bracket-"))) {
+            throw BusinessException.badRequest("Indica la fecha del partido");
+        }
+        if (date != null && date.isBefore(LocalDateTime.now(CustomLockService.ZONE).minusYears(1))) {
+            throw BusinessException.badRequest("La fecha del partido no es válida");
+        }
+        Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
+        boolean hasPredictions = !predictionRepository.findByEditionLeagueId(leagueId).isEmpty();
+        CustomLockService.LockState before = hasPredictions ? lockService.state(edition) : null;
+        LocalDateTime previousDate = match.getMatchDate();
+        LocalDateTime previousLockDate = edition.getLockDate();
+        match.setMatchDate(date);
+        refreshFirstMatchLock(leagueId);
+        if (before != null && before.anyLocked() && reopensClosedParts(before, lockService.state(edition))) {
+            match.setMatchDate(previousDate);
+            edition.setLockDate(previousLockDate);
+            throw BusinessException.conflict("La nueva fecha volvería a abrir pronósticos ya cerrados");
+        }
+        scoreInvalidationService.invalidateCompetition(competition.getId());
+        return MatchResponseDTO.fromEntity(match);
+    }
+
+    @Transactional
     @CacheEvict(value = {"matches", "matchRadar", "competitionStandings", "matchdayStats", "userGroups", "groupById", "groupByCode"}, allEntries = true)
     public void deleteMatch(Long leagueId, Long matchId, String email) {
         Competition competition = ownedCompetition(leagueId, email);
@@ -332,6 +388,22 @@ public class CustomCompetitionService {
         if ("bracket-1".equals(match.getRound())
                 && !predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
             throw BusinessException.conflict("No se pueden cambiar los cruces después del primer pronóstico");
+        }
+        Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
+        if (!predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
+            PredictionLockMode mode = edition.getLockMode();
+            if (mode != null && mode.progressive()) {
+                CustomLockService.LockState before = lockService.state(edition);
+                if (before.anyLocked() && reopensClosedParts(before, lockService.stateWithoutMatch(edition, matchId))) {
+                    throw BusinessException.conflict("Ese partido mantiene cerrados pronósticos que ya no se pueden reabrir");
+                }
+            } else if (mode == PredictionLockMode.FIRST_MATCH && edition.isLocked()) {
+                LocalDateTime nextLock = lockService.firstMatchLockWithoutMatch(edition, matchId);
+                if (nextLock == null || nextLock.isAfter(LocalDateTime.now(CustomLockService.ZONE))) {
+                    throw BusinessException.conflict("Ese partido mantiene cerrado el plazo de pronósticos");
+                }
+            }
         }
         matchRepository.delete(match);
         refreshFirstMatchLock(leagueId);

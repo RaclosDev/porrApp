@@ -44,4 +44,5 @@ export const queryKeys = {
   competitionStandings: (competitionId?: Id) => key('competitionStandings', competitionId),
   customMatches: (groupId?: Id) => key('customMatches', asText(groupId)),
   customTeams: (groupId?: Id) => key('customTeams', asText(groupId)),
+  customLockState: (groupId?: Id) => key('customLockState', asText(groupId)),
 };
