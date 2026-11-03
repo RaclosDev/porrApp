@@ -79,6 +79,20 @@ describe('GroupMembersModal: invalidación de la caché', () => {
     await waitFor(() => expect(invalidated).toContainEqual(['group', '1']));
     expect(invalidated).toContainEqual(['myGroups']);
   });
+  it('permite al administrador marcar su propio pago sin mostrar la opción de expulsarse', async () => {
+    api.fetchGroupMembers.mockResolvedValue([
+      { ...MEMBERS[0], paymentStatus: 'PENDING' },
+      MEMBERS[1],
+    ]);
+    api.toggleGroupMemberPayment.mockReset().mockResolvedValue({ paymentStatus: 'PAID' });
+    setup();
+    await screen.findByText('Ana');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Marcar el pago de Ana como recibido' }));
+
+    await waitFor(() => expect(api.toggleGroupMemberPayment).toHaveBeenCalledWith(1, 1, 'PAID'));
+    expect(screen.queryByRole('button', { name: 'Expulsar a Ana' })).not.toBeInTheDocument();
+  });
   it('keeps both rows locked and rolls back only the failed member', async () => {
     const members = [
       ...MEMBERS,

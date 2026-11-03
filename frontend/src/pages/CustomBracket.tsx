@@ -46,6 +46,10 @@ export default function CustomBracket() {
   const savedNoticeShown = useRef(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const [saveState, setSaveState] = useState<'idle' | 'saved' | 'error'>('idle');
+  const [lastSaved, setLastSaved] = useState('');
+  const failedRevision = useRef(-1);
   const [loadedKey, setLoadedKey] = useState('');
 
   const teamsQuery = useQuery({
@@ -70,11 +74,16 @@ export default function CustomBracket() {
     savedNoticeShown.current = false;
     setLoadedKey('');
     setError('');
+    setRevision(0);
+    setSaveState('idle');
+    setLastSaved('');
+    failedRevision.current = -1;
   }, [activeGroupId]);
 
   useEffect(() => {
     if (!saved || saved.key === loadedKey) return;
     setLoadedKey(saved.key);
+    if (revision > 0) return;
     setGroups(saved.data?.groups ?? {});
     setPicks((saved.data?.customRounds ?? []).map((round) => round.map((pick) => pick ?? '')));
     setPredictionName(saved.predictionName ?? '');
@@ -84,7 +93,7 @@ export default function CustomBracket() {
         id: 'custom-prediction-saved',
       });
     }
-  }, [saved, loadedKey, activeGroupIsLocked]);
+  }, [saved, loadedKey, activeGroupIsLocked, revision]);
 
   const logos = useMemo(
     () => Object.fromEntries(teams.map((team) => [team.name, team.logoUrl] as const)),
@@ -155,6 +164,9 @@ export default function CustomBracket() {
       : null;
 
   const selectWinner = (round: number, match: number, name: string) => {
+    setRevision((current) => current + 1);
+    setSaveState('idle');
+    setError('');
     setPicks((previous) => {
       const next = previous.slice(0, round + 1).map((items) => [...items]);
       next[round] ??= [];
@@ -165,6 +177,9 @@ export default function CustomBracket() {
 
   /** Coloca un equipo en un puesto del grupo y lo quita del puesto que ocupaba. */
   const selectGroupPosition = (group: string, position: number, name: string) => {
+    setRevision((current) => current + 1);
+    setSaveState('idle');
+    setError('');
     setGroups((current) => {
       const size = teamsByGroup[group]?.length ?? 0;
       const order = Array.from({ length: size }, (_, index) => current[group]?.[index] ?? '');
@@ -208,9 +223,8 @@ export default function CustomBracket() {
     );
   };
 
-  const save = async () => {
-    if (!activeGroupId || !firstRound.length) return;
-    setError('');
+  const completeData = useMemo((): PredictionData | null => {
+    if (!firstRound.length) return null;
     const orderedGroups: Record<string, string[]> = {};
     if (isFullBracket) {
       for (const [group, members] of Object.entries(teamsByGroup)) {
@@ -220,8 +234,7 @@ export default function CustomBracket() {
           new Set(order).size !== members.length ||
           order.some((name) => !members.includes(name))
         ) {
-          setError(`Completa la clasificación del grupo ${group}`);
-          return;
+          return null;
         }
         orderedGroups[group] = order;
       }
@@ -231,8 +244,7 @@ export default function CustomBracket() {
     while (current.length > 0) {
       const winners = pairWinners(current, picks[completed.length] ?? []);
       if (!winners) {
-        setError('Elige un ganador en todos los cruces');
-        return;
+        return null;
       }
       completed.push(winners);
       if (winners.length === 1) break;
@@ -244,33 +256,89 @@ export default function CustomBracket() {
     }
     const championPick = completed[completed.length - 1]?.[0];
     if (!championPick) {
-      setError('Elige un ganador en todos los cruces');
+      return null;
+    }
+    return {
+      user: userName,
+      prediction: predictionName.trim() || userName || 'Mi pronóstico',
+      groups: orderedGroups,
+      customRounds: completed,
+      r16: [],
+      champion: championPick,
+    };
+  }, [firstRound, groups, isFullBracket, picks, predictionName, teamsByGroup, userName]);
+
+  useEffect(() => {
+    if (!revision || !editable || !lock.configured || !activeGroupId || !completeData || busy)
       return;
-    }
-    savedNoticeShown.current = true;
-    setBusy(true);
-    try {
-      const data: PredictionData = {
-        user: userName,
-        prediction: predictionName.trim() || userName || 'Mi pronóstico',
-        groups: orderedGroups,
-        customRounds: completed,
-        r16: [],
-        champion: championPick,
-      };
-      await createPrediction(data, activeGroupId);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.myPredictions() });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(activeGroupId) });
-      toast.success('Pronóstico guardado');
-    } catch (reason) {
-      setError(errorMessage(reason, 'No se pudo guardar el pronóstico'));
-    } finally {
-      setBusy(false);
-    }
-  };
+    const fingerprint = JSON.stringify(completeData);
+    if (fingerprint === lastSaved || failedRevision.current === revision) return;
+    const timer = window.setTimeout(() => {
+      setBusy(true);
+      void createPrediction(completeData, activeGroupId)
+        .then(async () => {
+          setLastSaved(fingerprint);
+          savedNoticeShown.current = true;
+          setSaveState('saved');
+          setError('');
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: queryKeys.myPredictions() }),
+            queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(activeGroupId) }),
+          ]);
+        })
+        .catch((reason: unknown) => {
+          failedRevision.current = revision;
+          setSaveState('error');
+          setError(errorMessage(reason, 'No se pudo guardar el pronóstico'));
+        })
+        .finally(() => setBusy(false));
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeGroupId,
+    busy,
+    completeData,
+    editable,
+    lastSaved,
+    lock.configured,
+    queryClient,
+    revision,
+  ]);
 
   return (
     <section className="view-section active block" aria-label={`Pronóstico de ${activeGroupName}`}>
+      {editable && lock.configured && firstRound.length > 0 && (
+        <div
+          className="paper-panel album-sheet p-3 mb-5 max-w-145 mx-auto text-center"
+          role="status"
+        >
+          {error ? (
+            <>
+              <span role="alert" className="text-[var(--miss)]">
+                {error}
+              </span>{' '}
+              <button
+                type="button"
+                className="glass-btn"
+                onClick={() => setRevision((value) => value + 1)}
+              >
+                Reintentar
+              </button>
+            </>
+          ) : busy ? (
+            'Guardando pronóstico…'
+          ) : (saveState === 'saved' &&
+              completeData &&
+              JSON.stringify(completeData) === lastSaved) ||
+            (saved && revision === 0) ? (
+            'Pronóstico guardado'
+          ) : completeData && revision > 0 ? (
+            'Se guardará automáticamente…'
+          ) : (
+            'Completa el pronóstico para guardarlo automáticamente.'
+          )}
+        </div>
+      )}
       {lateEntry && !lock.fullyLocked && (
         <p className="paper-panel album-sheet p-4 max-w-145 mx-auto text-center" role="status">
           La competición ya ha empezado: no se admiten pronósticos nuevos.
@@ -415,25 +483,6 @@ export default function CustomBracket() {
             <p className="paper-panel album-sheet p-5 mt-7.5 text-center max-w-145 mx-auto">
               El administrador debe fijar el cierre antes de que se puedan guardar pronósticos.
             </p>
-          )}
-
-          {firstRound.length > 0 && lock.configured && editable && (
-            <div id="controls-section" className="paper-panel album-sheet landing-tape mt-7.5 p-5">
-              <h3 className="mt-0 text-accent-text">Guardar pronóstico</h3>
-              {error && (
-                <p role="alert" className="text-[var(--miss)] mt-0">
-                  {error}
-                </p>
-              )}
-              <button
-                type="button"
-                className="glass-btn primary-btn"
-                disabled={busy}
-                onClick={() => void save()}
-              >
-                {busy ? 'Guardando…' : 'Guardar pronóstico'}
-              </button>
-            </div>
           )}
         </>
       )}
