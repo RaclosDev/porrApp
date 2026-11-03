@@ -70,6 +70,19 @@ class CustomLockServiceTest {
     }
 
     @Test
+    void removingAnEarlierFixtureShiftsTheLockedPickIndex() {
+        Match future = match("bracket-2", null, "A", "C", NOW.plusDays(1));
+        match("bracket-2", null, "B", "D", NOW.minusHours(1));
+        for (int index = 0; index < 4; index++) {
+            match("bracket-1", null, "H" + index, "A" + index, NOW.plusDays(1));
+        }
+        Edition edition = edition(PredictionLockMode.PER_MATCH, 0);
+
+        assertEquals(List.of(false, true), service.state(edition).picks().get(1));
+        assertEquals(List.of(true, false), service.stateWithoutMatch(edition, future.getId()).picks().get(1));
+    }
+
+    @Test
     void perRoundLocksTheWholeRoundAndGroupsWithTheMargin() {
         match("group", "A", "A", "B", NOW.plusMinutes(90));
         match("group", "B", "C", "D", NOW.plusDays(3));

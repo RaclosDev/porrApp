@@ -1,11 +1,17 @@
 import { useState } from 'react';
 import { CalendarClock, Plus, Trash2 } from 'lucide-react';
-import { addCustomMatch, deleteCustomMatch } from '../../../services/api';
+import { addCustomMatch, deleteCustomMatch, setCustomMatchDate } from '../../../services/api';
 import type { CustomTeam } from '../../../services/api';
 import type { Group, Match } from '../../../types/api';
 import Flag from '../../Flag';
 import { getTotalRounds } from '../../../utils/customBracket';
-import { formatMatchDate, groupByPhase, isBye, type SaveAction } from './customCompetition';
+import {
+  formatMatchDate,
+  groupByPhase,
+  isBye,
+  isKnockout,
+  type SaveAction,
+} from './customCompetition';
 
 /** Alta y borrado de partidos: grupos, rondas del cuadro (con descansos) o jornadas. */
 export default function CustomMatchesTab({
@@ -27,6 +33,8 @@ export default function CustomMatchesTab({
   const [awayId, setAwayId] = useState('');
   const [date, setDate] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [editDateTarget, setEditDateTarget] = useState<number | null>(null);
+  const [editDate, setEditDate] = useState('');
 
   const knockout = !matchDay && phase === 'bracket';
   const maxRound = Math.max(
@@ -66,7 +74,7 @@ export default function CustomMatchesTab({
             ? 'Cada partido necesita fecha y hora; se agrupan por jornadas según la fecha.'
             : !knockout
               ? 'Cada partido de grupos enfrenta a dos equipos del mismo grupo y necesita fecha y hora.'
-              : 'Crea los cruces del cuadro en el orden en que deben aparecer. Elige «Descanso» como visitante si un equipo pasa directo. La primera ronda no se puede tocar tras el primer pronóstico.'}
+              : 'Crea los cruces del cuadro en el orden en que deben aparecer. Elige «Descanso» como visitante si un equipo pasa directo. La primera ronda no se puede tocar tras el primer pronóstico; sus fechas sí.'}
         </p>
         {teams.length < 2 ? (
           <div className="league-admin-empty">
@@ -227,7 +235,42 @@ export default function CustomMatchesTab({
                     </div>
                   </div>
                   <div className="league-admin-member-actions">
-                    {deleteTarget === match.id ? (
+                    {editDateTarget === match.id ? (
+                      <form
+                        className="flex max-w-full flex-wrap items-center justify-end gap-1.5"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void save(
+                            () => setCustomMatchDate(group.id, match.id, editDate || null),
+                            'Fecha del partido guardada',
+                          ).then((ok) => {
+                            if (ok) setEditDateTarget(null);
+                          });
+                        }}
+                      >
+                        <label className="sr-only" htmlFor={`custom-admin-date-${match.id}`}>
+                          Fecha de {match.home} – {match.away}
+                        </label>
+                        <input
+                          id={`custom-admin-date-${match.id}`}
+                          className="glass-input w-46 min-w-0"
+                          type="datetime-local"
+                          required={!isKnockout(match)}
+                          value={editDate}
+                          onChange={(event) => setEditDate(event.target.value)}
+                        />
+                        <button type="submit" className="league-admin-mini-btn">
+                          Guardar
+                        </button>
+                        <button
+                          type="button"
+                          className="league-admin-mini-btn"
+                          onClick={() => setEditDateTarget(null)}
+                        >
+                          Cancelar
+                        </button>
+                      </form>
+                    ) : deleteTarget === match.id ? (
                       <span className="league-admin-inline-confirm">
                         <span>¿Eliminar?</span>
                         <button
@@ -252,15 +295,31 @@ export default function CustomMatchesTab({
                         </button>
                       </span>
                     ) : (
-                      <button
-                        type="button"
-                        className="league-admin-icon-btn is-danger"
-                        aria-label={`Eliminar el partido ${match.home} – ${isBye(match) ? 'descanso' : match.away}`}
-                        title="Eliminar partido"
-                        onClick={() => setDeleteTarget(match.id)}
-                      >
-                        <Trash2 size={16} aria-hidden="true" />
-                      </button>
+                      <>
+                        {!match.finished && !isBye(match) && (
+                          <button
+                            type="button"
+                            className="league-admin-icon-btn"
+                            aria-label={`Cambiar fecha de ${match.home} – ${match.away}`}
+                            title="Cambiar fecha"
+                            onClick={() => {
+                              setEditDateTarget(match.id);
+                              setEditDate(match.date?.slice(0, 16) ?? '');
+                            }}
+                          >
+                            <CalendarClock size={16} aria-hidden="true" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="league-admin-icon-btn is-danger"
+                          aria-label={`Eliminar el partido ${match.home} – ${isBye(match) ? 'descanso' : match.away}`}
+                          title="Eliminar partido"
+                          onClick={() => setDeleteTarget(match.id)}
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </li>
