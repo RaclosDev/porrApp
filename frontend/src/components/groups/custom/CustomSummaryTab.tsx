@@ -45,7 +45,7 @@ export default function CustomSummaryTab({
     steps.push({
       done: lock.configured || Boolean(lockDate),
       label: 'Elige cuándo se cierran los pronósticos',
-      hint: 'Hazlo antes de compartir la liga: tras el primer pronóstico ya no se puede cambiar.',
+      hint: 'Puedes cambiar el criterio más adelante sin reabrir partes ya cerradas.',
       tab: 'summary',
     });
   }

@@ -170,6 +170,9 @@ describe('CustomCompetitionEditor', () => {
   it('cierra por partidos con un margen en horas', async () => {
     setup();
 
+    expect(
+      await screen.findByText(/Puedes cambiar el criterio aunque ya haya pronósticos/),
+    ).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('radio', { name: 'Por partidos' }));
     fireEvent.change(screen.getByLabelText('Margen antes del partido'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cierre' }));

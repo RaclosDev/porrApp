@@ -172,16 +172,58 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
-    void rejectsMarginsOutsideZeroToThirtyDaysAndChangesAfterPredictions() {
+    void rejectsMarginsOutsideZeroToThirtyDays() {
         Edition edition = bracketEdition();
         assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
                 com.porra.mundial.model.PredictionLockMode.PER_ROUND, 30 * 24 * 60 + 1, null));
         assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
                 com.porra.mundial.model.PredictionLockMode.PER_ROUND, -5, null));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
-        assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
-                com.porra.mundial.model.PredictionLockMode.PER_ROUND, 0, null));
         assertEquals(com.porra.mundial.model.PredictionLockMode.FIXED_DATE, edition.getLockMode());
+    }
+
+    @Test
+    void changesToPerMatchAfterPredictionsWhenNothingHasClosed() {
+        Edition edition = bracketEdition();
+        edition.setLockDate(LocalDateTime.now().plusDays(2));
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(lockService.state(edition)).thenReturn(lockState(false, false));
+
+        service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null);
+
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_MATCH, edition.getLockMode());
+        assertNull(edition.getLockDate());
+    }
+
+    @Test
+    void doesNotReopenAClosedPickWhenChangingTheCriterion() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_ROUND);
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(lockService.state(edition)).thenReturn(lockState(true, false), lockState(false, false));
+
+        assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null));
+
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_ROUND, edition.getLockMode());
+    }
+
+    @Test
+    void allowsChangingTheCriterionWhenClosedPicksStayClosed() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_ROUND);
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(lockService.state(edition)).thenReturn(lockState(true, false), lockState(true, false));
+
+        service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null);
+
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_MATCH, edition.getLockMode());
+    }
+
+    private static CustomLockService.LockState lockState(boolean pickClosed, boolean fullyLocked) {
+        return new CustomLockService.LockState(com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null,
+                java.util.List.of(), java.util.List.of(java.util.List.of(pickClosed)), pickClosed, fullyLocked, null);
     }
 
     @Test
