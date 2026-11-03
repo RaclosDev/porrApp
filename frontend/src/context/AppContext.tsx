@@ -250,6 +250,7 @@ export const useAppContext = () => {
           name: fromList.name,
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
+          customCompetition: fromList.customCompetition,
           formatType: fromList.formatType,
           poolFormat: fromList.poolFormat,
           pichichi: fromList.pichichi,
@@ -292,11 +293,12 @@ export const useAppContext = () => {
     },
   });
 
+  const isCustomCompetition = Boolean(groupInfo?.customCompetition);
+
   const { data: radar } = useQuery({
     queryKey: queryKeys.radar(activeCompetitionId),
-    queryFn: () =>
-      groupInfo?.customCompetition ? EMPTY_RADAR : fetchMatchRadar(activeCompetitionId),
-    enabled: competitionReady,
+    queryFn: () => (isCustomCompetition ? EMPTY_RADAR : fetchMatchRadar(activeCompetitionId)),
+    enabled: competitionReady && !isCustomCompetition,
   });
 
   // Los pronósticos de toda la liga son pesados: aquí solo se leen de la caché. Los piden las
@@ -354,11 +356,15 @@ export const useAppContext = () => {
     staleTime: 60_000,
   });
 
+  const matchesQueryKey = isCustomCompetition
+    ? queryKeys.customMatches(activeGroupId)
+    : queryKeys.matches(activeCompetitionId);
+
   const { data: matches, isLoading: loadingMatches } = useQuery({
-    queryKey: queryKeys.matches(activeCompetitionId),
-    enabled: competitionReady,
+    queryKey: matchesQueryKey,
+    enabled: isCustomCompetition ? Boolean(activeGroupId) : competitionReady,
     queryFn: async () => {
-      if (groupInfo?.customCompetition && activeGroupId) {
+      if (isCustomCompetition && activeGroupId) {
         return fetchCustomMatches(Number(activeGroupId));
       }
       const data = await fetchMatches(activeCompetitionId);
@@ -366,8 +372,8 @@ export const useAppContext = () => {
       return data || [];
     },
     placeholderData: () => {
+      if (isCustomCompetition) return undefined;
       if (!competitionReady) return undefined;
-      if (groupInfo?.customCompetition) return undefined;
       const cached = loadCachedJson(`cached_matches_${activeCompetitionId || 'all'}`);
       if (Array.isArray(cached) && cached.length > 0) {
         return cached;
@@ -440,6 +446,8 @@ export const useAppContext = () => {
         [
           queryKeys.group(activeGroupId),
           queryKeys.groupMembers(activeGroupId),
+          queryKeys.customMatches(activeGroupId),
+          queryKeys.customTeams(activeGroupId),
           queryKeys.predictions(activeGroupId),
           queryKeys.myPredictions(),
           queryKeys.leaderboard(activeGroupId),

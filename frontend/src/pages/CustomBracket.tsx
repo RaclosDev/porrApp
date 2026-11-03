@@ -8,14 +8,14 @@ import type { CustomTeam } from '../services/api';
 import type { Match, PredictionData } from '../types/api';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
-import { pairWinners, type CustomPair } from '../utils/customBracket';
+import { pairWinners, computeCustomBracketRounds, type CustomPair } from '../utils/customBracket';
+import PaperLoading from '../components/PaperLoading';
 
 type Pair = CustomPair;
 
 export default function CustomBracket() {
   const {
     activeGroupId,
-    activeCompetitionId,
     activeGroupPoolFormat,
     activeGroupName,
     activeGroupIsLocked,
@@ -32,6 +32,7 @@ export default function CustomBracket() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loadedKey, setLoadedKey] = useState('');
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     setTeams([]);
@@ -41,11 +42,13 @@ export default function CustomBracket() {
     setPredictionName('');
     setLoadedKey('');
     setError('');
+    setLoadingData(true);
   }, [activeGroupId]);
 
   useEffect(() => {
-    if (!activeGroupId || !activeCompetitionId) return;
+    if (!activeGroupId) return;
     let cancelled = false;
+    setLoadingData(true);
     Promise.all([
       fetchCustomTeams(Number(activeGroupId)),
       fetchCustomMatches(Number(activeGroupId)),
@@ -57,11 +60,14 @@ export default function CustomBracket() {
       })
       .catch((reason: unknown) => {
         if (!cancelled) setError(errorMessage(reason, 'No se pudo cargar el cuadro'));
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingData(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [activeGroupId, activeCompetitionId]);
+  }, [activeGroupId]);
 
   useEffect(() => {
     if (!saved || saved.key === loadedKey) return;
@@ -78,6 +84,7 @@ export default function CustomBracket() {
     }
     return result;
   }, [teams]);
+
   const firstRound = useMemo<Pair[]>(
     () =>
       matches
@@ -87,20 +94,10 @@ export default function CustomBracket() {
     [matches],
   );
 
-  const rounds: Pair[][] = [];
-  if (firstRound.length > 0) {
-    let current = firstRound;
-    for (let index = 0; current.length > 0; index++) {
-      rounds.push(current);
-      const winners = pairWinners(current, picks[index] ?? []);
-      if (!winners || winners.length === 1) break;
-      const next: Pair[] = [];
-      for (let slot = 0; slot < winners.length; slot += 2) {
-        next.push([winners[slot], winners[slot + 1] ?? null]);
-      }
-      current = next;
-    }
-  }
+  const displayRounds = useMemo(
+    () => computeCustomBracketRounds(firstRound, picks),
+    [firstRound, picks],
+  );
 
   const selectWinner = (round: number, match: number, name: string) => {
     setPicks((previous) => {
@@ -214,47 +211,92 @@ export default function CustomBracket() {
             ))}
           </div>
         ))}
-      {!firstRound.length && (
+      {loadingData && <PaperLoading label="Cargando cuadro del torneo…" />}
+      {!loadingData && !firstRound.length && (
         <p className="paper-panel album-sheet p-5">
           El administrador aún no ha configurado los cruces.
         </p>
       )}
-      {!activeGroupLockDate && (
+      {!loadingData && !activeGroupLockDate && (
         <p className="paper-panel album-sheet p-5">
           El administrador debe fijar el cierre antes de que se puedan guardar pronósticos.
         </p>
       )}
-      {rounds.map((round, index) => (
-        <div key={index} className="paper-panel album-sheet p-4 mb-4">
-          <h2 className="poster-title">
-            Ronda {index + 1}
-            {round.length === 1 ? ' · final' : ''}
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {round.map(([home, away], matchIndex) => (
-              <fieldset key={matchIndex} className="border border-line rounded-[8px] p-3">
-                <legend>Cruce {matchIndex + 1}</legend>
-                {[home, away]
-                  .filter((name): name is string => Boolean(name))
-                  .map((name) => (
-                    <label key={name} className="flex items-center gap-2 min-h-11">
-                      <input
-                        type="radio"
-                        name={`round-${index}-match-${matchIndex}`}
-                        checked={(picks[index]?.[matchIndex] ?? (!away ? home : '')) === name}
-                        disabled={activeGroupIsLocked || !away}
-                        onChange={() => selectWinner(index, matchIndex, name)}
-                      />
-                      {name}
-                    </label>
-                  ))}
-                {!away && <p className="text-muted m-0">Pasa por descanso</p>}
-              </fieldset>
-            ))}
+      {!loadingData &&
+        displayRounds.map((round) => (
+          <div key={round.roundIndex} className="paper-panel album-sheet p-4 mb-4">
+            <h2 className="poster-title">{round.title}</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {round.matches.map((match, matchIndex) => {
+                const currentPick = picks[round.roundIndex]?.[matchIndex] ?? '';
+                return (
+                  <fieldset key={matchIndex} className="border border-line rounded-[8px] p-3">
+                    <legend className="text-xs uppercase tracking-wide text-muted font-bold px-1">
+                      Cruce {matchIndex + 1}
+                    </legend>
+                    <div className="flex flex-col gap-2 mt-1">
+                      {match.home ? (
+                        <label className="flex items-center gap-2 min-h-11 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={`round-${round.roundIndex}-match-${matchIndex}`}
+                            checked={currentPick === match.home}
+                            disabled={activeGroupIsLocked || match.isBye}
+                            onChange={() => selectWinner(round.roundIndex, matchIndex, match.home!)}
+                          />
+                          <span className="font-medium">{match.home}</span>
+                        </label>
+                      ) : (
+                        <div className="flex items-center gap-2 min-h-11 text-muted italic">
+                          <span className="w-3 h-3 rounded-full border border-dashed border-line inline-block" />
+                          <span>{match.homePlaceholder}</span>
+                        </div>
+                      )}
+
+                      {!match.isBye &&
+                        (match.away ? (
+                          <label className="flex items-center gap-2 min-h-11 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`round-${round.roundIndex}-match-${matchIndex}`}
+                              checked={currentPick === match.away}
+                              disabled={activeGroupIsLocked}
+                              onChange={() =>
+                                selectWinner(round.roundIndex, matchIndex, match.away!)
+                              }
+                            />
+                            <span className="font-medium">{match.away}</span>
+                          </label>
+                        ) : (
+                          <div className="flex items-center gap-2 min-h-11 text-muted italic">
+                            <span className="w-3 h-3 rounded-full border border-dashed border-line inline-block" />
+                            <span>{match.awayPlaceholder}</span>
+                          </div>
+                        ))}
+                      {match.isBye && <p className="text-muted m-0 text-xs">Pasa por descanso</p>}
+                    </div>
+                  </fieldset>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
-      {firstRound.length > 0 && activeGroupLockDate && !activeGroupIsLocked && (
+        ))}
+      {!loadingData &&
+        displayRounds.length > 0 &&
+        (() => {
+          const finalRoundIndex = displayRounds.length - 1;
+          const champ = picks[finalRoundIndex]?.[0];
+          if (!champ) return null;
+          return (
+            <div className="paper-panel album-sheet p-4 mb-4 text-center border-2 border-[var(--gold)]">
+              <span className="text-xs uppercase tracking-wider text-muted font-bold block mb-1">
+                Tu campeón pronosticado
+              </span>
+              <p className="poster-title text-xl mb-0 text-[var(--gold)]">🏆 {champ}</p>
+            </div>
+          );
+        })()}
+      {!loadingData && firstRound.length > 0 && activeGroupLockDate && !activeGroupIsLocked && (
         <div className="paper-panel album-sheet p-4 mb-6">
           <label className="block mb-3">
             Nombre del pronóstico

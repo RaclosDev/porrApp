@@ -42,4 +42,6 @@ export const queryKeys = {
   matches: (competitionId?: Id) => key('matches', competitionId),
   radar: (competitionId?: Id) => key('radar', competitionId),
   competitionStandings: (competitionId?: Id) => key('competitionStandings', competitionId),
+  customMatches: (groupId?: Id) => key('customMatches', asText(groupId)),
+  customTeams: (groupId?: Id) => key('customTeams', asText(groupId)),
 };
