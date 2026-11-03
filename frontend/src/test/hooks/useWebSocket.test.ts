@@ -41,7 +41,7 @@ describe('useWebSocket', () => {
   it.each(['DATA_UPDATED', 'MATCH_SCORE_UPDATED'])(
     '%s invalida solo claves que existen, incluido el cuadro oficial',
     (type) => {
-      renderHook(() => useWebSocket('Ana', client));
+      renderHook(() => useWebSocket(client));
       send({ type, matchId: 1, homeScore: 1, awayScore: 0, status: 'IN_PLAY' });
       act(() => vi.advanceTimersByTime(100));
 
@@ -56,7 +56,7 @@ describe('useWebSocket', () => {
   );
 
   it('LEAGUE_UPDATED invalida solo las consultas de esa liga', () => {
-    renderHook(() => useWebSocket('Ana', client));
+    renderHook(() => useWebSocket(client));
     send({ type: 'LEAGUE_UPDATED', leagueId: 10 });
 
     expect(invalidated).toContainEqual(['leaderboard', '10']);
@@ -73,7 +73,7 @@ describe('useWebSocket', () => {
 
   it('actualiza el marcador en la caché de partidos', () => {
     client.setQueryData(['matches', 2], [{ id: 1, homeScore: 0, awayScore: 0 }]);
-    renderHook(() => useWebSocket('Ana', client));
+    renderHook(() => useWebSocket(client));
     send({
       type: 'MATCH_SCORE_UPDATED',
       matchId: 1,
@@ -87,7 +87,7 @@ describe('useWebSocket', () => {
   });
 
   it('deduplicates mixed score/data events and cancels pending work on unmount', () => {
-    const { unmount } = renderHook(() => useWebSocket('Ana', client));
+    const { unmount } = renderHook(() => useWebSocket(client));
     send({ type: 'MATCH_SCORE_UPDATED', matchId: 1 });
     send({ type: 'DATA_UPDATED' });
     act(() => vi.advanceTimersByTime(100));
@@ -135,7 +135,7 @@ describe('WebSocket recovery with active queries', () => {
       unsubscribe.push(observer.subscribe(() => {}));
       return queryFn;
     });
-    const { unmount } = renderHook(() => useWebSocket('Ana', client));
+    const { unmount } = renderHook(() => useWebSocket(client));
     const old = FakeSocket.last!;
     act(() => old.onopen!());
     expect(queries.every((fn) => fn.mock.calls.length === 0)).toBe(true);
@@ -168,7 +168,7 @@ describe('WebSocket recovery with active queries', () => {
       });
       unsubscribe.push(observer.subscribe(() => {}));
     }
-    const { unmount } = renderHook(() => useWebSocket('Ana', client));
+    const { unmount } = renderHook(() => useWebSocket(client));
     client.setQueryData(['matches', 2], [{ id: 1, homeScore: 0 }]);
     for (let i = 0; i < 50; i++)
       act(() =>

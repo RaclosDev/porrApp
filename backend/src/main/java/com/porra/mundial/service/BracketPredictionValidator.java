@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.*;
 import com.porra.mundial.repository.TeamRepository;
@@ -138,7 +139,7 @@ public class BracketPredictionValidator {
         return unique;
     }
 
-    private IllegalArgumentException invalid(String reason) {
-        return new IllegalArgumentException(reason);
+    private BusinessException invalid(String reason) {
+        return BusinessException.badRequest(reason);
     }
 }

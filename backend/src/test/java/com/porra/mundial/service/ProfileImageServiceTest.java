@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.LeagueImage;
 import com.porra.mundial.model.UserAccount;
@@ -20,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -83,9 +83,9 @@ class ProfileImageServiceTest {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         byte[] data = png();
 
-        assertThrows(SecurityException.class, () -> service.saveLeagueImage(10L, "other@test.com", data));
-        assertThrows(SecurityException.class, () -> service.deleteLeagueImage(10L, "other@test.com"));
-        assertThrows(SecurityException.class, () -> service.saveLeagueImage(10L, null, data));
+        assertThrows(BusinessException.class, () -> service.saveLeagueImage(10L, "other@test.com", data));
+        assertThrows(BusinessException.class, () -> service.deleteLeagueImage(10L, "other@test.com"));
+        assertThrows(BusinessException.class, () -> service.saveLeagueImage(10L, null, data));
 
         verify(leagueImageRepository, never()).save(any());
         verify(leagueImageRepository, never()).deleteById(anyLong());
@@ -95,7 +95,7 @@ class ProfileImageServiceTest {
     @DisplayName("Liga inexistente devuelve NoSuchElementException")
     void leagueNotFound() {
         when(leagueRepository.findById(99L)).thenReturn(Optional.empty());
-        assertThrows(NoSuchElementException.class, () -> service.saveLeagueImage(99L, "admin@test.com", new byte[]{1}));
+        assertThrows(BusinessException.class, () -> service.saveLeagueImage(99L, "admin@test.com", new byte[]{1}));
     }
 
     @Test
@@ -103,7 +103,7 @@ class ProfileImageServiceTest {
     void invalidImageIsNotPersisted() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BusinessException.class,
                 () -> service.saveLeagueImage(10L, "admin@test.com", "no soy una imagen".getBytes()));
 
         verify(leagueImageRepository, never()).save(any());
@@ -162,28 +162,28 @@ class ProfileImageServiceTest {
         when(userAccountRepository.findByGoogleEmail("other@test.com")).thenReturn(Optional.of(other));
         when(userAccountRepository.existsByParticipantNameIgnoreCaseAndIdNot("lider", 2L)).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> service.updateParticipantName("other@test.com", "lider"));
+        assertThrows(BusinessException.class, () -> service.updateParticipantName("other@test.com", "lider"));
         verify(userAccountRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Valida longitud, caracteres y nombre reservado")
     void renameValidation() {
-        assertThrows(IllegalArgumentException.class, () -> ProfileImageService.normalizeParticipantName("a"));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BusinessException.class, () -> ProfileImageService.normalizeParticipantName("a"));
+        assertThrows(BusinessException.class,
                 () -> ProfileImageService.normalizeParticipantName("x".repeat(31)));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BusinessException.class,
                 () -> ProfileImageService.normalizeParticipantName("<b>hola</b>"));
-        assertThrows(IllegalArgumentException.class, () -> ProfileImageService.normalizeParticipantName("AdMiN"));
-        assertThrows(IllegalArgumentException.class, () -> ProfileImageService.normalizeParticipantName("   "));
+        assertThrows(BusinessException.class, () -> ProfileImageService.normalizeParticipantName("AdMiN"));
+        assertThrows(BusinessException.class, () -> ProfileImageService.normalizeParticipantName("   "));
         assertEquals("José Núñez-2", ProfileImageService.normalizeParticipantName(" José   Núñez-2 "));
     }
 
     @Test
     @DisplayName("Sin email autenticado no se puede modificar ningún perfil")
     void requiresAuthenticatedEmail() {
-        assertThrows(SecurityException.class, () -> service.updateParticipantName(null, "Nombre"));
-        assertThrows(SecurityException.class, () -> service.deleteAvatar(" "));
+        assertThrows(BusinessException.class, () -> service.updateParticipantName(null, "Nombre"));
+        assertThrows(BusinessException.class, () -> service.deleteAvatar(" "));
         verify(userAccountRepository, never()).findByGoogleEmail(anyString());
     }
 }

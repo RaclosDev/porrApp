@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.LeagueScoringDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
@@ -18,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -89,15 +89,15 @@ class LeagueScoringServiceTest {
     @Test
     @DisplayName("Quien no pertenece a una liga privada no ve su puntuación")
     void outsidersCannotReadAPrivateLeague() {
-        doThrow(new SecurityException("No perteneces a esta liga privada"))
+        doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
                 .when(groupService).assertCanView(10L, "intruso@test.com");
 
-        assertThrows(SecurityException.class, () -> leagueScoringService.getScoring(10L, "intruso@test.com"));
+        assertThrows(BusinessException.class, () -> leagueScoringService.getScoring(10L, "intruso@test.com"));
     }
 
     @Test
     void unknownLeagueIsNotFound() {
-        assertThrows(NoSuchElementException.class, () -> leagueScoringService.getScoring(99L, MEMBER));
+        assertThrows(BusinessException.class, () -> leagueScoringService.getScoring(99L, MEMBER));
     }
 
     @Test
@@ -106,7 +106,7 @@ class LeagueScoringServiceTest {
         globalLeague();
 
         assertFalse(leagueScoringService.getScoring(League.GLOBAL_ID, ADMIN).editable());
-        SecurityException error = assertThrows(SecurityException.class, () -> leagueScoringService.updateScoring(
+        BusinessException error = assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(
                 League.GLOBAL_ID, ScoringRuleSet.builder().championPoints(300).build(), ADMIN));
         assertTrue(error.getMessage().contains("Porra Global"));
         verify(editionRepository, never()).save(any());
@@ -118,8 +118,8 @@ class LeagueScoringServiceTest {
     void onlyTheAdminCanChangeTheRules() {
         ScoringRuleSet rules = ScoringRuleSet.builder().exactScorePoints(8).build();
 
-        assertThrows(SecurityException.class, () -> leagueScoringService.updateScoring(10L, rules, MEMBER));
-        assertThrows(SecurityException.class, () -> leagueScoringService.updateScoring(10L, rules, null));
+        assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(10L, rules, MEMBER));
+        assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(10L, rules, null));
         assertEquals(ScoringRuleSet.defaultWorldCup2026(), ScoringRuleSet.forEdition(edition));
         verify(editionRepository, never()).save(any());
         verifyNoInteractions(matchPredictionService, scoreInvalidationService);
@@ -128,11 +128,11 @@ class LeagueScoringServiceTest {
     @Test
     @DisplayName("Una regla fuera de rango no se guarda")
     void outOfRangeRulesAreRejected() {
-        assertThrows(IllegalArgumentException.class, () -> leagueScoringService.updateScoring(10L,
+        assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(10L,
                 ScoringRuleSet.builder().correctSignPoints(-1).build(), ADMIN));
-        assertThrows(IllegalArgumentException.class, () -> leagueScoringService.updateScoring(10L,
+        assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(10L,
                 ScoringRuleSet.builder().exactScorePoints(ScoringRuleSet.MAX_POINTS + 1).build(), ADMIN));
-        assertThrows(IllegalArgumentException.class, () -> leagueScoringService.updateScoring(10L, null, ADMIN));
+        assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(10L, null, ADMIN));
 
         verify(editionRepository, never()).save(any());
         verifyNoInteractions(matchPredictionService, scoreInvalidationService);

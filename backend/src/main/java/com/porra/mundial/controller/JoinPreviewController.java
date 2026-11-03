@@ -6,10 +6,12 @@ import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.ProfileImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.HtmlUtils;
 
 import javax.imageio.ImageIO;
@@ -246,11 +248,12 @@ public class JoinPreviewController {
         return groupService.getGroupByJoinCode(code.trim().toUpperCase());
     }
 
-    private static Font loadFont(String path) {
+    static Font loadFont(String path) {
         try (var stream = new ClassPathResource(path).getInputStream()) {
             return Font.createFont(Font.TRUETYPE_FONT, stream);
         } catch (IOException | FontFormatException exception) {
-            throw new IllegalStateException("No se pudo cargar la tipografía de invitación: " + path, exception);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "No se pudo generar la imagen de invitación.", exception);
         }
     }
 

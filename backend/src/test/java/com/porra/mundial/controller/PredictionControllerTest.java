@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.repository.UserAccountRepository;
 
 import tools.jackson.databind.ObjectMapper;
@@ -110,7 +111,7 @@ class PredictionControllerTest {
 
     @Test
     void deletePrediction_Forbidden_WhenNotOwner() throws Exception {
-        Mockito.doThrow(new SecurityException("No tienes permiso para modificar o eliminar este pronostico."))
+        Mockito.doThrow(BusinessException.forbidden("No tienes permiso para modificar o eliminar este pronostico."))
                 .when(predictionService).deletePrediction(Mockito.eq(99L), any());
 
         mockMvc.perform(delete("/api/predictions/99"))
@@ -127,7 +128,7 @@ class PredictionControllerTest {
         body.setR32(List.of(List.of("Team1", "Team2")));
         body.setR16(List.of(List.of("Team1", "Team2")));
 
-        Mockito.doThrow(new SecurityException("No tienes permiso para modificar o eliminar este pronostico."))
+        Mockito.doThrow(BusinessException.forbidden("No tienes permiso para modificar o eliminar este pronostico."))
                 .when(predictionService).updatePrediction(Mockito.eq(99L), any(), any(), any());
 
         mockMvc.perform(put("/api/predictions/99")
@@ -139,7 +140,7 @@ class PredictionControllerTest {
 
     @Test
     void markAsPaid_Forbidden_WhenNotGroupAdmin() throws Exception {
-        Mockito.doThrow(new SecurityException("Solo el administrador del grupo puede marcar el pronostico como pagado."))
+        Mockito.doThrow(BusinessException.forbidden("Solo el administrador del grupo puede marcar el pronostico como pagado."))
                 .when(predictionService).markAsPaid(Mockito.eq(99L), any());
 
         mockMvc.perform(put("/api/predictions/99/pay"))
@@ -149,7 +150,7 @@ class PredictionControllerTest {
 
     @Test
     void getAllPredictions_Forbidden_WhenNotMemberOfPrivateGroup() throws Exception {
-        Mockito.doThrow(new SecurityException("No perteneces a esta liga privada"))
+        Mockito.doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
                 .when(groupService).assertCanView(Mockito.eq(6L), any());
 
         mockMvc.perform(get("/api/predictions?groupId=6"))

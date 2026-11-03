@@ -1,5 +1,6 @@
 package com.porra.mundial.scoring;
 
+import com.porra.mundial.exception.BusinessException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.porra.mundial.model.Edition;
 import tools.jackson.core.type.TypeReference;
@@ -27,6 +28,9 @@ public class ScoringRuleSet {
 
     /** Puntos máximos que admite cada regla. */
     public static final int MAX_POINTS = 1000;
+
+    /** Pausa temporal de los bonus de partido; los valores configurados se conservan. */
+    public static final boolean MATCH_SIGN_ONLY = true;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -96,17 +100,17 @@ public class ScoringRuleSet {
     /**
      * Reglas que envía el administrador de una liga. Las que no vengan toman su valor por defecto.
      *
-     * @throws IllegalArgumentException si alguna no es un número entero entre 0 y {@link #MAX_POINTS}
+     * @throws BusinessException si alguna no es un número entero entre 0 y {@link #MAX_POINTS}
      */
     public static ScoringRuleSet fromRequest(JsonNode body) {
         if (body == null || !body.isObject()) {
-            throw new IllegalArgumentException("Faltan las reglas de puntuación.");
+            throw BusinessException.badRequest("Faltan las reglas de puntuación.");
         }
         // Jackson convertiría 2.5 en 2: los decimales se rechazan antes de leer las reglas.
         for (String rule : defaultWorldCup2026().asMap().keySet()) {
             JsonNode value = body.get(rule);
             if (value != null && !(value.isIntegralNumber() && value.canConvertToInt())) {
-                throw new IllegalArgumentException(String.format(
+                throw BusinessException.badRequest(String.format(
                         "La regla %s tiene que ser un número entero entre 0 y %d.", rule, MAX_POINTS));
             }
         }
@@ -131,12 +135,12 @@ public class ScoringRuleSet {
     /**
      * Comprueba que cada regla esté entre 0 y {@link #MAX_POINTS} puntos.
      *
-     * @throws IllegalArgumentException con la primera regla fuera de rango
+     * @throws BusinessException con la primera regla fuera de rango
      */
     public void validate() {
         asMap().forEach((rule, points) -> {
             if (points < 0 || points > MAX_POINTS) {
-                throw new IllegalArgumentException(String.format(
+                throw BusinessException.badRequest(String.format(
                         "La regla %s vale %d: tiene que estar entre 0 y %d puntos.", rule, points, MAX_POINTS));
             }
         });

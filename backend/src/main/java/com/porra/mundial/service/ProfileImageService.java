@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.LeagueImage;
 import com.porra.mundial.model.UserAccount;
@@ -16,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -85,11 +85,11 @@ public class ProfileImageService {
 
     private League requireLeagueAdmin(Long groupId, String email) {
         League league = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
         UserAccount admin = league.getAdminUser();
         if (email == null || admin == null || admin.getGoogleEmail() == null
                 || !admin.getGoogleEmail().equalsIgnoreCase(email)) {
-            throw new SecurityException("Solo el administrador de la liga puede cambiar su imagen.");
+            throw BusinessException.forbidden("Solo el administrador de la liga puede cambiar su imagen.");
         }
         return league;
     }
@@ -142,38 +142,38 @@ public class ProfileImageService {
             return user;
         }
         if (userAccountRepository.existsByParticipantNameIgnoreCaseAndIdNot(name, user.getId())) {
-            throw new IllegalStateException("Ese nombre ya está en uso. Elige otro.");
+            throw BusinessException.conflict("Ese nombre ya está en uso. Elige otro.");
         }
         user.setParticipantName(name);
         return userAccountRepository.save(user);
     }
 
-    /** Normaliza y valida el nombre público. Lanza IllegalArgumentException con mensaje para el usuario. */
+    /** Normaliza y valida el nombre público. Lanza BusinessException si no es válido. */
     static String normalizeParticipantName(String rawName) {
         if (rawName == null) {
-            throw new IllegalArgumentException("El nombre es obligatorio.");
+            throw BusinessException.badRequest("El nombre es obligatorio.");
         }
         String name = Normalizer.normalize(rawName, Normalizer.Form.NFC).trim().replaceAll("\\s+", " ");
         if (name.length() < NAME_MIN || name.length() > NAME_MAX) {
-            throw new IllegalArgumentException(
+            throw BusinessException.badRequest(
                     "El nombre debe tener entre " + NAME_MIN + " y " + NAME_MAX + " caracteres.");
         }
         if (!NAME_PATTERN.matcher(name).matches()) {
-            throw new IllegalArgumentException(
+            throw BusinessException.badRequest(
                     "El nombre solo puede contener letras, números, espacios y los símbolos . _ ' -");
         }
         // "Admin" está reservado: es el nombre de la cuenta que administra la Porra Global.
         if (name.toLowerCase(Locale.ROOT).equals("admin")) {
-            throw new IllegalArgumentException("Ese nombre no está disponible.");
+            throw BusinessException.badRequest("Ese nombre no está disponible.");
         }
         return name;
     }
 
     private UserAccount requireUser(String email) {
         if (email == null || email.isBlank()) {
-            throw new SecurityException("No autorizado");
+            throw BusinessException.forbidden("No autorizado");
         }
         return userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
     }
 }

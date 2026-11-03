@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
@@ -87,10 +88,10 @@ class MatchdayStatsServiceTest {
     @Test
     @DisplayName("Sin ser miembro de la liga no se ve nada")
     void rejectsNonMembers() {
-        doThrow(new SecurityException("No perteneces a esta liga privada"))
+        doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
                 .when(groupService).assertCanView(GROUP_ID, "other@test.com");
 
-        assertThrows(SecurityException.class, () -> service.getStats("other@test.com", GROUP_ID));
+        assertThrows(BusinessException.class, () -> service.getStats("other@test.com", GROUP_ID));
         verifyNoInteractions(matchPredictionRepository);
     }
 

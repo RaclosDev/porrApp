@@ -29,14 +29,14 @@ export default function LoginModal({
   return (
     <div
       id="my-prediction-modal"
-      className={`modal z-[999999] ${showMyPredictionModal ? 'flex' : 'hidden'}`}
+      className={`modal items-start overflow-y-auto py-6 z-[999999] ${showMyPredictionModal ? 'flex' : 'hidden'}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="login-modal-title"
       ref={dialogRef}
       tabIndex={-1}
     >
-      <div className="modal-content paper-panel album-sheet landing-tape max-w-105 text-center py-[35px] px-[25px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.5)]">
+      <div className="modal-content my-auto shrink-0 overflow-visible paper-panel album-sheet landing-tape max-w-105 text-center py-[35px] px-[25px] shadow-[0_25px_50px_-12px_rgba(0,_0,_0,_0.5)]">
         <h3 id="login-modal-title" className="poster-title mb-5 text-[1.8rem]">
           Iniciar sesión
         </h3>

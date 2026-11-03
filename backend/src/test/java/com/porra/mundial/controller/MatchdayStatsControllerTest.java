@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.repository.UserAccountRepository;
 
 import com.porra.mundial.dto.MatchdayStatsDTO;
@@ -68,7 +69,7 @@ class MatchdayStatsControllerTest {
     @DisplayName("Quien no es miembro de la liga recibe 403")
     void forbiddenForNonMembers() throws Exception {
         Mockito.when(matchdayStatsService.getStats(isNull(), eq(10L)))
-                .thenThrow(new SecurityException("No perteneces a esta liga privada"));
+                .thenThrow(BusinessException.forbidden("No perteneces a esta liga privada"));
 
         mockMvc.perform(get("/api/predictions/matchday/stats?groupId=10"))
                 .andExpect(status().isForbidden())

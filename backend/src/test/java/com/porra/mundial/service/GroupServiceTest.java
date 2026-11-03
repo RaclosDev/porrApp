@@ -1,12 +1,11 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
-import com.porra.mundial.model.Edition;
-import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -145,7 +144,7 @@ class GroupServiceTest {
     void updateGroup_ThrowsIfEmpty() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(BusinessException.class, () ->
                 groupService.updateGroup(10L, "   ", null, "admin@test.com"));
     }
 
@@ -154,7 +153,7 @@ class GroupServiceTest {
     void updateGroup_ThrowsIfNotAdmin() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
-        assertThrows(SecurityException.class, () ->
+        assertThrows(BusinessException.class, () ->
                 groupService.updateGroup(10L, "Nuevo Nombre", null, "member@test.com"));
 
         verify(leagueRepository, never()).save(any());
@@ -165,7 +164,7 @@ class GroupServiceTest {
     void deleteGroup_ThrowsIfNotAdmin() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
-        assertThrows(SecurityException.class, () ->
+        assertThrows(BusinessException.class, () ->
                 groupService.deleteGroup(10L, "stranger@test.com"));
 
         verify(leagueRepository, never()).deleteById(any());
@@ -178,7 +177,7 @@ class GroupServiceTest {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
 
-        SecurityException ex = assertThrows(SecurityException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 groupService.getGroupMembers(10L, "stranger@test.com"));
 
         assertTrue(ex.getMessage().contains("No perteneces a esta liga privada"));
@@ -224,9 +223,9 @@ class GroupServiceTest {
         when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
         when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
 
-        SecurityException e = assertThrows(SecurityException.class, () -> groupService.assertCanView(10L, "stranger@test.com"));
+        BusinessException e = assertThrows(BusinessException.class, () -> groupService.assertCanView(10L, "stranger@test.com"));
         assertEquals("No perteneces a esta liga privada", e.getMessage());
-        assertThrows(SecurityException.class, () -> groupService.assertCanView(10L, null));
+        assertThrows(BusinessException.class, () -> groupService.assertCanView(10L, null));
     }
 
     @Test

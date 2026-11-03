@@ -140,18 +140,6 @@
     position: relative;
   }
 
-  .standings-row.is-champions .standings-rank-cell {
-    box-shadow: inset 3px 0 0 var(--accent-cyan);
-  }
-
-  .standings-row.is-europa .standings-rank-cell {
-    box-shadow: inset 3px 0 0 var(--champion-gold);
-  }
-
-  .standings-row.is-relegation .standings-rank-cell {
-    box-shadow: inset 3px 0 0 var(--miss);
-  }
-
   .standings-rank {
     display: inline-flex;
     align-items: center;
@@ -217,11 +205,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .standings-team.is-crest-only {
-    justify-content: center;
-    min-width: 36px;
   }
 
   .standings-table.is-complete .standings-team-cell {
@@ -304,32 +287,6 @@
 
   .standings-link:hover {
     text-decoration: underline;
-  }
-
-  .standings-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-
-  .standings-legend-item i {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    display: inline-block;
-  }
-
-  .standings-legend-item i.is-champions {
-    background: var(--accent-cyan);
-  }
-
-  .standings-legend-item i.is-europa {
-    background: var(--champion-gold);
-  }
-
-  .standings-legend-item i.is-relegation {
-    background: var(--miss);
   }
 
   .standings-legend-note {

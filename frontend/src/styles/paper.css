@@ -625,25 +625,9 @@
     border-color: var(--accent-cyan);
   }
 
-  .paper-panel .team-slot.winner {
-    background: rgba(21, 128, 61, 0.1);
-    border-color: var(--hit);
-  }
-
-  .paper-panel .team-slot.loser {
-    background: rgba(185, 28, 28, 0.06);
-    border-color: rgba(185, 28, 28, 0.4);
-  }
-
   .paper-panel .team-slot.empty {
     border-style: dashed;
     border-color: rgba(17, 24, 39, 0.35);
-  }
-
-  .paper-panel .champion-display .team-slot {
-    background: rgba(146, 64, 14, 0.1) !important;
-    border-color: var(--champion-gold) !important;
-    color: var(--champion-gold) !important;
   }
 
   /* Cuadro en móvil: pestañas y tarjetas de cruce sobre el papel. */
@@ -811,7 +795,6 @@
   }
 
   .paper-panel .lb-matchday-eyebrow,
-  .paper-panel .md-predictions-btn,
   .paper-panel .lb-matchday-cell:not(th) {
     color: var(--marker-ink);
   }
@@ -819,12 +802,6 @@
   .paper-panel .lb-matchday-select {
     background: var(--paper);
     border-color: var(--ink);
-  }
-
-  .paper-panel .md-predictions-icon-btn {
-    background: transparent;
-    border: 1.5px solid var(--ink);
-    color: var(--ink);
   }
 
   .paper-panel .md-badge {
