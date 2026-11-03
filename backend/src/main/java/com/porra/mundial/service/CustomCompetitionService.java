@@ -99,7 +99,13 @@ public class CustomCompetitionService {
 
     @Transactional
     public Team addTeam(Long leagueId, String email, String rawName, String rawGroupName) {
+        return addTeam(leagueId, email, rawName, rawGroupName, null);
+    }
+
+    @Transactional
+    public Team addTeam(Long leagueId, String email, String rawName, String rawGroupName, String rawLogoUrl) {
         Competition competition = ownedCompetition(leagueId, email);
+        String logoUrl = logoUrl(rawLogoUrl);
         String name = rawName.trim();
         String groupName = rawGroupName == null ? null : rawGroupName.trim();
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
@@ -119,7 +125,32 @@ public class CustomCompetitionService {
             throw BusinessException.conflict("Ya existe un equipo con ese nombre");
         }
         return teamRepository.save(Team.builder().name(name).competition(competition)
-                .groupName(groupName == null || groupName.isBlank() ? null : groupName).build());
+                .groupName(groupName == null || groupName.isBlank() ? null : groupName)
+                .logoUrl(logoUrl).build());
+    }
+
+    /** El escudo es solo estético: se puede cambiar aunque ya haya pronósticos. */
+    @Transactional
+    @CacheEvict(value = {"matches", "matchRadar"}, allEntries = true)
+    public Team setTeamLogo(Long leagueId, Long teamId, String email, String rawLogoUrl) {
+        Team selected = team(ownedCompetition(leagueId, email), teamId);
+        selected.setLogoUrl(logoUrl(rawLogoUrl));
+        return selected;
+    }
+
+    /** Solo direcciones https absolutas; vacío quita el escudo. */
+    private static String logoUrl(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String value = raw.trim();
+        try {
+            java.net.URI uri = new java.net.URI(value);
+            if ("https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null && value.length() <= 500) {
+                return value;
+            }
+        } catch (java.net.URISyntaxException ignored) {
+            // Se rechaza abajo con el mismo mensaje.
+        }
+        throw BusinessException.badRequest("El escudo debe ser una dirección https de hasta 500 caracteres");
     }
 
     @Transactional

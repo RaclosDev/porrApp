@@ -9,11 +9,13 @@ import {
   fetchCustomMatches,
   setCustomResult,
   setCustomLockDate,
+  setCustomTeamLogo,
 } from '../../services/api';
 import type { CustomTeam } from '../../services/api';
 import type { Group, Match } from '../../types/api';
 import { errorMessage } from '../../utils/errors';
 import { queryKeys } from '../../services/queryKeys';
+import Flag from '../Flag';
 
 export default function CustomCompetitionEditor({
   group,
@@ -26,6 +28,9 @@ export default function CustomCompetitionEditor({
   const [matches, setMatches] = useState<Match[]>([]);
   const [teamName, setTeamName] = useState('');
   const [teamGroup, setTeamGroup] = useState('');
+  const [teamLogo, setTeamLogo] = useState('');
+  const [logoDrafts, setLogoDrafts] = useState<Record<number, string>>({});
+  const [editingLogo, setEditingLogo] = useState<number | null>(null);
   const [homeTeamId, setHomeTeamId] = useState('');
   const [awayTeamId, setAwayTeamId] = useState('');
   const [matchDate, setMatchDate] = useState('');
@@ -60,6 +65,10 @@ export default function CustomCompetitionEditor({
     try {
       await action();
       await refresh();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.customTeams(group.id.toString()) });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.customMatches(group.id.toString()),
+      });
     } catch (reason) {
       setError(errorMessage(reason, 'No se pudieron guardar los cambios'));
     } finally {
@@ -127,8 +136,14 @@ export default function CustomCompetitionEditor({
         onSubmit={(event) => {
           event.preventDefault();
           void save(async () => {
-            await addCustomTeam(group.id, teamName.trim(), teamGroup.trim() || undefined);
+            await addCustomTeam(
+              group.id,
+              teamName.trim(),
+              teamGroup.trim() || undefined,
+              teamLogo.trim() || undefined,
+            );
             setTeamName('');
+            setTeamLogo('');
           });
         }}
       >
@@ -156,6 +171,18 @@ export default function CustomCompetitionEditor({
             />
           </label>
         )}
+        <label className="flex-1 min-w-50">
+          Escudo (opcional)
+          <input
+            className="glass-input w-full"
+            type="url"
+            pattern="https://.*"
+            maxLength={500}
+            value={teamLogo}
+            onChange={(event) => setTeamLogo(event.target.value)}
+            placeholder="https://…/escudo.png"
+          />
+        </label>
         <button type="submit" className="glass-btn primary-btn self-end" disabled={busy}>
           Añadir equipo
         </button>
@@ -165,10 +192,54 @@ export default function CustomCompetitionEditor({
         {teams.map((team) => (
           <span
             key={team.id}
-            className="border border-line rounded-[8px] p-2 flex items-center gap-2"
+            className="border border-line rounded-[8px] p-2 flex flex-wrap items-center gap-2"
           >
+            {team.logoUrl && <Flag team={team.name} logo={team.logoUrl} />}
             {team.name}
             {team.groupName ? ` (${team.groupName})` : ''}
+            <button
+              type="button"
+              className="glass-btn"
+              disabled={busy}
+              aria-expanded={editingLogo === team.id}
+              aria-label={`Cambiar el escudo de ${team.name}`}
+              onClick={() => {
+                setEditingLogo(editingLogo === team.id ? null : team.id);
+                setLogoDrafts((drafts) => ({ ...drafts, [team.id]: team.logoUrl ?? '' }));
+              }}
+            >
+              Escudo
+            </button>
+            {editingLogo === team.id && (
+              <form
+                className="flex flex-wrap gap-2 w-full"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void save(async () => {
+                    await setCustomTeamLogo(group.id, team.id, logoDrafts[team.id]?.trim() || null);
+                    setEditingLogo(null);
+                  });
+                }}
+              >
+                <label className="flex-1 min-w-50">
+                  <span className="sr-only">Dirección del escudo de {team.name}</span>
+                  <input
+                    className="glass-input w-full"
+                    type="url"
+                    pattern="https://.*"
+                    maxLength={500}
+                    value={logoDrafts[team.id] ?? ''}
+                    onChange={(event) =>
+                      setLogoDrafts((drafts) => ({ ...drafts, [team.id]: event.target.value }))
+                    }
+                    placeholder="https://…/escudo.png (vacío para quitarlo)"
+                  />
+                </label>
+                <button type="submit" className="glass-btn primary-btn" disabled={busy}>
+                  Guardar escudo
+                </button>
+              </form>
+            )}
             <button
               type="button"
               className="glass-btn"

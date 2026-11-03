@@ -8,6 +8,7 @@ import com.porra.mundial.dto.LeagueStandingDTO;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.service.CustomCompetitionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,8 +22,10 @@ import java.util.List;
 public class CustomCompetitionController {
     private final CustomCompetitionService service;
 
-    public record TeamItem(Long id, String name, String groupName) {
-        static TeamItem of(Team team) { return new TeamItem(team.getId(), team.getName(), team.getGroupName()); }
+    public record TeamItem(Long id, String name, String groupName, String logoUrl) {
+        static TeamItem of(Team team) {
+            return new TeamItem(team.getId(), team.getName(), team.getGroupName(), team.getLogoUrl());
+        }
     }
 
     @GetMapping("/teams")
@@ -42,7 +45,16 @@ public class CustomCompetitionController {
 
     @PostMapping("/teams")
     public TeamItem addTeam(@PathVariable Long leagueId, @Valid @RequestBody CustomTeamRequest request, Principal principal) {
-        return TeamItem.of(service.addTeam(leagueId, principal.getName(), request.name(), request.groupName()));
+        return TeamItem.of(service.addTeam(leagueId, principal.getName(), request.name(), request.groupName(),
+                request.logoUrl()));
+    }
+
+    public record TeamLogoRequest(@Size(max = 500) String logoUrl) {}
+
+    @PutMapping("/teams/{teamId}/logo")
+    public TeamItem setTeamLogo(@PathVariable Long leagueId, @PathVariable Long teamId,
+                                @Valid @RequestBody TeamLogoRequest request, Principal principal) {
+        return TeamItem.of(service.setTeamLogo(leagueId, teamId, principal.getName(), request.logoUrl()));
     }
 
     @DeleteMapping("/teams/{teamId}")

@@ -34,14 +34,14 @@ describe('CustomBracket component', () => {
     );
 
     vi.mocked(api.fetchCustomTeams).mockResolvedValue([
-      { id: 102, name: 'T1', groupName: null },
-      { id: 103, name: 'Gen.G', groupName: null },
-      { id: 104, name: 'HLE', groupName: null },
-      { id: 105, name: 'DK', groupName: null },
-      { id: 106, name: 'BLG', groupName: null },
-      { id: 107, name: 'TES', groupName: null },
-      { id: 108, name: 'WBG', groupName: null },
-      { id: 109, name: 'LNG', groupName: null },
+      { id: 102, name: 'T1', groupName: null, logoUrl: null },
+      { id: 103, name: 'Gen.G', groupName: null, logoUrl: null },
+      { id: 104, name: 'HLE', groupName: null, logoUrl: null },
+      { id: 105, name: 'DK', groupName: null, logoUrl: null },
+      { id: 106, name: 'BLG', groupName: null, logoUrl: null },
+      { id: 107, name: 'TES', groupName: null, logoUrl: null },
+      { id: 108, name: 'WBG', groupName: null, logoUrl: null },
+      { id: 109, name: 'LNG', groupName: null, logoUrl: null },
     ]);
 
     vi.mocked(api.fetchCustomMatches).mockResolvedValue([
