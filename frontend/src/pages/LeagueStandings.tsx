@@ -85,7 +85,7 @@ export default function LeagueStandings() {
             No hay datos de clasificación disponibles en este momento.
           </p>
           <p className="standings-empty-copy">
-            Los datos se sincronizarán en cuanto se disputen los partidos de la temporada.
+            La tabla aparecerá cuando haya partidos con resultado.
           </p>
         </div>
       ) : (
@@ -205,7 +205,7 @@ export default function LeagueStandings() {
           {showComplete ? (
             <div className="standings-legend">
               <span className="standings-legend-note">
-                V victorias · E empates · D derrotas · DG diferencia de goles
+                V victorias · E empates · D derrotas · DG diferencia de marcador
               </span>
             </div>
           ) : (

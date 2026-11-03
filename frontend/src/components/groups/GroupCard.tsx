@@ -14,6 +14,7 @@ interface GroupCardProps {
   handleShareWhatsApp: GroupsDashboardState['handleShareWhatsApp'];
   setSelectedGroupForMembers: (group: Group | null) => void;
   setSelectedGroupForRules: (group: Group | null) => void;
+  setSelectedCustomCompetition: (group: Group | null) => void;
 }
 
 /** Tarjeta de una liga en "Mis ligas", con sus acciones. */
@@ -28,6 +29,7 @@ export default function GroupCard({
   handleShareWhatsApp,
   setSelectedGroupForMembers,
   setSelectedGroupForRules,
+  setSelectedCustomCompetition,
 }: GroupCardProps) {
   return (
     <div
@@ -65,6 +67,15 @@ export default function GroupCard({
       </div>
 
       <div className="flex flex-col gap-2 mt-auto pt-2.5">
+        {isCreator && group.customCompetition && (
+          <button
+            type="button"
+            className="glass-btn w-full py-2"
+            onClick={() => setSelectedCustomCompetition(group)}
+          >
+            Gestionar competición
+          </button>
+        )}
         {isSelected ? (
           <div className="w-full flex items-center justify-center py-1">
             <InkStamp tone="ink">Liga activa</InkStamp>

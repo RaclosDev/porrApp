@@ -26,6 +26,7 @@ public class BracketPredictionValidator {
         if (data.getTopologyVersion() != null && data.getTopologyVersion() != 1 && data.getTopologyVersion() != 2)
             throw invalid("Versión de cuadro desconocida");
         Map<String, Set<String>> catalog = teams.findAllByOrderByGroupNameAscNameAsc().stream()
+                .filter(team -> team.getCompetition() == null)
                 .filter(t -> t.getGroupName() != null && t.getGroupName().matches("[A-L]") && !Team.isPlaceholder(t))
                 .collect(Collectors.groupingBy(Team::getGroupName, Collectors.mapping(Team::getName, Collectors.toSet())));
         Set<String> allowed = catalog.values().stream().flatMap(Set::stream).collect(Collectors.toSet());

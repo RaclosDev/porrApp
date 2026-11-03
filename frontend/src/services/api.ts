@@ -420,14 +420,44 @@ export const fetchGroupInvitationPreview = (joinCode: string) =>
 
 export const createGroup = (
   name: string,
-  competitionId: number | string,
+  competitionId: number | string | null,
   poolFormat: PoolFormat,
   pichichi = true,
+  customCompetitionName?: string,
 ) =>
   request<Group>('/groups', {
     method: 'POST',
-    json: { name, competitionId, poolFormat, pichichi },
+    json: { name, competitionId, poolFormat, pichichi, customCompetitionName },
     fallbackError: 'Error al crear la liga',
+  });
+
+export interface CustomTeam {
+  id: number;
+  name: string;
+}
+export const fetchCustomTeams = (groupId: number) =>
+  request<CustomTeam[]>(`/groups/${groupId}/competition/teams`);
+export const addCustomTeam = (groupId: number, name: string) =>
+  request<CustomTeam>(`/groups/${groupId}/competition/teams`, { method: 'POST', json: { name } });
+export const addCustomMatch = (
+  groupId: number,
+  homeTeamId: number,
+  awayTeamId: number,
+  matchDate: string,
+) =>
+  request<Match>(`/groups/${groupId}/competition/matches`, {
+    method: 'POST',
+    json: { homeTeamId, awayTeamId, matchDate },
+  });
+export const setCustomResult = (
+  groupId: number,
+  matchId: number,
+  homeScore: number,
+  awayScore: number,
+) =>
+  request<Match>(`/groups/${groupId}/competition/matches/${matchId}/result`, {
+    method: 'PUT',
+    json: { homeScore, awayScore },
   });
 
 export const updateGroup = (

@@ -26,8 +26,12 @@ public class Team {
     private Long id;
 
     /** Nombre del equipo (Ej: "Real Madrid", "Barcelona", "España"). */
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name; 
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "competition_id")
+    private Competition competition;
 
     /** Nombre en inglés (sirve para búsquedas o iconos estáticos). */
     private String nameEn; 

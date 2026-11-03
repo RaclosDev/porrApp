@@ -5,6 +5,7 @@ import java.util.Map;
 import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.LeagueRepository;
@@ -43,6 +44,7 @@ public class GroupService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
+    private final TeamRepository teamRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final LeaguePaymentService paymentService;
 
@@ -55,6 +57,19 @@ public class GroupService {
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
+        return createGroup(name, email, competitionId, poolFormat, pichichi, null);
+    }
+
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi, String customCompetitionName) {
+        boolean custom = customCompetitionName != null && !customCompetitionName.isBlank();
+        if (custom == (competitionId != null)) {
+            throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
+        }
+        if (custom && (customCompetitionName.trim().length() > 100 || poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY)) {
+            throw BusinessException.badRequest("La competición personalizada requiere el formato por jornadas y un nombre de hasta 100 caracteres");
+        }
         String joinCode;
         do {
             joinCode = JoinCodeGenerator.next();
@@ -74,9 +89,15 @@ public class GroupService {
             }
         }
 
-        Competition comp = competitionRepository.findById(competitionId)
-                .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
-        comp = resolveCanonicalCompetition(comp);
+        Competition comp = null;
+        if (!custom) {
+            comp = competitionRepository.findById(competitionId)
+                    .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
+            if (comp.getOwnerLeague() != null) {
+                throw BusinessException.forbidden("Esta competición pertenece a otra liga");
+            }
+            comp = resolveCanonicalCompetition(comp);
+        }
 
         League group = League.builder()
                 .name(name)
@@ -84,6 +105,14 @@ public class GroupService {
                 .adminUser(adminUser)
                 .build();
         group = leagueRepository.save(group);
+
+        if (custom) {
+            comp = competitionRepository.save(Competition.builder()
+                    .name(customCompetitionName.trim())
+                    .formatType("LEAGUE")
+                    .ownerLeague(group)
+                    .build());
+        }
 
         Membership.MembershipId memId = new Membership.MembershipId(adminUser.getId(), group.getId());
         membershipRepository.save(Membership.builder()
@@ -98,7 +127,7 @@ public class GroupService {
                 .competition(comp)
                 .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
                 .lockDate(Edition.defaultLockDate(comp, poolFormat))
-                .pichichi(pichichi)
+                .pichichi(!custom && pichichi)
                 .status("ACTIVE")
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
@@ -193,9 +222,22 @@ public class GroupService {
         
         List<Prediction> predictions = predictionRepository.findByEditionLeagueId(groupId);
         predictionRepository.deleteAll(predictions);
+        predictionRepository.flush();
         
         List<Edition> editions = editionRepository.findByLeagueId(groupId);
         editionRepository.deleteAll(editions);
+        editionRepository.flush();
+
+        editions.stream().map(Edition::getCompetition).filter(c -> c.getOwnerLeague() != null
+                && groupId.equals(c.getOwnerLeague().getId())).forEach(c -> {
+            matchRepository.deleteAll(matchRepository.findByCompetitionId(c.getId()));
+            matchRepository.flush();
+            teamRepository.deleteAll(teamRepository.findByCompetitionIdOrderByNameAsc(c.getId()));
+            teamRepository.flush();
+            competitionRepository.delete(c);
+        });
+
+        competitionRepository.flush();
         
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
         membershipRepository.deleteAll(memberships);

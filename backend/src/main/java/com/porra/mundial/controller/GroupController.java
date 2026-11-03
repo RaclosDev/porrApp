@@ -45,7 +45,7 @@ public class GroupController {
     @PostMapping
     public GroupResponseDTO createGroup(@Valid @RequestBody GroupCreateDTO payload, Principal principal) {
         League group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(),
-                PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi());
+                PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi(), payload.getCustomCompetitionName());
         return groupService.toResponse(group, true);
     }
 

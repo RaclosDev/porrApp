@@ -135,7 +135,7 @@ public class MatchEventProcessor {
     /** Entidades propias de la transacción de importación; nunca publica datos sin confirmar en la caché global. */
     Map<String, Team> freshTeamCache() {
         Map<String, Team> fresh = new ConcurrentHashMap<>();
-        teamRepository.findAll().forEach(team -> {
+        teamRepository.findAll().stream().filter(team -> team.getCompetition() == null).forEach(team -> {
             if (team.getName() != null) fresh.put(team.getName(), team);
             if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
             if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
