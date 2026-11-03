@@ -11,12 +11,21 @@ import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
+import CustomBracket from './CustomBracket';
+
+function Bracket() {
+  const { activeGroupCustomCompetition, activeGroupPoolFormat } = useAppContext();
+  if (activeGroupCustomCompetition && activeGroupPoolFormat !== 'MATCH_DAY') {
+    return <CustomBracket />;
+  }
+  return <WorldCupBracket />;
+}
 
 /**
  * Porra de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
  * si no, o al editar, el asistente de grupos y cruces.
  */
-function Bracket() {
+function WorldCupBracket() {
   const { userId } = useAppContext();
   const myPred = useMyLeaguePrediction();
   const {

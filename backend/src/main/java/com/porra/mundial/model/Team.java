@@ -26,8 +26,12 @@ public class Team {
     private Long id;
 
     /** Nombre del equipo (Ej: "Real Madrid", "Barcelona", "España"). */
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name; 
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "competition_id")
+    private Competition competition;
 
     /** Nombre en inglés (sirve para búsquedas o iconos estáticos). */
     private String nameEn; 
@@ -40,7 +44,7 @@ public class Team {
     private String logoUrl;
 
     /** Letra del grupo en el que juegan si aplica ("A" hasta la "L"), o "-" en ligas regulares. */
-    @Column(name = "group_name", length = 2)
+    @Column(name = "group_name", length = 50)
     private String groupName;
 
     /** Probabilidad de ganar el partido (cuota para lógica del simulador). */

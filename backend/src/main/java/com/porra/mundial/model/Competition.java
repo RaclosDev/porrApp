@@ -25,6 +25,10 @@ public class Competition {
     @Column(length = 50, unique = true)
     private String externalId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_league_id")
+    private League ownerLeague;
+
     /** Formato de la competición: "LEAGUE" (ligas regulares) o "TOURNAMENT" (torneos con eliminatorias). */
     @Builder.Default
     @Column(name = "format_type", length = 30)

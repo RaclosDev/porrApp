@@ -333,7 +333,7 @@ export default function LeagueMembersTab({
                 </div>
 
                 <div className="league-admin-member-actions">
-                  {!tracksPayments ? null : canManage ? (
+                  {!tracksPayments ? null : isAdmin ? (
                     <button
                       type="button"
                       className={`league-admin-pay ${isPaid ? 'is-paid' : 'is-pending'}`}

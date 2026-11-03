@@ -1,17 +1,19 @@
 import type { MatchRadar, TopScorer } from '../../types/api';
 import LiveMatchesPanel from '../Home/LiveMatchesPanel';
 import TopScorersPanel from '../Home/TopScorersPanel';
-import { useRef, type Dispatch, type SetStateAction } from 'react';
+import { useRef, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { useDialogFocus } from '../../hooks/useDialogFocus';
 
 interface BracketInfoPanelProps {
   activePanel: 'live' | 'scorers' | null;
   setActivePanel: Dispatch<SetStateAction<'live' | 'scorers' | null>>;
-  matchRadar: MatchRadar;
-  topScorers: TopScorer[];
-  topScorersLoading: boolean;
-  topScorersError: boolean;
-  refreshTopScorers: () => void;
+  matchRadar?: MatchRadar;
+  topScorers?: TopScorer[];
+  topScorersLoading?: boolean;
+  topScorersError?: boolean;
+  refreshTopScorers?: () => void;
+  /** Contenido propio del panel, en lugar de los partidos y goleadores del torneo oficial. */
+  children?: ReactNode;
 }
 
 /** Panel flotante con los partidos en directo o los goleadores. */
@@ -23,6 +25,7 @@ export default function BracketInfoPanel({
   topScorersLoading,
   topScorersError,
   refreshTopScorers,
+  children,
 }: BracketInfoPanelProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(dialogRef, { onEscape: () => setActivePanel(null) });
@@ -53,17 +56,18 @@ export default function BracketInfoPanel({
         </div>
 
         <div className="paper-dialog-body">
-          {activePanel === 'live' && (
+          {children}
+          {!children && activePanel === 'live' && (
             <LiveMatchesPanel
               liveMatches={matchRadar?.live || []}
               matchRadar={matchRadar}
               maxNext={3}
             />
           )}
-          {activePanel === 'scorers' && (
+          {!children && activePanel === 'scorers' && (
             <TopScorersPanel
               hideTitle
-              topScorers={topScorers}
+              topScorers={topScorers ?? []}
               loading={topScorersLoading}
               error={topScorersError}
               onRetry={refreshTopScorers}

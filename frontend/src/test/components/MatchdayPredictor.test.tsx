@@ -75,23 +75,31 @@ describe('matchday editing and navigation', () => {
 
   it('resets the selected round and preserves an immediate draft when switching leagues', async () => {
     const view = render(tree());
-    fireEvent.change(await screen.findByLabelText('Goles de Equipo A'), { target: { value: '2' } });
-    fireEvent.change(screen.getByLabelText('Goles de Visitante 101'), { target: { value: '0' } });
+    fireEvent.change(await screen.findByLabelText('Marcador de Equipo A'), {
+      target: { value: '2' },
+    });
+    fireEvent.change(screen.getByLabelText('Marcador de Visitante 101'), {
+      target: { value: '0' },
+    });
     context = { ...context, activeGroupId: '20', activeGroupName: 'Liga B' };
     view.rerender(tree());
-    expect(await screen.findByLabelText('Goles de Equipo B')).toHaveValue(null);
-    expect(screen.queryByLabelText('Goles de Equipo A')).not.toBeInTheDocument();
+    expect(await screen.findByLabelText('Marcador de Equipo B')).toHaveValue(null);
+    expect(screen.queryByLabelText('Marcador de Equipo A')).not.toBeInTheDocument();
     expect(localStorage.getItem('draft_matchday_u7_g20')).toBeNull();
     context = { ...context, activeGroupId: '10' };
     view.rerender(tree());
-    await waitFor(() => expect(screen.getByLabelText('Goles de Equipo A')).toHaveValue(2));
-    expect(screen.getByLabelText('Goles de Visitante 101')).toHaveValue(0);
+    await waitFor(() => expect(screen.getByLabelText('Marcador de Equipo A')).toHaveValue(2));
+    expect(screen.getByLabelText('Marcador de Visitante 101')).toHaveValue(0);
   });
 
   it('keeps unsaved edits across a live refresh and only submits edited matches', async () => {
     render(tree());
-    fireEvent.change(await screen.findByLabelText('Goles de Equipo A'), { target: { value: '3' } });
-    fireEvent.change(screen.getByLabelText('Goles de Visitante 101'), { target: { value: '1' } });
+    fireEvent.change(await screen.findByLabelText('Marcador de Equipo A'), {
+      target: { value: '3' },
+    });
+    fireEvent.change(screen.getByLabelText('Marcador de Visitante 101'), {
+      target: { value: '1' },
+    });
     act(() =>
       client.setQueryData(
         ['matchdayFixtures', '10', '7', ''],
@@ -106,7 +114,7 @@ describe('matchday editing and navigation', () => {
         ],
       ),
     );
-    await waitFor(() => expect(screen.getByLabelText('Goles de Equipo A')).toHaveValue(3));
+    await waitFor(() => expect(screen.getByLabelText('Marcador de Equipo A')).toHaveValue(3));
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() =>
       expect(api.submitMatchdayPredictions).toHaveBeenCalledWith('10', [
@@ -117,7 +125,9 @@ describe('matchday editing and navigation', () => {
 
   it('rejects a partial score instead of sending a stale sign', async () => {
     render(tree());
-    fireEvent.change(await screen.findByLabelText('Goles de Equipo A'), { target: { value: '1' } });
+    fireEvent.change(await screen.findByLabelText('Marcador de Equipo A'), {
+      target: { value: '1' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Completa los dos marcadores');
     expect(api.submitMatchdayPredictions).not.toHaveBeenCalled();
@@ -132,8 +142,8 @@ describe('matchday editing and navigation', () => {
     const roundSelect = await screen.findByLabelText('Seleccionar jornada');
     expect(await screen.findByRole('option', { name: 'final' })).toBeInTheDocument();
     fireEvent.change(roundSelect, { target: { value: 'Fecha 2099-01-01' } });
-    expect(screen.getByLabelText('Goles de Sin ronda')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Goles de Finalista')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Marcador de Sin ronda')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Marcador de Finalista')).not.toBeInTheDocument();
   });
 
   it('does not clear another league draft when a save finishes after switching', async () => {
@@ -150,9 +160,11 @@ describe('matchday editing and navigation', () => {
     await waitFor(() => expect(api.submitMatchdayPredictions).toHaveBeenCalled());
     context = { ...context, activeGroupId: '20' };
     view.rerender(tree());
-    fireEvent.change(await screen.findByLabelText('Goles de Equipo B'), { target: { value: '4' } });
+    fireEvent.change(await screen.findByLabelText('Marcador de Equipo B'), {
+      target: { value: '4' },
+    });
     await act(async () => finishSave({ success: true, saved: 1, message: 'Guardado A' }));
-    expect(screen.getByLabelText('Goles de Equipo B')).toHaveValue(4);
+    expect(screen.getByLabelText('Marcador de Equipo B')).toHaveValue(4);
     expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g20') ?? '{}')['201'].homeScore).toBe(
       '4',
     );
@@ -284,12 +296,12 @@ describe('matchday screen with the league round summary', () => {
       'Jornada 2',
       'Jornada 3',
     ]);
-    expect(await screen.findByLabelText('Goles de Local Jornada 2')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Marcador de Local Jornada 2')).toBeInTheDocument();
     expect(api.fetchMatchdayFixtures).toHaveBeenCalledTimes(1);
     expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith('10', 'Jornada 2');
 
     fireEvent.click(screen.getByRole('button', { name: 'Jornada siguiente' }));
-    expect(await screen.findByLabelText('Goles de Local Jornada 3')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Marcador de Local Jornada 3')).toBeInTheDocument();
     expect(api.fetchMatchdayFixtures).toHaveBeenLastCalledWith('10', 'Jornada 3');
     expect(api.fetchMatchdayFixtures).not.toHaveBeenCalledWith('10', '');
   });
@@ -298,22 +310,24 @@ describe('matchday screen with the league round summary', () => {
     vi.mocked(api.fetchLeaderboardMatchdays).mockRejectedValue(new Error('caído'));
     vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([fixture(1, 'Jornada 1', 'Equipo 1')]);
     render(tree());
-    expect(await screen.findByLabelText('Goles de Equipo 1')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Marcador de Equipo 1')).toBeInTheDocument();
     expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith('10', '');
   });
 
   it('keeps the draft of another round while browsing rounds', async () => {
     render(tree());
-    fireEvent.change(await screen.findByLabelText('Goles de Local Jornada 2'), {
+    fireEvent.change(await screen.findByLabelText('Marcador de Local Jornada 2'), {
       target: { value: '2' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Jornada siguiente' }));
-    await screen.findByLabelText('Goles de Local Jornada 3');
+    await screen.findByLabelText('Marcador de Local Jornada 3');
     expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g10') ?? '{}')['2'].homeScore).toBe(
       '2',
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Jornada anterior' }));
-    await waitFor(() => expect(screen.getByLabelText('Goles de Local Jornada 2')).toHaveValue(2));
+    await waitFor(() =>
+      expect(screen.getByLabelText('Marcador de Local Jornada 2')).toHaveValue(2),
+    );
   });
 });

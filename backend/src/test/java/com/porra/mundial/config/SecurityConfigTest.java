@@ -76,5 +76,7 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/users/me")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/sync")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/groups/1/members")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/groups/1/competition/teams")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/groups/1/competition/matches")).andExpect(status().isUnauthorized());
     }
 }

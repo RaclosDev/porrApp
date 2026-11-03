@@ -15,9 +15,10 @@ Porras de fútbol con amigos: cada liga elige su formato, los resultados se sinc
 ## Qué hace
 
 - **Ligas privadas** con código de invitación y control de pagos.
+- **Competiciones personalizadas**: cada liga puede crear su propio torneo, añadir equipos y partidos, e introducir resultados manualmente. Usa el formato por jornadas y no depende de un proveedor de datos.
 - **Tres formatos de porra**: cuadro completo (fase de grupos y eliminatorias), solo eliminatorias, o jornada a jornada con 1X2 y marcador exacto.
 - **Puntuación por liga**: el administrador fija cuántos puntos vale cada acierto; los miembros los ven en la pestaña Puntuación y las normas escritas en Normas. Al cambiarlos se recalcula la clasificación.
-- **Resultados automáticos**: los partidos se sincronizan desde ESPN y la puntuación se recalcula en el backend.
+- **Resultados**: las competiciones del catálogo se sincronizan desde ESPN; en las personalizadas los introduce el administrador. En ambos casos la puntuación se recalcula en el backend.
 - **Tiempo real**: los cambios de marcador llegan por WebSocket y refrescan clasificación, cuadro y jornadas.
 - **Cuadro oficial en vivo**, con los cruces resueltos según la clasificación de grupos y los mejores terceros. Los empates de grupo se deshacen con los criterios del artículo 13 del reglamento del Mundial 2026.
 - **Estadísticas de la liga**: Más elegidos (campeón, equipos por ronda, final, pichichi y ganadores de grupo comparados con lo que ha pasado) y Buscador (hasta qué ronda lleva cada participante a un equipo). En las ligas por jornadas, el reparto de predicciones de cada partido ya empezado.

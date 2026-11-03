@@ -49,6 +49,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/predictions/mine", "/api/groups/mine").authenticated()
                 .requestMatchers(HttpMethod.GET,
                         "/api/groups/*/members").authenticated()
+                .requestMatchers(HttpMethod.GET,
+                        "/api/groups/*/competition/**").authenticated()
                 // Lecturas públicas: cada controlador filtra los datos de ligas privadas.
                 .requestMatchers(HttpMethod.GET,
                         "/api/predictions/**",

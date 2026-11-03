@@ -17,6 +17,7 @@ import { nextKnockoutMatch } from '../utils/bracketBuilder';
 import { advancingThirds, thirdPlacedTeams } from '../utils/predictionViewer';
 import { featuredSlot, groupTeamPoints } from '../utils/viewerScoring';
 import { isMathematicallyQualified } from '../utils/groupStatus';
+import CustomPredictionViewer from './CustomPredictionViewer';
 
 interface PredictionViewerProps {
   /** Se pinta dentro de la página en vez de como modal. */
@@ -33,7 +34,22 @@ const HIDDEN_ROUNDS = { 0: false, 1: false, 2: false, 3: false };
  * Visor de la porra de un usuario, como modal o dentro de la página: fase de grupos, mejores
  * terceros y cuadro de eliminatorias con los puntos obtenidos.
  */
-function PredictionViewer({
+function PredictionViewer(props: PredictionViewerProps) {
+  const { activeGroupCustomCompetition, viewerPredictionId, setViewerPredictionId } =
+    useAppContext();
+  const id = props.predictionId || viewerPredictionId;
+  if (activeGroupCustomCompetition && id) {
+    return (
+      <CustomPredictionViewer
+        predictionId={id}
+        onClose={props.onClose || (() => setViewerPredictionId(null))}
+      />
+    );
+  }
+  return <WorldCupPredictionViewer {...props} />;
+}
+
+function WorldCupPredictionViewer({
   inline = false,
   predictionId = null,
   onEdit = null,
