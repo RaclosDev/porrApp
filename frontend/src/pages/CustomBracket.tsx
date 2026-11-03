@@ -164,6 +164,7 @@ export default function CustomBracket() {
       : null;
 
   const selectWinner = (round: number, match: number, name: string) => {
+    if (picks[round]?.[match] === name) return;
     setRevision((current) => current + 1);
     setSaveState('idle');
     setError('');

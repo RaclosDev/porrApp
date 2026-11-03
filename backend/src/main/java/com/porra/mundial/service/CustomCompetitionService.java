@@ -238,19 +238,34 @@ public class CustomCompetitionService {
                 || !home.getGroupName().equals(away.getGroupName()))) {
             throw BusinessException.badRequest("El partido de grupos requiere dos equipos del mismo grupo");
         }
+        List<Match> configuredMatches = bracket ? matchRepository.findByCompetitionId(competition.getId()) : List.of();
+        boolean repeated = configuredMatches.stream()
+                .filter(existing -> round.equals(existing.getRound()))
+                .anyMatch(existing -> existing.getHomeTeam() != null
+                        && (existing.getHomeTeam().getId().equals(home.getId())
+                            || away != null && existing.getHomeTeam().getId().equals(away.getId()))
+                        || existing.getAwayTeam() != null
+                        && (existing.getAwayTeam().getId().equals(home.getId())
+                            || away != null && existing.getAwayTeam().getId().equals(away.getId())));
+        if (repeated) throw BusinessException.conflict("Un equipo ya está en otro cruce de esta ronda");
         if ("bracket-1".equals(round)) {
             if (!predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
                 throw BusinessException.conflict("No se pueden cambiar los cruces después del primer pronóstico");
             }
-            boolean repeated = matchRepository.findByCompetitionId(competition.getId()).stream()
-                    .filter(existing -> "bracket-1".equals(existing.getRound()))
-                    .anyMatch(existing -> existing.getHomeTeam() != null
-                            && (existing.getHomeTeam().getId().equals(home.getId())
-                                || away != null && existing.getHomeTeam().getId().equals(away.getId()))
-                            || existing.getAwayTeam() != null
-                            && (existing.getAwayTeam().getId().equals(home.getId())
-                                || away != null && existing.getAwayTeam().getId().equals(away.getId())));
-            if (repeated) throw BusinessException.conflict("Un equipo ya está en otro cruce de la primera ronda");
+        } else if (bracket) {
+            int remaining = (int) configuredMatches.stream()
+                    .filter(existing -> "bracket-1".equals(existing.getRound())).count();
+            int roundNumber = Integer.parseInt(round.substring("bracket-".length()));
+            for (int number = 2; number <= roundNumber; number++) {
+                if (remaining <= 1) {
+                    throw BusinessException.badRequest("Esa ronda no cabe en el cuadro configurado");
+                }
+                remaining = (remaining + 1) / 2;
+            }
+            long created = configuredMatches.stream().filter(existing -> round.equals(existing.getRound())).count();
+            if (created >= remaining) {
+                throw BusinessException.conflict("La ronda ya tiene todos sus cruces");
+            }
         }
         if (request.matchDate() == null && !bracket) {
             throw BusinessException.badRequest("Indica la fecha del partido");

@@ -83,6 +83,9 @@ export default function CustomCompetitionEditor({
         queryClient.invalidateQueries({ queryKey: queryKeys.customMatches(groupKey) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.group(groupKey) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupKey) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.leaderboardMatchdays(groupKey) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.predictionScore() }),
       ]);
       toast.success(success);
       return true;

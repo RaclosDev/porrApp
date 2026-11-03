@@ -125,6 +125,13 @@ describe('CustomBracket', () => {
       ),
     );
     expect(api.createPrediction).toHaveBeenCalledTimes(2);
+
+    // Repetir una elección no borra las rondas posteriores ya completadas.
+    pick('T1');
+    expect(center.getAllByRole('button', { name: 'Pasar a BLG' })[1]).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('en el cierre por partidos bloquea solo los cruces que ya han empezado', async () => {

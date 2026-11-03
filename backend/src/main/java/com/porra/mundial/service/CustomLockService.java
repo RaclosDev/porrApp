@@ -5,7 +5,9 @@ import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PredictionLockMode;
+import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,7 @@ public class CustomLockService {
     static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     private final MatchRepository matches;
+    private final TeamRepository teams;
     private Clock clock = Clock.system(ZONE);
 
     /** Solo para tests. */
@@ -69,6 +72,12 @@ public class CustomLockService {
         int totalRounds = 0;
         for (int count = firstRound.size(); count > 0; count = count == 1 ? 0 : (count + 1) / 2) totalRounds++;
         TreeSet<String> groupNames = new TreeSet<>();
+        if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET && edition.getCompetition() != null) {
+            teams.findByCompetitionIdOrderByNameAsc(edition.getCompetition().getId()).stream()
+                    .map(team -> team.getGroupName())
+                    .filter(name -> name != null && !name.isBlank())
+                    .forEach(groupNames::add);
+        }
         all.stream().filter(match -> "group".equals(match.getRound()) && match.getGroupName() != null)
                 .forEach(match -> groupNames.add(match.getGroupName()));
 
