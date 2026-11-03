@@ -67,6 +67,16 @@ describe('CustomBracket', () => {
       knockout(4, 'WBG', 'LNG'),
     ]);
     vi.mocked(api.createPrediction).mockResolvedValue(undefined as never);
+    vi.mocked(api.fetchCustomLockState).mockResolvedValue({
+      mode: 'FIXED_DATE',
+      offsetMinutes: 0,
+      lockDate: '2026-11-07T00:00:00+01:00',
+      lockedGroups: [],
+      lockedPicks: [],
+      anyLocked: false,
+      fullyLocked: false,
+      nextLockAt: '2026-11-07T00:00:00+01:00',
+    });
 
     renderBracket();
 
@@ -105,6 +115,52 @@ describe('CustomBracket', () => {
         '10',
       ),
     );
+  });
+
+  it('en el cierre por partidos bloquea solo los cruces que ya han empezado', async () => {
+    vi.mocked(leaguePredictions.useMyLeaguePrediction).mockReturnValue({
+      key: '7',
+      predictionName: 'Guardado',
+      data: { customRounds: [['T1', 'HLE', 'BLG', 'WBG'], ['T1', 'BLG'], ['T1']] },
+    } as unknown as ReturnType<typeof leaguePredictions.useMyLeaguePrediction>);
+    vi.mocked(api.fetchCustomLockState).mockResolvedValue({
+      mode: 'PER_MATCH',
+      offsetMinutes: 0,
+      lockDate: null,
+      lockedGroups: [],
+      lockedPicks: [[true, false, false, false], [false, false], [false]],
+      anyLocked: true,
+      fullyLocked: false,
+      nextLockAt: null,
+    });
+
+    renderBracket();
+
+    expect(
+      await screen.findByText('Lo que ya ha empezado está cerrado; el resto puedes cambiarlo.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pasar a Gen.G' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pasar a DK' })).toBeInTheDocument();
+  });
+
+  it('no deja entrar a quien no tiene pronóstico cuando ya se ha cerrado algo', async () => {
+    vi.mocked(api.fetchCustomLockState).mockResolvedValue({
+      mode: 'PER_ROUND',
+      offsetMinutes: 0,
+      lockDate: null,
+      lockedGroups: [],
+      lockedPicks: [[true, true, true, true], [false, false], [false]],
+      anyLocked: true,
+      fullyLocked: false,
+      nextLockAt: null,
+    });
+
+    renderBracket();
+
+    expect(
+      await screen.findByText('La competición ya ha empezado: no se admiten pronósticos nuevos.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar pronóstico' })).toBeNull();
   });
 
   it('marca aciertos y fallos del pronóstico guardado y pasa los descansos solos', async () => {

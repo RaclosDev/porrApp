@@ -5,6 +5,9 @@ import com.porra.mundial.dto.CustomResultRequest;
 import com.porra.mundial.dto.CustomTeamRequest;
 import com.porra.mundial.dto.MatchResponseDTO;
 import com.porra.mundial.dto.LeagueStandingDTO;
+import com.porra.mundial.dto.MadridDateTimeSerializer;
+import com.porra.mundial.model.PredictionLockMode;
+import com.porra.mundial.service.CustomLockService;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.service.CustomCompetitionService;
 import jakarta.validation.Valid;
@@ -69,6 +72,31 @@ public class CustomCompetitionController {
     public LocalDateTime setLockDate(@PathVariable Long leagueId,
                                      @RequestBody LockDateRequest request, Principal principal) {
         return service.setLockDate(leagueId, principal.getName(), request.lockDate());
+    }
+
+    public record LockConfigRequest(PredictionLockMode mode, Integer offsetMinutes, LocalDateTime lockDate) {}
+
+    /** Estado del cierre; las fechas en hora de Madrid con su desfase, como el resto de la API. */
+    public record LockStateResponse(String mode, int offsetMinutes, String lockDate, List<String> lockedGroups,
+                                    List<List<Boolean>> lockedPicks, boolean anyLocked, boolean fullyLocked,
+                                    String nextLockAt) {
+        static LockStateResponse of(CustomLockService.LockState state) {
+            return new LockStateResponse(state.mode().name(), state.offsetMinutes(),
+                    MadridDateTimeSerializer.format(state.lockDate()), state.groups(), state.picks(),
+                    state.anyLocked(), state.fullyLocked(), MadridDateTimeSerializer.format(state.nextLockAt()));
+        }
+    }
+
+    @PutMapping("/lock")
+    public LockStateResponse setLockConfig(@PathVariable Long leagueId, @RequestBody LockConfigRequest request,
+                                           Principal principal) {
+        service.setLockConfig(leagueId, principal.getName(), request.mode(), request.offsetMinutes(), request.lockDate());
+        return LockStateResponse.of(service.lockState(leagueId, principal.getName()));
+    }
+
+    @GetMapping("/lock-state")
+    public LockStateResponse lockState(@PathVariable Long leagueId, Principal principal) {
+        return LockStateResponse.of(service.lockState(leagueId, principal.getName()));
     }
 
     @PostMapping("/matches")

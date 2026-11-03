@@ -14,7 +14,20 @@ const api = vi.hoisted(() => ({
   setCustomResult: vi.fn(),
   deleteCustomMatch: vi.fn(),
   setCustomLockDate: vi.fn(),
+  fetchCustomLockState: vi.fn(),
+  setCustomLockConfig: vi.fn(),
 }));
+
+const LOCK_STATE = {
+  mode: 'FIXED_DATE',
+  offsetMinutes: 0,
+  lockDate: null,
+  lockedGroups: [],
+  lockedPicks: [],
+  anyLocked: false,
+  fullyLocked: false,
+  nextLockAt: null,
+};
 
 vi.mock('../../services/api', () => api);
 
@@ -76,6 +89,10 @@ describe('CustomCompetitionEditor', () => {
     Object.values(api).forEach((fn) => fn.mockReset().mockResolvedValue(undefined));
     api.fetchCustomTeams.mockResolvedValue(TEAMS);
     api.fetchCustomMatches.mockResolvedValue([]);
+    api.fetchCustomLockState.mockResolvedValue(LOCK_STATE);
+    api.setCustomLockConfig.mockImplementation((_id: number, config: object) =>
+      Promise.resolve({ ...LOCK_STATE, ...config }),
+    );
   });
 
   const setup = (poolFormat: PoolFormat = 'FULL_BRACKET', lockDate: string | null = null) => {
@@ -97,7 +114,7 @@ describe('CustomCompetitionEditor', () => {
     setup();
 
     expect(screen.getByRole('dialog', { name: 'Copa del barrio' })).toBeInTheDocument();
-    expect(await screen.findByText('Fija el cierre de pronósticos')).toBeInTheDocument();
+    expect(await screen.findByText('Elige cuándo se cierran los pronósticos')).toBeInTheDocument();
     expect(screen.getByText('Crea los partidos de grupos')).toBeInTheDocument();
     expect(screen.getByText('Faltan 3 pasos')).toBeInTheDocument();
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
@@ -134,11 +151,34 @@ describe('CustomCompetitionEditor', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cierre' }));
 
-    await waitFor(() => expect(api.setCustomLockDate).toHaveBeenCalledWith(7, '2026-12-01T12:00'));
+    await waitFor(() =>
+      expect(api.setCustomLockConfig).toHaveBeenCalledWith(7, {
+        mode: 'FIXED_DATE',
+        offsetMinutes: 0,
+        lockDate: '2026-12-01T12:00',
+      }),
+    );
     await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['group', '7'] }));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['myGroups'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['customTeams', '7'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['customMatches', '7'] });
+  });
+
+  it('cierra por partidos con un margen en horas', async () => {
+    setup();
+
+    fireEvent.click(await screen.findByRole('radio', { name: 'Por partidos' }));
+    fireEvent.change(screen.getByLabelText('Margen antes del partido'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cierre' }));
+
+    await waitFor(() =>
+      expect(api.setCustomLockConfig).toHaveBeenCalledWith(7, {
+        mode: 'PER_MATCH',
+        offsetMinutes: 120,
+        lockDate: null,
+      }),
+    );
+    expect(await screen.findByText(/Por partidos · 2 horas antes/)).toBeInTheDocument();
   });
 
   it('no pide cierre en las ligas por jornadas', async () => {

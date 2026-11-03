@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ArrowRight, CalendarClock, CheckCircle2, Circle, Info, ListChecks } from 'lucide-react';
-import { setCustomLockDate } from '../../../services/api';
+import { ArrowRight, CheckCircle2, Circle, Info, ListChecks } from 'lucide-react';
 import type { CustomTeam } from '../../../services/api';
 import type { Group, Match } from '../../../types/api';
-import { formatMatchDate, isBye, type CustomTab, type SaveAction } from './customCompetition';
+import { isBye, type CustomTab, type SaveAction } from './customCompetition';
+import CustomLockCard from './CustomLockCard';
+import { useCustomLock } from '../../../hooks/useCustomLock';
 
 interface Step {
   done: boolean;
@@ -30,7 +31,7 @@ export default function CustomSummaryTab({
   save: SaveAction;
   goTo: (tab: CustomTab) => void;
 }) {
-  const [draft, setDraft] = useState(lockDate?.slice(0, 16) ?? '');
+  const lock = useCustomLock(group.id.toString());
   const matchDay = group.poolFormat === 'MATCH_DAY';
   const played = matches.filter((match) => !isBye(match));
   const finished = played.filter((match) => match.finished).length;
@@ -42,8 +43,8 @@ export default function CustomSummaryTab({
   const steps: Step[] = [];
   if (!matchDay) {
     steps.push({
-      done: Boolean(lockDate),
-      label: 'Fija el cierre de pronósticos',
+      done: lock.configured || Boolean(lockDate),
+      label: 'Elige cuándo se cierran los pronósticos',
       hint: 'Hazlo antes de compartir la liga: tras el primer pronóstico ya no se puede cambiar.',
       tab: 'summary',
     });
@@ -158,52 +159,7 @@ export default function CustomSummaryTab({
         </ol>
       </section>
 
-      {!matchDay && (
-        <section className="league-admin-card">
-          <div className="league-admin-card-head">
-            <h3>
-              <CalendarClock size={14} aria-hidden="true" />
-              Cierre de pronósticos
-            </h3>
-            <span className="league-admin-card-meta">
-              {lockDate ? formatMatchDate(lockDate) : 'Sin fijar'}
-            </span>
-          </div>
-          <p className="league-admin-muted">
-            Hasta esta fecha los participantes pueden rellenar su porra. Solo se puede cambiar antes
-            del primer pronóstico.
-          </p>
-          <form
-            className="custom-admin-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void save(async () => {
-                await setCustomLockDate(group.id, draft);
-                onLockDateSaved(draft);
-              }, 'Cierre de pronósticos guardado');
-            }}
-          >
-            <div className="league-admin-field">
-              <label htmlFor="custom-admin-lock-date">Fecha y hora de cierre</label>
-              <input
-                id="custom-admin-lock-date"
-                className="glass-input"
-                type="datetime-local"
-                required
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-              />
-            </div>
-            <button
-              type="submit"
-              className="league-admin-btn is-primary"
-              disabled={!draft || draft === lockDate?.slice(0, 16)}
-            >
-              Guardar cierre
-            </button>
-          </form>
-        </section>
-      )}
+      {!matchDay && <CustomLockCard group={group} save={save} onLockDateSaved={onLockDateSaved} />}
 
       <p className="league-admin-muted custom-admin-note">
         <Info size={13} aria-hidden="true" />

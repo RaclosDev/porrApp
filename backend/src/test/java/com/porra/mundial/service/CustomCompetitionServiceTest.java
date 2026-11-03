@@ -39,6 +39,7 @@ class CustomCompetitionServiceTest {
     @Mock PredictionRepository predictions;
     @Mock UserAccountRepository users;
     @Mock MembershipRepository memberships;
+    @Mock CustomLockService lockService;
     @InjectMocks CustomCompetitionService service;
 
     private final Long leagueId = 7L;
@@ -95,6 +96,52 @@ class CustomCompetitionServiceTest {
 
         verify(matches).save(argThat(match -> "bracket-1".equals(match.getRound())
                 && match.getAwayTeam() == null));
+    }
+
+    private Edition bracketEdition() {
+        Edition edition = Edition.builder().league(competition.getOwnerLeague()).competition(competition)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
+        when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
+        lenient().when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of());
+        return edition;
+    }
+
+    @Test
+    void firstMatchModeFollowsTheFirstMatchMinusTheMargin() {
+        Edition edition = bracketEdition();
+        LocalDateTime lock = LocalDateTime.now().plusDays(3);
+        when(lockService.firstMatchLock(edition)).thenReturn(lock);
+
+        service.setLockConfig(leagueId, "admin@example.com", com.porra.mundial.model.PredictionLockMode.FIRST_MATCH,
+                2 * 24 * 60, null);
+
+        assertEquals(com.porra.mundial.model.PredictionLockMode.FIRST_MATCH, edition.getLockMode());
+        assertEquals(2 * 24 * 60, edition.getLockOffsetMinutes());
+        assertEquals(lock, edition.getLockDate());
+    }
+
+    @Test
+    void progressiveModesHaveNoSingleLockDate() {
+        Edition edition = bracketEdition();
+        edition.setLockDate(LocalDateTime.now().plusDays(1));
+
+        service.setLockConfig(leagueId, "admin@example.com", com.porra.mundial.model.PredictionLockMode.PER_MATCH, 30, null);
+
+        assertNull(edition.getLockDate());
+        assertEquals(30, edition.getLockOffsetMinutes());
+    }
+
+    @Test
+    void rejectsMarginsOutsideZeroToThirtyDaysAndChangesAfterPredictions() {
+        Edition edition = bracketEdition();
+        assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_ROUND, 30 * 24 * 60 + 1, null));
+        assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_ROUND, -5, null));
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_ROUND, 0, null));
+        assertEquals(com.porra.mundial.model.PredictionLockMode.FIXED_DATE, edition.getLockMode());
     }
 
     @Test

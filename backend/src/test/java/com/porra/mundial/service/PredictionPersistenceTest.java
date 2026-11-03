@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @Import({PredictionService.class, BracketPredictionValidator.class,
-        CustomBracketPredictionValidator.class, LeaguePaymentService.class})
+        CustomBracketPredictionValidator.class, CustomLockService.class, LeaguePaymentService.class})
 class PredictionPersistenceTest {
 
     @Container
