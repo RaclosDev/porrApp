@@ -1,6 +1,6 @@
 package com.porra.mundial.service;
 
-import tools.jackson.databind.JsonNode;
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.CompetitionDTO;
 import com.porra.mundial.dto.LeagueStandingDTO;
 import com.porra.mundial.model.Competition;
@@ -8,6 +8,7 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.EspnSportsDataProvider;
+import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,7 +19,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 /** Competiciones disponibles y su clasificación oficial. */
 @Service
@@ -50,7 +50,7 @@ public class CompetitionService {
     @Cacheable(value = "competitionStandings", key = "#competitionId")
     public List<LeagueStandingDTO> getStandings(Long competitionId) {
         Competition competition = competitionRepository.findById(competitionId)
-                .orElseThrow(() -> new NoSuchElementException("Competición no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
 
         List<LeagueStandingDTO> standings = new ArrayList<>();
         if (competition.getExternalId() != null && !competition.getExternalId().isBlank()) {

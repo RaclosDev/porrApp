@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.dto.LeagueScoringDTO;
@@ -69,6 +70,7 @@ class LeagueScoringControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.poolFormat").value("FULL_BRACKET"))
                 .andExpect(jsonPath("$.pichichi").value(true))
+                .andExpect(jsonPath("$.matchSignOnly").value(true))
                 .andExpect(jsonPath("$.editable").value(false))
                 .andExpect(jsonPath("$.maxPoints").value(1000))
                 .andExpect(jsonPath("$.rules.championPoints").value(200))
@@ -78,7 +80,7 @@ class LeagueScoringControllerTest {
     @Test
     void outsidersGetForbidden() throws Exception {
         when(leagueScoringService.getScoring(10L, "intruso@test.com"))
-                .thenThrow(new SecurityException("No perteneces a esta liga privada"));
+                .thenThrow(BusinessException.forbidden("No perteneces a esta liga privada"));
 
         mockMvc.perform(get("/api/groups/10/scoring").principal(() -> "intruso@test.com"))
                 .andExpect(status().isForbidden())
@@ -108,7 +110,7 @@ class LeagueScoringControllerTest {
     @Test
     void nonAdminsGetForbiddenAndNothingIsBroadcast() throws Exception {
         when(leagueScoringService.updateScoring(eq(10L), any(), eq("member@test.com")))
-                .thenThrow(new SecurityException("Solo el administrador de la liga puede cambiar la puntuación."));
+                .thenThrow(BusinessException.forbidden("Solo el administrador de la liga puede cambiar la puntuación."));
 
         putScoring(() -> "member@test.com", "{\"championPoints\":300}", 403);
 

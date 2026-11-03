@@ -178,11 +178,6 @@
       font-size: 1.18rem !important;
     }
 
-    /* Ocultar el icono del balón en pantallas móviles para dejar solo el texto PorrApp */
-    .brand-ball-icon {
-      display: none !important;
-    }
-
     .header-right {
       display: flex !important;
       align-items: center !important;

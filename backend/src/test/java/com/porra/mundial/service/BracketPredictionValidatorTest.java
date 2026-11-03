@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.*;
 import com.porra.mundial.repository.TeamRepository;
@@ -46,7 +47,7 @@ class BracketPredictionValidatorTest {
         data.setTopologyVersion(1);
         assertDoesNotThrow(() -> validator.validate(edition, data));
         data.setTopologyVersion(2);
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -58,7 +59,7 @@ class BracketPredictionValidatorTest {
         data.setQf(List.of(Arrays.asList("A1", null)));
         assertDoesNotThrow(() -> validator.validate(edition, data));
         data.setQf(List.of(Arrays.asList(null, "A1")));
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -80,10 +81,10 @@ class BracketPredictionValidatorTest {
         data.setThirdPlaceWinner("G1");
         assertDoesNotThrow(() -> validator.validate(edition, data));
         data.setFinalMatch(List.of("E1", "A1"));
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
         data.setFinalMatch(List.of("A1", "E1"));
         data.setThirdPlaceMatch(List.of("G1", "C1"));
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     private List<List<String>> next(List<List<String>> source) {
@@ -96,7 +97,7 @@ class BracketPredictionValidatorTest {
     void rejectsUnsupportedTopologyVersion() {
         var data = draft();
         data.setTopologyVersion(3);
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -111,10 +112,10 @@ class BracketPredictionValidatorTest {
         data.setR32(List.of(List.of("E1", "A3")));
         assertDoesNotThrow(() -> validator.validate(edition, data));
         data.setR32(List.of(List.of("I1", "A3")));
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
         data.setThirds(List.of("L3"));
         data.setR32(List.of(List.of("E1", "L3")));
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -157,7 +158,7 @@ class BracketPredictionValidatorTest {
         var data = draft();
         data.setR16(List.of(List.of("A1", "A1")));
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -165,7 +166,7 @@ class BracketPredictionValidatorTest {
         var data = draft();
         data.setR16(Collections.nCopies(50, List.of("A1", "B1")));
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -173,7 +174,7 @@ class BracketPredictionValidatorTest {
         final var data = draft();
         data.setR32(List.of(List.of("Unknown", "A1")));
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -181,7 +182,7 @@ class BracketPredictionValidatorTest {
         var invalid = draft();
         invalid.setChampion("A2");
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, invalid));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, invalid));
     }
 
     @Test
@@ -189,7 +190,7 @@ class BracketPredictionValidatorTest {
         var data = draft();
         data.setQf(Arrays.asList((List<String>)null));
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -197,7 +198,7 @@ class BracketPredictionValidatorTest {
         var data = draft();
         data.setThirdPlaceMatch(List.of("A1", "B1"));
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -205,7 +206,7 @@ class BracketPredictionValidatorTest {
         var data = draft();
         data.setGroups(Map.of("A", List.of("A1", "A2")));
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -213,7 +214,7 @@ class BracketPredictionValidatorTest {
         var data = draft();
         edition.getCompetition().setExternalId("esp.1");
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -221,7 +222,7 @@ class BracketPredictionValidatorTest {
         var data = draft();
         edition.setPoolFormat(PoolFormat.FULL_BRACKET);
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 
     @Test
@@ -235,6 +236,6 @@ class BracketPredictionValidatorTest {
         data.setGroups(groups);
         data.setR32(List.of(List.of("A1", "A3")));
 
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(edition, data));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
 }

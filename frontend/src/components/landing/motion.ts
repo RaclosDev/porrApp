@@ -10,7 +10,7 @@ export const useLandingMotion = () => {
   return { reduced: Boolean(reduced) };
 };
 
-export const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
+const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
 
 /** Las palabras de un titular suben una detrás de otra. */
 export const wordsContainer: Variants = {

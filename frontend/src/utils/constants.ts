@@ -38,51 +38,6 @@ export function fixMojibake(str: string): string {
 }
 
 /**
- * Normaliza nombres de participantes reparando mojibake y caracteres '??' o de reemplazo.
- */
-export function normalizeParticipantName(name: string): string {
-  if (!name || typeof name !== 'string') return name;
-  const cleaned = fixMojibake(name.trim());
-  return cleaned
-    .replace(/An(\?\?|\uFFFD|\?)nimo/gi, 'Anónimo')
-    .replace(/Ra(\?\?|\uFFFD|\?)l/gi, 'Raúl')
-    .replace(/Jos(\?\?|\uFFFD|\?)/gi, 'José')
-    .replace(/Adri(\?\?|\uFFFD|\?)n/gi, 'Adrián')
-    .replace(/^(\?\?|\uFFFD|\?)ngel/gi, 'Ángel')
-    .replace(/^(\?\?|\uFFFD|\?)lvaro/gi, 'Álvaro')
-    .replace(/^(\?\?|\uFFFD|\?)scar/gi, 'Óscar')
-    .replace(/I(\?\?|\uFFFD|\?)aki/gi, 'Iñaki')
-    .replace(/Rub(\?\?|\uFFFD|\?)n/gi, 'Rubén')
-    .replace(/V(\?\?|\uFFFD|\?)ctor/gi, 'Víctor')
-    .replace(/Jes(\?\?|\uFFFD|\?)s/gi, 'Jesús')
-    .replace(/H(\?\?|\uFFFD|\?)ctor/gi, 'Héctor')
-    .replace(/C(\?\?|\uFFFD|\?)sar/gi, 'César')
-    .replace(/F(\?\?|\uFFFD|\?)lix/gi, 'Félix')
-    .replace(/Andr(\?\?|\uFFFD|\?)s/gi, 'Andrés')
-    .replace(/Tom(\?\?|\uFFFD|\?)s/gi, 'Tomás')
-    .replace(/Mat(\?\?|\uFFFD|\?)as/gi, 'Matías')
-    .replace(/Nicol(\?\?|\uFFFD|\?)s/gi, 'Nicolás')
-    .replace(/Agust(\?\?|\uFFFD|\?)n/gi, 'Agustín')
-    .replace(/Mart(\?\?|\uFFFD|\?)n/gi, 'Martín')
-    .replace(/Joaqu(\?\?|\uFFFD|\?)n/gi, 'Joaquín')
-    .replace(/Iv(\?\?|\uFFFD|\?)n/gi, 'Iván')
-    .replace(/Sebasti(\?\?|\uFFFD|\?)n/gi, 'Sebastián')
-    .replace(/Gonz(\?\?|\uFFFD|\?)lez/gi, 'González')
-    .replace(/Rodr(\?\?|\uFFFD|\?)guez/gi, 'Rodríguez')
-    .replace(/Fern(\?\?|\uFFFD|\?)ndez/gi, 'Fernández')
-    .replace(/L(\?\?|\uFFFD|\?)pez/gi, 'López')
-    .replace(/Mart(\?\?|\uFFFD|\?)nez/gi, 'Martínez')
-    .replace(/S(\?\?|\uFFFD|\?)nchez/gi, 'Sánchez')
-    .replace(/P(\?\?|\uFFFD|\?)rez/gi, 'Pérez')
-    .replace(/G(\?\?|\uFFFD|\?)mez/gi, 'Gómez')
-    .replace(/D(\?\?|\uFFFD|\?)az/gi, 'Díaz')
-    .replace(/(\?\?|\uFFFD|\?)lvarez/gi, 'Álvarez')
-    .replace(/Mu(\?\?|\uFFFD|\?)oz/gi, 'Muñoz')
-    .replace(/N(\?\?|\uFFFD|\?)ñez/gi, 'Núñez')
-    .replace(/Pe(\?\?|\uFFFD|\?)a/gi, 'Peña');
-}
-
-/**
  * Normaliza nombres de países y repara posibles cadenas corruptas o con problemas de codificación (mojibake).
  */
 export function normalizeCountryName(name: string): string {
@@ -114,7 +69,7 @@ export function normalizeCountryName(name: string): string {
     .replace(/La Coru(\?\?|\uFFFD|\?)a/gi, 'La Coruña');
 }
 
-export const countryCodeMap: Record<string, string> = {
+const countryCodeMap: Record<string, string> = {
   México: 'mx',
   Sudáfrica: 'za',
   'Corea del Sur': 'kr',

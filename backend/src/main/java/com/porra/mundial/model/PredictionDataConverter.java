@@ -1,17 +1,26 @@
 package com.porra.mundial.model;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.PredictionDataDTO;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import jakarta.persistence.PersistenceException;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Converter(autoApply = false)
 public class PredictionDataConverter implements AttributeConverter<PredictionDataDTO, String> {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public PredictionDataConverter() {
+        this(new ObjectMapper());
+    }
+
+    PredictionDataConverter(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public String convertToDatabaseColumn(PredictionDataDTO attribute) {
@@ -21,8 +30,7 @@ public class PredictionDataConverter implements AttributeConverter<PredictionDat
         try {
             return objectMapper.writeValueAsString(attribute);
         } catch (JacksonException e) {
-            log.error("Error serializando PredictionDataDTO a JSON", e);
-            throw new IllegalArgumentException("Error serializando predicción a JSON", e);
+            throw new PersistenceException("Error interno al persistir el pronóstico", e);
         }
     }
 

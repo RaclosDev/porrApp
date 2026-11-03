@@ -18,7 +18,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.net.http.HttpClient;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;

@@ -400,13 +400,6 @@
     }
   }
 
-  /* Fila de Resultados: Partidos / Cuadro-Grupos / Pichichi en una sola línea */
-  @media (max-width: 359px) {
-    .results-toggle-icon {
-      display: none;
-    }
-  }
-
   /* Carga sin texto visible: bloques con brillo y aviso solo para lectores de pantalla */
   .sr-only {
     position: absolute;

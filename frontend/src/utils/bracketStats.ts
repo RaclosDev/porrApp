@@ -67,7 +67,7 @@ const STAGE_SIZE: Record<PathStage, number> = {
 };
 
 /** Equipo real: ni vacío ni un hueco del tipo "1º Grupo A" o "Por definir". */
-export const isRealTeam = (team: unknown): team is string => {
+const isRealTeam = (team: unknown): team is string => {
   if (typeof team !== 'string') return false;
   const t = team.trim();
   if (!t || t.includes('º')) return false;
@@ -209,7 +209,7 @@ export function rankFinals(entries: BracketEntry[]): FinalPick[] {
 }
 
 /** Nombre de jugador comparable: sin tildes, en minúsculas y con espacios simples. */
-export const normalizePlayer = (name: string) =>
+const normalizePlayer = (name: string) =>
   name
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
@@ -480,7 +480,7 @@ export function teamFunnel(
 }
 
 /** Puesto de grupo que el cuadro da al equipo (los cuadros guardan 1º, 2º y 3º). */
-export function groupPositionLabel(data: PredictionData, team: string): string {
+function groupPositionLabel(data: PredictionData, team: string): string {
   const thirds = new Set(data.thirds ?? []);
   for (const g of groupLists(data)) {
     const pos = g.indexOf(team);

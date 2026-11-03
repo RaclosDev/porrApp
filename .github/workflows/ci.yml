@@ -77,7 +77,7 @@ jobs:
       - name: Build Frontend
         run: npm run build
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps --only-shell chromium
       - name: Browser regression tests
         run: npm run test:e2e
 

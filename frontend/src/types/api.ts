@@ -7,11 +7,6 @@ export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY';
 export type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
-/** Respuesta de error de cualquier endpoint. */
-export interface ApiError {
-  error: string;
-}
-
 export interface StatusResponse {
   status: string;
   message?: string;

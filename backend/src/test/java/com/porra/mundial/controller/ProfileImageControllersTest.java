@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.model.League;
@@ -65,7 +66,7 @@ class ProfileImageControllersTest {
     @DisplayName("Subida de imagen de liga por quien no es admin responde 403")
     void uploadLeagueImageForbidden() throws Exception {
         Mockito.when(profileImageService.saveLeagueImage(eq(10L), eq("other@test.com"), any()))
-                .thenThrow(new SecurityException("Solo el administrador de la liga puede cambiar su imagen."));
+                .thenThrow(BusinessException.forbidden("Solo el administrador de la liga puede cambiar su imagen."));
 
         mockMvc.perform(multipart(HttpMethod.PUT, "/api/groups/10/image").file(file())
                         .principal(user("other@test.com")))
@@ -77,7 +78,7 @@ class ProfileImageControllersTest {
     @DisplayName("Una imagen inválida responde 400 con mensaje")
     void uploadInvalidImage() throws Exception {
         Mockito.when(profileImageService.saveLeagueImage(eq(10L), any(), any()))
-                .thenThrow(new IllegalArgumentException("Formato no admitido. Usa una imagen JPG o PNG."));
+                .thenThrow(BusinessException.badRequest("Formato no admitido. Usa una imagen JPG o PNG."));
 
         mockMvc.perform(multipart(HttpMethod.PUT, "/api/groups/10/image").file(file())
                         .principal(user("admin@test.com")))
@@ -129,7 +130,7 @@ class ProfileImageControllersTest {
     @DisplayName("Nombre duplicado responde 409 y nombre vacío 400")
     void updateProfileErrors() throws Exception {
         Mockito.when(profileImageService.updateParticipantName(any(), eq("Repetido")))
-                .thenThrow(new IllegalStateException("Ese nombre ya está en uso. Elige otro."));
+                .thenThrow(BusinessException.conflict("Ese nombre ya está en uso. Elige otro."));
 
         mockMvc.perform(put("/api/users/me/profile").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"participantName\":\"Repetido\"}").principal(user("other@test.com")))

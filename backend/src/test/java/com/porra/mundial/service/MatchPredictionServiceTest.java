@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
 import com.porra.mundial.model.*;
@@ -183,7 +184,7 @@ class MatchPredictionServiceTest {
                 .awayScore(1)
                 .build();
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
 
         assertTrue(ex.getMessage().contains("ya ha comenzado"));
@@ -206,7 +207,7 @@ class MatchPredictionServiceTest {
                 .awayScore(1)
                 .build();
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
 
         assertTrue(ex.getMessage().contains("ya ha finalizado"));
@@ -222,7 +223,7 @@ class MatchPredictionServiceTest {
 
         MatchPredictionItemDTO item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
 
-        SecurityException ex = assertThrows(SecurityException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
 
         assertTrue(ex.getMessage().contains("No perteneces a esta liga privada"));
@@ -250,6 +251,23 @@ class MatchPredictionServiceTest {
         assertTrue(mp.getIsExactScore());
         assertTrue(mp.getIsCorrectSign());
         assertEquals("Resultado exacto 2-1 (3 pts)", mp.getScoringDetails());
+        verify(matchPredictionRepository).save(mp);
+    }
+
+    @Test
+    void evaluatesProvisionalPointsFromALiveScore() {
+        finishedMatch.setFinished(false);
+        finishedMatch.setStatus(com.porra.mundial.model.MatchStatusNormalized.LIVE);
+        MatchPrediction mp = MatchPrediction.builder().id(1L).match(finishedMatch)
+                .prediction(Prediction.builder().id(50L).edition(edition).build())
+                .homeScore(2).awayScore(1).build();
+        when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(mp));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(1), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(3, true, true, true, "Acierto de signo 1X2"));
+
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+
+        assertEquals(3, mp.getPointsAwarded());
         verify(matchPredictionRepository).save(mp);
     }
 
@@ -309,7 +327,7 @@ class MatchPredictionServiceTest {
         when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
 
         var item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
-        var error = assertThrows(IllegalArgumentException.class, () ->
+        var error = assertThrows(BusinessException.class, () ->
                 matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
         assertTrue(error.getMessage().contains("no pertenece"));
         verify(matchPredictionRepository, never()).save(any());
@@ -394,7 +412,7 @@ class MatchPredictionServiceTest {
         int rescored = service.rescoreEdition(edition);
 
         assertEquals(3, rescored);
-        assertEquals(10, exact.getPointsAwarded());
+        assertEquals(2, exact.getPointsAwarded(), "el marcador exacto solo suma el signo durante la pausa");
         assertTrue(exact.getIsExactScore());
         assertEquals(2, sameGoalDiff.getPointsAwarded(), "sin bonus por diferencia de goles en esta liga");
         assertEquals(2, signOnly.getPointsAwarded());

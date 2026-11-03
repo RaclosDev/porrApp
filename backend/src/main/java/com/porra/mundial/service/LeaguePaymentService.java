@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.MembershipRepository;
@@ -7,8 +8,6 @@ import com.porra.mundial.repository.PredictionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.NoSuchElementException;
 
 /** Updates the membership and its predictions together after the caller checks league administration. */
 @Service
@@ -20,7 +19,7 @@ public class LeaguePaymentService {
     @Transactional
     public void setPayment(Long leagueId, Long userId, String status, UserAccount markedBy) {
         Membership membership = membershipRepository.findById(new Membership.MembershipId(userId, leagueId))
-                .orElseThrow(() -> new NoSuchElementException("Membresía no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Membresía no encontrada"));
         String normalized = "PAID".equalsIgnoreCase(status) ? "PAID" : "PENDING";
         membership.setPaymentStatus(normalized);
         membershipRepository.save(membership);

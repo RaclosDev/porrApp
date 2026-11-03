@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.LeagueScoringDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
@@ -11,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.NoSuchElementException;
 
 /**
  * Reglas de puntuación que el administrador de cada liga fija para su edición activa.
@@ -33,8 +33,7 @@ public class LeagueScoringService {
     /**
      * Puntuación de la liga. La de la Porra Global es pública; la de una liga privada, solo para sus miembros.
      *
-     * @throws NoSuchElementException si la liga o su edición activa no existen
-     * @throws SecurityException      si la liga es privada y el usuario no pertenece a ella
+     * @throws BusinessException si la liga o su edición activa no existen o el usuario no puede verla
      */
     @Transactional(readOnly = true)
     public LeagueScoringDTO getScoring(Long leagueId, String email) {
@@ -47,20 +46,19 @@ public class LeagueScoringService {
      * Cambia las reglas de la edición activa. Si cambian, vuelve a puntuar los partidos terminados
      * e invalida las puntuaciones guardadas para que la clasificación se recalcule.
      *
-     * @throws SecurityException        si no es el administrador o la liga es la Porra Global
-     * @throws IllegalArgumentException si falta alguna regla o alguna está fuera de rango
+     * @throws BusinessException si no es el administrador, la liga es global o las reglas no son válidas
      */
     @Transactional
     public LeagueScoringDTO updateScoring(Long leagueId, ScoringRuleSet rules, String email) {
         League league = findLeague(leagueId);
         if (isGlobal(league)) {
-            throw new SecurityException("La puntuación de la Porra Global no se puede cambiar.");
+            throw BusinessException.forbidden("La puntuación de la Porra Global no se puede cambiar.");
         }
         if (!isAdmin(league, email)) {
-            throw new SecurityException("Solo el administrador de la liga puede cambiar la puntuación.");
+            throw BusinessException.forbidden("Solo el administrador de la liga puede cambiar la puntuación.");
         }
         if (rules == null) {
-            throw new IllegalArgumentException("Faltan las reglas de puntuación.");
+            throw BusinessException.badRequest("Faltan las reglas de puntuación.");
         }
         rules.validate();
 
@@ -79,12 +77,12 @@ public class LeagueScoringService {
 
     private League findLeague(Long leagueId) {
         return leagueRepository.findById(leagueId)
-                .orElseThrow(() -> new NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
     }
 
     private Edition activeEdition(Long leagueId) {
         return editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
-                .orElseThrow(() -> new NoSuchElementException("La liga no tiene una edición activa"));
+                .orElseThrow(() -> BusinessException.notFound("La liga no tiene una edición activa"));
     }
 
     private static boolean canEdit(League league, String email) {

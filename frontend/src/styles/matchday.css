@@ -173,23 +173,6 @@
     flex-shrink: 0;
   }
 
-  .md-predictions-icon-btn {
-    width: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    height: 30px;
-    padding: 0;
-    justify-content: center;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    line-height: 1;
-  }
-
-  .md-predictions-icon-btn:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
-  }
-
   .md-match-top > span:first-child {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -310,22 +293,6 @@
   .md-sign-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-  }
-
-  .md-predictions-btn {
-    min-height: 44px;
-    padding: 0 12px;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(11, 95, 116, 0.1);
-    border: 1px solid rgba(11, 95, 116, 0.25);
-    color: var(--accent-cyan);
-    cursor: pointer;
   }
 
   @media (max-width: 480px) {
