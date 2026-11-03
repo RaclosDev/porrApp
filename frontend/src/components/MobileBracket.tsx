@@ -1,6 +1,12 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react';
 import BracketFinale from './BracketFinale';
-import { MATCH_H, type CanvasMatch, type RenderSlot, type SlotTeam } from './BracketCanvas';
+import {
+  MATCH_H,
+  ROUND_LABELS,
+  type CanvasMatch,
+  type RenderSlot,
+  type SlotTeam,
+} from './BracketCanvas';
 
 type Side = 'left' | 'right';
 
@@ -10,10 +16,10 @@ interface PlacedMatch<T extends SlotTeam> {
   index: number;
 }
 
-/** 2 partidos de una ronda y el de la siguiente al que alimentan. */
+/** 2 partidos de una ronda (o 1, si el otro pasa por descanso) y el siguiente al que alimentan. */
 interface MatchGroup<T extends SlotTeam> {
   matchA: PlacedMatch<T>;
-  matchB: PlacedMatch<T>;
+  matchB: PlacedMatch<T> | null;
   nextMatch: (PlacedMatch<T> & { roundIndex: number }) | null;
 }
 
@@ -23,18 +29,20 @@ interface Tab {
   roundIndex: number;
 }
 
-const ALL_TABS: Tab[] = [
-  { key: 'r32', label: '16avos', roundIndex: 0 },
-  { key: 'r16', label: 'Octavos', roundIndex: 1 },
-  { key: 'qf', label: 'Cuartos', roundIndex: 2 },
-  { key: 'final', label: 'Semis y final', roundIndex: -1 },
-];
+/** Una pestaña por ronda lateral con partidos y otra para semis y final. */
+const getTabs = (roundLabels: string[], hasRound: (roundIndex: number) => boolean): Tab[] => {
+  const semiIndex = roundLabels.length - 1;
+  const tabs: Tab[] = roundLabels
+    .slice(0, Math.max(0, semiIndex))
+    .map((label, roundIndex) => ({ key: `round-${roundIndex}`, label, roundIndex }))
+    .filter((tab) => hasRound(tab.roundIndex));
+  tabs.push({ key: 'final', label: semiIndex >= 0 ? 'Semis y final' : 'Final', roundIndex: -1 });
+  return tabs;
+};
 
-const getTabs = (hasR32: boolean) => (hasR32 ? ALL_TABS : ALL_TABS.filter((t) => t.key !== 'r32'));
-
-const resolveTabIndex = (tabs: Tab[], target: number) => {
+const resolveTabIndex = (tabs: Tab[], target: number, semiIndex: number) => {
   if (typeof target === 'number') {
-    const byRound = tabs.findIndex((t) => t.roundIndex === (target === 3 ? -1 : target));
+    const byRound = tabs.findIndex((t) => t.roundIndex === (target === semiIndex ? -1 : target));
     if (byRound !== -1) return byRound;
     if (target >= 0 && target < tabs.length) return target;
   }
@@ -47,6 +55,7 @@ export default function MobileBracket<T extends SlotTeam>({
   rightRounds,
   renderSlot,
   renderFinal,
+  roundLabels = ROUND_LABELS,
   defaultTab = 0,
   renderRoundFooter,
 }: {
@@ -55,22 +64,29 @@ export default function MobileBracket<T extends SlotTeam>({
   renderSlot: RenderSlot<T>;
   /** Contenido de la pestaña "Semis y final". */
   renderFinal?: () => ReactNode;
+  /** Nombre de cada ronda; la última son las semifinales. */
+  roundLabels?: string[];
   defaultTab?: number;
   renderRoundFooter?: (roundIndex: number, side: Side) => ReactNode;
 }) {
+  const semiIndex = roundLabels.length - 1;
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
-  const tabs = getTabs(hasR32);
+  // Las rondas posteriores siempre tienen cruces, aunque sean por definir.
+  const tabs = useMemo(
+    () => getTabs(roundLabels, (roundIndex) => roundIndex > 0 || hasR32),
+    [roundLabels, hasR32],
+  );
 
-  const [activeTab, setActiveTab] = useState(() => resolveTabIndex(tabs, defaultTab));
+  const [activeTab, setActiveTab] = useState(() => resolveTabIndex(tabs, defaultTab, semiIndex));
   const [slideDir, setSlideDir] = useState('right');
   const [animKey, setAnimKey] = useState(0);
   const hasUserNavigated = useRef(false);
 
   useEffect(() => {
     if (!hasUserNavigated.current) {
-      setActiveTab(resolveTabIndex(getTabs(hasR32), defaultTab));
+      setActiveTab(resolveTabIndex(tabs, defaultTab, semiIndex));
     }
-  }, [defaultTab, hasR32]);
+  }, [defaultTab, tabs, semiIndex]);
 
   const goToTab = (newTab: number) => {
     if (newTab === activeTab) return;
@@ -86,16 +102,14 @@ export default function MobileBracket<T extends SlotTeam>({
     for (const side of ['left', 'right'] as const) {
       const rounds = side === 'left' ? leftRounds : rightRounds;
       const matches = rounds[roundIndex] || [];
-      const nextRoundMatches = roundIndex < 3 ? rounds[roundIndex + 1] || [] : [];
+      const nextRoundMatches = roundIndex < semiIndex ? rounds[roundIndex + 1] || [] : [];
 
       for (let i = 0; i < matches.length; i += 2) {
-        if (i + 1 >= matches.length) break;
-
         const nextMatch = nextRoundMatches[Math.floor(i / 2)] || null;
 
         groups.push({
           matchA: { data: matches[i], side, index: i },
-          matchB: { data: matches[i + 1], side, index: i + 1 },
+          matchB: i + 1 < matches.length ? { data: matches[i + 1], side, index: i + 1 } : null,
           nextMatch: nextMatch
             ? {
                 data: nextMatch,
@@ -120,6 +134,7 @@ export default function MobileBracket<T extends SlotTeam>({
           leftRounds={leftRounds}
           rightRounds={rightRounds}
           renderSlot={renderSlot}
+          semiIndex={semiIndex}
           center={renderFinal}
           renderRoundFooter={renderRoundFooter}
         />
@@ -192,9 +207,9 @@ function BracketGroup<T extends SlotTeam>({
   const { matchA, matchB, nextMatch } = group;
 
   const CARD_GAP = 10;
-  const totalH = MATCH_H * 2 + CARD_GAP;
+  const totalH = matchB ? MATCH_H * 2 + CARD_GAP : MATCH_H;
   const midA = MATCH_H / 2;
-  const midB = MATCH_H + CARD_GAP + MATCH_H / 2;
+  const midB = matchB ? MATCH_H + CARD_GAP + MATCH_H / 2 : midA;
   const center = (midA + midB) / 2;
 
   return (
@@ -214,20 +229,22 @@ function BracketGroup<T extends SlotTeam>({
             isHome: false,
           })}
         </div>
-        <div className="mb-match-card">
-          {renderSlot(matchB.data.home, {
-            side: matchB.side,
-            roundIndex,
-            matchIndex: matchB.index,
-            isHome: true,
-          })}
-          {renderSlot(matchB.data.away, {
-            side: matchB.side,
-            roundIndex,
-            matchIndex: matchB.index,
-            isHome: false,
-          })}
-        </div>
+        {matchB && (
+          <div className="mb-match-card">
+            {renderSlot(matchB.data.home, {
+              side: matchB.side,
+              roundIndex,
+              matchIndex: matchB.index,
+              isHome: true,
+            })}
+            {renderSlot(matchB.data.away, {
+              side: matchB.side,
+              roundIndex,
+              matchIndex: matchB.index,
+              isHome: false,
+            })}
+          </div>
+        )}
       </div>
 
       <svg
@@ -237,8 +254,12 @@ function BracketGroup<T extends SlotTeam>({
         viewBox={`0 0 18 ${totalH}`}
       >
         <line x1="0" y1={midA} x2="9" y2={midA} stroke="currentColor" strokeWidth="2" />
-        <line x1="0" y1={midB} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
-        <line x1="9" y1={midA} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
+        {matchB && (
+          <>
+            <line x1="0" y1={midB} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
+            <line x1="9" y1={midA} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
+          </>
+        )}
         <line x1="9" y1={center} x2="18" y2={center} stroke="currentColor" strokeWidth="2" />
       </svg>
 

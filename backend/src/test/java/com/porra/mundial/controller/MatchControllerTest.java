@@ -1,6 +1,9 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Match;
 
 import com.porra.mundial.service.MatchService;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import java.util.List;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @WebMvcTest(MatchController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -29,6 +33,9 @@ class MatchControllerTest {
 
     @MockitoBean
     private MatchService matchService;
+
+    @MockitoBean
+    private CompetitionRepository competitionRepository;
 
     @MockitoBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
@@ -56,5 +63,27 @@ class MatchControllerTest {
         mockMvc.perform(get("/api/matches/radar?competitionId=1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.live").isArray());
+    }
+
+    @Test
+    void privateCompetitionMatchesAreNotPublic() throws Exception {
+        Mockito.when(competitionRepository.existsByIdAndOwnerLeagueIsNotNull(9L)).thenReturn(true);
+
+        mockMvc.perform(get("/api/matches?competitionId=9"))
+                .andExpect(status().isNotFound());
+
+        verifyNoInteractions(matchService);
+    }
+
+    @Test
+    void unfilteredMatchesOmitPrivateCompetitions() throws Exception {
+        Match privateMatch = Match.builder()
+                .competition(Competition.builder().id(9L).build()).build();
+        Mockito.when(matchService.getAllMatches()).thenReturn(List.of(privateMatch));
+        Mockito.when(competitionRepository.findPrivateCompetitionIds()).thenReturn(List.of(9L));
+
+        mockMvc.perform(get("/api/matches"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
     }
 }

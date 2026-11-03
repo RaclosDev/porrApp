@@ -28,6 +28,7 @@ export const appContext = (fields: Partial<AppContextValue> = {}): AppContextVal
   activeGroupAdmin: null,
   activeGroupAdminId: null,
   activeGroupPoolFormat: null,
+  activeGroupCustomCompetition: false,
   activeGroupPichichi: false,
   activeGroupIsLocked: false,
   activeGroupLockDate: null,

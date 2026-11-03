@@ -80,7 +80,7 @@ export default function FixtureCard({
               min="0"
               max="99"
               inputMode="numeric"
-              aria-label={`Goles de ${team}`}
+              aria-label={`Marcador de ${team}`}
               disabled={inputDisabled}
               value={score}
               onChange={(e) => onScoreChange(fixture.matchId, side, e.target.value)}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useAppStore } from '../../store/useAppStore';
-import { fetchCompetitionStandings } from '../../services/api';
+import { fetchCompetitionStandings, fetchCustomStandings } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
@@ -44,6 +44,7 @@ export default function MatchdayHomeDashboard() {
     activeCompetitionName,
     activeGroupRules,
     activeCompetitionId,
+    activeGroupCustomCompetition,
     allGames,
     leaderboardData,
     userName,
@@ -55,7 +56,10 @@ export default function MatchdayHomeDashboard() {
 
   const { data: leagueStandings } = useQuery({
     queryKey: queryKeys.competitionStandings(activeCompetitionId),
-    queryFn: () => fetchCompetitionStandings(activeCompetitionId),
+    queryFn: () =>
+      activeGroupCustomCompetition && activeGroupId
+        ? fetchCustomStandings(Number(activeGroupId))
+        : fetchCompetitionStandings(activeCompetitionId),
     enabled: Boolean(activeCompetitionId),
     staleTime: 120_000,
   });

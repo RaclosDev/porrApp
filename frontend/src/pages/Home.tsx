@@ -14,6 +14,7 @@ import TopScorersPanel from '../components/Home/TopScorersPanel';
 import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
+import CustomTournamentHome from './CustomTournamentHome';
 
 /**
  * Página principal: estado del torneo oficial, clasificación por grupos en vivo,
@@ -35,6 +36,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
     activeGroupPichichi,
     activeGroupPoolFormat,
     activeCompetitionFormatType,
+    activeGroupCustomCompetition,
     loadingGroup,
     groupError,
   } = useAppContext();
@@ -53,6 +55,9 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
   if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
+  if (activeGroupCustomCompetition && !isMatchDayLeague) {
+    return <CustomTournamentHome />;
+  }
   if (isMatchDayLeague) {
     return <MatchdayHomeDashboard />;
   }

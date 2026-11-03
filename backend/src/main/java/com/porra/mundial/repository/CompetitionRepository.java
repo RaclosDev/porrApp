@@ -7,9 +7,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface CompetitionRepository extends JpaRepository<Competition, Long> {
+    boolean existsByIdAndOwnerLeagueIsNotNull(Long id);
+
+    @Query("SELECT c.id FROM Competition c WHERE c.ownerLeague IS NOT NULL")
+    List<Long> findPrivateCompetitionIds();
     Optional<Competition> findByName(String name);
 
     Optional<Competition> findByExternalId(String externalId);

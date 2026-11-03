@@ -6,6 +6,7 @@ import BracketStats from '../components/insights/BracketStats';
 import MatchdayStatsView from '../components/insights/MatchdayStatsView';
 import { InsightsNotice } from '../components/insights/InsightCard';
 import type { OfficialState } from '../utils/bracketStats';
+import { Navigate } from 'react-router-dom';
 
 /** Resumen del torneo para la cabecera. */
 function tournamentSummary(official: OfficialState): string {
@@ -19,8 +20,17 @@ function tournamentSummary(official: OfficialState): string {
  * real; en las de jornadas, el reparto de pronósticos de cada partido ya empezado.
  */
 function Stats() {
-  const { activeGroupId, activeGroupName, activeGroupPoolFormat, activeCompetitionFormatType } =
-    useAppContext();
+  const {
+    activeGroupId,
+    activeGroupName,
+    activeGroupPoolFormat,
+    activeCompetitionFormatType,
+    activeGroupCustomCompetition,
+  } = useAppContext();
+
+  if (activeGroupCustomCompetition && activeGroupPoolFormat !== 'MATCH_DAY') {
+    return <Navigate to="/" replace />;
+  }
 
   if (activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE') {
     return (

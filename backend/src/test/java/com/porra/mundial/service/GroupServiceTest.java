@@ -90,6 +90,55 @@ class GroupServiceTest {
     }
 
     @Test
+    void createCustomCompetitionBelongsToNewLeague() {
+        when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
+        when(leagueRepository.save(any(League.class))).thenReturn(league);
+        when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        groupService.createGroup("Liga Privada", "admin@test.com", null,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY, false, "Torneo local");
+
+        var competition = org.mockito.ArgumentCaptor.forClass(Competition.class);
+        verify(competitionRepository).save(competition.capture());
+        assertEquals(league, competition.getValue().getOwnerLeague());
+        assertEquals("Torneo local", competition.getValue().getName());
+        verify(editionRepository).save(argThat(edition -> !edition.isPichichi()
+                && edition.getCompetition() == competition.getValue()));
+    }
+
+    @Test
+    void createCustomBracketCompetitionUsesTournamentFormat() {
+        when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
+        when(leagueRepository.save(any(League.class))).thenReturn(league);
+        when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        groupService.createGroup("Liga Privada", "admin@test.com", null,
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET, false, "Copa local");
+
+        verify(competitionRepository).save(argThat(competition -> "TOURNAMENT".equals(competition.getFormatType())
+                && competition.getOwnerLeague() == league));
+        verify(editionRepository).save(argThat(edition -> edition.getPoolFormat()
+                == com.porra.mundial.model.PoolFormat.FULL_BRACKET));
+    }
+
+    @Test
+    void existingCustomCompetitionCannotBeReusedByAnotherLeague() {
+        when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
+        when(competitionRepository.findById(8L)).thenReturn(Optional.of(Competition.builder()
+                .ownerLeague(league).build()));
+
+        assertThrows(BusinessException.class, () -> groupService.createGroup("Otra liga", "admin@test.com", 8L,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY, false));
+        verify(leagueRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("createGroup traduce competiciones legacy a la canónica con externalId")
     void createGroup_ResolvesLegacyCompetitionToCanonical() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());

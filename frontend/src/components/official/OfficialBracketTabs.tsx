@@ -5,6 +5,10 @@ interface OfficialBracketTabsProps {
   activePanel: 'live' | 'scorers' | null;
   setActivePanel: Dispatch<SetStateAction<'live' | 'scorers' | null>>;
   activeGroupPichichi: boolean;
+  /** Pestaña de grupos; las competiciones solo de eliminatorias no tienen. */
+  showGroups?: boolean;
+  /** Nombre accesible de las pestañas. */
+  label?: string;
 }
 
 /** Pestañas cuadro/grupos y accesos a directo y goleadores. */
@@ -14,6 +18,8 @@ export default function OfficialBracketTabs({
   activePanel,
   setActivePanel,
   activeGroupPichichi,
+  showGroups = true,
+  label = 'Vista del cuadro oficial',
 }: OfficialBracketTabsProps) {
   return (
     <div className="paper-tabs max-w-130 mx-auto mb-5 mt-[5px]">
@@ -27,7 +33,7 @@ export default function OfficialBracketTabs({
           Partidos
         </button>
       )}
-      <div role="tablist" aria-label="Vista del cuadro oficial" className="contents">
+      <div role="tablist" aria-label={label} className="contents">
         <button
           className={`paper-tab ${activeTab === 'cuadro' ? 'is-active' : ''}`}
           type="button"
@@ -38,16 +44,18 @@ export default function OfficialBracketTabs({
         >
           Cuadro
         </button>
-        <button
-          className={`paper-tab ${activeTab === 'grupos' ? 'is-active' : ''}`}
-          type="button"
-          onClick={() => setActiveTab('grupos')}
-          role="tab"
-          id="official-tab-grupos"
-          aria-selected={activeTab === 'grupos'}
-        >
-          Grupos
-        </button>
+        {showGroups && (
+          <button
+            className={`paper-tab ${activeTab === 'grupos' ? 'is-active' : ''}`}
+            type="button"
+            onClick={() => setActiveTab('grupos')}
+            role="tab"
+            id="official-tab-grupos"
+            aria-selected={activeTab === 'grupos'}
+          >
+            Grupos
+          </button>
+        )}
       </div>
       {activeTab === 'cuadro' && activeGroupPichichi && (
         <button

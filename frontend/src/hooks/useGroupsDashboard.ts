@@ -81,6 +81,7 @@ export function useGroupsDashboard() {
 
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
+  const [customCompetitionName, setCustomCompetitionName] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
   const [selectedPoolFormat, setSelectedPoolFormat] = useState<PoolFormat>('MATCH_DAY');
   const [includePichichi, setIncludePichichi] = useState(false);
@@ -157,7 +158,11 @@ export function useGroupsDashboard() {
   const handleCreate = async (e?: { preventDefault?: () => void }) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isCreating) return;
-    if (!newGroupName.trim() || !selectedCompetition || !selectedPoolFormat) {
+    if (
+      !newGroupName.trim() ||
+      (!selectedCompetition && !customCompetitionName.trim()) ||
+      !selectedPoolFormat
+    ) {
       setError('El nombre de la liga y la competición son obligatorios');
       return;
     }
@@ -165,11 +170,13 @@ export function useGroupsDashboard() {
     try {
       const group = await createGroup(
         newGroupName.trim(),
-        selectedCompetition,
+        selectedCompetition || null,
         selectedPoolFormat,
         includePichichi,
+        selectedCompetition ? undefined : customCompetitionName.trim(),
       );
       setNewGroupName('');
+      setCustomCompetitionName('');
       setNewlyCreatedGroup(group);
       changeGroup(group.id.toString());
       refreshGroups();
@@ -341,6 +348,8 @@ export function useGroupsDashboard() {
     retryGroups,
     newGroupName,
     setNewGroupName,
+    customCompetitionName,
+    setCustomCompetitionName,
     selectedCompetition,
     setSelectedCompetition,
     selectedPoolFormat,

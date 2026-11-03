@@ -19,7 +19,7 @@ public class TeamService {
 
     @org.springframework.cache.annotation.Cacheable("allTeams")
     public List<Team> getAllTeams() {
-        return teamRepository.findAllByOrderByGroupNameAscNameAsc();
+        return teamRepository.findByCompetitionIsNullOrderByGroupNameAscNameAsc();
     }
 
     public Map<String, List<Team>> getTeamsByGroup() {

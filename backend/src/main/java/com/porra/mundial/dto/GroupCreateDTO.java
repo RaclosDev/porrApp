@@ -12,8 +12,10 @@ public class GroupCreateDTO {
     private String name;
     
     /** ID de la competición (Mundial, Eurocopa) a la que está vinculado el grupo. */
-    @NotNull(message = "La competición es obligatoria")
     private Long competitionId;
+
+    /** Nombre de una competición manual exclusiva de esta liga. */
+    private String customCompetitionName;
     
     /** Formato o modalidad de la porra (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY). */
     @NotBlank(message = "El formato de la porra es obligatorio")

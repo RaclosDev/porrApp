@@ -69,6 +69,8 @@ it('shows a recoverable error instead of explaining an empty season', async () =
 it('shows the empty-season message only for an empty response', async () => {
   vi.mocked(fetchCompetitionStandings).mockResolvedValue([]);
   setup();
-  expect(await screen.findByText(/Los datos se sincronizarán/)).toBeVisible();
+  expect(
+    await screen.findByText(/La tabla aparecerá cuando haya partidos con resultado/),
+  ).toBeVisible();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
