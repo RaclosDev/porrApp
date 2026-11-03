@@ -27,6 +27,21 @@ export type SortColumn =
 
 const EMPTY_MATCHDAYS: MatchdayPoints[] = [];
 
+async function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error('No se pudo generar la imagen.');
+  return blob;
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = fileName;
+  link.href = objectUrl;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
 export function useLeaderboard() {
   const state = useAppContext();
   const {
@@ -178,24 +193,25 @@ export function useLeaderboard() {
       const template = document.getElementById('share-image-template');
       if (!template) throw new Error('Falta la plantilla de la imagen');
       const canvas = await html2canvas(template, {
-        backgroundColor: '#0f0f1a',
+        backgroundColor: '#f3ecdc',
         scale: 2,
         logging: false,
         useCORS: true,
       });
-      const imgData = canvas.toDataURL('image/png');
-      const fetchRes = await fetch(imgData);
-      const blob = await fetchRes.blob();
+      const blob = await canvasToPngBlob(canvas);
       const file = new File([blob], 'Clasificacion_Porra.png', { type: 'image/png' });
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file] });
-      } else {
-        const link = document.createElement('a');
-        link.download = 'Clasificacion_Porra_Mundial.png';
-        link.href = imgData;
-        link.click();
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          return;
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') return;
+          // Algunos navegadores indican que pueden compartir archivos y luego rechazan la acción.
+        }
       }
+
+      downloadBlob(blob, 'Clasificacion_Porra_Mundial.png');
     } catch (e) {
       console.error(e);
       toast.error('Error al generar la imagen para compartir');

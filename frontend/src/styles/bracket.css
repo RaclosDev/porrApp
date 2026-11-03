@@ -94,22 +94,6 @@
     border-color: var(--accent-cyan);
   }
 
-  .team-slot.winner {
-    background: rgba(46, 204, 113, 0.15);
-    border-color: #2ecc71;
-  }
-
-  .team-slot.loser {
-    background: rgba(231, 76, 60, 0.1);
-    border-color: rgba(231, 76, 60, 0.4);
-    color: var(--text-muted);
-  }
-
-  .team-slot.selected {
-    background: rgba(0, 210, 211, 0.15);
-    border-color: var(--accent-cyan);
-  }
-
   .team-slot img {
     width: 20px;
     height: 15px;
@@ -136,18 +120,6 @@
 
   .team-slot-btn:focus-visible {
     outline-offset: -2px;
-  }
-
-  /* Center Finals */
-
-  .champion-display .team-slot {
-    min-height: 56px;
-    font-size: 1.15rem;
-    font-weight: bold;
-    border-color: var(--champion-gold);
-    background: rgba(251, 191, 36, 0.12);
-    color: var(--champion-gold);
-    justify-content: center;
   }
 
   /* Modal */

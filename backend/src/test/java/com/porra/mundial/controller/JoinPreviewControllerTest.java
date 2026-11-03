@@ -4,6 +4,8 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.ProfileImageService;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 import javax.imageio.ImageIO;
@@ -18,6 +20,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class JoinPreviewControllerTest {
+
+    @Test
+    void unavailableInvitationFontFailsWithGenericServerErrorWithoutItsPath() {
+        String internalPath = "fonts/internal/private.ttf";
+
+        ResponseStatusException error = org.junit.jupiter.api.Assertions.assertThrows(
+                ResponseStatusException.class, () -> JoinPreviewController.loadFont(internalPath));
+
+        assertThat(error.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(error.getReason()).isEqualTo("No se pudo generar la imagen de invitación.");
+        assertThat(error.getReason()).doesNotContain(internalPath);
+        assertThat(error.getCause()).isNotNull();
+    }
 
     @Test
     void invitationUsesVersionedPaperArtworkAndMatchingMetadata() throws Exception {

@@ -5,9 +5,9 @@ import MobileBracket from './MobileBracket';
 import BracketFinale from './BracketFinale';
 import type { BracketTeam } from '../store/useAppStore';
 
-export const SLOT_H = 36;
+const SLOT_H = 36;
 export const MATCH_H = SLOT_H * 2 + 2; // 74px
-export const R32_PITCH = MATCH_H + 14; // 88px
+const R32_PITCH = MATCH_H + 14; // 88px
 
 const leafTop = (i: number) => i * R32_PITCH;
 
@@ -15,20 +15,21 @@ const leafTop = (i: number) => i * R32_PITCH;
  * Posición Y (top) de un partido, centrado respecto a sus dos partidos de la ronda anterior.
  * `r`: 0 = dieciseisavos, 1 = octavos, 2 = cuartos, 3 = semis; `i`: índice en la ronda.
  */
-export function matchTop(r: number, i: number): number {
+function matchTop(r: number, i: number): number {
   if (r === 0) return leafTop(i);
   return (matchTop(r - 1, i * 2) + matchTop(r - 1, i * 2 + 1)) / 2;
 }
 
 const GAP = 20; // px between adjacent columns (fixed)
-const ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
+/** Rondas del Mundial: 16avos, octavos y cuartos en los laterales; semis en la hoja central. */
+export const ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
 
 interface ConnectorsProps {
   /** Top del partido de la ronda actual. */
   parentTop: number;
-  /** Tops de sus dos partidos de la ronda previa. */
+  /** Tops de sus dos partidos de la ronda previa; sin el segundo, el cruce pasaba por descanso. */
   childATop: number;
-  childBTop: number;
+  childBTop?: number;
   /** Hacia dónde crecen las ramas. */
   dir: 'left' | 'right';
 }
@@ -37,7 +38,7 @@ interface ConnectorsProps {
 function Connectors({ parentTop, childATop, childBTop, dir }: ConnectorsProps) {
   const pMid = parentTop + MATCH_H / 2;
   const aMid = childATop + MATCH_H / 2;
-  const bMid = childBTop + MATCH_H / 2;
+  const bMid = childBTop == null ? pMid : childBTop + MATCH_H / 2;
   const stub = GAP / 2;
   const color = 'currentColor';
   const sw = 2;
@@ -56,7 +57,9 @@ function Connectors({ parentTop, childATop, childBTop, dir }: ConnectorsProps) {
       style={{ left: svgLeft, width: GAP, height: svgH }}
     >
       <line x1={childX} y1={aMid} x2={midX} y2={aMid} stroke={color} strokeWidth={sw} />
-      <line x1={childX} y1={bMid} x2={midX} y2={bMid} stroke={color} strokeWidth={sw} />
+      {childBTop != null && (
+        <line x1={childX} y1={bMid} x2={midX} y2={bMid} stroke={color} strokeWidth={sw} />
+      )}
       <line x1={midX} y1={aMid} x2={midX} y2={bMid} stroke={color} strokeWidth={sw} />
       <line x1={midX} y1={pMid} x2={parentX} y2={pMid} stroke={color} strokeWidth={sw} />
     </svg>
@@ -69,6 +72,13 @@ interface TeamSlotProps {
   slotStyle?: React.CSSProperties;
   rightContent?: React.ReactNode;
   pressed?: boolean;
+  /** Escudo del equipo; sin él se busca la bandera por nombre. */
+  logo?: string | null;
+  /**
+   * Si el nombre es un hueco ("Ganador C1", "Descanso") o un equipo. Sin indicarlo se deduce del
+   * nombre, que solo sirve para selecciones con bandera.
+   */
+  placeholder?: boolean;
 }
 
 /** Casilla de un equipo en el cuadro; solo es pulsable si el equipo es real. */
@@ -78,21 +88,24 @@ export function TeamSlot({
   slotStyle = {},
   rightContent = null,
   pressed = false,
+  logo,
+  placeholder,
 }: TeamSlotProps) {
   const isEmpty = !name;
   const lower = name?.toLowerCase() || '';
-  const isCombined = !isEmpty && name.includes(' / ');
+  const isCombined = placeholder == null && !isEmpty && name.includes(' / ');
   const combinedTeams = isCombined ? name.split(' / ').map((t) => t.trim()) : [];
   const isPlaceholder =
-    !isCombined &&
-    (name?.includes('º') ||
-      lower.includes('por definir') ||
-      lower.includes('por decidir') ||
-      lower.includes('tbd') ||
-      lower.includes('ganador') ||
-      lower.includes('perdedor') ||
-      name === '?' ||
-      getCountryCode(name) === 'xx');
+    placeholder ??
+    (!isCombined &&
+      (name?.includes('º') ||
+        lower.includes('por definir') ||
+        lower.includes('por decidir') ||
+        lower.includes('tbd') ||
+        lower.includes('ganador') ||
+        lower.includes('perdedor') ||
+        name === '?' ||
+        getCountryCode(name) === 'xx'));
   const clickable = !!onClick && !isEmpty && !isPlaceholder;
 
   const style: React.CSSProperties = {
@@ -110,10 +123,11 @@ export function TeamSlot({
       {!isEmpty && !isPlaceholder && !isCombined && (
         <Flag
           team={name}
+          logo={logo}
           size="w40"
           style={{
             width: 18,
-            height: 13,
+            height: logo ? 18 : 13,
             borderRadius: 2,
             marginRight: 6,
           }}
@@ -170,7 +184,11 @@ export function TeamSlot({
 }
 
 /** Pestaña inicial del cuadro móvil: la última ronda con todos los cruces definidos; -1 si lo están todas. */
-function computeActiveTab(leftRounds: CanvasMatch[][], rightRounds: CanvasMatch[][]) {
+function computeActiveTab(
+  leftRounds: CanvasMatch[][],
+  rightRounds: CanvasMatch[][],
+  semiIndex: number,
+) {
   const hasR32 = (leftRounds?.[0]?.length || 0) + (rightRounds?.[0]?.length || 0) > 0;
   const isRealTeam = (team: SlotTeam | undefined) => {
     if (!team) return false;
@@ -195,7 +213,7 @@ function computeActiveTab(leftRounds: CanvasMatch[][], rightRounds: CanvasMatch[
   };
 
   const startRound = hasR32 ? 0 : 1;
-  for (let i = startRound; i < 4; i++) {
+  for (let i = startRound; i <= semiIndex; i++) {
     if (!isRoundComplete(i)) {
       return Math.max(startRound, i - 1);
     }
@@ -234,10 +252,17 @@ export interface SlotContext {
 }
 
 interface BracketCanvasProps<T extends SlotTeam> {
-  /** 4 rondas de partidos del lado izquierdo. */
+  /** Rondas de partidos del lado izquierdo, una por etiqueta de `roundLabels`. */
   leftRounds: CanvasMatch<T>[][];
-  /** 4 rondas de partidos del lado derecho. */
+  /** Rondas de partidos del lado derecho, una por etiqueta de `roundLabels`. */
   rightRounds: CanvasMatch<T>[][];
+  /**
+   * Nombre corto de cada ronda antes de la final; la última son las semifinales, que van en la hoja
+   * central. Por defecto, las del Mundial.
+   */
+  roundLabels?: string[];
+  /** Nombre accesible de la hoja central. */
+  centerLabel?: string;
   /** Pinta un hueco del cuadro (inyecta la lógica de clics o coloreado). */
   renderSlot: RenderSlot<T>;
   /** Columnas ocultas en móvil o al filtrar, indexadas por ronda. */
@@ -253,14 +278,25 @@ export default function BracketCanvas<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
+  roundLabels = ROUND_LABELS,
+  centerLabel = 'Semifinales, final y tercer puesto',
   hiddenRounds = {},
   renderRoundFooter,
   renderFinal,
 }: BracketCanvasProps<T>) {
+  const semiIndex = roundLabels.length - 1;
+  const sideRounds = Array.from({ length: Math.max(0, semiIndex) }, (_, round) => round);
+
   const renderSide = (rounds: CanvasMatch<T>[][], side: 'left' | 'right') => {
-    const visible = [0, 1, 2].filter((round) => !hiddenRounds[round] && rounds[round]?.length);
+    const visible = sideRounds.filter((round) => !hiddenRounds[round] && rounds[round]?.length);
     const firstRound = visible[0] ?? 0;
-    const height = leafTop(Math.max(0, (rounds[firstRound]?.length ?? 1) - 1)) + MATCH_H;
+    const height =
+      Math.max(
+        0,
+        ...visible.map((round) =>
+          matchTop(round - firstRound, Math.max(0, rounds[round].length - 1)),
+        ),
+      ) + MATCH_H;
     const order = side === 'left' ? visible : [...visible].reverse();
 
     return (
@@ -274,7 +310,7 @@ export default function BracketCanvas<T extends SlotTeam>({
           <div className="bracket-tree-columns" style={{ height }}>
             {order.map((roundIndex) => (
               <div className="bracket-tree-column" key={roundIndex}>
-                <h3 className="bracket-round-title">{ROUND_LABELS[roundIndex]}</h3>
+                <h3 className="bracket-round-title">{roundLabels[roundIndex]}</h3>
                 {renderRoundFooter && (
                   <div className="bracket-round-points">{renderRoundFooter(roundIndex, side)}</div>
                 )}
@@ -289,15 +325,22 @@ export default function BracketCanvas<T extends SlotTeam>({
                   </div>
                 ))}
                 {visible.includes(roundIndex - 1) &&
-                  rounds[roundIndex].map((_, matchIndex) => (
-                    <Connectors
-                      key={`connector-${matchIndex}`}
-                      parentTop={matchTop(roundIndex - firstRound, matchIndex)}
-                      childATop={matchTop(roundIndex - firstRound - 1, matchIndex * 2)}
-                      childBTop={matchTop(roundIndex - firstRound - 1, matchIndex * 2 + 1)}
-                      dir={side === 'left' ? 'right' : 'left'}
-                    />
-                  ))}
+                  rounds[roundIndex].map(
+                    (_, matchIndex) =>
+                      matchIndex * 2 < rounds[roundIndex - 1].length && (
+                        <Connectors
+                          key={`connector-${matchIndex}`}
+                          parentTop={matchTop(roundIndex - firstRound, matchIndex)}
+                          childATop={matchTop(roundIndex - firstRound - 1, matchIndex * 2)}
+                          childBTop={
+                            matchIndex * 2 + 1 < rounds[roundIndex - 1].length
+                              ? matchTop(roundIndex - firstRound - 1, matchIndex * 2 + 1)
+                              : undefined
+                          }
+                          dir={side === 'left' ? 'right' : 'left'}
+                        />
+                      ),
+                  )}
               </div>
             ))}
           </div>
@@ -314,26 +357,35 @@ export default function BracketCanvas<T extends SlotTeam>({
           rightRounds={rightRounds}
           renderSlot={renderSlot}
           renderFinal={renderFinal}
-          defaultTab={computeActiveTab(leftRounds, rightRounds)}
+          roundLabels={roundLabels}
+          defaultTab={computeActiveTab(leftRounds, rightRounds, semiIndex)}
           renderRoundFooter={renderRoundFooter}
         />
       </div>
       <div className="bracket-desktop-scroll">
-        <div className="bracket-paper-board">
-          {renderSide(leftRounds, 'left')}
+        <div
+          className={`bracket-paper-board${sideRounds.length ? '' : ' bracket-paper-board-final'}`}
+          style={
+            sideRounds.length && sideRounds.length !== ROUND_LABELS.length - 1
+              ? { minWidth: 388 + 2 * (170 * sideRounds.length + 32) }
+              : undefined
+          }
+        >
+          {sideRounds.length > 0 && renderSide(leftRounds, 'left')}
           <section
             className="bracket-sheet bracket-sheet-center paper-panel landing-tape album-sheet"
-            aria-label="Semifinales, final y tercer puesto"
+            aria-label={centerLabel}
           >
             <BracketFinale
               leftRounds={leftRounds}
               rightRounds={rightRounds}
               renderSlot={renderSlot}
+              semiIndex={semiIndex}
               center={renderFinal ? () => renderFinal(true) : undefined}
               renderRoundFooter={renderRoundFooter}
             />
           </section>
-          {renderSide(rightRounds, 'right')}
+          {sideRounds.length > 0 && renderSide(rightRounds, 'right')}
         </div>
       </div>
     </>

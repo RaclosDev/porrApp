@@ -7,9 +7,16 @@ interface LiveMatchesPanelProps {
   liveMatches: Match[];
   matchRadar: MatchRadar | null | undefined;
   maxNext?: number;
+  /** Botón a Sofascore; no aplica a equipos de competiciones personalizadas. */
+  showStats?: boolean;
 }
 
-function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesPanelProps) {
+function LiveMatchesPanel({
+  liveMatches,
+  matchRadar,
+  maxNext = 1,
+  showStats = true,
+}: LiveMatchesPanelProps) {
   const renderLiveMatch = (m: Match) => {
     const d = new Date(m.date ?? 0);
     const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
@@ -20,7 +27,8 @@ function LiveMatchesPanel({ liveMatches, matchRadar, maxNext = 1 }: LiveMatchesP
       t.toLowerCase().includes('tbd') ||
       t.includes('º') ||
       t === '?';
-    const showStatsButton = m.home && m.away && !isPlaceholder(m.home) && !isPlaceholder(m.away);
+    const showStatsButton =
+      showStats && m.home && m.away && !isPlaceholder(m.home) && !isPlaceholder(m.away);
 
     return (
       <div key={m.id} className="last-match-card">

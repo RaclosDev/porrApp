@@ -162,11 +162,11 @@ export default function CustomSelect({
           role="listbox"
           aria-label={labelledBy ? undefined : label || placeholder}
           aria-labelledby={labelledBy}
-          className="absolute top-full left-0 right-0 bg-[#0f172a] bg-none border border-[rgba(255,255,255,0.2)] rounded-[8px] mt-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] z-[100] overflow-hidden"
+          className="absolute top-full left-0 right-0 bg-panel bg-none border border-line rounded-[8px] mt-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] z-[100] overflow-hidden"
         >
           {options.map((opt, idx) => (
             <div
-              className={`min-h-11 py-2 px-2.5 text-[0.85rem] cursor-pointer flex items-center justify-center gap-2 ${idx === activeIndex || idx === selectedIndex ? 'bg-[rgba(255,255,255,0.1)] bg-none' : 'bg-transparent bg-none'} ${idx === activeIndex ? 'outline outline-1 -outline-offset-1 outline-[rgba(0,210,211,0.6)]' : ''} ${idx < options.length - 1 ? 'border-b border-b-[rgba(255,255,255,0.05)]' : 'border-b-0'}`}
+              className={`min-h-11 py-2 px-2.5 text-[0.85rem] cursor-pointer flex items-center justify-center gap-2 ${idx === activeIndex || idx === selectedIndex ? 'bg-[color-mix(in_srgb,var(--accent-cyan)_12%,transparent)] bg-none' : 'bg-transparent bg-none'} ${idx === activeIndex ? 'outline outline-1 -outline-offset-1 outline-cyan' : ''} ${idx < options.length - 1 ? 'border-b border-b-line' : 'border-b-0'}`}
               key={idx}
               id={optionId(idx)}
               role="option"

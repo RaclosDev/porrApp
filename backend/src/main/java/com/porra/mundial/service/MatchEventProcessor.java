@@ -135,7 +135,7 @@ public class MatchEventProcessor {
     /** Entidades propias de la transacción de importación; nunca publica datos sin confirmar en la caché global. */
     Map<String, Team> freshTeamCache() {
         Map<String, Team> fresh = new ConcurrentHashMap<>();
-        teamRepository.findAll().forEach(team -> {
+        teamRepository.findAll().stream().filter(team -> team.getCompetition() == null).forEach(team -> {
             if (team.getName() != null) fresh.put(team.getName(), team);
             if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
             if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
@@ -374,7 +374,6 @@ public class MatchEventProcessor {
         Match match = matchRepository.findByExternalId(eventId)
                 .orElseGet(() -> Match.builder().externalId(eventId).build());
 
-        boolean wasFinished = Boolean.TRUE.equals(match.getFinished());
         boolean updated = match.getId() == null;
         boolean scoreChanged = !Objects.equals(match.getHomeScore(), scores.home())
                 || !Objects.equals(match.getAwayScore(), scores.away());
@@ -411,7 +410,7 @@ public class MatchEventProcessor {
             matchRepository.save(match);
             batch.matchesUpdated++;
             if (homeChanged || awayChanged || winnerChanged || finishedChanged
-                    || (status.finished() && (scoreChanged || fairPlayChanged))) {
+                    || ((status.finished() || status.live()) && (scoreChanged || fairPlayChanged))) {
                 batch.markResultsChanged();
             }
             if (scoreChanged) {
@@ -423,16 +422,16 @@ public class MatchEventProcessor {
             }
         }
 
-        if (status.finished()) {
-            evaluateFinishedMatch(match, !wasFinished || scoreChanged, batch.atomic);
+        if (status.finished() || status.live()) {
+            evaluateScoredMatch(match, scoreChanged || finishedChanged
+                    || matchPredictionService.hasUnscoredPredictions(match.getId()), batch.atomic);
         }
     }
 
     /**
-     * Puntúa los pronósticos de un partido terminado: al acabar, cuando ESPN corrige el marcador final
-     * o cuando queda alguno sin puntuar (por ejemplo, porque falló una evaluación anterior).
+     * Actualiza los puntos provisionales durante el partido y los definitivos al acabar.
      */
-    private void evaluateFinishedMatch(Match match, boolean resultChanged, boolean atomic) {
+    private void evaluateScoredMatch(Match match, boolean resultChanged, boolean atomic) {
         try {
             if (resultChanged || matchPredictionService.hasUnscoredPredictions(match.getId())) {
                 log.info("Evaluando pronósticos de {} - {} ({}-{})", teamName(match.getHomeTeam()),

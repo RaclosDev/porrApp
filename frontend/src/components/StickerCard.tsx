@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { animate, motion, useInView, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { UserAvatar } from './Avatar';
 import { useLandingMotion } from './landing/motion';
@@ -19,6 +19,9 @@ interface StickerCardProps {
   caption?: string | null;
   className?: string;
   compact?: boolean;
+  staticCard?: boolean;
+  avatar?: ReactNode;
+  children?: ReactNode;
 }
 
 /** Los puntos suben de 0 al total la primera vez que el cromo se ve. */
@@ -52,6 +55,9 @@ export default function StickerCard({
   caption = null,
   className = '',
   compact = false,
+  staticCard = false,
+  avatar,
+  children,
 }: StickerCardProps) {
   const { reduced } = useLandingMotion();
   const pointerX = useMotionValue(0.5);
@@ -65,7 +71,8 @@ export default function StickerCard({
     damping: 20,
   });
   const glareX = useTransform(pointerX, [0, 1], ['0%', '100%']);
-  const [pointsRef, shownPoints] = useCountUp(leader.total, !reduced);
+  const animateCard = !reduced && !staticCard;
+  const [pointsRef, shownPoints] = useCountUp(leader.total, animateCard);
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (reduced) return;
@@ -83,15 +90,20 @@ export default function StickerCard({
   return (
     <motion.div
       className={`sticker ${featured ? 'sticker-featured' : ''} ${className}`}
-      style={reduced ? undefined : { rotateX, rotateY, transformPerspective: 900 }}
-      onPointerMove={onPointerMove}
-      onPointerLeave={onPointerLeave}
+      style={animateCard ? { rotateX, rotateY, transformPerspective: 900 } : undefined}
+      onPointerMove={staticCard ? undefined : onPointerMove}
+      onPointerLeave={staticCard ? undefined : onPointerLeave}
     >
       <span className="sticker-rank" aria-label={`Puesto ${leader.rank}`}>
         {leader.rank}
       </span>
-      <UserAvatar url={leader.avatarUrl} name={leader.name} userId={leader.userId} size={size} />
-      <span className={`poster-title truncate max-w-full ${featured ? 'text-3xl' : 'text-xl'}`}>
+      {avatar ?? (
+        <UserAvatar url={leader.avatarUrl} name={leader.name} userId={leader.userId} size={size} />
+      )}
+      <span
+        title={leader.name}
+        className={`poster-title max-w-full ${compact ? 'text-center break-words text-base' : `truncate ${featured ? 'text-3xl' : 'text-xl'}`}`}
+      >
         {leader.name}
       </span>
       <span
@@ -102,7 +114,8 @@ export default function StickerCard({
         {shownPoints.toLocaleString('es-ES')} pts
       </span>
       {caption ? <span className="text-sm text-[#4b5563] text-center">{caption}</span> : null}
-      {!reduced ? (
+      {children}
+      {animateCard ? (
         <motion.span aria-hidden="true" className="sticker-glare" style={{ left: glareX }} />
       ) : null}
     </motion.div>

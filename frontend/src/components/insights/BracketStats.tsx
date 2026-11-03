@@ -17,7 +17,7 @@ import PickRow from './PickRow';
 import { ChoiceChips, ExpandableList, InsightCard, TeamFlag } from './InsightCard';
 
 /** Ruta del buscador con el equipo y la ronda ya elegidos. */
-export const searchLink = (team: string, stage: StageId) =>
+const searchLink = (team: string, stage: StageId) =>
   `/search?team=${encodeURIComponent(team)}&stage=${stage}`;
 
 /** "A, B y C". */

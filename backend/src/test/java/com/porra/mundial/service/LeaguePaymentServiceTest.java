@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
@@ -50,7 +51,7 @@ class LeaguePaymentServiceTest {
         var predictions = mock(PredictionRepository.class);
         var service = new LeaguePaymentService(memberships, predictions);
         assertThatThrownBy(() -> service.setPayment(3L, 2L, "PAID", null))
-                .isInstanceOf(java.util.NoSuchElementException.class);
+                .isInstanceOf(BusinessException.class);
         verifyNoInteractions(predictions);
     }
 }

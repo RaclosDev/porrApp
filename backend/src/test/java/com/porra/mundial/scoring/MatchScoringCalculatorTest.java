@@ -13,12 +13,26 @@ class MatchScoringCalculatorTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new MatchScoringCalculator();
+        calculator = new MatchScoringCalculator(false);
         rules = ScoringRuleSet.builder()
                 .exactScorePoints(3)
                 .correctSignPoints(1)
                 .goalDiffBonusPoints(1)
                 .build();
+    }
+
+    @Test
+    void temporaryPolicyAwardsOnlyTheSignWithoutLosingAccuracyOrRules() {
+        MatchScoringCalculator active = new MatchScoringCalculator();
+        for (int[] scores : new int[][] {{2, 1, 2, 1}, {3, 1, 2, 0}, {1, 1, 1, 1}, {0, 2, 1, 3}}) {
+            assertEquals(1, active.calculate(scores[0], scores[1], scores[2], scores[3], rules).totalPoints());
+        }
+        assertTrue(active.calculate(2, 1, 2, 1, rules).exactScore());
+        assertEquals(0, active.calculate(2, 1, 1, 2, rules).totalPoints());
+        assertEquals(0, active.calculate(null, 1, 2, 1, rules).totalPoints());
+        assertEquals(3, active.calculate(2, 1, 2, 1, null).totalPoints());
+        assertEquals(3, rules.getExactScorePoints());
+        assertEquals(1, rules.getGoalDiffBonusPoints());
     }
 
     @Test

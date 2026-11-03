@@ -3,9 +3,9 @@
  * El servidor vuelve a validar todo; esto solo mejora la experiencia (vista previa inmediata,
  * menos datos por red móvil y orientación EXIF correcta).
  */
-export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
-export const OUTPUT_SIZE = 512;
-export const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const OUTPUT_SIZE = 512;
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export function validateImageFile(file: File | null | undefined): string | null {
   if (!file) return 'No se ha seleccionado ningún archivo.';

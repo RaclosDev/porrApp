@@ -1,3 +1,4 @@
+import LeagueLoadState from '../components/LeagueLoadState';
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
@@ -5,18 +6,26 @@ import { BracketFinalMatch } from '../components/BracketFinale';
 import BracketCanvas, { TeamSlot, type SlotContext } from '../components/BracketCanvas';
 import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
-import { PredictionSkeleton } from '../components/Skeleton';
 import { useBracket } from '../hooks/useBracket';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
+import CustomBracket from './CustomBracket';
+
+function Bracket() {
+  const { activeGroupCustomCompetition, activeGroupPoolFormat } = useAppContext();
+  if (activeGroupCustomCompetition && activeGroupPoolFormat !== 'MATCH_DAY') {
+    return <CustomBracket />;
+  }
+  return <WorldCupBracket />;
+}
 
 /**
  * Porra de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
  * si no, o al editar, el asistente de grupos y cruces.
  */
-function Bracket() {
+function WorldCupBracket() {
   const { userId } = useAppContext();
   const myPred = useMyLeaguePrediction();
   const {
@@ -54,18 +63,7 @@ function Bracket() {
 
   const effectivePredictionId = savedPredictionId || myPred?.key;
 
-  if (loadingGroup)
-    return (
-      <div className="py-2 px-0">
-        <PredictionSkeleton />
-      </div>
-    );
-  if (groupError)
-    return (
-      <p className="p-6 text-center text-[#ff7675]" role="alert">
-        No se pudo cargar la liga. Inténtalo de nuevo.
-      </p>
-    );
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (isMatchDay) {
     return <Navigate to="/jornadas" replace />;
   }

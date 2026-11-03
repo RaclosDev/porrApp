@@ -1,3 +1,5 @@
+import PaperLoading from '../components/PaperLoading';
+import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useMemo, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -17,27 +19,23 @@ import OfficialBracketTabs from '../components/official/OfficialBracketTabs';
 import FeaturedMatchBanner from '../components/official/FeaturedMatchBanner';
 import BracketInfoPanel from '../components/official/BracketInfoPanel';
 import OfficialMobileCenter from '../components/official/OfficialMobileCenter';
+import CustomTournamentHome from './CustomTournamentHome';
 
 /** Cuadro oficial: los cruces reales del torneo, con los terceros resueltos en vivo. */
 function OfficialBracket() {
-  const { activeGroupPoolFormat, activeCompetitionFormatType, loadingGroup, groupError } =
-    useAppContext();
+  const {
+    activeGroupPoolFormat,
+    activeCompetitionFormatType,
+    activeGroupCustomCompetition,
+    loadingGroup,
+    groupError,
+  } = useAppContext();
 
   const isMatchDay =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
-  if (loadingGroup)
-    return (
-      <p className="p-6 text-center text-muted" role="status">
-        Cargando liga...
-      </p>
-    );
-  if (groupError)
-    return (
-      <p className="p-6 text-center text-[#ff7675]" role="alert">
-        No se pudo cargar la liga. Inténtalo de nuevo.
-      </p>
-    );
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
+  if (activeGroupCustomCompetition && !isMatchDay) return <CustomTournamentHome />;
   if (activeCompetitionFormatType && isMatchDay) {
     return <Navigate to="/tabla" replace />;
   }
@@ -89,11 +87,7 @@ function OfficialBracketView() {
   }, [part]);
 
   if (!part) {
-    return (
-      <section className="view-section flex justify-center items-center min-h-[50vh]">
-        <h2 className="text-muted">Cargando cuadro oficial...</h2>
-      </section>
-    );
+    return <PaperLoading label="Cargando cuadro oficial" />;
   }
 
   const renderSlot = (teamOrObj: BracketSlot | undefined, context?: OfficialSlotContext) => {
@@ -101,7 +95,7 @@ function OfficialBracketView() {
     const name = slotName(teamOrObj);
     const isProv = isObj ? teamOrObj.isProvisional : false;
 
-    let style: CSSProperties = isProv ? { border: '1px dashed #ff4757' } : {};
+    let style: CSSProperties = isProv ? { border: '1px dashed var(--miss)' } : {};
 
     let scoreContent = null;
     let oppName: string | null = null;
@@ -157,7 +151,7 @@ function OfficialBracketView() {
 
         scoreContent = (
           <span
-            className={`ml-1 text-[0.85em] font-bold bg-[rgba(255,255,255,0.05)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[#2ecc71]' : 'text-muted'}`}
+            className={`ml-1 text-[0.85em] font-bold bg-[rgba(17,24,39,0.06)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[var(--hit)]' : 'text-muted'}`}
           >
             {score}
           </span>
@@ -181,7 +175,7 @@ function OfficialBracketView() {
     if (isFeatured) {
       style = {
         ...style,
-        border: isLive ? '2px solid #ff4757' : '2px solid #00d2d3',
+        border: isLive ? '2px solid var(--miss)' : '2px solid var(--accent-cyan)',
         position: 'relative',
         zIndex: 10,
         fontWeight: 'bold',

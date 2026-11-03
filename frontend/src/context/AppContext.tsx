@@ -4,6 +4,7 @@ import { normalizeCountryName, isGlobalLeagueId } from '../utils/constants';
 import {
   fetchStandings,
   fetchMatches,
+  fetchCustomMatches,
   fetchMatchRadar,
   fetchTeamOdds,
   fetchLeaderboard,
@@ -71,7 +72,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setIsAuthenticated = useAppStore((state) => state.setIsAuthenticated);
   const isUserAuthed = useAppStore((state) => state.isAuthenticated);
 
-  useWebSocket(userName, queryClient);
+  useWebSocket(queryClient);
 
   // Otra pestaña ha cambiado la cuenta compartida por la cookie. Recargar vacía todo el estado
   // anterior y recupera la identidad nueva sin revocar la sesión de esa otra pestaña.
@@ -249,6 +250,7 @@ export const useAppContext = () => {
           name: fromList.name,
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
+          customCompetition: fromList.customCompetition,
           formatType: fromList.formatType,
           poolFormat: fromList.poolFormat,
           pichichi: fromList.pichichi,
@@ -291,10 +293,12 @@ export const useAppContext = () => {
     },
   });
 
+  const isCustomCompetition = Boolean(groupInfo?.customCompetition);
+
   const { data: radar } = useQuery({
     queryKey: queryKeys.radar(activeCompetitionId),
-    queryFn: () => fetchMatchRadar(activeCompetitionId),
-    enabled: competitionReady,
+    queryFn: () => (isCustomCompetition ? EMPTY_RADAR : fetchMatchRadar(activeCompetitionId)),
+    enabled: competitionReady && !isCustomCompetition,
   });
 
   // Los pronósticos de toda la liga son pesados: aquí solo se leen de la caché. Los piden las
@@ -352,15 +356,23 @@ export const useAppContext = () => {
     staleTime: 60_000,
   });
 
+  const matchesQueryKey = isCustomCompetition
+    ? queryKeys.customMatches(activeGroupId)
+    : queryKeys.matches(activeCompetitionId);
+
   const { data: matches, isLoading: loadingMatches } = useQuery({
-    queryKey: queryKeys.matches(activeCompetitionId),
-    enabled: competitionReady,
+    queryKey: matchesQueryKey,
+    enabled: isCustomCompetition ? Boolean(activeGroupId) : competitionReady,
     queryFn: async () => {
+      if (isCustomCompetition && activeGroupId) {
+        return fetchCustomMatches(Number(activeGroupId));
+      }
       const data = await fetchMatches(activeCompetitionId);
       saveCachedJson(`cached_matches_${activeCompetitionId || 'all'}`, data || []);
       return data || [];
     },
     placeholderData: () => {
+      if (isCustomCompetition) return undefined;
       if (!competitionReady) return undefined;
       const cached = loadCachedJson(`cached_matches_${activeCompetitionId || 'all'}`);
       if (Array.isArray(cached) && cached.length > 0) {
@@ -424,13 +436,18 @@ export const useAppContext = () => {
     leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
     loading,
     loadingGroup,
-    groupError,
+    groupError:
+      groupInfo && (!isApiError(groupError) || groupError.status === 0 || groupError.status >= 500)
+        ? null
+        : groupError,
     /** Recarga los datos de la liga activa (tras guardar, aceptar o borrar un pronóstico). */
     fetchData: () =>
       Promise.all(
         [
           queryKeys.group(activeGroupId),
           queryKeys.groupMembers(activeGroupId),
+          queryKeys.customMatches(activeGroupId),
+          queryKeys.customTeams(activeGroupId),
           queryKeys.predictions(activeGroupId),
           queryKeys.myPredictions(),
           queryKeys.leaderboard(activeGroupId),
@@ -443,6 +460,7 @@ export const useAppContext = () => {
     activeGroupAdmin,
     activeGroupAdminId,
     activeGroupPoolFormat,
+    activeGroupCustomCompetition: Boolean(groupInfo?.customCompetition),
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,

@@ -43,6 +43,7 @@ public class LeaderboardService {
     private final MatchPredictionRepository matchPredictionRepository;
     private final MembershipRepository membershipRepository;
     private final EditionRepository editionRepository;
+    private final CustomBracketScoringService customBracketScoringService;
 
     /** Clasificación: más puntos, luego más puntos por partido, luego nombre. */
     private static final Comparator<ParticipantScoreDTO> LEADERBOARD_ORDER = Comparator
@@ -352,7 +353,11 @@ public class LeaderboardService {
                 && com.porra.mundial.model.Competition.WORLD_CUP_EXTERNAL_ID.equals(edition.getCompetition().getExternalId())
                 && (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.FULL_BRACKET
                     || edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY);
-        if (participant != null && bracketEdition) {
+        if (participant != null && edition != null && edition.getCompetition() != null
+                && edition.getCompetition().getOwnerLeague() != null
+                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+            score = customBracketScoringService.score(pred);
+        } else if (participant != null && bracketEdition) {
             score = calculatePoints(strategy, new CalculationContext(participant, official.bracket(), official.groupPoints(),
                     official.orderedTeamsPerGroup(), official.bestThirds(), scorers, official.roundOf16(),
                     official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion()));

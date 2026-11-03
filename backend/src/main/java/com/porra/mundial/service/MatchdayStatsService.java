@@ -1,5 +1,6 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
@@ -44,7 +45,7 @@ public class MatchdayStatsService {
     @Transactional(readOnly = true)
     public MatchdayStatsDTO getStats(String email, Long groupId) {
         if (groupId == null) {
-            throw new IllegalArgumentException("El grupo es obligatorio");
+            throw BusinessException.badRequest("El grupo es obligatorio");
         }
         groupService.assertCanView(groupId, email);
 

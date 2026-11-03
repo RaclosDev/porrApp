@@ -1,0 +1,235 @@
+@layer components {
+  /* Gestión de competición personalizada: se apoya en las clases league-admin-*. */
+  .custom-admin-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .custom-admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .custom-admin-tabs .league-admin-tab {
+    flex-shrink: 0;
+  }
+
+  .custom-admin-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 12px;
+  }
+
+  .custom-admin-form .league-admin-field {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+
+  .custom-admin-form .league-admin-field.custom-admin-field-short {
+    flex: 0 1 110px;
+  }
+
+  .custom-admin-form > .league-admin-btn {
+    min-height: 42px;
+  }
+
+  .custom-admin-row-form {
+    flex-basis: 100%;
+  }
+
+  /* Modos de cierre: la lista ocupa toda la fila y cada opción es un objetivo táctil de 44 px. */
+  .custom-admin-form .league-admin-field.custom-lock-modes {
+    flex-basis: 100%;
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .custom-lock-mode {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+
+  .custom-admin-row-form .league-admin-field {
+    margin-top: 0;
+  }
+
+  .custom-admin-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .custom-admin-list .league-admin-member {
+    flex-wrap: wrap;
+  }
+
+  .custom-admin-group + .custom-admin-group {
+    margin-top: 14px;
+  }
+
+  .custom-admin-group-title {
+    margin: 0 0 8px;
+    color: var(--accent-cyan);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .custom-admin-crest {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--panel-bg);
+    color: var(--text-muted);
+  }
+
+  .custom-admin-crest img {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .league-admin-member-name.custom-admin-fixture > span:first-child {
+    max-width: none;
+  }
+
+  .custom-admin-fixture > span {
+    overflow-wrap: anywhere;
+  }
+
+  .custom-admin-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .custom-admin-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--text-muted);
+  }
+
+  .custom-admin-steps li > svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .custom-admin-steps li.is-done > svg {
+    color: var(--hit);
+  }
+
+  .custom-admin-steps li > div {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .custom-admin-steps strong {
+    color: var(--text-main);
+    font-size: 0.84rem;
+  }
+
+  .custom-admin-steps li.is-done strong {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
+  .custom-admin-steps span {
+    font-size: 0.74rem;
+    line-height: 1.45;
+  }
+
+  .custom-admin-overdue {
+    width: 100%;
+    margin-top: 12px;
+    border-color: rgba(185, 28, 28, 0.3);
+    color: var(--miss);
+  }
+
+  .custom-admin-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .custom-admin-note > svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .custom-admin-score {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .custom-admin-goals {
+    width: 56px;
+    min-height: 40px;
+    padding: 0 8px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .custom-admin-winner {
+    min-height: 40px;
+    max-width: 180px;
+  }
+
+  @media (max-width: 640px) {
+    .custom-admin-tabs {
+      gap: 14px;
+    }
+
+    /* Sin iconos ni totales caben las cuatro secciones en 375 px; queda el contador de pendientes. */
+    .custom-admin-tabs .league-admin-tab > svg,
+    .custom-admin-tabs .league-admin-tab-count.is-total {
+      display: none;
+    }
+
+    .custom-admin-form > .league-admin-btn {
+      flex: 1 1 100%;
+    }
+
+    .custom-admin-score {
+      width: 100%;
+      margin-left: 0;
+    }
+
+    .custom-admin-score .league-admin-btn {
+      flex: 1;
+    }
+
+    .custom-admin-goals,
+    .custom-admin-winner {
+      min-height: 44px;
+    }
+
+    .custom-admin-winner {
+      flex: 1 1 100%;
+      max-width: none;
+      order: 1;
+    }
+
+    .custom-admin-score .league-admin-btn {
+      order: 2;
+    }
+  }
+}

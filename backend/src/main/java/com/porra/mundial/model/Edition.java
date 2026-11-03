@@ -58,6 +58,17 @@ public class Edition {
     @Column(name = "lock_date")
     private LocalDateTime lockDate;
 
+    /** Cómo se cierran los pronósticos; las competiciones oficiales usan siempre una fecha fija. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "lock_mode", nullable = false, length = 20)
+    @Builder.Default
+    private PredictionLockMode lockMode = PredictionLockMode.FIXED_DATE;
+
+    /** Minutos antes del partido en que se cierra, en los modos que dependen de los partidos. */
+    @Column(name = "lock_offset_minutes", nullable = false)
+    @Builder.Default
+    private int lockOffsetMinutes = 0;
+
     /** Configuración serializada de reglas de puntuación para esta edición. */
     @Column(name = "scoring_rules_json", columnDefinition = "TEXT")
     private String scoringRulesJson;

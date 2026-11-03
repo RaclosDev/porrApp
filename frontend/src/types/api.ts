@@ -7,11 +7,6 @@ export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY';
 export type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
-/** Respuesta de error de cualquier endpoint. */
-export interface ApiError {
-  error: string;
-}
-
 export interface StatusResponse {
   status: string;
   message?: string;
@@ -145,6 +140,8 @@ export interface PredictionData {
   prediction?: string;
   groups?: Record<string, string[]>;
   thirds?: string[];
+  /** Ganadores por ronda; null en lo que otro participante aún puede cambiar (cierre por partes). */
+  customRounds?: (string | null)[][];
   r32?: TeamPair[];
   /** Mismo contenido que r32; el backend lo sigue enviando para pronósticos antiguos. */
   r1?: TeamPair[];
@@ -228,6 +225,7 @@ export interface Group {
   adminUserId: number | null;
   createdAt: string | null;
   competitionId: number | null;
+  customCompetition?: boolean;
   competitionName: string | null;
   formatType: CompetitionFormat | null;
   poolFormat: PoolFormat | null;
@@ -260,6 +258,7 @@ export type ScoringRuleKey = keyof ScoringRules;
 
 /** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */
 export interface LeagueScoring {
+  matchSignOnly?: boolean;
   poolFormat: PoolFormat | null;
   pichichi: boolean;
   editable: boolean;
@@ -309,6 +308,7 @@ export interface MatchdayFixture {
   round: string | null;
   groupName: string | null;
   finished: boolean | null;
+  status: string | null;
   actualHomeScore: number | null;
   actualAwayScore: number | null;
   displayClock: string | null;

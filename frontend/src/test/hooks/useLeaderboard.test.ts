@@ -1,11 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useLeaderboard } from '../../hooks/useLeaderboard';
 import * as AppContextModule from '../../context/AppContext';
+import html2canvas from 'html2canvas';
+
+vi.mock('html2canvas', () => ({ default: vi.fn() }));
 
 vi.mock('../../context/AppContext', () => ({
   useAppContext: vi.fn(),
 }));
+
+const originalCreateObjectURL = URL.createObjectURL;
 
 // El hook solo lee una parte del contexto; los mocks rellenan esa parte.
 const mockAppContext = (value: Record<string, unknown>) =>
@@ -57,6 +62,20 @@ describe('useLeaderboard hook', () => {
       userId: 10,
       userName: 'Carlos',
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    if (originalCreateObjectURL) {
+      Object.defineProperty(URL, 'createObjectURL', {
+        configurable: true,
+        value: originalCreateObjectURL,
+      });
+    } else {
+      Reflect.deleteProperty(URL, 'createObjectURL');
+    }
+    document.body.replaceChildren();
   });
 
   it('ordena por total descendente y envía participantes pendientes de pago al final', () => {
@@ -145,5 +164,86 @@ describe('useLeaderboard hook', () => {
     expect(carlosJornada1?.points.matchday).toBe(1);
     const elenaJornada1 = result.current.results.find((row) => row.name === 'Elena');
     expect(elenaJornada1?.points.matchday).toBe(2);
+  });
+
+  it('comparte la clasificación como archivo PNG sin convertirla a Base64', async () => {
+    const template = document.createElement('div');
+    template.id = 'share-image-template';
+    document.body.append(template);
+
+    const blob = new Blob(['png'], { type: 'image/png' });
+    const canvas = document.createElement('canvas');
+    const toBlob = vi.fn((callback: BlobCallback) => callback(blob));
+    Object.defineProperty(canvas, 'toBlob', { configurable: true, value: toBlob });
+    vi.mocked(html2canvas).mockResolvedValue(canvas);
+
+    const canShare = vi.fn(() => true);
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: canShare });
+    Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+
+    const { result } = renderHook(() => useLeaderboard());
+    await act(async () => result.current.handleShare());
+
+    expect(toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/png');
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [expect.objectContaining({ name: 'Clasificacion_Porra.png' })],
+      }),
+    );
+  });
+
+  it('descarga la imagen si el navegador no permite compartir archivos', async () => {
+    const template = document.createElement('div');
+    template.id = 'share-image-template';
+    document.body.append(template);
+
+    const blob = new Blob(['png'], { type: 'image/png' });
+    const canvas = document.createElement('canvas');
+    Object.defineProperty(canvas, 'toBlob', {
+      configurable: true,
+      value: vi.fn((callback: BlobCallback) => callback(blob)),
+    });
+    vi.mocked(html2canvas).mockResolvedValue(canvas);
+
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => false) });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const createObjectURL = vi.fn(() => 'blob:leaderboard');
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
+
+    const { result } = renderHook(() => useLeaderboard());
+    await act(async () => result.current.handleShare());
+
+    expect(click).toHaveBeenCalledOnce();
+    expect(createObjectURL).toHaveBeenCalledWith(blob);
+  });
+
+  it('descarga la imagen si falla la hoja nativa de compartir', async () => {
+    const template = document.createElement('div');
+    template.id = 'share-image-template';
+    document.body.append(template);
+
+    const blob = new Blob(['png'], { type: 'image/png' });
+    const canvas = document.createElement('canvas');
+    Object.defineProperty(canvas, 'toBlob', {
+      configurable: true,
+      value: vi.fn((callback: BlobCallback) => callback(blob)),
+    });
+    vi.mocked(html2canvas).mockResolvedValue(canvas);
+
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: vi.fn().mockRejectedValue(new Error('No se pudo abrir el menú de compartir')),
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const createObjectURL = vi.fn(() => 'blob:leaderboard');
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
+
+    const { result } = renderHook(() => useLeaderboard());
+    await act(async () => result.current.handleShare());
+
+    expect(click).toHaveBeenCalledOnce();
+    expect(createObjectURL).toHaveBeenCalledWith(blob);
   });
 });

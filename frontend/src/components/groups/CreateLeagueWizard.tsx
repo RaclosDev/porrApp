@@ -6,6 +6,8 @@ interface CreateLeagueWizardProps {
   competitions: GroupsDashboardState['competitions'];
   newGroupName: GroupsDashboardState['newGroupName'];
   setNewGroupName: GroupsDashboardState['setNewGroupName'];
+  customCompetitionName: GroupsDashboardState['customCompetitionName'];
+  setCustomCompetitionName: GroupsDashboardState['setCustomCompetitionName'];
   selectedCompetition: GroupsDashboardState['selectedCompetition'];
   setSelectedCompetition: GroupsDashboardState['setSelectedCompetition'];
   selectedPoolFormat: GroupsDashboardState['selectedPoolFormat'];
@@ -22,6 +24,8 @@ export default function CreateLeagueWizard({
   competitions,
   newGroupName,
   setNewGroupName,
+  customCompetitionName,
+  setCustomCompetitionName,
   selectedCompetition,
   setSelectedCompetition,
   selectedPoolFormat,
@@ -74,9 +78,16 @@ export default function CreateLeagueWizard({
               <select
                 id="new-league-competition"
                 value={selectedCompetition}
-                onChange={(e) => setSelectedCompetition(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCompetition(e.target.value);
+                  if (!e.target.value) {
+                    setSelectedPoolFormat('MATCH_DAY');
+                    setIncludePichichi(false);
+                  }
+                }}
                 className="glass-input w-full"
               >
+                <option value="">Crear competición personalizada</option>
                 {competitions.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -84,6 +95,25 @@ export default function CreateLeagueWizard({
                 ))}
               </select>
             </div>
+            {!selectedCompetition && (
+              <div className="flex-[1_1_200px]">
+                <label
+                  htmlFor="custom-competition-name"
+                  className="block text-[0.8rem] text-muted mb-1"
+                >
+                  Nombre de la competición
+                </label>
+                <input
+                  id="custom-competition-name"
+                  className="glass-input w-full"
+                  required
+                  maxLength={100}
+                  value={customCompetitionName}
+                  onChange={(e) => setCustomCompetitionName(e.target.value)}
+                  placeholder="Ej.: Torneo del barrio"
+                />
+              </div>
+            )}
 
             <div className="flex-[1_1_200px]">
               <label htmlFor="new-league-format" className="block text-[0.8rem] text-muted mb-1">
@@ -104,14 +134,16 @@ export default function CreateLeagueWizard({
             </div>
           </div>
 
-          <label className="flex items-center gap-2.5 text-muted text-[0.85rem] cursor-pointer py-2 px-3 border border-line rounded-[8px]">
-            <input
-              type="checkbox"
-              checked={includePichichi}
-              onChange={(e) => setIncludePichichi(e.target.checked)}
-            />
-            <span>Incluir pronóstico del pichichi</span>
-          </label>
+          {selectedCompetition && (
+            <label className="flex items-center gap-2.5 text-muted text-[0.85rem] cursor-pointer py-2 px-3 border border-line rounded-[8px]">
+              <input
+                type="checkbox"
+                checked={includePichichi}
+                onChange={(e) => setIncludePichichi(e.target.checked)}
+              />
+              <span>Incluir pronóstico del pichichi</span>
+            </label>
+          )}
 
           <button
             type="submit"

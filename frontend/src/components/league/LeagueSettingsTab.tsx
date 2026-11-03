@@ -1,3 +1,4 @@
+import PaperLoading from '../PaperLoading';
 import { useState } from 'react';
 import { LeagueAvatar } from '../Avatar';
 import ImagePicker from '../ImagePicker';
@@ -141,12 +142,7 @@ export default function LeagueSettingsTab({
             aria-labelledby="league-admin-rules-tab-scoring"
             className="rules-tab-panel"
           >
-            {scoringEditor.isLoading && (
-              <p className="league-admin-muted">
-                <Loader2 className="league-admin-spin" size={14} aria-hidden="true" /> Cargando la
-                puntuación…
-              </p>
-            )}
+            {scoringEditor.isLoading && <PaperLoading label="Cargando puntuación" embedded />}
             {scoringEditor.error && (
               <p className="league-admin-muted" role="alert">
                 {errorMessage(scoringEditor.error, 'No se pudo cargar la puntuación.')}

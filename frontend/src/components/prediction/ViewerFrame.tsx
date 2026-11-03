@@ -55,17 +55,7 @@ export function ViewerMessage({ inline, dialogRef, onClose, kind, message }: Vie
     );
 
   if (inline) {
-    return (
-      <div
-        className={
-          kind === 'error'
-            ? 'paper-panel album-sheet text-center py-10 px-5'
-            : 'paper-panel album-sheet text-center py-10 px-5'
-        }
-      >
-        {body}
-      </div>
-    );
+    return <div className="paper-panel album-sheet text-center py-10 px-5">{body}</div>;
   }
   return (
     <ViewerModal

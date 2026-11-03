@@ -1,13 +1,11 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import java.util.Map;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.Set;
 import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
-import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.LeagueRepository;
@@ -29,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
-import com.porra.mundial.model.MatchPrediction;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -47,6 +44,7 @@ public class GroupService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final MatchRepository matchRepository;
+    private final TeamRepository teamRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final LeaguePaymentService paymentService;
 
@@ -59,13 +57,26 @@ public class GroupService {
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
+        return createGroup(name, email, competitionId, poolFormat, pichichi, null);
+    }
+
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi, String customCompetitionName) {
+        boolean custom = customCompetitionName != null && !customCompetitionName.isBlank();
+        if (custom == (competitionId != null)) {
+            throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
+        }
+        if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
+            throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
+        }
         String joinCode;
         do {
             joinCode = JoinCodeGenerator.next();
         } while (leagueRepository.findByJoinCode(joinCode).isPresent());
 
         UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado por email: " + email));
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
 
         // Proteccion contra doble-click / peticiones concurrentes duplicadas
         List<League> existingLeagues = leagueRepository.findByNameAndAdminUser(name, adminUser);
@@ -78,9 +89,15 @@ public class GroupService {
             }
         }
 
-        Competition comp = competitionRepository.findById(competitionId)
-                .orElseThrow(() -> new IllegalArgumentException("Competición no encontrada"));
-        comp = resolveCanonicalCompetition(comp);
+        Competition comp = null;
+        if (!custom) {
+            comp = competitionRepository.findById(competitionId)
+                    .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
+            if (comp.getOwnerLeague() != null) {
+                throw BusinessException.forbidden("Esta competición pertenece a otra liga");
+            }
+            comp = resolveCanonicalCompetition(comp);
+        }
 
         League group = League.builder()
                 .name(name)
@@ -88,6 +105,14 @@ public class GroupService {
                 .adminUser(adminUser)
                 .build();
         group = leagueRepository.save(group);
+
+        if (custom) {
+            comp = competitionRepository.save(Competition.builder()
+                    .name(customCompetitionName.trim())
+                    .formatType(poolFormat == com.porra.mundial.model.PoolFormat.MATCH_DAY ? "LEAGUE" : "TOURNAMENT")
+                    .ownerLeague(group)
+                    .build());
+        }
 
         Membership.MembershipId memId = new Membership.MembershipId(adminUser.getId(), group.getId());
         membershipRepository.save(Membership.builder()
@@ -102,7 +127,7 @@ public class GroupService {
                 .competition(comp)
                 .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
                 .lockDate(Edition.defaultLockDate(comp, poolFormat))
-                .pichichi(pichichi)
+                .pichichi(!custom && pichichi)
                 .status("ACTIVE")
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
@@ -166,13 +191,13 @@ public class GroupService {
     public League updateGroup(Long groupId, String newName, String newRules, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         boolean changed = false;
 
         if (newName != null) {
             if (newName.trim().isEmpty()) {
-                throw new IllegalArgumentException("El nombre no puede estar vacío");
+                throw BusinessException.badRequest("El nombre no puede estar vacío");
             }
             group.setName(newName.trim());
             changed = true;
@@ -184,7 +209,7 @@ public class GroupService {
         }
 
         if (!changed) {
-            throw new IllegalArgumentException("No hay cambios que guardar");
+            throw BusinessException.badRequest("No hay cambios que guardar");
         }
 
         return leagueRepository.save(group);
@@ -197,9 +222,22 @@ public class GroupService {
         
         List<Prediction> predictions = predictionRepository.findByEditionLeagueId(groupId);
         predictionRepository.deleteAll(predictions);
+        predictionRepository.flush();
         
         List<Edition> editions = editionRepository.findByLeagueId(groupId);
         editionRepository.deleteAll(editions);
+        editionRepository.flush();
+
+        editions.stream().map(Edition::getCompetition).filter(c -> c.getOwnerLeague() != null
+                && groupId.equals(c.getOwnerLeague().getId())).forEach(c -> {
+            matchRepository.deleteAll(matchRepository.findByCompetitionId(c.getId()));
+            matchRepository.flush();
+            teamRepository.deleteAll(teamRepository.findByCompetitionIdOrderByNameAsc(c.getId()));
+            teamRepository.flush();
+            competitionRepository.delete(c);
+        });
+
+        competitionRepository.flush();
         
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
         membershipRepository.deleteAll(memberships);
@@ -297,13 +335,13 @@ public class GroupService {
      * Comprueba que el usuario puede ver los datos de una liga: la Porra Global es pública,
      * el resto solo para sus miembros.
      *
-     * @throws SecurityException si la liga es privada y el usuario no pertenece a ella
+     * @throws BusinessException si la liga es privada y el usuario no pertenece a ella
      */
     @Transactional(readOnly = true)
     public void assertCanView(Long groupId, String email) {
         if (groupId == null || League.isGlobalId(groupId)) return;
         if (!isUserMemberOrAdmin(groupId, email)) {
-            throw new SecurityException("No perteneces a esta liga privada");
+            throw BusinessException.forbidden("No perteneces a esta liga privada");
         }
     }
 
@@ -324,10 +362,10 @@ public class GroupService {
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void leaveGroup(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-            .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+            .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         if (group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
-            throw new IllegalArgumentException("El creador de la liga no puede abandonarla.");
+            throw BusinessException.badRequest("El creador de la liga no puede abandonarla.");
         }
 
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
@@ -347,10 +385,10 @@ public class GroupService {
     /** Falla si el usuario no administra la liga. */
     private void verifyGroupAdmin(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
                                
         if (!group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
-            throw new SecurityException("No tienes permiso para administrar esta liga.");
+            throw BusinessException.forbidden("No tienes permiso para administrar esta liga.");
         }
     }
 
@@ -360,7 +398,7 @@ public class GroupService {
     @Transactional(readOnly = true)
     public List<GroupMemberDTO> getGroupMembers(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         boolean isGlobal = group.isGlobal();
         boolean callerIsAdmin = false;
@@ -371,11 +409,11 @@ public class GroupService {
             if (!callerIsAdmin && !isGlobal) {
                 UserAccount caller = userAccountRepository.findByGoogleEmail(email).orElse(null);
                 if (caller == null || !membershipRepository.existsById(new Membership.MembershipId(caller.getId(), groupId))) {
-                    throw new SecurityException("No perteneces a esta liga privada.");
+                    throw BusinessException.forbidden("No perteneces a esta liga privada.");
                 }
             }
         } else if (!isGlobal) {
-            throw new SecurityException("No autenticado para consultar miembros de una liga privada.");
+            throw BusinessException.forbidden("No autenticado para consultar miembros de una liga privada.");
         }
 
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
@@ -433,7 +471,7 @@ public class GroupService {
         verifyGroupAdmin(groupId, email);
 
         UserAccount admin = userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Usuario no encontrado"));
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
         paymentService.setPayment(groupId, targetUserId, status, admin);
     }
 
@@ -445,10 +483,10 @@ public class GroupService {
     public void kickMember(Long groupId, Long targetUserId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         if (group.getAdminUser() != null && group.getAdminUser().getId().equals(targetUserId)) {
-            throw new IllegalArgumentException("No puedes expulsar al administrador creador de la liga.");
+            throw BusinessException.badRequest("No puedes expulsar al administrador creador de la liga.");
         }
 
         List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
@@ -470,7 +508,7 @@ public class GroupService {
     public String regenerateJoinCode(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Liga no encontrada"));
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
         String newCode;
         do {

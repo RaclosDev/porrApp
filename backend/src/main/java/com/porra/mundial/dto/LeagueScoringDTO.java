@@ -22,6 +22,11 @@ public record LeagueScoringDTO(
         ScoringRuleSet rules,
         ScoringRuleSet defaults) {
 
+    @com.fasterxml.jackson.annotation.JsonProperty("matchSignOnly")
+    public boolean matchSignOnly() {
+        return ScoringRuleSet.MATCH_SIGN_ONLY;
+    }
+
     public static LeagueScoringDTO of(Edition edition, boolean editable) {
         return new LeagueScoringDTO(
                 edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null,

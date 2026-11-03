@@ -27,6 +27,7 @@ public class GroupResponseDTO {
     
     /** Identificador de la competición asociada a la edición activa. */
     private Long competitionId;
+    private Boolean customCompetition;
     /** Nombre de la competición actual en curso (Ej: Euro 2024, LaLiga). */
     private String competitionName;
     /** Formato de competición física: "LEAGUE" o "TOURNAMENT". */
@@ -38,6 +39,10 @@ public class GroupResponseDTO {
     /** Fecha y hora límite para enviar pronósticos en esta edición. */
     @JsonSerialize(using = MadridDateTimeSerializer.class)
     private LocalDateTime lockDate;
+    /** Cómo se cierran los pronósticos (FIXED_DATE, FIRST_MATCH, PER_ROUND, PER_MATCH). */
+    private String lockMode;
+    /** Minutos antes del partido en que se cierra, en los modos que dependen de los partidos. */
+    private Integer lockOffsetMinutes;
     /** Si la edición se encuentra cerrada para nuevos pronósticos o cambios. */
     private Boolean isLocked;
     /** Reglas personalizadas de la liga. */
@@ -85,9 +90,12 @@ public class GroupResponseDTO {
         Competition competition = edition.getCompetition();
         return builder
                 .competitionId(competition != null ? competition.getId() : null)
+                .customCompetition(competition != null && competition.getOwnerLeague() != null)
                 .competitionName(competition != null ? competition.getName() : null)
                 .formatType(competition != null ? competition.getFormatType() : null)
                 .poolFormat(edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null)
+                .lockMode(edition.getLockMode() != null ? edition.getLockMode().name() : null)
+                .lockOffsetMinutes(edition.getLockOffsetMinutes())
                 .pichichi(edition.isPichichi());
     }
 }

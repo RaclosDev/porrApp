@@ -27,6 +27,9 @@ public class PredictionDataDTO {
     private Map<String, List<String>> groups;
     
     private List<String> thirds;
+
+    /** Ganadores por ronda de una competición personalizada, en el orden de sus cruces. */
+    private List<List<String>> customRounds;
     
     @JsonProperty("r32")
     @JsonAlias({"r1", "r32", "r_32"})
@@ -84,11 +87,6 @@ public class PredictionDataDTO {
         }
     }
 
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    public List<String> getFlatR32() {
-        return flatten(r32);
-    }
-    
     @com.fasterxml.jackson.annotation.JsonIgnore
     public List<String> getFlatR16() {
         return flatten(r16);

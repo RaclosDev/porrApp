@@ -1,11 +1,13 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.League;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.Prediction;
+import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MembershipRepository;
@@ -19,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -35,11 +37,13 @@ public class PredictionService {
     private final EditionRepository editionRepository;
     private final MembershipRepository membershipRepository;
     private final BracketPredictionValidator bracketValidator;
+    private final CustomBracketPredictionValidator customBracketValidator;
+    private final CustomLockService customLockService;
     private final LeaguePaymentService paymentService;
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
-            throw new SecurityException("Usuario no autenticado");
+            throw BusinessException.forbidden("Usuario no autenticado");
         }
 
         if (prediction.getUser() != null && prediction.getUser().getGoogleEmail() != null
@@ -54,12 +58,12 @@ public class PredictionService {
             return;
         }
 
-        throw new SecurityException("No tienes permiso para modificar o eliminar este pronóstico.");
+        throw BusinessException.forbidden("No tienes permiso para modificar o eliminar este pronóstico.");
     }
 
     public void verifyGroupAdminForPayment(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
-            throw new SecurityException("Usuario no autenticado");
+            throw BusinessException.forbidden("Usuario no autenticado");
         }
 
         if (prediction.getEdition() != null && prediction.getEdition().getLeague() != null
@@ -69,7 +73,7 @@ public class PredictionService {
             return;
         }
 
-        throw new SecurityException("Solo el administrador de la liga puede marcar el pronóstico como pagado.");
+        throw BusinessException.forbidden("Solo el administrador de la liga puede marcar el pronóstico como pagado.");
     }
 
     @Transactional(readOnly = true)
@@ -90,26 +94,36 @@ public class PredictionService {
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO predictionData, Long groupId) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
         Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
         Edition edition = editionRepository.findByLeagueIdAndStatus(effectiveGroupId, "ACTIVE")
-                .orElseThrow(() -> new NoSuchElementException("No hay una edición activa para esta liga"));
+                .orElseThrow(() -> BusinessException.notFound("No hay una edición activa para esta liga"));
 
         if (edition.isLocked()) {
-            throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
+            throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
         if (groupId != null && edition.getLeague() != null) {
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
             boolean isGlobal = edition.getLeague().isGlobal();
             if (!membershipRepository.existsById(memId) && !isGlobal) {
-                throw new SecurityException("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
+                throw BusinessException.forbidden("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
             }
         }
 
-        bracketValidator.validate(edition, predictionData);
+        validateBracket(edition, predictionData);
 
         Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, effectiveGroupId);
+        if (progressiveCustom(edition)) {
+            CustomLockService.LockState state = customLockService.state(edition);
+            if (state.fullyLocked()) {
+                throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
+            }
+            if (existing.isEmpty() && state.anyLocked()) {
+                throw BusinessException.conflict("La competición ya ha empezado: no se admiten pronósticos nuevos.");
+            }
+            existing.ifPresent(saved -> customLockService.requireLockedPartsUnchanged(state, saved.getBracketData(), predictionData));
+        }
         if (existing.isPresent()) {
             Prediction prediction = existing.get();
             requireSameTopology(prediction.getBracketData(), predictionData);
@@ -142,17 +156,24 @@ public class PredictionService {
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction updatePrediction(Long id, String requesterEmail, String predictionName, PredictionDataDTO predictionData) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
         if (prediction.getEdition() != null && prediction.getEdition().isLocked()) {
-            throw new IllegalStateException("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
+            throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
         if (predictionData != null) {
             requireSameTopology(prediction.getBracketData(), predictionData);
-            bracketValidator.validate(prediction.getEdition(), predictionData);
+            validateBracket(prediction.getEdition(), predictionData);
+            if (progressiveCustom(prediction.getEdition())) {
+                CustomLockService.LockState state = customLockService.state(prediction.getEdition());
+                if (state.fullyLocked()) {
+                    throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
+                }
+                customLockService.requireLockedPartsUnchanged(state, prediction.getBracketData(), predictionData);
+            }
         }
         if (predictionName != null) prediction.setName(predictionName);
         if (predictionData != null) {
@@ -163,21 +184,42 @@ public class PredictionService {
         return predictionRepository.save(prediction);
     }
 
+    /** Competición personalizada de cuadro cuyo cierre llega por partes. */
+    private static boolean progressiveCustom(Edition edition) {
+        return edition != null && edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null
+                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY
+                && edition.getLockMode() != null && edition.getLockMode().progressive();
+    }
+
+    private void validateBracket(Edition edition, PredictionDataDTO data) {
+        if (edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null) {
+            PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
+            if (!mode.progressive() && edition.getLockDate() == null) {
+                throw BusinessException.badRequest(mode == PredictionLockMode.FIRST_MATCH
+                        ? "El cierre llegará con el primer partido: el administrador debe ponerle fecha"
+                        : "El administrador debe fijar el cierre de pronósticos");
+            }
+            customBracketValidator.validate(edition, data);
+        } else {
+            bracketValidator.validate(edition, data);
+        }
+    }
+
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public Prediction markAsPaid(Long id, String requesterEmail) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
 
         verifyGroupAdminForPayment(prediction, requesterEmail);
 
         UserAccount admin = userAccountRepository.findByGoogleEmail(requesterEmail)
-                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
         paymentService.setPayment(prediction.getEdition().getLeague().getId(), prediction.getUser().getId(), "PAID", admin);
         return prediction;
     }
 
     @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public void deletePrediction(Long id, String requesterEmail) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
+        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
 
         verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
 
@@ -189,9 +231,14 @@ public class PredictionService {
         if (predictions == null) {
             return java.util.Collections.emptyList();
         }
+        Map<Long, CustomLockService.LockState> lockStates = new java.util.HashMap<>();
         return predictions.stream().map(pred -> {
             boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-            boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
+            CustomLockService.LockState partial = !isOwner && progressiveCustom(pred.getEdition())
+                    ? lockStates.computeIfAbsent(pred.getEdition().getId(), id -> customLockService.state(pred.getEdition()))
+                    : null;
+            boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked()
+                    || partial != null && partial.anyLocked();
             boolean canViewDetails = isLocked || isOwner;
 
             PredictionDataDTO dataDto = null;
@@ -200,6 +247,9 @@ public class PredictionService {
                     dataDto = pred.getBracketData();
                 } catch (Exception e) {
                     log.warn("Error leyendo bracket_data para predicción {}: {}", pred.getId(), e.getMessage());
+                }
+                if (dataDto != null && partial != null && !partial.fullyLocked()) {
+                    dataDto = customLockService.lockedPartsOnly(partial, dataDto);
                 }
                 if (dataDto != null) {
                     ensureKnockoutFinals(dataDto);
@@ -230,7 +280,7 @@ public class PredictionService {
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id, String requesterEmail) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
 
         if (!isOwner) {
@@ -238,12 +288,15 @@ public class PredictionService {
         }
 
         boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
+        CustomLockService.LockState partial = !isOwner && progressiveCustom(pred.getEdition())
+                ? customLockService.state(pred.getEdition()) : null;
 
-        if (!isLocked && !isOwner) {
-            throw new SecurityException("Los pronósticos de otros participantes estarán ocultos hasta que finalice el plazo de inscripción.");
+        if (!isLocked && !isOwner && (partial == null || !partial.anyLocked())) {
+            throw BusinessException.forbidden("Los pronósticos de otros participantes estarán ocultos hasta que finalice el plazo de inscripción.");
         }
 
-        return getPredictionData(id);
+        PredictionDataDTO data = getPredictionData(id);
+        return data != null && partial != null && !partial.fullyLocked() ? customLockService.lockedPartsOnly(partial, data) : data;
     }
 
     /** Los pronósticos de una liga privada solo los ven sus miembros; los de la Porra Global, todos. */
@@ -257,13 +310,13 @@ public class PredictionService {
                         .map(user -> membershipRepository.existsById(new Membership.MembershipId(user.getId(), league.getId())))
                         .orElse(false);
         if (!member) {
-            throw new SecurityException("No perteneces a esta liga privada");
+            throw BusinessException.forbidden("No perteneces a esta liga privada");
         }
     }
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pronóstico no encontrado: " + id));
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
         PredictionDataDTO dto = pred.getBracketData();
         if (dto == null) {
             dto = new PredictionDataDTO();
@@ -279,7 +332,7 @@ public class PredictionService {
         int previous = stored.getTopologyVersion() == null ? 1 : stored.getTopologyVersion();
         int next = incoming.getTopologyVersion() == null ? 1 : incoming.getTopologyVersion();
         if (previous != next)
-            throw new IllegalArgumentException("La versión del cuadro guardado no puede cambiar al editarlo");
+            throw BusinessException.badRequest("La versión del cuadro guardado no puede cambiar al editarlo");
     }
 
     public void ensureKnockoutFinals(PredictionDataDTO dto) {

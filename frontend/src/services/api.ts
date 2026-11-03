@@ -420,15 +420,107 @@ export const fetchGroupInvitationPreview = (joinCode: string) =>
 
 export const createGroup = (
   name: string,
-  competitionId: number | string,
+  competitionId: number | string | null,
   poolFormat: PoolFormat,
   pichichi = true,
+  customCompetitionName?: string,
 ) =>
   request<Group>('/groups', {
     method: 'POST',
-    json: { name, competitionId, poolFormat, pichichi },
+    json: { name, competitionId, poolFormat, pichichi, customCompetitionName },
     fallbackError: 'Error al crear la liga',
   });
+
+export interface CustomTeam {
+  id: number;
+  name: string;
+  groupName: string | null;
+  logoUrl: string | null;
+}
+export const fetchCustomTeams = (groupId: number) =>
+  request<CustomTeam[]>(`/groups/${groupId}/competition/teams`);
+export const fetchCustomMatches = (groupId: number) =>
+  request<Match[]>(`/groups/${groupId}/competition/matches`);
+export const fetchCustomStandings = (groupId: number) =>
+  request<LeagueStanding[]>(`/groups/${groupId}/competition/standings`);
+export const addCustomTeam = (
+  groupId: number,
+  name: string,
+  groupName?: string,
+  logoUrl?: string,
+) =>
+  request<CustomTeam>(`/groups/${groupId}/competition/teams`, {
+    method: 'POST',
+    json: { name, groupName, logoUrl },
+  });
+/** Cambia o quita (con null) el escudo de un equipo de la competición personalizada. */
+export const setCustomTeamLogo = (groupId: number, teamId: number, logoUrl: string | null) =>
+  request<CustomTeam>(`/groups/${groupId}/competition/teams/${teamId}/logo`, {
+    method: 'PUT',
+    json: { logoUrl },
+  });
+export const deleteCustomTeam = (groupId: number, teamId: number) =>
+  request<void>(`/groups/${groupId}/competition/teams/${teamId}`, { method: 'DELETE' });
+/** Cuándo se cierran los pronósticos de una competición personalizada. */
+export type CustomLockMode = 'FIXED_DATE' | 'FIRST_MATCH' | 'PER_ROUND' | 'PER_MATCH';
+
+/** Qué partes del pronóstico están ya cerradas (GET /groups/{id}/competition/lock-state). */
+export interface CustomLockState {
+  mode: CustomLockMode;
+  offsetMinutes: number;
+  lockDate: string | null;
+  lockedGroups: string[];
+  /** Por ronda del cuadro, qué ganadores están cerrados (índice = cruce). */
+  lockedPicks: boolean[][];
+  anyLocked: boolean;
+  fullyLocked: boolean;
+  nextLockAt: string | null;
+}
+
+export const fetchCustomLockState = (groupId: number) =>
+  request<CustomLockState>(`/groups/${groupId}/competition/lock-state`);
+export const setCustomLockConfig = (
+  groupId: number,
+  config: { mode: CustomLockMode; offsetMinutes: number; lockDate: string | null },
+) =>
+  request<CustomLockState>(`/groups/${groupId}/competition/lock`, {
+    method: 'PUT',
+    json: config,
+  });
+export const setCustomLockDate = (groupId: number, lockDate: string) =>
+  request<string>(`/groups/${groupId}/competition/lock-date`, {
+    method: 'PUT',
+    json: { lockDate },
+  });
+export const addCustomMatch = (
+  groupId: number,
+  homeTeamId: number,
+  awayTeamId: number | null,
+  matchDate: string | null,
+  round?: string,
+) =>
+  request<Match>(`/groups/${groupId}/competition/matches`, {
+    method: 'POST',
+    json: { homeTeamId, awayTeamId, matchDate, round },
+  });
+export const setCustomResult = (
+  groupId: number,
+  matchId: number,
+  homeScore: number,
+  awayScore: number,
+  winnerTeamId?: number,
+) =>
+  request<Match>(`/groups/${groupId}/competition/matches/${matchId}/result`, {
+    method: 'PUT',
+    json: { homeScore, awayScore, winnerTeamId },
+  });
+export const setCustomMatchDate = (groupId: number, matchId: number, matchDate: string | null) =>
+  request<Match>(`/groups/${groupId}/competition/matches/${matchId}/date`, {
+    method: 'PUT',
+    json: { matchDate },
+  });
+export const deleteCustomMatch = (groupId: number, matchId: number) =>
+  request<void>(`/groups/${groupId}/competition/matches/${matchId}`, { method: 'DELETE' });
 
 export const updateGroup = (
   id: number | string,

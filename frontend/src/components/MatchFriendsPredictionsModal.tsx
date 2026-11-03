@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
 import { UserAvatar } from './Avatar';
@@ -157,7 +157,7 @@ export default function MatchFriendsPredictionsModal({
             <div className="friends-predictions-skeletons" role="status">
               <span className="sr-only">Cargando pronósticos…</span>
               {[0, 1, 2].map((row) => (
-                <div key={row} className="friends-predictions-skeleton" />
+                <div key={row} className="friends-predictions-skeleton skeleton" />
               ))}
             </div>
           )}

@@ -1,6 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.ErrorResponse;
+import com.porra.mundial.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -18,16 +19,12 @@ import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.NoSuchElementException;
-
 /**
  * Traduce las excepciones a respuestas {@code {"error": "..."}} con el código HTTP adecuado,
  * sin exponer trazas internas al cliente.
  * <ul>
- *   <li>{@link IllegalArgumentException}: 400, dato de entrada no válido.</li>
- *   <li>{@link SecurityException}: 403, sin permiso sobre el recurso.</li>
- *   <li>{@link NoSuchElementException}: 404.</li>
- *   <li>{@link IllegalStateException}: 409, la operación no es posible en el estado actual (p. ej. porra cerrada).</li>
+ *   <li>{@link BusinessException}: errores de dominio clasificados explícitamente como seguros.</li>
+ *   <li>Las excepciones técnicas no clasificadas devuelven un error genérico 500.</li>
  * </ul>
  */
 @ControllerAdvice
@@ -36,12 +33,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
-        return error(ex.getStatusCode(), ex.getReason() != null ? ex.getReason() : "Error en la solicitud");
+        if (ex.getStatusCode().is5xxServerError()
+                && ex.getStatusCode().value() != HttpStatus.SERVICE_UNAVAILABLE.value()) {
+            log.error("Error interno indicado por ResponseStatusException", ex);
+            return error(ex.getStatusCode(), "Ha ocurrido un error inesperado en el servidor.");
+        }
+        if (ex.getStatusCode().value() == HttpStatus.SERVICE_UNAVAILABLE.value()) {
+            log.warn("Servicio temporalmente no disponible: {}", ex.getReason());
+        }
+        String message = ex.getReason();
+        if (message == null || message.isBlank()) {
+            message = HttpStatus.resolve(ex.getStatusCode().value()) != null
+                    ? HttpStatus.resolve(ex.getStatusCode().value()).getReasonPhrase()
+                    : "Error en la solicitud";
+        }
+        return error(ex.getStatusCode(), message);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
-        return error(HttpStatus.FORBIDDEN, ex.getMessage() != null ? ex.getMessage() : "Acceso denegado");
+        return error(HttpStatus.FORBIDDEN, "Acceso denegado.");
     }
 
     /** Archivo por encima de spring.servlet.multipart.max-file-size. */
@@ -56,24 +67,9 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, "No se ha recibido ningún archivo válido.");
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
-        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
-    }
-
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException ex) {
-        return error(HttpStatus.NOT_FOUND, ex.getMessage() != null ? ex.getMessage() : "Recurso no encontrado");
-    }
-
-    @ExceptionHandler(SecurityException.class)
-    public ResponseEntity<ErrorResponse> handleSecurity(SecurityException ex) {
-        return error(HttpStatus.FORBIDDEN, ex.getMessage());
-    }
-
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
-        return error(HttpStatus.CONFLICT, ex.getMessage());
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex) {
+        return error(ex.getStatus(), ex.getMessage());
     }
 
     /** Restricciones de unicidad o integridad violadas, normalmente por peticiones concurrentes. */
@@ -88,8 +84,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
+                .filter(value -> value != null && !value.isBlank())
                 .findFirst()
-                .orElse("Datos inválidos");
+                .orElse("Los datos enviados no son válidos.");
         return error(HttpStatus.BAD_REQUEST, message);
     }
 
@@ -102,6 +99,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
         // Errores del propio Spring MVC (ruta inexistente, método no permitido...) conservan su código HTTP.
         if (ex instanceof org.springframework.web.ErrorResponse springError) {
+            if (springError.getStatusCode().is5xxServerError()) {
+                log.error("Error interno del framework web: ", ex);
+                return error(springError.getStatusCode(), "Ha ocurrido un error inesperado en el servidor.");
+            }
             String detail = springError.getBody().getDetail();
             return error(springError.getStatusCode(), detail != null ? detail : "Error en la solicitud");
         }
