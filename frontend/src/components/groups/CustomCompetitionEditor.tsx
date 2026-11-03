@@ -1,22 +1,38 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import {
-  addCustomMatch,
-  addCustomTeam,
-  deleteCustomMatch,
-  deleteCustomTeam,
-  fetchCustomTeams,
-  fetchCustomMatches,
-  setCustomResult,
-  setCustomLockDate,
-  setCustomTeamLogo,
-} from '../../services/api';
-import type { CustomTeam } from '../../services/api';
-import type { Group, Match } from '../../types/api';
+  CalendarClock,
+  ClipboardList,
+  LayoutDashboard,
+  Shield,
+  Trophy,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
+import { fetchCustomMatches, fetchCustomTeams } from '../../services/api';
+import type { Group } from '../../types/api';
 import { errorMessage } from '../../utils/errors';
 import { queryKeys } from '../../services/queryKeys';
-import Flag from '../Flag';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
+import { LeagueAvatar } from '../Avatar';
+import CustomSummaryTab from './custom/CustomSummaryTab';
+import CustomTeamsTab from './custom/CustomTeamsTab';
+import CustomMatchesTab from './custom/CustomMatchesTab';
+import CustomResultsTab from './custom/CustomResultsTab';
+import { isBye, type CustomTab, type SaveAction } from './custom/customCompetition';
 
+const TABS: { id: CustomTab; label: string; icon: typeof Shield }[] = [
+  { id: 'summary', label: 'Resumen', icon: LayoutDashboard },
+  { id: 'teams', label: 'Equipos', icon: Shield },
+  { id: 'matches', label: 'Partidos', icon: CalendarClock },
+  { id: 'results', label: 'Resultados', icon: Trophy },
+];
+
+/**
+ * Gestión de una competición personalizada: equipos, partidos, cruces y resultados.
+ * Mismo patrón que «Administrar»: diálogo centrado en escritorio y hoja completa en móvil.
+ */
 export default function CustomCompetitionEditor({
   group,
   onClose,
@@ -24,447 +40,218 @@ export default function CustomCompetitionEditor({
   group: Group;
   onClose: () => void;
 }) {
-  const [teams, setTeams] = useState<CustomTeam[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [teamName, setTeamName] = useState('');
-  const [teamGroup, setTeamGroup] = useState('');
-  const [teamLogo, setTeamLogo] = useState('');
-  const [logoDrafts, setLogoDrafts] = useState<Record<number, string>>({});
-  const [editingLogo, setEditingLogo] = useState<number | null>(null);
-  const [homeTeamId, setHomeTeamId] = useState('');
-  const [awayTeamId, setAwayTeamId] = useState('');
-  const [matchDate, setMatchDate] = useState('');
-  const [lockDate, setLockDate] = useState(group.lockDate?.slice(0, 16) ?? '');
-  const [matchRound, setMatchRound] = useState(
-    group.poolFormat === 'KNOCKOUTS_ONLY' ? 'bracket-1' : 'group',
-  );
-  const [winnerIds, setWinnerIds] = useState<Record<number, string>>({});
-  const [scores, setScores] = useState<Record<number, { home: string; away: string }>>({});
+  const groupKey = group.id.toString();
+  const [tab, setTab] = useState<CustomTab>('summary');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [lockDate, setLockDate] = useState(group.lockDate);
+  const panelRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  const refresh = useCallback(async () => {
-    const [teamList, matchList] = await Promise.all([
-      fetchCustomTeams(group.id),
-      fetchCustomMatches(group.id),
-    ]);
-    setTeams(teamList);
-    setMatches(matchList);
-  }, [group.id]);
+  const teamsQuery = useQuery({
+    queryKey: queryKeys.customTeams(groupKey),
+    queryFn: () => fetchCustomTeams(group.id),
+  });
+  const matchesQuery = useQuery({
+    queryKey: queryKeys.customMatches(groupKey),
+    queryFn: () => fetchCustomMatches(group.id),
+  });
+  const teams = teamsQuery.data ?? [];
+  const matches = matchesQuery.data ?? [];
+  const loading = teamsQuery.isLoading || matchesQuery.isLoading;
+  const loadError = teamsQuery.error ?? matchesQuery.error;
+  const pendingResults = matches.filter((match) => !isBye(match) && !match.finished).length;
 
   useEffect(() => {
-    void refresh().catch((reason: unknown) =>
-      setError(errorMessage(reason, 'No se pudo cargar la competición')),
-    );
-  }, [refresh]);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
-  const save = async (action: () => Promise<unknown>) => {
+  useDialogFocus(panelRef, { onEscape: () => !busy && onClose() });
+
+  const save: SaveAction = async (action, success) => {
     setBusy(true);
     setError('');
     try {
       await action();
-      await refresh();
-      await queryClient.invalidateQueries({ queryKey: queryKeys.customTeams(group.id.toString()) });
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.customMatches(group.id.toString()),
-      });
+      // Inicio, Resultados y Mi porra leen estas mismas consultas.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.customTeams(groupKey) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.customMatches(groupKey) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.group(groupKey) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+      ]);
+      toast.success(success);
+      return true;
     } catch (reason) {
       setError(errorMessage(reason, 'No se pudieron guardar los cambios'));
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
+  const goTo = (next: CustomTab) => {
+    setTab(next);
+    setError('');
+  };
+
+  const handleTabKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    const index = TABS.findIndex((item) => item.id === tab);
+    const next =
+      event.key === 'ArrowRight'
+        ? (index + 1) % TABS.length
+        : event.key === 'ArrowLeft'
+          ? (index - 1 + TABS.length) % TABS.length
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? TABS.length - 1
+              : -1;
+    if (next === -1) return;
+    event.preventDefault();
+    goTo(TABS[next].id);
+    document.getElementById(`custom-admin-tab-${TABS[next].id}`)?.focus();
+  };
+
+  const counts: Partial<Record<CustomTab, number>> = {
+    teams: teams.length,
+    matches: matches.length,
+    results: pendingResults,
+  };
+
   return (
     <div
-      className="paper-panel album-sheet p-5 my-5 max-w-205 mx-auto"
-      role="region"
-      aria-label={`Administrar ${group.competitionName}`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="custom-admin-title"
+      className="league-admin-overlay"
+      onClick={(event) => {
+        if (event.target === event.currentTarget && !busy) onClose();
+      }}
     >
-      <div className="flex justify-between items-center gap-3">
-        <h3 className="poster-title m-0">{group.competitionName}</h3>
-        <button type="button" className="glass-btn" onClick={onClose}>
-          Cerrar
-        </button>
-      </div>
-      <p className="text-muted">
-        Añade equipos y partidos. Los resultados los introduces tú cuando terminen.
-        {group.poolFormat !== 'MATCH_DAY' &&
-          ' Elige qué equipos pasan al cuadro y crea sus cruces de la primera ronda en el orden en que deben aparecer. Usa «Descanso» si un equipo pasa directamente.'}
-      </p>
-      {group.poolFormat !== 'MATCH_DAY' && (
-        <form
-          className="flex gap-2 flex-wrap items-end"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void save(async () => {
-              await setCustomLockDate(group.id, lockDate);
-              await queryClient.invalidateQueries({
-                queryKey: queryKeys.group(group.id.toString()),
-              });
-              await queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
-            });
-          }}
-        >
-          <label>
-            Cierre de pronósticos
-            <input
-              className="glass-input w-full"
-              type="datetime-local"
-              required
-              value={lockDate}
-              onChange={(event) => setLockDate(event.target.value)}
-            />
-          </label>
-          <button type="submit" className="glass-btn primary-btn" disabled={busy}>
-            Guardar cierre
-          </button>
-          <p className="text-muted w-full m-0">
-            Fija el cierre antes de compartir la liga. Después del primer pronóstico no se puede
-            cambiar.
-          </p>
-        </form>
-      )}
-      {error && (
-        <p role="alert" className="text-[var(--miss)]">
-          {error}
-        </p>
-      )}
-      <form
-        className="flex gap-2 flex-wrap mb-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void save(async () => {
-            await addCustomTeam(
-              group.id,
-              teamName.trim(),
-              teamGroup.trim() || undefined,
-              teamLogo.trim() || undefined,
-            );
-            setTeamName('');
-            setTeamLogo('');
-          });
-        }}
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="league-admin-panel paper-panel landing-tape paper-dialog"
       >
-        <label className="flex-1 min-w-50">
-          Equipo
-          <input
-            className="glass-input w-full"
-            required
-            maxLength={100}
-            value={teamName}
-            onChange={(event) => setTeamName(event.target.value)}
-            placeholder="Nombre del equipo"
-          />
-        </label>
-        {group.poolFormat === 'FULL_BRACKET' && (
-          <label className="flex-1 min-w-40">
-            Grupo
-            <input
-              className="glass-input w-full"
-              required
-              maxLength={50}
-              value={teamGroup}
-              onChange={(event) => setTeamGroup(event.target.value)}
-              placeholder="Ej.: A"
-            />
-          </label>
-        )}
-        <label className="flex-1 min-w-50">
-          Escudo (opcional)
-          <input
-            className="glass-input w-full"
-            type="url"
-            pattern="https://.*"
-            maxLength={500}
-            value={teamLogo}
-            onChange={(event) => setTeamLogo(event.target.value)}
-            placeholder="https://…/escudo.png"
-          />
-        </label>
-        <button type="submit" className="glass-btn primary-btn self-end" disabled={busy}>
-          Añadir equipo
-        </button>
-      </form>
-      <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-muted">{teams.length} equipos:</span>
-        {teams.map((team) => (
-          <span
-            key={team.id}
-            className="border border-line rounded-[8px] p-2 flex flex-wrap items-center gap-2"
-          >
-            {team.logoUrl && <Flag team={team.name} logo={team.logoUrl} />}
-            {team.name}
-            {team.groupName ? ` (${team.groupName})` : ''}
-            <button
-              type="button"
-              className="glass-btn"
-              disabled={busy}
-              aria-expanded={editingLogo === team.id}
-              aria-label={`Cambiar el escudo de ${team.name}`}
-              onClick={() => {
-                setEditingLogo(editingLogo === team.id ? null : team.id);
-                setLogoDrafts((drafts) => ({ ...drafts, [team.id]: team.logoUrl ?? '' }));
-              }}
-            >
-              Escudo
-            </button>
-            {editingLogo === team.id && (
-              <form
-                className="flex flex-wrap gap-2 w-full"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void save(async () => {
-                    await setCustomTeamLogo(group.id, team.id, logoDrafts[team.id]?.trim() || null);
-                    setEditingLogo(null);
-                  });
-                }}
-              >
-                <label className="flex-1 min-w-50">
-                  <span className="sr-only">Dirección del escudo de {team.name}</span>
-                  <input
-                    className="glass-input w-full"
-                    type="url"
-                    pattern="https://.*"
-                    maxLength={500}
-                    value={logoDrafts[team.id] ?? ''}
-                    onChange={(event) =>
-                      setLogoDrafts((drafts) => ({ ...drafts, [team.id]: event.target.value }))
-                    }
-                    placeholder="https://…/escudo.png (vacío para quitarlo)"
-                  />
-                </label>
-                <button type="submit" className="glass-btn primary-btn" disabled={busy}>
-                  Guardar escudo
-                </button>
-              </form>
-            )}
-            <button
-              type="button"
-              className="glass-btn"
-              disabled={busy}
-              aria-label={`Eliminar equipo ${team.name}`}
-              onClick={() => {
-                if (window.confirm(`¿Eliminar el equipo ${team.name}?`)) {
-                  void save(() => deleteCustomTeam(group.id, team.id));
-                }
-              }}
-            >
-              ✕
-            </button>
-          </span>
-        ))}
-        {!teams.length && <span className="text-muted">ninguno todavía</span>}
-      </div>
-      <form
-        className="flex gap-2 flex-wrap mb-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void save(async () => {
-            await addCustomMatch(
-              group.id,
-              Number(homeTeamId),
-              awayTeamId ? Number(awayTeamId) : null,
-              matchDate || null,
-              group.poolFormat === 'MATCH_DAY' ? undefined : matchRound,
-            );
-            setMatchDate('');
-          });
-        }}
-      >
-        <label>
-          Local
-          <select
-            className="glass-input w-full"
-            required
-            value={homeTeamId}
-            onChange={(event) => setHomeTeamId(event.target.value)}
-          >
-            <option value="">Elige equipo</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Visitante
-          <select
-            className="glass-input w-full"
-            required={group.poolFormat === 'MATCH_DAY' || matchRound === 'group'}
-            value={awayTeamId}
-            onChange={(event) => setAwayTeamId(event.target.value)}
-          >
-            <option value="">
-              {matchRound.startsWith('bracket-') ? 'Descanso' : 'Elige equipo'}
-            </option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {group.poolFormat !== 'MATCH_DAY' && (
-          <label>
-            Fase
-            <select
-              className="glass-input w-full"
-              value={matchRound === 'group' ? 'group' : 'bracket'}
-              onChange={(event) =>
-                setMatchRound(event.target.value === 'group' ? 'group' : 'bracket-1')
-              }
-            >
-              {group.poolFormat === 'FULL_BRACKET' && <option value="group">Grupos</option>}
-              <option value="bracket">Cuadro</option>
-            </select>
-          </label>
-        )}
-        {matchRound.startsWith('bracket-') && (
-          <label>
-            Número de ronda
-            <input
-              className="glass-input w-full"
-              type="number"
-              min="1"
-              max="31"
-              step="1"
-              required
-              value={matchRound.substring(8)}
-              onChange={(event) => setMatchRound(`bracket-${event.target.value}`)}
-            />
-          </label>
-        )}
-        <label>
-          Fecha y hora
-          <input
-            className="glass-input w-full"
-            type="datetime-local"
-            required={!matchRound.startsWith('bracket-')}
-            value={matchDate}
-            onChange={(event) => setMatchDate(event.target.value)}
-          />
-        </label>
-        <button
-          type="submit"
-          className="glass-btn primary-btn self-end"
-          disabled={busy || teams.length < 2}
-        >
-          Añadir partido
-        </button>
-      </form>
-      <h4>Partidos</h4>
-      {matches.length === 0 && <p className="text-muted">Aún no hay partidos.</p>}
-      <div className="flex flex-col gap-3">
-        {matches.map((match) => (
-          <div
-            key={match.id}
-            className="border border-line rounded-[8px] p-3 flex flex-wrap gap-3 items-end"
-          >
-            <div className="flex-1 min-w-45">
-              <strong>
-                {match.home} – {match.away}
-              </strong>
-              <br />
-              <span className="text-muted text-sm">
-                {match.date?.replace('T', ' ').slice(0, 16)}
-              </span>
-            </div>
-            <label>
-              Local
-              <input
-                className="glass-input w-18"
-                type="number"
-                min="0"
-                value={scores[match.id]?.home ?? match.homeScore ?? ''}
-                onChange={(event) =>
-                  setScores((current) => ({
-                    ...current,
-                    [match.id]: {
-                      home: event.target.value,
-                      away: current[match.id]?.away ?? String(match.awayScore ?? ''),
-                    },
-                  }))
-                }
-              />
-            </label>
-            <label>
-              Visitante
-              <input
-                className="glass-input w-18"
-                type="number"
-                min="0"
-                value={scores[match.id]?.away ?? match.awayScore ?? ''}
-                onChange={(event) =>
-                  setScores((current) => ({
-                    ...current,
-                    [match.id]: {
-                      home: current[match.id]?.home ?? String(match.homeScore ?? ''),
-                      away: event.target.value,
-                    },
-                  }))
-                }
-              />
-            </label>
-            <button
-              type="button"
-              className="glass-btn"
-              disabled={
-                busy ||
-                !match.away_team_id ||
-                (scores[match.id]?.home ?? match.homeScore ?? '') === '' ||
-                (scores[match.id]?.away ?? match.awayScore ?? '') === ''
-              }
-              onClick={() =>
-                void save(() =>
-                  setCustomResult(
-                    group.id,
-                    match.id,
-                    Number(scores[match.id]?.home ?? match.homeScore),
-                    Number(scores[match.id]?.away ?? match.awayScore),
-                    winnerIds[match.id] ? Number(winnerIds[match.id]) : undefined,
-                  ),
-                )
-              }
-            >
-              {match.finished ? 'Actualizar' : 'Guardar resultado'}
-            </button>
-            <button
-              type="button"
-              className="glass-btn"
-              disabled={busy}
-              onClick={() => {
-                if (window.confirm(`¿Eliminar el partido ${match.home} – ${match.away}?`)) {
-                  void save(() => deleteCustomMatch(group.id, match.id));
-                }
-              }}
-            >
-              Eliminar partido
-            </button>
-            {match.round?.startsWith('bracket-') &&
-              (scores[match.id]?.home ?? match.homeScore ?? '') !== '' &&
-              (scores[match.id]?.away ?? match.awayScore ?? '') !== '' &&
-              Number(scores[match.id]?.home ?? match.homeScore) ===
-                Number(scores[match.id]?.away ?? match.awayScore) && (
-                <label>
-                  Ganador del empate
-                  <select
-                    className="glass-input"
-                    value={winnerIds[match.id] ?? ''}
-                    onChange={(event) =>
-                      setWinnerIds((current) => ({ ...current, [match.id]: event.target.value }))
-                    }
-                  >
-                    <option value="">Elige equipo</option>
-                    <option value={match.home_team_id ?? ''}>{match.home}</option>
-                    <option value={match.away_team_id ?? ''}>{match.away}</option>
-                  </select>
-                </label>
-              )}
+        <header className="league-admin-header">
+          <LeagueAvatar url={group.imageUrl} size={46} />
+          <div className="league-admin-heading">
+            <span className="league-admin-eyebrow">
+              <ClipboardList size={12} aria-hidden="true" />
+              Gestionar competición
+            </span>
+            <h2 id="custom-admin-title" className="league-admin-title">
+              {group.competitionName ?? group.name}
+            </h2>
+            <p className="league-admin-subtitle">
+              {group.name} ·{' '}
+              {group.poolFormat === 'MATCH_DAY'
+                ? 'Por jornadas'
+                : group.poolFormat === 'FULL_BRACKET'
+                  ? 'Grupos y cuadro'
+                  : 'Solo cuadro'}
+            </p>
           </div>
-        ))}
+          <button
+            type="button"
+            className="league-admin-close"
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Cerrar gestión de la competición"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </header>
+
+        <div
+          className="league-admin-tabs custom-admin-tabs"
+          role="tablist"
+          aria-label="Secciones de la competición"
+        >
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`custom-admin-tab-${id}`}
+              aria-selected={tab === id}
+              aria-controls={`custom-admin-panel-${id}`}
+              tabIndex={tab === id ? 0 : -1}
+              className={`league-admin-tab ${tab === id ? 'is-active' : ''}`}
+              onKeyDown={handleTabKeyDown}
+              onClick={() => goTo(id)}
+            >
+              <Icon size={15} aria-hidden="true" />
+              {label}
+              {counts[id] !== undefined && (
+                <span
+                  className={`league-admin-tab-count ${id === 'results' ? '' : 'is-total'}`}
+                  aria-label={id === 'results' ? `${counts[id]} pendientes` : undefined}
+                >
+                  {counts[id]}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="league-admin-body">
+          {error && (
+            <div className="league-admin-alert" role="alert">
+              <TriangleAlert size={16} aria-hidden="true" />
+              <span>{error}</span>
+              <button type="button" onClick={() => setError('')} aria-label="Descartar aviso">
+                <X size={14} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="league-admin-member-list" aria-busy="true">
+              {[0, 1, 2].map((row) => (
+                <div key={row} className="league-admin-member-skeleton skeleton" />
+              ))}
+            </div>
+          ) : loadError ? (
+            <div className="league-admin-empty" role="alert">
+              <TriangleAlert size={20} aria-hidden="true" />
+              <strong>No se pudo cargar la competición</strong>
+              <span>{errorMessage(loadError, 'Vuelve a abrirla para intentarlo de nuevo.')}</span>
+            </div>
+          ) : (
+            <fieldset
+              disabled={busy}
+              id={`custom-admin-panel-${tab}`}
+              role="tabpanel"
+              aria-labelledby={`custom-admin-tab-${tab}`}
+              className="league-admin-panel-section min-w-0 border-0 m-0 p-0"
+            >
+              {tab === 'summary' && (
+                <CustomSummaryTab
+                  group={group}
+                  teams={teams}
+                  matches={matches}
+                  lockDate={lockDate}
+                  onLockDateSaved={setLockDate}
+                  save={save}
+                  goTo={goTo}
+                />
+              )}
+              {tab === 'teams' && <CustomTeamsTab group={group} teams={teams} save={save} />}
+              {tab === 'matches' && (
+                <CustomMatchesTab group={group} teams={teams} matches={matches} save={save} />
+              )}
+              {tab === 'results' && (
+                <CustomResultsTab group={group} matches={matches} save={save} />
+              )}
+            </fieldset>
+          )}
+        </div>
       </div>
     </div>
   );
