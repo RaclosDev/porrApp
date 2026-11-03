@@ -12,6 +12,7 @@ const api = vi.hoisted(() => ({
   deleteCustomTeam: vi.fn(),
   addCustomMatch: vi.fn(),
   setCustomResult: vi.fn(),
+  setCustomMatchDate: vi.fn(),
   deleteCustomMatch: vi.fn(),
   setCustomLockDate: vi.fn(),
   fetchCustomLockState: vi.fn(),
@@ -90,9 +91,11 @@ describe('CustomCompetitionEditor', () => {
     api.fetchCustomTeams.mockResolvedValue(TEAMS);
     api.fetchCustomMatches.mockResolvedValue([]);
     api.fetchCustomLockState.mockResolvedValue(LOCK_STATE);
-    api.setCustomLockConfig.mockImplementation((_id: number, config: object) =>
-      Promise.resolve({ ...LOCK_STATE, ...config }),
-    );
+    api.setCustomLockConfig.mockImplementation((_id: number, config: object) => {
+      const state = { ...LOCK_STATE, ...config };
+      api.fetchCustomLockState.mockResolvedValue(state);
+      return Promise.resolve(state);
+    });
   });
 
   const setup = (poolFormat: PoolFormat = 'FULL_BRACKET', lockDate: string | null = null) => {
@@ -162,6 +165,7 @@ describe('CustomCompetitionEditor', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['myGroups'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['customTeams', '7'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['customMatches', '7'] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['customLockState', '7'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['leaderboard', '7'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['leaderboardMatchdays', '7'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['predictionScore'] });
@@ -305,6 +309,26 @@ describe('CustomCompetitionEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar el partido Leones – descanso' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
     await waitFor(() => expect(api.deleteCustomMatch).toHaveBeenCalledWith(7, 12));
+  });
+
+  it('permite poner fecha a un cruce ya creado sin cambiar sus equipos', async () => {
+    api.fetchCustomMatches.mockResolvedValue([
+      match({ id: 20, round: 'bracket-1', groupName: null, date: null }),
+    ]);
+    setup('KNOCKOUTS_ONLY');
+    await openTab(/Partidos/);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Cambiar fecha de Leones – Tigres' }),
+    );
+    fireEvent.change(screen.getByLabelText('Fecha de Leones – Tigres'), {
+      target: { value: '2026-12-02T20:00' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() =>
+      expect(api.setCustomMatchDate).toHaveBeenCalledWith(7, 20, '2026-12-02T20:00'),
+    );
   });
 
   it('pide el ganador del desempate en una eliminatoria empatada', async () => {

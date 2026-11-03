@@ -62,10 +62,21 @@ public class CustomLockService {
     }
 
     public LockState state(Edition edition) {
-        PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
-        int offset = Math.max(0, edition.getLockOffsetMinutes());
         List<Match> all = edition.getCompetition() == null ? List.of()
                 : matches.findByCompetitionId(edition.getCompetition().getId());
+        return state(edition, all);
+    }
+
+    /** Calcula el cierre que quedaría al quitar un partido, antes de modificar la base de datos. */
+    public LockState stateWithoutMatch(Edition edition, Long matchId) {
+        List<Match> remaining = matches.findByCompetitionId(edition.getCompetition().getId()).stream()
+                .filter(match -> !matchId.equals(match.getId())).toList();
+        return state(edition, remaining);
+    }
+
+    private LockState state(Edition edition, List<Match> all) {
+        PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
+        int offset = Math.max(0, edition.getLockOffsetMinutes());
         LocalDateTime now = LocalDateTime.now(clock.withZone(ZONE));
 
         List<Match> firstRound = round(all, 1);
@@ -184,7 +195,16 @@ public class CustomLockService {
     /** Fecha del primer cierre en el modo {@link PredictionLockMode#FIRST_MATCH}: el primer partido con fecha. */
     public LocalDateTime firstMatchLock(Edition edition) {
         if (edition.getCompetition() == null) return null;
-        return matches.findByCompetitionId(edition.getCompetition().getId()).stream()
+        return firstMatchLock(edition, matches.findByCompetitionId(edition.getCompetition().getId()));
+    }
+
+    public LocalDateTime firstMatchLockWithoutMatch(Edition edition, Long matchId) {
+        return firstMatchLock(edition, matches.findByCompetitionId(edition.getCompetition().getId()).stream()
+                .filter(match -> !matchId.equals(match.getId())).toList());
+    }
+
+    private static LocalDateTime firstMatchLock(Edition edition, List<Match> all) {
+        return all.stream()
                 .filter(match -> match.getMatchDate() != null && match.getAwayTeam() != null)
                 .map(Match::getMatchDate).min(Comparator.naturalOrder())
                 .map(date -> date.minusMinutes(Math.max(0, edition.getLockOffsetMinutes())))

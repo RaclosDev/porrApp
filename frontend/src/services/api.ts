@@ -514,6 +514,11 @@ export const setCustomResult = (
     method: 'PUT',
     json: { homeScore, awayScore, winnerTeamId },
   });
+export const setCustomMatchDate = (groupId: number, matchId: number, matchDate: string | null) =>
+  request<Match>(`/groups/${groupId}/competition/matches/${matchId}/date`, {
+    method: 'PUT',
+    json: { matchDate },
+  });
 export const deleteCustomMatch = (groupId: number, matchId: number) =>
   request<void>(`/groups/${groupId}/competition/matches/${matchId}`, { method: 'DELETE' });
 

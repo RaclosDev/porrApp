@@ -302,4 +302,92 @@ class CustomCompetitionServiceTest {
                 "admin@example.com", new CustomResultRequest(1, 0)));
         verify(scores, never()).invalidateCompetition(any());
     }
+
+    @Test
+    void cannotDeleteAFutureMatchIfItWouldReopenAnAlreadyClosedPick() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
+        Match future = Match.builder().id(12L).competition(competition).round("bracket-2").build();
+        when(matches.findById(12L)).thenReturn(Optional.of(future));
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        var before = new CustomLockService.LockState(com.porra.mundial.model.PredictionLockMode.PER_MATCH,
+                0, null, java.util.List.of(), java.util.List.of(java.util.List.of(false, false), java.util.List.of(false, true)),
+                true, false, null);
+        var after = new CustomLockService.LockState(com.porra.mundial.model.PredictionLockMode.PER_MATCH,
+                0, null, java.util.List.of(), java.util.List.of(java.util.List.of(false, false), java.util.List.of(true, false)),
+                true, false, null);
+        when(lockService.state(edition)).thenReturn(before);
+        when(lockService.stateWithoutMatch(edition, 12L)).thenReturn(after);
+
+        assertThrows(BusinessException.class, () -> service.deleteMatch(leagueId, 12L, "admin@example.com"));
+
+        verify(matches, never()).delete(any());
+    }
+
+    @Test
+    void canDeleteAFutureMatchWhenPreviouslyClosedPicksStayClosed() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
+        Match future = Match.builder().id(12L).competition(competition).round("bracket-2").build();
+        when(matches.findById(12L)).thenReturn(Optional.of(future));
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        var state = new CustomLockService.LockState(com.porra.mundial.model.PredictionLockMode.PER_MATCH,
+                0, null, java.util.List.of(), java.util.List.of(java.util.List.of(true, false)), true, false, null);
+        when(lockService.state(edition)).thenReturn(state);
+        when(lockService.stateWithoutMatch(edition, 12L)).thenReturn(state);
+
+        service.deleteMatch(leagueId, 12L, "admin@example.com");
+
+        verify(matches).delete(future);
+    }
+
+    @Test
+    void cannotDeleteTheFirstMatchIfItWouldReopenTheWholePrediction() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.FIRST_MATCH);
+        edition.setLockDate(LocalDateTime.now().minusHours(1));
+        Match first = Match.builder().id(12L).competition(competition).round("bracket-2").build();
+        when(matches.findById(12L)).thenReturn(Optional.of(first));
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(lockService.firstMatchLockWithoutMatch(edition, 12L)).thenReturn(LocalDateTime.now().plusDays(1));
+
+        assertThrows(BusinessException.class, () -> service.deleteMatch(leagueId, 12L, "admin@example.com"));
+
+        verify(matches, never()).delete(any());
+    }
+
+    @Test
+    void schedulesAnUndatedBracketMatchAfterPredictionsExist() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
+        Match match = Match.builder().id(12L).competition(competition).round("bracket-1")
+                .awayTeam(Team.builder().build()).build();
+        when(matches.findById(12L)).thenReturn(Optional.of(match));
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(lockService.state(edition)).thenReturn(lockState(false, false));
+        LocalDateTime date = LocalDateTime.now().plusDays(2);
+
+        service.setMatchDate(leagueId, 12L, "admin@example.com", date);
+
+        assertEquals(date, match.getMatchDate());
+        verify(scores).invalidateCompetition(competition.getId());
+    }
+
+    @Test
+    void reschedulingCannotReopenAnAlreadyClosedMatch() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
+        LocalDateTime originalDate = LocalDateTime.now().minusHours(1);
+        Match match = Match.builder().id(12L).competition(competition).round("bracket-1")
+                .awayTeam(Team.builder().build()).matchDate(originalDate).build();
+        when(matches.findById(12L)).thenReturn(Optional.of(match));
+        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(lockService.state(edition)).thenReturn(lockState(true, false), lockState(false, false));
+
+        assertThrows(BusinessException.class, () -> service.setMatchDate(leagueId, 12L,
+                "admin@example.com", LocalDateTime.now().plusDays(1)));
+
+        assertEquals(originalDate, match.getMatchDate());
+        verify(scores, never()).invalidateCompetition(any());
+    }
 }

@@ -81,6 +81,7 @@ export default function CustomCompetitionEditor({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.customTeams(groupKey) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.customMatches(groupKey) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.customLockState(groupKey) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.group(groupKey) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupKey) }),
