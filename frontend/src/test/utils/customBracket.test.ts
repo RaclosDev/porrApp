@@ -227,6 +227,7 @@ describe('resultados de una competición personalizada', () => {
       awayPlaceholder: 'Ganador C2',
     });
     expect(rounds[1].slots[1]).toMatchObject({ home: 'E', isBye: true });
+    expect(rounds[2].slots[0]).toMatchObject({ home: null, away: 'E' });
   });
 
   it('usa los cruces que el administrador ya ha creado en rondas posteriores', () => {

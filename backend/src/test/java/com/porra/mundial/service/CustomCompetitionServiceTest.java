@@ -98,6 +98,31 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
+    void adminChangesTeamLogoEvenAfterPredictions() {
+        Team selected = Team.builder().id(1L).name("T1").competition(competition).build();
+        when(teams.findById(1L)).thenReturn(Optional.of(selected));
+
+        Team updated = service.setTeamLogo(leagueId, 1L, "admin@example.com", "  https://cdn.example.com/t1.png ");
+
+        assertEquals("https://cdn.example.com/t1.png", updated.getLogoUrl());
+        verifyNoInteractions(predictions);
+        assertNull(service.setTeamLogo(leagueId, 1L, "admin@example.com", " ").getLogoUrl());
+    }
+
+    @Test
+    void rejectsLogosThatAreNotHttpsOrFromOtherUsers() {
+        Team selected = Team.builder().id(1L).name("T1").competition(competition).build();
+        lenient().when(teams.findById(1L)).thenReturn(Optional.of(selected));
+
+        for (String url : java.util.List.of("http://cdn.example.com/t1.png", "javascript:alert(1)", "/img/t1.png")) {
+            assertThrows(BusinessException.class, () -> service.setTeamLogo(leagueId, 1L, "admin@example.com", url));
+        }
+        assertThrows(BusinessException.class,
+                () -> service.setTeamLogo(leagueId, 1L, "other@example.com", "https://cdn.example.com/t1.png"));
+        assertNull(selected.getLogoUrl());
+    }
+
+    @Test
     void cannotDeleteTeamUsedInAConfiguredMatch() {
         Team selected = Team.builder().id(1L).name("Azules").competition(competition).build();
         when(teams.findById(1L)).thenReturn(Optional.of(selected));

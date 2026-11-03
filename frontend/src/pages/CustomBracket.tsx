@@ -15,6 +15,7 @@ import {
   type CustomPair,
 } from '../utils/customBracket';
 import PaperLoading from '../components/PaperLoading';
+import Flag from '../components/Flag';
 
 type Pair = CustomPair;
 
@@ -81,6 +82,11 @@ export default function CustomBracket() {
     setPicks(saved.data?.customRounds ?? []);
     setPredictionName(saved.predictionName ?? '');
   }, [saved, loadedKey]);
+
+  const logos = useMemo(
+    () => Object.fromEntries(teams.map((team) => [team.name, team.logoUrl] as const)),
+    [teams],
+  );
 
   const teamsByGroup = useMemo(() => {
     const result: Record<string, string[]> = {};
@@ -278,6 +284,7 @@ export default function CustomBracket() {
                             disabled={activeGroupIsLocked || match.isBye}
                             onChange={() => selectWinner(round.roundIndex, matchIndex, match.home!)}
                           />
+                          {logos[match.home] && <Flag team={match.home} logo={logos[match.home]} />}
                           <span className="font-medium">{match.home}</span>
                           <PickOutcome
                             picked={!match.isBye && currentPick === match.home}
@@ -304,6 +311,9 @@ export default function CustomBracket() {
                                 selectWinner(round.roundIndex, matchIndex, match.away!)
                               }
                             />
+                            {logos[match.away] && (
+                              <Flag team={match.away} logo={logos[match.away]} />
+                            )}
                             <span className="font-medium">{match.away}</span>
                             <PickOutcome
                               picked={currentPick === match.away}

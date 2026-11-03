@@ -435,6 +435,7 @@ export interface CustomTeam {
   id: number;
   name: string;
   groupName: string | null;
+  logoUrl: string | null;
 }
 export const fetchCustomTeams = (groupId: number) =>
   request<CustomTeam[]>(`/groups/${groupId}/competition/teams`);
@@ -442,10 +443,21 @@ export const fetchCustomMatches = (groupId: number) =>
   request<Match[]>(`/groups/${groupId}/competition/matches`);
 export const fetchCustomStandings = (groupId: number) =>
   request<LeagueStanding[]>(`/groups/${groupId}/competition/standings`);
-export const addCustomTeam = (groupId: number, name: string, groupName?: string) =>
+export const addCustomTeam = (
+  groupId: number,
+  name: string,
+  groupName?: string,
+  logoUrl?: string,
+) =>
   request<CustomTeam>(`/groups/${groupId}/competition/teams`, {
     method: 'POST',
-    json: { name, groupName },
+    json: { name, groupName, logoUrl },
+  });
+/** Cambia o quita (con null) el escudo de un equipo de la competición personalizada. */
+export const setCustomTeamLogo = (groupId: number, teamId: number, logoUrl: string | null) =>
+  request<CustomTeam>(`/groups/${groupId}/competition/teams/${teamId}/logo`, {
+    method: 'PUT',
+    json: { logoUrl },
   });
 export const deleteCustomTeam = (groupId: number, teamId: number) =>
   request<void>(`/groups/${groupId}/competition/teams/${teamId}`, { method: 'DELETE' });

@@ -15,6 +15,7 @@ import {
   type CustomResultSlot,
 } from '../utils/customBracket';
 import PaperLoading from '../components/PaperLoading';
+import Flag from '../components/Flag';
 
 /** Portada de una competición personalizada: grupos, cuadro real y partidos con resultado. */
 export default function CustomTournamentHome() {
@@ -41,6 +42,13 @@ export default function CustomTournamentHome() {
 
   const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
   const matches = useMemo(() => matchesQuery.data ?? [], [matchesQuery.data]);
+  const logos = useMemo(
+    () =>
+      Object.fromEntries(
+        teams.filter((team) => team.logoUrl).map((team) => [team.name, team.logoUrl as string]),
+      ),
+    [teams],
+  );
   const groupTables = useMemo(() => computeCustomGroupTables(teams, matches), [teams, matches]);
   const rounds = useMemo(() => computeCustomResultRounds(matches), [matches]);
   const groupMatches = useMemo(
@@ -133,7 +141,9 @@ export default function CustomTournamentHome() {
                         {rows.map((row, index) => (
                           <tr key={row.team} className="border-b border-line last:border-0">
                             <td className="py-2 pr-2 text-muted">{index + 1}</td>
-                            <td className="py-2 font-medium break-words">{row.team}</td>
+                            <td className="py-2 font-medium break-words">
+                              <TeamName name={row.team} logo={logos[row.team]} />
+                            </td>
                             <td className="py-2 px-1 text-center">{row.played}</td>
                             <td className="py-2 px-1 text-center">
                               {row.goalsFor - row.goalsAgainst > 0 ? '+' : ''}
@@ -168,7 +178,7 @@ export default function CustomTournamentHome() {
                     <ol className="list-none m-0 p-0 flex flex-1 flex-col gap-3 md:justify-around">
                       {round.slots.map((slot, index) => (
                         <li key={slot.match?.id ?? `pending-${index}`}>
-                          <ResultCard slot={slot} />
+                          <ResultCard slot={slot} logos={logos} />
                         </li>
                       ))}
                     </ol>
@@ -189,7 +199,7 @@ export default function CustomTournamentHome() {
                     <span className="text-muted text-xs uppercase tracking-wide font-bold">
                       Grupo {match.groupName} · {formatMatchDate(match.date)}
                     </span>
-                    <MatchLine match={match} />
+                    <MatchLine match={match} logos={logos} />
                   </li>
                 ))}
               </ul>
@@ -201,12 +211,23 @@ export default function CustomTournamentHome() {
   );
 }
 
-function MatchLine({ match }: { match: Match }) {
+/** Nombre de equipo con su escudo, si lo tiene. */
+function TeamName({ name, logo }: { name: string; logo?: string | null }) {
+  return (
+    <span className="inline-flex items-center gap-2 min-w-0 align-middle">
+      {logo && <Flag team={name} logo={logo} />}
+      <span className="break-words">{name}</span>
+    </span>
+  );
+}
+
+function MatchLine({ match, logos }: { match: Match; logos: Record<string, string> }) {
   const played = match.finished && match.homeScore != null && match.awayScore != null;
   return (
     <p className="m-0 mt-1 flex items-center justify-between gap-3 font-bold">
       <span className="min-w-0 break-words">
-        {match.home} · {match.away}
+        <TeamName name={match.home} logo={match.homeLogo ?? logos[match.home]} /> ·{' '}
+        <TeamName name={match.away} logo={match.awayLogo ?? logos[match.away]} />
       </span>
       <span className={played ? 'whitespace-nowrap' : 'whitespace-nowrap text-muted font-normal'}>
         {played ? `${match.homeScore} - ${match.awayScore}` : 'Por jugar'}
@@ -215,7 +236,7 @@ function MatchLine({ match }: { match: Match }) {
   );
 }
 
-function ResultCard({ slot }: { slot: CustomResultSlot }) {
+function ResultCard({ slot, logos }: { slot: CustomResultSlot; logos: Record<string, string> }) {
   const match = slot.match;
   const winner = match ? customMatchWinner(match) : null;
   const played = Boolean(match?.finished && match.homeScore != null && match.awayScore != null);
@@ -251,7 +272,11 @@ function ResultCard({ slot }: { slot: CustomResultSlot }) {
                   : 'text-muted italic'
               }`}
             >
-              {side.name && !side.bye ? side.name : side.placeholder}
+              {side.name && !side.bye ? (
+                <TeamName name={side.name} logo={logos[side.name]} />
+              ) : (
+                side.placeholder
+              )}
               {isWinner && <span className="sr-only"> (ganador)</span>}
             </span>
             {played && <span className="font-bold tabular-nums">{side.score}</span>}

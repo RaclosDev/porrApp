@@ -29,7 +29,9 @@ describe('CustomTournamentHome', () => {
   });
 
   it('se muestra (sección activa) con el cuadro real y el ganador de cada cruce', async () => {
-    vi.mocked(api.fetchCustomTeams).mockResolvedValue([]);
+    vi.mocked(api.fetchCustomTeams).mockResolvedValue([
+      { id: 1, name: 'T1', groupName: null, logoUrl: 'https://cdn.example.com/t1.png' },
+    ]);
     vi.mocked(api.fetchCustomMatches).mockResolvedValue([
       knockout({
         id: 1,
@@ -61,6 +63,8 @@ describe('CustomTournamentHome', () => {
     expect(screen.getByText('(ganador)').parentElement).toHaveTextContent('T1');
     expect(screen.getAllByText('T1')).toHaveLength(2);
     expect(screen.getByText('Ganador C2')).toBeInTheDocument();
+    // El escudo sale también en semifinales, donde el cruce aún no existe.
+    expect(screen.getAllByRole('img', { name: 'T1' })).toHaveLength(2);
     expect(screen.getByRole('link', { name: 'Rellenar mi pronóstico' })).toHaveAttribute(
       'href',
       '/prediction',

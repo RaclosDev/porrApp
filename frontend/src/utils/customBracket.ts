@@ -272,7 +272,7 @@ export function computeCustomResultRounds(matches: Match[]): CustomResultRound[]
           isBye,
         });
       }
-      previousWinners = slots.map(() => null);
+      previousWinners = slots.map((slot) => (slot.isBye ? slot.home : null));
     }
     result.push({ roundIndex, title: getCustomRoundTitle(roundIndex, totalRounds), slots });
   }
