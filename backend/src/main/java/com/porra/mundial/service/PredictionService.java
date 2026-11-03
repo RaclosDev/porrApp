@@ -7,6 +7,7 @@ import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.Prediction;
+import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MembershipRepository;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -36,6 +38,7 @@ public class PredictionService {
     private final MembershipRepository membershipRepository;
     private final BracketPredictionValidator bracketValidator;
     private final CustomBracketPredictionValidator customBracketValidator;
+    private final CustomLockService customLockService;
     private final LeaguePaymentService paymentService;
 
     public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
@@ -111,6 +114,16 @@ public class PredictionService {
         validateBracket(edition, predictionData);
 
         Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, effectiveGroupId);
+        if (progressiveCustom(edition)) {
+            CustomLockService.LockState state = customLockService.state(edition);
+            if (state.fullyLocked()) {
+                throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
+            }
+            if (existing.isEmpty() && state.anyLocked()) {
+                throw BusinessException.conflict("La competición ya ha empezado: no se admiten pronósticos nuevos.");
+            }
+            existing.ifPresent(saved -> customLockService.requireLockedPartsUnchanged(state, saved.getBracketData(), predictionData));
+        }
         if (existing.isPresent()) {
             Prediction prediction = existing.get();
             requireSameTopology(prediction.getBracketData(), predictionData);
@@ -154,6 +167,13 @@ public class PredictionService {
         if (predictionData != null) {
             requireSameTopology(prediction.getBracketData(), predictionData);
             validateBracket(prediction.getEdition(), predictionData);
+            if (progressiveCustom(prediction.getEdition())) {
+                CustomLockService.LockState state = customLockService.state(prediction.getEdition());
+                if (state.fullyLocked()) {
+                    throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
+                }
+                customLockService.requireLockedPartsUnchanged(state, prediction.getBracketData(), predictionData);
+            }
         }
         if (predictionName != null) prediction.setName(predictionName);
         if (predictionData != null) {
@@ -164,10 +184,20 @@ public class PredictionService {
         return predictionRepository.save(prediction);
     }
 
+    /** Competición personalizada de cuadro cuyo cierre llega por partes. */
+    private static boolean progressiveCustom(Edition edition) {
+        return edition != null && edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null
+                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY
+                && edition.getLockMode() != null && edition.getLockMode().progressive();
+    }
+
     private void validateBracket(Edition edition, PredictionDataDTO data) {
         if (edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null) {
-            if (edition.getLockDate() == null) {
-                throw BusinessException.badRequest("El administrador debe fijar el cierre de pronósticos");
+            PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
+            if (!mode.progressive() && edition.getLockDate() == null) {
+                throw BusinessException.badRequest(mode == PredictionLockMode.FIRST_MATCH
+                        ? "El cierre llegará con el primer partido: el administrador debe ponerle fecha"
+                        : "El administrador debe fijar el cierre de pronósticos");
             }
             customBracketValidator.validate(edition, data);
         } else {
@@ -201,9 +231,14 @@ public class PredictionService {
         if (predictions == null) {
             return java.util.Collections.emptyList();
         }
+        Map<Long, CustomLockService.LockState> lockStates = new java.util.HashMap<>();
         return predictions.stream().map(pred -> {
             boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
-            boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
+            CustomLockService.LockState partial = !isOwner && progressiveCustom(pred.getEdition())
+                    ? lockStates.computeIfAbsent(pred.getEdition().getId(), id -> customLockService.state(pred.getEdition()))
+                    : null;
+            boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked()
+                    || partial != null && partial.anyLocked();
             boolean canViewDetails = isLocked || isOwner;
 
             PredictionDataDTO dataDto = null;
@@ -212,6 +247,9 @@ public class PredictionService {
                     dataDto = pred.getBracketData();
                 } catch (Exception e) {
                     log.warn("Error leyendo bracket_data para predicción {}: {}", pred.getId(), e.getMessage());
+                }
+                if (dataDto != null && partial != null && !partial.fullyLocked()) {
+                    dataDto = customLockService.lockedPartsOnly(partial, dataDto);
                 }
                 if (dataDto != null) {
                     ensureKnockoutFinals(dataDto);
@@ -250,12 +288,15 @@ public class PredictionService {
         }
 
         boolean isLocked = pred.getEdition() != null && pred.getEdition().isLocked();
+        CustomLockService.LockState partial = !isOwner && progressiveCustom(pred.getEdition())
+                ? customLockService.state(pred.getEdition()) : null;
 
-        if (!isLocked && !isOwner) {
+        if (!isLocked && !isOwner && (partial == null || !partial.anyLocked())) {
             throw BusinessException.forbidden("Los pronósticos de otros participantes estarán ocultos hasta que finalice el plazo de inscripción.");
         }
 
-        return getPredictionData(id);
+        PredictionDataDTO data = getPredictionData(id);
+        return data != null && partial != null && !partial.fullyLocked() ? customLockService.lockedPartsOnly(partial, data) : data;
     }
 
     /** Los pronósticos de una liga privada solo los ven sus miembros; los de la Porra Global, todos. */

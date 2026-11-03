@@ -66,7 +66,9 @@ export default function CustomPredictionViewer({
           <h3>{getCustomRoundTitle(index, prediction.customRounds!.length)}</h3>
           <ol>
             {round.map((winner, position) => (
-              <li key={position}>{winner}</li>
+              <li key={position} className={winner ? undefined : 'text-muted italic'}>
+                {winner ?? 'Oculto hasta que empiece el cruce'}
+              </li>
             ))}
           </ol>
         </section>

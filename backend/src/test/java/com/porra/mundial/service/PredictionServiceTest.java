@@ -27,6 +27,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +44,12 @@ class PredictionServiceTest {
     @org.mockito.Spy
     private BracketPredictionValidator bracketValidator = new BracketPredictionValidator(mock(com.porra.mundial.repository.TeamRepository.class));
 
+    @Mock
+    private CustomBracketPredictionValidator customBracketValidator;
+
+    @Mock
+    private CustomLockService customLockService;
+
     @InjectMocks
     private PredictionService predictionService;
 
@@ -52,6 +59,48 @@ class PredictionServiceTest {
     private League group;
     private Edition edition;
     private Prediction prediction;
+
+    private Edition customEdition(com.porra.mundial.model.PredictionLockMode mode) {
+        com.porra.mundial.model.Competition competition = com.porra.mundial.model.Competition.builder()
+                .name("Copa").ownerLeague(group).build();
+        competition.setId(9L);
+        return Edition.builder().league(group).competition(competition)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).lockMode(mode).build();
+    }
+
+    private static CustomLockService.LockState lockState(boolean anyLocked) {
+        return new CustomLockService.LockState(com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null,
+                List.of(), List.of(List.of(anyLocked, false)), anyLocked, false, null);
+    }
+
+    @Test
+    void progressiveLockRejectsNewPredictionsOnceSomethingHasStarted() {
+        Edition custom = customEdition(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(custom));
+        when(membershipRepository.existsById(any())).thenReturn(true);
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("owner@test.com", 100L)).thenReturn(Optional.empty());
+        when(customLockService.state(custom)).thenReturn(lockState(true));
+
+        BusinessException error = assertThrows(BusinessException.class, () ->
+                predictionService.createPrediction("owner@test.com", "Tarde", new PredictionDataDTO(), 100L));
+        assertTrue(error.getMessage().contains("ya ha empezado"));
+        verify(predictionRepository, never()).save(any());
+    }
+
+    @Test
+    void othersOnlySeeTheLockedPartsWhileTheRestIsOpen() {
+        Edition custom = customEdition(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
+        prediction.setEdition(custom);
+        PredictionDataDTO hidden = new PredictionDataDTO();
+        CustomLockService.LockState state = lockState(true);
+        when(customLockService.state(custom)).thenReturn(state);
+        when(customLockService.lockedPartsOnly(eq(state), any())).thenReturn(hidden);
+
+        List<PredictionResponseDTO> list = predictionService.toPredictionDtoList(List.of(prediction), "stranger@test.com");
+
+        assertSame(hidden, list.get(0).getData());
+    }
 
     @Test
     void refusesMissingRequestedEditionInsteadOfSavingInGlobalLeague() {

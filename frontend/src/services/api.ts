@@ -461,6 +461,32 @@ export const setCustomTeamLogo = (groupId: number, teamId: number, logoUrl: stri
   });
 export const deleteCustomTeam = (groupId: number, teamId: number) =>
   request<void>(`/groups/${groupId}/competition/teams/${teamId}`, { method: 'DELETE' });
+/** Cuándo se cierran los pronósticos de una competición personalizada. */
+export type CustomLockMode = 'FIXED_DATE' | 'FIRST_MATCH' | 'PER_ROUND' | 'PER_MATCH';
+
+/** Qué partes del pronóstico están ya cerradas (GET /groups/{id}/competition/lock-state). */
+export interface CustomLockState {
+  mode: CustomLockMode;
+  offsetMinutes: number;
+  lockDate: string | null;
+  lockedGroups: string[];
+  /** Por ronda del cuadro, qué ganadores están cerrados (índice = cruce). */
+  lockedPicks: boolean[][];
+  anyLocked: boolean;
+  fullyLocked: boolean;
+  nextLockAt: string | null;
+}
+
+export const fetchCustomLockState = (groupId: number) =>
+  request<CustomLockState>(`/groups/${groupId}/competition/lock-state`);
+export const setCustomLockConfig = (
+  groupId: number,
+  config: { mode: CustomLockMode; offsetMinutes: number; lockDate: string | null },
+) =>
+  request<CustomLockState>(`/groups/${groupId}/competition/lock`, {
+    method: 'PUT',
+    json: config,
+  });
 export const setCustomLockDate = (groupId: number, lockDate: string) =>
   request<string>(`/groups/${groupId}/competition/lock-date`, {
     method: 'PUT',

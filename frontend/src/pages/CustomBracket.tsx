@@ -16,6 +16,7 @@ import {
   type CustomBracketMatchSlot,
   type CustomPair,
 } from '../utils/customBracket';
+import { useCustomLock } from '../hooks/useCustomLock';
 import PaperLoading from '../components/PaperLoading';
 import Flag from '../components/Flag';
 import CustomSelect from '../components/CustomSelect';
@@ -32,15 +33,10 @@ const toCanvasMatch = (slot: CustomBracketMatchSlot): CanvasMatch<string | null>
 
 /** Pronóstico de una competición personalizada, con el mismo cuadro que el pronóstico del Mundial. */
 export default function CustomBracket() {
-  const {
-    activeGroupId,
-    activeGroupPoolFormat,
-    activeGroupName,
-    activeGroupIsLocked,
-    activeGroupLockDate,
-    userName,
-  } = useAppContext();
+  const { activeGroupId, activeGroupPoolFormat, activeGroupName, activeGroupIsLocked, userName } =
+    useAppContext();
   const saved = useMyLeaguePrediction();
+  const lock = useCustomLock(activeGroupId);
   const queryClient = useQueryClient();
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const [groups, setGroups] = useState<Record<string, string[]>>({});
@@ -77,7 +73,7 @@ export default function CustomBracket() {
     if (!saved || saved.key === loadedKey) return;
     setLoadedKey(saved.key);
     setGroups(saved.data?.groups ?? {});
-    setPicks(saved.data?.customRounds ?? []);
+    setPicks((saved.data?.customRounds ?? []).map((round) => round.map((pick) => pick ?? '')));
     setPredictionName(saved.predictionName ?? '');
   }, [saved, loadedKey]);
 
@@ -137,7 +133,9 @@ export default function CustomBracket() {
 
   const isFullBracket = activeGroupPoolFormat === 'FULL_BRACKET';
   const hasGroups = isFullBracket && Object.keys(teamsByGroup).length > 0;
-  const editable = !activeGroupIsLocked;
+  // Quien no tiene pronóstico no puede entrar cuando la competición ya ha empezado a cerrarse.
+  const lateEntry = lock.anyLocked && !saved;
+  const editable = !activeGroupIsLocked && !lock.fullyLocked && !lateEntry;
   const finalRoundIndex = displayRounds.length - 1;
   const finalPick = picks[finalRoundIndex]?.[0];
   const champion =
@@ -186,7 +184,7 @@ export default function CustomBracket() {
         placeholder={!name}
         pressed={picked}
         onClick={
-          editable && name && !slot.isBye
+          editable && name && !slot.isBye && !lock.pickLocked(roundIndex, matchIndex)
             ? () => selectWinner(roundIndex, matchIndex, name)
             : undefined
         }
@@ -272,7 +270,17 @@ export default function CustomBracket() {
           Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.
         </p>
       )}
-      {activeGroupIsLocked && (
+      {lateEntry && !lock.fullyLocked && (
+        <p className="paper-panel album-sheet p-4 max-w-145 mx-auto text-center" role="status">
+          La competición ya ha empezado: no se admiten pronósticos nuevos.
+        </p>
+      )}
+      {editable && lock.anyLocked && (
+        <p className="text-center text-muted text-[0.9rem] mb-[15px]">
+          Lo que ya ha empezado está cerrado; el resto puedes cambiarlo.
+        </p>
+      )}
+      {(activeGroupIsLocked || lock.fullyLocked) && (
         <p className="flex items-center justify-center gap-3 mb-[15px] text-[0.9rem] text-muted">
           <InkStamp>Pronóstico cerrado</InkStamp>
           El plazo para enviarlo o cambiarlo ha terminado.
@@ -324,7 +332,7 @@ export default function CustomBracket() {
                     <span className="text-[0.8rem] text-accent-text font-bold">
                       {position + 1}.º clasificado
                     </span>
-                    {editable ? (
+                    {editable && !lock.groupLocked(group) ? (
                       <CustomSelect
                         value={groups[group]?.[position] ?? ''}
                         onChange={(value) => selectGroupPosition(group, position, value)}
@@ -402,13 +410,13 @@ export default function CustomBracket() {
             />
           )}
 
-          {!activeGroupLockDate && (
+          {lock.state && !lock.configured && (
             <p className="paper-panel album-sheet p-5 mt-7.5 text-center max-w-145 mx-auto">
               El administrador debe fijar el cierre antes de que se puedan guardar pronósticos.
             </p>
           )}
 
-          {firstRound.length > 0 && activeGroupLockDate && editable && (
+          {firstRound.length > 0 && lock.configured && editable && (
             <div id="controls-section" className="paper-panel album-sheet landing-tape mt-7.5 p-5">
               <h3 className="mt-0 text-accent-text">Guardar pronóstico</h3>
               {error && (

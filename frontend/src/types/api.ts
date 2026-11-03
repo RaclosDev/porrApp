@@ -140,7 +140,8 @@ export interface PredictionData {
   prediction?: string;
   groups?: Record<string, string[]>;
   thirds?: string[];
-  customRounds?: string[][];
+  /** Ganadores por ronda; null en lo que otro participante aún puede cambiar (cierre por partes). */
+  customRounds?: (string | null)[][];
   r32?: TeamPair[];
   /** Mismo contenido que r32; el backend lo sigue enviando para pronósticos antiguos. */
   r1?: TeamPair[];

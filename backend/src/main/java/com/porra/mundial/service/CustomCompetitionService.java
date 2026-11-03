@@ -10,6 +10,7 @@ import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.model.Membership;
+import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchRepository;
@@ -36,24 +37,72 @@ public class CustomCompetitionService {
     private final UserAccountRepository userAccountRepository;
     private final PredictionRepository predictionRepository;
     private final CompetitionService competitionService;
+    private final CustomLockService lockService;
+
+    /** Margen máximo antes del partido: 30 días. */
+    static final int MAX_LOCK_OFFSET_MINUTES = 30 * 24 * 60;
 
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
     public LocalDateTime setLockDate(Long leagueId, String email, LocalDateTime lockDate) {
+        return setLockConfig(leagueId, email, PredictionLockMode.FIXED_DATE, 0, lockDate).getLockDate();
+    }
+
+    /**
+     * Cambia cómo se cierran los pronósticos. Solo antes del primer pronóstico, para no cambiar las
+     * reglas a quien ya ha jugado.
+     */
+    @Transactional
+    @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
+    public Edition setLockConfig(Long leagueId, String email, PredictionLockMode mode, Integer offsetMinutes,
+                                 LocalDateTime lockDate) {
         ownedCompetition(leagueId, email);
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
         if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY) {
             throw BusinessException.badRequest("Esta competición se juega por jornadas");
         }
-        if (lockDate == null || !lockDate.isAfter(LocalDateTime.now(java.time.ZoneId.of("Europe/Madrid")))) {
-            throw BusinessException.badRequest("La fecha de cierre debe ser futura");
+        if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran los pronósticos");
+        int offset = offsetMinutes == null ? 0 : offsetMinutes;
+        if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
+            throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
         }
         if (!predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
             throw BusinessException.conflict("No se puede cambiar el cierre después del primer pronóstico");
         }
-        edition.setLockDate(lockDate);
-        return lockDate;
+        LocalDateTime now = LocalDateTime.now(CustomLockService.ZONE);
+        edition.setLockMode(mode);
+        if (mode == PredictionLockMode.FIXED_DATE) {
+            if (lockDate == null || !lockDate.isAfter(now)) {
+                throw BusinessException.badRequest("La fecha de cierre debe ser futura");
+            }
+            edition.setLockOffsetMinutes(0);
+            edition.setLockDate(lockDate);
+        } else {
+            edition.setLockOffsetMinutes(offset);
+            edition.setLockDate(mode == PredictionLockMode.FIRST_MATCH ? lockService.firstMatchLock(edition) : null);
+            if (mode == PredictionLockMode.FIRST_MATCH && edition.getLockDate() != null
+                    && !edition.getLockDate().isAfter(now)) {
+                throw BusinessException.badRequest("Con ese margen el cierre ya habría pasado");
+            }
+        }
+        return edition;
+    }
+
+    /** Estado del cierre para los miembros: qué grupos y ganadores siguen abiertos. */
+    @Transactional(readOnly = true)
+    public CustomLockService.LockState lockState(Long leagueId, String email) {
+        memberCompetition(leagueId, email);
+        Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
+        return lockService.state(edition);
+    }
+
+    /** En el modo «primer partido» el cierre sigue al primer partido aunque cambie el calendario. */
+    private void refreshFirstMatchLock(Long leagueId) {
+        editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
+                .filter(edition -> edition.getLockMode() == PredictionLockMode.FIRST_MATCH)
+                .ifPresent(edition -> edition.setLockDate(lockService.firstMatchLock(edition)));
     }
 
     @Transactional(readOnly = true)
@@ -168,7 +217,7 @@ public class CustomCompetitionService {
     }
 
     @Transactional
-    @CacheEvict(value = {"matches", "matchRadar", "competitionStandings"}, allEntries = true)
+    @CacheEvict(value = {"matches", "matchRadar", "competitionStandings", "userGroups", "groupById", "groupByCode"}, allEntries = true)
     public MatchResponseDTO addMatch(Long leagueId, String email, CustomMatchRequest request) {
         Competition competition = ownedCompetition(leagueId, email);
         if (request.homeTeamId().equals(request.awayTeamId())) {
@@ -214,6 +263,7 @@ public class CustomCompetitionService {
                 .matchDate(request.matchDate()).round(round)
                 .groupName("group".equals(round) && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY
                         ? home.getGroupName() : null).build());
+        refreshFirstMatchLock(leagueId);
         scoreInvalidationService.invalidateCompetition(competition.getId());
         return MatchResponseDTO.fromEntity(match);
     }
@@ -257,7 +307,7 @@ public class CustomCompetitionService {
     }
 
     @Transactional
-    @CacheEvict(value = {"matches", "matchRadar", "competitionStandings", "matchdayStats"}, allEntries = true)
+    @CacheEvict(value = {"matches", "matchRadar", "competitionStandings", "matchdayStats", "userGroups", "groupById", "groupByCode"}, allEntries = true)
     public void deleteMatch(Long leagueId, Long matchId, String email) {
         Competition competition = ownedCompetition(leagueId, email);
         Match match = matchRepository.findById(matchId)
@@ -269,6 +319,7 @@ public class CustomCompetitionService {
             throw BusinessException.conflict("No se pueden cambiar los cruces después del primer pronóstico");
         }
         matchRepository.delete(match);
+        refreshFirstMatchLock(leagueId);
         scoreInvalidationService.invalidateCompetition(competition.getId());
     }
 

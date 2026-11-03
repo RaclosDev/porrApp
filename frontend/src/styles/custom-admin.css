@@ -37,6 +37,22 @@
     flex-basis: 100%;
   }
 
+  /* Modos de cierre: la lista ocupa toda la fila y cada opción es un objetivo táctil de 44 px. */
+  .custom-admin-form .league-admin-field.custom-lock-modes {
+    flex-basis: 100%;
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .custom-lock-mode {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+
   .custom-admin-row-form .league-admin-field {
     margin-top: 0;
   }
