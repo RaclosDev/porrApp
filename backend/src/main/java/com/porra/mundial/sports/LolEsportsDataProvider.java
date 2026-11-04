@@ -48,6 +48,11 @@ public class LolEsportsDataProvider implements SportsDataProvider {
     public static final String EXTERNAL_ID_PREFIX = "lol.";
     /** Prefijo del id externo de los equipos, para no mezclarlos con los de ESPN. */
     static final String TEAM_ID_PREFIX = "lol-";
+    /**
+     * Logos propios para los equipos cuyo logo de lolesports es blanco y no se ve sobre el papel claro.
+     * Se sirven desde el frontend ({@code public/logos}).
+     */
+    private static final Map<String, String> LOGO_OVERRIDES = Map.of("DK", "/logos/dplus-kia.svg");
 
     private static final String BASE_URL = "https://esports-api.lolesports.com/persisted/gw/getSchedule";
     private static final Map<String, String> LEAGUE_IDS = Map.of(
@@ -294,7 +299,8 @@ public class LolEsportsDataProvider implements SportsDataProvider {
                 .put("id", TEAM_ID_PREFIX + team.path("code").asText())
                 .put("displayName", team.path("name").asText())
                 .put("abbreviation", team.path("code").asText())
-                .put("logo", team.path("image").asText(null));
+                .put("logo", LOGO_OVERRIDES.getOrDefault(
+                        team.path("code").asText(), team.path("image").asText(null)));
     }
 
     private static boolean isRealTeam(JsonNode team) {

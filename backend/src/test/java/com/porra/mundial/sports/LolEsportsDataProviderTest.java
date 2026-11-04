@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -146,6 +147,28 @@ class LolEsportsDataProviderTest {
 
         assertEquals(5, teams.size());
         assertEquals("GEN", teams.get(1).path("abbreviation").asText());
+        assertEquals("http://static.lolesports.com/teams/gen.png", teams.get(1).path("logo").asText());
+    }
+
+    @Test
+    void replacesWhiteLogosWithOwnLogos() throws Exception {
+        String fixture;
+        try (var input = getClass().getResourceAsStream("/lolesports/schedule-worlds.json")) {
+            fixture = new String(Objects.requireNonNull(input).readAllBytes(), StandardCharsets.UTF_8);
+        }
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(
+                fixture.replace("\"code\": \"IG\"", "\"code\": \"DK\"").getBytes(StandardCharsets.UTF_8));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode teams = provider.fetchTeams("lol.worlds");
+
+        JsonNode dk = null;
+        for (JsonNode team : teams) {
+            if ("DK".equals(team.path("abbreviation").asText())) dk = team;
+        }
+        assertNotNull(dk);
+        assertEquals("/logos/dplus-kia.svg", dk.path("logo").asText());
         assertEquals("http://static.lolesports.com/teams/gen.png", teams.get(1).path("logo").asText());
     }
 
