@@ -154,9 +154,10 @@ describe('CustomBracket', () => {
 
     renderBracket();
 
-    expect(
-      await screen.findByText('Lo que ya ha empezado está cerrado; el resto puedes cambiarlo.'),
-    ).toBeInTheDocument();
+    expect((await screen.findAllByRole('button', { name: 'Pasar a DK' })).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.queryByText(/Lo que ya ha empezado/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Pasar a Gen.G' })).toBeNull();
     expect(screen.getAllByRole('button', { name: 'Pasar a DK' }).length).toBeGreaterThan(0);
   });
