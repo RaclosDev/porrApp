@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { endSession, updateUserPreferences } from '../services/api';
 import { hasStoredSession } from '../services/sessionHint';
 import { queryClient } from '../services/queryClient';
+import { unsubscribeThisDevice } from '../services/push';
 import { GLOBAL_LEAGUE_ID } from '../utils/constants';
 import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
 import { isBracketState } from '../utils/bracketValidation';
@@ -278,6 +279,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   logout: () => {
+    void unsubscribeThisDevice().catch(() => undefined);
     endSession();
     SESSION_KEYS.forEach((k) => localStorage.removeItem(k));
     clearAllDrafts();

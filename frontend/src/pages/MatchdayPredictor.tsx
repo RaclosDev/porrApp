@@ -1,6 +1,7 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 import MatchdayHeader from '../components/matchday/MatchdayHeader';
@@ -12,6 +13,7 @@ import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 
 function MatchdayPredictor() {
   const context = useAppContext();
+  useRequestedGroup(context);
   if (context.loadingGroup || context.groupError)
     return <LeagueLoadState error={context.groupError} />;
   return (
@@ -20,6 +22,29 @@ function MatchdayPredictor() {
       context={context}
     />
   );
+}
+
+/** Abre la liga de `?group=ID` (p. ej. desde un recordatorio) si el usuario es miembro. */
+function useRequestedGroup({
+  userGroups,
+  activeGroupId,
+  changeGroup,
+}: ReturnType<typeof useAppContext>) {
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('group');
+  useEffect(() => {
+    if (!requested || !userGroups) return;
+    const group = userGroups.find((candidate) => String(candidate.id) === requested);
+    if (group && String(activeGroupId) !== requested) changeGroup(group.id);
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('group');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requested, userGroups, activeGroupId, changeGroup, setParams]);
 }
 
 /**
