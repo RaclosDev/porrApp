@@ -14,6 +14,7 @@ import CreatedLeagueModal from '../components/groups/CreatedLeagueModal';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
 import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
 import type { Group } from '../types/api';
+import { sortGroupsByRecent } from '../utils/groupOrder';
 
 /** Mis ligas: crear, unirse con código y administrar. */
 export default function GroupsDashboard() {
@@ -243,8 +244,8 @@ export default function GroupsDashboard() {
           </div>
         </div>
       ) : (
-        <div className="flex gap-[15px] flex-wrap justify-center">
-          {groups.map((group) => {
+        <ul className="grid gap-2.5 md:grid-cols-2 max-w-240 mx-auto my-0 p-0 list-none">
+          {sortGroupsByRecent(groups, activeGroupId).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
             const isCreator = isGroupAdmin(group);
             return (
@@ -264,7 +265,7 @@ export default function GroupsDashboard() {
               />
             );
           })}
-        </div>
+        </ul>
       )}
       {selectedGroupForMembers && (
         <GroupMembersModal
