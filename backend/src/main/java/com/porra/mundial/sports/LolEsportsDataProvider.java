@@ -231,8 +231,10 @@ public class LolEsportsDataProvider implements SportsDataProvider {
             return null;
         }
         String state = event.path("state").asText("");
-        boolean completed = "completed".equals(state);
-        boolean live = "inProgress".equals(state);
+        // lolesports a veces deja la serie en "inProgress" durante horas tras decidirse: se da por
+        // acabada si ya hay ganador o un equipo alcanzó las victorias necesarias del "bestOf".
+        boolean completed = "completed".equals(state) || ("inProgress".equals(state) && isDecided(match));
+        boolean live = "inProgress".equals(state) && !completed;
 
         ObjectNode statusType = objectMapper.createObjectNode()
                 .put("state", completed ? "post" : live ? "in" : "pre")
@@ -262,6 +264,19 @@ public class LolEsportsDataProvider implements SportsDataProvider {
         adapted.putArray("competitions").add(competition);
         adapted.putObject("season").put("slug", roundSlug(blockName));
         return adapted;
+    }
+
+    /** Serie con ganador declarado o con un equipo que ya suma las victorias que exige el "bestOf". */
+    static boolean isDecided(JsonNode match) {
+        int count = match.path("strategy").path("count").asInt(0);
+        int needed = "bestOf".equals(match.path("strategy").path("type").asText()) && count > 0 ? count / 2 + 1 : 0;
+        for (JsonNode team : match.path("teams")) {
+            JsonNode result = team.path("result");
+            String outcome = result.path("outcome").asText("");
+            if ("win".equals(outcome) || "loss".equals(outcome)) return true;
+            if (needed > 0 && result.path("gameWins").asInt(0) >= needed) return true;
+        }
+        return false;
     }
 
     /** Fase de lolesports como {@code season.slug} de ESPN: el Play-In aparte y la fase suiza como fase previa. */
