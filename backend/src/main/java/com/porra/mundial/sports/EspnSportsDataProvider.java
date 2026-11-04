@@ -25,6 +25,7 @@ import java.util.zip.GZIPInputStream;
 
 @Component
 @Primary
+@org.springframework.core.annotation.Order(org.springframework.core.Ordered.HIGHEST_PRECEDENCE)
 @RequiredArgsConstructor
 @Slf4j
 public class EspnSportsDataProvider implements SportsDataProvider {

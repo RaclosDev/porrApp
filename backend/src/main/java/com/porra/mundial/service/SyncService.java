@@ -171,7 +171,7 @@ public class SyncService {
 
     private CompetitionSync syncCompetition(Competition competition) {
         long start = System.currentTimeMillis();
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getName());
+        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
         String slug = competition.getExternalId();
         if (!provider.isAvailable()) {
             log.warn("Sincronización de {} omitida: el circuit breaker de {} está abierto",
@@ -294,7 +294,7 @@ public class SyncService {
         if (slug == null || slug.isBlank()) {
             throw new IllegalArgumentException("La competición no tiene proveedor externo configurado");
         }
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getName());
+        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
         LocalDate today = LocalDate.now();
         int startYear = today.getMonthValue() >= 7 ? today.getYear() : today.getYear() - 1;
         LocalDateTime windowStart = today.minusMonths(3).atStartOfDay();
