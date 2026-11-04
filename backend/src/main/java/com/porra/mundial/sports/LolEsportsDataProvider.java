@@ -305,7 +305,15 @@ public class LolEsportsDataProvider implements SportsDataProvider {
                 .put("displayName", team.path("name").asText())
                 .put("abbreviation", team.path("code").asText())
                 .put("logo", LOGO_OVERRIDES.getOrDefault(
-                        team.path("code").asText(), team.path("image").asText(null)));
+                        team.path("code").asText(), secureUrl(team.path("image").asText(null))));
+    }
+
+    /**
+     * La API da los logos en {@code http://}, que la CSP ({@code img-src https:}) bloquea en los navegadores
+     * que no suben solos el contenido mixto a https (p. ej. varios de Android). El CDN también sirve https.
+     */
+    static String secureUrl(String url) {
+        return url != null && url.startsWith("http://") ? "https://" + url.substring("http://".length()) : url;
     }
 
     private static boolean isRealTeam(JsonNode team) {
