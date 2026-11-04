@@ -1,0 +1,86 @@
+{
+  "data": {
+    "schedule": {
+      "pages": { "older": null, "newer": null },
+      "events": [
+        {
+          "startTime": "2026-10-23T08:00:00Z",
+          "state": "completed",
+          "type": "match",
+          "blockName": "Swiss Stage",
+          "league": { "name": "Worlds", "slug": "worlds" },
+          "match": {
+            "id": "115660540725900001",
+            "flags": [],
+            "teams": [
+              { "name": "Invictus Gaming", "code": "IG", "image": "http://static.lolesports.com/teams/ig.png",
+                "result": { "outcome": "loss", "gameWins": 0 }, "record": { "wins": 0, "losses": 1 } },
+              { "name": "Gen.G Esports", "code": "GEN", "image": "http://static.lolesports.com/teams/gen.png",
+                "result": { "outcome": "win", "gameWins": 1 }, "record": { "wins": 1, "losses": 0 } }
+            ],
+            "strategy": { "type": "bestOf", "count": 1 }
+          }
+        },
+        {
+          "startTime": "2026-11-01T08:00:00Z",
+          "state": "completed",
+          "type": "match",
+          "blockName": "Swiss Stage",
+          "league": { "name": "Worlds", "slug": "worlds" },
+          "match": {
+            "id": "115660540725900002",
+            "flags": [],
+            "teams": [
+              { "name": "Bilibili Gaming", "code": "BLG", "image": "http://static.lolesports.com/teams/blg.png",
+                "result": { "outcome": "win", "gameWins": 2 } },
+              { "name": "Hanwha Life Esports", "code": "HLE", "image": "http://static.lolesports.com/teams/hle.png",
+                "result": { "outcome": "loss", "gameWins": 1 } }
+            ],
+            "strategy": { "type": "bestOf", "count": 3 }
+          }
+        },
+        {
+          "startTime": "2026-11-01T12:00:00Z",
+          "state": "completed",
+          "type": "show",
+          "blockName": "Swiss Stage",
+          "league": { "name": "Worlds", "slug": "worlds" }
+        },
+        {
+          "startTime": "2026-11-04T22:00:00Z",
+          "state": "unstarted",
+          "type": "match",
+          "blockName": "Quarterfinals",
+          "league": { "name": "Worlds", "slug": "worlds" },
+          "match": {
+            "id": "115660540726095115",
+            "flags": [],
+            "teams": [
+              { "name": "Gen.G Esports", "code": "GEN", "image": "http://static.lolesports.com/teams/gen.png",
+                "result": { "outcome": null, "gameWins": 0 } },
+              { "name": "LYON", "code": "LYON", "image": "http://static.lolesports.com/teams/lyon.png",
+                "result": { "outcome": null, "gameWins": 0 } }
+            ],
+            "strategy": { "type": "bestOf", "count": 5 }
+          }
+        },
+        {
+          "startTime": "2026-11-14T19:00:00Z",
+          "state": "unstarted",
+          "type": "match",
+          "blockName": "Finals",
+          "league": { "name": "Worlds", "slug": "worlds" },
+          "match": {
+            "id": "115660540726095200",
+            "flags": [],
+            "teams": [
+              { "name": "TBD", "code": "TBD", "image": "", "result": { "outcome": null, "gameWins": 0 } },
+              { "name": "TBD", "code": "TBD", "image": "", "result": { "outcome": null, "gameWins": 0 } }
+            ],
+            "strategy": { "type": "bestOf", "count": 5 }
+          }
+        }
+      ]
+    }
+  }
+}
