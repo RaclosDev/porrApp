@@ -41,6 +41,8 @@ public class OfficialMatchdayService {
     private static final Duration SEASON_MARGIN = Duration.ofDays(30);
     /** Votos mínimos para relacionar un equipo oficial con uno propio. */
     private static final int MIN_VOTES = 2;
+    /** Diferencia máxima de horario al reconocer un partido por su rival conocido. */
+    private static final Duration OPPONENT_WINDOW = Duration.ofDays(2);
     private static final String[] CACHES = {"matches", "matchRadar", "matchdayStats", ScoreInvalidationService.LEADERBOARD_CACHE};
 
     private final FootballDataClient footballData;
@@ -122,6 +124,7 @@ public class OfficialMatchdayService {
         }
 
         Map<Long, Long> teamMap = learnTeams(oursBySlot, officialBySlot);
+        linkByKnownOpponents(teamMap, season, fixtures);
         Map<String, OfficialFixture> byPair = new HashMap<>();
         for (OfficialFixture fixture : fixtures) {
             Long home = teamMap.get(fixture.homeTeamId());
@@ -151,10 +154,8 @@ public class OfficialMatchdayService {
         }
         Map<Long, Long> mapping = new HashMap<>();
         votes.forEach((officialId, counts) -> {
-            var ranked = counts.entrySet().stream().sorted(Map.Entry.<Long, Integer>comparingByValue().reversed()).toList();
-            int top = ranked.get(0).getValue();
-            int second = ranked.size() > 1 ? ranked.get(1).getValue() : 0;
-            if (top >= MIN_VOTES && top > 2 * second) mapping.put(officialId, ranked.get(0).getKey());
+            Long winner = majority(counts);
+            if (winner != null) mapping.put(officialId, winner);
         });
         Map<Long, Long> owners = new HashMap<>();
         Set<Long> shared = new HashSet<>();
@@ -167,6 +168,54 @@ public class OfficialMatchdayService {
         });
         shared.forEach(mapping::remove);
         return mapping;
+    }
+
+    /**
+     * Completa los equipos que no se pudieron relacionar por horario: si en un partido oficial el rival
+     * ya es conocido y ese rival juega en casa (o fuera) un único partido propio en esas fechas, el otro
+     * equipo de ese partido es un voto. Se repite mientras se relacionen equipos nuevos.
+     */
+    private static void linkByKnownOpponents(Map<Long, Long> mapping, List<Match> season, List<OfficialFixture> fixtures) {
+        for (int pass = 0; pass < 5; pass++) {
+            Set<Long> taken = new HashSet<>(mapping.values());
+            Map<Long, Map<Long, Integer>> votes = new HashMap<>();
+            for (OfficialFixture fixture : fixtures) {
+                Long home = mapping.get(fixture.homeTeamId());
+                Long away = mapping.get(fixture.awayTeamId());
+                if ((home == null) == (away == null)) continue;
+                boolean knownHome = home != null;
+                Long known = knownHome ? home : away;
+                List<Match> candidates = season.stream()
+                        .filter(m -> known.equals(knownHome ? m.getHomeTeam().getId() : m.getAwayTeam().getId()))
+                        .filter(m -> Duration.between(kickoff(m), fixture.kickoff()).abs().compareTo(OPPONENT_WINDOW) <= 0)
+                        .toList();
+                if (candidates.size() != 1) continue;
+                Match match = candidates.get(0);
+                long other = knownHome ? match.getAwayTeam().getId() : match.getHomeTeam().getId();
+                if (taken.contains(other)) continue;
+                long unknownOfficial = knownHome ? fixture.awayTeamId() : fixture.homeTeamId();
+                votes.computeIfAbsent(unknownOfficial, k -> new HashMap<>()).merge(other, 1, Integer::sum);
+            }
+            Map<Long, Long> learned = new HashMap<>();
+            votes.forEach((officialId, counts) -> {
+                Long winner = majority(counts);
+                if (winner != null) learned.put(officialId, winner);
+            });
+            Set<Long> owners = new HashSet<>();
+            Set<Long> shared = new HashSet<>();
+            learned.values().forEach(own -> { if (!owners.add(own)) shared.add(own); });
+            learned.values().removeIf(shared::contains);
+            if (learned.isEmpty()) return;
+            mapping.putAll(learned);
+        }
+    }
+
+    /** Equipo con mayoría clara y al menos {@link #MIN_VOTES} votos, o {@code null}. */
+    private static Long majority(Map<Long, Integer> counts) {
+        var ranked = counts.entrySet().stream().sorted(Map.Entry.<Long, Integer>comparingByValue().reversed()).toList();
+        int top = ranked.get(0).getValue();
+        int second = ranked.size() > 1 ? ranked.get(1).getValue() : 0;
+        return top >= MIN_VOTES && top > 2 * second ? ranked.get(0).getKey() : null;
     }
 
     private static Instant kickoff(Match match) {

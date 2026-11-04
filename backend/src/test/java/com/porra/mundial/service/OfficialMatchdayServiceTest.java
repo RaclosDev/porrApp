@@ -98,6 +98,31 @@ class OfficialMatchdayServiceTest {
     }
 
     @Test
+    void linksTeamsThatNeverPlayAloneThroughKnownOpponents() {
+        LocalDateTime start = LocalDateTime.of(2026, 8, 15, 17, 0);
+        List<Match> ours = new ArrayList<>();
+        List<OfficialFixture> fixtures = new ArrayList<>();
+        for (int round = 0; round < 3; round++) {
+            LocalDateTime kickoff = start.plusDays(7L * round);
+            // Equipos 0 y 1 juegan solos en su horario; 2 y 3, siempre a la vez que otro partido
+            // y con una hora distinta en cada proveedor.
+            ours.add(match(0, 1, kickoff));
+            fixtures.add(fixture(0, 1, kickoff, round + 1));
+            ours.add(match(0, 1, kickoff.plusHours(3)));
+            fixtures.add(fixture(0, 1, kickoff.plusHours(3), round + 1));
+            ours.add(match(2, 0, kickoff.plusDays(1)));
+            fixtures.add(fixture(2, 0, kickoff.plusDays(1).plusHours(2), round + 1));
+            ours.add(match(1, 3, kickoff.plusDays(1)));
+            fixtures.add(fixture(1, 3, kickoff.plusDays(1).plusHours(2), round + 1));
+        }
+
+        var assignment = OfficialMatchdayService.assignMatchdays(ours, fixtures);
+
+        assertThat(assignment.linkedTeams()).isEqualTo(4);
+        assertThat(assignment.matchdays()).hasSize(12);
+    }
+
+    @Test
     void ignoresMatchesOutsideTheOfficialSeason() {
         LocalDateTime kickoff = LocalDateTime.of(2026, 8, 15, 21, 0);
         Match current = match(0, 1, kickoff);
