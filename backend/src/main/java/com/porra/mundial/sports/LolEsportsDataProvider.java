@@ -264,9 +264,10 @@ public class LolEsportsDataProvider implements SportsDataProvider {
         return adapted;
     }
 
-    /** Fase de lolesports como {@code season.slug} de ESPN: Play-In y fase suiza cuentan como fase previa. */
+    /** Fase de lolesports como {@code season.slug} de ESPN: el Play-In aparte y la fase suiza como fase previa. */
     static String roundSlug(String blockName) {
         String block = blockName == null ? "" : blockName.toLowerCase(Locale.ROOT);
+        if (block.contains("play")) return "play-in";
         if (block.contains("quarter")) return "quarterfinals";
         if (block.contains("semi")) return "semifinals";
         if (block.contains("final")) return "final";

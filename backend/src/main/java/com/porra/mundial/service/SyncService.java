@@ -6,6 +6,7 @@ import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.sports.SportsDataProviderRegistry;
 import lombok.RequiredArgsConstructor;
@@ -185,6 +186,10 @@ public class SyncService {
 
             if (worldCup) {
                 processEvents(provider.fetchScoreboardEvents(slug, WORLD_CUP_DATE_RANGE), teams, batch);
+            } else if (LolEsportsDataProvider.isLolCompetition(slug)) {
+                // El calendario de lolesports llega entero de una vez (y en caché): se repasa completo
+                // para que las series ya jugadas reciban también su fase.
+                processEvents(provider.fetchScoreboardEvents(slug, null), teams, batch);
             } else {
                 LocalDate today = LocalDate.now();
                 for (LocalDate day : List.of(today.minusDays(1), today, today.plusDays(1))) {

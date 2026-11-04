@@ -467,6 +467,7 @@ export const useAppContext = () => {
     activeGroupRules: groupInfo?.rules || '',
     activeCompetitionId,
     activeCompetitionName: groupInfo?.competitionName || null,
+    activeCompetitionExternalId: groupInfo?.competitionExternalId || null,
     activeCompetitionFormatType:
       groupInfo?.formatType ||
       (activeGroupPoolFormat

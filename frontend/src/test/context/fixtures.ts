@@ -34,6 +34,7 @@ export const appContext = (fields: Partial<AppContextValue> = {}): AppContextVal
   activeGroupLockDate: null,
   activeGroupRules: '',
   activeCompetitionName: null,
+  activeCompetitionExternalId: null,
   activeCompetitionFormatType: null,
   userGroups: [],
   userGroupsLoaded: true,

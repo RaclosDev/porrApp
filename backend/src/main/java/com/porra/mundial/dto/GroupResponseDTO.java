@@ -28,6 +28,8 @@ public class GroupResponseDTO {
     /** Identificador de la competición asociada a la edición activa. */
     private Long competitionId;
     private Boolean customCompetition;
+    /** Identificador de la competición en el proveedor de datos (fifa.world, lol.worlds…). */
+    private String competitionExternalId;
     /** Nombre de la competición actual en curso (Ej: Euro 2024, LaLiga). */
     private String competitionName;
     /** Formato de competición física: "LEAGUE" o "TOURNAMENT". */
@@ -91,6 +93,7 @@ public class GroupResponseDTO {
         return builder
                 .competitionId(competition != null ? competition.getId() : null)
                 .customCompetition(competition != null && competition.getOwnerLeague() != null)
+                .competitionExternalId(competition != null ? competition.getExternalId() : null)
                 .competitionName(competition != null ? competition.getName() : null)
                 .formatType(competition != null ? competition.getFormatType() : null)
                 .poolFormat(edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null)

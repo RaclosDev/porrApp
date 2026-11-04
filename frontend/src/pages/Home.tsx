@@ -15,6 +15,10 @@ import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
 import CustomTournamentHome from './CustomTournamentHome';
+import OfficialTournamentHome from './OfficialTournamentHome';
+
+/** Competición del cuadro oficial con grupos, terceros y cruces. */
+const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
 
 /**
  * Página principal: estado del torneo oficial, clasificación por grupos en vivo,
@@ -37,6 +41,7 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
     activeGroupPoolFormat,
     activeCompetitionFormatType,
     activeGroupCustomCompetition,
+    activeCompetitionExternalId,
     loadingGroup,
     groupError,
   } = useAppContext();
@@ -60,6 +65,10 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
   }
   if (isMatchDayLeague) {
     return <MatchdayHomeDashboard />;
+  }
+  // El cuadro oficial (grupos, terceros y cruces) es el del Mundial; los demás torneos usan sus series.
+  if (activeCompetitionExternalId && activeCompetitionExternalId !== WORLD_CUP_EXTERNAL_ID) {
+    return <OfficialTournamentHome />;
   }
 
   // Si estamos en modo bracket, delegamos directamente en OfficialBracket sin mostrar nunca el skeleton de grupos

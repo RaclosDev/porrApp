@@ -164,6 +164,7 @@ class MatchEventProcessorTest {
     @Test
     @DisplayName("Cada season.slug de ESPN se traduce a su ronda")
     void mapsEverySeasonSlug() {
+        assertEquals("playin", MatchEventProcessor.roundFromSlug("play-in"));
         assertEquals("group", MatchEventProcessor.roundFromSlug("group-stage"));
         assertEquals("r32", MatchEventProcessor.roundFromSlug("round-of-32"));
         assertEquals("r16", MatchEventProcessor.roundFromSlug("round-of-16"));

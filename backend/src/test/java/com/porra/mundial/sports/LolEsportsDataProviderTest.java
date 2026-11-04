@@ -145,7 +145,8 @@ class LolEsportsDataProviderTest {
 
     @ParameterizedTest
     @CsvSource({
-            "Play-In, group-stage",
+            "Play-In, play-in",
+            "Play-In Final, play-in",
             "Swiss Stage, group-stage",
             "Quarterfinals, quarterfinals",
             "Semifinals, semifinals",
