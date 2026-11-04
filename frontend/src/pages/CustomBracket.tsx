@@ -361,19 +361,12 @@ export default function CustomBracket() {
             '✓ Guardado'
           ) : completeData ? (
             'Guardando…'
-          ) : (
-            'Se guarda solo al completarlo.'
-          )}
+          ) : null}
         </p>
       )}
       {lateEntry && !lock.fullyLocked && (
         <p className="paper-panel album-sheet p-4 max-w-145 mx-auto text-center" role="status">
           La competición ya ha empezado: no se admiten pronósticos nuevos.
-        </p>
-      )}
-      {editable && lock.anyLocked && (
-        <p className="text-center text-muted text-[0.9rem] mb-[15px]">
-          Lo que ya ha empezado está cerrado; el resto puedes cambiarlo.
         </p>
       )}
       {(activeGroupIsLocked || lock.fullyLocked) && (
