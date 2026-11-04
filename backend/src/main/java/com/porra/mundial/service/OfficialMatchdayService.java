@@ -39,6 +39,8 @@ public class OfficialMatchdayService {
     private static final ZoneId MATCH_ZONE = ZoneId.of("Europe/Madrid");
     /** Margen alrededor del calendario oficial para no tocar partidos de otras temporadas. */
     private static final Duration SEASON_MARGIN = Duration.ofDays(30);
+    /** Votos mínimos para relacionar un equipo oficial con uno propio. */
+    private static final int MIN_VOTES = 2;
     private static final String[] CACHES = {"matches", "matchRadar", "matchdayStats", ScoreInvalidationService.LEADERBOARD_CACHE};
 
     private final FootballDataClient footballData;
@@ -71,9 +73,9 @@ public class OfficialMatchdayService {
         List<OfficialFixture> fixtures = footballData.fetchSeasonFixtures(code);
         if (fixtures.isEmpty()) return 0;
         Integer changed = new TransactionTemplate(transactionManager).execute(status -> {
-            Map<Match, Integer> matchdays = assignMatchdays(matchRepository.findByCompetitionId(competition.getId()), fixtures);
+            Assignment assignment = assignMatchdays(matchRepository.findByCompetitionId(competition.getId()), fixtures);
             int count = 0;
-            for (var assigned : matchdays.entrySet()) {
+            for (var assigned : assignment.matchdays().entrySet()) {
                 String round = MatchEventProcessor.MATCHDAY_PREFIX + assigned.getValue();
                 Match match = assigned.getKey();
                 if (!round.equals(match.getRound())) {
@@ -82,21 +84,25 @@ public class OfficialMatchdayService {
                     count++;
                 }
             }
+            log.info("Jornadas oficiales de {}: {} de {} partidos emparejados, {} equipos relacionados, {} actualizados",
+                    slug, assignment.matchdays().size(), assignment.seasonMatches(), assignment.linkedTeams(), count);
             return count;
         });
-        int relabeled = changed == null ? 0 : changed;
-        if (relabeled > 0) log.info("Jornadas oficiales de {}: {} partidos actualizados", slug, relabeled);
-        return relabeled;
+        return changed == null ? 0 : changed;
     }
+
+    /** Jornada oficial de cada partido emparejado, con los totales para el registro. */
+    record Assignment(Map<Match, Integer> matchdays, int seasonMatches, int linkedTeams) {}
 
     /**
      * Empareja los partidos propios con el calendario oficial. Los equipos de ambos proveedores se
-     * relacionan por los horarios en que solo se juega un partido; luego cada partido se busca por
-     * su pareja local-visitante, única en una temporada de liga, así un aplazado conserva su jornada.
+     * relacionan por votación en los horarios en que solo se juega un partido, así un horario que
+     * difiere entre proveedores no rompe la relación; luego cada partido se busca por su pareja
+     * local-visitante, única en una temporada de liga, así un aplazado conserva su jornada.
      */
-    static Map<Match, Integer> assignMatchdays(List<Match> matches, List<OfficialFixture> fixtures) {
+    static Assignment assignMatchdays(List<Match> matches, List<OfficialFixture> fixtures) {
         Map<Match, Integer> result = new IdentityHashMap<>();
-        if (fixtures.isEmpty()) return result;
+        if (fixtures.isEmpty()) return new Assignment(result, 0, 0);
         Instant first = fixtures.stream().map(OfficialFixture::kickoff).min(Instant::compareTo).orElseThrow();
         Instant last = fixtures.stream().map(OfficialFixture::kickoff).max(Instant::compareTo).orElseThrow();
 
@@ -124,30 +130,32 @@ public class OfficialMatchdayService {
         }
         for (Match match : season) {
             OfficialFixture fixture = byPair.get(match.getHomeTeam().getId() + ":" + match.getAwayTeam().getId());
-            if (fixture == null) {
-                List<OfficialFixture> sameSlot = officialBySlot.getOrDefault(kickoff(match), List.of());
-                List<Match> oursSameSlot = oursBySlot.getOrDefault(kickoff(match), List.of());
-                if (sameSlot.size() == 1 && oursSameSlot.size() == 1) fixture = sameSlot.get(0);
-            }
             if (fixture != null) result.put(match, fixture.matchday());
         }
-        return result;
+        return new Assignment(result, season.size(), teamMap.size());
     }
 
-    /** Id oficial → id propio, aprendido de los horarios con un único partido en ambos lados. */
+    /**
+     * Id oficial → id propio. Cada horario con un único partido en ambos lados es un voto; gana el
+     * equipo con mayoría clara y al menos dos votos, y dos equipos oficiales no comparten equipo propio.
+     */
     private static Map<Long, Long> learnTeams(Map<Instant, List<Match>> ours, Map<Instant, List<OfficialFixture>> official) {
-        Map<Long, Long> mapping = new HashMap<>();
-        Set<Long> conflicting = new HashSet<>();
+        Map<Long, Map<Long, Integer>> votes = new HashMap<>();
         for (var slot : ours.entrySet()) {
             List<OfficialFixture> candidates = official.get(slot.getKey());
             if (slot.getValue().size() != 1 || candidates == null || candidates.size() != 1) continue;
             Match match = slot.getValue().get(0);
             OfficialFixture fixture = candidates.get(0);
-            link(mapping, conflicting, fixture.homeTeamId(), match.getHomeTeam().getId());
-            link(mapping, conflicting, fixture.awayTeamId(), match.getAwayTeam().getId());
+            votes.computeIfAbsent(fixture.homeTeamId(), k -> new HashMap<>()).merge(match.getHomeTeam().getId(), 1, Integer::sum);
+            votes.computeIfAbsent(fixture.awayTeamId(), k -> new HashMap<>()).merge(match.getAwayTeam().getId(), 1, Integer::sum);
         }
-        conflicting.forEach(mapping::remove);
-        // Dos equipos oficiales no pueden ser el mismo equipo propio.
+        Map<Long, Long> mapping = new HashMap<>();
+        votes.forEach((officialId, counts) -> {
+            var ranked = counts.entrySet().stream().sorted(Map.Entry.<Long, Integer>comparingByValue().reversed()).toList();
+            int top = ranked.get(0).getValue();
+            int second = ranked.size() > 1 ? ranked.get(1).getValue() : 0;
+            if (top >= MIN_VOTES && top > 2 * second) mapping.put(officialId, ranked.get(0).getKey());
+        });
         Map<Long, Long> owners = new HashMap<>();
         Set<Long> shared = new HashSet<>();
         mapping.forEach((officialId, ownId) -> {
@@ -159,11 +167,6 @@ public class OfficialMatchdayService {
         });
         shared.forEach(mapping::remove);
         return mapping;
-    }
-
-    private static void link(Map<Long, Long> mapping, Set<Long> conflicting, long officialId, long ownId) {
-        Long previous = mapping.putIfAbsent(officialId, ownId);
-        if (previous != null && previous != ownId) conflicting.add(officialId);
     }
 
     private static Instant kickoff(Match match) {
