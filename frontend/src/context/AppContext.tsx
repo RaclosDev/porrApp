@@ -250,6 +250,7 @@ export const useAppContext = () => {
           name: fromList.name,
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
+          competitionExternalId: fromList.competitionExternalId,
           customCompetition: fromList.customCompetition,
           formatType: fromList.formatType,
           poolFormat: fromList.poolFormat,

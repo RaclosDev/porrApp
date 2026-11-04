@@ -80,6 +80,23 @@ describe('league switching', () => {
     expect(result.current.matchRadar.live).toEqual([]);
   });
 
+  it('knows the competition of the next league before it loads, so it is not shown as the World Cup', async () => {
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([
+      group({ id: 10, competitionId: 2, poolFormat: 'MATCH_DAY' }),
+      group({
+        id: 30,
+        competitionId: 19,
+        formatType: 'TOURNAMENT',
+        competitionExternalId: 'lol.worlds',
+      }),
+    ]);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.allGames).toHaveLength(1));
+    act(() => result.current.changeGroup('30'));
+    expect(result.current.loadingGroup).toBe(false);
+    expect(result.current.activeCompetitionExternalId).toBe('lol.worlds');
+  });
+
   it('waits for unknown league metadata instead of assuming a bracket or the previous competition', async () => {
     const { result } = mount();
     await waitFor(() => expect(result.current.allGames).toHaveLength(1));
