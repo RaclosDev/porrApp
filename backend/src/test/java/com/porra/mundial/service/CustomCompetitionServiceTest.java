@@ -248,7 +248,6 @@ class CustomCompetitionServiceTest {
         Edition edition = Edition.builder().league(league).competition(competition)
                 .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
         when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of());
         LocalDateTime deadline = LocalDateTime.now().plusDays(2);
 
         service.setLockDate(leagueId, "admin@example.com", deadline);
@@ -374,7 +373,6 @@ class CustomCompetitionServiceTest {
         Edition worldsEdition = Edition.builder().league(league).competition(worlds)
                 .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
         when(editions.findByLeagueIdAndStatus(8L, "ACTIVE")).thenReturn(Optional.of(worldsEdition));
-        when(predictions.findByEditionLeagueId(8L)).thenReturn(java.util.List.of());
 
         service.setLockConfig(8L, "admin@example.com", com.porra.mundial.model.PredictionLockMode.PER_MATCH, 15, null);
         assertEquals(com.porra.mundial.model.PredictionLockMode.PER_MATCH, worldsEdition.getLockMode());
