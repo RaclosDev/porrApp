@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -67,6 +69,12 @@ public class SyncService {
     private final LegacyFixtureRepairService legacyFixtureRepairService;
 
     private final ReentrantLock syncLock = new ReentrantLock();
+
+    /** Días por delante que se traen del calendario de las ligas. */
+    static final int UPCOMING_DAYS = 14;
+    private static final Duration UPCOMING_REFRESH = Duration.ofHours(6);
+    /** Última vez que se trajo el calendario de los próximos días de cada competición. */
+    private final Map<Long, Instant> lastUpcomingSync = new ConcurrentHashMap<>();
 
     private volatile LocalDateTime lastSyncTime;
     private volatile String lastSyncStatus = "INITIALIZING";
@@ -186,6 +194,7 @@ public class SyncService {
                         batch.recordError(day + ": " + e.getMessage());
                     }
                 }
+                syncUpcomingDays(competition, provider, teams, batch, today);
             }
 
             if (batch.resultsChanged()) {
@@ -206,6 +215,34 @@ public class SyncService {
             return new CompetitionSync(competition.getName(), STATUS_ERROR, batch.matchesUpdated(),
                     batch.teamsUpdated(), e.getMessage(), worldCup && batch.resultsChanged());
         }
+    }
+
+    /**
+     * Trae el calendario de las dos próximas semanas para que la siguiente jornada se pueda pronosticar antes
+     * de que empiece. Es una consulta por día, así que se hace como mucho cada {@link #UPCOMING_REFRESH}; un
+     * fallo no marca la pasada como errónea (los partidos cercanos ya se han sincronizado) y se reintenta en la
+     * siguiente.
+     */
+    private void syncUpcomingDays(Competition competition, SportsDataProvider provider, Map<String, Team> teams,
+                                  MatchEventProcessor.Batch batch, LocalDate today) {
+        Instant now = Instant.now();
+        Instant last = lastUpcomingSync.get(competition.getId());
+        if (last != null && now.isBefore(last.plus(UPCOMING_REFRESH))) return;
+        boolean complete = true;
+        for (int offset = 2; offset <= UPCOMING_DAYS; offset++) {
+            if (Thread.currentThread().isInterrupted() || !provider.isAvailable()) {
+                complete = false;
+                break;
+            }
+            LocalDate day = today.plusDays(offset);
+            try {
+                processEvents(provider.fetchScoreboardEvents(competition.getExternalId(), day.format(ESPN_DATE)), teams, batch);
+            } catch (Exception e) {
+                complete = false;
+                log.warn("No se pudo traer el calendario de {} del {}: {}", competition.getName(), day, e.getMessage());
+            }
+        }
+        if (complete) lastUpcomingSync.put(competition.getId(), now);
     }
 
     /**
