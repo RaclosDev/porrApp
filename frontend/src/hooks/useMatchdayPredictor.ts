@@ -26,7 +26,6 @@ import {
   roundLabelFor,
   roundsFromFixtures,
   roundsFromMatchdays,
-  withScore,
   withSign,
   withoutSaved,
   type Draft,
@@ -68,7 +67,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const queryClient = useQueryClient();
 
   const [selectedRound, setSelectedRound] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('UPCOMING');
   const [selectedMatchForFriends, setSelectedMatchForFriends] = useState<MatchdayFixture | null>(
     null,
   );
@@ -195,11 +194,8 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
 
   const predictionFor = (matchId: number) => localPredictions[matchId] || EMPTY_PREDICTION;
 
-  const handleScoreChange = (matchId: number, side: 'home' | 'away', value: string) =>
-    updatePrediction(matchId, withScore(predictionFor(matchId), side, value));
-
   const handleQuickSign = (matchId: number, sign: MatchSign) =>
-    updatePrediction(matchId, withSign(predictionFor(matchId), sign));
+    updatePrediction(matchId, withSign(sign));
 
   const roundFixtures = useMemo(
     () => (activeRound ? fixtures.filter((f) => roundLabelFor(f) === activeRound) : fixtures),
@@ -235,14 +231,21 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
         isPendingFixture(f, localPredictions, activeGroupIsLocked),
       ).length,
       finished: roundFixtures.filter((f) => f.finished).length,
+      upcoming: roundFixtures.filter((f) => !f.finished).length,
       total: roundFixtures.length,
     }),
     [roundFixtures, localPredictions, activeGroupIsLocked],
   );
 
+  // En una jornada ya jugada, «Todos» estaría vacío: se muestran los finalizados.
+  const activeFilter: StatusFilter =
+    statusFilter === 'UPCOMING' && counts.upcoming === 0 && counts.finished > 0
+      ? 'FINISHED'
+      : statusFilter;
+
   const displayedFixtures = useMemo(
-    () => filterFixtures(roundFixtures, statusFilter, localPredictions, activeGroupIsLocked),
-    [roundFixtures, statusFilter, localPredictions, activeGroupIsLocked],
+    () => filterFixtures(roundFixtures, activeFilter, localPredictions, activeGroupIsLocked),
+    [roundFixtures, activeFilter, localPredictions, activeGroupIsLocked],
   );
 
   return {
@@ -255,12 +258,11 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     selectedRound,
     setSelectedRound,
     roundIndex,
-    statusFilter,
+    statusFilter: activeFilter,
     setStatusFilter,
     counts,
     displayedFixtures,
     predictionFor,
-    handleScoreChange,
     handleQuickSign,
     handleSaveAll,
     isSaving: saveMutation.isPending,
