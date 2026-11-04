@@ -50,6 +50,28 @@ class LolEsportsDataProviderTest {
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "win, loss, 3, 1, true",
+            "null, null, 3, 1, true",
+            "null, null, 2, 1, false",
+            "null, null, 0, 0, false"
+    })
+    void inProgressSeriesAlreadyDecidedCountAsFinished(String homeOutcome, String awayOutcome,
+                                                      int homeWins, int awayWins, boolean decided) {
+        var match = new ObjectMapper().readTree("""
+                {"strategy": {"type": "bestOf", "count": 5}, "teams": [
+                  {"result": {"outcome": %s, "gameWins": %d}},
+                  {"result": {"outcome": %s, "gameWins": %d}}]}
+                """.formatted(json(homeOutcome), homeWins, json(awayOutcome), awayWins));
+
+        assertEquals(decided, LolEsportsDataProvider.isDecided(match));
+    }
+
+    private static String json(String outcome) {
+        return "null".equals(outcome) ? "null" : "\"" + outcome + "\"";
+    }
+
     @Test
     void supportsOnlyKnownLolCompetitions() {
         assertTrue(provider.supports("lol.worlds"));
