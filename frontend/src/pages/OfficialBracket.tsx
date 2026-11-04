@@ -20,6 +20,7 @@ import FeaturedMatchBanner from '../components/official/FeaturedMatchBanner';
 import BracketInfoPanel from '../components/official/BracketInfoPanel';
 import OfficialMobileCenter from '../components/official/OfficialMobileCenter';
 import CustomTournamentHome from './CustomTournamentHome';
+import OfficialTournamentHome from './OfficialTournamentHome';
 
 /** Cuadro oficial: los cruces reales del torneo, con los terceros resueltos en vivo. */
 function OfficialBracket() {
@@ -27,6 +28,7 @@ function OfficialBracket() {
     activeGroupPoolFormat,
     activeCompetitionFormatType,
     activeGroupCustomCompetition,
+    activeCompetitionExternalId,
     loadingGroup,
     groupError,
   } = useAppContext();
@@ -38,6 +40,9 @@ function OfficialBracket() {
   if (activeGroupCustomCompetition && !isMatchDay) return <CustomTournamentHome />;
   if (activeCompetitionFormatType && isMatchDay) {
     return <Navigate to="/tabla" replace />;
+  }
+  if (activeCompetitionExternalId && activeCompetitionExternalId !== 'fifa.world') {
+    return <OfficialTournamentHome />;
   }
 
   return <OfficialBracketView />;
