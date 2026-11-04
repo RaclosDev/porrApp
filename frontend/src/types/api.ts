@@ -226,6 +226,7 @@ export interface Group {
   createdAt: string | null;
   competitionId: number | null;
   customCompetition?: boolean;
+  competitionExternalId?: string | null;
   competitionName: string | null;
   formatType: CompetitionFormat | null;
   poolFormat: PoolFormat | null;

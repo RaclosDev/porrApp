@@ -9,6 +9,8 @@ interface OfficialBracketTabsProps {
   showGroups?: boolean;
   /** Nombre accesible de las pestañas. */
   label?: string;
+  /** Texto de la pestaña de la fase previa al cuadro. */
+  groupsLabel?: string;
 }
 
 /** Pestañas cuadro/grupos y accesos a directo y goleadores. */
@@ -20,6 +22,7 @@ export default function OfficialBracketTabs({
   activeGroupPichichi,
   showGroups = true,
   label = 'Vista del cuadro oficial',
+  groupsLabel = 'Grupos',
 }: OfficialBracketTabsProps) {
   return (
     <div className="paper-tabs max-w-130 mx-auto mb-5 mt-[5px]">
@@ -53,7 +56,7 @@ export default function OfficialBracketTabs({
             id="official-tab-grupos"
             aria-selected={activeTab === 'grupos'}
           >
-            Grupos
+            {groupsLabel}
           </button>
         )}
       </div>

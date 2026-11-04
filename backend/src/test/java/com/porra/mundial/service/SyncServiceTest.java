@@ -186,6 +186,21 @@ class SyncServiceTest {
     }
 
     @Test
+    @DisplayName("Worlds de LoL repasa su calendario entero para etiquetar también las series jugadas")
+    void lolCompetitionsSyncTheWholeSchedule() throws Exception {
+        Competition worlds = Competition.builder().id(19L).name("Worlds")
+                .externalId("lol.worlds").formatType("TOURNAMENT").build();
+        when(competitionRepository.findAll()).thenReturn(List.of(worlds));
+        when(provider.fetchScoreboardEvents("lol.worlds", null)).thenReturn(JSON.createArrayNode());
+
+        syncService.syncAll();
+
+        verify(provider, times(1)).fetchScoreboardEvents("lol.worlds", null);
+        verify(provider, never()).fetchScoreboardEvents(anyString(), anyString());
+        assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
     @DisplayName("Las ligas traen las dos próximas semanas, pero no en cada pasada")
     void leaguesFetchUpcomingDaysPeriodically() throws Exception {
         when(competitionRepository.findAll()).thenReturn(List.of(laLiga));
