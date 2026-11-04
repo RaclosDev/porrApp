@@ -158,7 +158,7 @@ describe('CustomBracket', () => {
       await screen.findByText('Lo que ya ha empezado está cerrado; el resto puedes cambiarlo.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Pasar a Gen.G' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Pasar a DK' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Pasar a DK' }).length).toBeGreaterThan(0);
   });
 
   it('no deja entrar a quien no tiene pronóstico cuando ya se ha cerrado algo', async () => {
@@ -208,6 +208,30 @@ describe('CustomBracket', () => {
     // Al entrar con el pronóstico ya hecho no se muestra ningún aviso.
     expect(toast).not.toHaveBeenCalled();
     expect(screen.queryByText(/guardado/i)).toBeNull();
+  });
+
+  it('con el pronóstico completo abre en la ronda que aún tiene partidos por jugar', async () => {
+    vi.mocked(leaguePredictions.useMyLeaguePrediction).mockReturnValue({
+      key: '8',
+      predictionName: 'Guardado',
+      data: { customRounds: [['A', 'C', 'E', 'G'], ['A', 'E'], ['A']] },
+    } as unknown as ReturnType<typeof leaguePredictions.useMyLeaguePrediction>);
+    vi.mocked(api.fetchCustomMatches).mockResolvedValue([
+      knockout(1, 'A', 'B', { finished: true, winner: 'A' }),
+      knockout(2, 'C', 'D', { finished: true, winner: 'C' }),
+      knockout(3, 'E', 'F'),
+      knockout(4, 'G', 'H'),
+    ]);
+
+    renderBracket();
+
+    const tabs = within(await screen.findByRole('tablist', { name: 'Rondas del cuadro' }));
+    const [first] = tabs.getAllByRole('tab');
+    expect(first).toHaveAttribute('aria-selected', 'true');
+    expect(tabs.getByRole('tab', { name: /Semis y final/ })).toHaveAttribute(
+      'aria-selected',
+      'false',
+    );
   });
 
   it('en un torneo oficial pronostica sobre los cruces reales con su estado de cierre', async () => {

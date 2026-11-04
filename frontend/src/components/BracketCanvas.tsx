@@ -271,6 +271,8 @@ interface BracketCanvasProps<T extends SlotTeam> {
   renderRoundFooter?: (roundIndex: number, side: 'left' | 'right') => ReactNode;
   /** Final destacada compartida entre móvil y escritorio. */
   renderFinal?: (expandedThirdPlace?: boolean) => ReactNode;
+  /** Ronda que se abre en móvil; por defecto, la primera con cruces por definir. */
+  defaultRound?: number;
 }
 
 /** Tres hojas: dos ramas de cruces y el desenlace en la hoja central. */
@@ -283,6 +285,7 @@ export default function BracketCanvas<T extends SlotTeam>({
   hiddenRounds = {},
   renderRoundFooter,
   renderFinal,
+  defaultRound,
 }: BracketCanvasProps<T>) {
   const semiIndex = roundLabels.length - 1;
   const sideRounds = Array.from({ length: Math.max(0, semiIndex) }, (_, round) => round);
@@ -358,7 +361,7 @@ export default function BracketCanvas<T extends SlotTeam>({
           renderSlot={renderSlot}
           renderFinal={renderFinal}
           roundLabels={roundLabels}
-          defaultTab={computeActiveTab(leftRounds, rightRounds, semiIndex)}
+          defaultTab={defaultRound ?? computeActiveTab(leftRounds, rightRounds, semiIndex)}
           renderRoundFooter={renderRoundFooter}
         />
       </div>

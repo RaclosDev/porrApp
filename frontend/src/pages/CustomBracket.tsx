@@ -173,6 +173,13 @@ export default function CustomBracket() {
     [displayRounds],
   );
 
+  // Se abre en la primera ronda con partidos reales por jugar, como en los resultados.
+  const currentRound = useMemo(() => {
+    const semiIndex = layout.roundLabels.length - 1;
+    const pending = displayRounds.findIndex((_, index) => !decidedRounds[index]);
+    return pending < 0 ? semiIndex : Math.min(pending, semiIndex);
+  }, [displayRounds, decidedRounds, layout.roundLabels.length]);
+
   const isFullBracket = activeGroupPoolFormat === 'FULL_BRACKET';
   const hasGroups = isFullBracket && Object.keys(teamsByGroup).length > 0;
   // Quien no tiene pronóstico no puede entrar cuando la competición ya ha empezado a cerrarse.
@@ -470,6 +477,7 @@ export default function CustomBracket() {
               leftRounds={layout.left.map((round) => round.map(toCanvasMatch))}
               rightRounds={layout.right.map((round) => round.map(toCanvasMatch))}
               roundLabels={layout.roundLabels}
+              defaultRound={currentRound}
               centerLabel={layout.roundLabels.length ? 'Semifinales y final' : 'Final'}
               renderSlot={(_, { side, roundIndex, matchIndex, isHome }) =>
                 renderPickSlot(
