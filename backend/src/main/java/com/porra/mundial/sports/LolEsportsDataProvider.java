@@ -52,7 +52,12 @@ public class LolEsportsDataProvider implements SportsDataProvider {
      * Logos propios para los equipos cuyo logo de lolesports es blanco y no se ve sobre el papel claro.
      * Se sirven desde el frontend ({@code public/logos}).
      */
-    private static final Map<String, String> LOGO_OVERRIDES = Map.of("DK", "/logos/dplus-kia.svg");
+    private static final Map<String, String> LOGO_OVERRIDES = Map.of(
+            "DK", "/logos/dplus-kia.svg",
+            "G2", "/logos/g2-esports.png",
+            "TLAW", "/logos/team-liquid.png",
+            "TSW", "/logos/team-secret.png",
+            "MVK", "/logos/mvk-esports.png");
 
     private static final String BASE_URL = "https://esports-api.lolesports.com/persisted/gw/getSchedule";
     private static final Map<String, String> LEAGUE_IDS = Map.of(
