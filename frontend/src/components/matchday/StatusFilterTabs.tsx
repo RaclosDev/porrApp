@@ -3,7 +3,7 @@ import type { StatusFilter } from '../../utils/matchday';
 interface StatusFilterTabsProps {
   value: StatusFilter;
   onChange: (filter: StatusFilter) => void;
-  counts: { total: number; pending: number; finished: number };
+  counts: { upcoming: number; pending: number; finished: number };
 }
 
 const TABS: {
@@ -12,12 +12,12 @@ const TABS: {
   modifier: string;
   count: keyof StatusFilterTabsProps['counts'];
 }[] = [
-  { filter: 'ALL', label: 'Todos', modifier: '', count: 'total' },
+  { filter: 'UPCOMING', label: 'Todos', modifier: '', count: 'upcoming' },
   { filter: 'PENDING', label: 'Pendientes', modifier: ' is-pending', count: 'pending' },
   { filter: 'FINISHED', label: 'Finalizados', modifier: ' is-finished', count: 'finished' },
 ];
 
-/** Pestañas de filtro rápido: todos, pendientes y finalizados. */
+/** Pestañas de filtro: por jugar («Todos»), sin pronosticar («Pendientes») y finalizados. */
 export default function StatusFilterTabs({ value, onChange, counts }: StatusFilterTabsProps) {
   return (
     <div className="md-filters" role="tablist" aria-label="Filtro de partidos">

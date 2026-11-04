@@ -204,7 +204,7 @@
   .md-team-rows {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   .md-team-row {
@@ -230,35 +230,6 @@
     font-weight: 700;
     color: var(--text-main);
     line-height: 1.25;
-  }
-
-  .md-score-input {
-    flex-shrink: 0;
-    width: 52px;
-    height: 44px;
-    padding: 0;
-    text-align: center;
-    font-family: inherit;
-    font-size: 1.15rem;
-    font-weight: 800;
-    border-radius: 8px;
-    background: var(--panel-bg);
-    border: 1px solid var(--accent-cyan);
-    color: var(--accent-cyan);
-    appearance: textfield;
-    -moz-appearance: textfield;
-  }
-
-  .md-score-input::-webkit-outer-spin-button,
-  .md-score-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  .md-score-input:disabled {
-    background: var(--panel-bg);
-    border-color: rgba(17, 24, 39, 0.1);
-    color: var(--text-muted);
   }
 
   .md-signs {
@@ -320,12 +291,6 @@
 
     .md-team-name {
       font-size: 0.88rem;
-    }
-
-    .md-score-input {
-      width: 44px;
-      height: 44px;
-      font-size: 1.05rem;
     }
   }
 

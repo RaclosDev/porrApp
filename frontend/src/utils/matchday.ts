@@ -16,7 +16,8 @@ export type Draft = Record<string, DraftPrediction>;
 
 export type MatchSign = '1' | 'X' | '2';
 
-export type StatusFilter = 'ALL' | 'PENDING' | 'FINISHED';
+/** `UPCOMING`: todos los que no han terminado; `PENDING`: abiertos y sin pronóstico. */
+export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
 
 export const EMPTY_PREDICTION: DraftPrediction = { homeScore: '', awayScore: '', sign: '' };
 
@@ -124,40 +125,12 @@ export function mergeDraftWithServer(fixtures: MatchdayFixture[], draft: Draft):
   return { predictions, draft: kept };
 }
 
-/** Cambia un marcador (solo dígitos, máximo dos) y recalcula el signo si están los dos. */
-export function withScore(
-  current: DraftPrediction,
-  side: 'home' | 'away',
-  value: string,
-): DraftPrediction {
-  const clean = value.replace(/[^0-9]/g, '').slice(0, 2);
-  const updated = { ...current, [side === 'home' ? 'homeScore' : 'awayScore']: clean };
-  if (updated.homeScore !== '' && updated.awayScore !== '') {
-    const h = parseInt(updated.homeScore, 10);
-    const a = parseInt(updated.awayScore, 10);
-    updated.sign = h > a ? '1' : h === a ? 'X' : '2';
-  } else {
-    updated.sign = '';
-  }
-  return updated;
-}
-
-/** Elige un signo y ajusta el marcador para que sea coherente con él. */
-export function withSign(current: DraftPrediction, sign: MatchSign): DraftPrediction {
-  let h = current.homeScore;
-  let a = current.awayScore;
-  if (sign === '1' && (h === '' || a === '' || Number(h) <= Number(a))) {
-    h = '2';
-    a = '1';
-  } else if (sign === 'X') {
-    h = '1';
-    a = '1';
-  } else if (sign === '2' && (a === '' || h === '' || Number(a) <= Number(h))) {
-    h = '1';
-    a = '2';
-  }
-  return { homeScore: h, awayScore: a, sign };
-}
+/** Elige un signo 1X2. El pronóstico es solo de signo: se descarta cualquier marcador anterior. */
+export const withSign = (sign: MatchSign): DraftPrediction => ({
+  homeScore: '',
+  awayScore: '',
+  sign,
+});
 
 export type Submission =
   { kind: 'incomplete' } | { kind: 'empty' } | { kind: 'ready'; items: MatchdayPredictionInput[] };
@@ -213,7 +186,7 @@ export function filterFixtures(
   if (filter === 'PENDING')
     return fixtures.filter((f) => isPendingFixture(f, predictions, leagueLocked));
   if (filter === 'FINISHED') return fixtures.filter((f) => f.finished);
-  return fixtures;
+  return fixtures.filter((f) => !f.finished);
 }
 
 export function formatMatchDate(dateStr: string | null): string {

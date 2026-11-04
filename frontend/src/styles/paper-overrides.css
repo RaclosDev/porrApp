@@ -231,26 +231,36 @@
     background: currentColor;
   }
 
-  .md-friends-link {
-    display: flex;
+  /* Acceso compacto a los pronósticos de la liga, junto al estado del partido. */
+  .md-friends-btn {
+    position: relative;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    width: 100%;
-    min-height: 44px;
-    margin-top: 4px;
-    border: none;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1.5px solid currentColor;
+    border-radius: 999px;
     background: transparent;
     color: var(--marker-ink);
-    font:
-      600 0.78rem 'Inter',
-      sans-serif;
     cursor: pointer;
   }
 
-  .md-friends-link:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px;
+  /* Amplía la zona táctil a 44 px sin agrandar el icono. */
+  .md-friends-btn::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+  }
+
+  .md-friends-btn:hover {
+    background: rgba(17, 24, 39, 0.06);
+  }
+
+  .md-friends-btn:focus-visible {
+    outline: 2px solid var(--marker-ink);
+    outline-offset: 2px;
   }
 }
 

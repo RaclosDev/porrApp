@@ -721,12 +721,6 @@
     border: 1.5px solid var(--ink);
   }
 
-  .paper-panel .md-score-input {
-    background: #ffffff;
-    border-color: var(--ink);
-    color: var(--ink);
-  }
-
   .paper-panel .md-sign-btn,
   .paper-panel .md-filter,
   .paper-panel .md-round-step,
@@ -820,10 +814,6 @@
 
   .paper-panel .md-badge.is-locked {
     color: var(--miss);
-  }
-
-  .paper-panel .md-score-input:disabled {
-    border-color: rgba(17, 24, 39, 0.3);
   }
 
   .paper-panel .home-match-score.is-live {

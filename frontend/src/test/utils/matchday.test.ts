@@ -9,7 +9,6 @@ import {
   roundLabelFor,
   roundsFromFixtures,
   roundsFromMatchdays,
-  withScore,
   withSign,
   withoutSaved,
   type Draft,
@@ -138,18 +137,10 @@ describe('mergeDraftWithServer', () => {
 });
 
 describe('editing a prediction', () => {
-  it('keeps two digits and derives the sign once both scores exist', () => {
-    expect(withScore(pred('', ''), 'home', '1a23')).toEqual(pred('12', ''));
-    expect(withScore(pred('2', ''), 'away', '2')).toEqual(pred('2', '2', 'X'));
-    expect(withScore(pred('2', '2', 'X'), 'away', '')).toEqual(pred('2', '', ''));
-  });
-
-  it('adjusts the score so it agrees with the chosen sign', () => {
-    expect(withSign(pred('', ''), '1')).toEqual(pred('2', '1', '1'));
-    expect(withSign(pred('3', '0'), '1')).toEqual(pred('3', '0', '1'));
-    expect(withSign(pred('3', '0'), 'X')).toEqual(pred('1', '1', 'X'));
-    expect(withSign(pred('3', '0'), '2')).toEqual(pred('1', '2', '2'));
-    expect(withSign(pred('0', '3'), '2')).toEqual(pred('0', '3', '2'));
+  it('keeps only the chosen sign and drops any previous score', () => {
+    expect(withSign('1')).toEqual(pred('', '', '1'));
+    expect(withSign('X')).toEqual(pred('', '', 'X'));
+    expect(withSign('2')).toEqual(pred('', '', '2'));
   });
 });
 
@@ -188,8 +179,10 @@ describe('filterFixtures', () => {
   const fixtures = [fixture(1), fixture(2, { finished: true, locked: true }), fixture(3)];
   const predictions: Draft = { 1: pred('1', '0', '1') };
 
-  it('filters pending and finished matches', () => {
-    expect(filterFixtures(fixtures, 'ALL', predictions, false)).toBe(fixtures);
+  it('filters upcoming, pending and finished matches', () => {
+    expect(filterFixtures(fixtures, 'UPCOMING', predictions, false).map((f) => f.matchId)).toEqual([
+      1, 3,
+    ]);
     expect(filterFixtures(fixtures, 'PENDING', predictions, false).map((f) => f.matchId)).toEqual([
       3,
     ]);
