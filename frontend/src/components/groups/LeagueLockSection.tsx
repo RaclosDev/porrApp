@@ -14,11 +14,11 @@ export const allowsProgressiveLock = (group: Group) =>
   (group.formatType === 'TOURNAMENT' && group.competitionExternalId !== 'fifa.world');
 
 /**
- * Las ligas de cuadro sobre una competición oficial eligen su cierre en los ajustes de la liga. Las
- * personalizadas lo hacen al gestionar su competición y las de jornadas cierran partido a partido.
+ * Las ligas sobre una competición oficial eligen su cierre en los ajustes de la liga (las de jornadas,
+ * por partidos, días o jornadas). Las personalizadas lo hacen al gestionar su competición.
  */
 export const hasLeagueLockSetting = (group: Group) =>
-  !group.customCompetition && Boolean(group.poolFormat) && group.poolFormat !== 'MATCH_DAY';
+  !group.customCompetition && Boolean(group.poolFormat);
 
 /** Cierre de predicciones dentro de la administración de la liga. */
 export default function LeagueLockSection({ group }: { group: Group }) {

@@ -59,16 +59,19 @@ public class CustomCompetitionService {
                 || !email.equalsIgnoreCase(edition.getLeague().getAdminUser().getGoogleEmail())) {
             throw BusinessException.forbidden("Solo el administrador puede cambiar el cierre");
         }
-        if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY) {
-            throw BusinessException.badRequest("Esta competición se juega por jornadas");
-        }
         if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran los pronósticos");
-        if (mode.progressive() && !PredictableBracket.applies(edition)) {
-            throw BusinessException.badRequest("Esta competición solo admite cerrar en una fecha o en el primer partido");
-        }
         int offset = offsetMinutes == null ? 0 : offsetMinutes;
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
+        }
+        if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+            return setMatchdayLock(edition, mode, offset);
+        }
+        if (mode == PredictionLockMode.PER_DAY) {
+            throw BusinessException.badRequest("El cierre por días es solo para ligas por jornadas");
+        }
+        if (mode.progressive() && !PredictableBracket.applies(edition)) {
+            throw BusinessException.badRequest("Esta competición solo admite cerrar en una fecha o en el primer partido");
         }
         LocalDateTime now = LocalDateTime.now(CustomLockService.ZONE);
         edition.setLockMode(mode);
@@ -86,6 +89,17 @@ public class CustomCompetitionService {
                 throw BusinessException.badRequest("Con ese margen el cierre ya habría pasado");
             }
         }
+        return edition;
+    }
+
+    /** Liga por jornadas: cada partido, cada día o cada jornada al empezar su primer partido, menos el margen. */
+    private Edition setMatchdayLock(Edition edition, PredictionLockMode mode, int offset) {
+        if (mode != PredictionLockMode.PER_MATCH && mode != PredictionLockMode.PER_DAY
+                && mode != PredictionLockMode.PER_ROUND) {
+            throw BusinessException.badRequest("Una liga por jornadas se cierra por partidos, por días o por jornadas");
+        }
+        edition.setLockMode(mode);
+        edition.setLockOffsetMinutes(offset);
         return edition;
     }
 

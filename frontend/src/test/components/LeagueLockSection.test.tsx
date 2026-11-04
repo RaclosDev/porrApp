@@ -22,7 +22,7 @@ const LOCK_STATE = {
   nextLockAt: null,
 };
 
-const group = (externalId: string): Group => ({
+const group = (externalId: string, overrides: Partial<Group> = {}): Group => ({
   id: 8,
   name: 'LOL Worlds 2026',
   joinCode: 'XYZ',
@@ -40,6 +40,7 @@ const group = (externalId: string): Group => ({
   isLocked: false,
   rules: null,
   imageUrl: null,
+  ...overrides,
 });
 
 describe('LeagueLockSection', () => {
@@ -52,12 +53,12 @@ describe('LeagueLockSection', () => {
       );
   });
 
-  const setup = (externalId: string) =>
+  const setup = (externalId: string, overrides: Partial<Group> = {}) =>
     render(
       <QueryClientProvider
         client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
       >
-        <LeagueLockSection group={group(externalId)} />
+        <LeagueLockSection group={group(externalId, overrides)} />
       </QueryClientProvider>,
     );
 
@@ -84,5 +85,31 @@ describe('LeagueLockSection', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'Por partidos' })).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'Por rondas' })).not.toBeInTheDocument();
+  });
+
+  it('una liga por jornadas cierra cada día la víspera', async () => {
+    api.fetchCustomLockState.mockResolvedValue({
+      ...LOCK_STATE,
+      mode: 'PER_MATCH',
+      lockDate: null,
+    });
+    setup('esp.1', { formatType: 'LEAGUE', poolFormat: 'MATCH_DAY', lockDate: null });
+
+    fireEvent.click(await screen.findByRole('radio', { name: 'Por días' }));
+    expect(screen.getByRole('radio', { name: 'Por jornadas' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'En una fecha fija' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Margen antes del primer partido'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Unidad del margen'), { target: { value: 'days' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cierre' }));
+
+    await waitFor(() =>
+      expect(api.setCustomLockConfig).toHaveBeenCalledWith(8, {
+        mode: 'PER_DAY',
+        offsetMinutes: 1440,
+        lockDate: null,
+      }),
+    );
   });
 });
