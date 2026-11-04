@@ -182,11 +182,9 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
-    void changesToPerMatchAfterPredictionsWhenNothingHasClosed() {
+    void changesToPerMatchAfterPredictions() {
         Edition edition = bracketEdition();
         edition.setLockDate(LocalDateTime.now().plusDays(2));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
-        when(lockService.state(edition)).thenReturn(lockState(false, false));
 
         service.setLockConfig(leagueId, "admin@example.com",
                 com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null);
@@ -196,34 +194,14 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
-    void doesNotReopenAClosedPickWhenChangingTheCriterion() {
+    void changingTheCriterionMayReopenClosedPicks() {
         Edition edition = bracketEdition();
         edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_ROUND);
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
-        when(lockService.state(edition)).thenReturn(lockState(true, false), lockState(false, false));
-
-        assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
-                com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null));
-
-        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_ROUND, edition.getLockMode());
-    }
-
-    @Test
-    void allowsChangingTheCriterionWhenClosedPicksStayClosed() {
-        Edition edition = bracketEdition();
-        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_ROUND);
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
-        when(lockService.state(edition)).thenReturn(lockState(true, false), lockState(true, false));
 
         service.setLockConfig(leagueId, "admin@example.com",
                 com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null);
 
         assertEquals(com.porra.mundial.model.PredictionLockMode.PER_MATCH, edition.getLockMode());
-    }
-
-    private static CustomLockService.LockState lockState(boolean pickClosed, boolean fullyLocked) {
-        return new CustomLockService.LockState(com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null,
-                java.util.List.of(), java.util.List.of(java.util.List.of(pickClosed)), pickClosed, fullyLocked, null);
     }
 
     @Test
@@ -270,7 +248,6 @@ class CustomCompetitionServiceTest {
         Edition edition = Edition.builder().league(league).competition(competition)
                 .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
         when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of());
         LocalDateTime deadline = LocalDateTime.now().plusDays(2);
 
         service.setLockDate(leagueId, "admin@example.com", deadline);
@@ -363,8 +340,6 @@ class CustomCompetitionServiceTest {
         Match match = Match.builder().id(12L).competition(competition).round("bracket-1")
                 .awayTeam(Team.builder().build()).build();
         when(matches.findById(12L)).thenReturn(Optional.of(match));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
-        when(lockService.state(edition)).thenReturn(lockState(false, false));
         LocalDateTime date = LocalDateTime.now().plusDays(2);
 
         service.setMatchDate(leagueId, 12L, "admin@example.com", date);
@@ -374,21 +349,19 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
-    void reschedulingCannotReopenAnAlreadyClosedMatch() {
+    void reschedulingMayReopenAnAlreadyClosedMatch() {
         Edition edition = bracketEdition();
         edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
         LocalDateTime originalDate = LocalDateTime.now().minusHours(1);
         Match match = Match.builder().id(12L).competition(competition).round("bracket-1")
                 .awayTeam(Team.builder().build()).matchDate(originalDate).build();
         when(matches.findById(12L)).thenReturn(Optional.of(match));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
-        when(lockService.state(edition)).thenReturn(lockState(true, false), lockState(false, false));
+        LocalDateTime newDate = LocalDateTime.now().plusDays(1);
 
-        assertThrows(BusinessException.class, () -> service.setMatchDate(leagueId, 12L,
-                "admin@example.com", LocalDateTime.now().plusDays(1)));
+        service.setMatchDate(leagueId, 12L, "admin@example.com", newDate);
 
-        assertEquals(originalDate, match.getMatchDate());
-        verify(scores, never()).invalidateCompetition(any());
+        assertEquals(newDate, match.getMatchDate());
+        verify(scores).invalidateCompetition(competition.getId());
     }
 
     @Test
@@ -400,7 +373,6 @@ class CustomCompetitionServiceTest {
         Edition worldsEdition = Edition.builder().league(league).competition(worlds)
                 .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
         when(editions.findByLeagueIdAndStatus(8L, "ACTIVE")).thenReturn(Optional.of(worldsEdition));
-        when(predictions.findByEditionLeagueId(8L)).thenReturn(java.util.List.of());
 
         service.setLockConfig(8L, "admin@example.com", com.porra.mundial.model.PredictionLockMode.PER_MATCH, 15, null);
         assertEquals(com.porra.mundial.model.PredictionLockMode.PER_MATCH, worldsEdition.getLockMode());
@@ -415,14 +387,13 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
-    void matchdayLeaguesLockByMatchDayOrRoundWithoutReopeningClosedMatches() {
+    void matchdayLeaguesLockByMatchDayOrRound() {
         League league = League.builder().adminUser(UserAccount.builder().googleEmail("admin@example.com").build()).build();
         league.setId(9L);
         Competition liga = Competition.builder().id(3L).externalId("esp.1").formatType("LEAGUE").build();
         Edition edition = Edition.builder().league(league).competition(liga)
                 .poolFormat(com.porra.mundial.model.PoolFormat.MATCH_DAY).build();
         when(editions.findByLeagueIdAndStatus(9L, "ACTIVE")).thenReturn(Optional.of(edition));
-        when(predictions.findByEditionLeagueId(9L)).thenReturn(java.util.List.of());
 
         service.setLockConfig(9L, "admin@example.com", com.porra.mundial.model.PredictionLockMode.PER_DAY, 1440, null);
         assertEquals(com.porra.mundial.model.PredictionLockMode.PER_DAY, edition.getLockMode());
@@ -430,15 +401,10 @@ class CustomCompetitionServiceTest {
         assertThrows(BusinessException.class, () -> service.setLockConfig(9L, "admin@example.com",
                 com.porra.mundial.model.PredictionLockMode.FIRST_MATCH, 0, null));
 
-        // Con pronósticos, quitar el día de margen reabriría el partido de dentro de unas horas.
-        when(predictions.findByEditionLeagueId(9L)).thenReturn(java.util.List.of(
-                com.porra.mundial.model.Prediction.builder().build()));
-        when(matches.findByCompetitionId(3L)).thenReturn(java.util.List.of(com.porra.mundial.model.Match.builder()
-                .id(1L).round("Jornada 3").matchDate(java.time.LocalDateTime.now().plusHours(5)).build()));
-        assertThrows(BusinessException.class, () -> service.setLockConfig(9L, "admin@example.com",
-                com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null));
-        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_DAY, edition.getLockMode());
-        assertEquals(1440, edition.getLockOffsetMinutes());
+        // Un cierre posterior puede volver a abrir partidos, igual que en las ligas de cuadro.
+        service.setLockConfig(9L, "admin@example.com", com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null);
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_MATCH, edition.getLockMode());
+        assertEquals(0, edition.getLockOffsetMinutes());
 
         // Y el cierre por días no existe en las ligas de cuadro.
         Edition bracket = Edition.builder().league(league).competition(liga)

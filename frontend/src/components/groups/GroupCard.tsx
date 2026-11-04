@@ -15,7 +15,6 @@ interface GroupCardProps {
   setSelectedGroupForMembers: (group: Group | null) => void;
   setSelectedGroupForRules: (group: Group | null) => void;
   setSelectedCustomCompetition: (group: Group | null) => void;
-  setSelectedLockGroup?: (group: Group | null) => void;
 }
 
 /** Tarjeta de una liga en "Mis ligas", con sus acciones. */
@@ -31,7 +30,6 @@ export default function GroupCard({
   setSelectedGroupForMembers,
   setSelectedGroupForRules,
   setSelectedCustomCompetition,
-  setSelectedLockGroup,
 }: GroupCardProps) {
   return (
     <div
@@ -76,15 +74,6 @@ export default function GroupCard({
             onClick={() => setSelectedCustomCompetition(group)}
           >
             Gestionar competición
-          </button>
-        )}
-        {isCreator && setSelectedLockGroup && !group.customCompetition && group.poolFormat && (
-          <button
-            type="button"
-            className="glass-btn w-full py-2"
-            onClick={() => setSelectedLockGroup(group)}
-          >
-            Cierre de predicciones
           </button>
         )}
         {isSelected ? (

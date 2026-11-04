@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
 } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -45,6 +46,7 @@ export default function GroupMembersModal({
   onDelete,
   onUploadImage,
   onRemoveImage,
+  lockSection,
 }: {
   groupId: number;
   groupName: string;
@@ -60,6 +62,8 @@ export default function GroupMembersModal({
   onDelete: () => Promise<boolean>;
   onUploadImage: (blob: Blob) => Promise<void>;
   onRemoveImage: () => Promise<void>;
+  /** Cierre de predicciones que se muestra en los ajustes. */
+  lockSection?: ReactNode;
 }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('members');
@@ -518,6 +522,7 @@ export default function GroupMembersModal({
               setName={setName}
               setNotice={setNotice}
               setRulesText={setRulesText}
+              lockSection={lockSection}
             />
           )}
         </div>

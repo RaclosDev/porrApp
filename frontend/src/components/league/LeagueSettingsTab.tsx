@@ -1,5 +1,5 @@
 import PaperLoading from '../PaperLoading';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { LeagueAvatar } from '../Avatar';
 import ImagePicker from '../ImagePicker';
 import {
@@ -36,9 +36,11 @@ interface LeagueSettingsTabProps {
   setName: (value: string) => void;
   setNotice: (value: string) => void;
   setRulesText: (value: string) => void;
+  /** Cierre de predicciones, solo en las ligas que lo eligen aquí. */
+  lockSection?: ReactNode;
 }
 
-/** Ajustes de la liga: nombre, reglas (puntuación y normas), imagen y borrado. */
+/** Ajustes de la liga: nombre, reglas (puntuación y normas), cierre, imagen y borrado. */
 export default function LeagueSettingsTab({
   deleteConfirmName,
   deleteOpen,
@@ -59,6 +61,7 @@ export default function LeagueSettingsTab({
   setName,
   setNotice,
   setRulesText,
+  lockSection,
 }: LeagueSettingsTabProps) {
   const [rulesTab, setRulesTab] = useState<RulesTab>('scoring');
   const { scoring } = scoringEditor;
@@ -220,6 +223,8 @@ export default function LeagueSettingsTab({
           </p>
         )}
       </section>
+
+      {lockSection}
 
       <section className="league-admin-card is-danger">
         <div className="league-admin-card-head">

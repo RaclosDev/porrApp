@@ -46,7 +46,7 @@ export default function CustomSummaryTab({
     steps.push({
       done: lock.configured || Boolean(lockDate),
       label: 'Elige cuándo se cierran los pronósticos',
-      hint: 'Puedes cambiar el criterio más adelante sin reabrir partes ya cerradas.',
+      hint: 'Puedes cambiar el criterio más adelante, aunque ya haya pronósticos cerrados.',
       tab: 'summary',
     });
   }

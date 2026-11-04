@@ -237,8 +237,8 @@ export default function CustomLockCard({
         </form>
       )}
       <p className="league-admin-muted">
-        Puedes cambiar el criterio aunque ya haya pronósticos. Lo que ya esté cerrado seguirá
-        cerrado.
+        Puedes cambiar el criterio aunque ya haya pronósticos. Si el nuevo cierre es posterior, lo
+        que ya estaba cerrado vuelve a abrirse.
         {lock.progressive &&
           !matchday &&
           ' Quien no haya enviado su pronóstico antes del primer cierre ya no podrá entrar, y de los demás solo se ve lo que ya está cerrado.'}

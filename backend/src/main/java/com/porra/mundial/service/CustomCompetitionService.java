@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +48,7 @@ public class CustomCompetitionService {
         return setLockConfig(leagueId, email, PredictionLockMode.FIXED_DATE, 0, lockDate).getLockDate();
     }
 
-    /** Cambia el cierre sin volver a abrir partes ya cerradas de pronósticos existentes. */
+    /** Cambia el cierre; si la nueva fecha es posterior, los pronósticos ya cerrados vuelven a abrirse. */
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
     public Edition setLockConfig(Long leagueId, String email, PredictionLockMode mode, Integer offsetMinutes,
@@ -74,11 +73,6 @@ public class CustomCompetitionService {
         if (mode.progressive() && !PredictableBracket.applies(edition)) {
             throw BusinessException.badRequest("Esta competición solo admite cerrar en una fecha o en el primer partido");
         }
-        boolean hasPredictions = !predictionRepository.findByEditionLeagueId(leagueId).isEmpty();
-        CustomLockService.LockState previousState = hasPredictions ? lockService.state(edition) : null;
-        PredictionLockMode previousMode = edition.getLockMode();
-        int previousOffset = edition.getLockOffsetMinutes();
-        LocalDateTime previousDate = edition.getLockDate();
         LocalDateTime now = LocalDateTime.now(CustomLockService.ZONE);
         edition.setLockMode(mode);
         if (mode == PredictionLockMode.FIXED_DATE) {
@@ -95,43 +89,14 @@ public class CustomCompetitionService {
                 throw BusinessException.badRequest("Con ese margen el cierre ya habría pasado");
             }
         }
-        if (previousState != null && previousState.anyLocked()
-                && reopensClosedParts(previousState, lockService.state(edition))) {
-            edition.setLockMode(previousMode);
-            edition.setLockOffsetMinutes(previousOffset);
-            edition.setLockDate(previousDate);
-            throw BusinessException.conflict("El nuevo cierre volvería a abrir pronósticos que ya estaban cerrados");
-        }
         return edition;
     }
 
-    /**
-     * Liga por jornadas: cada partido, cada día o cada jornada al empezar su primer partido, menos el margen.
-     * No se puede volver a abrir un partido que ya estaba cerrado.
-     */
+    /** Liga por jornadas: cada partido, cada día o cada jornada al empezar su primer partido, menos el margen. */
     private Edition setMatchdayLock(Edition edition, PredictionLockMode mode, int offset) {
         if (mode != PredictionLockMode.PER_MATCH && mode != PredictionLockMode.PER_DAY
                 && mode != PredictionLockMode.PER_ROUND) {
             throw BusinessException.badRequest("Una liga por jornadas se cierra por partidos, por días o por jornadas");
-        }
-        PredictionLockMode previousMode = edition.getLockMode();
-        int previousOffset = edition.getLockOffsetMinutes();
-        if (edition.getCompetition() != null
-                && !predictionRepository.findByEditionLeagueId(edition.getLeague().getId()).isEmpty()) {
-            List<Match> calendar = matchRepository.findByCompetitionId(edition.getCompetition().getId());
-            LocalDateTime now = LocalDateTime.now();
-            Map<Long, LocalDateTime> before = MatchdayLock.lockTimes(edition, calendar, calendar);
-            edition.setLockMode(mode);
-            edition.setLockOffsetMinutes(offset);
-            Map<Long, LocalDateTime> after = MatchdayLock.lockTimes(edition, calendar, calendar);
-            boolean reopens = calendar.stream().anyMatch(match -> !Boolean.TRUE.equals(match.getFinished())
-                    && before.containsKey(match.getId()) && !before.get(match.getId()).isAfter(now)
-                    && after.get(match.getId()).isAfter(now));
-            if (reopens) {
-                edition.setLockMode(previousMode);
-                edition.setLockOffsetMinutes(previousOffset);
-                throw BusinessException.conflict("El nuevo cierre volvería a abrir pronósticos que ya estaban cerrados");
-            }
         }
         edition.setLockMode(mode);
         edition.setLockOffsetMinutes(offset);
@@ -408,17 +373,8 @@ public class CustomCompetitionService {
         }
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        boolean hasPredictions = !predictionRepository.findByEditionLeagueId(leagueId).isEmpty();
-        CustomLockService.LockState before = hasPredictions ? lockService.state(edition) : null;
-        LocalDateTime previousDate = match.getMatchDate();
-        LocalDateTime previousLockDate = edition.getLockDate();
         match.setMatchDate(date);
         refreshFirstMatchLock(leagueId);
-        if (before != null && before.anyLocked() && reopensClosedParts(before, lockService.state(edition))) {
-            match.setMatchDate(previousDate);
-            edition.setLockDate(previousLockDate);
-            throw BusinessException.conflict("La nueva fecha volvería a abrir pronósticos ya cerrados");
-        }
         scoreInvalidationService.invalidateCompetition(competition.getId());
         return MatchResponseDTO.fromEntity(match);
     }
