@@ -147,7 +147,7 @@ class LolEsportsDataProviderTest {
 
         assertEquals(5, teams.size());
         assertEquals("GEN", teams.get(1).path("abbreviation").asText());
-        assertEquals("http://static.lolesports.com/teams/gen.png", teams.get(1).path("logo").asText());
+        assertEquals("https://static.lolesports.com/teams/gen.png", teams.get(1).path("logo").asText());
     }
 
     @Test
@@ -167,7 +167,15 @@ class LolEsportsDataProviderTest {
         teams.forEach(team -> logos.put(team.path("abbreviation").asText(), team.path("logo").asText()));
         assertEquals("/logos/dplus-kia.svg", logos.get("DK"));
         assertEquals("/logos/team-secret.png", logos.get("TSW"));
-        assertEquals("http://static.lolesports.com/teams/gen.png", teams.get(1).path("logo").asText());
+        assertEquals("https://static.lolesports.com/teams/gen.png", teams.get(1).path("logo").asText());
+    }
+
+    @Test
+    void logoUrlsAreServedOverHttps() {
+        assertEquals("https://static.lolesports.com/teams/gen.png",
+                LolEsportsDataProvider.secureUrl("http://static.lolesports.com/teams/gen.png"));
+        assertEquals("/logos/team-secret.png", LolEsportsDataProvider.secureUrl("/logos/team-secret.png"));
+        assertNull(LolEsportsDataProvider.secureUrl(null));
     }
 
     @Test
