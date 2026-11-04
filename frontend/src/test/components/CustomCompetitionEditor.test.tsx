@@ -17,6 +17,8 @@ const api = vi.hoisted(() => ({
   setCustomLockDate: vi.fn(),
   fetchCustomLockState: vi.fn(),
   setCustomLockConfig: vi.fn(),
+  fetchCompetitions: vi.fn(),
+  linkOfficialCompetition: vi.fn(),
 }));
 
 const LOCK_STATE = {
@@ -91,6 +93,16 @@ describe('CustomCompetitionEditor', () => {
     api.fetchCustomTeams.mockResolvedValue(TEAMS);
     api.fetchCustomMatches.mockResolvedValue([]);
     api.fetchCustomLockState.mockResolvedValue(LOCK_STATE);
+    api.fetchCompetitions.mockResolvedValue([
+      { id: 4, name: 'LaLiga EA Sports', externalId: 'esp.1', formatType: 'LEAGUE' },
+      { id: 10, name: 'Copa del Rey', externalId: 'esp.copa_del_rey', formatType: 'TOURNAMENT' },
+      {
+        id: 19,
+        name: 'Worlds de League of Legends',
+        externalId: 'lol.worlds',
+        formatType: 'TOURNAMENT',
+      },
+    ]);
     api.setCustomLockConfig.mockImplementation((_id: number, config: object) => {
       const state = { ...LOCK_STATE, ...config };
       api.fetchCustomLockState.mockResolvedValue(state);
@@ -368,5 +380,19 @@ describe('CustomCompetitionEditor', () => {
     expect(
       screen.getByRole('button', { name: 'Guardar resultado de Osos – Tigres' }),
     ).toBeDisabled();
+  });
+
+  it('pasa la liga a una competición oficial tras confirmarlo', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { invalidate } = setup('KNOCKOUTS_ONLY');
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Pasar a Worlds de League of Legends' }),
+    );
+
+    await waitFor(() => expect(api.linkOfficialCompetition).toHaveBeenCalledWith(7, 19));
+    expect(confirm).toHaveBeenCalled();
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith());
+    confirm.mockRestore();
   });
 });

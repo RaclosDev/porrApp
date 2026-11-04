@@ -487,6 +487,12 @@ export const setCustomLockConfig = (
     method: 'PUT',
     json: config,
   });
+/** Pasa la liga de cuadro personalizado a una competición oficial con cuadro propio. */
+export const linkOfficialCompetition = (groupId: number, competitionId: number) =>
+  request<void>(`/groups/${groupId}/competition/link-official`, {
+    method: 'POST',
+    json: { competitionId },
+  });
 export const setCustomLockDate = (groupId: number, lockDate: string) =>
   request<string>(`/groups/${groupId}/competition/lock-date`, {
     method: 'PUT',
