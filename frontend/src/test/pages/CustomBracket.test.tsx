@@ -214,7 +214,7 @@ describe('CustomBracket', () => {
     expect(screen.queryByText(/Ya tienes un pronóstico guardado/)).toBeNull();
   });
 
-  it('en un torneo oficial pronostica sobre los cruces reales y guarda sin cierre por partes', async () => {
+  it('en un torneo oficial pronostica sobre los cruces reales con su estado de cierre', async () => {
     vi.mocked(appContextModule.useAppContext).mockReturnValue(
       appContext({
         activeGroupId: '10',
@@ -235,10 +235,23 @@ describe('CustomBracket', () => {
       }),
     );
     vi.mocked(api.createPrediction).mockResolvedValue({} as never);
+    vi.mocked(api.fetchCustomLockState).mockResolvedValue({
+      mode: 'FIXED_DATE',
+      offsetMinutes: 0,
+      lockDate: '2026-11-07T00:00:00+01:00',
+      lockedGroups: [],
+      lockedPicks: [],
+      anyLocked: false,
+      fullyLocked: false,
+      nextLockAt: '2026-11-07T00:00:00+01:00',
+    });
     renderBracket();
 
     expect(api.fetchCustomMatches).not.toHaveBeenCalled();
-    expect(api.fetchCustomLockState).not.toHaveBeenCalled();
+    expect((await screen.findAllByRole('button', { name: 'Pasar a T1' })).length).toBeGreaterThan(
+      0,
+    );
+    expect(api.fetchCustomLockState).toHaveBeenCalledWith(10);
     pick('T1');
     pick('IG');
     pick('GEN');

@@ -10,6 +10,7 @@ import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +31,8 @@ class CustomLockServiceTest {
 
     private final MatchRepository matches = mock(MatchRepository.class);
     private final TeamRepository teams = mock(TeamRepository.class);
-    private final CustomLockService service = new CustomLockService(matches, teams);
+    private final EditionRepository editions = mock(EditionRepository.class);
+    private final CustomLockService service = new CustomLockService(matches, teams, editions);
     private final Competition competition = Competition.builder().name("Copa").ownerLeague(new League()).build();
     private final List<Match> fixtures = new ArrayList<>();
     private long nextId = 1;
@@ -193,5 +195,61 @@ class CustomLockServiceTest {
         data.setCustomRounds(rounds);
         data.setChampion(champion);
         return data;
+    }
+
+    @Test
+    void officialBracketPlacesLaterMatchesNextToTheirFirstRoundMatches() {
+        Competition worlds = Competition.builder().id(19L).externalId("lol.worlds").formatType("TOURNAMENT").build();
+        List<Match> official = new ArrayList<>();
+        String[][] pairs = {{"IG", "TES"}, {"GEN", "LYON"}, {"DK", "BLG"}, {"T1", "KC"}};
+        for (int index = 0; index < 4; index++) {
+            official.add(Match.builder().id(100L + index).competition(worlds).round("qf")
+                    .homeTeam(Team.builder().name(pairs[index][0]).build())
+                    .awayTeam(Team.builder().name(pairs[index][1]).build())
+                    .matchDate(NOW.minusDays(4 - index)).finished(true).status(MatchStatusNormalized.FINISHED).build());
+        }
+        // La segunda semifinal (DK - T1) empieza antes que la primera.
+        official.add(Match.builder().id(200L).competition(worlds).round("sf")
+                .homeTeam(Team.builder().name("DK").build()).awayTeam(Team.builder().name("T1").build())
+                .matchDate(NOW.minusHours(1)).finished(false).status(MatchStatusNormalized.SCHEDULED).build());
+        official.add(Match.builder().id(201L).competition(worlds).round("sf")
+                .homeTeam(Team.builder().name("IG").build()).awayTeam(Team.builder().name("GEN").build())
+                .matchDate(NOW.plusDays(1)).finished(false).status(MatchStatusNormalized.SCHEDULED).build());
+        // Fase suiza: no se pronostica y no debe contar como grupo.
+        official.add(Match.builder().id(300L).competition(worlds).round("group").groupName("Swiss")
+                .homeTeam(Team.builder().name("A").build()).awayTeam(Team.builder().name("B").build())
+                .matchDate(NOW.minusDays(10)).finished(true).build());
+        when(matches.findByCompetitionId(19L)).thenReturn(official);
+        Edition edition = Edition.builder().competition(worlds).poolFormat(PoolFormat.KNOCKOUTS_ONLY)
+                .lockMode(PredictionLockMode.PER_MATCH).build();
+
+        var state = service.state(edition);
+
+        assertEquals(List.of(List.of(true, true, true, true), List.of(false, true), List.of(false)), state.picks());
+        assertEquals(List.of(), state.groups());
+        assertEquals(NOW.plusDays(1), state.nextLockAt());
+    }
+
+    @Test
+    void refreshMovesOnlyFutureFirstMatchLocksOfOfficialLeagues() {
+        Competition worlds = Competition.builder().id(19L).externalId("lol.worlds").formatType("TOURNAMENT").build();
+        when(matches.findByCompetitionId(19L)).thenReturn(List.of(
+                Match.builder().id(1L).competition(worlds).round("group").matchDate(NOW.plusHours(1))
+                        .homeTeam(Team.builder().name("A").build()).awayTeam(Team.builder().name("B").build()).build(),
+                Match.builder().id(2L).competition(worlds).round("qf").matchDate(NOW.plusDays(2))
+                        .homeTeam(Team.builder().name("T1").build()).awayTeam(Team.builder().name("KC").build()).build()));
+        Edition open = Edition.builder().competition(worlds).poolFormat(PoolFormat.KNOCKOUTS_ONLY)
+                .lockMode(PredictionLockMode.FIRST_MATCH).lockOffsetMinutes(30).lockDate(NOW.plusDays(5)).build();
+        Edition closed = Edition.builder().competition(worlds).poolFormat(PoolFormat.KNOCKOUTS_ONLY)
+                .lockMode(PredictionLockMode.FIRST_MATCH).lockDate(NOW.minusHours(1)).build();
+        Edition fixed = Edition.builder().competition(worlds).poolFormat(PoolFormat.KNOCKOUTS_ONLY)
+                .lockMode(PredictionLockMode.FIXED_DATE).lockDate(NOW.plusDays(5)).build();
+        when(editions.findByCompetitionIdAndStatus(19L, "ACTIVE")).thenReturn(List.of(open, closed, fixed));
+
+        service.refreshFirstMatchLocks(19L);
+
+        assertEquals(NOW.plusDays(2).minusMinutes(30), open.getLockDate());
+        assertEquals(NOW.minusHours(1), closed.getLockDate());
+        assertEquals(NOW.plusDays(5), fixed.getLockDate());
     }
 }

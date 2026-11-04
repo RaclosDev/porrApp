@@ -390,4 +390,27 @@ class CustomCompetitionServiceTest {
         assertEquals(originalDate, match.getMatchDate());
         verify(scores, never()).invalidateCompetition(any());
     }
+
+    @Test
+    void officialLeaguesAlsoChooseHowPredictionsLock() {
+        League league = League.builder().adminUser(UserAccount.builder().googleEmail("admin@example.com").build()).build();
+        league.setId(8L);
+        Competition worlds = Competition.builder().id(19L).externalId("lol.worlds").formatType("TOURNAMENT").build();
+        Competition worldCup = Competition.builder().id(2L).externalId("fifa.world").formatType("TOURNAMENT").build();
+        Edition worldsEdition = Edition.builder().league(league).competition(worlds)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
+        when(editions.findByLeagueIdAndStatus(8L, "ACTIVE")).thenReturn(Optional.of(worldsEdition));
+        when(predictions.findByEditionLeagueId(8L)).thenReturn(java.util.List.of());
+
+        service.setLockConfig(8L, "admin@example.com", com.porra.mundial.model.PredictionLockMode.PER_MATCH, 15, null);
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_MATCH, worldsEdition.getLockMode());
+        assertEquals(15, worldsEdition.getLockOffsetMinutes());
+        assertThrows(BusinessException.class, () -> service.setLockConfig(8L, "other@example.com",
+                com.porra.mundial.model.PredictionLockMode.FIRST_MATCH, 0, null));
+
+        // El Mundial se pronostica entero de una vez: solo fecha fija o primer partido.
+        worldsEdition.setCompetition(worldCup);
+        assertThrows(BusinessException.class, () -> service.setLockConfig(8L, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_ROUND, 0, null));
+    }
 }

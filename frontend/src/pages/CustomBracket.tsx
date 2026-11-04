@@ -48,19 +48,9 @@ export default function CustomBracket() {
   } = useAppContext();
   const official = !activeGroupCustomCompetition;
   const saved = useMyLeaguePrediction();
-  const customLock = useCustomLock(official ? null : activeGroupId);
-  // Un torneo oficial cierra en la fecha de la edición: no hay cierre por partes.
-  const lock = official
-    ? {
-        ...customLock,
-        configured: true,
-        progressive: false,
-        anyLocked: false,
-        fullyLocked: false,
-        groupLocked: () => false,
-        pickLocked: () => false,
-      }
-    : customLock;
+  const customLock = useCustomLock(activeGroupId);
+  // Un torneo oficial siempre tiene cierre (su fecha o sus partidos), aunque aún no se conozca la fecha.
+  const lock = official ? { ...customLock, configured: true } : customLock;
   const queryClient = useQueryClient();
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const [groups, setGroups] = useState<Record<string, string[]>>({});

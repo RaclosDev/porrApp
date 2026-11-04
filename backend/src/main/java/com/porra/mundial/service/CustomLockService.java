@@ -2,14 +2,17 @@ package com.porra.mundial.service;
 
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.exception.BusinessException;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.PoolFormat;
+import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -23,7 +26,8 @@ import java.util.Objects;
 import java.util.TreeSet;
 
 /**
- * Qué partes de un pronóstico de competición personalizada siguen abiertas. En los modos
+ * Qué partes de un pronóstico de cuadro (competición personalizada o torneo oficial con cuadro propio)
+ * siguen abiertas. En los modos
  * {@link PredictionLockMode#PER_ROUND} y {@link PredictionLockMode#PER_MATCH} el cierre llega por
  * partes: un grupo se cierra al empezar su primer partido y cada ganador del cuadro, al empezar su
  * cruce (o el primero de su ronda), siempre restando el margen configurado.
@@ -35,6 +39,7 @@ public class CustomLockService {
 
     private final MatchRepository matches;
     private final TeamRepository teams;
+    private final EditionRepository editions;
     private Clock clock = Clock.system(ZONE);
 
     /** Solo para tests. */
@@ -79,18 +84,24 @@ public class CustomLockService {
         int offset = Math.max(0, edition.getLockOffsetMinutes());
         LocalDateTime now = LocalDateTime.now(clock.withZone(ZONE));
 
-        List<Match> firstRound = round(all, 1);
+        Competition competition = edition.getCompetition();
+        List<List<Match>> bracket = competition == null ? List.of() : PredictableBracket.rounds(competition, all);
+        List<Match> firstRound = bracket.isEmpty() ? List.of() : bracket.get(0);
         int totalRounds = 0;
         for (int count = firstRound.size(); count > 0; count = count == 1 ? 0 : (count + 1) / 2) totalRounds++;
         TreeSet<String> groupNames = new TreeSet<>();
-        if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET && edition.getCompetition() != null) {
-            teams.findByCompetitionIdOrderByNameAsc(edition.getCompetition().getId()).stream()
+        if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET && competition != null) {
+            teams.findByCompetitionIdOrderByNameAsc(competition.getId()).stream()
                     .map(team -> team.getGroupName())
                     .filter(name -> name != null && !name.isBlank())
                     .forEach(groupNames::add);
         }
-        all.stream().filter(match -> "group".equals(match.getRound()) && match.getGroupName() != null)
-                .forEach(match -> groupNames.add(match.getGroupName()));
+        // Los grupos de un torneo oficial solo cuentan si se pronostican (cuadro completo).
+        if (competition != null
+                && (competition.getOwnerLeague() != null || edition.getPoolFormat() == PoolFormat.FULL_BRACKET)) {
+            all.stream().filter(match -> "group".equals(match.getRound()) && match.getGroupName() != null)
+                    .forEach(match -> groupNames.add(match.getGroupName()));
+        }
 
         if (!mode.progressive()) {
             boolean locked = edition.isLocked(clock);
@@ -114,13 +125,14 @@ public class CustomLockService {
         boolean allPicks = totalRounds > 0;
         int previous = 0;
         for (int round = 0, count = firstRound.size(); round < totalRounds; round++, previous = count, count = (count + 1) / 2) {
-            List<Match> created = round(all, round + 1);
+            List<Match> created = round == 0 ? firstRound : placed(competition, firstRound,
+                    round < bracket.size() ? bracket.get(round) : List.of(), round, count);
             boolean roundLocked = mode == PredictionLockMode.PER_ROUND && anyStarted(created, offset, now, upcoming);
             List<Boolean> row = new ArrayList<>();
             for (int index = 0; index < count; index++) {
                 // Quien pasa por descanso no se elige: no cuenta para el cierre.
                 boolean forced = round == 0 ? firstRound.get(index).getAwayTeam() == null : index * 2 + 1 >= previous;
-                boolean locked = !forced && (roundLocked || index < created.size()
+                boolean locked = !forced && (roundLocked || index < created.size() && created.get(index) != null
                         && started(created.get(index), offset, now, mode == PredictionLockMode.PER_MATCH ? upcoming : null));
                 row.add(locked);
                 allPicks &= forced || locked;
@@ -204,6 +216,12 @@ public class CustomLockService {
     }
 
     private static LocalDateTime firstMatchLock(Edition edition, List<Match> all) {
+        // En un torneo oficial con cuadro propio cuenta su primer cruce, no la fase previa.
+        Competition competition = edition.getCompetition();
+        if (competition != null && competition.getOwnerLeague() == null && PredictableBracket.applies(edition)) {
+            List<List<Match>> bracket = PredictableBracket.rounds(competition, all);
+            all = bracket.isEmpty() ? List.of() : bracket.get(0);
+        }
         return all.stream()
                 .filter(match -> match.getMatchDate() != null && match.getAwayTeam() != null)
                 .map(Match::getMatchDate).min(Comparator.naturalOrder())
@@ -211,17 +229,63 @@ public class CustomLockService {
                 .orElse(null);
     }
 
-    private static List<Match> round(List<Match> all, int round) {
-        String name = "bracket-" + round;
-        return all.stream().filter(match -> name.equals(match.getRound()))
-                .sorted(Comparator.comparing(Match::getId)).toList();
+    /**
+     * Tras sincronizar un calendario oficial, el cierre en el primer partido de sus ligas lo sigue.
+     * Solo se mueve mientras sigue en el futuro: nunca vuelve a abrir pronósticos ya cerrados.
+     */
+    @Transactional
+    public void refreshFirstMatchLocks(Long competitionId) {
+        if (competitionId == null) return;
+        List<Edition> active = editions.findByCompetitionIdAndStatus(competitionId, "ACTIVE");
+        if (active == null || active.isEmpty()) return;
+        LocalDateTime now = LocalDateTime.now(clock.withZone(ZONE));
+        List<Match> all = matches.findByCompetitionId(competitionId);
+        for (Edition edition : active) {
+            if (edition.getLockMode() != PredictionLockMode.FIRST_MATCH) continue;
+            if (edition.getLockDate() != null && !edition.getLockDate().isAfter(now)) continue;
+            LocalDateTime lock = firstMatchLock(edition, all);
+            if (lock != null && !lock.equals(edition.getLockDate())) {
+                edition.setLockDate(lock);
+                editions.save(edition);
+            }
+        }
+    }
+
+    /**
+     * Cruces de una ronda posterior en el hueco del cuadro que les toca. En una competición personalizada
+     * van en orden; en un torneo oficial, junto a los cruces de la primera ronda de los que salen sus equipos.
+     */
+    private static List<Match> placed(Competition competition, List<Match> firstRound, List<Match> created,
+                                      int round, int count) {
+        if (competition.getOwnerLeague() != null) return created;
+        Map<String, Integer> origin = new HashMap<>();
+        for (int index = 0; index < firstRound.size(); index++) {
+            Match match = firstRound.get(index);
+            if (match.getHomeTeam() != null) origin.put(match.getHomeTeam().getName(), index);
+            if (match.getAwayTeam() != null) origin.put(match.getAwayTeam().getName(), index);
+        }
+        List<Match> slots = new ArrayList<>(java.util.Collections.nCopies(count, (Match) null));
+        List<Match> unplaced = new ArrayList<>();
+        for (Match match : created) {
+            Integer from = match.getHomeTeam() == null ? null : origin.get(match.getHomeTeam().getName());
+            if (from == null && match.getAwayTeam() != null) from = origin.get(match.getAwayTeam().getName());
+            int slot = from == null ? -1 : from >> round;
+            if (slot >= 0 && slot < count && slots.get(slot) == null) slots.set(slot, match);
+            else unplaced.add(match);
+        }
+        for (Match match : unplaced) {
+            int free = slots.indexOf(null);
+            if (free < 0) break;
+            slots.set(free, match);
+        }
+        return slots;
     }
 
     private static boolean anyStarted(List<Match> fixtures, int offset, LocalDateTime now, List<LocalDateTime> upcoming) {
         boolean locked = false;
         LocalDateTime first = null;
         for (Match match : fixtures) {
-            if (match.getAwayTeam() == null) continue;
+            if (match == null || match.getAwayTeam() == null) continue;
             locked |= started(match, offset, now, null);
             if (match.getMatchDate() != null) {
                 LocalDateTime lock = match.getMatchDate().minusMinutes(offset);

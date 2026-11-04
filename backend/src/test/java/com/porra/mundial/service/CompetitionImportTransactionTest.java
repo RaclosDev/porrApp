@@ -41,7 +41,8 @@ import static org.mockito.Mockito.*;
 @Testcontainers(disabledWithoutDocker = true)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({SyncService.class, MatchEventProcessor.class, MatchPredictionService.class,
-        MatchScoringCalculator.class, StandingsService.class, ScoreInvalidationService.class, CompetitionImportTransactionTest.Caches.class})
+        MatchScoringCalculator.class, StandingsService.class, ScoreInvalidationService.class, CustomLockService.class,
+        CompetitionImportTransactionTest.Caches.class})
 class CompetitionImportTransactionTest {
     @TestConfiguration @EnableCaching
     static class Caches {

@@ -68,6 +68,7 @@ public class SyncService {
     private final PlatformTransactionManager transactionManager;
     private final TopScorerService topScorerService;
     private final LegacyFixtureRepairService legacyFixtureRepairService;
+    private final CustomLockService customLockService;
 
     private final ReentrantLock syncLock = new ReentrantLock();
 
@@ -206,6 +207,7 @@ public class SyncService {
             if (batch.resultsChanged()) {
                 scoreInvalidationService.invalidateCompetition(competition.getId());
             }
+            if (batch.matchesUpdated() > 0) customLockService.refreshFirstMatchLocks(competition.getId());
             log.info("Sincronización de {} con {}: {} equipos y {} partidos actualizados en {} ms",
                     competition.getName(), provider.getProviderName(), batch.teamsUpdated(), batch.matchesUpdated(),
                     System.currentTimeMillis() - start);
@@ -360,6 +362,7 @@ public class SyncService {
             if (isWorldCup(competition)) updateWorldCupStandingsAndBracket();
             scoreInvalidationService.invalidateCompetition(competition.getId());
         }
+        if (batch.matchesUpdated() > 0) customLockService.refreshFirstMatchLocks(competition.getId());
         checkImportCancellation();
         log.info("Importados {} equipos y {} partidos de {}", importedTeams, batch.matchesUpdated(), competition.getName());
         return new ImportCommit(new ImportResult(competition.getName(), importedTeams, batch.matchesUpdated()), batch);
