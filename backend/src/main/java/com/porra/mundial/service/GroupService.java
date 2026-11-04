@@ -97,6 +97,11 @@ public class GroupService {
                 throw BusinessException.forbidden("Esta competición pertenece a otra liga");
             }
             comp = resolveCanonicalCompetition(comp);
+            // El cuadro (grupos, terceros y cruces) solo existe para el Mundial: el resto de
+            // competiciones oficiales se pronostica por jornadas.
+            if (!Competition.WORLD_CUP_EXTERNAL_ID.equals(comp.getExternalId())) {
+                poolFormat = com.porra.mundial.model.PoolFormat.MATCH_DAY;
+            }
         }
 
         League group = League.builder()
