@@ -143,6 +143,40 @@ export function computeSwissStandings(matches: Match[]): SwissRow[] {
   );
 }
 
+export interface SwissDay {
+  key: string;
+  label: string;
+  matches: Match[];
+}
+
+const SPAIN_TIME_ZONE = 'Europe/Madrid';
+const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: SPAIN_TIME_ZONE });
+const dayLabel = new Intl.DateTimeFormat('es-ES', {
+  timeZone: SPAIN_TIME_ZONE,
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+});
+
+/** Series de la fase suiza agrupadas por día (hora de España) en orden cronológico. */
+export function swissMatchesByDay(matches: Match[]): SwissDay[] {
+  const days = new Map<string, SwissDay>();
+  const sorted = matches
+    .filter((match) => match.round === 'group' && match.home && match.away && match.date)
+    .sort((left, right) => (left.date ?? '').localeCompare(right.date ?? ''));
+  for (const match of sorted) {
+    const date = new Date(match.date as string);
+    const key = dayKey.format(date);
+    let day = days.get(key);
+    if (!day) {
+      day = { key, label: dayLabel.format(date), matches: [] };
+      days.set(key, day);
+    }
+    day.matches.push(match);
+  }
+  return [...days.values()];
+}
+
 /** Próxima serie del cuadro sin terminar (también la que está en juego) con los dos rivales. */
 export function nextOfficialBracketMatch(matches: Match[]): Match | null {
   return (
