@@ -1,8 +1,8 @@
-import { appContext, matchdayFixture, type AppContextValue } from '../context/fixtures';
+import { appContext, group, matchdayFixture, type AppContextValue } from '../context/fixtures';
 import type { MatchdaySubmissionResult } from '../../types/api';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MatchdayPredictor from '../../pages/MatchdayPredictor';
 import { hasLiveMatch } from '../../utils/matchday';
@@ -270,6 +270,49 @@ describe('matchday editing and navigation', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Finalizados 1' }));
     expect(screen.getByText('Jugado')).toBeInTheDocument();
+  });
+});
+
+describe('opening a league from a reminder link', () => {
+  it('waits for the leagues to load and switches instead of leaving through the active league', () => {
+    const champions = group({ id: 20, name: 'Champions', poolFormat: 'MATCH_DAY' });
+    // Como el store real, cambiar de liga la activa al momento.
+    const changeGroup = vi.fn(() => {
+      current = { ...current, activeGroupId: '20', activeGroupPoolFormat: 'MATCH_DAY' };
+    });
+    // Liga activa sin jornadas (p. ej. un cuadro de LoL) y las ligas del usuario aún cargando.
+    let current: AppContextValue = appContext({
+      activeGroupId: '5',
+      activeGroupPoolFormat: 'FULL_BRACKET',
+      isAuthenticated: true,
+      userId: '7',
+      userGroups: [],
+      userGroupsLoaded: false,
+      changeGroup,
+    });
+    vi.mocked(useAppContext).mockImplementation(() => current);
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([]);
+    vi.mocked(api.fetchLeaderboardMatchdays).mockResolvedValue([]);
+    const client = new QueryClient();
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/jornadas?group=20']}>
+          <Routes>
+            <Route path="/jornadas" element={<MatchdayPredictor />} />
+            <Route path="/" element={<p>Inicio</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const view = render(tree());
+    expect(screen.queryByText('Inicio')).not.toBeInTheDocument();
+    expect(changeGroup).not.toHaveBeenCalled();
+
+    current = { ...current, userGroups: [champions], userGroupsLoaded: true };
+    view.rerender(tree());
+    expect(changeGroup).toHaveBeenCalledWith(20);
+    expect(screen.queryByText('Inicio')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Jornadas|Champions/ })).toBeInTheDocument();
   });
 });
 

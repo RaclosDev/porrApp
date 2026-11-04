@@ -28,7 +28,12 @@ self.addEventListener('notificationclick', (event) => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const open = windows.find((client) => client.url.startsWith(self.location.origin));
       if (open) {
-        return open.focus().then((client) => (client.navigate ? client.navigate(url) : client));
+        // navigate() falla en ventanas que el SW no controla o no existe (iOS): abrir la URL entonces.
+        return open
+          .focus()
+          .then((client) => (client.navigate ? client.navigate(url) : Promise.reject()))
+          .then((client) => client || self.clients.openWindow(url))
+          .catch(() => self.clients.openWindow(url));
       }
       return self.clients.openWindow(url);
     }),

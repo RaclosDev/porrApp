@@ -13,8 +13,8 @@ import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 
 function MatchdayPredictor() {
   const context = useAppContext();
-  useRequestedGroup(context);
-  if (context.loadingGroup || context.groupError)
+  const switchingGroup = useRequestedGroup(context);
+  if (switchingGroup || context.loadingGroup || context.groupError)
     return <LeagueLoadState error={context.groupError} />;
   return (
     <MatchdayLeague
@@ -24,16 +24,22 @@ function MatchdayPredictor() {
   );
 }
 
-/** Abre la liga de `?group=ID` (p. ej. desde un recordatorio) si el usuario es miembro. */
+/**
+ * Abre la liga de `?group=ID` (p. ej. desde un recordatorio) si el usuario es miembro.
+ * Devuelve `true` mientras la petición está pendiente, para no pintar (ni redirigir desde)
+ * la liga que estaba activa antes de cambiar.
+ */
 function useRequestedGroup({
   userGroups,
+  userGroupsLoaded,
   activeGroupId,
   changeGroup,
 }: ReturnType<typeof useAppContext>) {
   const [params, setParams] = useSearchParams();
   const requested = params.get('group');
   useEffect(() => {
-    if (!requested || !userGroups) return;
+    // Hasta que llegan las ligas, `userGroups` es una lista vacía: esperar o se descartaría la petición.
+    if (!requested || !userGroupsLoaded) return;
     const group = userGroups.find((candidate) => String(candidate.id) === requested);
     if (group && String(activeGroupId) !== requested) changeGroup(group.id);
     setParams(
@@ -44,7 +50,8 @@ function useRequestedGroup({
       },
       { replace: true },
     );
-  }, [requested, userGroups, activeGroupId, changeGroup, setParams]);
+  }, [requested, userGroups, userGroupsLoaded, activeGroupId, changeGroup, setParams]);
+  return Boolean(requested);
 }
 
 /**
