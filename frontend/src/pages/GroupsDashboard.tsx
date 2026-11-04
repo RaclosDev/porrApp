@@ -12,7 +12,7 @@ import JoinGroupPanel from '../components/groups/JoinGroupPanel';
 import CreateLeagueWizard from '../components/groups/CreateLeagueWizard';
 import CreatedLeagueModal from '../components/groups/CreatedLeagueModal';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
-import LeagueLockEditor from '../components/groups/LeagueLockEditor';
+import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
 import type { Group } from '../types/api';
 
 /** Mis ligas: crear, unirse con código y administrar. */
@@ -20,7 +20,6 @@ export default function GroupsDashboard() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<Group | null>(null);
   const [selectedGroupForRules, setSelectedGroupForRules] = useState<Group | null>(null);
   const [selectedCustomCompetition, setSelectedCustomCompetition] = useState<Group | null>(null);
-  const [selectedLockGroup, setSelectedLockGroup] = useState<Group | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
@@ -209,10 +208,6 @@ export default function GroupsDashboard() {
         />
       )}
 
-      {selectedLockGroup && isGroupAdmin(selectedLockGroup) && (
-        <LeagueLockEditor group={selectedLockGroup} onClose={() => setSelectedLockGroup(null)} />
-      )}
-
       {loading ? (
         <PaperLoading label="Cargando tus ligas" />
       ) : groupsError && groups.length === 0 ? null : groups.length === 0 ? (
@@ -265,7 +260,6 @@ export default function GroupsDashboard() {
                 handleShareWhatsApp={handleShareWhatsApp}
                 setSelectedGroupForMembers={setSelectedGroupForMembers}
                 setSelectedGroupForRules={setSelectedGroupForRules}
-                setSelectedLockGroup={setSelectedLockGroup}
                 setSelectedCustomCompetition={setSelectedCustomCompetition}
               />
             );
@@ -293,6 +287,11 @@ export default function GroupsDashboard() {
             );
           }}
           isAdmin={isGroupAdmin(selectedGroupForMembers)}
+          lockSection={
+            hasLeagueLockSetting(selectedGroupForMembers) ? (
+              <LeagueLockSection group={selectedGroupForMembers} />
+            ) : null
+          }
           currentUserId={userId}
           onClose={() => setSelectedGroupForMembers(null)}
           onCodeRegenerated={(newCode) => {
