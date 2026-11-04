@@ -51,15 +51,20 @@ function describe(mode: CustomLockMode, offsetMinutes: number): string {
   return `${MODES.find((item) => item.value === mode)?.label ?? mode}${margin}`;
 }
 
-/** Cómo y cuándo se cierran los pronósticos de una competición personalizada. */
+/**
+ * Cómo y cuándo se cierran los pronósticos de una liga de cuadro. El cierre por rondas o por partidos
+ * solo existe cuando el cuadro se pronostica cruce a cruce (personalizado o torneo con cuadro propio).
+ */
 export default function CustomLockCard({
   group,
   save,
   onLockDateSaved,
+  allowProgressive = true,
 }: {
   group: Group;
   save: SaveAction;
-  onLockDateSaved: (lockDate: string) => void;
+  onLockDateSaved?: (lockDate: string) => void;
+  allowProgressive?: boolean;
 }) {
   const queryClient = useQueryClient();
   const lock = useCustomLock(group.id.toString());
@@ -82,7 +87,10 @@ export default function CustomLockCard({
   }, [current]);
 
   const offsetMinutes = Math.max(0, Math.round(amount)) * UNIT_MINUTES[unit];
-  const selected = MODES.find((item) => item.value === mode)!;
+  const modes = allowProgressive
+    ? MODES
+    : MODES.filter((item) => item.value === 'FIXED_DATE' || item.value === 'FIRST_MATCH');
+  const selected = modes.find((item) => item.value === mode) ?? modes[0];
 
   let status = 'Sin fijar';
   if (current && lock.configured) {
@@ -123,13 +131,13 @@ export default function CustomLockCard({
                 queryKey: queryKeys.group(group.id.toString()),
               });
               await queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
-              onLockDateSaved(state.lockDate ?? '');
+              onLockDateSaved?.(state.lockDate ?? '');
             }, 'Cierre de pronósticos guardado');
           }}
         >
           <fieldset className="league-admin-field custom-lock-modes">
             <legend>Cuándo se cierran</legend>
-            {MODES.map((item) => (
+            {modes.map((item) => (
               <label key={item.value} className="custom-lock-mode">
                 <input
                   type="radio"
