@@ -26,7 +26,7 @@ export default function ReminderSettings() {
       ? 'Las notificaciones están bloqueadas en este navegador: actívalas en sus ajustes.'
       : permission === 'unsupported'
         ? 'Este navegador no admite notificaciones.'
-        : 'Te avisamos una hora antes de que cierre un partido que aún no has predicho.';
+        : 'Te avisamos una hora antes de que cierre un partido sin tu predicción.';
 
   const toggle = async (enabled: boolean) => {
     setSaving(true);
