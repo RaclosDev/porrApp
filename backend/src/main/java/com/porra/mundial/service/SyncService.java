@@ -187,9 +187,10 @@ public class SyncService {
             if (worldCup) {
                 processEvents(provider.fetchScoreboardEvents(slug, WORLD_CUP_DATE_RANGE), teams, batch);
             } else if (LolEsportsDataProvider.isLolCompetition(slug)) {
-                // El calendario de lolesports llega entero de una vez (y en caché): se repasa completo
-                // para que las series ya jugadas reciban también su fase.
-                processEvents(provider.fetchScoreboardEvents(slug, null), teams, batch);
+                // El calendario de lolesports llega entero de una vez (y en caché) e incluye ediciones
+                // anteriores: se repasa la temporada en curso para que las series ya jugadas reciban su fase.
+                String season = String.valueOf(LocalDate.now().getYear());
+                processEvents(provider.fetchScoreboardEvents(slug, season), teams, batch);
             } else {
                 LocalDate today = LocalDate.now();
                 for (LocalDate day : List.of(today.minusDays(1), today, today.plusDays(1))) {
