@@ -1,9 +1,10 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useState, useMemo, type CSSProperties } from 'react';
+import { useState, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import BracketCanvas, { TeamSlot } from '../components/BracketCanvas';
+import BracketTeamStatus from '../components/BracketTeamStatus';
 import {
   buildBracketData,
   isMatchInRound,
@@ -100,9 +101,10 @@ function OfficialBracketView() {
     const name = slotName(teamOrObj);
     const isProv = isObj ? teamOrObj.isProvisional : false;
 
-    let style: CSSProperties = isProv ? { border: '1px dashed var(--miss)' } : {};
+    const style: CSSProperties = isProv ? { border: '1px dashed var(--miss)' } : {};
 
-    let scoreContent = null;
+    let scoreContent: ReactNode = null;
+    let outcomeClass = '';
     let oppName: string | null = null;
     if (context && name && !name.includes('º') && name !== 'Por definir') {
       const { side, roundIndex, matchIndex, isHome } = context;
@@ -154,12 +156,13 @@ function OfficialBracketView() {
           isWinner = isHomeInMatch ? m.home_score > m.away_score : m.away_score > m.home_score;
         }
 
+        const decided = Boolean(m.winner) || (!isProv && m.home_score !== m.away_score);
+        if (decided) outcomeClass = isWinner ? 'is-won' : 'is-out';
         scoreContent = (
-          <span
-            className={`ml-1 text-[0.85em] font-bold bg-[rgba(17,24,39,0.06)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[var(--hit)]' : 'text-muted'}`}
-          >
-            {score}
-          </span>
+          <>
+            {decided && <BracketTeamStatus outcome={isWinner ? 'qualified' : 'eliminated'} />}
+            <span className="team-slot-score">{score}</span>
+          </>
         );
       }
     }
@@ -177,17 +180,15 @@ function OfficialBracketView() {
       }
     }
 
-    if (isFeatured) {
-      style = {
-        ...style,
-        border: isLive ? '2px solid var(--miss)' : '2px solid var(--accent-cyan)',
-        position: 'relative',
-        zIndex: 10,
-        fontWeight: 'bold',
-      };
-    }
-
-    return <TeamSlot name={name} slotStyle={style} rightContent={scoreContent} />;
+    const classes = [
+      outcomeClass,
+      isFeatured ? (isLive ? 'is-featured is-live' : 'is-featured') : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return (
+      <TeamSlot name={name} slotStyle={style} rightContent={scoreContent} className={classes} />
+    );
   };
 
   const hiddenRounds = {

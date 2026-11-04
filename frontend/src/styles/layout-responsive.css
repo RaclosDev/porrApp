@@ -405,27 +405,78 @@
   .mb-round {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
   }
 
+  /* Dos cruces a la izquierda, el conector y el cruce al que alimentan a la derecha. */
   .mb-group {
+    --mb-card-gap: 10px;
     display: flex;
     align-items: stretch;
   }
 
   .mb-current {
-    flex: 1 1 53%;
+    flex: 1 1 56%;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mb-card-gap);
   }
 
   .mb-connector {
-    width: 18px;
+    position: relative;
+    width: 16px;
     flex-shrink: 0;
-    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mb-card-gap);
+  }
+
+  .mb-connector-arm {
+    position: relative;
+    flex: 1 1 0;
+  }
+
+  /* Codo de arriba: del centro de la tarjeta al punto medio entre las dos. */
+  .mb-connector-arm::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 50%;
+    top: 50%;
+    bottom: calc(var(--mb-card-gap) / -2);
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    border-top-right-radius: 6px;
+  }
+
+  .mb-connector-arm + .mb-connector-arm::before {
+    top: calc(var(--mb-card-gap) / -2);
+    bottom: 50%;
+    border-top: 0;
+    border-bottom: 1.5px solid currentColor;
+    border-radius: 0 0 6px 0;
+  }
+
+  /* Un solo cruce: línea recta hasta el siguiente. */
+  .mb-connector-arm:only-child::before {
+    right: 0;
+    bottom: auto;
+    border-right: 0;
+    border-radius: 0;
+  }
+
+  .mb-connector::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    right: 0;
+    top: 50%;
+    border-top: 1.5px solid currentColor;
   }
 
   .mb-next {
-    flex: 1 1 43%;
+    flex: 1 1 40%;
     display: flex;
     align-items: center;
     min-width: 0;
@@ -433,41 +484,36 @@
 
   .mb-match-card {
     background: var(--panel-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
     overflow: hidden;
   }
 
-  /* Ensure comfortable tap target on mobile slots without truncating names */
+  /* Casillas cómodas de pulsar: el estilo en línea de la casilla fija alto, relleno y letra. */
   .mb-match-card .team-slot {
     min-height: 44px !important;
     padding: 6px 8px !important;
+    gap: 6px;
     font-size: 0.82rem !important;
+    border: 0 !important;
     border-radius: 0 !important;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
     background: transparent;
   }
 
-  .mb-match-card .team-slot:last-child {
-    border-bottom: none !important;
+  .mb-match-card .team-slot + .team-slot {
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   }
 
   .mb-match-next {
-    opacity: 0.9;
-    transform: none;
     width: 100%;
   }
 
   .mb-match-next .team-slot {
-    min-height: 44px !important;
     padding: 4px 6px !important;
-    font-size: 0.78rem !important;
   }
 
   .mb-match-placeholder {
     border-style: dashed;
-    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .mb-placeholder-inner {

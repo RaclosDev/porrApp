@@ -198,9 +198,20 @@ describe('CustomBracket', () => {
 
     const left = within(await screen.findByRole('region', { name: 'Cruces del lado izquierdo' }));
     const right = within(screen.getByRole('region', { name: 'Cruces del lado derecho' }));
-    expect(left.getByTitle('Acertado')).toHaveTextContent('✓ Acertado');
-    expect(left.getByTitle('Fallado').closest('.team-slot')).toHaveTextContent('Club');
-    expect(left.getByTitle('Acertado').closest('.team-slot')).toHaveTextContent('Rayo');
+    // El equipo elegido se sombrea en verde o rojo y cada uno lleva su sello de clasificado o eliminado.
+    const hit = left.getByText(/tu predicción, acertada/).closest('.team-slot');
+    const miss = left.getByText(/tu predicción, fallada/).closest('.team-slot');
+    expect(hit).toHaveClass('is-hit');
+    expect(hit).toHaveTextContent('Rayo');
+    expect(hit).toHaveTextContent('Clasificado');
+    expect(miss).toHaveClass('is-miss');
+    expect(miss).toHaveTextContent('Club');
+    expect(miss).toHaveTextContent('Eliminado');
+    expect(left.getByText('Peña').closest('.team-slot')).toHaveTextContent('Clasificado');
+    expect(left.getByText('Barrio').closest('.team-slot')).toHaveClass('is-out');
+    expect(screen.getByRole('list', { name: 'Leyenda del cuadro' })).toHaveTextContent(
+      /Tu predicción.*Acertada.*Fallada/,
+    );
     expect(right.getAllByText('Descanso').length).toBeGreaterThan(0);
     // El equipo que descansa no se elige: pasa solo a semifinales.
     expect(right.queryByRole('button', { name: 'Pasar a Solo' })).toBeNull();

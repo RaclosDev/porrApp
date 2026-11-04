@@ -1,8 +1,8 @@
-import type { CSSProperties } from 'react';
 import type { Match } from '../../types/api';
 import type { CustomCanvasLayout, CustomResultSlot } from '../../utils/customBracket';
 import BracketCanvas, { TeamSlot, type CanvasMatch } from '../BracketCanvas';
 import { BracketFinalMatch } from '../BracketFinale';
+import BracketTeamStatus from '../BracketTeamStatus';
 
 const toCanvasMatch = (slot: CustomResultSlot): CanvasMatch<string | null> => ({
   home: slot.home,
@@ -35,31 +35,29 @@ export default function ResultBracket({
     const match = slot.match;
     const played = Boolean(match?.finished && match.homeScore != null && match.awayScore != null);
     const isWinner = Boolean(name && match && played && winnerOf(match) === name);
-
-    let style: CSSProperties = {};
-    if (name && match && featuredMatchId === match.id) {
-      style = {
-        border: '2px solid var(--accent-cyan)',
-        position: 'relative',
-        zIndex: 10,
-        fontWeight: 'bold',
-      };
-    }
+    const isLoser = Boolean(name && match && played && winnerOf(match) && !isWinner);
+    const classes = [
+      isWinner ? 'is-won' : '',
+      isLoser ? 'is-out' : '',
+      name && match && featuredMatchId === match.id ? 'is-featured' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     return (
       <TeamSlot
         name={label}
         logo={name ? logos[name] : null}
         placeholder={!name}
-        slotStyle={style}
+        className={classes}
         rightContent={
           played && name ? (
-            <span
-              className={`ml-1 text-[0.85em] font-bold bg-[rgba(17,24,39,0.06)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[var(--hit)]' : 'text-muted'}`}
-            >
-              {isHome ? match?.homeScore : match?.awayScore}
-              {isWinner && <span className="sr-only"> (ganador)</span>}
-            </span>
+            <>
+              <BracketTeamStatus outcome={isWinner ? 'qualified' : isLoser ? 'eliminated' : null} />
+              <span className="team-slot-score">
+                {isHome ? match?.homeScore : match?.awayScore}
+              </span>
+            </>
           ) : null
         }
       />
