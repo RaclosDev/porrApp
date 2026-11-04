@@ -8,6 +8,7 @@ import {
   computeSwissStandings,
   nextOfficialBracketMatch,
   officialMatchWinner,
+  swissMatchesByDay,
 } from '../utils/officialTournament';
 import PaperLoading from '../components/PaperLoading';
 import Flag from '../components/Flag';
@@ -16,6 +17,7 @@ import OfficialBracketTabs from '../components/official/OfficialBracketTabs';
 import FeaturedMatchBanner from '../components/official/FeaturedMatchBanner';
 import BracketInfoPanel from '../components/official/BracketInfoPanel';
 import ResultBracket from '../components/official/ResultBracket';
+import SwissMatches from '../components/official/SwissMatches';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 
 /**
@@ -43,6 +45,7 @@ export default function OfficialTournamentHome() {
     [resultRounds],
   );
   const swiss = useMemo(() => computeSwissStandings(allGames), [allGames]);
+  const swissDays = useMemo(() => swissMatchesByDay(allGames), [allGames]);
   const featuredMatch = useMemo(() => nextOfficialBracketMatch(allGames), [allGames]);
   const featuredRound = resultRounds.find((round) =>
     round.slots.some((slot) => slot.match?.id === featuredMatch?.id),
@@ -66,56 +69,63 @@ export default function OfficialTournamentHome() {
       />
 
       {activeTab === 'grupos' && hasSwiss && (
-        <div className="paper-panel album-sheet p-4 max-w-145 mx-auto">
-          <div className="flex justify-between items-center mb-2.5">
-            <h2 className="album-sheet-title mb-0 text-left">Fase suiza</h2>
-            <div className="flex gap-2 text-[0.75em] font-bold text-muted pr-1.5">
-              <span className="w-6 text-center" title="Victorias">
-                V
-              </span>
-              <span className="w-6 text-center" title="Derrotas">
-                D
-              </span>
+        <div className="grid gap-4 max-w-245 mx-auto md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-start">
+          {swissDays.length > 0 && <SwissMatches days={swissDays} logos={logos} />}
+          <div
+            className={`paper-panel album-sheet p-4 ${swissDays.length ? '' : 'md:col-span-2 w-full max-w-145 mx-auto'}`}
+          >
+            <div className="flex justify-between items-center mb-2.5">
+              <h2 className="album-sheet-title mb-0 text-left">Fase suiza</h2>
+              <div className="flex gap-2 text-[0.75em] font-bold text-muted pr-1.5">
+                <span className="w-6 text-center" title="Victorias">
+                  V
+                </span>
+                <span className="w-6 text-center" title="Derrotas">
+                  D
+                </span>
+              </div>
             </div>
-          </div>
-          <ol className="m-0 p-0 list-none">
-            {swiss.map((row, index) => {
-              const through = row.wins >= SWISS_WINS_TO_ADVANCE;
-              const out = row.losses >= SWISS_LOSSES_TO_EXIT;
-              return (
-                <li
-                  key={row.team}
-                  className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${through ? 'bg-[rgba(17,_24,_39,_0.04)] bg-none' : ''}`}
-                >
-                  <span className="w-5 font-bold text-muted text-[0.85em] shrink-0">
-                    {index + 1}
-                  </span>
-                  <span className="inline-flex items-center mr-[5px] shrink-0">
-                    <Flag team={row.team} logo={logos[row.team]} />
-                  </span>
-                  <span
-                    className={`grow whitespace-nowrap overflow-hidden text-ellipsis mr-2 ${through ? 'font-bold' : ''} ${out ? 'text-muted' : ''}`}
+            <ol className="m-0 p-0 list-none" aria-label="Clasificación de la fase suiza">
+              {swiss.map((row, index) => {
+                const through = row.wins >= SWISS_WINS_TO_ADVANCE;
+                const out = row.losses >= SWISS_LOSSES_TO_EXIT;
+                return (
+                  <li
+                    key={row.team}
+                    className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${through ? 'bg-[rgba(17,_24,_39,_0.04)] bg-none' : ''}`}
                   >
-                    {row.team}
-                  </span>
-                  {through && (
-                    <InkStamp tone="ink" size="sm" label="Clasificado">
-                      Pasa
-                    </InkStamp>
-                  )}
-                  {out && (
-                    <InkStamp size="sm" label="Eliminado">
-                      Fuera
-                    </InkStamp>
-                  )}
-                  <div className="flex gap-2 text-[0.85em] ml-2">
-                    <span className="w-6 text-center font-bold text-[var(--hit)]">{row.wins}</span>
-                    <span className="w-6 text-center text-[var(--miss)]">{row.losses}</span>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
+                    <span className="w-5 font-bold text-muted text-[0.85em] shrink-0">
+                      {index + 1}
+                    </span>
+                    <span className="inline-flex items-center mr-[5px] shrink-0">
+                      <Flag team={row.team} logo={logos[row.team]} />
+                    </span>
+                    <span
+                      className={`grow whitespace-nowrap overflow-hidden text-ellipsis mr-2 ${through ? 'font-bold' : ''} ${out ? 'text-muted' : ''}`}
+                    >
+                      {row.team}
+                    </span>
+                    {through && (
+                      <InkStamp tone="ink" size="sm" label="Clasificado">
+                        Pasa
+                      </InkStamp>
+                    )}
+                    {out && (
+                      <InkStamp size="sm" label="Eliminado">
+                        Fuera
+                      </InkStamp>
+                    )}
+                    <div className="flex gap-2 text-[0.85em] ml-2">
+                      <span className="w-6 text-center font-bold text-[var(--hit)]">
+                        {row.wins}
+                      </span>
+                      <span className="w-6 text-center text-[var(--miss)]">{row.losses}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import OfficialTournamentHome from '../../pages/OfficialTournamentHome';
@@ -72,9 +72,25 @@ describe('OfficialTournamentHome', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Fase suiza' }));
 
     expect(screen.getByRole('heading', { name: 'Fase suiza' })).toBeTruthy();
-    const rows = screen.getAllByRole('listitem').map((row) => row.textContent);
+    const table = screen.getByRole('list', { name: 'Clasificación de la fase suiza' });
+    const rows = within(table)
+      .getAllByRole('listitem')
+      .map((row) => row.textContent);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toContain('T1');
     expect(rows[1]).toContain('G2');
+  });
+
+  it('lista los enfrentamientos de la fase suiza por día junto a la tabla', () => {
+    renderHome();
+    fireEvent.click(screen.getByRole('tab', { name: 'Fase suiza' }));
+
+    expect(screen.getByRole('heading', { name: 'Enfrentamientos' })).toBeTruthy();
+    const day = screen.getByRole('region', { name: /20 oct/ });
+    const match = within(day).getByRole('listitem');
+    expect(match.textContent).toContain('T1');
+    expect(match.textContent).toContain('2–0');
+    expect(match.textContent).toContain('G2');
+    expect(within(day).queryByText('FNC')).toBeNull();
   });
 });

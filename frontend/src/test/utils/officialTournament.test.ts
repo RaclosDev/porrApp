@@ -5,6 +5,7 @@ import {
   nextOfficialBracketMatch,
   officialBracketMatches,
   officialMatchWinner,
+  swissMatchesByDay,
 } from '../../utils/officialTournament';
 import type { Match } from '../../types/api';
 
@@ -121,5 +122,20 @@ describe('cruces oficiales para pronosticar', () => {
       ['B', 'bracket-2'],
     ]);
     expect(result[0].winner).toBe('B');
+  });
+});
+
+describe('swissMatchesByDay', () => {
+  it('agrupa las series suizas por día de España en orden cronológico', () => {
+    const late = match({ home: 'C', away: 'D', date: '2026-10-20T22:30:00Z' });
+    const early = match({ home: 'A', away: 'B', date: '2026-10-20T08:00:00Z' });
+    const knockout = match({ home: 'E', away: 'F', date: '2026-10-20T09:00:00Z', round: 'qf' });
+    const undecided = match({ home: '', away: '', date: '2026-10-20T09:00:00Z' });
+
+    const days = swissMatchesByDay([late, knockout, early, undecided]);
+
+    expect(days.map((day) => day.key)).toEqual(['2026-10-20', '2026-10-21']);
+    expect(days[0].matches).toEqual([early]);
+    expect(days[1].matches).toEqual([late]);
   });
 });
