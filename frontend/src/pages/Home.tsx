@@ -11,21 +11,16 @@ import OfficialBracket from './OfficialBracket';
 import BestThirdsPanel from '../components/Home/BestThirdsPanel';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
-import MatchdayHomeDashboard from '../components/Home/MatchdayHomeDashboard';
+import LeagueHomeDashboard from '../components/Home/LeagueHomeDashboard';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
-import CustomTournamentHome from './CustomTournamentHome';
-import OfficialTournamentHome from './OfficialTournamentHome';
-
-/** Competición del cuadro oficial con grupos, terceros y cruces. */
-const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
+import { useLeagueHomeFormat } from '../hooks/useLeagueHomeData';
 
 /**
- * Página principal: estado del torneo oficial, clasificación por grupos en vivo,
- * mejores terceros, partidos en directo y goleadores. Alterna entre la vista de
- * fase de grupos y el cuadro eliminatorio oficial.
+ * Página principal. La portada es la misma para todos los formatos de liga (LeagueHomeDashboard);
+ * en /grupos el Mundial muestra la fase de grupos completa y los demás cuadros su vista de resultados.
  */
-function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' }) {
+function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
   const {
     groupOdds,
     officialPoints,
@@ -38,10 +33,6 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
     topScorersError,
     refreshTopScorers,
     activeGroupPichichi,
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    activeGroupCustomCompetition,
-    activeCompetitionExternalId,
     loadingGroup,
     groupError,
   } = useAppContext();
@@ -56,25 +47,12 @@ function Home({ defaultMode = 'bracket' }: { defaultMode?: 'bracket' | 'groups' 
   }, [defaultMode]);
 
   const sortedGroups = useSortedGroups();
+  const format = useLeagueHomeFormat();
 
-  const isMatchDayLeague =
-    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
   if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  if (activeGroupCustomCompetition && !isMatchDayLeague) {
-    return <CustomTournamentHome />;
-  }
-  if (isMatchDayLeague) {
-    return <MatchdayHomeDashboard />;
-  }
-  // El cuadro oficial (grupos, terceros y cruces) es el del Mundial; los demás torneos usan sus series.
-  if (activeCompetitionExternalId && activeCompetitionExternalId !== WORLD_CUP_EXTERNAL_ID) {
-    return <OfficialTournamentHome />;
-  }
-
-  // Si estamos en modo bracket, delegamos directamente en OfficialBracket sin mostrar nunca el skeleton de grupos
-  if (viewMode === 'bracket') {
-    return <OfficialBracket />;
-  }
+  if (viewMode === 'home' || format === 'matchday') return <LeagueHomeDashboard />;
+  // Solo el Mundial tiene fase de grupos oficial; los demás cuadros la muestran en su vista de resultados.
+  if (format !== 'worldcup') return <OfficialBracket />;
 
   const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;
   if (loading && !hasGroupsData) {
