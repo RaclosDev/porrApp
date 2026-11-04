@@ -174,6 +174,21 @@ class GroupServiceTest {
     }
 
     @Test
+    void officialCompetitionsOtherThanTheWorldCupArePlayedByMatchday() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition worlds = Competition.builder().id(7L).externalId("lol.worlds").build();
+        when(competitionRepository.findById(7L)).thenReturn(Optional.of(worlds));
+        when(leagueRepository.save(any(League.class))).thenReturn(league);
+
+        groupService.createGroup("Worlds", "admin@test.com", 7L,
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET);
+
+        verify(editionRepository).save(argThat(edition ->
+                edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY
+                        && edition.getLockDate() == null));
+    }
+
+    @Test
     void createWorldCupBracketHasTheTournamentDeadline() {
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
         Competition worldCup = Competition.builder().id(2L)
