@@ -23,8 +23,16 @@ import CustomSelect from '../components/CustomSelect';
 import InkStamp from '../components/InkStamp';
 import BracketCanvas, { TeamSlot, type CanvasMatch } from '../components/BracketCanvas';
 import { BracketFinalMatch } from '../components/BracketFinale';
+import BracketTeamStatus from '../components/BracketTeamStatus';
 
 type Pair = CustomPair;
+
+/** Texto para el lector de pantalla del equipo elegido en cada cruce. */
+const PICK_LABELS = {
+  picked: ' · tu predicción',
+  hit: ' · tu predicción, acertada',
+  miss: ' · tu predicción, fallada',
+} as const;
 
 const toCanvasMatch = (slot: CustomBracketMatchSlot): CanvasMatch<string | null> => ({
   home: slot.home,
@@ -153,6 +161,18 @@ export default function CustomBracket() {
     }
     return result;
   }, [matches]);
+  // Ronda en la que cayó cada equipo, para marcarlo eliminado desde ahí en adelante.
+  const eliminatedAt = useMemo(() => {
+    const result = new Map<string, number>();
+    for (const match of matches) {
+      const found = /^bracket-(\d+)$/.exec(match.round ?? '');
+      const winner = found && match.away_team_id ? customMatchWinner(match) : null;
+      if (!found || !winner) continue;
+      const loser = winner === match.home ? match.away : match.home;
+      if (loser) result.set(loser, Number(found[1]) - 1);
+    }
+    return result;
+  }, [matches]);
   const decidedRounds = useMemo(() => {
     const result: boolean[] = [];
     for (const match of matches) {
@@ -233,23 +253,38 @@ export default function CustomBracket() {
     const name = isHome ? slot.home : slot.isBye ? null : slot.away;
     const label = name ?? (isHome ? slot.homePlaceholder : slot.awayPlaceholder);
     const picked = Boolean(name && !slot.isBye && picks[roundIndex]?.[matchIndex] === name);
+    const qualified = Boolean(name && realWinners[roundIndex]?.has(name));
+    const outRound = name ? eliminatedAt.get(name) : undefined;
+    const eliminated = !qualified && outRound != null && outRound <= roundIndex;
+    const outcome = !picked
+      ? null
+      : qualified
+        ? 'hit'
+        : eliminated || decidedRounds[roundIndex]
+          ? 'miss'
+          : 'picked';
+    const classes = [outcome ? `is-${outcome}` : '', eliminated && !picked ? 'is-out' : '']
+      .filter(Boolean)
+      .join(' ');
     return (
       <TeamSlot
         name={label}
         logo={name ? logos[name] : null}
         placeholder={!name}
         pressed={picked}
+        className={classes}
         onClick={
           editable && name && !slot.isBye && !lock.pickLocked(roundIndex, matchIndex)
             ? () => selectWinner(roundIndex, matchIndex, name)
             : undefined
         }
         rightContent={
-          <PickOutcome
-            picked={picked}
-            won={Boolean(name && realWinners[roundIndex]?.has(name))}
-            decided={Boolean(decidedRounds[roundIndex])}
-          />
+          <>
+            {outcome && <span className="sr-only">{PICK_LABELS[outcome]}</span>}
+            <BracketTeamStatus
+              outcome={qualified ? 'qualified' : eliminated ? 'eliminated' : null}
+            />
+          </>
         }
       />
     );
@@ -449,11 +484,25 @@ export default function CustomBracket() {
                 Pulsa un equipo para pasarlo a la siguiente ronda
               </p>
             )}
-            {decidedRounds.some(Boolean) && (
-              <p className="text-muted mt-1 text-[0.85rem]">
-                <span className="text-[var(--hit)] font-bold">✓ Acertado</span> ·{' '}
-                <span className="text-[var(--miss)] font-bold">✗ Fallado</span>
-              </p>
+            {picks.some((round) => round.some(Boolean)) && (
+              <ul className="pick-legend" aria-label="Leyenda del cuadro">
+                <li>
+                  <span className="pick-legend-swatch is-picked" aria-hidden="true" />
+                  Tu predicción
+                </li>
+                {decidedRounds.some(Boolean) && (
+                  <>
+                    <li>
+                      <span className="pick-legend-swatch is-hit" aria-hidden="true" />
+                      Acertada
+                    </li>
+                    <li>
+                      <span className="pick-legend-swatch is-miss" aria-hidden="true" />
+                      Fallada
+                    </li>
+                  </>
+                )}
+              </ul>
             )}
           </div>
 
@@ -505,28 +554,5 @@ export default function CustomBracket() {
         </>
       )}
     </section>
-  );
-}
-
-/** Marca de acierto o fallo; solo el icono, para no comerse el nombre en casillas estrechas. */
-function PickOutcome({
-  picked,
-  won,
-  decided,
-}: {
-  picked: boolean;
-  won: boolean;
-  decided: boolean;
-}) {
-  if (!picked || (!won && !decided)) return null;
-  const label = won ? 'Acertado' : 'Fallado';
-  return (
-    <span
-      className={`ml-1 shrink-0 text-[0.95em] font-bold ${won ? 'text-[var(--hit)]' : 'text-[var(--miss)]'}`}
-      title={label}
-    >
-      <span aria-hidden="true">{won ? '✓' : '✗'}</span>
-      <span className="sr-only"> {label}</span>
-    </span>
   );
 }

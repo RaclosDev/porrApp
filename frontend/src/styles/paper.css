@@ -633,11 +633,17 @@
   /* Cuadro en móvil: pestañas y tarjetas de cruce sobre el papel. */
   .paper-panel .mb-match-card {
     background: #fffdf7;
-    border: 1.5px solid var(--ink);
+    border: 1px solid rgba(17, 24, 39, 0.55);
+    box-shadow: 0 1px 0 rgba(17, 24, 39, 0.08);
+  }
+
+  .paper-panel .mb-match-card .team-slot + .team-slot {
+    border-top-color: rgba(17, 24, 39, 0.12) !important;
   }
 
   .paper-panel .mb-match-placeholder {
     border-color: rgba(17, 24, 39, 0.35);
+    box-shadow: none;
   }
 
   .paper-panel .mb-next-btn {

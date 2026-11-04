@@ -66,7 +66,12 @@ describe('CustomTournamentHome', () => {
     // Sin rondas previas a semifinales no hay hojas laterales.
     expect(screen.queryByRole('region', { name: 'Cruces del lado izquierdo' })).toBeNull();
     expect(center.getByRole('heading', { name: 'Semifinal 1' })).toBeInTheDocument();
-    expect(center.getByText('(ganador)').parentElement).toHaveTextContent('3');
+    const winner = center.getAllByText('Clasificado')[0].closest('.team-slot');
+    expect(winner).toHaveClass('is-won');
+    expect(winner).toHaveTextContent(/T1.*3/);
+    expect(center.getAllByText('Eliminado')[0].closest('.team-slot')).toHaveTextContent(
+      /Gen\.G.*1/,
+    );
     expect(center.getByText('Ganador C2')).toBeInTheDocument();
     // El escudo sale también en la final, donde el cruce aún no existe.
     expect(center.getAllByRole('img', { name: 'T1' })).toHaveLength(2);

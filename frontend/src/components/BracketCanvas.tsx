@@ -79,6 +79,8 @@ interface TeamSlotProps {
    * nombre, que solo sirve para selecciones con bandera.
    */
   placeholder?: boolean;
+  /** Clases de estado (elegido, acertado, clasificado…) que pinta el cuadro. */
+  className?: string;
 }
 
 /** Casilla de un equipo en el cuadro; solo es pulsable si el equipo es real. */
@@ -90,6 +92,7 @@ export function TeamSlot({
   pressed = false,
   logo,
   placeholder,
+  className = '',
 }: TeamSlotProps) {
   const isEmpty = !name;
   const lower = name?.toLowerCase() || '';
@@ -107,6 +110,8 @@ export function TeamSlot({
         name === '?' ||
         getCountryCode(name) === 'xx'));
   const clickable = !!onClick && !isEmpty && !isPlaceholder;
+  // El elegido se sombrea; is-hit / is-miss, si llegan, cambian el color del sombreado.
+  const stateClass = `${pressed ? 'is-picked ' : ''}${className}`.trim();
 
   const style: React.CSSProperties = {
     cursor: clickable ? 'pointer' : 'default',
@@ -153,7 +158,7 @@ export function TeamSlot({
         </div>
       )}
       <span
-        className={`overflow-hidden text-ellipsis whitespace-nowrap flex-1 ${isCombined ? 'text-[0.65rem]' : 'text-[0.78rem]'}`}
+        className={`team-slot-name overflow-hidden text-ellipsis whitespace-nowrap flex-1 ${isCombined ? 'text-[0.65rem]' : 'text-[0.78rem]'}`}
       >
         {name ?? 'Por definir'}
       </span>
@@ -165,7 +170,7 @@ export function TeamSlot({
     return (
       <button
         type="button"
-        className="team-slot team-slot-btn"
+        className={`team-slot team-slot-btn ${stateClass}`.trim()}
         onClick={onClick}
         aria-label={`Pasar a ${name}`}
         aria-pressed={pressed}
@@ -177,7 +182,10 @@ export function TeamSlot({
   }
 
   return (
-    <div className={`team-slot${isEmpty || isPlaceholder ? ' empty' : ''}`} style={style}>
+    <div
+      className={`team-slot${isEmpty || isPlaceholder ? ' empty' : ''} ${stateClass}`.trim()}
+      style={style}
+    >
       {content}
     </div>
   );
