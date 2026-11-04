@@ -38,7 +38,7 @@ export default function PushReminderPrompt({ canPrompt }: { canPrompt: boolean }
   const synced = useRef(false);
 
   const publicKey = config?.publicKey ?? null;
-  const enabled = Boolean(publicKey && config?.remindersEnabled);
+  const enabled = Boolean(publicKey && (config?.remindersEnabled || config?.memberJoinedEnabled));
   const permission = notificationPermission();
 
   useEffect(() => {

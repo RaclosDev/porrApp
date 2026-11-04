@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 
-/** Dispositivos suscritos a avisos push y preferencia de recordatorios de cada usuario. */
+/** Dispositivos suscritos a avisos push y preferencias de avisos de cada usuario. */
 @Service
 @RequiredArgsConstructor
 public class PushSubscriptionService {
@@ -27,7 +27,9 @@ public class PushSubscriptionService {
 
     @Transactional(readOnly = true)
     public PushConfigResponse config(String email) {
-        return new PushConfigResponse(sender.publicKey(), findUser(email).isMatchRemindersEnabled());
+        UserAccount user = findUser(email);
+        return new PushConfigResponse(sender.publicKey(), user.isMatchRemindersEnabled(),
+                user.isMemberJoinedAlertsEnabled());
     }
 
     /** Guarda el dispositivo; si ya estaba con otra cuenta (cambio de sesión), pasa a esta. */
@@ -52,9 +54,10 @@ public class PushSubscriptionService {
     }
 
     @Transactional
-    public void setRemindersEnabled(String email, boolean enabled) {
+    public void setPreferences(String email, Boolean remindersEnabled, Boolean memberJoinedEnabled) {
         UserAccount user = findUser(email);
-        user.setMatchRemindersEnabled(enabled);
+        if (remindersEnabled != null) user.setMatchRemindersEnabled(remindersEnabled);
+        if (memberJoinedEnabled != null) user.setMemberJoinedAlertsEnabled(memberJoinedEnabled);
         userAccountRepository.save(user);
     }
 

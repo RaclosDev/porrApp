@@ -682,7 +682,11 @@ export interface PushConfig {
   /** Clave pública VAPID; null si el servidor no tiene avisos configurados. */
   publicKey: string | null;
   remindersEnabled: boolean;
+  /** Avisar cuando alguien se une a una de sus ligas. */
+  memberJoinedEnabled: boolean;
 }
+
+export type PushPreferences = Pick<PushConfig, 'remindersEnabled' | 'memberJoinedEnabled'>;
 
 export interface PushSubscriptionPayload {
   endpoint: string;
@@ -699,9 +703,10 @@ export const savePushSubscription = (subscription: PushSubscriptionPayload) =>
     fallbackError: 'No se pudieron activar los avisos',
   });
 
-export const setPushPreferences = (remindersEnabled: boolean) =>
+/** Solo cambia las preferencias que se envían. */
+export const setPushPreferences = (preferences: Partial<PushPreferences>) =>
   request<void>('/push/preferences', {
     method: 'PUT',
-    json: { remindersEnabled },
+    json: preferences,
     fallbackError: 'No se pudo guardar la preferencia',
   });

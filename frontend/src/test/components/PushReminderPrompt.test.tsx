@@ -25,7 +25,11 @@ const prompt = () => screen.queryByRole('region', { name: 'Avisos de predicción
 beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
-  vi.mocked(fetchPushConfig).mockResolvedValue({ publicKey: 'KEY', remindersEnabled: true });
+  vi.mocked(fetchPushConfig).mockResolvedValue({
+    publicKey: 'KEY',
+    remindersEnabled: true,
+    memberJoinedEnabled: true,
+  });
   vi.mocked(push.notificationPermission).mockReturnValue('default');
   vi.mocked(push.needsIosInstall).mockReturnValue(false);
 });
@@ -52,10 +56,30 @@ it('remembers "Ahora no" for a while', async () => {
 });
 
 it.each([
-  ['without server keys', { publicKey: null, remindersEnabled: true }, false, true],
-  ['with reminders off', { publicKey: 'KEY', remindersEnabled: false }, false, true],
-  ['on iOS outside the installed app', { publicKey: 'KEY', remindersEnabled: true }, true, true],
-  ['while another banner is shown', { publicKey: 'KEY', remindersEnabled: true }, false, false],
+  [
+    'without server keys',
+    { publicKey: null, remindersEnabled: true, memberJoinedEnabled: true },
+    false,
+    true,
+  ],
+  [
+    'with every alert off',
+    { publicKey: 'KEY', remindersEnabled: false, memberJoinedEnabled: false },
+    false,
+    true,
+  ],
+  [
+    'on iOS outside the installed app',
+    { publicKey: 'KEY', remindersEnabled: true, memberJoinedEnabled: true },
+    true,
+    true,
+  ],
+  [
+    'while another banner is shown',
+    { publicKey: 'KEY', remindersEnabled: true, memberJoinedEnabled: true },
+    false,
+    false,
+  ],
 ])('stays hidden %s', async (_, config, iosInstall, canPrompt) => {
   vi.mocked(fetchPushConfig).mockResolvedValue(config);
   vi.mocked(push.needsIosInstall).mockReturnValue(iosInstall);

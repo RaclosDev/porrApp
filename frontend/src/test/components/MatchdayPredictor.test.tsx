@@ -316,6 +316,42 @@ describe('opening a league from a reminder link', () => {
   });
 });
 
+describe('opening a league without matchdays from a notification link', () => {
+  it('switches to it and lands on its home', () => {
+    const bracket = group({ id: 30, name: 'Cuadro', poolFormat: 'FULL_BRACKET' });
+    let current: AppContextValue = appContext({
+      activeGroupId: '5',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      isAuthenticated: true,
+      userId: '7',
+      userGroups: [bracket],
+      userGroupsLoaded: true,
+    });
+    const changeGroup = vi.fn(() => {
+      current = { ...current, activeGroupId: '30', activeGroupPoolFormat: 'FULL_BRACKET' };
+    });
+    current = { ...current, changeGroup };
+    vi.mocked(useAppContext).mockImplementation(() => current);
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([]);
+    vi.mocked(api.fetchLeaderboardMatchdays).mockResolvedValue([]);
+    const client = new QueryClient();
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/jornadas?group=30']}>
+          <Routes>
+            <Route path="/jornadas" element={<MatchdayPredictor />} />
+            <Route path="/" element={<p>Inicio</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const view = render(tree());
+    expect(changeGroup).toHaveBeenCalledWith(30);
+    view.rerender(tree());
+    expect(screen.getByText('Inicio')).toBeInTheDocument();
+  });
+});
+
 describe('matchday screen with the league round summary', () => {
   let client: QueryClient;
   const matchday = (label: string, current = false) => ({
