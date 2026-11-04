@@ -116,7 +116,7 @@ describe('CustomBracket', () => {
         '10',
       ),
     );
-    expect(await screen.findByText('Pronóstico guardado')).toBeInTheDocument();
+    expect(await screen.findByText('✓ Guardado')).toBeInTheDocument();
 
     fireEvent.click(center.getAllByRole('button', { name: 'Pasar a BLG' })[1]);
     await waitFor(() =>
@@ -205,13 +205,9 @@ describe('CustomBracket', () => {
     expect(right.queryByRole('button', { name: 'Pasar a Solo' })).toBeNull();
     const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
     expect(center.getAllByText('Solo').length).toBeGreaterThan(0);
-    // El aviso de pronóstico guardado es una notificación temporal, no un bloque fijo.
-    expect(toast).toHaveBeenCalledOnce();
-    expect(toast).toHaveBeenCalledWith(
-      'Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.',
-      expect.anything(),
-    );
-    expect(screen.queryByText(/Ya tienes un pronóstico guardado/)).toBeNull();
+    // Al entrar con el pronóstico ya hecho no se muestra ningún aviso.
+    expect(toast).not.toHaveBeenCalled();
+    expect(screen.queryByText(/guardado/i)).toBeNull();
   });
 
   it('en un torneo oficial pronostica sobre los cruces reales con su estado de cierre', async () => {
