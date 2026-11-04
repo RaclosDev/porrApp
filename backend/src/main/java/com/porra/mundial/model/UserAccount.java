@@ -56,6 +56,11 @@ public class UserAccount {
     @Column(name = "avatar_updated_at")
     private LocalDateTime avatarUpdatedAt;
 
+    /** Recibe un aviso push una hora antes de que cierre un partido que aún no ha predicho. */
+    @Column(name = "match_reminders_enabled", nullable = false)
+    @Builder.Default
+    private boolean matchRemindersEnabled = true;
+
     @Column(name = "profile_setup_completed", nullable = false)
     private boolean profileSetupCompleted;
 

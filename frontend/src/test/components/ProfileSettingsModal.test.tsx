@@ -11,6 +11,8 @@ vi.mock('../../services/api', () => ({
   uploadMyAvatar: vi.fn(),
   deleteMyAvatar: vi.fn(),
   completeProfileSetup: vi.fn(),
+  fetchPushConfig: vi.fn().mockResolvedValue({ publicKey: null, remindersEnabled: true }),
+  setPushPreferences: vi.fn(),
 }));
 
 it('blocks name editing and Escape while the profile update is pending', async () => {

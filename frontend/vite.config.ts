@@ -73,7 +73,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        importScripts: ['/sw-cleanup.js'],
+        importScripts: ['/sw-cleanup.js', '/sw-push.js'],
         navigateFallbackDenylist: [/^\/api(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,svg}'],
         // html2canvas solo se carga con import() al compartir la clasificación: se baja al usarlo.

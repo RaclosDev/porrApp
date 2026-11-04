@@ -50,4 +50,9 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
 
     boolean existsByMatchIdAndPointsAwardedIsNull(Long matchId);
 
+    /** Pares (usuario, partido) que ya tienen predicción en una edición, entre los partidos indicados. */
+    @Query("SELECT mp.prediction.user.id, mp.match.id FROM MatchPrediction mp"
+            + " WHERE mp.prediction.edition.id = :editionId AND mp.match.id IN :matchIds")
+    List<Object[]> findPredictedUserMatchPairs(@Param("editionId") Long editionId,
+                                               @Param("matchIds") Collection<Long> matchIds);
 }
