@@ -1,7 +1,12 @@
 import Flag from '../Flag';
 import { CalendarDays, Users } from 'lucide-react';
 import type { MatchdayFixture } from '../../types/api';
-import { formatMatchDate, type DraftPrediction, type MatchSign } from '../../utils/matchday';
+import {
+  formatMatchDate,
+  isLiveFixture,
+  type DraftPrediction,
+  type MatchSign,
+} from '../../utils/matchday';
 
 interface FixtureCardProps {
   fixture: MatchdayFixture;
@@ -56,6 +61,8 @@ export default function FixtureCard({
             <span className="md-badge is-finished">
               Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
             </span>
+          ) : isLiveFixture(fixture) ? (
+            <span className="md-badge is-live">En juego</span>
           ) : locked ? (
             <span className="md-badge is-locked" title={fixture.lockReason ?? undefined}>
               Cerrado

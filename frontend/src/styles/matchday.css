@@ -191,6 +191,11 @@
     color: var(--hit);
   }
 
+  .md-badge.is-live {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--miss);
+  }
+
   .md-badge.is-locked {
     background: rgba(231, 76, 60, 0.15);
     color: var(--miss);

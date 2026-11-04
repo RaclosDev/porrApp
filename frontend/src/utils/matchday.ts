@@ -31,6 +31,14 @@ export const roundLabelFor = (fixture: MatchdayFixture): string =>
         ? `Fecha ${fixture.matchDate.slice(0, 10)}`
         : 'Sin jornada';
 
+const LIVE_STATUSES = new Set(['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS']);
+
+/** El partido está en juego: lo marca el proveedor o ya ha empezado y no ha terminado. */
+export const isLiveFixture = (fixture: MatchdayFixture, now: number = Date.now()): boolean =>
+  !fixture.finished &&
+  (LIVE_STATUSES.has(fixture.status ?? '') ||
+    (fixture.matchDate != null && Date.parse(fixture.matchDate) <= now));
+
 /** Hay algún partido empezado y sin terminar. */
 export const hasLiveMatch = (
   fixtures: MatchdayFixture[] | undefined,
@@ -182,11 +190,17 @@ export function filterFixtures(
   filter: StatusFilter,
   predictions: Draft,
   leagueLocked: boolean,
+  now: number = Date.now(),
 ): MatchdayFixture[] {
   if (filter === 'PENDING')
     return fixtures.filter((f) => isPendingFixture(f, predictions, leagueLocked));
   if (filter === 'FINISHED') return fixtures.filter((f) => f.finished);
-  return fixtures.filter((f) => !f.finished);
+  // Los partidos en juego van primero; el resto conserva su orden.
+  const upcoming = fixtures.filter((f) => !f.finished);
+  return [
+    ...upcoming.filter((f) => isLiveFixture(f, now)),
+    ...upcoming.filter((f) => !isLiveFixture(f, now)),
+  ];
 }
 
 export function formatMatchDate(dateStr: string | null): string {
