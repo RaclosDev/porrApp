@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { readGroupVisits } from '../store/useAppStore';
+import { sortGroupsByRecent } from '../utils/groupOrder';
 import { LeagueAvatar } from './Avatar';
 
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -38,20 +38,10 @@ export default function ActiveLeagueDropdown() {
   const navigate = useNavigate();
 
   // La liga activa primero y, después, las visitadas más recientemente.
-  const sortedGroups = useMemo(() => {
-    const visits = readGroupVisits();
-    return [...(userGroups || [])].sort((a, b) => {
-      const aSelected = String(a.id) === String(activeGroupId);
-      const bSelected = String(b.id) === String(activeGroupId);
-      if (aSelected !== bSelected) return aSelected ? -1 : 1;
-
-      const aVisited = Number(visits[a.id]) || 0;
-      const bVisited = Number(visits[b.id]) || 0;
-      if (aVisited !== bVisited) return bVisited - aVisited;
-
-      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-    });
-  }, [userGroups, activeGroupId]);
+  const sortedGroups = useMemo(
+    () => sortGroupsByRecent(userGroups || [], activeGroupId),
+    [userGroups, activeGroupId],
+  );
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

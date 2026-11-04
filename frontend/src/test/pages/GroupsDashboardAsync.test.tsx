@@ -61,11 +61,13 @@ it.each(['upload', 'remove'] as const)(
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Administrar Liga A' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Más opciones de Liga A' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Administrar Liga A' }));
     fireEvent.click(
       screen.getByRole('button', { name: operation === 'upload' ? 'Subir' : 'Quitar' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar prueba' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Más opciones de Liga B' }));
     fireEvent.click(screen.getByRole('button', { name: 'Administrar Liga B' }));
     await act(async () => {
       finish();

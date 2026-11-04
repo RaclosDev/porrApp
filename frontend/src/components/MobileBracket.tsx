@@ -1,12 +1,6 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react';
 import BracketFinale from './BracketFinale';
-import {
-  MATCH_H,
-  ROUND_LABELS,
-  type CanvasMatch,
-  type RenderSlot,
-  type SlotTeam,
-} from './BracketCanvas';
+import { ROUND_LABELS, type CanvasMatch, type RenderSlot, type SlotTeam } from './BracketCanvas';
 
 type Side = 'left' | 'right';
 
@@ -194,7 +188,7 @@ export default function MobileBracket<T extends SlotTeam>({
   );
 }
 
-/** Dos partidos de la ronda, unidos por un conector SVG al partido siguiente. */
+/** Dos partidos de la ronda, unidos por un conector al partido siguiente. */
 function BracketGroup<T extends SlotTeam>({
   group,
   roundIndex,
@@ -206,15 +200,9 @@ function BracketGroup<T extends SlotTeam>({
 }) {
   const { matchA, matchB, nextMatch } = group;
 
-  const CARD_GAP = 10;
-  const totalH = matchB ? MATCH_H * 2 + CARD_GAP : MATCH_H;
-  const midA = MATCH_H / 2;
-  const midB = matchB ? MATCH_H + CARD_GAP + MATCH_H / 2 : midA;
-  const center = (midA + midB) / 2;
-
   return (
     <div className="mb-group">
-      <div className="mb-current flex flex-col" style={{ gap: CARD_GAP }}>
+      <div className="mb-current">
         <div className="mb-match-card">
           {renderSlot(matchA.data.home, {
             side: matchA.side,
@@ -247,21 +235,11 @@ function BracketGroup<T extends SlotTeam>({
         )}
       </div>
 
-      <svg
-        className="mb-connector bracket-connector"
-        width="18"
-        height={totalH}
-        viewBox={`0 0 18 ${totalH}`}
-      >
-        <line x1="0" y1={midA} x2="9" y2={midA} stroke="currentColor" strokeWidth="2" />
-        {matchB && (
-          <>
-            <line x1="0" y1={midB} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
-            <line x1="9" y1={midA} x2="9" y2={midB} stroke="currentColor" strokeWidth="2" />
-          </>
-        )}
-        <line x1="9" y1={center} x2="18" y2={center} stroke="currentColor" strokeWidth="2" />
-      </svg>
+      {/* Las líneas se dibujan con CSS para que sigan a las tarjetas aunque cambie su alto. */}
+      <div className="mb-connector bracket-connector" aria-hidden="true">
+        <span className="mb-connector-arm" />
+        {matchB && <span className="mb-connector-arm" />}
+      </div>
 
       <div className="mb-next">
         {nextMatch ? (

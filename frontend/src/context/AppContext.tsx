@@ -250,6 +250,7 @@ export const useAppContext = () => {
           name: fromList.name,
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
+          competitionExternalId: fromList.competitionExternalId,
           customCompetition: fromList.customCompetition,
           formatType: fromList.formatType,
           poolFormat: fromList.poolFormat,
@@ -461,12 +462,21 @@ export const useAppContext = () => {
     activeGroupAdminId,
     activeGroupPoolFormat,
     activeGroupCustomCompetition: Boolean(groupInfo?.customCompetition),
+    // Se pronostica sobre sus propios cruces: competición personalizada o torneo oficial que no es
+    // el Mundial (Worlds de LoL…). Las de jornadas no tienen cuadro.
+    activeGroupOwnBracket:
+      groupInfo?.poolFormat !== 'MATCH_DAY' &&
+      (Boolean(groupInfo?.customCompetition) ||
+        (groupInfo?.formatType === 'TOURNAMENT' &&
+          Boolean(groupInfo?.competitionExternalId) &&
+          groupInfo?.competitionExternalId !== 'fifa.world')),
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,
     activeGroupRules: groupInfo?.rules || '',
     activeCompetitionId,
     activeCompetitionName: groupInfo?.competitionName || null,
+    activeCompetitionExternalId: groupInfo?.competitionExternalId || null,
     activeCompetitionFormatType:
       groupInfo?.formatType ||
       (activeGroupPoolFormat

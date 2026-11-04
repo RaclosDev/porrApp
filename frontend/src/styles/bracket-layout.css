@@ -117,12 +117,13 @@
   flex: none;
   max-width: 100%;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  hyphens: auto;
   font-size: 0.9rem;
   font-weight: 600;
 }
 
-.bracket-finale .finale-contender .team-slot > span + span {
+.bracket-finale .finale-contender .team-slot > .team-slot-score {
   font-family: 'Anton', sans-serif;
   font-size: 2rem;
   margin: 0;
@@ -131,8 +132,7 @@
   background: transparent;
 }
 
-.bracket-finale .team-slot-btn:hover,
-.bracket-finale .team-slot-btn[aria-pressed='true'] {
+.bracket-finale .team-slot-btn:hover:not(.is-picked, .is-hit, .is-miss) {
   background: rgba(11, 95, 116, 0.08);
   box-shadow: inset 0 0 0 1px var(--marker-ink);
 }
@@ -189,7 +189,8 @@
   font-family: 'Permanent Marker', cursive;
 }
 .finale-third summary strong {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  hyphens: auto;
   text-align: right;
 }
 .finale-third summary::after {
@@ -347,4 +348,127 @@
 .modal-content.viewer-with-bracket {
   background: var(--bg-color);
   padding: 24px 12px;
+}
+
+/*
+ * Estados de una casilla del cuadro. El relleno va en una sombra interior para no pelear con los
+ * fondos de cada contexto (tarjeta móvil, lienzo, final): una franja a la izquierda y un tinte.
+ */
+.team-slot.is-picked,
+.team-slot.is-hit,
+.team-slot.is-miss {
+  --slot-state: var(--marker-ink);
+  box-shadow:
+    inset 3px 0 0 var(--slot-state),
+    inset 0 0 0 999px color-mix(in srgb, var(--slot-state) 13%, transparent);
+  font-weight: 700;
+}
+
+.team-slot.is-hit {
+  --slot-state: var(--hit);
+}
+
+.team-slot.is-miss {
+  --slot-state: var(--miss);
+}
+
+.team-slot.is-won {
+  font-weight: 700;
+}
+
+.team-slot.is-out .team-slot-name {
+  color: var(--text-muted);
+}
+
+.team-slot.is-out img {
+  opacity: 0.55;
+}
+
+/* Próximo cruce de los resultados: tinte suave en lugar de un borde de otro color. */
+.team-slot.is-featured {
+  box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--marker-ink) 8%, transparent);
+}
+
+.team-slot-status {
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.team-slot-score {
+  flex-shrink: 0;
+  min-width: 1.5em;
+  margin-left: 4px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(17, 24, 39, 0.06);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.9em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-slot.is-won .team-slot-score {
+  color: var(--hit);
+}
+
+/* El cruce siguiente es un adelanto y el árbol de escritorio es estrecho: sin sellos;
+   el estado se ve por el sombreado, la negrita y el atenuado. */
+.mb-match-next .team-slot-status,
+.bracket-tree-match .team-slot-status {
+  display: none;
+}
+
+.pick-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.pick-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pick-legend-swatch {
+  --slot-state: var(--marker-ink);
+  width: 18px;
+  height: 14px;
+  border-radius: 3px;
+  box-shadow:
+    inset 3px 0 0 var(--slot-state),
+    inset 0 0 0 999px color-mix(in srgb, var(--slot-state) 18%, transparent);
+}
+
+.pick-legend-swatch.is-hit {
+  --slot-state: var(--hit);
+}
+
+.pick-legend-swatch.is-miss {
+  --slot-state: var(--miss);
+}
+
+.team-slot.is-featured.is-live {
+  box-shadow:
+    inset 3px 0 0 var(--miss),
+    inset 0 0 0 999px color-mix(in srgb, var(--miss) 8%, transparent);
+}
+
+/* En móvil el nombre puede ocupar dos líneas para no quedarse en «Invictus G…» junto a los sellos. */
+.mb-match-card .team-slot .team-slot-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.15;
 }
