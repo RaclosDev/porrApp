@@ -408,8 +408,13 @@
     }
 
     .league-admin-tabs {
-      gap: 18px;
+      gap: 16px;
       padding: 0 16px;
+    }
+
+    /* Sin iconos caben las cuatro pestañas en 375 px. */
+    .league-admin-tabs > .league-admin-tab > svg {
+      display: none;
     }
 
     .league-admin-body {
