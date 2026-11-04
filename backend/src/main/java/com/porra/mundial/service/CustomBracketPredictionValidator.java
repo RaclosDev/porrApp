@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,8 +27,7 @@ public class CustomBracketPredictionValidator {
 
     public void validate(Edition edition, PredictionDataDTO data) {
         Competition competition = edition.getCompetition();
-        if (competition == null || competition.getOwnerLeague() == null
-                || edition.getPoolFormat() == PoolFormat.MATCH_DAY || data == null) {
+        if (!PredictableBracket.applies(edition) || data == null) {
             throw invalid("Esta edición no admite ese cuadro");
         }
         List<Team> catalog = teams.findByCompetitionIdOrderByNameAsc(competition.getId());
@@ -40,7 +38,8 @@ public class CustomBracketPredictionValidator {
             }
         }
         Map<String, List<String>> selections = data.getGroups() == null ? Map.of() : data.getGroups();
-        if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET) {
+        boolean custom = competition.getOwnerLeague() != null;
+        if (custom && edition.getPoolFormat() == PoolFormat.FULL_BRACKET) {
             if (byGroup.isEmpty() || !selections.keySet().equals(byGroup.keySet())) {
                 throw invalid("Faltan grupos por pronosticar");
             }
@@ -55,10 +54,11 @@ public class CustomBracketPredictionValidator {
             throw invalid("Este cuadro no tiene fase de grupos");
         }
 
-        List<Match> firstRound = matches.findByCompetitionId(competition.getId()).stream()
-                .filter(match -> "bracket-1".equals(match.getRound()))
-                .sorted(Comparator.comparing(Match::getId)).toList();
-        if (firstRound.isEmpty()) throw invalid("El administrador aún no ha configurado los cruces");
+        List<List<Match>> bracket = PredictableBracket.rounds(competition, matches.findByCompetitionId(competition.getId()));
+        List<Match> firstRound = bracket.isEmpty() ? List.of() : bracket.get(0);
+        if (firstRound.isEmpty()) {
+            throw invalid(custom ? "El administrador aún no ha configurado los cruces" : "Aún no hay cruces del cuadro");
+        }
         Set<String> seen = new HashSet<>();
         List<String> entrants = new ArrayList<>();
         for (Match match : firstRound) {

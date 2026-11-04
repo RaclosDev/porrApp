@@ -17,6 +17,7 @@ import {
   type CustomPair,
 } from '../utils/customBracket';
 import { useCustomLock } from '../hooks/useCustomLock';
+import { officialBracketMatches } from '../utils/officialTournament';
 import PaperLoading from '../components/PaperLoading';
 import Flag from '../components/Flag';
 import CustomSelect from '../components/CustomSelect';
@@ -31,12 +32,35 @@ const toCanvasMatch = (slot: CustomBracketMatchSlot): CanvasMatch<string | null>
   away: slot.isBye ? null : slot.away,
 });
 
-/** Pronóstico de una competición personalizada, con el mismo cuadro que el pronóstico del Mundial. */
+/**
+ * Pronóstico de un cuadro propio, con el mismo cuadro que el pronóstico del Mundial: el de una
+ * competición personalizada o los cruces reales de un torneo oficial (Worlds de LoL…).
+ */
 export default function CustomBracket() {
-  const { activeGroupId, activeGroupPoolFormat, activeGroupName, activeGroupIsLocked, userName } =
-    useAppContext();
+  const {
+    activeGroupId,
+    activeGroupPoolFormat,
+    activeGroupName,
+    activeGroupIsLocked,
+    activeGroupCustomCompetition,
+    allGames,
+    userName,
+  } = useAppContext();
+  const official = !activeGroupCustomCompetition;
   const saved = useMyLeaguePrediction();
-  const lock = useCustomLock(activeGroupId);
+  const customLock = useCustomLock(official ? null : activeGroupId);
+  // Un torneo oficial cierra en la fecha de la edición: no hay cierre por partes.
+  const lock = official
+    ? {
+        ...customLock,
+        configured: true,
+        progressive: false,
+        anyLocked: false,
+        fullyLocked: false,
+        groupLocked: () => false,
+        pickLocked: () => false,
+      }
+    : customLock;
   const queryClient = useQueryClient();
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const [groups, setGroups] = useState<Record<string, string[]>>({});
@@ -55,17 +79,35 @@ export default function CustomBracket() {
   const teamsQuery = useQuery({
     queryKey: queryKeys.customTeams(activeGroupId),
     queryFn: () => fetchCustomTeams(groupId!),
-    enabled: groupId != null,
+    enabled: groupId != null && !official,
   });
   const matchesQuery = useQuery({
     queryKey: queryKeys.customMatches(activeGroupId),
     queryFn: () => fetchCustomMatches(groupId!),
-    enabled: groupId != null,
+    enabled: groupId != null && !official,
   });
-  const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
-  const matches = useMemo(() => matchesQuery.data ?? [], [matchesQuery.data]);
-  const loadingData = teamsQuery.isPending || matchesQuery.isPending;
-  const loadError = teamsQuery.error ?? matchesQuery.error;
+  const teams = useMemo(
+    () =>
+      official
+        ? [...new Set(allGames.flatMap((match) => [match.home, match.away]))]
+            .filter(Boolean)
+            .map((name) => ({
+              name,
+              groupName: null,
+              logoUrl:
+                allGames.find((match) => match.home === name)?.homeLogo ||
+                allGames.find((match) => match.away === name)?.awayLogo ||
+                null,
+            }))
+        : (teamsQuery.data ?? []),
+    [official, allGames, teamsQuery.data],
+  );
+  const matches = useMemo(
+    () => (official ? officialBracketMatches(allGames) : (matchesQuery.data ?? [])),
+    [official, allGames, matchesQuery.data],
+  );
+  const loadingData = !official && (teamsQuery.isPending || matchesQuery.isPending);
+  const loadError = official ? null : (teamsQuery.error ?? matchesQuery.error);
 
   useEffect(() => {
     setGroups({});
@@ -114,9 +156,10 @@ export default function CustomBracket() {
     () =>
       matches
         .filter((match) => match.round === 'bracket-1')
-        .sort((left, right) => left.id - right.id)
+        // Los cruces oficiales ya llegan en el orden en que se pintan.
+        .sort((left, right) => (official ? 0 : left.id - right.id))
         .map((match) => [match.home, match.away_team_id ? match.away : null]),
-    [matches],
+    [matches, official],
   );
 
   // Ganadores reales de cada ronda, para marcar aciertos y fallos en el pronóstico.
@@ -445,7 +488,9 @@ export default function CustomBracket() {
 
           {!firstRound.length && (
             <p className="paper-panel album-sheet p-5 text-center max-w-145 mx-auto">
-              El administrador aún no ha configurado los cruces.
+              {official
+                ? 'Aún no hay cruces del cuadro: podrás pronosticarlo cuando termine la fase previa.'
+                : 'El administrador aún no ha configurado los cruces.'}
             </p>
           )}
 

@@ -35,10 +35,9 @@ const HIDDEN_ROUNDS = { 0: false, 1: false, 2: false, 3: false };
  * terceros y cuadro de eliminatorias con los puntos obtenidos.
  */
 function PredictionViewer(props: PredictionViewerProps) {
-  const { activeGroupCustomCompetition, viewerPredictionId, setViewerPredictionId } =
-    useAppContext();
+  const { activeGroupOwnBracket, viewerPredictionId, setViewerPredictionId } = useAppContext();
   const id = props.predictionId || viewerPredictionId;
-  if (activeGroupCustomCompetition && id) {
+  if (activeGroupOwnBracket && id) {
     return (
       <CustomPredictionViewer
         predictionId={id}

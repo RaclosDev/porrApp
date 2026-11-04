@@ -18,7 +18,7 @@ export default function CustomPredictionViewer({
   predictionId: string | number;
   onClose: () => void;
 }) {
-  const { activeGroupId } = useAppContext();
+  const { activeGroupId, activeGroupCustomCompetition, allGames } = useAppContext();
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(dialogRef, { active: true, onEscape: onClose });
 
@@ -36,9 +36,16 @@ export default function CustomPredictionViewer({
   const { data: teams = [] } = useQuery({
     queryKey: queryKeys.customTeams(activeGroupId),
     queryFn: () => fetchCustomTeams(Number(activeGroupId)),
-    enabled: Boolean(activeGroupId),
+    enabled: Boolean(activeGroupId) && activeGroupCustomCompetition,
   });
-  const logos = Object.fromEntries(teams.map((team) => [team.name, team.logoUrl]));
+  const logos: Record<string, string | null | undefined> = activeGroupCustomCompetition
+    ? Object.fromEntries(teams.map((team) => [team.name, team.logoUrl]))
+    : Object.fromEntries(
+        allGames.flatMap((match) => [
+          [match.home, match.homeLogo || match.homeTeamLogo],
+          [match.away, match.awayLogo || match.awayTeamLogo],
+        ]),
+      );
   const groups = Object.entries(prediction?.groups ?? {});
   const rounds = prediction?.customRounds ?? [];
 
