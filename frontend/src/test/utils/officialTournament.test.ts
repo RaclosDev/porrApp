@@ -3,6 +3,7 @@ import {
   computeOfficialResultRounds,
   computeSwissStandings,
   nextOfficialBracketMatch,
+  officialBracketMatches,
   officialMatchWinner,
 } from '../../utils/officialTournament';
 import type { Match } from '../../types/api';
@@ -104,5 +105,21 @@ describe('fase suiza', () => {
       { team: 'D', wins: 0, losses: 0 },
       { team: 'C', wins: 0, losses: 2 },
     ]);
+  });
+});
+
+describe('cruces oficiales para pronosticar', () => {
+  it('numera las rondas desde la primera eliminatoria y ordena la primera por fecha', () => {
+    const late = match({ home: 'C', away: 'D', round: 'qf', date: '2026-10-31T10:00:00Z' });
+    const early = played('A', 'B', 0, 3, 'qf', '2026-10-30T10:00:00Z');
+    const semi = match({ home: 'B', away: 'C', round: 'sf' });
+    const result = officialBracketMatches([played('A', 'C', 1, 0, 'group'), late, semi, early]);
+
+    expect(result.map((item) => [item.home, item.round])).toEqual([
+      ['A', 'bracket-1'],
+      ['C', 'bracket-1'],
+      ['B', 'bracket-2'],
+    ]);
+    expect(result[0].winner).toBe('B');
   });
 });

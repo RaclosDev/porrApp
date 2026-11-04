@@ -151,7 +151,7 @@ function Leaderboard() {
           : { key: 'matchPoints', label: 'Puntos de jornada', kind: 'detail' },
         ...scorerColumn,
       ]
-    : state.activeGroupCustomCompetition
+    : state.activeGroupOwnBracket
       ? [
           { key: 'total', label: 'Total', kind: 'total' },
           { key: 'r1', label: 'Grupos', kind: 'detail' },

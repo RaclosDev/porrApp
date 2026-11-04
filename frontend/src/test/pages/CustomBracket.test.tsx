@@ -48,6 +48,7 @@ describe('CustomBracket', () => {
     vi.mocked(appContextModule.useAppContext).mockReturnValue(
       appContext({
         activeGroupId: '10',
+        activeGroupCustomCompetition: true,
         activeCompetitionId: null,
         activeGroupPoolFormat: 'KNOCKOUTS_ONLY',
         activeGroupName: 'LOL Worlds 2026',
@@ -211,5 +212,46 @@ describe('CustomBracket', () => {
       expect.anything(),
     );
     expect(screen.queryByText(/Ya tienes un pronóstico guardado/)).toBeNull();
+  });
+
+  it('en un torneo oficial pronostica sobre los cruces reales y guarda sin cierre por partes', async () => {
+    vi.mocked(appContextModule.useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '10',
+        activeGroupCustomCompetition: false,
+        activeGroupOwnBracket: true,
+        activeCompetitionExternalId: 'lol.worlds',
+        activeGroupPoolFormat: 'FULL_BRACKET',
+        activeGroupName: 'Worlds',
+        activeGroupIsLocked: false,
+        userName: 'Tester',
+        allGames: [
+          knockout(4, 'BLG', 'DK', { round: 'qf', date: '2026-11-02T10:00:00Z' }),
+          knockout(2, 'IG', 'TOP', { round: 'qf', date: '2026-10-31T10:00:00Z' }),
+          knockout(1, 'T1', 'KC', { round: 'qf', date: '2026-10-30T10:00:00Z' }),
+          knockout(3, 'GEN', 'LYON', { round: 'qf', date: '2026-11-01T10:00:00Z' }),
+          knockout(5, 'T1', 'IG', { round: 'group' }),
+        ],
+      }),
+    );
+    vi.mocked(api.createPrediction).mockResolvedValue({} as never);
+    renderBracket();
+
+    expect(api.fetchCustomMatches).not.toHaveBeenCalled();
+    expect(api.fetchCustomLockState).not.toHaveBeenCalled();
+    pick('T1');
+    pick('IG');
+    pick('GEN');
+    pick('BLG');
+    const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
+    fireEvent.click(center.getByRole('button', { name: 'Pasar a IG' }));
+    fireEvent.click(center.getByRole('button', { name: 'Pasar a BLG' }));
+    fireEvent.click(center.getAllByRole('button', { name: 'Pasar a IG' })[1]);
+
+    await waitFor(() => expect(api.createPrediction).toHaveBeenCalled());
+    expect(vi.mocked(api.createPrediction).mock.calls[0][0]).toMatchObject({
+      customRounds: [['T1', 'IG', 'GEN', 'BLG'], ['IG', 'BLG'], ['IG']],
+      champion: 'IG',
+    });
   });
 });

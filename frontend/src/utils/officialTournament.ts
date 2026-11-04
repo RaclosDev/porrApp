@@ -157,3 +157,24 @@ export function nextOfficialBracketMatch(matches: Match[]): Match | null {
       .sort(byDate)[0] ?? null
   );
 }
+
+/**
+ * Cruces reales del cuadro con la forma de una competición personalizada ("bracket-N", la primera
+ * ronda en el orden en que se pinta) para pronosticarlos con el mismo editor.
+ */
+export function officialBracketMatches(matches: Match[]): Match[] {
+  const first = KNOCKOUT_ROUNDS.findIndex((round) =>
+    matches.some((match) => match.round === round),
+  );
+  if (first < 0) return [];
+  return KNOCKOUT_ROUNDS.slice(first).flatMap((round, index) =>
+    matches
+      .filter((match) => match.round === round)
+      .sort(byDate)
+      .map((match) => ({
+        ...match,
+        round: `bracket-${index + 1}`,
+        winner: officialMatchWinner(match),
+      })),
+  );
+}

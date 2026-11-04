@@ -36,4 +36,13 @@ public class Competition {
 
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /**
+     * Torneo oficial con cuadro propio (Worlds de LoL…): se pronostica sobre sus cruces reales, no sobre
+     * el cuadro del Mundial.
+     */
+    public boolean hasOwnBracket() {
+        return ownerLeague == null && "TOURNAMENT".equals(formatType) && externalId != null
+                && !WORLD_CUP_EXTERNAL_ID.equals(externalId);
+    }
 }
