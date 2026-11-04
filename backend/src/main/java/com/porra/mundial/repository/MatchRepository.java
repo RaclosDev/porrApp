@@ -36,6 +36,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                              @Param("past") LocalDateTime past, @Param("soon") LocalDateTime soon,
                              @Param("statuses") Collection<MatchStatusNormalized> statuses);
 
+    /** Partidos de una competición con una ronda numerada ("Jornada 12"). */
+    List<Match> findByCompetitionIdAndRoundStartingWith(Long competitionId, String roundPrefix);
+
     @Query(RADAR_MATCHES + " AND m.finished = TRUE ORDER BY m.matchDate DESC")
     List<Match> findRadarLast(@Param("competitionId") Long competitionId, Pageable pageable);
 

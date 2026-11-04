@@ -369,6 +369,58 @@ public class MatchEventProcessor {
         return new MatchMetadata(group, round);
     }
 
+    static final String MATCHDAY_PREFIX = "Jornada ";
+    /** Separación máxima entre partidos de una misma jornada. */
+    private static final long SAME_MATCHDAY_DAYS = 4;
+    /** Más allá de este parón se da por empezada otra temporada y no se sigue numerando. */
+    private static final long NEW_SEASON_GAP_DAYS = 45;
+
+    /**
+     * Jornada de un partido de liga nuevo, siguiendo la numeración "Jornada N" que ya tenga la competición:
+     * va a la última jornada si aún le faltan partidos y está a pocos días; si no, a la siguiente.
+     * Null si la competición no numera jornadas o el partido no encaja (aplazado antiguo, temporada nueva).
+     */
+    String inferLeagueMatchday(Competition competition, LocalDateTime date) {
+        if (competition == null || competition.getId() == null || date == null
+                || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())) {
+            return null;
+        }
+        List<Match> numbered = matchRepository.findByCompetitionIdAndRoundStartingWith(competition.getId(), MATCHDAY_PREFIX);
+        int latest = 0;
+        for (Match m : numbered) latest = Math.max(latest, matchdayNumber(m.getRound()));
+        if (latest == 0) return null;
+
+        Set<Long> teams = new HashSet<>();
+        LocalDateTime latestStart = null;
+        LocalDateTime latestEnd = null;
+        int latestCount = 0;
+        for (Match m : numbered) {
+            if (m.getHomeTeam() != null && !Team.isPlaceholder(m.getHomeTeam())) teams.add(m.getHomeTeam().getId());
+            if (m.getAwayTeam() != null && !Team.isPlaceholder(m.getAwayTeam())) teams.add(m.getAwayTeam().getId());
+            if (matchdayNumber(m.getRound()) != latest) continue;
+            latestCount++;
+            LocalDateTime d = m.getMatchDate();
+            if (d == null) continue;
+            if (latestStart == null || d.isBefore(latestStart)) latestStart = d;
+            if (latestEnd == null || d.isAfter(latestEnd)) latestEnd = d;
+        }
+        if (latestEnd == null || date.isBefore(latestStart) || date.isAfter(latestEnd.plusDays(NEW_SEASON_GAP_DAYS))) {
+            return null;
+        }
+        int matchesPerMatchday = Math.max(1, teams.size() / 2);
+        boolean fitsLatest = latestCount < matchesPerMatchday && !date.isAfter(latestEnd.plusDays(SAME_MATCHDAY_DAYS));
+        return MATCHDAY_PREFIX + (fitsLatest ? latest : latest + 1);
+    }
+
+    private static int matchdayNumber(String round) {
+        if (round == null || !round.startsWith(MATCHDAY_PREFIX)) return 0;
+        try {
+            return Integer.parseInt(round.substring(MATCHDAY_PREFIX.length()).trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     private void upsertMatch(String eventId, Team home, Team away, Scores scores, int[] fairPlay,
                              LocalDateTime date, MatchStatus status, MatchMetadata meta, Batch batch) {
         Match match = matchRepository.findByExternalId(eventId)
@@ -398,6 +450,11 @@ public class MatchEventProcessor {
         // La ronda "group" es la de por defecto: nunca sobrescribe una ronda ya asignada.
         if (meta.round() != null && !"group".equals(meta.round())) {
             updated |= setIfChanged(match.getRound(), meta.round(), match::setRound);
+        }
+        // ESPN no da el número de jornada de las ligas: un partido nuevo hereda la numeración existente.
+        if (match.getId() == null && (match.getRound() == null || match.getRound().isBlank())) {
+            String matchday = inferLeagueMatchday(batch.competition, date);
+            if (matchday != null) match.setRound(matchday);
         }
         boolean fairPlayChanged = setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay)
                 | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);

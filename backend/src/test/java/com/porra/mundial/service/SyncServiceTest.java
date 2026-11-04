@@ -181,8 +181,24 @@ class SyncServiceTest {
         syncService.syncAll();
 
         assertEquals("error", syncService.getLastSyncStatus());
-        verify(provider, times(3)).fetchScoreboardEvents(anyString(), anyString());
+        verify(provider, times(3 + SyncService.UPCOMING_DAYS - 1)).fetchScoreboardEvents(anyString(), anyString());
         assertTrue(syncService.getLastErrorMessage().contains("HTTP 503"));
+    }
+
+    @Test
+    @DisplayName("Las ligas traen las dos próximas semanas, pero no en cada pasada")
+    void leaguesFetchUpcomingDaysPeriodically() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+        String lastDay = java.time.LocalDate.now().plusDays(SyncService.UPCOMING_DAYS)
+                .format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+
+        syncService.syncAll();
+        syncService.syncAll();
+
+        verify(provider, times(1)).fetchScoreboardEvents("esp.1", lastDay);
+        verify(provider, times(3 * 2 + SyncService.UPCOMING_DAYS - 1)).fetchScoreboardEvents(anyString(), anyString());
+        assertEquals("success", syncService.getLastSyncStatus());
     }
 
     @Test
