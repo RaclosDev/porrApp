@@ -2,8 +2,6 @@ import type { GroupsDashboardState } from '../../hooks/useGroupsDashboard';
 import { POOL_FORMATS } from '../../hooks/useGroupsDashboard';
 import type { PoolFormat } from '../../types/api';
 
-const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
-
 interface CreateLeagueWizardProps {
   competitions: GroupsDashboardState['competitions'];
   newGroupName: GroupsDashboardState['newGroupName'];
@@ -38,14 +36,6 @@ export default function CreateLeagueWizard({
   handleCreate,
   setShowCreateModal,
 }: CreateLeagueWizardProps) {
-  // El cuadro solo existe para el Mundial; el resto de competiciones oficiales va por jornadas.
-  const hasBracket = (competitionId: string) =>
-    !competitionId ||
-    competitions.find((c) => String(c.id) === competitionId)?.externalId === WORLD_CUP_EXTERNAL_ID;
-  const poolFormats = hasBracket(selectedCompetition)
-    ? POOL_FORMATS
-    : POOL_FORMATS.filter((m) => m.id === 'MATCH_DAY');
-
   return (
     <div className="max-w-205 mt-0 mb-7.5 mx-auto">
       <div className="paper-panel album-sheet landing-tape p-6 flex flex-col gap-4">
@@ -90,7 +80,6 @@ export default function CreateLeagueWizard({
                 value={selectedCompetition}
                 onChange={(e) => {
                   setSelectedCompetition(e.target.value);
-                  if (!hasBracket(e.target.value)) setSelectedPoolFormat('MATCH_DAY');
                   if (!e.target.value) {
                     setSelectedPoolFormat('MATCH_DAY');
                     setIncludePichichi(false);
@@ -136,7 +125,7 @@ export default function CreateLeagueWizard({
                 onChange={(e) => setSelectedPoolFormat(e.target.value as PoolFormat)}
                 className="glass-input w-full"
               >
-                {poolFormats.map((m) => (
+                {POOL_FORMATS.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.label}
                   </option>
