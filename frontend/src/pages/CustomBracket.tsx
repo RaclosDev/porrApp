@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
@@ -57,7 +56,6 @@ export default function CustomBracket() {
   const [picks, setPicks] = useState<string[][]>([]);
   // Solo hay un pronóstico por persona: se guarda con el nombre que ya tuviera o el del participante.
   const [predictionName, setPredictionName] = useState('');
-  const savedNoticeShown = useRef(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
@@ -103,7 +101,6 @@ export default function CustomBracket() {
     setGroups({});
     setPicks([]);
     setPredictionName('');
-    savedNoticeShown.current = false;
     setLoadedKey('');
     setError('');
     setRevision(0);
@@ -119,13 +116,7 @@ export default function CustomBracket() {
     setGroups(saved.data?.groups ?? {});
     setPicks((saved.data?.customRounds ?? []).map((round) => round.map((pick) => pick ?? '')));
     setPredictionName(saved.predictionName ?? '');
-    if (!activeGroupIsLocked && !savedNoticeShown.current) {
-      savedNoticeShown.current = true;
-      toast('Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.', {
-        id: 'custom-prediction-saved',
-      });
-    }
-  }, [saved, loadedKey, activeGroupIsLocked, revision]);
+  }, [saved, loadedKey, revision]);
 
   const logos = useMemo(
     () => Object.fromEntries(teams.map((team) => [team.name, team.logoUrl] as const)),
@@ -312,7 +303,6 @@ export default function CustomBracket() {
       void createPrediction(completeData, activeGroupId)
         .then(async () => {
           setLastSaved(fingerprint);
-          savedNoticeShown.current = true;
           setSaveState('saved');
           setError('');
           await Promise.all([
@@ -342,10 +332,7 @@ export default function CustomBracket() {
   return (
     <section className="view-section active block" aria-label={`Pronóstico de ${activeGroupName}`}>
       {editable && lock.configured && firstRound.length > 0 && (
-        <div
-          className="paper-panel album-sheet p-3 mb-5 max-w-145 mx-auto text-center"
-          role="status"
-        >
+        <p className="text-center text-muted text-[0.85rem] mb-[15px] min-h-[1.3em]" role="status">
           {error ? (
             <>
               <span role="alert" className="text-[var(--miss)]">
@@ -360,18 +347,17 @@ export default function CustomBracket() {
               </button>
             </>
           ) : busy ? (
-            'Guardando pronóstico…'
-          ) : (saveState === 'saved' &&
-              completeData &&
-              JSON.stringify(completeData) === lastSaved) ||
-            (saved && revision === 0) ? (
-            'Pronóstico guardado'
-          ) : completeData && revision > 0 ? (
-            'Se guardará automáticamente…'
+            'Guardando…'
+          ) : revision === 0 ? null : saveState === 'saved' &&
+            completeData &&
+            JSON.stringify(completeData) === lastSaved ? (
+            '✓ Guardado'
+          ) : completeData ? (
+            'Guardando…'
           ) : (
-            'Completa el pronóstico para guardarlo automáticamente.'
+            'Se guarda solo al completarlo.'
           )}
-        </div>
+        </p>
       )}
       {lateEntry && !lock.fullyLocked && (
         <p className="paper-panel album-sheet p-4 max-w-145 mx-auto text-center" role="status">
@@ -399,10 +385,7 @@ export default function CustomBracket() {
       {!loadingData && hasGroups && (
         <div className="w-full mb-7.5">
           <div className="text-center mb-7.5">
-            <h2 className="poster-title text-accent-text mt-0 mb-2.5 mx-0">
-              Paso 1: fase de grupos
-            </h2>
-            <p className="text-muted">Ordena los equipos de cada grupo.</p>
+            <h2 className="poster-title text-accent-text m-0">Fase de grupos</h2>
           </div>
           <div className="groups-grid">
             {Object.entries(teamsByGroup).map(([group, members], groupIndex) => (
@@ -460,10 +443,8 @@ export default function CustomBracket() {
       {!loadingData && !loadError && (
         <>
           <div className="section-header mb-7.5 text-center">
-            <h2 className="m-0 poster-title">
-              {hasGroups ? 'Paso 2: Eliminatorias' : 'Eliminatorias'}
-            </h2>
-            {editable && firstRound.length > 0 && (
+            <h2 className="m-0 poster-title">Eliminatorias</h2>
+            {editable && firstRound.length > 0 && !saved && revision === 0 && (
               <p className="text-muted mt-2 text-[0.9rem]">
                 Pulsa un equipo para pasarlo a la siguiente ronda
               </p>
