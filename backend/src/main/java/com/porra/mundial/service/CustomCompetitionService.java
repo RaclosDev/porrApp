@@ -48,7 +48,7 @@ public class CustomCompetitionService {
         return setLockConfig(leagueId, email, PredictionLockMode.FIXED_DATE, 0, lockDate).getLockDate();
     }
 
-    /** Cambia el cierre sin volver a abrir partes ya cerradas de pronósticos existentes. */
+    /** Cambia el cierre; si la nueva fecha es posterior, los pronósticos ya cerrados vuelven a abrirse. */
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
     public Edition setLockConfig(Long leagueId, String email, PredictionLockMode mode, Integer offsetMinutes,
@@ -70,11 +70,6 @@ public class CustomCompetitionService {
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
         }
-        boolean hasPredictions = !predictionRepository.findByEditionLeagueId(leagueId).isEmpty();
-        CustomLockService.LockState previousState = hasPredictions ? lockService.state(edition) : null;
-        PredictionLockMode previousMode = edition.getLockMode();
-        int previousOffset = edition.getLockOffsetMinutes();
-        LocalDateTime previousDate = edition.getLockDate();
         LocalDateTime now = LocalDateTime.now(CustomLockService.ZONE);
         edition.setLockMode(mode);
         if (mode == PredictionLockMode.FIXED_DATE) {
@@ -90,13 +85,6 @@ public class CustomCompetitionService {
                     && !edition.getLockDate().isAfter(now)) {
                 throw BusinessException.badRequest("Con ese margen el cierre ya habría pasado");
             }
-        }
-        if (previousState != null && previousState.anyLocked()
-                && reopensClosedParts(previousState, lockService.state(edition))) {
-            edition.setLockMode(previousMode);
-            edition.setLockOffsetMinutes(previousOffset);
-            edition.setLockDate(previousDate);
-            throw BusinessException.conflict("El nuevo cierre volvería a abrir pronósticos que ya estaban cerrados");
         }
         return edition;
     }
@@ -371,17 +359,8 @@ public class CustomCompetitionService {
         }
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        boolean hasPredictions = !predictionRepository.findByEditionLeagueId(leagueId).isEmpty();
-        CustomLockService.LockState before = hasPredictions ? lockService.state(edition) : null;
-        LocalDateTime previousDate = match.getMatchDate();
-        LocalDateTime previousLockDate = edition.getLockDate();
         match.setMatchDate(date);
         refreshFirstMatchLock(leagueId);
-        if (before != null && before.anyLocked() && reopensClosedParts(before, lockService.state(edition))) {
-            match.setMatchDate(previousDate);
-            edition.setLockDate(previousLockDate);
-            throw BusinessException.conflict("La nueva fecha volvería a abrir pronósticos ya cerrados");
-        }
         scoreInvalidationService.invalidateCompetition(competition.getId());
         return MatchResponseDTO.fromEntity(match);
     }

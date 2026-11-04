@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import LeagueLockEditor from '../../components/groups/LeagueLockEditor';
+import LeagueLockSection from '../../components/groups/LeagueLockSection';
 import type { Group } from '../../types/api';
 
 const api = vi.hoisted(() => ({
@@ -42,7 +42,7 @@ const group = (externalId: string): Group => ({
   imageUrl: null,
 });
 
-describe('LeagueLockEditor', () => {
+describe('LeagueLockSection', () => {
   beforeEach(() => {
     api.fetchCustomLockState.mockReset().mockResolvedValue(LOCK_STATE);
     api.setCustomLockConfig
@@ -57,7 +57,7 @@ describe('LeagueLockEditor', () => {
       <QueryClientProvider
         client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
       >
-        <LeagueLockEditor group={group(externalId)} onClose={() => {}} />
+        <LeagueLockSection group={group(externalId)} />
       </QueryClientProvider>,
     );
 
