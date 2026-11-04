@@ -158,17 +158,15 @@ class LolEsportsDataProviderTest {
         }
         when(httpResponse.statusCode()).thenReturn(200);
         when(httpResponse.body()).thenReturn(
-                fixture.replace("\"code\": \"IG\"", "\"code\": \"DK\"").getBytes(StandardCharsets.UTF_8));
+                fixture.replace("\"code\": \"IG\"", "\"code\": \"DK\"").replace("\"code\": \"BLG\"", "\"code\": \"TSW\"").getBytes(StandardCharsets.UTF_8));
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
         JsonNode teams = provider.fetchTeams("lol.worlds");
 
-        JsonNode dk = null;
-        for (JsonNode team : teams) {
-            if ("DK".equals(team.path("abbreviation").asText())) dk = team;
-        }
-        assertNotNull(dk);
-        assertEquals("/logos/dplus-kia.svg", dk.path("logo").asText());
+        var logos = new java.util.HashMap<String, String>();
+        teams.forEach(team -> logos.put(team.path("abbreviation").asText(), team.path("logo").asText()));
+        assertEquals("/logos/dplus-kia.svg", logos.get("DK"));
+        assertEquals("/logos/team-secret.png", logos.get("TSW"));
         assertEquals("http://static.lolesports.com/teams/gen.png", teams.get(1).path("logo").asText());
     }
 
