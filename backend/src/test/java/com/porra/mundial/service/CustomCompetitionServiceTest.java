@@ -413,4 +413,38 @@ class CustomCompetitionServiceTest {
         assertThrows(BusinessException.class, () -> service.setLockConfig(8L, "admin@example.com",
                 com.porra.mundial.model.PredictionLockMode.PER_ROUND, 0, null));
     }
+
+    @Test
+    void matchdayLeaguesLockByMatchDayOrRoundWithoutReopeningClosedMatches() {
+        League league = League.builder().adminUser(UserAccount.builder().googleEmail("admin@example.com").build()).build();
+        league.setId(9L);
+        Competition liga = Competition.builder().id(3L).externalId("esp.1").formatType("LEAGUE").build();
+        Edition edition = Edition.builder().league(league).competition(liga)
+                .poolFormat(com.porra.mundial.model.PoolFormat.MATCH_DAY).build();
+        when(editions.findByLeagueIdAndStatus(9L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(predictions.findByEditionLeagueId(9L)).thenReturn(java.util.List.of());
+
+        service.setLockConfig(9L, "admin@example.com", com.porra.mundial.model.PredictionLockMode.PER_DAY, 1440, null);
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_DAY, edition.getLockMode());
+        assertEquals(1440, edition.getLockOffsetMinutes());
+        assertThrows(BusinessException.class, () -> service.setLockConfig(9L, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.FIRST_MATCH, 0, null));
+
+        // Con pronósticos, quitar el día de margen reabriría el partido de dentro de unas horas.
+        when(predictions.findByEditionLeagueId(9L)).thenReturn(java.util.List.of(
+                com.porra.mundial.model.Prediction.builder().build()));
+        when(matches.findByCompetitionId(3L)).thenReturn(java.util.List.of(com.porra.mundial.model.Match.builder()
+                .id(1L).round("Jornada 3").matchDate(java.time.LocalDateTime.now().plusHours(5)).build()));
+        assertThrows(BusinessException.class, () -> service.setLockConfig(9L, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null));
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_DAY, edition.getLockMode());
+        assertEquals(1440, edition.getLockOffsetMinutes());
+
+        // Y el cierre por días no existe en las ligas de cuadro.
+        Edition bracket = Edition.builder().league(league).competition(liga)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
+        when(editions.findByLeagueIdAndStatus(9L, "ACTIVE")).thenReturn(Optional.of(bracket));
+        assertThrows(BusinessException.class, () -> service.setLockConfig(9L, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_DAY, 0, null));
+    }
 }

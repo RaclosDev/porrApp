@@ -78,19 +78,15 @@ export default function GroupCard({
             Gestionar competición
           </button>
         )}
-        {isCreator &&
-          setSelectedLockGroup &&
-          !group.customCompetition &&
-          group.poolFormat &&
-          group.poolFormat !== 'MATCH_DAY' && (
-            <button
-              type="button"
-              className="glass-btn w-full py-2"
-              onClick={() => setSelectedLockGroup(group)}
-            >
-              Cierre de predicciones
-            </button>
-          )}
+        {isCreator && setSelectedLockGroup && !group.customCompetition && group.poolFormat && (
+          <button
+            type="button"
+            className="glass-btn w-full py-2"
+            onClick={() => setSelectedLockGroup(group)}
+          >
+            Cierre de predicciones
+          </button>
+        )}
         {isSelected ? (
           <div className="w-full flex items-center justify-center py-1">
             <InkStamp tone="ink">Liga activa</InkStamp>

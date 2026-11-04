@@ -114,6 +114,8 @@ public class MatchPredictionService {
         ScoringRuleSet rules = ScoringRuleSet.forEdition(edition);
 
         LocalDateTime now = LocalDateTime.now();
+        Map<Long, LocalDateTime> lockTimes = MatchdayLock.lockTimes(edition, matches,
+                MatchdayLock.needsWholeCalendar(edition) ? matchRepository.findByCompetitionId(competitionId) : matches);
         List<MatchdayFixturePredictionDTO> result = new ArrayList<>();
 
         for (Match match : matches) {
@@ -131,9 +133,9 @@ public class MatchPredictionService {
             } else if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
                 isLocked = true;
                 lockReason = "El estado del partido no admite pronósticos";
-            } else if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) {
+            } else if (lockTimes.containsKey(match.getId()) && !lockTimes.get(match.getId()).isAfter(now)) {
                 isLocked = true;
-                lockReason = "El partido ya ha comenzado";
+                lockReason = MatchdayLock.reason(edition, match, now);
             }
 
             Integer pointsAwarded = null;
@@ -178,6 +180,7 @@ public class MatchPredictionService {
                     .predAwayScore(mp != null ? mp.getAwayScore() : null)
                     .predSign(mp != null ? mp.getPredictionSign() : null)
                     .locked(isLocked)
+                    .lockAt(lockTimes.get(match.getId()))
                     .lockReason(lockReason)
                     .pointsAwarded(pointsAwarded)
                     .isExactScore(isExact)
@@ -244,6 +247,8 @@ public class MatchPredictionService {
         
 
         LocalDateTime now = LocalDateTime.now();
+        List<Match> calendar = MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
+                ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : null;
         int savedCount = 0;
 
         for (MatchPredictionItemDTO item : items) {
@@ -265,11 +270,13 @@ public class MatchPredictionService {
             if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
                 throw BusinessException.conflict("El estado del partido no admite pronósticos.");
             }
-            if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) {
-                throw BusinessException.conflict(String.format("El partido %s vs %s ya ha comenzado (hora de inicio: %s) y su pronóstico está bloqueado.",
+            LocalDateTime lockAt = MatchdayLock.lockTimes(edition, List.of(match),
+                    calendar == null ? List.of(match) : calendar).get(match.getId());
+            if (lockAt != null && !lockAt.isAfter(now)) {
+                throw BusinessException.conflict(String.format("%s: el pronóstico de %s vs %s está bloqueado.",
+                        MatchdayLock.reason(edition, match, now),
                         match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Local",
-                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante",
-                        match.getMatchDate()));
+                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante"));
             }
 
             // Calcular signo automáticamente si no se especifica explícitamente pero hay goles
@@ -419,9 +426,15 @@ public class MatchPredictionService {
         }
 
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime lockAt = edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY
+                ? match.getMatchDate()
+                : MatchdayLock.lockTimes(edition, List.of(match), MatchdayLock.needsWholeCalendar(edition)
+                        && match.getCompetition() != null
+                        ? matchRepository.findByCompetitionId(match.getCompetition().getId()) : List.of(match))
+                        .get(match.getId());
         boolean isMatchLocked = Boolean.TRUE.equals(match.getFinished())
                 || (match.getStatus() != null && !match.getStatus().isOpenForPrediction())
-                || (match.getMatchDate() != null && !match.getMatchDate().isAfter(now))
+                || (lockAt != null && !lockAt.isAfter(now))
                 || (edition != null && edition.isLocked());
 
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);

@@ -462,7 +462,7 @@ export const setCustomTeamLogo = (groupId: number, teamId: number, logoUrl: stri
 export const deleteCustomTeam = (groupId: number, teamId: number) =>
   request<void>(`/groups/${groupId}/competition/teams/${teamId}`, { method: 'DELETE' });
 /** Cuándo se cierran los pronósticos de una competición personalizada. */
-export type CustomLockMode = 'FIXED_DATE' | 'FIRST_MATCH' | 'PER_ROUND' | 'PER_MATCH';
+export type CustomLockMode = 'FIXED_DATE' | 'FIRST_MATCH' | 'PER_ROUND' | 'PER_MATCH' | 'PER_DAY';
 
 /** Qué partes del pronóstico están ya cerradas (GET /groups/{id}/competition/lock-state). */
 export interface CustomLockState {

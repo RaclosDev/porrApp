@@ -11,6 +11,7 @@ import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
+import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.util.MatchRound;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class MatchdayStatsService {
     private final EditionRepository editionRepository;
     private final MatchPredictionRepository matchPredictionRepository;
     private final MembershipRepository membershipRepository;
+    private final MatchRepository matchRepository;
 
     @Transactional(readOnly = true)
     public MatchdayStatsDTO getStats(String email, Long groupId) {
@@ -56,10 +58,17 @@ public class MatchdayStatsService {
 
         LocalDateTime now = LocalDateTime.now();
         boolean editionLocked = edition.isLocked();
+        List<MatchPrediction> all = matchPredictionRepository.findWithMatchByEditionId(edition.getId());
+        List<Match> predicted = all.stream().map(MatchPrediction::getMatch)
+                .filter(match -> match != null && match.getId() != null).distinct().toList();
+        Map<Long, LocalDateTime> lockTimes = MatchdayLock.lockTimes(edition, predicted,
+                MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
+                        ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : predicted);
         Map<Long, List<MatchPrediction>> byMatch = new LinkedHashMap<>();
-        for (MatchPrediction mp : matchPredictionRepository.findWithMatchByEditionId(edition.getId())) {
+        for (MatchPrediction mp : all) {
             Match match = mp.getMatch();
-            if (match != null && match.getId() != null && isRevealed(match, editionLocked, now)) {
+            if (match != null && match.getId() != null
+                    && isRevealed(match, lockTimes.get(match.getId()), editionLocked, now)) {
                 byMatch.computeIfAbsent(match.getId(), id -> new ArrayList<>()).add(mp);
             }
         }
@@ -72,12 +81,12 @@ public class MatchdayStatsService {
         return new MatchdayStatsDTO(membershipRepository.countByLeagueId(groupId), matches);
     }
 
-    /** Los pronósticos de un partido se ven cuando empieza, termina o se cierra la porra. */
-    static boolean isRevealed(Match match, boolean editionLocked, LocalDateTime now) {
+    /** Los pronósticos de un partido se ven cuando se cierran, termina el partido o se cierra la porra. */
+    static boolean isRevealed(Match match, LocalDateTime lockAt, boolean editionLocked, LocalDateTime now) {
         return editionLocked
                 || Boolean.TRUE.equals(match.getFinished())
                 || (match.getStatus() != null && !match.getStatus().isOpenForPrediction())
-                || (match.getMatchDate() != null && !match.getMatchDate().isAfter(now));
+                || (lockAt != null && !lockAt.isAfter(now));
     }
 
     private static MatchStats aggregate(List<MatchPrediction> predictions) {

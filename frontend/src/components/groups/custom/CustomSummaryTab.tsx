@@ -160,7 +160,7 @@ export default function CustomSummaryTab({
         </ol>
       </section>
 
-      {!matchDay && <CustomLockCard group={group} save={save} onLockDateSaved={onLockDateSaved} />}
+      <CustomLockCard group={group} save={save} onLockDateSaved={onLockDateSaved} />
 
       {!matchDay && <LinkOfficialCard group={group} save={save} />}
 

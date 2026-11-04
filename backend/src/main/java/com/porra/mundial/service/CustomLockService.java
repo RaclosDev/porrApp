@@ -80,6 +80,11 @@ public class CustomLockService {
     }
 
     private LockState state(Edition edition, List<Match> all) {
+        if (edition.getPoolFormat() == PoolFormat.MATCH_DAY) {
+            // Por jornadas cada partido se cierra por su cuenta: aquí solo interesa el criterio elegido.
+            return new LockState(MatchdayLock.mode(edition), Math.max(0, edition.getLockOffsetMinutes()), null,
+                    List.of(), List.of(), false, edition.isLocked(clock), null);
+        }
         PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
         int offset = Math.max(0, edition.getLockOffsetMinutes());
         LocalDateTime now = LocalDateTime.now(clock.withZone(ZONE));

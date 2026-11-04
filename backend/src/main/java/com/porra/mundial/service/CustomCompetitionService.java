@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -59,16 +60,19 @@ public class CustomCompetitionService {
                 || !email.equalsIgnoreCase(edition.getLeague().getAdminUser().getGoogleEmail())) {
             throw BusinessException.forbidden("Solo el administrador puede cambiar el cierre");
         }
-        if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY) {
-            throw BusinessException.badRequest("Esta competición se juega por jornadas");
-        }
         if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran los pronósticos");
-        if (mode.progressive() && !PredictableBracket.applies(edition)) {
-            throw BusinessException.badRequest("Esta competición solo admite cerrar en una fecha o en el primer partido");
-        }
         int offset = offsetMinutes == null ? 0 : offsetMinutes;
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
+        }
+        if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+            return setMatchdayLock(edition, mode, offset);
+        }
+        if (mode == PredictionLockMode.PER_DAY) {
+            throw BusinessException.badRequest("El cierre por días es solo para ligas por jornadas");
+        }
+        if (mode.progressive() && !PredictableBracket.applies(edition)) {
+            throw BusinessException.badRequest("Esta competición solo admite cerrar en una fecha o en el primer partido");
         }
         boolean hasPredictions = !predictionRepository.findByEditionLeagueId(leagueId).isEmpty();
         CustomLockService.LockState previousState = hasPredictions ? lockService.state(edition) : null;
@@ -98,6 +102,39 @@ public class CustomCompetitionService {
             edition.setLockDate(previousDate);
             throw BusinessException.conflict("El nuevo cierre volvería a abrir pronósticos que ya estaban cerrados");
         }
+        return edition;
+    }
+
+    /**
+     * Liga por jornadas: cada partido, cada día o cada jornada al empezar su primer partido, menos el margen.
+     * No se puede volver a abrir un partido que ya estaba cerrado.
+     */
+    private Edition setMatchdayLock(Edition edition, PredictionLockMode mode, int offset) {
+        if (mode != PredictionLockMode.PER_MATCH && mode != PredictionLockMode.PER_DAY
+                && mode != PredictionLockMode.PER_ROUND) {
+            throw BusinessException.badRequest("Una liga por jornadas se cierra por partidos, por días o por jornadas");
+        }
+        PredictionLockMode previousMode = edition.getLockMode();
+        int previousOffset = edition.getLockOffsetMinutes();
+        if (edition.getCompetition() != null
+                && !predictionRepository.findByEditionLeagueId(edition.getLeague().getId()).isEmpty()) {
+            List<Match> calendar = matchRepository.findByCompetitionId(edition.getCompetition().getId());
+            LocalDateTime now = LocalDateTime.now();
+            Map<Long, LocalDateTime> before = MatchdayLock.lockTimes(edition, calendar, calendar);
+            edition.setLockMode(mode);
+            edition.setLockOffsetMinutes(offset);
+            Map<Long, LocalDateTime> after = MatchdayLock.lockTimes(edition, calendar, calendar);
+            boolean reopens = calendar.stream().anyMatch(match -> !Boolean.TRUE.equals(match.getFinished())
+                    && before.containsKey(match.getId()) && !before.get(match.getId()).isAfter(now)
+                    && after.get(match.getId()).isAfter(now));
+            if (reopens) {
+                edition.setLockMode(previousMode);
+                edition.setLockOffsetMinutes(previousOffset);
+                throw BusinessException.conflict("El nuevo cierre volvería a abrir pronósticos que ya estaban cerrados");
+            }
+        }
+        edition.setLockMode(mode);
+        edition.setLockOffsetMinutes(offset);
         return edition;
     }
 

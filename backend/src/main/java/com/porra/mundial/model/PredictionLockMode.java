@@ -9,7 +9,9 @@ public enum PredictionLockMode {
     /** Cada grupo y cada ronda del cuadro al empezar su primer partido (menos el margen). */
     PER_ROUND,
     /** Cada ganador al empezar su partido; cada grupo al empezar su primer partido (menos el margen). */
-    PER_MATCH;
+    PER_MATCH,
+    /** Solo en ligas por jornadas: los partidos de un mismo día al empezar el primero (menos el margen). */
+    PER_DAY;
 
     /** El cierre llega por partes y depende de los partidos, no de una sola fecha. */
     public boolean progressive() {
