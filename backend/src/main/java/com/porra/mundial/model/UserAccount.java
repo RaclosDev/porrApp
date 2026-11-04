@@ -61,6 +61,11 @@ public class UserAccount {
     @Builder.Default
     private boolean matchRemindersEnabled = true;
 
+    /** Recibe un aviso push cuando alguien se une a una de sus ligas. */
+    @Column(name = "member_joined_alerts_enabled", nullable = false)
+    @Builder.Default
+    private boolean memberJoinedAlertsEnabled = true;
+
     @Column(name = "profile_setup_completed", nullable = false)
     private boolean profileSetupCompleted;
 
