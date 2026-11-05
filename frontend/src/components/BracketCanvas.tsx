@@ -6,7 +6,7 @@ import BracketFinale from './BracketFinale';
 import type { BracketTeam } from '../store/useAppStore';
 
 const SLOT_H = 36;
-export const MATCH_H = SLOT_H * 2 + 2; // 74px
+const MATCH_H = SLOT_H * 2 + 2; // 74px
 const R32_PITCH = MATCH_H + 14; // 88px
 
 const leafTop = (i: number) => i * R32_PITCH;
@@ -243,7 +243,7 @@ export type RenderSlot<T extends SlotTeam = SlotTeam> = (
 ) => ReactNode;
 
 /** Huecos de la final y del tercer puesto, que la página pinta fuera del lienzo. */
-export interface CenterSlotContext {
+interface CenterSlotContext {
   side: 'center';
   roundIndex: 'final' | 'thirdPlaceMatch';
   isHome: boolean;
