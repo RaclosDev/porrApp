@@ -10,18 +10,29 @@ const SIGNS = [
   { key: 'away', label: '2' },
 ] as const;
 
+/** En los cuadros no hay empate: solo quién pasa, el local o el visitante. */
+const WINNER_SIDES = SIGNS.filter(({ key }) => key !== 'draw');
+
 interface SignVotersProps {
   voters: MatchVoters;
   matchName: string;
   onOpen: () => void;
   className?: string;
+  /** Cruce de cuadro: dos columnas, una bajo cada equipo, sin empate. */
+  twoWay?: boolean;
 }
 
 /** Bajo cada signo, las fotos de quienes lo han votado; al pulsar se abre la lista completa. */
-export default function SignVoters({ voters, matchName, onOpen, className = '' }: SignVotersProps) {
+export default function SignVoters({
+  voters,
+  matchName,
+  onOpen,
+  className = '',
+  twoWay = false,
+}: SignVotersProps) {
   return (
-    <div className={`sign-voters ${className}`}>
-      {SIGNS.map(({ key, label }) => {
+    <div className={`sign-voters${twoWay ? ' is-two-way' : ''} ${className}`}>
+      {(twoWay ? WINNER_SIDES : SIGNS).map(({ key, label }) => {
         const list: MatchVoter[] = voters[key];
         if (list.length === 0) return <span key={key} className="sign-voters-cell" />;
         const extra = list.length - VISIBLE_VOTERS;

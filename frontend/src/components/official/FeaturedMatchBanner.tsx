@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import Flag from '../Flag';
 import InkStamp from '../InkStamp';
 import { formatMatchDate } from '../../utils/matchday';
+import SignVoters from '../voters/SignVoters';
+import MatchVotersModal from '../voters/MatchVotersModal';
+import { useMatchVoters } from '../../hooks/useMatchVoters';
 import type { Match } from '../../types/api';
 
 interface FeaturedMatchBannerProps {
@@ -12,6 +16,8 @@ interface FeaturedMatchBannerProps {
   awayLogo?: string | null;
   /** Las competiciones personalizadas esperan a que el administrador introduzca el resultado. */
   manualResults?: boolean;
+  /** Liga cuyos pronósticos se muestran: con el cruce cerrado, quién da por ganador a cada equipo. */
+  groupId?: string | number | null;
 }
 
 /** Escudo un poco mayor que en las casillas; las banderas conservan su proporción. */
@@ -27,7 +33,12 @@ export default function FeaturedMatchBanner({
   homeLogo,
   awayLogo,
   manualResults = false,
+  groupId = null,
 }: FeaturedMatchBannerProps) {
+  const [showVoters, setShowVoters] = useState(false);
+  const voters = useMatchVoters(groupId, featuredMatch.id ? [featuredMatch.id] : []).get(
+    featuredMatch.id,
+  );
   const home = featuredMatch.home || 'Por definir';
   const away = featuredMatch.away || 'Por definir';
   const resolvedHomeLogo = homeLogo || featuredMatch.homeLogo || featuredMatch.homeTeamLogo;
@@ -77,6 +88,25 @@ export default function FeaturedMatchBanner({
         )}
         {renderTeam(away, resolvedAwayLogo)}
       </div>
+
+      {voters && (
+        <>
+          <SignVoters
+            twoWay
+            className="mt-0"
+            voters={voters}
+            matchName={`${home} - ${away}`}
+            onOpen={() => setShowVoters(true)}
+          />
+          <MatchVotersModal
+            twoWay
+            voters={showVoters ? voters : null}
+            homeTeam={home}
+            awayTeam={away}
+            onClose={() => setShowVoters(false)}
+          />
+        </>
+      )}
 
       <div className="flex items-center justify-center gap-2 flex-wrap text-muted text-[0.85rem] font-bold">
         {status && (

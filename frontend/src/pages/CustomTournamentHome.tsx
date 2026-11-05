@@ -140,6 +140,7 @@ export default function CustomTournamentHome() {
               featuredMatch={featuredMatch}
               manualResults
               roundTitle={featuredRound?.title}
+              groupId={activeGroupId}
               homeLogo={logos[featuredMatch.home]}
               awayLogo={logos[featuredMatch.away]}
             />

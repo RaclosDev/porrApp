@@ -96,13 +96,15 @@ function MatchCard({
   onOpen,
   voters,
   onShowVoters,
+  twoWay = false,
 }: {
   match: Match;
   action: string;
   onOpen: () => void;
-  /** Quién ha votado cada signo; solo en ligas por jornadas y con el partido cerrado. */
+  /** Quién ha votado cada signo (o cada equipo en los cruces de cuadro), con el partido cerrado. */
   voters?: MatchVoters;
   onShowVoters?: (match: Match) => void;
+  twoWay?: boolean;
 }) {
   const isLive = isLiveMatch(match);
   const hasScore = match.home_score != null && match.away_score != null;
@@ -154,6 +156,7 @@ function MatchCard({
         voters={voters}
         matchName={`${match.home || 'Local'} - ${match.away || 'Visitante'}`}
         onOpen={() => onShowVoters(match)}
+        twoWay={twoWay}
       />
     </div>
   );
@@ -183,11 +186,13 @@ export default function LeagueHomeDashboard() {
   const navigate = useNavigate();
   const [showRules, setShowRules] = useState(false);
   const [votersMatch, setVotersMatch] = useState<Match | null>(null);
-  // El servidor solo devuelve los partidos ya cerrados: los abiertos siguen ocultos.
+  // El servidor solo devuelve los partidos ya cerrados: los abiertos siguen ocultos. En las ligas de
+  // cuadro cada uno aparece bajo el equipo que pasa en su pronóstico, sin empate.
   const voters = useMatchVoters(
-    activeGroupPoolFormat === 'MATCH_DAY' ? activeGroupId : null,
+    activeGroupId,
     matches.items.map((match) => match.id).filter(Boolean),
   );
+  const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY';
 
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
   const showCompetition =
@@ -203,6 +208,7 @@ export default function LeagueHomeDashboard() {
         voters={votersMatch ? (voters.get(votersMatch.id) ?? null) : null}
         homeTeam={votersMatch?.home || 'Local'}
         awayTeam={votersMatch?.away || 'Visitante'}
+        twoWay={twoWayVoters}
         onClose={() => setVotersMatch(null)}
       />
       {showRules && (
@@ -255,6 +261,7 @@ export default function LeagueHomeDashboard() {
                 onOpen={() => navigate(matches.to)}
                 voters={voters.get(match.id)}
                 onShowVoters={setVotersMatch}
+                twoWay={twoWayVoters}
               />
             ))
           ) : (

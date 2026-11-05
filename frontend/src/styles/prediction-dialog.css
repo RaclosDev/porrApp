@@ -421,6 +421,10 @@
     margin-top: 6px;
   }
 
+  .sign-voters.is-two-way {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .sign-voters-cell {
     display: flex;
     align-items: center;

@@ -1,7 +1,23 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render as rtlRender, screen, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import FeaturedMatchBanner from '../../../components/official/FeaturedMatchBanner';
 import type { Match } from '../../../types/api';
+
+const fetchMatchVoters = vi.fn();
+vi.mock('../../../services/api', () => ({
+  fetchMatchVoters: (...args: unknown[]) => fetchMatchVoters(...args),
+}));
+
+const render = (ui: ReactElement) =>
+  rtlRender(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      {ui}
+    </QueryClientProvider>,
+  );
 
 const match = (fields: Partial<Match>) =>
   ({
@@ -86,5 +102,35 @@ describe('FeaturedMatchBanner', () => {
       screen.getByRole('region', { name: 'Partido pendiente de resultado' }),
     ).toHaveTextContent('Resultado pendiente');
     expect(screen.queryByText('En juego')).toBeNull();
+  });
+
+  it('con el cruce cerrado muestra bajo cada equipo quién lo da por ganador, sin empate', async () => {
+    fetchMatchVoters.mockResolvedValue([
+      {
+        matchId: 1,
+        home: [{ userId: 1, name: 'Ana', avatarUrl: null }],
+        draw: [],
+        away: [{ userId: 2, name: 'Bea', avatarUrl: null }],
+      },
+    ]);
+    render(<FeaturedMatchBanner featuredMatch={match({})} groupId={5} />);
+
+    const home = await screen.findByRole('button', {
+      name: 'Ver quién ha votado 1 en Top Esports - Invictus Gaming (1)',
+    });
+    expect(fetchMatchVoters).toHaveBeenCalledWith(5, [1]);
+    expect(screen.queryByRole('button', { name: /votado X/ })).toBeNull();
+
+    fireEvent.click(home);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Gana Top Esports')).toBeInTheDocument();
+    expect(within(dialog).getByText('Bea')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Empate')).toBeNull();
+  });
+
+  it('sin liga no pide votantes', () => {
+    fetchMatchVoters.mockClear();
+    render(<FeaturedMatchBanner featuredMatch={match({})} />);
+    expect(fetchMatchVoters).not.toHaveBeenCalled();
   });
 });
