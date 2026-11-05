@@ -156,6 +156,37 @@ class RateLimitingFilterTest {
     }
 
     @Test
+    @DisplayName("Con sesión el cupo es por usuario, aunque compartan IP; un token falso cuenta por IP")
+    void limitsPerUserWhenAuthenticated() throws Exception {
+        JwtUtil jwtUtil = new JwtUtil("secreto-de-pruebas-de-mas-de-32-caracteres-123", new org.springframework.mock.env.MockEnvironment());
+        rateLimitingFilter = new RateLimitingFilter(jwtUtil);
+        ReflectionTestUtils.setField(rateLimitingFilter, "enabled", true);
+        ReflectionTestUtils.setField(rateLimitingFilter, "maxRequestsPerMinute", 5);
+        String ana = jwtUtil.generateAccessToken(1L, "ana@test.com");
+        String luis = jwtUtil.generateAccessToken(2L, "luis@test.com");
+
+        for (int i = 0; i < 5; i++) {
+            assertEquals(200, send(ana).getStatus());
+        }
+        assertEquals(429, send(ana).getStatus());
+        assertEquals(200, send(luis).getStatus(), "otro usuario en la misma wifi tiene su propio cupo");
+
+        for (int i = 0; i < 5; i++) {
+            assertEquals(200, send("token-inventado-" + i).getStatus());
+        }
+        assertEquals(429, send("token-inventado-x").getStatus(), "los tokens no válidos comparten el cupo de la IP");
+    }
+
+    private MockHttpServletResponse send(String token) throws Exception {
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/predictions");
+        req.setRemoteAddr("10.0.0.50");
+        req.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse res = new MockHttpServletResponse();
+        rateLimitingFilter.doFilterInternal(req, res, filterChain);
+        return res;
+    }
+
+    @Test
     @DisplayName("El mapa de contadores no pasa del tope de IPs")
     void counterMapIsBounded() throws Exception {
         ReflectionTestUtils.setField(rateLimitingFilter, "maxTrackedClients", 50);

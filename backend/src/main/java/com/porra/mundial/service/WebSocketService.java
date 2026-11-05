@@ -1,9 +1,11 @@
 package com.porra.mundial.service;
 
 import tools.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
@@ -11,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -29,21 +32,92 @@ public class WebSocketService {
 
     /** Sesiones abiertas, ya decoradas, por id de sesión. */
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+    /** Usuario identificado en cada sesión (mensaje AUTH). Las sesiones anónimas no están. */
+    private final Map<String, Long> sessionUsers = new ConcurrentHashMap<>();
+    /** IP de cada sesión y conexiones abiertas por IP, para el tope por IP. */
+    private final Map<String, String> sessionIps = new ConcurrentHashMap<>();
+    private final Map<String, Integer> connectionsPerIp = new ConcurrentHashMap<>();
     private final CacheManager cacheManager;
     private final ObjectMapper objectMapper;
+    private final LeagueAudience leagueAudience;
 
-    public WebSocketService(CacheManager cacheManager, ObjectMapper objectMapper) {
-        this.cacheManager = cacheManager;
-        this.objectMapper = objectMapper;
+    /** Atributo de la sesión con la IP del cliente, que pone el handshake. */
+    public static final String CLIENT_IP_ATTRIBUTE = "clientIp";
+
+    /**
+     * Conexiones abiertas a la vez desde una misma IP. Alto a propósito: en un bar todos los
+     * clientes comparten la IP de la wifi. Solo frena a quien abre conexiones sin parar.
+     */
+    @Value("${app.websocket.max-connections-per-ip:200}")
+    int maxConnectionsPerIp = 200;
+
+    /** Quién recibe los avisos de una liga. */
+    public record Audience(boolean everyone, Set<Long> userIds) {
+        public static final Audience EVERYONE = new Audience(true, Set.of());
+        public static final Audience NOBODY = new Audience(false, Set.of());
+
+        boolean includes(Long userId) {
+            return everyone || (userId != null && userIds.contains(userId));
+        }
     }
 
-    public void addSession(WebSocketSession session) {
+    @FunctionalInterface
+    public interface LeagueAudience {
+        Audience of(Long leagueId);
+    }
+
+    public WebSocketService(CacheManager cacheManager, ObjectMapper objectMapper, LeagueAudience leagueAudience) {
+        this.cacheManager = cacheManager;
+        this.objectMapper = objectMapper;
+        this.leagueAudience = leagueAudience;
+    }
+
+    /** Registra la sesión, salvo que su IP ya tenga el máximo de conexiones: entonces la cierra. */
+    public boolean addSession(WebSocketSession session) {
+        Map<String, Object> attributes = session.getAttributes();
+        Object ip = attributes != null ? attributes.get(CLIENT_IP_ATTRIBUTE) : null;
+        if (ip instanceof String clientIp) {
+            boolean[] accepted = {false};
+            connectionsPerIp.compute(clientIp, (key, count) -> {
+                int current = count == null ? 0 : count;
+                if (current >= maxConnectionsPerIp) return count;
+                accepted[0] = true;
+                return current + 1;
+            });
+            if (!accepted[0]) {
+                log.warn("WebSocket rechazado: demasiadas conexiones desde {}", clientIp);
+                try {
+                    session.close(CloseStatus.POLICY_VIOLATION);
+                } catch (Exception ignored) {
+                    // La conexión ya no se usa.
+                }
+                return false;
+            }
+            sessionIps.put(session.getId(), clientIp);
+        }
         sessions.put(session.getId(),
                 new ConcurrentWebSocketSessionDecorator(session, SEND_TIME_LIMIT_MS, BUFFER_SIZE_LIMIT_BYTES));
+        return true;
+    }
+
+    /** Asocia (o, con null, desasocia) el usuario de una sesión ya registrada. */
+    public void authenticate(WebSocketSession session, Long userId) {
+        if (!sessions.containsKey(session.getId())) return;
+        if (userId == null) sessionUsers.remove(session.getId());
+        else sessionUsers.put(session.getId(), userId);
     }
 
     public void removeSession(WebSocketSession session) {
-        sessions.remove(session.getId());
+        dropSession(session.getId());
+    }
+
+    private void dropSession(String sessionId) {
+        sessions.remove(sessionId);
+        sessionUsers.remove(sessionId);
+        String ip = sessionIps.remove(sessionId);
+        if (ip != null) {
+            connectionsPerIp.computeIfPresent(ip, (key, count) -> count <= 1 ? null : count - 1);
+        }
     }
 
     /** Envía un mensaje a una sesión registrada, a través de su decorador. */
@@ -63,7 +137,8 @@ public class WebSocketService {
 
     /**
      * Algo ha cambiado en una liga: se borran solo sus entradas de caché y se avisa con su id,
-     * para que cada cliente recargue únicamente si está viendo esa liga.
+     * para que cada cliente recargue únicamente si está viendo esa liga. El aviso de una liga
+     * privada solo llega a sus miembros identificados; el de una pública, a todos.
      */
     public void notifyLeagueChanged(Long leagueId) {
         evictKey("leaderboard", leagueId);
@@ -72,7 +147,21 @@ public class WebSocketService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "LEAGUE_UPDATED");
         payload.put("leagueId", leagueId);
-        broadcastJson(payload);
+        Audience audience;
+        try {
+            audience = leagueId != null ? leagueAudience.of(leagueId) : Audience.NOBODY;
+        } catch (Exception e) {
+            log.warn("No se pudo resolver quién recibe el aviso de la liga {}: {}", leagueId, e.getMessage());
+            audience = Audience.NOBODY;
+        }
+        try {
+            TextMessage message = new TextMessage(objectMapper.writeValueAsString(payload));
+            for (Map.Entry<String, WebSocketSession> entry : List.copyOf(sessions.entrySet())) {
+                if (audience.includes(sessionUsers.get(entry.getKey()))) send(entry.getValue(), message);
+            }
+        } catch (Exception e) {
+            log.warn("Error serializando actualización en WebSocket: {}", e.getMessage());
+        }
     }
 
     /** El nombre o la foto de un usuario salen en todas sus ligas. */
@@ -132,7 +221,7 @@ public class WebSocketService {
         } catch (Exception e) {
             log.debug("Sesión WebSocket {} descartada: {}", session.getId(), e.getMessage());
         }
-        sessions.remove(session.getId());
+        dropSession(session.getId());
     }
 
     public void broadcastUpdate(String eventType) {

@@ -41,24 +41,15 @@ public class PredictionService {
     private final CustomLockService customLockService;
     private final LeaguePaymentService paymentService;
 
-    public void verifyPredictionOwnershipOrAdmin(Prediction prediction, String requesterEmail) {
+    /** Solo el dueño de un pronóstico puede cambiarlo o borrarlo; el admin de la liga tampoco. */
+    public void verifyPredictionOwnership(Prediction prediction, String requesterEmail) {
         if (requesterEmail == null || requesterEmail.isBlank()) {
             throw BusinessException.forbidden("Usuario no autenticado");
         }
-
-        if (prediction.getUser() != null && prediction.getUser().getGoogleEmail() != null
-                && prediction.getUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
-            return;
+        if (prediction.getUser() == null || prediction.getUser().getGoogleEmail() == null
+                || !prediction.getUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
+            throw BusinessException.forbidden("Solo puedes modificar o eliminar tu propio pronóstico.");
         }
-
-        if (prediction.getEdition() != null && prediction.getEdition().getLeague() != null
-                && prediction.getEdition().getLeague().getAdminUser() != null
-                && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail() != null
-                && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
-            return;
-        }
-
-        throw BusinessException.forbidden("No tienes permiso para modificar o eliminar este pronóstico.");
     }
 
     public void verifyGroupAdminForPayment(Prediction prediction, String requesterEmail) {
@@ -160,7 +151,7 @@ public class PredictionService {
     public Prediction updatePrediction(Long id, String requesterEmail, String predictionName, PredictionDataDTO predictionData) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
 
-        verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
+        verifyPredictionOwnership(prediction, requesterEmail);
 
         if (prediction.getEdition() != null && prediction.getEdition().isLocked()) {
             throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
@@ -225,7 +216,7 @@ public class PredictionService {
     public void deletePrediction(Long id, String requesterEmail) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
 
-        verifyPredictionOwnershipOrAdmin(prediction, requesterEmail);
+        verifyPredictionOwnership(prediction, requesterEmail);
 
         predictionRepository.delete(prediction);
     }

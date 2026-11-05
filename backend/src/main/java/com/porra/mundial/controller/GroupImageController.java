@@ -30,9 +30,10 @@ public class GroupImageController {
     private final ProfileImageService profileImageService;
     private final WebSocketService webSocketService;
 
-    @GetMapping
-    public ResponseEntity<byte[]> getImage(@PathVariable Long id, WebRequest request) {
-        return profileImageService.getLeagueImage(id)
+    /** Imagen de la liga; solo la sirve quien conoce su clave aleatoria, que cambia en cada subida. */
+    @GetMapping("/{key}")
+    public ResponseEntity<byte[]> getImage(@PathVariable Long id, @PathVariable String key, WebRequest request) {
+        return profileImageService.getLeagueImage(id, key)
                 .map(img -> ImageResponses.serve(img, request))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

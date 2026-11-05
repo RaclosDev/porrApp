@@ -34,7 +34,7 @@ class WebSocketServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new WebSocketService(new ConcurrentMapCacheManager(), new ObjectMapper());
+        service = new WebSocketService(new ConcurrentMapCacheManager(), new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
     }
 
     private static WebSocketSession openSession(String id) {
@@ -121,7 +121,7 @@ class WebSocketServiceTest {
         caches.getCache("groupById").put(10L, "liga 10");
         caches.getCache("competitionStandings").put(4L, "tabla de ESPN");
         caches.getCache("userGroups").put("a@test.com", "mis ligas");
-        service = new WebSocketService(caches, new ObjectMapper());
+        service = new WebSocketService(caches, new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
         WebSocketSession session = openSession("s1");
         service.addSession(session);
 
@@ -145,7 +145,7 @@ class WebSocketServiceTest {
         caches.getCache("matches").put("all", "partidos");
         caches.getCache("userGroups").put("a@test.com", "mis ligas");
         caches.getCache("competitions").put("all", "competiciones");
-        service = new WebSocketService(caches, new ObjectMapper());
+        service = new WebSocketService(caches, new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
         WebSocketSession session = openSession("s1");
         service.addSession(session);
 
@@ -164,12 +164,64 @@ class WebSocketServiceTest {
         caches.getCache("leaderboard").put(10L, "ranking 10");
         caches.getCache("leaderboard").put(20L, "ranking 20");
         caches.getCache("matches").put("all", "partidos");
-        service = new WebSocketService(caches, new ObjectMapper());
+        service = new WebSocketService(caches, new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
 
         service.notifyProfileChanged();
 
         assertEquals(null, caches.getCache("leaderboard").get(10L));
         assertEquals(null, caches.getCache("leaderboard").get(20L));
         assertEquals("partidos", caches.getCache("matches").get("all").get());
+    }
+
+    @Test
+    @DisplayName("El aviso de una liga privada solo llega a sus miembros identificados")
+    void privateLeagueNoticeOnlyReachesMembers() throws Exception {
+        service = new WebSocketService(new ConcurrentMapCacheManager(), new ObjectMapper(),
+                id -> new WebSocketService.Audience(false, java.util.Set.of(7L)));
+        WebSocketSession member = openSession("member");
+        WebSocketSession stranger = openSession("stranger");
+        WebSocketSession anonymous = openSession("anon");
+        service.addSession(member);
+        service.addSession(stranger);
+        service.addSession(anonymous);
+        service.authenticate(member, 7L);
+        service.authenticate(stranger, 8L);
+
+        service.notifyLeagueChanged(10L);
+
+        verify(member).sendMessage(any());
+        verify(stranger, never()).sendMessage(any());
+        verify(anonymous, never()).sendMessage(any());
+
+        service.authenticate(member, null);
+        service.notifyLeagueChanged(10L);
+        verify(member, times(1)).sendMessage(any());
+    }
+
+    @Test
+    @DisplayName("Una IP no puede abrir más conexiones que el tope; al cerrar una, deja hueco")
+    void capsConnectionsPerIp() throws Exception {
+        service.maxConnectionsPerIp = 2;
+        WebSocketSession first = sessionFromIp("a", "1.2.3.4");
+        WebSocketSession second = sessionFromIp("b", "1.2.3.4");
+        WebSocketSession third = sessionFromIp("c", "1.2.3.4");
+        WebSocketSession otherIp = sessionFromIp("d", "5.6.7.8");
+
+        assertEquals(true, service.addSession(first));
+        assertEquals(true, service.addSession(second));
+        assertEquals(false, service.addSession(third));
+        assertEquals(true, service.addSession(otherIp));
+        verify(third).close(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION);
+
+        service.removeSession(first);
+        assertEquals(true, service.addSession(sessionFromIp("e", "1.2.3.4")));
+    }
+
+    private static WebSocketSession sessionFromIp(String id, String ip) {
+        WebSocketSession session = openSession(id);
+        java.util.Map<String, Object> attributes = new java.util.HashMap<>();
+        attributes.put(WebSocketService.CLIENT_IP_ATTRIBUTE, ip);
+        when(session.getAttributes()).thenReturn(attributes);
+        return session;
     }
 }

@@ -237,15 +237,23 @@ class PredictionServiceTest {
     }
 
     @Test
-    @DisplayName("Admin del grupo puede actualizar el pronostico de un miembro")
-    void groupAdminCanUpdateMemberPrediction() {
+    @DisplayName("El admin del grupo NO puede cambiar el pronostico de un miembro")
+    void groupAdminCannotUpdateMemberPrediction() {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Prediction updated = predictionService.updatePrediction(1L, "admin@test.com", "Corregido por Admin", null);
+        assertThrows(BusinessException.class, () ->
+                predictionService.updatePrediction(1L, "admin@test.com", "Corregido por Admin", null));
+        verify(predictionRepository, never()).save(any());
+    }
 
-        assertNotNull(updated);
-        assertEquals("Corregido por Admin", updated.getName());
+    @Test
+    @DisplayName("El admin del grupo NO puede borrar el pronostico de un miembro")
+    void groupAdminCannotDeleteMemberPrediction() {
+        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+
+        assertThrows(BusinessException.class, () ->
+                predictionService.deletePrediction(1L, "admin@test.com"));
+        verify(predictionRepository, never()).delete(any());
     }
 
     @Test
@@ -388,7 +396,7 @@ class PredictionServiceTest {
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
 
         assertThrows(BusinessException.class, () ->
-                predictionService.updatePrediction(1L, "admin@test.com", "Fix de Admin", null)
+                predictionService.updatePrediction(1L, "owner@test.com", "Cambio bloqueado", null)
         );
         verify(predictionRepository, never()).save(any());
     }
