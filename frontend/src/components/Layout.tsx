@@ -12,6 +12,7 @@ import DemoBanner from './layout/DemoBanner';
 import MainNav from './layout/MainNav';
 import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
+import PushReminderPrompt from './layout/PushReminderPrompt';
 import LoginModal from './layout/LoginModal';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
@@ -255,6 +256,10 @@ function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}
+
+      {isUserLoggedIn && !isDemo && (
+        <PushReminderPrompt canPrompt={!showInstallBanner && !isLanding} />
+      )}
 
       {showInstallBanner && (
         <InstallBanner

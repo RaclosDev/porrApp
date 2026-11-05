@@ -359,4 +359,27 @@ class GroupServiceTest {
         verify(paymentService).setPayment(league.getId(), member.getId(), "PAID", admin);
     }
 
+
+    @Test
+    void joiningPublishesTheMemberJoinedEventForTheNewMemberOnly() {
+        when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(membershipRepository.existsById(any())).thenReturn(false);
+
+        groupService.joinGroupMembership(10L, "member@test.com");
+
+        verify(membershipRepository).save(any(Membership.class));
+        verify(eventPublisher).publishEvent(new MemberJoinedLeagueEvent(10L, 2L));
+    }
+
+    @Test
+    void joiningAgainDoesNotNotifyTheLeague() {
+        when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(membershipRepository.existsById(any())).thenReturn(true);
+
+        groupService.joinGroupMembership(10L, "member@test.com");
+
+        verify(eventPublisher, never()).publishEvent(any(MemberJoinedLeagueEvent.class));
+    }
 }

@@ -86,4 +86,11 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             ORDER BY m.id
             """)
     List<Match> findLegacyPlaceholderFixtures(@Param("afterId") long afterId, Pageable pageable);
+
+    /** Partidos sin terminar de una competición que empiezan dentro del intervalo, con sus equipos. */
+    @Query("SELECT m FROM Match m LEFT JOIN FETCH m.homeTeam LEFT JOIN FETCH m.awayTeam"
+            + " WHERE m.competition.id = :competitionId AND m.matchDate > :from AND m.matchDate <= :to"
+            + " AND (m.finished = FALSE OR m.finished IS NULL)")
+    List<Match> findUnfinishedStartingBetween(@Param("competitionId") Long competitionId,
+                                              @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }
