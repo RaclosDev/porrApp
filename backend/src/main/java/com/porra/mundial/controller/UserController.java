@@ -3,8 +3,12 @@ package com.porra.mundial.controller;
 import com.porra.mundial.dto.MeResponse;
 import com.porra.mundial.dto.StatusResponse;
 import com.porra.mundial.dto.UserPreferencesRequest;
+import com.porra.mundial.service.AccountDeletionService;
 import com.porra.mundial.service.UserService;
+import com.porra.mundial.service.WebSocketService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -19,6 +23,8 @@ import java.security.Principal;
 public class UserController {
 
     private final UserService userService;
+    private final AccountDeletionService accountDeletionService;
+    private final WebSocketService webSocketService;
 
     /** "Quién soy": lo usa la SPA al arrancar con un token guardado. */
     @GetMapping("/me")
@@ -30,6 +36,16 @@ public class UserController {
     public StatusResponse completeProfileSetup(Principal principal) {
         userService.completeProfileSetup(principal.getName());
         return StatusResponse.success();
+    }
+
+    /** Borra la cuenta y todos sus datos (derecho de supresión) y cierra la sesión de este navegador. */
+    @DeleteMapping("/me")
+    public ResponseEntity<StatusResponse> deleteMe(Principal principal) {
+        accountDeletionService.deleteAccount(principal.getName());
+        webSocketService.notifyProfileChanged();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, RefreshTokenCookie.cleared())
+                .body(StatusResponse.success("Cuenta borrada"));
     }
 
     @PutMapping("/me/preferences")

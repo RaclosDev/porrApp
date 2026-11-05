@@ -713,3 +713,19 @@ export const setPushPreferences = (preferences: Partial<PushPreferences>) =>
     json: preferences,
     fallbackError: 'No se pudo guardar la preferencia',
   });
+
+// --- Cuenta y administración ---
+
+/** Borra la cuenta y todos sus datos. Falla con 409 si administra ligas con más miembros. */
+export const deleteMyAccount = () =>
+  request<StatusResponse>('/users/me', {
+    method: 'DELETE',
+    fallbackError: 'No se pudo borrar la cuenta',
+  });
+
+/** Cede la administración de la liga a otro miembro. */
+export const transferGroupAdmin = (groupId: number | string, userId: number) =>
+  request<StatusResponse>(`/groups/${groupId}/members/${userId}/admin`, {
+    method: 'PUT',
+    fallbackError: 'No se pudo ceder la administración',
+  });
