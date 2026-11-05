@@ -88,8 +88,8 @@ function PrivacyContent() {
       <ul>
         <li>
           Los miembros de tus ligas ven tu nombre público, tu foto, tus predicciones (las de cada
-          partido, solo cuando empieza) y tus puntos. El administrador de una liga privada puede ver
-          tu email; el resto de miembros lo ve parcialmente oculto.
+          partido, solo cuando empieza) y tus puntos. Nadie más ve tu email, tampoco el
+          administrador de la liga.
         </li>
         <li>
           Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos)

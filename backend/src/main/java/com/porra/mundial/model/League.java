@@ -53,17 +53,21 @@ public class League {
     @Column(name = "image_updated_at")
     private LocalDateTime imageUpdatedAt;
 
+    /** Clave aleatoria de la URL de la imagen; cambia en cada subida. */
+    @Column(name = "image_key", length = 32)
+    private String imageKey;
+
     @Transient
     public String getAdminParticipantName() {
         return adminUser != null ? adminUser.getParticipantName() : null;
     }
 
-    /** URL pública (versionada) de la imagen de la liga, o null si no tiene. */
+    /** URL no adivinable de la imagen de la liga, o null si no tiene. */
     @com.fasterxml.jackson.annotation.JsonProperty("imageUrl")
     @Transient
     public String getImageUrl() {
-        if (id == null || imageUpdatedAt == null) return null;
-        return "/api/groups/" + id + "/image?v=" + imageUpdatedAt.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+        if (id == null || imageUpdatedAt == null || imageKey == null) return null;
+        return "/api/groups/" + id + "/image/" + imageKey;
     }
 
     @com.fasterxml.jackson.annotation.JsonProperty("adminUserId")

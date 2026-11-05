@@ -9,6 +9,7 @@ import com.porra.mundial.repository.LeagueImageRepository;
 import com.porra.mundial.repository.LeagueRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.repository.UserAvatarRepository;
+import com.porra.mundial.util.ImageKeys;
 import com.porra.mundial.util.ImageProcessor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -64,6 +65,7 @@ public class ProfileImageService {
         leagueImage.setUpdatedAt(now);
         leagueImageRepository.save(leagueImage);
         league.setImageUpdatedAt(now);
+        league.setImageKey(ImageKeys.newKey());
         return leagueRepository.save(league);
     }
 
@@ -74,11 +76,23 @@ public class ProfileImageService {
             leagueImageRepository.deleteById(league.getId());
         }
         league.setImageUpdatedAt(null);
+        league.setImageKey(null);
         return leagueRepository.save(league);
     }
 
+    /** Uso interno del servidor (vista previa de una invitación); no comprueba la clave. */
     @Transactional(readOnly = true)
     public Optional<StoredImage> getLeagueImage(Long groupId) {
+        return leagueImageRepository.findById(groupId)
+                .map(i -> new StoredImage(i.getData(), i.getContentType(), i.getUpdatedAt()));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<StoredImage> getLeagueImage(Long groupId, String key) {
+        boolean keyOk = leagueRepository.findById(groupId)
+                .map(l -> l.getImageUpdatedAt() != null && ImageKeys.matches(l.getImageKey(), key))
+                .orElse(false);
+        if (!keyOk) return Optional.empty();
         return leagueImageRepository.findById(groupId)
                 .map(i -> new StoredImage(i.getData(), i.getContentType(), i.getUpdatedAt()));
     }
@@ -110,6 +124,7 @@ public class ProfileImageService {
         avatar.setUpdatedAt(now);
         userAvatarRepository.save(avatar);
         user.setAvatarUpdatedAt(now);
+        user.setAvatarKey(ImageKeys.newKey());
         return userAccountRepository.save(user);
     }
 
@@ -120,11 +135,16 @@ public class ProfileImageService {
             userAvatarRepository.deleteById(user.getId());
         }
         user.setAvatarUpdatedAt(null);
+        user.setAvatarKey(null);
         return userAccountRepository.save(user);
     }
 
     @Transactional(readOnly = true)
-    public Optional<StoredImage> getAvatar(Long userId) {
+    public Optional<StoredImage> getAvatar(Long userId, String key) {
+        boolean keyOk = userAccountRepository.findById(userId)
+                .map(u -> u.getAvatarUpdatedAt() != null && ImageKeys.matches(u.getAvatarKey(), key))
+                .orElse(false);
+        if (!keyOk) return Optional.empty();
         return userAvatarRepository.findById(userId)
                 .map(a -> new StoredImage(a.getData(), a.getContentType(), a.getUpdatedAt()));
     }

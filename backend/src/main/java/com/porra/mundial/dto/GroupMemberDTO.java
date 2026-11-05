@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 public class GroupMemberDTO {
     private Long userId;
     private String participantName;
-    private String googleEmail;
     private String role;
     private String paymentStatus;
     private LocalDateTime joinedAt;

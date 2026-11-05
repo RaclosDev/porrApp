@@ -112,6 +112,8 @@ export default defineConfig({
     },
   },
   server: {
+    // Solo en los tests: cspHashes.test.ts lee la CSP de SecurityConfig.java del backend.
+    ...(process.env.VITEST ? { fs: { allow: ['..'] } } : {}),
     proxy: {
       // API_PROXY_TARGET permite usar otra API (p. ej. la de producción en modo demo).
       '/api': {

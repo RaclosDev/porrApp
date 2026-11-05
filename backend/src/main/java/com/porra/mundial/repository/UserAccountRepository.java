@@ -14,8 +14,6 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
     Optional<UserAccount> findByGoogleEmail(String googleEmail);
 
-    Optional<UserAccount> findByParticipantNameIgnoreCase(String participantName);
-    
     Optional<UserAccount> findByParticipantName(String participantName);
 
     boolean existsByParticipantNameIgnoreCase(String participantName);

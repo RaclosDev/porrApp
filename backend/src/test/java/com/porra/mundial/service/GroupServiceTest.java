@@ -233,8 +233,8 @@ class GroupServiceTest {
     }
 
     @Test
-    @DisplayName("getMembers ofusca el email de Google para miembros regulares pero lo muestra al admin")
-    void getMembers_ObfuscatesEmailForRegularMembers() {
+    @DisplayName("getMembers no expone el email de ningún miembro")
+    void getMembers_NeverExposesEmails() {
         when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(true);
@@ -258,8 +258,7 @@ class GroupServiceTest {
         List<GroupMemberDTO> members = groupService.getGroupMembers(10L, "member@test.com");
 
         assertEquals(2, members.size());
-        assertEquals("ad***@test.com", members.get(0).getGoogleEmail(), "El email ajeno debe estar ofuscado para miembros no administradores");
-        assertEquals("member@test.com", members.get(1).getGoogleEmail(), "El miembro ve su propio email sin ofuscar");
+        members.forEach(m -> assertFalse(m.toString().contains("@"), "La respuesta no debe incluir emails"));
     }
     @Test
     void assertCanView_PublicLeagueIsOpen() {
@@ -302,21 +301,14 @@ class GroupServiceTest {
     }
 
     @Test
-    @DisplayName("Quien no es miembro de una liga privada solo ve los datos de la vista previa")
-    void nonMemberGetsOnlyPreviewOfPrivateLeague() {
-        league.setRules("Reglas internas");
+    @DisplayName("Una liga privada no existe para quien no es miembro, ni con sesión ni sin ella")
+    void nonMemberCannotSeePrivateLeague() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
         when(membershipRepository.existsById(new Membership.MembershipId(3L, 10L))).thenReturn(false);
 
-        var dto = groupService.findGroupResponse(10L, "stranger@test.com").orElseThrow();
-
-        assertEquals("Liga Privada", dto.getName());
-        assertNull(dto.getJoinCode());
-        assertNull(dto.getAdminParticipantName());
-        assertNull(dto.getAdminUserId());
-        assertNull(dto.getRules());
-        assertNull(groupService.findGroupResponse(10L, null).orElseThrow().getAdminUserId());
+        assertTrue(groupService.findGroupResponse(10L, "stranger@test.com").isEmpty());
+        assertTrue(groupService.findGroupResponse(10L, null).isEmpty());
     }
 
     @Test
@@ -348,7 +340,6 @@ class GroupServiceTest {
         for (String viewer : new String[] {null, "member@test.com", "admin@test.com"}) {
             List<GroupMemberDTO> members = groupService.getGroupMembers(50L, viewer);
             assertEquals(1, members.size());
-            assertNull(members.get(0).getGoogleEmail());
             assertNull(members.get(0).getPaymentStatus());
             assertEquals("Miembro Regular", members.get(0).getParticipantName());
         }

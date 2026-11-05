@@ -63,7 +63,6 @@ public class PushSubscriptionService {
 
     private UserAccount findUser(String email) {
         return userAccountRepository.findByGoogleEmail(email)
-                .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
                 .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
     }
 
