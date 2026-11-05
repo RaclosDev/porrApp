@@ -39,6 +39,9 @@ export const queryKeys = {
   matchFriendPredictions: (groupId?: Id, matchId?: Id) =>
     key('matchFriendPredictions', asText(groupId), matchId),
   matchdayStats: (groupId?: Id) => key('matchdayStats', asText(groupId)),
+  /** Cuelga de matchdayStats: al invalidar las estadísticas de la liga se refrescan también. */
+  matchVoters: (groupId: Id, matchIds: string) =>
+    key('matchdayStats', asText(groupId), 'voters', matchIds),
   standings: () => key('standings'),
   odds: () => key('odds'),
   topScorers: () => key('topScorers'),

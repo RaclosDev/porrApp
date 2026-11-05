@@ -8,7 +8,10 @@ import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
 import InkStamp from '../InkStamp';
-import type { Match } from '../../types/api';
+import SignVoters from '../voters/SignVoters';
+import MatchVotersModal from '../voters/MatchVotersModal';
+import { useMatchVoters } from '../../hooks/useMatchVoters';
+import type { Match, MatchVoters } from '../../types/api';
 
 const RANKING_SIZE = 5;
 
@@ -91,14 +94,19 @@ function MatchCard({
   match,
   action,
   onOpen,
+  voters,
+  onShowVoters,
 }: {
   match: Match;
   action: string;
   onOpen: () => void;
+  /** Quién ha votado cada signo; solo en ligas por jornadas y con el partido cerrado. */
+  voters?: MatchVoters;
+  onShowVoters?: (match: Match) => void;
 }) {
   const isLive = isLiveMatch(match);
   const hasScore = match.home_score != null && match.away_score != null;
-  return (
+  const card = (
     <button
       type="button"
       className={`home-match-card${isLive ? ' is-live' : ''}`}
@@ -138,6 +146,17 @@ function MatchCard({
       </div>
     </button>
   );
+  if (!voters || !onShowVoters) return card;
+  return (
+    <div>
+      {card}
+      <SignVoters
+        voters={voters}
+        matchName={`${match.home || 'Local'} - ${match.away || 'Visitante'}`}
+        onOpen={() => onShowVoters(match)}
+      />
+    </div>
+  );
 }
 
 /**
@@ -154,6 +173,7 @@ export default function LeagueHomeDashboard() {
     userName,
     userId,
     isAuthenticated,
+    activeGroupPoolFormat,
   } = useAppContext();
   const { data: summaries } = useQuery(myLeagueSummariesQuery(isAuthenticated));
   const pending =
@@ -162,6 +182,12 @@ export default function LeagueHomeDashboard() {
   const { subtitle, matches, standings } = useLeagueHomeData();
   const navigate = useNavigate();
   const [showRules, setShowRules] = useState(false);
+  const [votersMatch, setVotersMatch] = useState<Match | null>(null);
+  // El servidor solo devuelve los partidos ya cerrados: los abiertos siguen ocultos.
+  const voters = useMatchVoters(
+    activeGroupPoolFormat === 'MATCH_DAY' ? activeGroupId : null,
+    matches.items.map((match) => match.id).filter(Boolean),
+  );
 
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
   const showCompetition =
@@ -173,6 +199,12 @@ export default function LeagueHomeDashboard() {
 
   return (
     <section className="view-section active max-w-270 my-0 mx-auto pt-1 pb-6 px-0">
+      <MatchVotersModal
+        voters={votersMatch ? (voters.get(votersMatch.id) ?? null) : null}
+        homeTeam={votersMatch?.home || 'Local'}
+        awayTeam={votersMatch?.away || 'Visitante'}
+        onClose={() => setVotersMatch(null)}
+      />
       {showRules && (
         <LeagueRulesModal
           group={{ id: activeGroupId, name: activeGroupName, rules: activeGroupRules }}
@@ -221,6 +253,8 @@ export default function LeagueHomeDashboard() {
                 match={match}
                 action={matches.action}
                 onOpen={() => navigate(matches.to)}
+                voters={voters.get(match.id)}
+                onShowVoters={setVotersMatch}
               />
             ))
           ) : (

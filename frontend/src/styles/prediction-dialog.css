@@ -412,4 +412,104 @@
     white-space: nowrap;
     border: 0;
   }
+
+  /* Votantes de cada signo bajo los botones 1X2 */
+  .sign-voters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .sign-voters-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 2px 4px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  span.sign-voters-cell {
+    cursor: default;
+  }
+
+  button.sign-voters-cell:hover,
+  button.sign-voters-cell:focus-visible {
+    background: rgba(17, 24, 39, 0.06);
+  }
+
+  .sign-voters-avatar {
+    display: inline-flex;
+    border: 2px solid var(--paper);
+    border-radius: 999px;
+  }
+
+  .sign-voters-avatar + .sign-voters-avatar {
+    margin-left: -8px;
+  }
+
+  .sign-voters-more {
+    margin-left: 4px;
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+
+  .match-voters-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line, rgba(17, 24, 39, 0.12));
+  }
+
+  .match-voters-group:last-child {
+    border-bottom: 0;
+  }
+
+  .match-voters-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .match-voters-sign {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .match-voters-count {
+    margin-left: auto;
+    font-weight: 800;
+  }
+
+  .match-voters-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .match-voters-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 0.9rem;
+  }
 }

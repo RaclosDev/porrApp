@@ -1,6 +1,7 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.exception.BusinessException;
+import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
@@ -22,6 +23,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -181,5 +184,46 @@ class MatchdayStatsServiceTest {
         List<MatchStats> matches = service.getStats(EMAIL, GROUP_ID).matches();
 
         assertEquals(List.of(4L, 5L), matches.stream().map(MatchStats::matchId).toList());
+    }
+
+    private MatchPrediction by(UserAccount user, MatchPrediction prediction) {
+        prediction.setPrediction(Prediction.builder().user(user).edition(edition).build());
+        return prediction;
+    }
+
+    @Test
+    @DisplayName("Los votantes de cada signo solo se ven en partidos cerrados y solo de miembros actuales")
+    void votersOnlyForLockedMatchesAndCurrentMembers() {
+        UserAccount ana = UserAccount.builder().id(1L).participantName("Ana").avatarKey("k1")
+                .avatarUpdatedAt(Instant.now()).build();
+        UserAccount bea = UserAccount.builder().id(2L).participantName("bea").build();
+        UserAccount gone = UserAccount.builder().id(3L).participantName("Ex").build();
+        Match started = match(1L, Instant.now().minus(10, ChronoUnit.MINUTES), false, 0, 0);
+        started.setStatus(MatchStatusNormalized.LIVE);
+        Match future = match(2L, Instant.now().plus(2, ChronoUnit.HOURS), false, null, null);
+        when(membershipRepository.findByLeagueId(GROUP_ID)).thenReturn(List.of(
+                Membership.builder().user(ana).build(), Membership.builder().user(bea).build()));
+        when(matchPredictionRepository.findWithUserByEditionIdAndMatchIds(eq(100L), any())).thenReturn(List.of(
+                by(bea, score(started, 2, 0)), by(ana, signOnly(started, "1")), by(gone, score(started, 0, 1)),
+                by(ana, score(future, 1, 1))));
+
+        List<MatchVotersDTO> voters = service.getVoters(EMAIL, GROUP_ID, List.of(1L, 2L));
+
+        assertEquals(1, voters.size());
+        assertEquals(1L, voters.get(0).matchId());
+        assertEquals(List.of("Ana", "bea"), voters.get(0).home().stream().map(MatchVotersDTO.Voter::name).toList());
+        assertEquals("/api/users/1/avatar/k1", voters.get(0).home().get(0).avatarUrl());
+        assertTrue(voters.get(0).draw().isEmpty());
+        assertTrue(voters.get(0).away().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Pedir votantes de demasiados partidos a la vez es un error y no consulta nada")
+    void votersRejectTooManyMatches() {
+        List<Long> ids = java.util.stream.LongStream.rangeClosed(1, MatchdayStatsService.MAX_VOTER_MATCHES + 1)
+                .boxed().toList();
+
+        assertThrows(BusinessException.class, () -> service.getVoters(EMAIL, GROUP_ID, ids));
+        verifyNoInteractions(matchPredictionRepository, groupService);
     }
 }
