@@ -40,7 +40,7 @@ public class MatchPredictionController {
         int saved = matchPredictionService.saveMatchdayPredictions(
                 CurrentUser.email(principal), submission.getGroupId(), submission.getPredictions());
         if (submission.getGroupId() != null) {
-            webSocketService.notifyLeagueChanged(submission.getGroupId());
+            webSocketService.notifyPredictionsChanged(submission.getGroupId());
         }
         return MatchdaySubmissionResponse.of(saved);
     }

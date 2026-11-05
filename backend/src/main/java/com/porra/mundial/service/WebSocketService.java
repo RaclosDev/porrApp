@@ -9,12 +9,16 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Una sesión WebSocket no admite envíos simultáneos, y aquí escriben a la vez la sincronización,
@@ -134,22 +138,62 @@ public class WebSocketService {
     static final List<String> RESULT_CACHES = List.of(
             "matches", "matchRadar", "standings", "officialPoints", "leaderboard",
             "competitionStandings", "allTeams", "groupOdds");
+    /** Cachés que muestran el minuto de juego. */
+    static final List<String> CLOCK_CACHES = List.of("matches", "matchRadar");
 
     /**
-     * Algo ha cambiado en una liga: se borran solo sus entradas de caché y se avisa con su id,
-     * para que cada cliente recargue únicamente si está viendo esa liga. El aviso de una liga
-     * privada solo llega a sus miembros identificados; el de una pública, a todos.
+     * Avisos de liga pendientes de enviar. En el pico antes de un partido llegan muchos guardados
+     * seguidos de la misma liga: se agrupan en un solo aviso por liga cada {@link #leagueNoticeDelayMs}
+     * y se envían en otro hilo, para que el POST no espere a recorrer todas las sesiones.
+     */
+    private final Set<Long> pendingLeagueNotices = ConcurrentHashMap.newKeySet();
+    private final ScheduledExecutorService noticeExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "ws-league-notices");
+        thread.setDaemon(true);
+        return thread;
+    });
+
+    /** Espera para agrupar avisos de la misma liga. Con 0 se envían en el momento (tests). */
+    @Value("${app.websocket.league-notice-delay-ms:2000}")
+    long leagueNoticeDelayMs = 2000;
+
+    /**
+     * Ha cambiado la configuración de una liga (nombre, miembros, imagen, reglas…): se borran sus
+     * entradas de caché y las listas de ligas de los usuarios, y se avisa con su id.
      */
     public void notifyLeagueChanged(Long leagueId) {
+        clearCaches(LEAGUE_CACHES);
+        notifyPredictionsChanged(leagueId);
+    }
+
+    /**
+     * Han cambiado las predicciones de una liga: solo se borra su clasificación y se avisa con su id,
+     * para que cada cliente recargue únicamente si está viendo esa liga. El aviso de una liga privada
+     * solo llega a sus miembros identificados; el de una pública, a todos.
+     */
+    public void notifyPredictionsChanged(Long leagueId) {
+        if (leagueId == null) return;
         evictKey("leaderboard", leagueId);
         evictKey("groupById", leagueId);
-        clearCaches(LEAGUE_CACHES);
+        if (leagueNoticeDelayMs <= 0) {
+            sendLeagueNotice(leagueId);
+            return;
+        }
+        if (pendingLeagueNotices.add(leagueId)) {
+            noticeExecutor.schedule(() -> {
+                pendingLeagueNotices.remove(leagueId);
+                sendLeagueNotice(leagueId);
+            }, leagueNoticeDelayMs, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void sendLeagueNotice(Long leagueId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "LEAGUE_UPDATED");
         payload.put("leagueId", leagueId);
         Audience audience;
         try {
-            audience = leagueId != null ? leagueAudience.of(leagueId) : Audience.NOBODY;
+            audience = leagueAudience.of(leagueId);
         } catch (Exception e) {
             log.warn("No se pudo resolver quién recibe el aviso de la liga {}: {}", leagueId, e.getMessage());
             audience = Audience.NOBODY;
@@ -160,14 +204,28 @@ public class WebSocketService {
                 if (audience.includes(sessionUsers.get(entry.getKey()))) send(entry.getValue(), message);
             }
         } catch (Exception e) {
-            log.warn("Error serializando actualización en WebSocket: {}", e.getMessage());
+            log.warn("Error enviando el aviso de la liga {} por WebSocket: {}", leagueId, e.getMessage());
         }
+    }
+
+    @PreDestroy
+    void shutdown() {
+        noticeExecutor.shutdownNow();
     }
 
     /** El nombre o la foto de un usuario salen en todas sus ligas. */
     public void notifyProfileChanged() {
         clearCaches(List.of("leaderboard", "groupById", "userGroups"));
         broadcastUpdate("DATA_UPDATED");
+    }
+
+    /**
+     * Solo ha avanzado el minuto de juego de algún partido en directo: se refrescan los partidos,
+     * pero no las clasificaciones, que no dependen del reloj.
+     */
+    public void notifyClockChanged() {
+        clearCaches(CLOCK_CACHES);
+        broadcastUpdate("CLOCK_UPDATED");
     }
 
     /** Han cambiado resultados o equipos: las ligas y las competiciones no se tocan. */

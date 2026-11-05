@@ -192,7 +192,7 @@ public class MatchPredictionService {
      * Guarda o actualiza los pronósticos de una lista de partidos comprobando los plazos individuales.
      */
     @Transactional
-    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
+    @CacheEvict(value = "leaderboard", key = "#groupId")
     public int saveMatchdayPredictions(String email, Long groupId, List<MatchPredictionItemDTO> items) {
         if (email == null || email.isBlank()) {
             throw BusinessException.forbidden("Usuario no autenticado");

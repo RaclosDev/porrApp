@@ -124,9 +124,9 @@ public class SyncService {
 
     /** Resultado de sincronizar una competición en una pasada. */
     private record CompetitionSync(String competition, String status, int matchesUpdated, int teamsUpdated,
-                                   String error, boolean worldCupResultsChanged) {
+                                   String error, boolean worldCupResultsChanged, int clockUpdated) {
         static CompetitionSync failed(String competition, String status, String error) {
-            return new CompetitionSync(competition, status, 0, 0, error, false);
+            return new CompetitionSync(competition, status, 0, 0, error, false, 0);
         }
     }
 
@@ -164,6 +164,9 @@ public class SyncService {
             }
             if (results.stream().anyMatch(r -> r.matchesUpdated() > 0 || r.teamsUpdated() > 0)) {
                 webSocketService.notifyResultsChanged();
+            } else if (results.stream().anyMatch(r -> r.clockUpdated() > 0)) {
+                // Solo ha avanzado el minuto de juego: no se vacían las clasificaciones.
+                webSocketService.notifyClockChanged();
             }
             recordStatus(results);
         } finally {
@@ -216,12 +219,12 @@ public class SyncService {
             boolean available = provider.isAvailable();
             return new CompetitionSync(competition.getName(), batch.hasErrors() ? STATUS_ERROR : available ? STATUS_SUCCESS : STATUS_CIRCUIT_OPEN,
                     batch.matchesUpdated(), batch.teamsUpdated(), batch.hasErrors() ? batch.errorMessage() : available ? null : "circuit breaker abierto",
-                    worldCup && batch.resultsChanged());
+                    worldCup && batch.resultsChanged(), batch.clockUpdated());
         } catch (Exception e) {
             log.error("Falló la sincronización de {} con {}: {}", competition.getName(), provider.getProviderName(), e.getMessage(), e);
             // Lo que ya se haya guardado antes del fallo también cuenta para el aviso y el recálculo.
             return new CompetitionSync(competition.getName(), STATUS_ERROR, batch.matchesUpdated(),
-                    batch.teamsUpdated(), e.getMessage(), worldCup && batch.resultsChanged());
+                    batch.teamsUpdated(), e.getMessage(), worldCup && batch.resultsChanged(), batch.clockUpdated());
         }
     }
 
@@ -387,7 +390,7 @@ public class SyncService {
         try {
             int placed = updateWorldCupStandingsAndBracket();
             worldCupRefreshPending = false;
-            return new CompetitionSync(name, STATUS_SUCCESS, placed, 0, null, false);
+            return new CompetitionSync(name, STATUS_SUCCESS, placed, 0, null, false, 0);
         } catch (Exception e) {
             log.error("Falló el recálculo de la clasificación y el cuadro de {}: {}", name, e.getMessage(), e);
             return CompetitionSync.failed(name, STATUS_ERROR, e.getMessage());

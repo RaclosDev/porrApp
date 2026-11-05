@@ -51,7 +51,7 @@ public class LeaderboardService {
             .thenComparing(Comparator.comparingInt(ParticipantScoreDTO::getMatchPoints).reversed())
             .thenComparing(score -> score.getName() != null ? score.getName() : "", String.CASE_INSENSITIVE_ORDER);
 
-    @Cacheable(value = "leaderboard", key = "#groupId != null ? #groupId : 0L")
+    @Cacheable(value = "leaderboard", key = "#groupId != null ? #groupId : 0L", sync = true)
     @org.springframework.transaction.annotation.Transactional
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
         List<Prediction> groupPredictions = groupId != null
@@ -103,7 +103,7 @@ public class LeaderboardService {
         Map<String, ScoringStrategy> strategiesByRules = new HashMap<>();
 
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
-        List<Prediction> toUpdate = new ArrayList<>();
+        Map<Long, ParticipantScoreDTO> toUpdate = new HashMap<>();
         for (Prediction pred : groupPredictions) {
             List<MatchPrediction> matchPreds = matchPredsByPrediction.getOrDefault(pred.getId(), List.of());
             if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
@@ -114,13 +114,16 @@ public class LeaderboardService {
             ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers, strategy);
             score.setPending(isPaymentPending(pred, membershipPayment));
             leaderboard.add(score);
-            materialize(pred, score);
-            toUpdate.add(pred);
+            if (pred.getId() != null) toUpdate.put(pred.getId(), score);
         }
 
         if (!toUpdate.isEmpty()) {
             try {
-                predictionRepository.saveAll(toUpdate);
+                // Solo columnas de puntos: un saveAll de la entidad entera pisaría una predicción guardada a la vez.
+                java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                toUpdate.forEach((id, score) -> predictionRepository.saveCalculatedScore(id, score.getTotal(),
+                        score.getR1(), score.getR32(), score.getR16(), score.getQf(), score.getSf(),
+                        score.getFinals(), score.getScorer(), score.getMatchPoints(), now));
             } catch (Exception e) {
                 log.warn("Could not save materialized prediction scores: {}", e.getMessage());
             }
@@ -384,20 +387,6 @@ public class LeaderboardService {
         score.setPredictionName(pred.getPredictionName());
         score.setAvatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null);
         return score;
-    }
-
-    /** Guarda en el pronóstico su puntuación para que la clasificación no se recalcule en cada petición. */
-    private static void materialize(Prediction pred, ParticipantScoreDTO score) {
-        pred.setTotalPoints(score.getTotal());
-        pred.setR1Points(score.getR1());
-        pred.setR32Points(score.getR32());
-        pred.setR16Points(score.getR16());
-        pred.setQfPoints(score.getQf());
-        pred.setSfPoints(score.getSf());
-        pred.setFinalsPoints(score.getFinals());
-        pred.setScorerPoints(score.getScorer());
-        pred.setMatchPoints(score.getMatchPoints());
-        pred.setScoreCalculatedAt(java.time.LocalDateTime.now());
     }
 
     private static ParticipantScoreDTO emptyScore() {
