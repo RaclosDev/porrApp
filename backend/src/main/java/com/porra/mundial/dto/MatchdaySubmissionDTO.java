@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,5 +23,7 @@ public class MatchdaySubmissionDTO {
     private Long groupId;
 
     @NotEmpty(message = "Debes proporcionar al menos un pronóstico")
+    // Una jornada tiene unos pocos partidos; el tope solo frena peticiones desmesuradas.
+    @Size(max = 200, message = "Demasiados pronósticos en una sola petición")
     private List<@Valid MatchPredictionItemDTO> predictions;
 }

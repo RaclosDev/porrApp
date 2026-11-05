@@ -51,10 +51,13 @@ public class UserProfileController {
         return ProfileResponse.of(user);
     }
 
-    /** Foto de perfil pública (se carga desde etiquetas &lt;img&gt;). La URL lleva versión para poder cachearla. */
-    @GetMapping("/{userId}/avatar")
-    public ResponseEntity<byte[]> getAvatar(@PathVariable Long userId, WebRequest request) {
-        return profileImageService.getAvatar(userId)
+    /**
+     * Foto de perfil (se carga desde etiquetas &lt;img&gt;). Solo la sirve quien conoce su clave
+     * aleatoria, que cambia en cada subida; así no se pueden recorrer las fotos por id.
+     */
+    @GetMapping("/{userId}/avatar/{key}")
+    public ResponseEntity<byte[]> getAvatar(@PathVariable Long userId, @PathVariable String key, WebRequest request) {
+        return profileImageService.getAvatar(userId, key)
                 .map(img -> ImageResponses.serve(img, request))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

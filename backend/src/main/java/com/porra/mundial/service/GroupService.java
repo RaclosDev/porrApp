@@ -84,7 +84,7 @@ public class GroupService {
             League latest = existingLeagues.get(existingLeagues.size() - 1);
             if (latest.getCreatedAt() != null &&
                     Math.abs(java.time.Duration.between(latest.getCreatedAt(), LocalDateTime.now()).getSeconds()) < 10) {
-                log.info("Doble peticion detectada para crear liga '{}' por usuario {}. Reutilizando liga existente.", name, email);
+                log.info("Doble peticion detectada para crear liga '{}' por usuario {}. Reutilizando liga existente.", name, adminUser.getId());
                 return latest;
             }
         }
@@ -312,12 +312,11 @@ public class GroupService {
      */
     @Transactional(readOnly = true)
     public Optional<GroupResponseDTO> findGroupResponse(Long id, String viewerEmail) {
-        return getGroupById(id).map(league -> {
+        // Una liga privada no existe para quien no es miembro: así no se pueden recorrer por id.
+        // Para unirse, la vista previa va por código de invitación (findInvitationPreview).
+        return getGroupById(id).flatMap(league -> {
             boolean member = isUserMemberOrAdmin(id, viewerEmail);
-            if (member || league.isPublicLeague()) {
-                return toResponse(league, member);
-            }
-            return GroupResponseDTO.preview(league, editionRepository.findByLeagueIdAndStatus(id, "ACTIVE").orElse(null));
+            return member || league.isPublicLeague() ? Optional.of(toResponse(league, member)) : Optional.empty();
         });
     }
 
@@ -437,18 +436,13 @@ public class GroupService {
             boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
                     || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
 
-            // Una liga pública la ve cualquiera: ni emails ni estado de pago.
-            String displayEmail = isPublic ? null
-                    : (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
-                            ? u.getGoogleEmail()
-                            : maskEmail(u.getGoogleEmail());
+            // Nunca se envía el email de nadie; una liga pública tampoco publica pagos.
             String paymentStatus = isPublic ? null
                     : m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING";
 
             list.add(GroupMemberDTO.builder()
                     .userId(u.getId())
                     .participantName(u.getParticipantName())
-                    .googleEmail(displayEmail)
                     .role(m.getRole())
                     .paymentStatus(paymentStatus)
                     .joinedAt(m.getJoinedAt())
@@ -465,14 +459,6 @@ public class GroupService {
         return list;
     }
 
-    private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) return null;
-        int atIdx = email.indexOf("@");
-        String name = email.substring(0, atIdx);
-        String domain = email.substring(atIdx);
-        if (name.length() <= 2) return name.charAt(0) + "***" + domain;
-        return name.substring(0, 2) + "***" + domain;
-    }
 
     /**
      * Cambia el estado de pago de un miembro en la liga y sincroniza su pronóstico.

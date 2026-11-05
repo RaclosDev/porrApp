@@ -37,10 +37,8 @@ public class UserService {
         userAccountRepository.save(user);
     }
 
-    /** Los tokens antiguos identifican al usuario por su apodo en vez de por su email. */
     private UserAccount findUser(String email) {
         return userAccountRepository.findByGoogleEmail(email)
-                .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
                 .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
     }
 }
