@@ -2,10 +2,10 @@ import { useState } from 'react';
 import Flag from '../Flag';
 import InkStamp from '../InkStamp';
 import { formatMatchDate } from '../../utils/matchday';
-import SignVoters from '../voters/SignVoters';
+import { VoterStack } from '../voters/SignVoters';
 import MatchVotersModal from '../voters/MatchVotersModal';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
-import type { Match } from '../../types/api';
+import type { Match, MatchVoter } from '../../types/api';
 
 interface FeaturedMatchBannerProps {
   featuredMatch: Match;
@@ -46,16 +46,17 @@ export default function FeaturedMatchBanner({
   const hasScore = featuredMatch.homeScore != null && featuredMatch.awayScore != null;
   const started = Boolean(featuredMatch.date && new Date(featuredMatch.date) <= new Date());
 
-  let status: string | null = null;
-  if (featuredMatch.finished) status = 'Final';
-  else if (started)
-    status = manualResults ? 'Resultado pendiente' : featuredMatch.displayClock || 'En juego';
-
   const live = started && !featuredMatch.finished;
   let heading = 'Próximo partido del cuadro';
   if (live) heading = manualResults ? 'Partido pendiente de resultado' : 'En directo en el cuadro';
+  // El título ya dice si está en juego; solo se añade el minuto real si lo hay, o «Final».
+  const clock = live && !manualResults ? featuredMatch.displayClock : null;
 
-  const renderTeam = (name: string, logo: string | null | undefined) => (
+  const renderTeam = (
+    name: string,
+    logo: string | null | undefined,
+    list: MatchVoter[] | undefined,
+  ) => (
     <div className="flex flex-col items-center gap-1.5 min-w-0 text-center">
       <Flag team={name} logo={logo} style={emblemStyle(logo)} />
       <span
@@ -64,6 +65,14 @@ export default function FeaturedMatchBanner({
       >
         {name}
       </span>
+      {voters && (
+        <VoterStack
+          list={list ?? []}
+          label={name}
+          matchName={`${home} - ${away}`}
+          onOpen={() => setShowVoters(true)}
+        />
+      )}
     </div>
   );
 
@@ -72,13 +81,23 @@ export default function FeaturedMatchBanner({
       aria-label={heading}
       className="paper-panel album-sheet w-full max-w-145 mt-0 mb-3 mx-auto py-3 px-4 flex flex-col gap-3"
     >
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="flex items-start justify-between gap-x-3 gap-y-1 flex-wrap">
         <h2 className="album-sheet-title m-0 text-[1.05rem]">{heading}</h2>
-        {roundTitle && <span className="text-muted font-bold text-[0.8rem]">{roundTitle}</span>}
+        <div className="flex items-center gap-2 flex-wrap justify-end text-muted font-bold text-[0.8rem]">
+          {featuredMatch.finished && (
+            <InkStamp tone="ink" size="sm">
+              Final
+            </InkStamp>
+          )}
+          {clock && <InkStamp size="sm">{clock}</InkStamp>}
+          <span className="first-letter:uppercase">
+            {[roundTitle, formatMatchDate(featuredMatch.date)].filter(Boolean).join(' · ')}
+          </span>
+        </div>
       </div>
 
       <div className="last-match-teams">
-        {renderTeam(home, resolvedHomeLogo)}
+        {renderTeam(home, resolvedHomeLogo, voters?.home)}
         {hasScore ? (
           <span className="last-match-score min-w-0">
             {featuredMatch.homeScore} - {featuredMatch.awayScore}
@@ -86,38 +105,18 @@ export default function FeaturedMatchBanner({
         ) : (
           <span className="text-[0.9em] text-muted font-bold">VS</span>
         )}
-        {renderTeam(away, resolvedAwayLogo)}
+        {renderTeam(away, resolvedAwayLogo, voters?.away)}
       </div>
 
       {voters && (
-        <>
-          <SignVoters
-            twoWay
-            className="mt-0"
-            voters={voters}
-            matchName={`${home} - ${away}`}
-            onOpen={() => setShowVoters(true)}
-          />
-          <MatchVotersModal
-            twoWay
-            voters={showVoters ? voters : null}
-            homeTeam={home}
-            awayTeam={away}
-            onClose={() => setShowVoters(false)}
-          />
-        </>
+        <MatchVotersModal
+          twoWay
+          voters={showVoters ? voters : null}
+          homeTeam={home}
+          awayTeam={away}
+          onClose={() => setShowVoters(false)}
+        />
       )}
-
-      <div className="flex items-center justify-center gap-2 flex-wrap text-muted text-[0.85rem] font-bold">
-        {status && (
-          <InkStamp tone={featuredMatch.finished ? 'ink' : 'red'} size="sm">
-            {status}
-          </InkStamp>
-        )}
-        <span className="inline-block first-letter:uppercase">
-          {formatMatchDate(featuredMatch.date)}
-        </span>
-      </div>
     </section>
   );
 }
