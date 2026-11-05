@@ -10,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -161,13 +162,13 @@ class CompetitionImportTransactionTest {
         Competition competition = competitions.findById(competitionId).orElseThrow();
         Match original = matches.save(Match.builder().externalId("990001").competition(competition)
                 .homeTeam(home).awayTeam(away).homeScore(0).awayScore(0).finished(true)
-                .matchDate(java.time.LocalDateTime.now()).build());
+                .matchDate(java.time.Instant.now()).build());
         UserAccount user = users.save(UserAccount.builder().googleEmail("import-score@test.invalid")
                 .googleName("Import Score").participantName("Import Score").build());
         League league = leagues.save(League.builder().name("Import Score").joinCode("IMPSCORE").adminUser(user).build());
         Edition edition = editions.save(Edition.builder().league(league).competition(competition).poolFormat(PoolFormat.MATCH_DAY).build());
         Prediction prediction = predictions.save(Prediction.builder().name("Import Score").user(user).edition(edition)
-                .scoreCalculatedAt(java.time.LocalDateTime.now()).build());
+                .scoreCalculatedAt(java.time.Instant.now()).build());
         MatchPrediction selection = matchPredictions.save(MatchPrediction.builder().prediction(prediction).match(original)
                 .homeScore(2).awayScore(1).pointsAwarded(0).build());
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(events());

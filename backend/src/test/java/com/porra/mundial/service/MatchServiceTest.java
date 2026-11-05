@@ -9,7 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -24,13 +25,13 @@ class MatchServiceTest {
     void queriesOnlyTheLiveTimeWindowAndCompetition() {
         var result = List.of(Match.builder().id(1L).build());
         when(matchRepository.findRadarLive(eq(7L), any(), any(), any())).thenReturn(result);
-        var before = LocalDateTime.now();
+        var before = Instant.now();
         assertThat(matchService.getLiveMatches(7L)).isSameAs(result);
-        var after = LocalDateTime.now();
+        var after = Instant.now();
         verify(matchRepository).findRadarLive(eq(7L),
-                argThat(date -> !date.isBefore(before.minusHours(3).minusMinutes(30))
-                        && !date.isAfter(after.minusHours(3).minusMinutes(30))),
-                argThat(date -> !date.isBefore(before.plusMinutes(20)) && !date.isAfter(after.plusMinutes(20))),
+                argThat(date -> !date.isBefore(before.minus(3, ChronoUnit.HOURS).minus(30, ChronoUnit.MINUTES))
+                        && !date.isAfter(after.minus(3, ChronoUnit.HOURS).minus(30, ChronoUnit.MINUTES))),
+                argThat(date -> !date.isBefore(before.plus(20, ChronoUnit.MINUTES)) && !date.isAfter(after.plus(20, ChronoUnit.MINUTES))),
                 eq(List.of(MatchStatusNormalized.SCHEDULED, MatchStatusNormalized.LIVE, MatchStatusNormalized.PAUSED)));
         verifyNoMoreInteractions(matchRepository);
     }

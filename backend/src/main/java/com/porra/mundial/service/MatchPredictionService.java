@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -108,8 +108,8 @@ public class MatchPredictionService {
 
         ScoringRuleSet rules = ScoringRuleSet.forEdition(edition);
 
-        LocalDateTime now = LocalDateTime.now();
-        Map<Long, LocalDateTime> lockTimes = MatchdayLock.lockTimes(edition, matches,
+        Instant now = Instant.now();
+        Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
                 MatchdayLock.needsWholeCalendar(edition) ? matchRepository.findByCompetitionId(competitionId) : matches);
         List<MatchdayFixturePredictionDTO> result = new ArrayList<>();
 
@@ -237,13 +237,13 @@ public class MatchPredictionService {
                             .edition(edition)
                             .name(predName)
                             .paymentStatus(paymentStatus)
-                            .createdAt(LocalDateTime.now())
+                            .createdAt(Instant.now())
                             .build());
                 });
 
         
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         List<Match> calendar = MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
                 ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : null;
         int savedCount = 0;
@@ -277,7 +277,7 @@ public class MatchPredictionService {
             if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
                 throw BusinessException.conflict("El estado del partido no admite pronósticos.");
             }
-            LocalDateTime lockAt = MatchdayLock.lockTimes(edition, List.of(match),
+            Instant lockAt = MatchdayLock.lockTimes(edition, List.of(match),
                     calendar == null ? List.of(match) : calendar).get(match.getId());
             if (lockAt != null && !lockAt.isAfter(now)) {
                 throw BusinessException.conflict(String.format("%s: el pronóstico de %s vs %s está bloqueado.",
@@ -431,8 +431,8 @@ public class MatchPredictionService {
             }
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime lockAt = edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY
+        Instant now = Instant.now();
+        Instant lockAt = edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY
                 ? match.getMatchDate()
                 : MatchdayLock.lockTimes(edition, List.of(match), MatchdayLock.needsWholeCalendar(edition)
                         && match.getCompetition() != null

@@ -21,7 +21,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,11 +58,11 @@ class PredictionPersistenceTest {
         Prediction first = predictions.createPrediction(owner.getGoogleEmail(), "First", new PredictionDataDTO(), league.getId());
         first.setPaymentMarkedBy(owner);
         first.setPaymentAmount(new BigDecimal("10.00"));
-        first.setScoreCalculatedAt(LocalDateTime.now());
+        first.setScoreCalculatedAt(Instant.now());
         em.flush();
         em.refresh(first);
         Long firstId = first.getId();
-        LocalDateTime createdAt = first.getCreatedAt();
+        Instant createdAt = first.getCreatedAt();
         em.clear();
 
         PredictionDataDTO changed = new PredictionDataDTO();

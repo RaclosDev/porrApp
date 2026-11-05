@@ -1,23 +1,22 @@
 package com.porra.mundial.dto;
 
+import com.porra.mundial.util.AppTime;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ValueSerializer;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.time.Instant;
 
-/** Match dates are stored as Madrid wall time; API consumers need an explicit offset. */
-public final class MadridDateTimeSerializer extends ValueSerializer<LocalDateTime> {
-    public static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
-    public static String format(LocalDateTime value) {
-        return value == null ? null : value.atZone(ZONE).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+/** Instantes con el desfase de Madrid, el mismo formato que el resto de la API. */
+public final class MadridDateTimeSerializer extends ValueSerializer<Instant> {
+
+    public static String format(Instant value) {
+        return AppTime.format(value);
     }
 
     @Override
-    public void serialize(LocalDateTime value, JsonGenerator generator, SerializationContext context) {
+    public void serialize(Instant value, JsonGenerator generator, SerializationContext context) {
         generator.writeString(format(value));
     }
 }

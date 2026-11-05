@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -56,12 +56,12 @@ public class MatchdayStatsService {
             return new MatchdayStatsDTO(0, List.of());
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         boolean editionLocked = edition.isLocked();
         List<MatchPrediction> all = matchPredictionRepository.findWithMatchByEditionId(edition.getId());
         List<Match> predicted = all.stream().map(MatchPrediction::getMatch)
                 .filter(match -> match != null && match.getId() != null).distinct().toList();
-        Map<Long, LocalDateTime> lockTimes = MatchdayLock.lockTimes(edition, predicted,
+        Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, predicted,
                 MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
                         ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : predicted);
         Map<Long, List<MatchPrediction>> byMatch = new LinkedHashMap<>();
@@ -82,7 +82,7 @@ public class MatchdayStatsService {
     }
 
     /** Los pronósticos de un partido se ven cuando se cierran, termina el partido o se cierra la porra. */
-    static boolean isRevealed(Match match, LocalDateTime lockAt, boolean editionLocked, LocalDateTime now) {
+    static boolean isRevealed(Match match, Instant lockAt, boolean editionLocked, Instant now) {
         return editionLocked
                 || Boolean.TRUE.equals(match.getFinished())
                 || (match.getStatus() != null && !match.getStatus().isOpenForPrediction())

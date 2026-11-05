@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
+
 
 /**
  * Entidad 'UserAccount'.
@@ -45,7 +45,7 @@ public class UserAccount {
 
     /** Fecha y hora en la que se registró por primera vez en la aplicación. */
     @Builder.Default
-    private LocalDateTime linkedAt = LocalDateTime.now();
+    private Instant linkedAt = Instant.now();
 
     /** Último inicio de sesión o refresco de sesión, con precisión de un día. Sirve para borrar cuentas inactivas. */
     @Column(name = "last_active_at", nullable = false)
@@ -61,7 +61,7 @@ public class UserAccount {
 
     /** Momento de la última subida de foto de perfil. Null si no tiene foto. Sirve para versionar la URL. */
     @Column(name = "avatar_updated_at")
-    private LocalDateTime avatarUpdatedAt;
+    private Instant avatarUpdatedAt;
 
     /** Clave aleatoria de la URL de la foto; cambia en cada subida. */
     @Column(name = "avatar_key", length = 32)

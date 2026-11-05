@@ -4,23 +4,26 @@ import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.PredictionLockMode;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MatchdayLockTest {
-    private final LocalDateTime saturday = LocalDateTime.of(2026, 11, 7, 14, 0);
+    private final Instant saturday = AppTime.fromLocal(LocalDateTime.of(2026, 11, 7, 14, 0));
     private final Match first = match(1, "Jornada 12", saturday);
-    private final Match late = match(2, "Jornada 12", saturday.plusHours(7));
-    private final Match sunday = match(3, "Jornada 12", saturday.plusDays(1));
-    private final Match nextRound = match(4, "Jornada 13", saturday.plusHours(5));
+    private final Match late = match(2, "Jornada 12", saturday.plus(7, ChronoUnit.HOURS));
+    private final Match sunday = match(3, "Jornada 12", saturday.plus(1, ChronoUnit.DAYS));
+    private final Match nextRound = match(4, "Jornada 13", saturday.plus(5, ChronoUnit.HOURS));
     private final List<Match> calendar = List.of(first, late, sunday, nextRound);
 
-    private static Match match(long id, String round, LocalDateTime date) {
+    private static Match match(long id, String round, Instant date) {
         return Match.builder().id(id).round(round).matchDate(date).build();
     }
 
@@ -30,30 +33,30 @@ class MatchdayLockTest {
 
     @Test
     void legacyLeaguesStillLockEachMatchAtKickOff() {
-        Map<Long, LocalDateTime> locks = MatchdayLock.lockTimes(edition(PredictionLockMode.FIXED_DATE, 0), calendar, calendar);
+        Map<Long, Instant> locks = MatchdayLock.lockTimes(edition(PredictionLockMode.FIXED_DATE, 0), calendar, calendar);
         assertEquals(late.getMatchDate(), locks.get(2L));
         assertEquals(PredictionLockMode.PER_MATCH, MatchdayLock.mode(edition(PredictionLockMode.FIXED_DATE, 0)));
     }
 
     @Test
     void perMatchSubtractsTheMargin() {
-        Map<Long, LocalDateTime> locks = MatchdayLock.lockTimes(edition(PredictionLockMode.PER_MATCH, 60), calendar, calendar);
-        assertEquals(late.getMatchDate().minusHours(1), locks.get(2L));
+        Map<Long, Instant> locks = MatchdayLock.lockTimes(edition(PredictionLockMode.PER_MATCH, 60), calendar, calendar);
+        assertEquals(late.getMatchDate().minus(1, ChronoUnit.HOURS), locks.get(2L));
     }
 
     @Test
     void perDayLocksEveryMatchOfTheDayWithTheFirstOne() {
-        Map<Long, LocalDateTime> locks = MatchdayLock.lockTimes(edition(PredictionLockMode.PER_DAY, 1440), calendar, calendar);
-        assertEquals(saturday.minusDays(1), locks.get(2L));
-        assertEquals(saturday.minusDays(1), locks.get(4L));
+        Map<Long, Instant> locks = MatchdayLock.lockTimes(edition(PredictionLockMode.PER_DAY, 1440), calendar, calendar);
+        assertEquals(saturday.minus(1, ChronoUnit.DAYS), locks.get(2L));
+        assertEquals(saturday.minus(1, ChronoUnit.DAYS), locks.get(4L));
         assertEquals(saturday, locks.get(3L));
     }
 
     @Test
     void perRoundLocksTheWholeJornadaWithItsFirstMatch() {
-        Map<Long, LocalDateTime> locks = MatchdayLock.lockTimes(edition(PredictionLockMode.PER_ROUND, 60),
+        Map<Long, Instant> locks = MatchdayLock.lockTimes(edition(PredictionLockMode.PER_ROUND, 60),
                 List.of(sunday, nextRound), calendar);
-        assertEquals(saturday.minusHours(1), locks.get(3L));
-        assertEquals(nextRound.getMatchDate().minusHours(1), locks.get(4L));
+        assertEquals(saturday.minus(1, ChronoUnit.HOURS), locks.get(3L));
+        assertEquals(nextRound.getMatchDate().minus(1, ChronoUnit.HOURS), locks.get(4L));
     }
 }

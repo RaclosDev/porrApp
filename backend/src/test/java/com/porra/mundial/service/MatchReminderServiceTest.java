@@ -17,13 +17,16 @@ import com.porra.mundial.repository.MatchReminderSentRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.PushSubscriptionRepository;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +44,7 @@ import static org.mockito.Mockito.when;
 
 class MatchReminderServiceTest {
 
-    private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 7, 17, 0);
+    private static final Instant NOW = AppTime.fromLocal(LocalDateTime.of(2026, 11, 7, 17, 0));
 
     private final EditionRepository editions = mock(EditionRepository.class);
     private final MatchRepository matches = mock(MatchRepository.class);
@@ -73,8 +76,8 @@ class MatchReminderServiceTest {
 
     @Test
     void remindsOnlyMembersWithoutPredictionWhoseMatchClosesWithinTheHour() {
-        Match soon = match(100L, NOW.plusMinutes(45));
-        Match later = match(101L, NOW.plusMinutes(90));
+        Match soon = match(100L, NOW.plus(45, ChronoUnit.MINUTES));
+        Match later = match(101L, NOW.plus(90, ChronoUnit.MINUTES));
         when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), any())).thenReturn(List.of(soon, later));
         when(predictions.findPredictedUserMatchPairs(eq(50L), any()))
                 .thenReturn(List.<Object[]>of(new Object[]{2L, 100L}));
@@ -89,17 +92,17 @@ class MatchReminderServiceTest {
     void appliesTheLeagueLockOffsetBeforeTheKickoff() {
         edition.setLockOffsetMinutes(30);
         // Empieza en 80 min pero cierra en 50: entra.
-        when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), eq(NOW.plusMinutes(90))))
-                .thenReturn(List.of(match(100L, NOW.plusMinutes(80))));
+        when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), eq(NOW.plus(90, ChronoUnit.MINUTES))))
+                .thenReturn(List.of(match(100L, NOW.plus(80, ChronoUnit.MINUTES))));
 
-        assertThat(service.findPending(NOW)).extracting(p -> p.lockAt()).containsOnly(NOW.plusMinutes(50));
+        assertThat(service.findPending(NOW)).extracting(p -> p.lockAt()).containsOnly(NOW.plus(50, ChronoUnit.MINUTES));
     }
 
     @Test
     void perRoundLeaguesRemindAboutLaterMatchesThatCloseWithTheFirst() {
         edition.setLockMode(PredictionLockMode.PER_ROUND);
-        Match first = match(100L, NOW.plusMinutes(40));
-        Match sunday = match(101L, NOW.plusDays(2));
+        Match first = match(100L, NOW.plus(40, ChronoUnit.MINUTES));
+        Match sunday = match(101L, NOW.plus(2, ChronoUnit.DAYS));
         first.setRound("Jornada 12");
         sunday.setRound("Jornada 12");
         when(matches.findByCompetitionId(9L)).thenReturn(List.of(first, sunday));
@@ -111,7 +114,7 @@ class MatchReminderServiceTest {
     @Test
     void skipsMatchesAlreadyRemindedAndLeaguesThatAreLocked() {
         when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), any()))
-                .thenReturn(List.of(match(100L, NOW.plusMinutes(30))));
+                .thenReturn(List.of(match(100L, NOW.plus(30, ChronoUnit.MINUTES))));
         when(reminders.findKeysByMatchIdIn(any())).thenReturn(List.of(new MatchReminderSent.Key(1L, 100L)));
 
         assertThat(service.findPending(NOW)).extracting(MatchReminderService.Pending::userId).containsExactly(2L);
@@ -123,7 +126,7 @@ class MatchReminderServiceTest {
     @Test
     void sendsOneGroupedNotificationAndRecordsItOnlyWhenDelivered() {
         when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), any()))
-                .thenReturn(List.of(match(100L, NOW.plusMinutes(30)), match(101L, NOW.plusMinutes(50))));
+                .thenReturn(List.of(match(100L, NOW.plus(30, ChronoUnit.MINUTES)), match(101L, NOW.plus(50, ChronoUnit.MINUTES))));
         PushSubscription phone = device(ana, "https://fcm.googleapis.com/fcm/send/ana");
         PushSubscription oldPhone = device(ana, "https://fcm.googleapis.com/fcm/send/old");
         PushSubscription luisPhone = device(luis, "https://web.push.apple.com/luis");
@@ -154,11 +157,11 @@ class MatchReminderServiceTest {
 
     @Test
     void namesTheMatchWhenOnlyOneIsPending() {
-        Match match = match(100L, NOW.plusMinutes(60));
+        Match match = match(100L, NOW.plus(60, ChronoUnit.MINUTES));
         List<MatchReminderService.Pending> pending =
-                List.of(new MatchReminderService.Pending(1L, league, match, NOW.plusMinutes(60)));
+                List.of(new MatchReminderService.Pending(1L, league, match, NOW.plus(60, ChronoUnit.MINUTES)));
 
-        Map<?, ?> message = json.readValue(service.payload(pending, NOW.plusMinutes(60)), Map.class);
+        Map<?, ?> message = json.readValue(service.payload(pending, NOW.plus(60, ChronoUnit.MINUTES)), Map.class);
 
         assertThat(message.get("title")).isEqualTo("Te falta predecir Betis – Sevilla");
         assertThat(message.get("body")).isEqualTo("Los del barrio · cierra a las 18:00");
@@ -182,7 +185,7 @@ class MatchReminderServiceTest {
         return Membership.builder().id(new Membership.MembershipId(user.getId(), 5L)).user(user).league(league).build();
     }
 
-    private static Match match(Long id, LocalDateTime kickoff) {
+    private static Match match(Long id, Instant kickoff) {
         return Match.builder().id(id).matchDate(kickoff)
                 .homeTeam(Team.builder().id(id * 10).name("Betis").build())
                 .awayTeam(Team.builder().id(id * 10 + 1).name("Sevilla").build())

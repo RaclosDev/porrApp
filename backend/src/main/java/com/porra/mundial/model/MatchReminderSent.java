@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** Recordatorio ya enviado a un usuario por un partido sin predicción. */
 @Entity
@@ -16,7 +16,7 @@ public class MatchReminderSent {
     private Key id;
 
     @Column(name = "sent_at", nullable = false)
-    private LocalDateTime sentAt;
+    private Instant sentAt;
 
     @Embeddable
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @EqualsAndHashCode

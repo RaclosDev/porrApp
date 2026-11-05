@@ -15,6 +15,7 @@ import com.porra.mundial.repository.MatchReminderSentRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.PushSubscriptionRepository;
+import com.porra.mundial.util.AppTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,8 +24,9 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -46,7 +48,7 @@ import java.util.stream.Collectors;
 public class MatchReminderService {
 
     static final Duration LEAD = Duration.ofHours(1);
-    private static final DateTimeFormatter HOUR = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter HOUR = DateTimeFormatter.ofPattern("HH:mm").withZone(AppTime.ZONE);
 
     private final EditionRepository editionRepository;
     private final MatchRepository matchRepository;
@@ -58,14 +60,14 @@ public class MatchReminderService {
     private final ObjectMapper objectMapper;
 
     /** Un partido que el usuario aún no ha predicho en una liga y que cierra pronto. */
-    record Pending(Long userId, League league, Match match, LocalDateTime lockAt) {}
+    record Pending(Long userId, League league, Match match, Instant lockAt) {}
 
     @Scheduled(initialDelay = 90_000, fixedDelay = 300_000)
     @SchedulerLock(name = "matchReminders", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void sendDueReminders() {
         if (!sender.isEnabled()) return;
         try {
-            int sent = sendReminders(LocalDateTime.now());
+            int sent = sendReminders(Instant.now());
             if (sent > 0) log.info("Recordatorios de predicción enviados a {} usuarios", sent);
         } catch (RuntimeException e) {
             log.error("Fallo al enviar recordatorios de predicción", e);
@@ -73,7 +75,7 @@ public class MatchReminderService {
     }
 
     /** @return usuarios a los que se ha entregado al menos un aviso */
-    int sendReminders(LocalDateTime now) {
+    int sendReminders(Instant now) {
         Map<Long, List<Pending>> byUser = findPending(now).stream()
                 .collect(Collectors.groupingBy(Pending::userId, LinkedHashMap::new, Collectors.toList()));
         if (byUser.isEmpty()) return 0;
@@ -85,7 +87,7 @@ public class MatchReminderService {
             List<PushSubscription> userDevices = devices.getOrDefault(entry.getKey(), List.of());
             if (userDevices.isEmpty()) continue;
             List<Pending> pending = entry.getValue();
-            LocalDateTime firstLock = pending.stream().map(Pending::lockAt).min(Comparator.naturalOrder()).orElseThrow();
+            Instant firstLock = pending.stream().map(Pending::lockAt).min(Comparator.naturalOrder()).orElseThrow();
             int ttl = (int) Math.max(60, Duration.between(now, firstLock).toSeconds());
             String payload = payload(pending, firstLock);
 
@@ -109,8 +111,8 @@ public class MatchReminderService {
     }
 
     /** Partidos que cierran en la próxima hora sin predicción, por usuario con avisos activados. */
-    List<Pending> findPending(LocalDateTime now) {
-        LocalDateTime horizon = now.plus(LEAD);
+    List<Pending> findPending(Instant now) {
+        Instant horizon = now.plus(LEAD);
         Map<Long, List<Match>> calendars = new HashMap<>();
         List<Pending> pending = new ArrayList<>();
 
@@ -132,10 +134,10 @@ public class MatchReminderService {
             } else {
                 int offset = Math.max(0, edition.getLockOffsetMinutes());
                 candidates = matchRepository.findUnfinishedStartingBetween(competitionId, now,
-                        horizon.plusMinutes(offset));
+                        horizon.plus(offset, ChronoUnit.MINUTES));
                 calendar = candidates;
             }
-            Map<Long, LocalDateTime> locks = MatchdayLock.lockTimes(edition, candidates, calendar);
+            Map<Long, Instant> locks = MatchdayLock.lockTimes(edition, candidates, calendar);
             List<Match> due = candidates.stream()
                     .filter(m -> isPredictable(m) && locks.containsKey(m.getId()))
                     .filter(m -> locks.get(m.getId()).isAfter(now) && !locks.get(m.getId()).isAfter(horizon))
@@ -172,7 +174,7 @@ public class MatchReminderService {
     }
 
     /** Aviso con título, texto y la jornada a la que lleva al pulsarlo. */
-    String payload(List<Pending> pending, LocalDateTime firstLock) {
+    String payload(List<Pending> pending, Instant firstLock) {
         Map<Long, League> leagues = new LinkedHashMap<>();
         Set<Long> matches = new HashSet<>();
         for (Pending p : pending) {

@@ -8,6 +8,7 @@ import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -338,13 +341,13 @@ class MatchEventProcessorTest {
             .externalId("esp.1").formatType("LEAGUE").build();
 
     /** Jornada {@code number} con {@code count} partidos entre 20 equipos, uno al día desde {@code start}. */
-    private List<Match> matchday(int number, int count, LocalDateTime start) {
+    private List<Match> matchday(int number, int count, Instant start) {
         List<Match> matches = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             Team home = Team.builder().id((long) (100 + 2 * i)).name("L" + i).build();
             Team away = Team.builder().id((long) (101 + 2 * i)).name("V" + i).build();
             matches.add(Match.builder().id((long) (number * 100 + i)).homeTeam(home).awayTeam(away)
-                    .round("Jornada " + number).matchDate(start.plusHours(i * 3L)).build());
+                    .round("Jornada " + number).matchDate(start.plus(i * 3L, ChronoUnit.HOURS)).build());
         }
         return matches;
     }
@@ -352,34 +355,34 @@ class MatchEventProcessorTest {
     @Test
     @DisplayName("Un partido de liga nuevo tras una jornada completa abre la siguiente")
     void newLeagueMatchAfterCompleteMatchdayStartsNextOne() {
-        List<Match> existing = new ArrayList<>(matchday(11, 10, LocalDateTime.of(2026, 10, 24, 14, 0)));
-        existing.addAll(matchday(12, 10, LocalDateTime.of(2026, 10, 30, 21, 0)));
+        List<Match> existing = new ArrayList<>(matchday(11, 10, AppTime.fromLocal(LocalDateTime.of(2026, 10, 24, 14, 0))));
+        existing.addAll(matchday(12, 10, AppTime.fromLocal(LocalDateTime.of(2026, 10, 30, 21, 0))));
         when(matchRepository.findByCompetitionIdAndRoundStartingWith(4L, "Jornada ")).thenReturn(existing);
 
-        assertEquals("Jornada 13", processor.inferLeagueMatchday(laLiga, LocalDateTime.of(2026, 11, 6, 21, 0)));
+        assertEquals("Jornada 13", processor.inferLeagueMatchday(laLiga, AppTime.fromLocal(LocalDateTime.of(2026, 11, 6, 21, 0))));
     }
 
     @Test
     @DisplayName("Un partido cercano a una jornada incompleta se queda en ella")
     void newLeagueMatchJoinsIncompleteMatchday() {
-        List<Match> existing = new ArrayList<>(matchday(12, 10, LocalDateTime.of(2026, 10, 30, 21, 0)));
-        existing.addAll(matchday(13, 9, LocalDateTime.of(2026, 11, 6, 21, 0)));
+        List<Match> existing = new ArrayList<>(matchday(12, 10, AppTime.fromLocal(LocalDateTime.of(2026, 10, 30, 21, 0))));
+        existing.addAll(matchday(13, 9, AppTime.fromLocal(LocalDateTime.of(2026, 11, 6, 21, 0))));
         when(matchRepository.findByCompetitionIdAndRoundStartingWith(4L, "Jornada ")).thenReturn(existing);
 
-        assertEquals("Jornada 13", processor.inferLeagueMatchday(laLiga, LocalDateTime.of(2026, 11, 8, 21, 0)));
-        assertEquals("Jornada 14", processor.inferLeagueMatchday(laLiga, LocalDateTime.of(2026, 11, 21, 18, 0)));
+        assertEquals("Jornada 13", processor.inferLeagueMatchday(laLiga, AppTime.fromLocal(LocalDateTime.of(2026, 11, 8, 21, 0))));
+        assertEquals("Jornada 14", processor.inferLeagueMatchday(laLiga, AppTime.fromLocal(LocalDateTime.of(2026, 11, 21, 18, 0))));
     }
 
     @Test
     @DisplayName("Sin numeración previa, en torneos o tras un parón de temporada no se inventa la jornada")
     void doesNotInventMatchdayNumbers() {
-        LocalDateTime date = LocalDateTime.of(2026, 11, 6, 21, 0);
+        Instant date = AppTime.fromLocal(LocalDateTime.of(2026, 11, 6, 21, 0));
         when(matchRepository.findByCompetitionIdAndRoundStartingWith(4L, "Jornada ")).thenReturn(List.of());
         assertNull(processor.inferLeagueMatchday(laLiga, date));
         assertNull(processor.inferLeagueMatchday(worldCup, date));
 
         when(matchRepository.findByCompetitionIdAndRoundStartingWith(4L, "Jornada "))
-                .thenReturn(new ArrayList<>(matchday(38, 10, LocalDateTime.of(2026, 5, 23, 21, 0))));
-        assertNull(processor.inferLeagueMatchday(laLiga, LocalDateTime.of(2026, 8, 15, 19, 0)));
+                .thenReturn(new ArrayList<>(matchday(38, 10, AppTime.fromLocal(LocalDateTime.of(2026, 5, 23, 21, 0)))));
+        assertNull(processor.inferLeagueMatchday(laLiga, AppTime.fromLocal(LocalDateTime.of(2026, 8, 15, 19, 0))));
     }
 }

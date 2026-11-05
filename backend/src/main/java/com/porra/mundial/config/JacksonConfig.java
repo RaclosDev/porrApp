@@ -8,19 +8,20 @@ import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ValueSerializer;
 import tools.jackson.databind.module.SimpleModule;
 
+import com.porra.mundial.dto.MadridDateTimeSerializer;
+import com.porra.mundial.util.AppTime;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Las fechas se guardan como {@link LocalDateTime} en hora peninsular. En la API salen con su desfase
+ * Las fechas se guardan como instantes. En la API salen con el desfase de Madrid
  * ({@code 2026-06-11T21:00:00+02:00}) para que el navegador no las lea como hora local: sin él, en
  * Canarias o fuera de España las horas de los partidos y de los cierres se ven desplazadas.
  */
 @Configuration
 public class JacksonConfig {
-
-    static final ZoneId APP_ZONE = ZoneId.of("Europe/Madrid");
 
     @Bean
     public JacksonModule madridOffsetDatesModule() {
@@ -32,9 +33,10 @@ public class JacksonConfig {
         module.addSerializer(LocalDateTime.class, new ValueSerializer<LocalDateTime>() {
             @Override
             public void serialize(LocalDateTime value, JsonGenerator gen, SerializationContext ctxt) {
-                gen.writeString(value.atZone(APP_ZONE).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+                gen.writeString(value.atZone(AppTime.ZONE).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
             }
         });
+        module.addSerializer(Instant.class, new MadridDateTimeSerializer());
         return module;
     }
 }

@@ -15,8 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -54,9 +55,9 @@ public class CustomLockService {
      * @param fullyLocked  todo cerrado: el pronóstico ya no se puede cambiar
      * @param nextLockAt   próximo cierre conocido, o null
      */
-    public record LockState(PredictionLockMode mode, int offsetMinutes, LocalDateTime lockDate,
+    public record LockState(PredictionLockMode mode, int offsetMinutes, Instant lockDate,
                             List<String> groups, List<List<Boolean>> picks, boolean anyLocked,
-                            boolean fullyLocked, LocalDateTime nextLockAt) {
+                            boolean fullyLocked, Instant nextLockAt) {
         public boolean groupLocked(String group) {
             return groups.contains(group);
         }
@@ -87,7 +88,7 @@ public class CustomLockService {
         }
         PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
         int offset = Math.max(0, edition.getLockOffsetMinutes());
-        LocalDateTime now = LocalDateTime.now(clock.withZone(ZONE));
+        Instant now = clock.instant();
 
         Competition competition = edition.getCompetition();
         List<List<Match>> bracket = competition == null ? List.of() : PredictableBracket.rounds(competition, all);
@@ -118,7 +119,7 @@ public class CustomLockService {
                     picks, locked, locked, locked ? null : edition.getLockDate());
         }
 
-        List<LocalDateTime> upcoming = new ArrayList<>();
+        List<Instant> upcoming = new ArrayList<>();
         Map<String, Boolean> groupLocks = new HashMap<>();
         for (String group : groupNames) {
             List<Match> fixtures = all.stream()
@@ -148,7 +149,7 @@ public class CustomLockService {
                 .map(Map.Entry::getKey).sorted().toList();
         boolean anyLocked = !lockedGroups.isEmpty() || picks.stream().flatMap(List::stream).anyMatch(Boolean::booleanValue);
         boolean fullyLocked = allPicks && lockedGroups.size() == groupNames.size();
-        LocalDateTime next = upcoming.stream().filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
+        Instant next = upcoming.stream().filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
         return new LockState(mode, offset, null, lockedGroups, picks, anyLocked, fullyLocked,
                 fullyLocked ? null : next);
     }
@@ -210,17 +211,17 @@ public class CustomLockService {
     }
 
     /** Fecha del primer cierre en el modo {@link PredictionLockMode#FIRST_MATCH}: el primer partido con fecha. */
-    public LocalDateTime firstMatchLock(Edition edition) {
+    public Instant firstMatchLock(Edition edition) {
         if (edition.getCompetition() == null) return null;
         return firstMatchLock(edition, matches.findByCompetitionId(edition.getCompetition().getId()));
     }
 
-    public LocalDateTime firstMatchLockWithoutMatch(Edition edition, Long matchId) {
+    public Instant firstMatchLockWithoutMatch(Edition edition, Long matchId) {
         return firstMatchLock(edition, matches.findByCompetitionId(edition.getCompetition().getId()).stream()
                 .filter(match -> !matchId.equals(match.getId())).toList());
     }
 
-    private static LocalDateTime firstMatchLock(Edition edition, List<Match> all) {
+    private static Instant firstMatchLock(Edition edition, List<Match> all) {
         // En un torneo oficial con cuadro propio cuenta su primer cruce, no la fase previa.
         Competition competition = edition.getCompetition();
         if (competition != null && competition.getOwnerLeague() == null && PredictableBracket.applies(edition)) {
@@ -230,7 +231,7 @@ public class CustomLockService {
         return all.stream()
                 .filter(match -> match.getMatchDate() != null && match.getAwayTeam() != null)
                 .map(Match::getMatchDate).min(Comparator.naturalOrder())
-                .map(date -> date.minusMinutes(Math.max(0, edition.getLockOffsetMinutes())))
+                .map(date -> date.minus(Math.max(0, edition.getLockOffsetMinutes()), ChronoUnit.MINUTES))
                 .orElse(null);
     }
 
@@ -243,12 +244,12 @@ public class CustomLockService {
         if (competitionId == null) return;
         List<Edition> active = editions.findByCompetitionIdAndStatus(competitionId, "ACTIVE");
         if (active == null || active.isEmpty()) return;
-        LocalDateTime now = LocalDateTime.now(clock.withZone(ZONE));
+        Instant now = clock.instant();
         List<Match> all = matches.findByCompetitionId(competitionId);
         for (Edition edition : active) {
             if (edition.getLockMode() != PredictionLockMode.FIRST_MATCH) continue;
             if (edition.getLockDate() != null && !edition.getLockDate().isAfter(now)) continue;
-            LocalDateTime lock = firstMatchLock(edition, all);
+            Instant lock = firstMatchLock(edition, all);
             if (lock != null && !lock.equals(edition.getLockDate())) {
                 edition.setLockDate(lock);
                 editions.save(edition);
@@ -286,14 +287,14 @@ public class CustomLockService {
         return slots;
     }
 
-    private static boolean anyStarted(List<Match> fixtures, int offset, LocalDateTime now, List<LocalDateTime> upcoming) {
+    private static boolean anyStarted(List<Match> fixtures, int offset, Instant now, List<Instant> upcoming) {
         boolean locked = false;
-        LocalDateTime first = null;
+        Instant first = null;
         for (Match match : fixtures) {
             if (match == null || match.getAwayTeam() == null) continue;
             locked |= started(match, offset, now, null);
             if (match.getMatchDate() != null) {
-                LocalDateTime lock = match.getMatchDate().minusMinutes(offset);
+                Instant lock = match.getMatchDate().minus(offset, ChronoUnit.MINUTES);
                 if (first == null || lock.isBefore(first)) first = lock;
             }
         }
@@ -302,14 +303,14 @@ public class CustomLockService {
     }
 
     /** Un cruce con descanso no se juega; el resto se cierra al empezar, al jugarse o al llegar su hora. */
-    private static boolean started(Match match, int offset, LocalDateTime now, List<LocalDateTime> upcoming) {
+    private static boolean started(Match match, int offset, Instant now, List<Instant> upcoming) {
         if (match.getAwayTeam() == null) return false;
         if (Boolean.TRUE.equals(match.getFinished())
                 || match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
             return true;
         }
         if (match.getMatchDate() == null) return false;
-        LocalDateTime lock = match.getMatchDate().minusMinutes(offset);
+        Instant lock = match.getMatchDate().minus(offset, ChronoUnit.MINUTES);
         if (!now.isBefore(lock)) return true;
         if (upcoming != null) upcoming.add(lock);
         return false;

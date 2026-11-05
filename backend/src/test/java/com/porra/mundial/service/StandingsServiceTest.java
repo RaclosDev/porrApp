@@ -8,6 +8,7 @@ import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -192,7 +193,7 @@ class StandingsServiceTest {
         Team spain = Team.builder().id(1L).name("España").groupName("H").build();
         Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
         Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
-                .homeScore(2).awayScore(0).finished(true).matchDate(LocalDateTime.of(2026, 6, 15, 21, 0)).build();
+                .homeScore(2).awayScore(0).finished(true).matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 15, 21, 0))).build();
         when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
         givenWorldCupMatches(played);
         when(standingRepository.findAll()).thenReturn(List.of());
@@ -220,7 +221,7 @@ class StandingsServiceTest {
         Team spain = Team.builder().id(1L).name("España").groupName("H").build();
         Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
         Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
-                .homeScore(0).awayScore(1).finished(true).matchDate(LocalDateTime.of(2026, 6, 15, 21, 0)).build();
+                .homeScore(0).awayScore(1).finished(true).matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 15, 21, 0))).build();
         when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
         when(standingRepository.findAll()).thenReturn(List.of());
 

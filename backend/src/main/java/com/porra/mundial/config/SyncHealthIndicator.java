@@ -7,7 +7,7 @@ import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * HealthIndicator de Spring Boot Actuator para monitorizar la salud de la sincronizacion deportiva.
@@ -20,7 +20,7 @@ public class SyncHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        LocalDateTime lastSync = syncService.getLastSyncTime();
+        Instant lastSync = syncService.getLastSyncTime();
         if (lastSync == null) {
             return Health.up()
                     .withDetail("syncStatus", "INITIALIZING")
@@ -28,7 +28,7 @@ public class SyncHealthIndicator implements HealthIndicator {
                     .build();
         }
 
-        long minutesSinceLastSync = Duration.between(lastSync, LocalDateTime.now()).toMinutes();
+        long minutesSinceLastSync = Duration.between(lastSync, Instant.now()).toMinutes();
         String status = syncService.getLastSyncStatus();
 
         Health.Builder builder = ("success".equalsIgnoreCase(status) || "INITIALIZING".equalsIgnoreCase(status))

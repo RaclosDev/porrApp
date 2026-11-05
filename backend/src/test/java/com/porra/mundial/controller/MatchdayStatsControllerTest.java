@@ -7,6 +7,7 @@ import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
 import com.porra.mundial.service.MatchdayStatsService;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -47,7 +48,7 @@ class MatchdayStatsControllerTest {
     @Test
     @DisplayName("GET /api/predictions/matchday/stats devuelve el reparto de cada partido")
     void returnsMatchStats() throws Exception {
-        MatchStats match = new MatchStats(7L, "Jornada 3", LocalDateTime.of(2026, 10, 25, 21, 0),
+        MatchStats match = new MatchStats(7L, "Jornada 3", AppTime.fromLocal(LocalDateTime.of(2026, 10, 25, 21, 0)),
                 "Real Madrid", "Barcelona", null, null, true, false, 2, 1,
                 5, 3, 1, 1, List.of(new ScoreCount(2, 1, 2)), 2, 3);
         Mockito.when(matchdayStatsService.getStats("user@test.com", 10L))
