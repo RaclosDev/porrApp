@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   createGroup,
   joinGroup,
@@ -20,6 +20,14 @@ import type { Competition, Group, PoolFormat } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { isApiError } from '../services/apiError';
 import { useAppStore } from '../store/useAppStore';
+
+/** Identificador aleatorio para la cabecera `Idempotency-Key`. */
+function newIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
 
 type GroupId = number | string;
 
@@ -155,6 +163,10 @@ export function useGroupsDashboard() {
     refetchMyGroups();
   }, [refetchMyGroups]);
 
+  // Clave de idempotencia de la creación en curso: se mantiene entre reintentos para que
+  // el servidor devuelva la misma liga si la primera respuesta se perdió.
+  const creationKeyRef = useRef<string | null>(null);
+
   const handleCreate = async (e?: { preventDefault?: () => void }) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isCreating) return;
@@ -167,6 +179,7 @@ export function useGroupsDashboard() {
       return;
     }
     setIsCreating(true);
+    creationKeyRef.current ??= newIdempotencyKey();
     try {
       const group = await createGroup(
         newGroupName.trim(),
@@ -174,7 +187,9 @@ export function useGroupsDashboard() {
         selectedPoolFormat,
         includePichichi,
         selectedCompetition ? undefined : customCompetitionName.trim(),
+        creationKeyRef.current,
       );
+      creationKeyRef.current = null;
       setNewGroupName('');
       setCustomCompetitionName('');
       setNewlyCreatedGroup(group);

@@ -82,7 +82,7 @@ class PorraMundialApplicationTests {
         HttpResponse<String> response = get("/api/matches?competitionId=2");
 
         assertThat(response.statusCode()).isEqualTo(200);
-        // Las fechas tienen que salir como texto ISO, no como números ni arrays.
-        assertThat(response.body()).containsPattern("\"date\":\"\\d{4}-\\d{2}-\\d{2}T");
+        // Las fechas salen como texto ISO con su desfase, no como números, arrays ni hora sin zona.
+        assertThat(response.body()).containsPattern("\"date\":\"\\d{4}-\\d{2}-\\d{2}T[\\d:.]+[+-]\\d{2}:\\d{2}\"");
     }
 }

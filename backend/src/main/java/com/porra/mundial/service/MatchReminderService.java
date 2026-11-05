@@ -18,6 +18,7 @@ import com.porra.mundial.repository.PushSubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -60,6 +61,7 @@ public class MatchReminderService {
     record Pending(Long userId, League league, Match match, LocalDateTime lockAt) {}
 
     @Scheduled(initialDelay = 90_000, fixedDelay = 300_000)
+    @SchedulerLock(name = "matchReminders", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void sendDueReminders() {
         if (!sender.isEnabled()) return;
         try {
