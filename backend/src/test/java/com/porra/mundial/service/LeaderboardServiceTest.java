@@ -133,8 +133,13 @@ class LeaderboardServiceTest {
         ParticipantScoreDTO first = leaderboard.get(0);
         assertEquals(4, first.getMatchPoints(), "matchPoints debe ser la suma de los puntos otorgados (3 + 1)");
         assertEquals(4, first.getTotal(), "total debe incluir los matchPoints (4)");
-        assertEquals(4, pred.getMatchPoints(), "La entidad Prediction debe recibir el valor calculado de matchPoints");
-        assertEquals(4, pred.getTotalPoints(), "La entidad Prediction debe recibir el valor calculado de totalPoints");
+        // Se guardan solo las columnas de puntos, sin tocar la entidad (no pisa predicciones guardadas a la vez).
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(100L),
+                org.mockito.ArgumentMatchers.eq(4), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(4),
+                org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(predictionRepository, org.mockito.Mockito.never()).saveAll(org.mockito.ArgumentMatchers.any());
         // Una sola consulta para todos los participantes, no una por participante.
         org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.times(1)).findWithMatchByPredictionIdIn(org.mockito.ArgumentMatchers.any());
         org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.never()).findByPredictionId(org.mockito.ArgumentMatchers.anyLong());
@@ -343,8 +348,11 @@ class LeaderboardServiceTest {
         assertEquals(500, leaderboard.get(0).getFinals());
         assertEquals(200, leaderboard.get(1).getFinals());
         assertEquals(200, leaderboard.get(2).getFinals());
-        assertEquals(500, withCustom.getTotalPoints(), "se guarda la puntuación con las reglas de la liga");
-        assertEquals(200, withDefaults.getTotalPoints());
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(300L),
+                org.mockito.ArgumentMatchers.eq(500), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
     }
 
     @Test

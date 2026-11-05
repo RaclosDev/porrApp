@@ -60,7 +60,7 @@ public class PredictionController {
 
         String name = body.getPrediction() != null ? body.getPrediction() : body.getUser();
         Prediction prediction = predictionService.createPrediction(email, name, body, groupId);
-        webSocketService.notifyLeagueChanged(groupId);
+        webSocketService.notifyPredictionsChanged(groupId);
         return PredictionSavedResponse.created(prediction.getId(), prediction.getParticipantName(), prediction.getGroupId());
     }
 
@@ -68,6 +68,7 @@ public class PredictionController {
     public PredictionSavedResponse updatePrediction(@PathVariable Long id, @Valid @RequestBody PredictionDataDTO body,
                                                     Principal principal) {
         Prediction prediction = predictionService.updatePrediction(id, CurrentUser.email(principal), body.getPrediction(), body);
+        webSocketService.notifyPredictionsChanged(prediction.getGroupId());
         return PredictionSavedResponse.updated(prediction.getId());
     }
 
@@ -91,13 +92,14 @@ public class PredictionController {
     /** Marca un pronóstico como pagado. Solo el administrador de su liga. */
     @PutMapping("/{id}/pay")
     public StatusResponse markAsPaid(@PathVariable Long id, Principal principal) {
-        predictionService.markAsPaid(id, CurrentUser.email(principal));
+        Prediction prediction = predictionService.markAsPaid(id, CurrentUser.email(principal));
+        webSocketService.notifyPredictionsChanged(prediction.getGroupId());
         return new StatusResponse("paid", null);
     }
 
     @DeleteMapping("/{id}")
     public StatusResponse deletePrediction(@PathVariable Long id, Principal principal) {
-        predictionService.deletePrediction(id, CurrentUser.email(principal));
+        webSocketService.notifyPredictionsChanged(predictionService.deletePrediction(id, CurrentUser.email(principal)));
         return new StatusResponse("deleted", null);
     }
 }

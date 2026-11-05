@@ -34,7 +34,15 @@ class WebSocketServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new WebSocketService(new ConcurrentMapCacheManager(), new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
+        service = newService(new ConcurrentMapCacheManager(), id -> WebSocketService.Audience.EVERYONE);
+    }
+
+    /** Sin retraso de agrupación, para que los avisos de liga se envíen en el acto. */
+    private static WebSocketService newService(org.springframework.cache.CacheManager caches,
+                                               WebSocketService.LeagueAudience audience) {
+        WebSocketService created = new WebSocketService(caches, new ObjectMapper(), audience);
+        created.leagueNoticeDelayMs = 0;
+        return created;
     }
 
     private static WebSocketSession openSession(String id) {
@@ -121,7 +129,7 @@ class WebSocketServiceTest {
         caches.getCache("groupById").put(10L, "liga 10");
         caches.getCache("competitionStandings").put(4L, "tabla de ESPN");
         caches.getCache("userGroups").put("a@test.com", "mis ligas");
-        service = new WebSocketService(caches, new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
         WebSocketSession session = openSession("s1");
         service.addSession(session);
 
@@ -145,7 +153,7 @@ class WebSocketServiceTest {
         caches.getCache("matches").put("all", "partidos");
         caches.getCache("userGroups").put("a@test.com", "mis ligas");
         caches.getCache("competitions").put("all", "competiciones");
-        service = new WebSocketService(caches, new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
         WebSocketSession session = openSession("s1");
         service.addSession(session);
 
@@ -164,7 +172,7 @@ class WebSocketServiceTest {
         caches.getCache("leaderboard").put(10L, "ranking 10");
         caches.getCache("leaderboard").put(20L, "ranking 20");
         caches.getCache("matches").put("all", "partidos");
-        service = new WebSocketService(caches, new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
 
         service.notifyProfileChanged();
 
@@ -176,7 +184,7 @@ class WebSocketServiceTest {
     @Test
     @DisplayName("El aviso de una liga privada solo llega a sus miembros identificados")
     void privateLeagueNoticeOnlyReachesMembers() throws Exception {
-        service = new WebSocketService(new ConcurrentMapCacheManager(), new ObjectMapper(),
+        service = newService(new ConcurrentMapCacheManager(),
                 id -> new WebSocketService.Audience(false, java.util.Set.of(7L)));
         WebSocketSession member = openSession("member");
         WebSocketSession stranger = openSession("stranger");
@@ -196,6 +204,48 @@ class WebSocketServiceTest {
         service.authenticate(member, null);
         service.notifyLeagueChanged(10L);
         verify(member, times(1)).sendMessage(any());
+    }
+
+    @Test
+    @DisplayName("Guardar predicciones seguidas en una liga manda un solo aviso y no vacía la lista de ligas")
+    void predictionSavesAreCoalescedPerLeague() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        caches.getCache("userGroups").put("a@test.com", "mis ligas");
+        service = new WebSocketService(caches, new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
+        service.leagueNoticeDelayMs = 100;
+        WebSocketSession session = openSession("s1");
+        CountDownLatch sent = new CountDownLatch(1);
+        doAnswer(inv -> { sent.countDown(); return null; }).when(session).sendMessage(any());
+        service.addSession(session);
+
+        for (int i = 0; i < 20; i++) service.notifyPredictionsChanged(10L);
+
+        assertEquals(null, caches.getCache("leaderboard").get(10L), "la clasificación se borra en el acto");
+        assertEquals("mis ligas", caches.getCache("userGroups").get("a@test.com").get());
+        assertEquals(true, sent.await(5, TimeUnit.SECONDS));
+        Thread.sleep(300);
+        verify(session, times(1)).sendMessage(any());
+        service.shutdown();
+    }
+
+    @Test
+    @DisplayName("Si solo avanza el minuto de juego, se borran los partidos pero no las clasificaciones")
+    void clockChangeKeepsStandings() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("matches").put("all", "partidos");
+        caches.getCache("standings").put("all", "tabla");
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
+        WebSocketSession session = openSession("s1");
+        service.addSession(session);
+
+        service.notifyClockChanged();
+
+        assertEquals(null, caches.getCache("matches").get("all"));
+        assertEquals("tabla", caches.getCache("standings").get("all").get());
+        assertEquals("ranking 10", caches.getCache("leaderboard").get(10L).get());
+        assertEquals("CLOCK_UPDATED", new ObjectMapper().readTree(sentPayload(session)).get("type").asString());
     }
 
     @Test

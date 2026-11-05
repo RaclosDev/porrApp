@@ -94,7 +94,7 @@ class MatchPredictionControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.saved").value(1));
 
-        Mockito.verify(webSocketService).notifyLeagueChanged(10L);
+        Mockito.verify(webSocketService).notifyPredictionsChanged(10L);
     }
 
     @Test

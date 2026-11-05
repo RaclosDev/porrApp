@@ -54,4 +54,19 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     @Query("UPDATE Prediction p SET p.scoreCalculatedAt = NULL WHERE p.scoreCalculatedAt IS NOT NULL"
             + " AND p.edition.id = :editionId")
     int clearCalculatedScoresByEditionId(@Param("editionId") Long editionId);
+
+    /**
+     * Guarda la puntuación calculada de una porra tocando solo las columnas de puntos, para que
+     * leer la clasificación nunca pise una predicción guardada a la vez.
+     */
+    @Modifying
+    @Query("UPDATE Prediction p SET p.totalPoints = :total, p.r1Points = :r1, p.r32Points = :r32,"
+            + " p.r16Points = :r16, p.qfPoints = :qf, p.sfPoints = :sf, p.finalsPoints = :finals,"
+            + " p.scorerPoints = :scorer, p.matchPoints = :matchPoints, p.scoreCalculatedAt = :calculatedAt"
+            + " WHERE p.id = :id")
+    int saveCalculatedScore(@Param("id") Long id, @Param("total") Integer total, @Param("r1") Integer r1,
+                            @Param("r32") Integer r32, @Param("r16") Integer r16, @Param("qf") Integer qf,
+                            @Param("sf") Integer sf, @Param("finals") Integer finals,
+                            @Param("scorer") Integer scorer, @Param("matchPoints") Integer matchPoints,
+                            @Param("calculatedAt") java.time.LocalDateTime calculatedAt);
 }
