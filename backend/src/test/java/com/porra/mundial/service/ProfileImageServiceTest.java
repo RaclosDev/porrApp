@@ -70,7 +70,7 @@ class ProfileImageServiceTest {
         League saved = service.saveLeagueImage(10L, "ADMIN@test.com", png());
 
         assertNotNull(saved.getImageUpdatedAt());
-        assertTrue(saved.getImageUrl().startsWith("/api/groups/10/image?v="));
+        assertTrue(saved.getImageUrl().matches("/api/groups/10/image/[0-9a-f]{32}"));
         ArgumentCaptor<LeagueImage> captor = ArgumentCaptor.forClass(LeagueImage.class);
         verify(leagueImageRepository).save(captor.capture());
         assertEquals(10L, captor.getValue().getLeagueId());
@@ -138,7 +138,7 @@ class ProfileImageServiceTest {
         ArgumentCaptor<UserAvatar> captor = ArgumentCaptor.forClass(UserAvatar.class);
         verify(userAvatarRepository).save(captor.capture());
         assertEquals(2L, captor.getValue().getUserId());
-        assertTrue(saved.getAvatarUrl().startsWith("/api/users/2/avatar?v="));
+        assertTrue(saved.getAvatarUrl().matches("/api/users/2/avatar/[0-9a-f]{32}"));
         verify(userAccountRepository, never()).findByGoogleEmail("admin@test.com");
     }
 
@@ -185,5 +185,20 @@ class ProfileImageServiceTest {
         assertThrows(BusinessException.class, () -> service.updateParticipantName(null, "Nombre"));
         assertThrows(BusinessException.class, () -> service.deleteAvatar(" "));
         verify(userAccountRepository, never()).findByGoogleEmail(anyString());
+    }
+
+    @Test
+    @DisplayName("La foto solo se sirve con su clave; sin ella o con otra, como si no existiera")
+    void avatarRequiresItsRandomKey() {
+        other.setAvatarUpdatedAt(java.time.LocalDateTime.now());
+        other.setAvatarKey("0123456789abcdef0123456789abcdef");
+        when(userAccountRepository.findById(2L)).thenReturn(Optional.of(other));
+        when(userAvatarRepository.findById(2L)).thenReturn(Optional.of(UserAvatar.builder()
+                .userId(2L).data(new byte[]{1}).contentType("image/png").build()));
+
+        assertTrue(service.getAvatar(2L, "0123456789abcdef0123456789abcdef").isPresent());
+        assertTrue(service.getAvatar(2L, "ffffffffffffffffffffffffffffffff").isEmpty());
+        assertTrue(service.getAvatar(2L, "").isEmpty());
+        verify(userAvatarRepository, times(1)).findById(2L);
     }
 }

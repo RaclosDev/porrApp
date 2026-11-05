@@ -44,7 +44,6 @@ public class MatchPredictionService {
             boolean isMember = false;
             if (email != null && !email.isBlank()) {
                 UserAccount user = userAccountRepository.findByGoogleEmail(email)
-                        .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
                         .orElse(null);
                 if (user != null) {
                     Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
@@ -407,7 +406,6 @@ public class MatchPredictionService {
 
         UserAccount caller = (email != null && !email.isBlank())
                 ? userAccountRepository.findByGoogleEmail(email)
-                    .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
                     .orElse(null)
                 : null;
 

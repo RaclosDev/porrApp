@@ -273,8 +273,6 @@ export interface LeagueScoring {
 export interface GroupMember {
   userId: number;
   participantName: string;
-  /** null en las ligas públicas, que no publican emails. */
-  googleEmail: string | null;
   role: string;
   /** null en las ligas públicas, que no tienen pagos. */
   paymentStatus: PaymentStatus | null;

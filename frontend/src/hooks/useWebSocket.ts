@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type { Match } from '../types/api';
 import { queryKeys } from '../services/queryKeys';
+import { getAuthToken } from '../services/api';
 
 /** Consultas que cambian cuando cambia un resultado. */
 const SCORE_DEPENDENT_KEYS = [
@@ -92,8 +93,17 @@ export function useWebSocket(queryClient: QueryClient) {
           invalidateAll(queryClient, RECONNECT_KEYS);
           disconnected = false;
         }
+        // Los avisos de una liga privada solo llegan a sus miembros: el servidor necesita
+        // saber quién está conectado. Se reenvía si el token cambia (refresco, login o logout).
+        let sentToken = getAuthToken();
+        socket.send(JSON.stringify({ type: 'AUTH', token: sentToken }));
         wsPingInterval = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
+            const token = getAuthToken();
+            if (token !== sentToken) {
+              sentToken = token;
+              socket.send(JSON.stringify({ type: 'AUTH', token }));
+            }
             socket.send(JSON.stringify({ type: 'PING' }));
           }
         }, 10000);

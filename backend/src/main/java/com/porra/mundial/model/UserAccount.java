@@ -56,6 +56,10 @@ public class UserAccount {
     @Column(name = "avatar_updated_at")
     private LocalDateTime avatarUpdatedAt;
 
+    /** Clave aleatoria de la URL de la foto; cambia en cada subida. */
+    @Column(name = "avatar_key", length = 32)
+    private String avatarKey;
+
     /** Recibe un aviso push una hora antes de que cierre un partido que aún no ha predicho. */
     @Column(name = "match_reminders_enabled", nullable = false)
     @Builder.Default
@@ -69,10 +73,10 @@ public class UserAccount {
     @Column(name = "profile_setup_completed", nullable = false)
     private boolean profileSetupCompleted;
 
-    /** URL pública (versionada) de la foto de perfil, o null si no tiene. */
+    /** URL no adivinable de la foto de perfil, o null si no tiene. */
     @Transient
     public String getAvatarUrl() {
-        if (id == null || avatarUpdatedAt == null) return null;
-        return "/api/users/" + id + "/avatar?v=" + avatarUpdatedAt.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+        if (id == null || avatarUpdatedAt == null || avatarKey == null) return null;
+        return "/api/users/" + id + "/avatar/" + avatarKey;
     }
 }
