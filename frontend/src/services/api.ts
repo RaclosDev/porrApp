@@ -22,6 +22,7 @@ import type {
   MatchdayPoints,
   MatchdayPredictionInput,
   MatchdayStats,
+  MatchVoters,
   MatchdaySubmissionResult,
   Me,
   ParticipantScore,
@@ -698,6 +699,12 @@ export const deleteMyAvatar = () =>
 /** Reparto 1X2 y marcadores más repetidos de los partidos ya empezados de una liga por jornadas. */
 export const fetchMatchdayStats = (groupId: number | string) =>
   request<MatchdayStats>(`/predictions/matchday/stats${query({ groupId })}`);
+
+/** Votantes de cada signo; el servidor solo devuelve los partidos ya cerrados. */
+export const fetchMatchVoters = (groupId: number | string, matchIds: number[]) =>
+  request<MatchVoters[]>(
+    `/predictions/matchday/stats/voters${query({ groupId, matchIds: matchIds.join(',') })}`,
+  );
 
 // --- Recordatorios push ---
 

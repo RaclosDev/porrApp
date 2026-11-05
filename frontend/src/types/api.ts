@@ -399,6 +399,21 @@ export interface MatchStats {
   signHits: number | null;
 }
 
+/** Un miembro que ha pronosticado un signo. */
+export interface MatchVoter {
+  userId: number;
+  name: string;
+  avatarUrl: string | null;
+}
+
+/** Quién ha pronosticado 1, X y 2 en un partido ya cerrado (`/stats/voters`). */
+export interface MatchVoters {
+  matchId: number;
+  home: MatchVoter[];
+  draw: MatchVoter[];
+  away: MatchVoter[];
+}
+
 /** Estadísticas de una liga por jornadas (`/api/predictions/matchday/stats`). */
 export interface MatchdayStats {
   members: number;

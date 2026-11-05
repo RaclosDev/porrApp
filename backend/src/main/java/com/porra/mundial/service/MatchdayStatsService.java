@@ -1,14 +1,18 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.exception.BusinessException;
+import com.porra.mundial.dto.MatchVotersDTO;
+import com.porra.mundial.dto.MatchVotersDTO.Voter;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchPrediction;
+import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
@@ -21,9 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Estadísticas de las ligas por jornadas: cómo ha pronosticado la liga cada partido.
@@ -37,6 +45,9 @@ public class MatchdayStatsService {
 
     /** Marcadores que se devuelven por partido. */
     static final int TOP_SCORES = 3;
+
+    /** Partidos por petición de votantes: los de una jornada larga caben de sobra. */
+    static final int MAX_VOTER_MATCHES = 60;
 
     private final GroupService groupService;
     private final EditionRepository editionRepository;
@@ -79,6 +90,70 @@ public class MatchdayStatsService {
                         .thenComparing(MatchStats::matchId))
                 .toList();
         return new MatchdayStatsDTO(membershipRepository.countByLeagueId(groupId), matches);
+    }
+
+    /**
+     * Quién ha pronosticado cada signo en los partidos pedidos cuyos pronósticos ya se ven. Los partidos
+     * aún abiertos no aparecen, y solo cuentan los miembros actuales de la liga.
+     */
+    @Transactional(readOnly = true)
+    public List<MatchVotersDTO> getVoters(String email, Long groupId, List<Long> matchIds) {
+        if (groupId == null) {
+            throw BusinessException.badRequest("El grupo es obligatorio");
+        }
+        if (matchIds == null || matchIds.isEmpty()) return List.of();
+        if (matchIds.size() > MAX_VOTER_MATCHES) {
+            throw BusinessException.badRequest("Demasiados partidos a la vez");
+        }
+        groupService.assertCanView(groupId, email);
+
+        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
+        if (edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY) return List.of();
+
+        List<MatchPrediction> all = matchPredictionRepository
+                .findWithUserByEditionIdAndMatchIds(edition.getId(), new LinkedHashSet<>(matchIds));
+        if (all.isEmpty()) return List.of();
+        Set<Long> members = new HashSet<>();
+        for (Membership membership : membershipRepository.findByLeagueId(groupId)) {
+            if (membership.getUser() != null) members.add(membership.getUser().getId());
+        }
+        List<Match> matches = all.stream().map(MatchPrediction::getMatch).distinct().toList();
+        Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
+                MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
+                        ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : matches);
+
+        Instant now = Instant.now();
+        Map<Long, Map<String, Map<Long, Voter>>> byMatch = new LinkedHashMap<>();
+        for (MatchPrediction mp : all) {
+            Match match = mp.getMatch();
+            UserAccount user = mp.getPrediction().getUser();
+            if (user == null || !members.contains(user.getId())
+                    || !isRevealed(match, lockTimes.get(match.getId()), edition.isLocked(), now)) {
+                continue;
+            }
+            boolean hasScore = mp.getHomeScore() != null && mp.getAwayScore() != null;
+            String sign = hasScore ? sign(mp.getHomeScore(), mp.getAwayScore()) : normalizeSign(mp.getPredictionSign());
+            if (sign == null) continue;
+            byMatch.computeIfAbsent(match.getId(), id -> new HashMap<>())
+                    .computeIfAbsent(sign, s -> new LinkedHashMap<>())
+                    .putIfAbsent(user.getId(), new Voter(user.getId(),
+                            user.getParticipantName() != null ? user.getParticipantName() : "Anónimo",
+                            user.getAvatarUrl()));
+        }
+
+        List<MatchVotersDTO> result = new ArrayList<>();
+        for (Long matchId : new LinkedHashSet<>(matchIds)) {
+            Map<String, Map<Long, Voter>> signs = byMatch.get(matchId);
+            if (signs == null) continue;
+            result.add(new MatchVotersDTO(matchId, voters(signs, "1"), voters(signs, "X"), voters(signs, "2")));
+        }
+        return result;
+    }
+
+    private static List<Voter> voters(Map<String, Map<Long, Voter>> signs, String sign) {
+        return signs.getOrDefault(sign, Map.of()).values().stream()
+                .sorted(Comparator.comparing(Voter::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     /** Los pronósticos de un partido se ven cuando se cierran, termina el partido o se cierra la porra. */

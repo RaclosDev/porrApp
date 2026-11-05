@@ -322,7 +322,8 @@
   }
 
   @media (min-width: 700px) {
-    .md-signs {
+    .md-signs,
+    .md-match .sign-voters {
       grid-template-columns: repeat(3, 84px);
       justify-content: flex-end;
     }

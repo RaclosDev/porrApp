@@ -1,6 +1,7 @@
 import Flag from '../Flag';
 import { CalendarDays, Users } from 'lucide-react';
-import type { MatchdayFixture } from '../../types/api';
+import SignVoters from '../voters/SignVoters';
+import type { MatchdayFixture, MatchVoters } from '../../types/api';
 import {
   formatMatchDate,
   isLiveFixture,
@@ -17,6 +18,9 @@ interface FixtureCardProps {
   disabled: boolean;
   onQuickSign: (matchId: number, sign: MatchSign) => void;
   onShowFriends: (fixture: MatchdayFixture) => void;
+  /** Quién ha votado cada signo; solo llega cuando el partido está cerrado. */
+  voters?: MatchVoters;
+  onShowVoters?: (fixture: MatchdayFixture) => void;
 }
 
 const SIGNS: MatchSign[] = ['1', 'X', '2'];
@@ -30,6 +34,8 @@ export default function FixtureCard({
   disabled,
   onQuickSign,
   onShowFriends,
+  voters,
+  onShowVoters,
 }: FixtureCardProps) {
   const inputDisabled = locked || disabled;
   const teams = [
@@ -118,6 +124,9 @@ export default function FixtureCard({
           );
         })}
       </div>
+      {voters && onShowVoters && (
+        <SignVoters voters={voters} matchName={matchName} onOpen={() => onShowVoters(fixture)} />
+      )}
 
       {/* Desglose de puntos si el partido ya ha finalizado */}
       {showPoints && (

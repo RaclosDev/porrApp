@@ -1,6 +1,6 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
@@ -10,6 +10,9 @@ import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
 import FloatingSaveButton from '../components/matchday/FloatingSaveButton';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
+import { useMatchVoters } from '../hooks/useMatchVoters';
+import MatchVotersModal from '../components/voters/MatchVotersModal';
+import type { MatchdayFixture } from '../types/api';
 
 function MatchdayPredictor() {
   const context = useAppContext();
@@ -61,6 +64,13 @@ function useRequestedGroup({
 function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext> }) {
   const { activeGroupId, activeGroupName, activeGroupIsLocked, activeGroupPoolFormat } = context;
   const md = useMatchdayPredictor(context);
+  const [votersFixture, setVotersFixture] = useState<MatchdayFixture | null>(null);
+  const voters = useMatchVoters(
+    md.isMatchDay ? activeGroupId : null,
+    md.fixtures
+      .filter((fixture) => fixture.locked || activeGroupIsLocked)
+      .map((fixture) => fixture.matchId),
+  );
 
   if (activeGroupPoolFormat && !md.isMatchDay) {
     return <Navigate to="/" replace />;
@@ -123,6 +133,8 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
             disabled={md.isSaving}
             onQuickSign={md.handleQuickSign}
             onShowFriends={md.setSelectedMatchForFriends}
+            voters={voters.get(fixture.matchId)}
+            onShowVoters={setVotersFixture}
           />
         ))}
       </div>
@@ -137,6 +149,12 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         />
       )}
 
+      <MatchVotersModal
+        voters={votersFixture ? (voters.get(votersFixture.matchId) ?? null) : null}
+        homeTeam={votersFixture?.homeTeam ?? ''}
+        awayTeam={votersFixture?.awayTeam ?? ''}
+        onClose={() => setVotersFixture(null)}
+      />
       <MatchFriendsPredictionsModal
         groupId={activeGroupId}
         match={md.selectedMatchForFriends}
