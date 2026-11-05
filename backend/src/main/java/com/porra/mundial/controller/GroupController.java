@@ -127,6 +127,14 @@ public class GroupController {
         return StatusResponse.success("Miembro expulsado");
     }
 
+    /** Cede la administración de la liga a otro miembro. Solo el administrador. */
+    @PutMapping("/{id}/members/{userId}/admin")
+    public StatusResponse transferAdmin(@PathVariable Long id, @PathVariable Long userId, Principal principal) {
+        groupService.transferAdmin(id, userId, principal.getName());
+        webSocketService.notifyLeagueChanged(id);
+        return StatusResponse.success("Administración cedida");
+    }
+
     /** Genera un código de invitación nuevo e invalida el anterior. Solo el administrador. */
     @PostMapping("/{id}/regenerate-code")
     public JoinCodeResponse regenerateCode(@PathVariable Long id, Principal principal) {

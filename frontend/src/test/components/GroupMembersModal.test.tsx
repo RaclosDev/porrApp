@@ -8,6 +8,7 @@ const api = vi.hoisted(() => ({
   fetchGroupMembers: vi.fn(),
   toggleGroupMemberPayment: vi.fn(),
   kickGroupMember: vi.fn(),
+  transferGroupAdmin: vi.fn(),
   regenerateGroupJoinCode: vi.fn(),
   fetchLeagueScoring: vi.fn(),
   updateLeagueScoring: vi.fn(),
@@ -40,6 +41,7 @@ describe('GroupMembersModal', () => {
     api.fetchGroupMembers.mockReset().mockResolvedValue(MEMBERS);
     api.toggleGroupMemberPayment.mockReset().mockResolvedValue({ paymentStatus: 'PAID' });
     api.kickGroupMember.mockReset().mockResolvedValue({ status: 'success' });
+    api.transferGroupAdmin.mockReset().mockResolvedValue({ status: 'success' });
     api.regenerateGroupJoinCode.mockReset().mockResolvedValue({ joinCode: 'NEW123' });
     api.fetchLeagueScoring.mockReset().mockResolvedValue(leagueScoring());
     api.updateLeagueScoring.mockReset();
@@ -233,6 +235,18 @@ describe('GroupMembersModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
     await waitFor(() => expect(api.kickGroupMember).toHaveBeenCalledWith(1, 2));
+  });
+
+  it('pide confirmación antes de ceder la administración', async () => {
+    setup();
+    await screen.findByText('Bruno');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hacer admin a Bruno' }));
+    expect(screen.getByText('¿Hacer admin? Dejarás de serlo.')).toBeInTheDocument();
+    expect(api.transferGroupAdmin).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    await waitFor(() => expect(api.transferGroupAdmin).toHaveBeenCalledWith(1, 2));
   });
 
   it('solo elimina la liga al escribir su nombre exacto', async () => {

@@ -31,6 +31,7 @@ import type {
   PredictionSaved,
   PredictionSummary,
   ProfileResponse,
+  ScoreLogEntry,
   ScoringRules,
   StatusResponse,
   TopScorer,
@@ -242,6 +243,8 @@ interface RequestOptions {
   timeoutMs?: number;
   /** Mensaje si el servidor no explica el error. */
   fallbackError?: string;
+  /** Cabeceras adicionales (p. ej. `Idempotency-Key`). */
+  headers?: Record<string, string>;
 }
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -271,7 +274,7 @@ async function send(
     signal,
     timeoutMs = form ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
   } = options;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...options.headers };
   if (json !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -405,6 +408,10 @@ export const createPrediction = (
 export const fetchLeaderboard = (groupId: number | string | null = null) =>
   request<ParticipantScore[]>(`/leaderboard${query({ groupId })}`);
 
+/** Registro de puntos de cada pronóstico de la liga (id -> entradas), para la evolución por partidos. */
+export const fetchLeaderboardLogs = (groupId: number | string) =>
+  request<Record<string, ScoreLogEntry[]>>(`/leaderboard/logs${query({ groupId })}`);
+
 export const fetchLeaderboardMatchdays = (groupId: number | string | null = null) =>
   request<MatchdayPoints[]>(`/leaderboard/matchdays${query({ groupId })}`);
 
@@ -427,10 +434,12 @@ export const createGroup = (
   poolFormat: PoolFormat,
   pichichi = true,
   customCompetitionName?: string,
+  idempotencyKey?: string,
 ) =>
   request<Group>('/groups', {
     method: 'POST',
     json: { name, competitionId, poolFormat, pichichi, customCompetitionName },
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     fallbackError: 'Error al crear la liga',
   });
 
@@ -712,4 +721,24 @@ export const setPushPreferences = (preferences: Partial<PushPreferences>) =>
     method: 'PUT',
     json: preferences,
     fallbackError: 'No se pudo guardar la preferencia',
+  });
+
+// --- Cuenta y administración ---
+
+/** Copia en JSON de los datos personales propios (derecho de acceso y portabilidad). */
+export const exportMyData = () =>
+  request<unknown>('/users/me/export', { fallbackError: 'No se pudieron descargar tus datos' });
+
+/** Borra la cuenta y todos sus datos. Falla con 409 si administra ligas con más miembros. */
+export const deleteMyAccount = () =>
+  request<StatusResponse>('/users/me', {
+    method: 'DELETE',
+    fallbackError: 'No se pudo borrar la cuenta',
+  });
+
+/** Cede la administración de la liga a otro miembro. */
+export const transferGroupAdmin = (groupId: number | string, userId: number) =>
+  request<StatusResponse>(`/groups/${groupId}/members/${userId}/admin`, {
+    method: 'PUT',
+    fallbackError: 'No se pudo ceder la administración',
   });

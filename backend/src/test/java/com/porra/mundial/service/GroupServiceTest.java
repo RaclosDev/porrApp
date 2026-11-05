@@ -384,4 +384,43 @@ class GroupServiceTest {
 
         verify(eventPublisher, never()).publishEvent(any(MemberJoinedLeagueEvent.class));
     }
+
+    @Test
+    @DisplayName("transferAdmin cede la liga a un miembro e intercambia los roles")
+    void transferAdminSwapsRoles() {
+        Membership adminMembership = Membership.builder().user(admin).league(league).role("ADMIN").build();
+        Membership memberMembership = Membership.builder().user(member).league(league).role("MEMBER").build();
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(membershipRepository.findById(new Membership.MembershipId(2L, 10L)))
+                .thenReturn(Optional.of(memberMembership));
+        when(membershipRepository.findById(new Membership.MembershipId(1L, 10L)))
+                .thenReturn(Optional.of(adminMembership));
+
+        groupService.transferAdmin(10L, 2L, "admin@test.com");
+
+        assertEquals(member, league.getAdminUser());
+        assertEquals("ADMIN", memberMembership.getRole());
+        assertEquals("MEMBER", adminMembership.getRole());
+    }
+
+    @Test
+    @DisplayName("transferAdmin solo lo puede hacer el admin actual")
+    void transferAdminRejectsNonAdmin() {
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+
+        assertThrows(BusinessException.class, () -> groupService.transferAdmin(10L, 2L, "member@test.com"));
+
+        assertEquals(admin, league.getAdminUser());
+    }
+
+    @Test
+    @DisplayName("transferAdmin rechaza a quien no es miembro de la liga")
+    void transferAdminRejectsNonMember() {
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(membershipRepository.findById(new Membership.MembershipId(3L, 10L))).thenReturn(Optional.empty());
+
+        assertThrows(BusinessException.class, () -> groupService.transferAdmin(10L, 3L, "admin@test.com"));
+
+        assertEquals(admin, league.getAdminUser());
+    }
 }

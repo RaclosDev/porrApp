@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import ProfileSettingsModal from '../../components/ProfileSettingsModal';
 import { useAppStore } from '../../store/useAppStore';
@@ -26,9 +27,11 @@ beforeEach(() => {
 });
 function showSetup() {
   return render(
-    <QueryClientProvider client={new QueryClient()}>
-      <ProfileSettingsModal onboarding onClose={close} />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={new QueryClient()}>
+        <ProfileSettingsModal onboarding onClose={close} />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 it('permite omitir y recuerda la elección sin modificar el nombre', async () => {
