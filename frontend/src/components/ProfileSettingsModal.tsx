@@ -1,11 +1,13 @@
 import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   updateMyProfile,
   uploadMyAvatar,
   deleteMyAvatar,
   completeProfileSetup,
+  deleteMyAccount,
 } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
@@ -36,6 +38,27 @@ export default function ProfileSettingsModal({
   const [saving, setSaving] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState('');
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const navigate = useNavigate();
+
+  const deleteAccount = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteMyAccount();
+      useAppStore.getState().logout();
+      onClose();
+      navigate('/', { replace: true });
+      toast.success('Tu cuenta y tus datos se han borrado');
+    } catch (err) {
+      setDeleteError(errorMessage(err, 'No se pudo borrar la cuenta'));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(dialogRef, {
@@ -190,6 +213,60 @@ export default function ProfileSettingsModal({
             </span>
           </section>
           {!onboarding && <ReminderSettings />}
+          {!onboarding && (
+            <section className="flex flex-col gap-2 pt-4 border-t border-line">
+              <span className="text-[0.8rem] font-bold text-muted">Tus datos</span>
+              <span className="text-[0.74rem] text-muted">
+                Consulta qué datos guardamos en la{' '}
+                <Link to="/privacidad" className="underline" onClick={onClose}>
+                  política de privacidad
+                </Link>
+                .
+              </span>
+              {confirmingDelete ? (
+                <div className="flex flex-col gap-2" role="group" aria-label="Confirmar borrado">
+                  <p className="m-0 text-[0.85rem]">
+                    Se borrarán tu perfil, tu foto, tus predicciones y tus avisos, y saldrás de
+                    todas tus ligas. No se puede deshacer.
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      className="glass-btn text-[0.8rem]"
+                      disabled={deleting}
+                      onClick={() => {
+                        setConfirmingDelete(false);
+                        setDeleteError('');
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="glass-btn text-[0.8rem] font-bold text-[#b91c1c]"
+                      disabled={deleting}
+                      onClick={() => void deleteAccount()}
+                    >
+                      {deleting ? 'Borrando…' : 'Sí, borrar mi cuenta'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="glass-btn text-[0.8rem] self-start text-[#b91c1c]"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Borrar mi cuenta
+                </button>
+              )}
+              {deleteError && (
+                <span className="text-[0.8rem] text-[#b91c1c]" role="alert">
+                  {deleteError}
+                </span>
+              )}
+            </section>
+          )}
         </div>
         {onboarding && (
           <div className="flex gap-2 justify-between shrink-0 p-4 border-t border-line">

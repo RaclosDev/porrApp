@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { GroupMember, PaymentStatus } from '../../types/api';
 import { UserAvatar } from '../Avatar';
 import type { CopyTarget, PaymentFilter } from '../GroupMembersModal';
@@ -39,6 +39,7 @@ interface LeagueMembersTabProps {
   isAdmin: boolean;
   kickMutation: UseMutationResult<unknown, Error, number>;
   kickTargetId: number | null;
+  transferMutation: UseMutationResult<unknown, Error, number>;
   paidCount: number;
   paidPercent: number;
   paymentFilter: PaymentFilter;
@@ -70,6 +71,7 @@ export default function LeagueMembersTab({
   isAdmin,
   kickMutation,
   kickTargetId,
+  transferMutation,
   paidCount,
   paidPercent,
   paymentFilter,
@@ -87,6 +89,7 @@ export default function LeagueMembersTab({
 }: LeagueMembersTabProps) {
   // Las ligas públicas no tienen pagos: el backend no manda estado de pago.
   const tracksPayments = members.length === 0 || members.some((m) => m.paymentStatus != null);
+  const [adminTargetId, setAdminTargetId] = useState<number | null>(null);
 
   return (
     <div
@@ -368,6 +371,52 @@ export default function LeagueMembersTab({
                   )}
 
                   {canManage &&
+                    !confirmingKick &&
+                    (adminTargetId === member.userId ? (
+                      <div
+                        className="league-admin-inline-confirm"
+                        role="group"
+                        aria-label={`Confirmar ceder la administración a ${member.participantName}`}
+                      >
+                        <span>¿Hacer admin? Dejarás de serlo.</span>
+                        <button
+                          type="button"
+                          className="league-admin-mini-btn is-danger"
+                          onClick={() => transferMutation.mutate(member.userId)}
+                          disabled={transferMutation.isPending}
+                        >
+                          {transferMutation.isPending ? (
+                            <Loader2 className="league-admin-spin" size={12} aria-hidden="true" />
+                          ) : (
+                            'Sí'
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          className="league-admin-mini-btn"
+                          onClick={() => setAdminTargetId(null)}
+                          disabled={transferMutation.isPending}
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="league-admin-icon-btn"
+                        onClick={() => {
+                          setKickTargetId(null);
+                          setAdminTargetId(member.userId);
+                        }}
+                        title={`Hacer admin a ${member.participantName}`}
+                        aria-label={`Hacer admin a ${member.participantName}`}
+                      >
+                        <Crown size={16} aria-hidden="true" />
+                      </button>
+                    ))}
+
+                  {canManage &&
+                    adminTargetId !== member.userId &&
                     (confirmingKick ? (
                       <div
                         className="league-admin-inline-confirm"
@@ -400,7 +449,10 @@ export default function LeagueMembersTab({
                       <button
                         type="button"
                         className="league-admin-icon-btn is-danger"
-                        onClick={() => setKickTargetId(member.userId)}
+                        onClick={() => {
+                          setAdminTargetId(null);
+                          setKickTargetId(member.userId);
+                        }}
                         title={`Expulsar a ${member.participantName}`}
                         aria-label={`Expulsar a ${member.participantName}`}
                       >

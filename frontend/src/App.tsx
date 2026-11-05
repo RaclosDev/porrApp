@@ -22,6 +22,7 @@ const OfficialBracket = React.lazy(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
 const MatchdayPredictor = React.lazy(() => import('./pages/MatchdayPredictor'));
 const LeagueStandings = React.lazy(() => import('./pages/LeagueStandings'));
+const Legal = React.lazy(() => import('./pages/Legal'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
 const GUEST_ALLOWED_PATHS = [
@@ -140,6 +141,8 @@ function App() {
               <Route path="/demo" element={<DemoPage />} />
               <Route path="/join/:code" element={<JoinRedirect />} />
               <Route path="/linkedin" element={<LinkedInEntry />} />
+              <Route path="/privacidad" element={<Legal kind="privacy" />} />
+              <Route path="/aviso-legal" element={<Legal kind="legal" />} />
 
               {/* Rutas de lectura - accesibles en guest_mode */}
               <Route

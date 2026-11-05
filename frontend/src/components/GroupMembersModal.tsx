@@ -23,6 +23,7 @@ import {
   fetchGroupMembers,
   toggleGroupMemberPayment,
   kickGroupMember,
+  transferGroupAdmin,
   regenerateGroupJoinCode,
 } from '../services/api';
 import LeagueMembersTab from './league/LeagueMembersTab';
@@ -235,6 +236,23 @@ export default function GroupMembersModal({
     },
     onError: (err) => {
       const message = errorMessage(err, 'No se pudo expulsar al miembro.');
+      setActionError(message);
+      toast.error(message);
+    },
+  });
+
+  const transferMutation = useMutation({
+    mutationFn: (userId: number) => transferGroupAdmin(groupId, userId),
+    onMutate: () => setActionError(''),
+    onSuccess: () => {
+      toast.success('Has cedido la administración de la liga');
+      // Quien cede deja de ser admin: se recargan la liga y sus permisos.
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
+    },
+    onError: (err) => {
+      const message = errorMessage(err, 'No se pudo ceder la administración.');
       setActionError(message);
       toast.error(message);
     },
@@ -515,6 +533,7 @@ export default function GroupMembersModal({
               isAdmin={isAdmin}
               kickMutation={kickMutation}
               kickTargetId={kickTargetId}
+              transferMutation={transferMutation}
               paidCount={paidCount}
               paidPercent={paidPercent}
               paymentFilter={paymentFilter}
