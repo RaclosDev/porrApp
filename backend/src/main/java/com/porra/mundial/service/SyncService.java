@@ -6,12 +6,14 @@ import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.sports.SportsDataProviderRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
@@ -69,8 +71,13 @@ public class SyncService {
     private final TopScorerService topScorerService;
     private final LegacyFixtureRepairService legacyFixtureRepairService;
     private final CustomLockService customLockService;
+    private final MatchRepository matchRepository;
 
     private final ReentrantLock syncLock = new ReentrantLock();
+
+    /** Un partido cuenta como «en juego» desde 15 min antes del inicio hasta 4 h después si no ha terminado. */
+    static final Duration LIVE_LOOKAHEAD = Duration.ofMinutes(15);
+    static final Duration LIVE_LOOKBACK = Duration.ofHours(4);
 
     /** Días por delante que se traen del calendario de las ligas. */
     static final int UPCOMING_DAYS = 14;
@@ -97,6 +104,7 @@ public class SyncService {
     public String getLastErrorMessage() { return lastErrorMessage; }
 
     @Scheduled(initialDelay = 60000, fixedDelayString = "${app.sync.interval-ms}")
+    @SchedulerLock(name = "fullSync", lockAtMostFor = "PT15M", lockAtLeastFor = "PT1M")
     public void scheduledSync() {
         try {
             syncAll();
@@ -105,8 +113,23 @@ public class SyncService {
         }
     }
 
+    /**
+     * Pasada rápida solo de las competiciones con partidos en juego, para que el marcador en directo no
+     * vaya hasta un intervalo completo por detrás. Si no hay nada en juego no llama al proveedor.
+     */
+    @Scheduled(initialDelay = 90_000, fixedDelayString = "${app.sync.live-interval-ms:60000}")
+    @SchedulerLock(name = "liveSync", lockAtMostFor = "PT10M", lockAtLeastFor = "PT20S")
+    public void scheduledLiveSync() {
+        try {
+            syncLive();
+        } catch (Exception e) {
+            log.warn("Falló la sincronización en directo: {}", e.getMessage());
+        }
+    }
+
     /** Repara el histórico por lotes sin competir con una sincronización o importación normal. */
     @Scheduled(initialDelay = 120_000, fixedDelay = 300_000)
+    @SchedulerLock(name = "legacyFixtureRepair", lockAtMostFor = "PT15M", lockAtLeastFor = "PT1M")
     public void repairLegacyFixtures() {
         if (!syncLock.tryLock()) return;
         try {
@@ -143,38 +166,66 @@ public class SyncService {
         }
         try {
             List<Competition> competitions = competitionRepository.findAll().stream()
-                    .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
+                    .filter(SyncService::hasProvider)
                     .toList();
             if (competitions.isEmpty()) {
                 log.info("No hay competiciones con proveedor externo que sincronizar.");
                 return;
             }
-            List<CompetitionSync> results = new ArrayList<>();
-            for (Competition competition : competitions) {
-                if (Thread.currentThread().isInterrupted()) {
-                    results.add(CompetitionSync.failed(competition.getName(), STATUS_ERROR, "Sincronización interrumpida"));
-                    break;
-                }
-                results.add(syncCompetition(competition));
-            }
-            worldCupRefreshPending |= results.stream().anyMatch(CompetitionSync::worldCupResultsChanged);
-            if (worldCupRefreshPending && !Thread.currentThread().isInterrupted()) {
-                results.add(refreshWorldCup(competitions));
-                topScorerService.refresh();
-            }
-            if (results.stream().anyMatch(r -> r.matchesUpdated() > 0 || r.teamsUpdated() > 0)) {
-                webSocketService.notifyResultsChanged();
-            } else if (results.stream().anyMatch(r -> r.clockUpdated() > 0)) {
-                // Solo ha avanzado el minuto de juego: no se vacían las clasificaciones.
-                webSocketService.notifyClockChanged();
-            }
-            recordStatus(results);
+            recordStatus(syncCompetitions(competitions, false));
         } finally {
             syncLock.unlock();
         }
     }
 
-    private CompetitionSync syncCompetition(Competition competition) {
+    /**
+     * Sincroniza solo las competiciones con algún partido en juego y, de ellas, solo hoy y ayer (partidos tras medianoche).
+     * No toca el estado de salud, que resume las pasadas completas.
+     */
+    public void syncLive() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Long> liveIds = matchRepository.findCompetitionIdsWithOpenMatchesBetween(
+                now.minus(LIVE_LOOKBACK), now.plus(LIVE_LOOKAHEAD));
+        if (liveIds.isEmpty() || !syncLock.tryLock()) return;
+        try {
+            List<Competition> competitions = competitionRepository.findAllById(liveIds).stream()
+                    .filter(SyncService::hasProvider)
+                    .toList();
+            if (!competitions.isEmpty()) syncCompetitions(competitions, true);
+        } finally {
+            syncLock.unlock();
+        }
+    }
+
+    private static boolean hasProvider(Competition competition) {
+        return competition.getExternalId() != null && !competition.getExternalId().isBlank();
+    }
+
+    /** Sincroniza las competiciones, recalcula el Mundial si hace falta y avisa a los clientes. Requiere {@code syncLock}. */
+    private List<CompetitionSync> syncCompetitions(List<Competition> competitions, boolean liveOnly) {
+        List<CompetitionSync> results = new ArrayList<>();
+        for (Competition competition : competitions) {
+            if (Thread.currentThread().isInterrupted()) {
+                results.add(CompetitionSync.failed(competition.getName(), STATUS_ERROR, "Sincronización interrumpida"));
+                break;
+            }
+            results.add(syncCompetition(competition, liveOnly));
+        }
+        worldCupRefreshPending |= results.stream().anyMatch(CompetitionSync::worldCupResultsChanged);
+        if (worldCupRefreshPending && !Thread.currentThread().isInterrupted()) {
+            results.add(refreshWorldCup(competitions));
+            topScorerService.refresh();
+        }
+        if (results.stream().anyMatch(r -> r.matchesUpdated() > 0 || r.teamsUpdated() > 0)) {
+            webSocketService.notifyResultsChanged();
+        } else if (results.stream().anyMatch(r -> r.clockUpdated() > 0)) {
+            // Solo ha avanzado el minuto de juego: no se vacían las clasificaciones.
+            webSocketService.notifyClockChanged();
+        }
+        return results;
+    }
+
+    private CompetitionSync syncCompetition(Competition competition, boolean liveOnly) {
         long start = System.currentTimeMillis();
         SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
         String slug = competition.getExternalId();
@@ -197,14 +248,17 @@ public class SyncService {
                 processEvents(provider.fetchScoreboardEvents(slug, season), teams, batch);
             } else {
                 LocalDate today = LocalDate.now();
-                for (LocalDate day : List.of(today.minusDays(1), today, today.plusDays(1))) {
+                List<LocalDate> days = liveOnly
+                        ? List.of(today, today.minusDays(1))
+                        : List.of(today.minusDays(1), today, today.plusDays(1));
+                for (LocalDate day : days) {
                     try {
                         processEvents(provider.fetchScoreboardEvents(slug, day.format(ESPN_DATE)), teams, batch);
                     } catch (Exception e) {
                         batch.recordError(day + ": " + e.getMessage());
                     }
                 }
-                syncUpcomingDays(competition, provider, teams, batch, today);
+                if (!liveOnly) syncUpcomingDays(competition, provider, teams, batch, today);
             }
 
             if (batch.resultsChanged()) {

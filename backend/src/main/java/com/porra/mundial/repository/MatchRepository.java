@@ -93,4 +93,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             + " AND (m.finished = FALSE OR m.finished IS NULL)")
     List<Match> findUnfinishedStartingBetween(@Param("competitionId") Long competitionId,
                                               @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /** Competiciones con algún partido sin terminar cuyo inicio cae en el intervalo (partidos en juego). */
+    @Query("SELECT DISTINCT m.competition.id FROM Match m WHERE (m.finished = FALSE OR m.finished IS NULL)"
+            + " AND m.matchDate BETWEEN :from AND :to")
+    List<Long> findCompetitionIdsWithOpenMatchesBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

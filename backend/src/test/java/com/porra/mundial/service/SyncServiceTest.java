@@ -59,6 +59,7 @@ class SyncServiceTest {
     @Mock private SportsDataProvider provider;
     @Mock private TopScorerService topScorerService;
     @Mock private LegacyFixtureRepairService legacyFixtureRepairService;
+    @Mock private com.porra.mundial.repository.MatchRepository matchRepository;
 
     @InjectMocks
     private SyncService syncService;
@@ -100,6 +101,30 @@ class SyncServiceTest {
         List<Match> worldCupMatches = List.of(Match.builder().id(1L).build());
         when(knockoutBracketService.worldCupMatches()).thenReturn(worldCupMatches);
         return worldCupMatches;
+    }
+
+    @Test
+    void liveSyncDoesNothingWithoutMatchesInPlay() {
+        when(matchRepository.findCompetitionIdsWithOpenMatchesBetween(any(), any())).thenReturn(List.of());
+
+        syncService.syncLive();
+
+        verifyNoInteractions(provider);
+        verify(competitionRepository, never()).findAllById(any());
+    }
+
+    @Test
+    void liveSyncOnlyFetchesTodayAndYesterdayOfCompetitionsInPlay() throws Exception {
+        when(matchRepository.findCompetitionIdsWithOpenMatchesBetween(any(), any())).thenReturn(List.of(5L));
+        when(competitionRepository.findAllById(List.of(5L))).thenReturn(List.of(laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+
+        syncService.syncLive();
+
+        verify(provider, times(2)).fetchScoreboardEvents(eq("esp.1"), anyString());
+        verify(provider, never()).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
+        // La pasada en directo no sustituye al estado de salud de la pasada completa.
+        org.junit.jupiter.api.Assertions.assertEquals("INITIALIZING", syncService.getLastSyncStatus());
     }
 
     @Test

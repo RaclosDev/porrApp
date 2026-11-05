@@ -10,6 +10,7 @@ import com.porra.mundial.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -118,6 +119,7 @@ public class SessionService {
 
     /** Borra cada noche las sesiones caducadas, que ya no sirven ni para detectar reutilizaciones. */
     @Scheduled(cron = "0 15 4 * * *")
+    @SchedulerLock(name = "sessionCleanup", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
     @Transactional
     public void purgeExpiredSessions() {
         int deleted = familyRepository.deleteExpired(Instant.now());

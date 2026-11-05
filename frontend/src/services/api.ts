@@ -243,6 +243,8 @@ interface RequestOptions {
   timeoutMs?: number;
   /** Mensaje si el servidor no explica el error. */
   fallbackError?: string;
+  /** Cabeceras adicionales (p. ej. `Idempotency-Key`). */
+  headers?: Record<string, string>;
 }
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -272,7 +274,7 @@ async function send(
     signal,
     timeoutMs = form ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
   } = options;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...options.headers };
   if (json !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -432,10 +434,12 @@ export const createGroup = (
   poolFormat: PoolFormat,
   pichichi = true,
   customCompetitionName?: string,
+  idempotencyKey?: string,
 ) =>
   request<Group>('/groups', {
     method: 'POST',
     json: { name, competitionId, poolFormat, pichichi, customCompetitionName },
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     fallbackError: 'Error al crear la liga',
   });
 

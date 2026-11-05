@@ -45,6 +45,11 @@ public class League {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** Clave de idempotencia con la que se creó la liga (única por administrador). */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(name = "creation_key", length = 64)
+    private String creationKey;
+
     /** Reglas personalizadas de la liga (texto libre definido por el admin). */
     @Column(columnDefinition = "TEXT")
     private String rules;
