@@ -198,10 +198,11 @@ export interface ParticipantScore {
   scorer: number;
   matchPoints: number;
   total: number;
-  log: ScoreLogEntry[];
-  /** grupo -> posición (1-4) -> acertada. */
-  exactMatches: Record<string, Record<string, boolean>>;
-  passedTeams: Record<string, boolean>;
+  /** Solo en el desglose de un pronóstico (`/predictions/{id}/score`); la clasificación no lo trae. */
+  log?: ScoreLogEntry[] | null;
+  /** grupo -> posición (1-4) -> acertada. Solo en el desglose. */
+  exactMatches?: Record<string, Record<string, boolean>> | null;
+  passedTeams?: Record<string, boolean> | null;
   pending: boolean;
 }
 

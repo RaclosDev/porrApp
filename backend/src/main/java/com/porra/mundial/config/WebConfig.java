@@ -1,9 +1,12 @@
 package com.porra.mundial.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
+import org.springframework.web.filter.ShallowEtagHeaderFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -84,5 +87,18 @@ public class WebConfig implements WebMvcConfigurer {
                         return location.createRelative("index.html");
                     }
                 });
+    }
+
+    /**
+     * ETag de la clasificación: si el cuerpo no ha cambiado se responde 304 sin reenviarlo, lo que
+     * ahorra datos cuando muchas pantallas la piden a la vez tras cada aviso.
+     */
+    @Bean
+    public FilterRegistrationBean<ShallowEtagHeaderFilter> leaderboardEtagFilter() {
+        FilterRegistrationBean<ShallowEtagHeaderFilter> registration =
+                new FilterRegistrationBean<>(new ShallowEtagHeaderFilter());
+        registration.addUrlPatterns("/api/leaderboard", "/api/leaderboard/*");
+        registration.setName("leaderboardEtagFilter");
+        return registration;
     }
 }
