@@ -9,6 +9,7 @@ import {
 } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
+import ReminderSettings from './ReminderSettings';
 import { UserAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -188,6 +189,7 @@ export default function ProfileSettingsModal({
               vinculación no cambian.
             </span>
           </section>
+          {!onboarding && <ReminderSettings />}
         </div>
         {onboarding && (
           <div className="flex gap-2 justify-between shrink-0 p-4 border-t border-line">

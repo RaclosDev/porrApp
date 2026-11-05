@@ -30,4 +30,8 @@ public interface EditionRepository extends JpaRepository<Edition, Long> {
 
     @Query("SELECT e FROM Edition e LEFT JOIN FETCH e.league LEFT JOIN FETCH e.competition WHERE e.league.id IN :leagueIds AND e.status = :status")
     List<Edition> findByLeagueIdInAndStatus(@Param("leagueIds") List<Long> leagueIds, @Param("status") String status);
+
+    /** Ediciones activas de un formato, con su liga y su competición. */
+    @Query("SELECT e FROM Edition e JOIN FETCH e.league JOIN FETCH e.competition WHERE e.status = 'ACTIVE' AND e.poolFormat = :format")
+    List<Edition> findActiveByPoolFormat(@Param("format") com.porra.mundial.model.PoolFormat format);
 }

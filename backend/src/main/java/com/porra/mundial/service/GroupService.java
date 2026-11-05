@@ -183,6 +183,8 @@ public class GroupService {
                     .league(group)
                     .role("MEMBER")
                     .build());
+            // Se avisa a los demás miembros tras confirmar el alta (MemberJoinedNotifier).
+            eventPublisher.publishEvent(new MemberJoinedLeagueEvent(group.getId(), user.getId()));
         }
     }
 
