@@ -111,6 +111,11 @@ public class WebSocketService {
         else sessionUsers.put(session.getId(), userId);
     }
 
+    /** Conexiones abiertas ahora mismo (métrica {@code porra.websocket.sessions}). */
+    public int sessionCount() {
+        return sessions.size();
+    }
+
     public void removeSession(WebSocketSession session) {
         dropSession(session.getId());
     }

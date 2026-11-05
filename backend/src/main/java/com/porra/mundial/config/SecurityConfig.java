@@ -1,6 +1,7 @@
 package com.porra.mundial.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -51,6 +52,18 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
     private final CsrfOriginFilter csrfOriginFilter;
+    private final MetricsTokenFilter metricsTokenFilter;
+
+    /**
+     * El filtro del token de métricas solo actúa dentro de la cadena de seguridad: registrado además como
+     * filtro del servlet se ejecutaría antes, y la cadena no vería la autenticación que pone.
+     */
+    @Bean
+    public FilterRegistrationBean<MetricsTokenFilter> metricsTokenFilterRegistration(MetricsTokenFilter filter) {
+        FilterRegistrationBean<MetricsTokenFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -73,6 +86,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, PUBLIC_READS).permitAll()
                 .requestMatchers(HttpMethod.HEAD, PUBLIC_READS).permitAll()
                 .requestMatchers("/api/**").authenticated()
+                .requestMatchers("/actuator/prometheus").hasRole(MetricsTokenFilter.ROLE)
+                .requestMatchers("/actuator/**").denyAll()
                 .requestMatchers("/**").permitAll()
             )
             .httpBasic(basic -> basic.disable())
@@ -108,6 +123,7 @@ public class SecurityConfig {
             )
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(csrfOriginFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(metricsTokenFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
