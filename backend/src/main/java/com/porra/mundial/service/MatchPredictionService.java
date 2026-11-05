@@ -247,11 +247,21 @@ public class MatchPredictionService {
                 ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : null;
         int savedCount = 0;
 
+        // Dos consultas para toda la jornada en vez de dos por partido.
+        List<Long> matchIds = items.stream().map(MatchPredictionItemDTO::getMatchId)
+                .filter(Objects::nonNull).distinct().toList();
+        Map<Long, Match> matchesById = matchRepository.findAllById(matchIds).stream()
+                .collect(Collectors.toMap(Match::getId, m -> m));
+        Map<Long, MatchPrediction> existingByMatchId = prediction.getId() == null || matchIds.isEmpty()
+                ? new HashMap<>()
+                : matchPredictionRepository.findByPredictionIdAndMatchIdIn(prediction.getId(), matchIds).stream()
+                        .collect(Collectors.toMap(mp -> mp.getMatch().getId(), mp -> mp, (a, b) -> a));
+
         for (MatchPredictionItemDTO item : items) {
             if (item.getMatchId() == null) continue;
 
-            Match match = matchRepository.findById(item.getMatchId())
-                    .orElseThrow(() -> BusinessException.notFound("Partido no encontrado"));
+            Match match = matchesById.get(item.getMatchId());
+            if (match == null) throw BusinessException.notFound("Partido no encontrado");
 
             if (edition.getCompetition() == null || match.getCompetition() == null
                     || !Objects.equals(edition.getCompetition().getId(), match.getCompetition().getId())) {
@@ -288,11 +298,10 @@ public class MatchPredictionService {
                 throw BusinessException.badRequest("El pronóstico debe incluir un marcador completo o un signo 1, X o 2.");
             }
 
-            MatchPrediction matchPred = matchPredictionRepository.findByPredictionIdAndMatchId(prediction.getId(), match.getId())
-                    .orElseGet(() -> MatchPrediction.builder()
-                            .prediction(prediction)
-                            .match(match)
-                            .build());
+            MatchPrediction matchPred = existingByMatchId.computeIfAbsent(match.getId(), id -> MatchPrediction.builder()
+                    .prediction(prediction)
+                    .match(match)
+                    .build());
 
             matchPred.setHomeScore(item.getHomeScore());
             matchPred.setAwayScore(item.getAwayScore());

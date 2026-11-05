@@ -50,6 +50,7 @@ function Leaderboard() {
     results,
     loading,
     activeGroupName,
+    activeGroupId,
     activeGroupPichichi,
     activeGroupPoolFormat,
     userId,
@@ -252,6 +253,7 @@ function Leaderboard() {
           <div className="w-full mt-2.5">
             <Suspense fallback={<PaperLoading label="Cargando gráfica" />}>
               <EvolutionChart
+                groupId={activeGroupId}
                 validResults={validResults}
                 userName={userName}
                 allGames={state.allGames}

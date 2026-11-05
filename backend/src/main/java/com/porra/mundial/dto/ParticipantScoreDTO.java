@@ -1,5 +1,6 @@
 package com.porra.mundial.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,7 +9,7 @@ import java.util.Map;
 
 /** Puntos de una porra por fase, con su desglose. */
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class ParticipantScoreDTO {
     private Long id;
     private Long userId;
@@ -41,16 +42,27 @@ public class ParticipantScoreDTO {
     private int total;
     
     /** Historial de mensajes detallando exactamente por qué se otorgó cada punto (Ej: "+1 por acertar a España en cuartos"). */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<LogEntry> log;
     
     /** Posiciones de grupo acertadas exactamente. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, Object> exactMatches;
     
     /** Mapa auxiliar de equipos que simplemente acertó que pasaban de ronda, sin importar por dónde. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, Boolean> passedTeams;
     
     /** Pago pendiente: no cuenta en la clasificación. */
     private boolean pending;
+
+    /**
+     * Copia sin el desglose (log, aciertos exactos, equipos que pasan) para la lista de la
+     * clasificación; el detalle se pide al abrir cada pronóstico.
+     */
+    public ParticipantScoreDTO withoutBreakdown() {
+        return toBuilder().log(null).exactMatches(null).passedTeams(null).build();
+    }
 
     /**
      * Sub-DTO para el registro de auditoría de puntos de cada participante.

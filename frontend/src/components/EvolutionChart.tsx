@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { leaderboardLogsQuery } from '../services/queries';
 import {
   buildEvolution,
   buildStages,
@@ -12,9 +14,30 @@ import StageInspector from './evolution/StageInspector';
 import ChartCanvas from './evolution/ChartCanvas';
 import ParticipantFilter from './evolution/ParticipantFilter';
 
-export default function EvolutionChart({ validResults, userName, allGames }: EvolutionChartProps) {
+export default function EvolutionChart({
+  validResults: rows,
+  userName,
+  allGames,
+  groupId,
+}: EvolutionChartProps) {
   const [mode, setMode] = useState<'rank' | 'points'>('rank');
   const [timeScale, setTimeScale] = useState<TimeScale>('rounds');
+
+  // La clasificación no trae el registro de puntos; la escala por partidos lo pide aparte.
+  const { data: logs } = useQuery({
+    ...leaderboardLogsQuery(groupId ?? ''),
+    enabled: timeScale === 'matches' && groupId != null && groupId !== '',
+  });
+  const validResults = useMemo(
+    () =>
+      logs
+        ? rows.map((r) => ({
+            ...r,
+            points: { ...r.points, log: logs[String(r.id)] ?? r.points.log },
+          }))
+        : rows,
+    [rows, logs],
+  );
   const [hoveredUser, setHoveredUser] = useState<ChartUser['key'] | null>(null);
   const [hoveredStageIdx, setHoveredStageIdx] = useState<number | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1); // Zoom horizontal de 0.75 a 3.5
