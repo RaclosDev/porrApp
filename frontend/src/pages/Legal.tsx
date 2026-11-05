@@ -53,7 +53,8 @@ function PrivacyContent() {
       <h2>Qué datos tratamos</h2>
       <ul>
         <li>
-          De tu cuenta de Google: email, identificador de cuenta y nombre. Nunca recibimos tu
+          De tu cuenta de Google: email e identificador de cuenta. Tu nombre de Google solo se usa
+          para proponerte el nombre público al registrarte y no se guarda. Nunca recibimos tu
           contraseña.
         </li>
         <li>El nombre público y la foto de perfil que elijas.</li>
@@ -115,16 +116,18 @@ function PrivacyContent() {
 
       <h2>Cuánto tiempo los guardamos</h2>
       <p>
-        Mientras tengas cuenta. Las sesiones caducadas se borran a diario. Si borras tu cuenta, se
+        Mientras tengas cuenta. Las sesiones caducadas se borran a diario y la suscripción de avisos
+        de un navegador se borra en cuanto el navegador la da de baja. Si borras tu cuenta, se
         eliminan en ese momento tu perfil, tu foto, tus predicciones, tus ligas sin más miembros,
         tus avisos y tus sesiones.
       </p>
 
       <h2>Tus derechos</h2>
       <p>
-        Puedes borrar tu cuenta y todos tus datos desde <strong>Perfil → Borrar mi cuenta</strong>.
-        Para acceder a tus datos, rectificarlos, llevártelos u oponerte a algún tratamiento, escribe
-        a <ContactLink />. Si crees que no hemos atendido bien tu solicitud, puedes reclamar ante la
+        Puedes descargar una copia de tus datos en <strong>Perfil → Descargar mis datos</strong> y
+        borrar tu cuenta y todos tus datos desde <strong>Perfil → Borrar mi cuenta</strong>. Para
+        rectificar tus datos, oponerte a algún tratamiento o cualquier otra solicitud, escribe a{' '}
+        <ContactLink />. Si crees que no hemos atendido bien tu solicitud, puedes reclamar ante la
         Agencia Española de Protección de Datos (
         <a href="https://www.aepd.es" className="underline" target="_blank" rel="noreferrer">
           aepd.es
