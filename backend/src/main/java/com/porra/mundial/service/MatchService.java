@@ -7,7 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import org.springframework.data.domain.PageRequest;
 
@@ -36,9 +37,9 @@ public class MatchService {
     }
 
     public List<Match> getLiveMatches(Long competitionId) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime soonThreshold = now.plusMinutes(STARTING_SOON_MINUTES);
-        LocalDateTime pastThreshold = now.minusHours(3).minusMinutes(30);
+        Instant now = Instant.now();
+        Instant soonThreshold = now.plus(STARTING_SOON_MINUTES, ChronoUnit.MINUTES);
+        Instant pastThreshold = now.minus(3, ChronoUnit.HOURS).minus(30, ChronoUnit.MINUTES);
 
         return matchRepository.findRadarLive(competitionId, pastThreshold, soonThreshold,
                 List.of(MatchStatusNormalized.SCHEDULED, MatchStatusNormalized.LIVE, MatchStatusNormalized.PAUSED));
@@ -58,7 +59,7 @@ public class MatchService {
     }
 
     public List<Match> getNextMatches(int limit, Long competitionId) {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         if (limit == 0) return List.of();
         return matchRepository.findRadarNext(competitionId, now, MatchStatusNormalized.SCHEDULED,
                 PageRequest.of(0, limit));

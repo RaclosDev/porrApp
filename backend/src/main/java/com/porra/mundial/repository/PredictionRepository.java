@@ -68,5 +68,5 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
                             @Param("r32") Integer r32, @Param("r16") Integer r16, @Param("qf") Integer qf,
                             @Param("sf") Integer sf, @Param("finals") Integer finals,
                             @Param("scorer") Integer scorer, @Param("matchPoints") Integer matchPoints,
-                            @Param("calculatedAt") java.time.LocalDateTime calculatedAt);
+                            @Param("calculatedAt") java.time.Instant calculatedAt);
 }

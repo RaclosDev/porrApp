@@ -20,7 +20,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.security.Principal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -52,7 +52,7 @@ class ProfileImageControllersTest {
     @Test
     @DisplayName("PUT /api/groups/{id}/image devuelve la nueva URL cuando el servicio acepta la subida")
     void uploadLeagueImage() throws Exception {
-        League league = League.builder().id(10L).imageUpdatedAt(LocalDateTime.now())
+        League league = League.builder().id(10L).imageUpdatedAt(Instant.now())
                 .imageKey("0123456789abcdef0123456789abcdef").build();
         Mockito.when(profileImageService.saveLeagueImage(eq(10L), eq("admin@test.com"), any())).thenReturn(league);
 
@@ -94,7 +94,7 @@ class ProfileImageControllersTest {
         mockMvc.perform(get("/api/groups/1/image/k1")).andExpect(status().isNotFound());
 
         Mockito.when(profileImageService.getLeagueImage(2L, "k2")).thenReturn(Optional.of(
-                new ProfileImageService.StoredImage(new byte[]{1, 2, 3}, "image/png", LocalDateTime.now())));
+                new ProfileImageService.StoredImage(new byte[]{1, 2, 3}, "image/png", Instant.now())));
         mockMvc.perform(get("/api/groups/2/image/k2"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.IMAGE_PNG))
@@ -145,7 +145,7 @@ class ProfileImageControllersTest {
     @DisplayName("Subir y borrar la foto de perfil usa siempre el email del token")
     void avatarUploadAndDelete() throws Exception {
         UserAccount withAvatar = UserAccount.builder().id(2L).participantName("Otro")
-                .avatarUpdatedAt(LocalDateTime.now()).avatarKey("0123456789abcdef0123456789abcdef").build();
+                .avatarUpdatedAt(Instant.now()).avatarKey("0123456789abcdef0123456789abcdef").build();
         Mockito.when(profileImageService.saveAvatar(eq("other@test.com"), any())).thenReturn(withAvatar);
         Mockito.when(profileImageService.deleteAvatar("other@test.com"))
                 .thenReturn(UserAccount.builder().id(2L).participantName("Otro").build());
@@ -165,7 +165,7 @@ class ProfileImageControllersTest {
         mockMvc.perform(get("/api/users/5/avatar/k5")).andExpect(status().isNotFound());
 
         Mockito.when(profileImageService.getAvatar(6L, "k6")).thenReturn(Optional.of(
-                new ProfileImageService.StoredImage(new byte[]{9}, "image/jpeg", LocalDateTime.now())));
+                new ProfileImageService.StoredImage(new byte[]{9}, "image/jpeg", Instant.now())));
         mockMvc.perform(get("/api/users/6/avatar/k6"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.IMAGE_JPEG));

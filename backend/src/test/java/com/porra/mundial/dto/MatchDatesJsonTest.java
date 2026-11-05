@@ -1,10 +1,12 @@
 package com.porra.mundial.dto;
 
 import com.porra.mundial.model.Match;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -18,7 +20,7 @@ class MatchDatesJsonTest {
     @ParameterizedTest
     @CsvSource({"2026-07-01T21:00:00,+02:00", "2026-12-01T21:00:00,+01:00"})
     void exposesMadridOffsetsAcrossMatchResponses(String date, String offset) {
-        LocalDateTime local = LocalDateTime.parse(date);
+        Instant local = AppTime.fromLocal(LocalDateTime.parse(date));
         var values = List.of(
                 mapper.valueToTree(MatchResponseDTO.fromEntity(Match.builder().matchDate(local).build())).path("date"),
                 mapper.valueToTree(MatchdayFixturePredictionDTO.builder().matchDate(local).build()).path("matchDate"),

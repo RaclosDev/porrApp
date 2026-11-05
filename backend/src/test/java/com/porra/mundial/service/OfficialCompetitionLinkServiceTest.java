@@ -15,9 +15,12 @@ import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,10 +44,10 @@ class OfficialCompetitionLinkServiceTest {
     private final Competition custom = Competition.builder().id(30L).ownerLeague(league).build();
     private final Competition worlds = Competition.builder().id(19L).externalId("lol.worlds")
             .formatType("TOURNAMENT").build();
-    private final LocalDateTime start = LocalDateTime.of(2026, 11, 3, 23, 0);
+    private final Instant start = AppTime.fromLocal(LocalDateTime.of(2026, 11, 3, 23, 0));
 
     private Match match(long id, Competition competition, String round, String home, String away, int day) {
-        return Match.builder().id(id).competition(competition).round(round).matchDate(start.plusDays(day))
+        return Match.builder().id(id).competition(competition).round(round).matchDate(start.plus(day, ChronoUnit.DAYS))
                 .homeTeam(Team.builder().name(home).build()).awayTeam(Team.builder().name(away).build()).build();
     }
 

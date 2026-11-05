@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -113,7 +114,7 @@ class ProfileImageServiceTest {
     @Test
     @DisplayName("Borrar la imagen elimina la fila y limpia la marca de versión")
     void adminCanDeleteLeagueImage() {
-        league.setImageUpdatedAt(java.time.LocalDateTime.now());
+        league.setImageUpdatedAt(java.time.Instant.now());
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         when(leagueImageRepository.existsById(10L)).thenReturn(true);
         when(leagueRepository.save(any(League.class))).thenAnswer(i -> i.getArgument(0));
@@ -190,7 +191,7 @@ class ProfileImageServiceTest {
     @Test
     @DisplayName("La foto solo se sirve con su clave; sin ella o con otra, como si no existiera")
     void avatarRequiresItsRandomKey() {
-        other.setAvatarUpdatedAt(java.time.LocalDateTime.now());
+        other.setAvatarUpdatedAt(java.time.Instant.now());
         other.setAvatarKey("0123456789abcdef0123456789abcdef");
         when(userAccountRepository.findById(2L)).thenReturn(Optional.of(other));
         when(userAvatarRepository.findById(2L)).thenReturn(Optional.of(UserAvatar.builder()

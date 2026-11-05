@@ -3,9 +3,11 @@ package com.porra.mundial.service;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PredictionLockMode;
+import com.porra.mundial.util.AppTime;
 import com.porra.mundial.util.MatchRound;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,32 +38,32 @@ public final class MatchdayLock {
      * @param calendar todos los partidos de la competición si el modo agrupa partidos; si no, basta con
      *                 los mismos {@code matches}
      */
-    public static Map<Long, LocalDateTime> lockTimes(Edition edition, List<Match> matches, List<Match> calendar) {
+    public static Map<Long, Instant> lockTimes(Edition edition, List<Match> matches, List<Match> calendar) {
         PredictionLockMode mode = mode(edition);
         int offset = edition == null ? 0 : Math.max(0, edition.getLockOffsetMinutes());
         Function<Match, Object> key = switch (mode) {
-            case PER_DAY -> match -> match.getMatchDate().toLocalDate();
+            case PER_DAY -> match -> AppTime.day(match.getMatchDate());
             case PER_ROUND -> MatchRound::label;
             default -> Match::getId;
         };
-        Map<Object, LocalDateTime> first = new HashMap<>();
+        Map<Object, Instant> first = new HashMap<>();
         for (Match match : mode == PredictionLockMode.PER_MATCH ? matches : calendar) {
             if (match.getMatchDate() == null) continue;
             first.merge(key.apply(match), match.getMatchDate(), (left, right) -> left.isBefore(right) ? left : right);
         }
-        Map<Long, LocalDateTime> locks = new HashMap<>();
+        Map<Long, Instant> locks = new HashMap<>();
         for (Match match : matches) {
             if (match.getMatchDate() == null || match.getId() == null) continue;
-            LocalDateTime start = first.getOrDefault(key.apply(match), match.getMatchDate());
+            Instant start = first.getOrDefault(key.apply(match), match.getMatchDate());
             // Un partido adelantado nunca se cierra después de empezar.
             if (match.getMatchDate().isBefore(start)) start = match.getMatchDate();
-            locks.put(match.getId(), start.minusMinutes(offset));
+            locks.put(match.getId(), start.minus(offset, ChronoUnit.MINUTES));
         }
         return locks;
     }
 
     /** Motivo del cierre de un partido cuyo plazo ya ha pasado. */
-    public static String reason(Edition edition, Match match, LocalDateTime now) {
+    public static String reason(Edition edition, Match match, Instant now) {
         if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) return "El partido ya ha comenzado";
         return switch (mode(edition)) {
             case PER_DAY -> "Los pronósticos de este día ya están cerrados";

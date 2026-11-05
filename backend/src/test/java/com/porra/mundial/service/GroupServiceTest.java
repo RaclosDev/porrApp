@@ -196,7 +196,7 @@ class GroupServiceTest {
                 com.porra.mundial.model.PoolFormat.FULL_BRACKET);
 
         verify(editionRepository).save(argThat(edition ->
-                java.time.LocalDateTime.of(2026, 6, 11, 20, 0).equals(edition.getLockDate())));
+                java.time.Instant.parse("2026-06-11T18:00:00Z").equals(edition.getLockDate())));
     }
 
     @Test

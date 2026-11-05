@@ -3,7 +3,8 @@ package com.porra.mundial.model;
 import com.porra.mundial.dto.PredictionDataDTO;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 
 /**
  * Entidad 'Prediction' (Pronostico / Porra).
@@ -48,7 +49,7 @@ public class Prediction {
     private UserAccount paymentMarkedBy;
 
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
     /** Datos estructurados del pronóstico completo del cuadro (fase de grupos, eliminatorias, campeón, pichichi). */
     @Convert(converter = PredictionDataConverter.class)
@@ -94,7 +95,7 @@ public class Prediction {
     private Integer matchPoints = 0;
 
     @Column(name = "score_calculated_at")
-    private LocalDateTime scoreCalculatedAt;
+    private Instant scoreCalculatedAt;
 
     public String getPredictionName() {
         return name;

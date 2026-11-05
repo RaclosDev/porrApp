@@ -6,8 +6,9 @@ import com.porra.mundial.model.League;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 import tools.jackson.databind.annotation.JsonSerialize;
+
+import java.time.Instant;
 
 /**
  * DTO para la respuesta de un Grupo.
@@ -23,7 +24,7 @@ public class GroupResponseDTO {
     /** Nombre del participante que es administrador de este grupo. */
     private String adminParticipantName;
     private Long adminUserId;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     
     /** Identificador de la competición asociada a la edición activa. */
     private Long competitionId;
@@ -40,7 +41,7 @@ public class GroupResponseDTO {
     private Boolean pichichi;
     /** Fecha y hora límite para enviar pronósticos en esta edición. */
     @JsonSerialize(using = MadridDateTimeSerializer.class)
-    private LocalDateTime lockDate;
+    private Instant lockDate;
     /** Cómo se cierran los pronósticos (FIXED_DATE, FIRST_MATCH, PER_ROUND, PER_MATCH). */
     private String lockMode;
     /** Minutos antes del partido en que se cierra, en los modos que dependen de los partidos. */

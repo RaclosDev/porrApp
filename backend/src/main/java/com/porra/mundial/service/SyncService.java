@@ -10,6 +10,7 @@ import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.sports.SportsDataProviderRegistry;
+import com.porra.mundial.util.AppTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,7 +24,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -85,7 +85,7 @@ public class SyncService {
     /** Última vez que se trajo el calendario de los próximos días de cada competición. */
     private final Map<Long, Instant> lastUpcomingSync = new ConcurrentHashMap<>();
 
-    private volatile LocalDateTime lastSyncTime;
+    private volatile Instant lastSyncTime;
     private volatile String lastSyncStatus = "INITIALIZING";
     private volatile int lastMatchesUpdated;
     private volatile int lastTeamsUpdated;
@@ -97,7 +97,7 @@ public class SyncService {
     public record ImportResult(String competition, int importedTeams, int importedMatches) {
     }
 
-    public LocalDateTime getLastSyncTime() { return lastSyncTime; }
+    public Instant getLastSyncTime() { return lastSyncTime; }
     public String getLastSyncStatus() { return lastSyncStatus; }
     public int getLastMatchesUpdated() { return lastMatchesUpdated; }
     public int getLastTeamsUpdated() { return lastTeamsUpdated; }
@@ -183,7 +183,7 @@ public class SyncService {
      * No toca el estado de salud, que resume las pasadas completas.
      */
     public void syncLive() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         List<Long> liveIds = matchRepository.findCompetitionIdsWithOpenMatchesBetween(
                 now.minus(LIVE_LOOKBACK), now.plus(LIVE_LOOKAHEAD));
         if (liveIds.isEmpty() || !syncLock.tryLock()) return;
@@ -362,8 +362,8 @@ public class SyncService {
         SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
         LocalDate today = LocalDate.now();
         int startYear = today.getMonthValue() >= 7 ? today.getYear() : today.getYear() - 1;
-        LocalDateTime windowStart = today.minusMonths(3).atStartOfDay();
-        LocalDateTime windowEnd = today.plusMonths(12).atStartOfDay();
+        Instant windowStart = AppTime.startOfDay(today.minusMonths(3));
+        Instant windowEnd = AppTime.startOfDay(today.plusMonths(12));
         Set<String> seenEventIds = new HashSet<>();
         List<JsonNode> selected = new ArrayList<>();
         long deadline = System.nanoTime() + Duration.ofMinutes(2).toNanos();
@@ -388,7 +388,7 @@ public class SyncService {
                     if (eventId == null || eventId.isBlank()) throw new IllegalStateException("Evento sin identificador");
                     if (!seenEventIds.add(eventId)) continue;
                     if (seenEventIds.size() > MAX_IMPORT_EVENTS) throw new IllegalStateException("Demasiados eventos en la importación");
-                    LocalDateTime date = matchEventProcessor.parseDate(event.path("date").asText(null));
+                    Instant date = matchEventProcessor.parseDate(event.path("date").asText(null));
                     if (date != null && (date.isBefore(windowStart) || date.isAfter(windowEnd))) continue;
                     selected.add(event);
                 }
@@ -502,7 +502,7 @@ public class SyncService {
                 .map(r -> r.competition() + ": " + r.error())
                 .collect(java.util.stream.Collectors.joining("; "));
 
-        lastSyncTime = LocalDateTime.now();
+        lastSyncTime = Instant.now();
         lastSyncStatus = status;
         lastMatchesUpdated = results.stream().mapToInt(CompetitionSync::matchesUpdated).sum();
         lastTeamsUpdated = results.stream().mapToInt(CompetitionSync::teamsUpdated).sum();

@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +68,6 @@ public class UserDataExportService {
                 .map(s -> new UserDataExport.PushDevice(s.getCreatedAt()))
                 .toList();
 
-        return new UserDataExport(LocalDateTime.now(), profile, leagues, predictionExports, devices);
+        return new UserDataExport(Instant.now(), profile, leagues, predictionExports, devices);
     }
 }

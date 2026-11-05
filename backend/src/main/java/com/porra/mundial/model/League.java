@@ -2,7 +2,8 @@ package com.porra.mundial.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 
 /**
  * Entidad 'League' (Liga / Grupo Privado).
@@ -43,7 +44,7 @@ public class League {
     private boolean publicLeague = false;
 
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
     /** Clave de idempotencia con la que se creó la liga (única por administrador). */
     @com.fasterxml.jackson.annotation.JsonIgnore
@@ -56,7 +57,7 @@ public class League {
 
     /** Momento de la última subida de imagen. Null si la liga no tiene imagen. Sirve para versionar la URL. */
     @Column(name = "image_updated_at")
-    private LocalDateTime imageUpdatedAt;
+    private Instant imageUpdatedAt;
 
     /** Clave aleatoria de la URL de la imagen; cambia en cada subida. */
     @Column(name = "image_key", length = 32)
