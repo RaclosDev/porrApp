@@ -1,4 +1,4 @@
-import MatchdayPodium from '../components/MatchdayPodium';
+import MatchdayPodium, { podiumPlaces } from '../components/MatchdayPodium';
 import PaperLoading from '../components/PaperLoading';
 import React, { useState, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -13,7 +13,7 @@ interface LeaderboardColumn {
 }
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import { UserAvatar } from '../components/Avatar';
-import StickerCard, { type StickerLeader } from '../components/StickerCard';
+import StickerCard from '../components/StickerCard';
 
 /** Medalla para el podio, tortuga para el último que ha pagado y número para el resto. */
 function rankLabel(rank: number | '-' | undefined, lowestPaidRank: number): string | number {
@@ -72,22 +72,6 @@ function Leaderboard() {
     handleStepMatchday,
   } = useLeaderboard();
 
-  // Los tres primeros como cromos, igual que en la portada; el resto sigue en la tabla.
-  const podium = React.useMemo<StickerLeader[]>(
-    () =>
-      results
-        .filter((r) => typeof r.rank === 'number' && r.rank <= 3)
-        .sort((a, b) => (a.rank as number) - (b.rank as number))
-        .map((r) => ({
-          rank: r.rank as number,
-          userId: r.userId,
-          name: r.name,
-          avatarUrl: r.avatarUrl,
-          total: r.points.total,
-        })),
-    [results],
-  );
-
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'table' | 'evolution'>('table');
   // En móvil el desglose por fase va oculto hasta que se pide.
@@ -96,21 +80,9 @@ function Leaderboard() {
   const isMatchday =
     activeGroupPoolFormat === 'MATCH_DAY' || state.activeCompetitionFormatType === 'LEAGUE';
 
+  // Mismo podio en todos los formatos: los empates comparten cromo en vez de ocultar el podio.
   const sharePodium = React.useMemo(() => {
-    if (!isMatchday) {
-      return podium.map((leader) => ({
-        leader,
-        members: results.filter((row) => row.rank === leader.rank),
-      }));
-    }
-
-    const eligible = validResults.filter((row) => row.points.total > 0);
-    const scores = [...new Set(eligible.map((row) => row.points.total))]
-      .sort((a, b) => b - a)
-      .slice(0, 3);
-
-    return scores.map((score, index) => {
-      const members = eligible.filter((row) => row.points.total === score);
+    return podiumPlaces(validResults).map(({ score, leaders: members }, index) => {
       const first = members[0];
       return {
         leader: {
@@ -123,16 +95,14 @@ function Leaderboard() {
         members,
       };
     });
-  }, [isMatchday, podium, results, validResults]);
+  }, [validResults]);
 
   if (loading) return <PaperLoading label="Cargando clasificación" />;
 
-  const showSharePodium = isMatchday ? sharePodium.length > 0 : sharePodium.length === 3;
-  const shareRows = validResults.filter((row) => {
-    if (!showSharePodium) return true;
-    if (isMatchday) return !sharePodium.some(({ leader }) => leader.total === row.points.total);
-    return typeof row.rank !== 'number' || row.rank > 3;
-  });
+  const showSharePodium = sharePodium.length > 0;
+  const shareRows = validResults.filter(
+    (row) => !sharePodium.some(({ leader }) => leader.total === row.points.total),
+  );
   const shareMid = Math.ceil(shareRows.length / 2);
 
   const scorerColumn: LeaderboardColumn[] = activeGroupPichichi
@@ -241,18 +211,21 @@ function Leaderboard() {
               </button>
             </div>
           )}
-          <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
-            <Link to="/stats" className="ranking-secondary-link">
-              <BarChart3 size={16} aria-hidden="true" />
-              {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
-            </Link>
-            {!isMatchday && (
-              <Link to="/search" className="ranking-secondary-link">
-                <Search size={16} aria-hidden="true" />
-                Buscador
+          {/* Más elegidos y Buscador comparan con el Mundial: no aplican a los cuadros propios. */}
+          {(isMatchday || !state.activeGroupOwnBracket) && (
+            <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
+              <Link to="/stats" className="ranking-secondary-link">
+                <BarChart3 size={16} aria-hidden="true" />
+                {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
               </Link>
-            )}
-          </nav>
+              {!isMatchday && (
+                <Link to="/search" className="ranking-secondary-link">
+                  <Search size={16} aria-hidden="true" />
+                  Buscador
+                </Link>
+              )}
+            </nav>
+          )}
           <button
             className="ranking-share-button"
             id="btn-share-wa"
@@ -360,18 +333,7 @@ function Leaderboard() {
               </div>
             )}
 
-            {!isMatchday && podium.length === 3 && (
-              <ul className="ranking-podium" aria-label="Podio">
-                {podium.map((row) => (
-                  <li
-                    key={row.rank}
-                    className={`ranking-podium-place ranking-podium-place-${row.rank}`}
-                  >
-                    <StickerCard leader={row} featured={row.rank === 1} compact />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {!isMatchday && <MatchdayPodium rows={results} />}
             <div className="flex gap-5 items-start flex-wrap justify-center w-full">
               <div
                 className={`table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto ${showDetail ? 'show-detail' : ''}`}
