@@ -186,8 +186,7 @@ public class PredictionService {
 
     /** Competición personalizada de cuadro cuyo cierre llega por partes. */
     private static boolean progressiveCustom(Edition edition) {
-        return edition != null && edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null
-                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY
+        return PredictableBracket.applies(edition)
                 && edition.getLockMode() != null && edition.getLockMode().progressive();
     }
 

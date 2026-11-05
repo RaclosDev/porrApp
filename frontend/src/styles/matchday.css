@@ -173,6 +173,10 @@
     flex-shrink: 0;
   }
 
+  .md-lock-at {
+    font-weight: 600;
+  }
+
   .md-match-top > span:first-child {
     overflow: hidden;
     text-overflow: ellipsis;

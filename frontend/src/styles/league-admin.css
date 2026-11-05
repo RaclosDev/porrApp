@@ -132,10 +132,17 @@
     padding: 0 22px;
     border-bottom: 1px solid rgba(17, 24, 39, 0.12);
     background: rgba(17, 24, 39, 0.015);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .league-admin-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .league-admin-tab {
     position: relative;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     gap: 7px;

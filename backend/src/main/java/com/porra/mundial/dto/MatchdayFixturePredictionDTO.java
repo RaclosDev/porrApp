@@ -39,6 +39,9 @@ public class MatchdayFixturePredictionDTO {
     // Estado del partido y cierre
     private boolean locked;
     private String lockReason;
+    /** Cuándo deja de poder cambiarse el pronóstico (puede ser antes del partido). */
+    @JsonSerialize(using = MadridDateTimeSerializer.class)
+    private LocalDateTime lockAt;
 
     // Puntuación calculada si el partido ha finalizado
     private Integer pointsAwarded;

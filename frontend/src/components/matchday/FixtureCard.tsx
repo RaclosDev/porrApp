@@ -46,6 +46,9 @@ export default function FixtureCard({
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays size={12} aria-hidden="true" />
           {formatMatchDate(fixture.matchDate)}
+          {!locked && fixture.lockAt && fixture.lockAt !== fixture.matchDate && (
+            <span className="md-lock-at">· Cierra {formatMatchDate(fixture.lockAt)}</span>
+          )}
         </span>
         <div className="md-match-status-actions">
           <button

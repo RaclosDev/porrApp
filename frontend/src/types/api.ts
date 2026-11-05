@@ -318,6 +318,8 @@ export interface MatchdayFixture {
   predSign: string | null;
   locked: boolean;
   lockReason: string | null;
+  /** Cuándo se cierra el pronóstico; puede ser antes de que empiece el partido. */
+  lockAt?: string | null;
   pointsAwarded: number | null;
   isExactScore: boolean | null;
   isCorrectSign: boolean | null;

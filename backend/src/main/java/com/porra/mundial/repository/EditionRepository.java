@@ -16,6 +16,9 @@ public interface EditionRepository extends JpaRepository<Edition, Long> {
     Optional<Edition> findByLeagueIdAndStatus(@Param("leagueId") Long leagueId, @Param("status") String status);
     
     List<Edition> findByLeagueId(Long leagueId);
+
+    @Query("SELECT e FROM Edition e LEFT JOIN FETCH e.league LEFT JOIN FETCH e.competition WHERE e.competition.id = :competitionId AND e.status = :status")
+    List<Edition> findByCompetitionIdAndStatus(@Param("competitionId") Long competitionId, @Param("status") String status);
     
     /**
      * Devuelve los IDs de las competiciones canónicas (con external_id) que tienen

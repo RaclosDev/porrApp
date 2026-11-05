@@ -1,11 +1,21 @@
 import { LeagueAvatar } from './Avatar';
-import { Check, Loader2, Settings2, TriangleAlert, Users, X } from 'lucide-react';
+import {
+  Check,
+  Loader2,
+  ScrollText,
+  Settings2,
+  TriangleAlert,
+  Trophy,
+  Users,
+  X,
+} from 'lucide-react';
 import {
   useEffect,
   useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
 } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -16,7 +26,7 @@ import {
   regenerateGroupJoinCode,
 } from '../services/api';
 import LeagueMembersTab from './league/LeagueMembersTab';
-import LeagueSettingsTab from './league/LeagueSettingsTab';
+import LeagueSettingsTab, { type LeagueSettingsSection } from './league/LeagueSettingsTab';
 import LeaveConfirmDialog from './league/LeaveConfirmDialog';
 import type { GroupMember, PaymentStatus } from '../types/api';
 import { errorMessage } from '../utils/errors';
@@ -45,6 +55,7 @@ export default function GroupMembersModal({
   onDelete,
   onUploadImage,
   onRemoveImage,
+  lockSection,
 }: {
   groupId: number;
   groupName: string;
@@ -60,9 +71,11 @@ export default function GroupMembersModal({
   onDelete: () => Promise<boolean>;
   onUploadImage: (blob: Blob) => Promise<void>;
   onRemoveImage: () => Promise<void>;
+  /** Cierre de predicciones que se muestra en los ajustes. */
+  lockSection?: ReactNode;
 }) {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState('members');
+  const [tab, setTab] = useState<AdminTab>('members');
   const [activeCode, setActiveCode] = useState(currentJoinCode || '');
   const [copiedTarget, setCopiedTarget] = useState<CopyTarget | ''>('');
   const [actionError, setActionError] = useState('');
@@ -82,8 +95,9 @@ export default function GroupMembersModal({
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const scoringEditor = useScoringEditor(groupId, isAdmin);
-  const settingsDirty =
-    name.trim() !== (groupName || '').trim() || rulesText !== (initialRules || '');
+  const nameDirty = name.trim() !== (groupName || '').trim();
+  const rulesDirty = rulesText !== (initialRules || '');
+  const settingsDirty = nameDirty || rulesDirty;
   const isDirty = settingsDirty || scoringEditor.isDirty;
 
   const requestClose = () => {
@@ -365,12 +379,47 @@ export default function GroupMembersModal({
   const currentTab = isAdmin ? tab : 'members';
   const isNameValid = Boolean(name.trim());
 
+  const adminTabs: { id: AdminTab; label: string; icon: ReactNode; extra?: ReactNode }[] = [
+    {
+      id: 'members',
+      label: 'Miembros',
+      icon: <Users size={15} aria-hidden="true" />,
+      extra: <span className="league-admin-tab-count">{members.length}</span>,
+    },
+    {
+      id: 'general',
+      label: 'General',
+      icon: <Settings2 size={15} aria-hidden="true" />,
+      extra: nameDirty && <UnsavedDot />,
+    },
+    {
+      id: 'scoring',
+      label: 'Puntuación',
+      icon: <Trophy size={15} aria-hidden="true" />,
+      extra: scoringEditor.isDirty && <UnsavedDot />,
+    },
+    {
+      id: 'norms',
+      label: 'Normas',
+      icon: <ScrollText size={15} aria-hidden="true" />,
+      extra: rulesDirty && <UnsavedDot />,
+    },
+  ];
+
   const handleTabKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    const ids = adminTabs.map((item) => item.id);
+    const index = ids.indexOf(tab);
+    const keys: Record<string, number> = {
+      ArrowRight: (index + 1) % ids.length,
+      ArrowLeft: (index - 1 + ids.length) % ids.length,
+      Home: 0,
+      End: ids.length - 1,
+    };
+    const nextIndex = keys[event.key];
+    if (nextIndex === undefined) return;
     event.preventDefault();
-    const nextTab = tab === 'members' ? 'settings' : 'members';
-    setTab(nextTab);
-    document.getElementById(`league-admin-tab-${nextTab}`)?.focus();
+    setTab(ids[nextIndex]);
+    document.getElementById(`league-admin-tab-${ids[nextIndex]}`)?.focus();
   };
 
   return (
@@ -419,38 +468,24 @@ export default function GroupMembersModal({
 
         {isAdmin && (
           <div className="league-admin-tabs" role="tablist" aria-label="Secciones de la liga">
-            <button
-              type="button"
-              role="tab"
-              id="league-admin-tab-members"
-              aria-selected={tab === 'members'}
-              aria-controls="league-admin-panel-members"
-              tabIndex={tab === 'members' ? 0 : -1}
-              className={`league-admin-tab ${tab === 'members' ? 'is-active' : ''}`}
-              onKeyDown={handleTabKeyDown}
-              onClick={() => setTab('members')}
-            >
-              <Users size={15} aria-hidden="true" />
-              Miembros
-              <span className="league-admin-tab-count">{members.length}</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="league-admin-tab-settings"
-              aria-selected={tab === 'settings'}
-              aria-controls="league-admin-panel-settings"
-              tabIndex={tab === 'settings' ? 0 : -1}
-              className={`league-admin-tab ${tab === 'settings' ? 'is-active' : ''}`}
-              onKeyDown={handleTabKeyDown}
-              onClick={() => setTab('settings')}
-            >
-              <Settings2 size={15} aria-hidden="true" />
-              Ajustes
-              {isDirty && (
-                <span className="league-admin-unsaved-dot" aria-label="Cambios sin guardar" />
-              )}
-            </button>
+            {adminTabs.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                id={`league-admin-tab-${item.id}`}
+                aria-selected={tab === item.id}
+                aria-controls={`league-admin-panel-${item.id}`}
+                tabIndex={tab === item.id ? 0 : -1}
+                className={`league-admin-tab ${tab === item.id ? 'is-active' : ''}`}
+                onKeyDown={handleTabKeyDown}
+                onClick={() => setTab(item.id)}
+              >
+                {item.icon}
+                {item.label}
+                {item.extra}
+              </button>
+            ))}
           </div>
         )}
 
@@ -497,8 +532,9 @@ export default function GroupMembersModal({
             />
           )}
 
-          {currentTab === 'settings' && (
+          {currentTab !== 'members' && (
             <LeagueSettingsTab
+              section={currentTab}
               deleteConfirmName={deleteConfirmName}
               deleteOpen={deleteOpen}
               deleting={deleting}
@@ -518,6 +554,7 @@ export default function GroupMembersModal({
               setName={setName}
               setNotice={setNotice}
               setRulesText={setRulesText}
+              lockSection={lockSection}
             />
           )}
         </div>
@@ -560,4 +597,10 @@ export default function GroupMembersModal({
       </div>
     </div>
   );
+}
+
+type AdminTab = 'members' | LeagueSettingsSection;
+
+function UnsavedDot() {
+  return <span className="league-admin-unsaved-dot" aria-label="Cambios sin guardar" />;
 }
