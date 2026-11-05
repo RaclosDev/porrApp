@@ -19,7 +19,7 @@ export interface BracketMatch {
   away: BracketTeam | null;
 }
 
-export interface BracketSide {
+interface BracketSide {
   left: BracketMatch[];
   right: BracketMatch[];
 }

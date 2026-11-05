@@ -4,7 +4,7 @@
  */
 
 export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY';
-export type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
+type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
 export interface StatusResponse {
@@ -170,7 +170,7 @@ export interface PredictionSaved {
   id: number;
   participantName?: string;
   groupId?: string;
-  status: 'creada_con_exito' | 'actualizada_con_exito';
+  status: 'creada_con_exito';
 }
 
 // --- Clasificación ---
@@ -359,7 +359,7 @@ export interface FriendPrediction {
 // --- Estadísticas de las ligas por jornadas ---
 
 /** Marcador pronosticado y cuántos lo han puesto. */
-export interface ScoreCount {
+interface ScoreCount {
   home: number;
   away: number;
   count: number;

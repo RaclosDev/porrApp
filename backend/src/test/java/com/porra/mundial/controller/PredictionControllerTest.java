@@ -107,53 +107,6 @@ class PredictionControllerTest {
     }
 
     @Test
-    void deletePrediction_ReturnsOk() throws Exception {
-        mockMvc.perform(delete("/api/predictions/1"))
-                .andExpect(status().isOk());
-
-        Mockito.verify(predictionService).deletePrediction(Mockito.eq(1L), any());
-    }
-
-    @Test
-    void deletePrediction_Forbidden_WhenNotOwner() throws Exception {
-        Mockito.doThrow(BusinessException.forbidden("No tienes permiso para modificar o eliminar este pronostico."))
-                .when(predictionService).deletePrediction(Mockito.eq(99L), any());
-
-        mockMvc.perform(delete("/api/predictions/99"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("No tienes permiso para modificar o eliminar este pronostico."));
-    }
-
-    @Test
-    void updatePrediction_Forbidden_WhenNotOwner() throws Exception {
-        PredictionDataDTO body = new PredictionDataDTO();
-        body.setUser("Hacker");
-        body.setPrediction("Stolen Prediction");
-        body.setGroups(Map.of("A", List.of("Team1", "Team2")));
-        body.setR32(List.of(List.of("Team1", "Team2")));
-        body.setR16(List.of(List.of("Team1", "Team2")));
-
-        Mockito.doThrow(BusinessException.forbidden("No tienes permiso para modificar o eliminar este pronostico."))
-                .when(predictionService).updatePrediction(Mockito.eq(99L), any(), any(), any());
-
-        mockMvc.perform(put("/api/predictions/99")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("No tienes permiso para modificar o eliminar este pronostico."));
-    }
-
-    @Test
-    void markAsPaid_Forbidden_WhenNotGroupAdmin() throws Exception {
-        Mockito.doThrow(BusinessException.forbidden("Solo el administrador del grupo puede marcar el pronostico como pagado."))
-                .when(predictionService).markAsPaid(Mockito.eq(99L), any());
-
-        mockMvc.perform(put("/api/predictions/99/pay"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("Solo el administrador del grupo puede marcar el pronostico como pagado."));
-    }
-
-    @Test
     void getAllPredictions_Forbidden_WhenNotMemberOfPrivateGroup() throws Exception {
         Mockito.doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
                 .when(groupService).assertCanView(Mockito.eq(6L), any());

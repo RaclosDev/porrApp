@@ -10,7 +10,7 @@ export const isLiveMatch = (match: Match) =>
   !match.finished && LIVE_STATUSES.has((match.status || '').toUpperCase());
 
 /** Partido que aún se jugará: no ha terminado ni se ha cancelado o aplazado. */
-export const isPlayableMatch = (match: Match) =>
+const isPlayableMatch = (match: Match) =>
   !match.finished && !VOID_STATUSES.has((match.status || '').toUpperCase());
 
 function roundLabelFor(match: Match) {

@@ -1,7 +1,7 @@
 package com.porra.mundial.dto;
 
 /**
- * Pronóstico recién creado o actualizado.
+ * Pronóstico recién guardado.
  *
  * @param id              id del pronóstico
  * @param participantName nombre del participante (solo al crear)
@@ -14,9 +14,5 @@ public record PredictionSavedResponse(Long id, String participantName, String gr
     public static PredictionSavedResponse created(Long id, String participantName, Long groupId) {
         return new PredictionSavedResponse(id, participantName != null ? participantName : "",
                 groupId != null ? groupId.toString() : "", "creada_con_exito");
-    }
-
-    public static PredictionSavedResponse updated(Long id) {
-        return new PredictionSavedResponse(id, null, null, "actualizada_con_exito");
     }
 }
