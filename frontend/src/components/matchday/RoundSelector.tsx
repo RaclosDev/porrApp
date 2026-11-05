@@ -1,3 +1,5 @@
+import { displayRoundLabel } from '../../utils/matchday';
+
 interface RoundSelectorProps {
   rounds: string[];
   selected: string | null;
@@ -28,7 +30,7 @@ export default function RoundSelector({ rounds, selected, index, onSelect }: Rou
       >
         {rounds.map((r) => (
           <option key={r} value={r}>
-            {r}
+            {displayRoundLabel(r)}
           </option>
         ))}
       </select>

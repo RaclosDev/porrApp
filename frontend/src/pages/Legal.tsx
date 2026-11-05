@@ -66,7 +66,9 @@ function PrivacyContent() {
         </li>
         <li>
           Datos técnicos imprescindibles: la sesión (una cookie que caduca a los 30 días) y la
-          dirección IP, que se usa de forma temporal para limitar abusos.
+          dirección IP, que se usa de forma temporal para limitar abusos. Si la aplicación falla en
+          tu navegador, se envía el error técnico (mensaje, traza y página, sin datos de tu cuenta)
+          para poder corregirlo.
         </li>
       </ul>
 
@@ -93,8 +95,9 @@ function PrivacyContent() {
         </li>
         <li>
           Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos)
-          y Google (inicio de sesión). Los servicios de avisos push del navegador (Google, Apple o
-          Mozilla) solo reciben el aviso cifrado.
+          y Google (inicio de sesión; su código solo se carga cuando abres el botón de «Continuar
+          con Google»). Los servicios de avisos push del navegador (Google, Apple o Mozilla) solo
+          reciben el aviso cifrado.
         </li>
         <li>
           Algunos de estos proveedores están en EE. UU. Las transferencias se amparan en el Marco de

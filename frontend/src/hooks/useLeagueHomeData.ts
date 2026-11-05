@@ -7,6 +7,7 @@ import { computeCustomGroupTables } from '../utils/customBracket';
 import { computeSwissStandings } from '../utils/officialTournament';
 import { normalizeCountryName } from '../utils/constants';
 import { currentRoundMatches, nextGroupName, upcomingMatches } from '../utils/homeMatches';
+import { displayRoundLabel } from '../utils/matchday';
 import { useSortedGroups } from './useSortedGroups';
 import type { Match } from '../types/api';
 
@@ -101,7 +102,7 @@ export function useLeagueHomeData(): LeagueHomeData {
       return {
         subtitle: 'Pronósticos por jornada',
         matches: {
-          title: `Partidos${round ? ` ${round}` : ''}`,
+          title: `Partidos${round ? ` ${displayRoundLabel(round)}` : ''}`,
           items: matches,
           to: '/jornadas',
           action: 'pronosticar',

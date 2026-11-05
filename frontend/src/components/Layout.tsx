@@ -14,6 +14,7 @@ import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
 import PushReminderPrompt from './layout/PushReminderPrompt';
 import LoginModal from './layout/LoginModal';
+import { isIos, isStandalone } from '../services/push';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -88,18 +89,6 @@ function Layout({ children }: { children: React.ReactNode }) {
     if (!isNavLocked || isNoLeagueAllowedPath) return;
     navigate('/mis-ligas', { replace: true });
   }, [isNavLocked, isNoLeagueAllowedPath, navigate]);
-
-  const isIos = () => {
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    return /iphone|ipad|ipod/.test(userAgent);
-  };
-
-  const isStandalone = () => {
-    return (
-      ('standalone' in window.navigator && window.navigator.standalone) ||
-      window.matchMedia('(display-mode: standalone)').matches
-    );
-  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
