@@ -16,7 +16,7 @@ public record UserDataExport(
         List<PushDevice> pushDevices) {
 
     public record Profile(String email, String participantName, LocalDateTime registeredAt,
-                          boolean hasAvatar, boolean matchRemindersEnabled, boolean memberJoinedAlertsEnabled) {
+                          java.time.Instant lastActiveAt, boolean hasAvatar, boolean matchRemindersEnabled, boolean memberJoinedAlertsEnabled) {
     }
 
     public record LeagueMembership(Long leagueId, String leagueName, String role, String paymentStatus,

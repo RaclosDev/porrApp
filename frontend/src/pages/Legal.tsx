@@ -66,10 +66,10 @@ function PrivacyContent() {
           Si activas los avisos, la suscripción push de tu navegador y tus preferencias de avisos.
         </li>
         <li>
-          Datos técnicos imprescindibles: la sesión (una cookie que caduca a los 30 días) y la
-          dirección IP, que se usa de forma temporal para limitar abusos. Si la aplicación falla en
-          tu navegador, se envía el error técnico (mensaje, traza y página, sin datos de tu cuenta)
-          para poder corregirlo.
+          Datos técnicos imprescindibles: la sesión (una cookie que caduca a los 30 días), el día de
+          tu última entrada (para el plazo de conservación) y la dirección IP, que se usa de forma
+          temporal para limitar abusos. Si la aplicación falla en tu navegador, se envía el error
+          técnico (mensaje, traza y página, sin datos de tu cuenta) para poder corregirlo.
         </li>
       </ul>
 
@@ -116,10 +116,11 @@ function PrivacyContent() {
 
       <h2>Cuánto tiempo los guardamos</h2>
       <p>
-        Mientras tengas cuenta. Las sesiones caducadas se borran a diario y la suscripción de avisos
-        de un navegador se borra en cuanto el navegador la da de baja. Si borras tu cuenta, se
-        eliminan en ese momento tu perfil, tu foto, tus predicciones, tus ligas sin más miembros,
-        tus avisos y tus sesiones.
+        Mientras tengas cuenta. Si pasas 24 meses sin entrar, borramos la cuenta y todos sus datos;
+        las ligas que administres con más miembros pasan al miembro más antiguo. Las sesiones
+        caducadas se borran a diario y la suscripción de avisos de un navegador se borra en cuanto
+        el navegador la da de baja. Si borras tu cuenta, se eliminan en ese momento tu perfil, tu
+        foto, tus predicciones, tus ligas sin más miembros, tus avisos y tus sesiones.
       </p>
 
       <h2>Tus derechos</h2>

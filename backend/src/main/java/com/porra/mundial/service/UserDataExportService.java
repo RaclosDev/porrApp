@@ -37,7 +37,7 @@ public class UserDataExportService {
                 .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
 
         var profile = new UserDataExport.Profile(user.getGoogleEmail(), user.getParticipantName(), user.getLinkedAt(),
-                user.getAvatarKey() != null, user.isMatchRemindersEnabled(), user.isMemberJoinedAlertsEnabled());
+                user.getLastActiveAt(), user.getAvatarKey() != null, user.isMatchRemindersEnabled(), user.isMemberJoinedAlertsEnabled());
 
         var leagues = membershipRepository.findByUserId(user.getId()).stream()
                 .map(m -> new UserDataExport.LeagueMembership(m.getLeague().getId(), m.getLeague().getName(),

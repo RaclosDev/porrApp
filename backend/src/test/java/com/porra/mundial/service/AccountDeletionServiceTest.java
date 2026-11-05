@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,7 +45,7 @@ class AccountDeletionServiceTest {
     @BeforeEach
     void setUp() {
         user = UserAccount.builder().id(7L).googleEmail("yo@test.com").participantName("Yo").build();
-        when(userAccountRepository.findByGoogleEmail("yo@test.com")).thenReturn(Optional.of(user));
+        lenient().when(userAccountRepository.findByGoogleEmail("yo@test.com")).thenReturn(Optional.of(user));
     }
 
     @Test
@@ -87,5 +89,41 @@ class AccountDeletionServiceTest {
 
         verify(groupService).deleteGroup(2L, "yo@test.com");
         verify(userAccountRepository).delete(user);
+    }
+
+    private Membership member(Long userId, Long leagueId, LocalDateTime joinedAt) {
+        return Membership.builder()
+                .id(new Membership.MembershipId(userId, leagueId))
+                .user(UserAccount.builder().id(userId).build())
+                .joinedAt(joinedAt)
+                .build();
+    }
+
+    @Test
+    void inactiveAccountHandsSharedLeaguesToTheOldestMemberAndDeletesTheRest() {
+        League shared = League.builder().id(1L).name("Los del curro").adminUser(user).build();
+        League solo = League.builder().id(2L).name("Solo yo").adminUser(user).build();
+        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 12, 0);
+        when(userAccountRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(leagueRepository.findByAdminUserId(7L)).thenReturn(List.of(shared, solo));
+        when(membershipRepository.findByLeagueId(1L)).thenReturn(List.of(
+                member(7L, 1L, start), member(9L, 1L, start.plusDays(5)), member(8L, 1L, start.plusDays(2))));
+        when(membershipRepository.findByLeagueId(2L)).thenReturn(List.of(member(7L, 2L, start)));
+
+        service.deleteInactiveAccount(7L);
+
+        verify(groupService).transferAdmin(1L, 8L, "yo@test.com");
+        verify(groupService).deleteGroup(2L, "yo@test.com");
+        verify(groupService, never()).deleteGroup(eq(1L), anyString());
+        verify(userAccountRepository).delete(user);
+    }
+
+    @Test
+    void inactiveAccountAlreadyGoneIsIgnored() {
+        when(userAccountRepository.findById(7L)).thenReturn(Optional.empty());
+
+        service.deleteInactiveAccount(7L);
+
+        verify(userAccountRepository, never()).delete(any());
     }
 }
