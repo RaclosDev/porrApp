@@ -25,10 +25,11 @@ function Stats() {
     activeGroupName,
     activeGroupPoolFormat,
     activeCompetitionFormatType,
-    activeGroupCustomCompetition,
+    activeGroupOwnBracket,
   } = useAppContext();
 
-  if (activeGroupCustomCompetition && activeGroupPoolFormat !== 'MATCH_DAY') {
+  // Lo más elegido compara con el cuadro del Mundial; los cuadros propios (LoL, personalizadas) no lo tienen.
+  if (activeGroupOwnBracket) {
     return <Navigate to="/" replace />;
   }
 

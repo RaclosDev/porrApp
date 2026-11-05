@@ -241,18 +241,21 @@ function Leaderboard() {
               </button>
             </div>
           )}
-          <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
-            <Link to="/stats" className="ranking-secondary-link">
-              <BarChart3 size={16} aria-hidden="true" />
-              {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
-            </Link>
-            {!isMatchday && (
-              <Link to="/search" className="ranking-secondary-link">
-                <Search size={16} aria-hidden="true" />
-                Buscador
+          {/* Más elegidos y Buscador comparan con el Mundial: no aplican a los cuadros propios. */}
+          {(isMatchday || !state.activeGroupOwnBracket) && (
+            <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
+              <Link to="/stats" className="ranking-secondary-link">
+                <BarChart3 size={16} aria-hidden="true" />
+                {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
               </Link>
-            )}
-          </nav>
+              {!isMatchday && (
+                <Link to="/search" className="ranking-secondary-link">
+                  <Search size={16} aria-hidden="true" />
+                  Buscador
+                </Link>
+              )}
+            </nav>
+          )}
           <button
             className="ranking-share-button"
             id="btn-share-wa"
