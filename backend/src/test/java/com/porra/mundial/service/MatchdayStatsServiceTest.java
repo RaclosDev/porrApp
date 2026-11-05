@@ -8,7 +8,10 @@ import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
 import com.porra.mundial.model.*;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
+import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.repository.PredictionRepository;
+import com.porra.mundial.dto.PredictionDataDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +47,15 @@ class MatchdayStatsServiceTest {
 
     @Mock
     private MembershipRepository membershipRepository;
+
+    @Mock
+    private MatchRepository matchRepository;
+
+    @Mock
+    private PredictionRepository predictionRepository;
+
+    @Mock
+    private CustomLockService customLockService;
 
     @InjectMocks
     private MatchdayStatsService service;
@@ -225,5 +237,56 @@ class MatchdayStatsServiceTest {
 
         assertThrows(BusinessException.class, () -> service.getVoters(EMAIL, GROUP_ID, ids));
         verifyNoInteractions(matchPredictionRepository, groupService);
+    }
+
+    @Test
+    @DisplayName("En una liga de cuadro cada miembro aparece bajo el equipo que pasa en su cuadro, solo en cruces cerrados")
+    void bracketVotersFollowEachPickedWinner() {
+        League league = edition.getLeague();
+        Competition competition = Competition.builder().id(7L).ownerLeague(league).build();
+        edition.setCompetition(competition);
+        edition.setPoolFormat(PoolFormat.FULL_BRACKET);
+        Team t3 = Team.builder().id(3L).name("T1").build();
+        Team t4 = Team.builder().id(4L).name("G2").build();
+        Match first = match(1L, Instant.now().plus(1, ChronoUnit.HOURS), false, null, null);
+        first.setRound("bracket-1");
+        Match second = Match.builder().id(2L).homeTeam(t3).awayTeam(t4).round("bracket-1")
+                .matchDate(Instant.now().plus(1, ChronoUnit.HOURS)).finished(false)
+                .status(MatchStatusNormalized.SCHEDULED).build();
+        when(matchRepository.findByCompetitionId(7L)).thenReturn(List.of(second, first));
+        when(customLockService.state(edition)).thenReturn(new CustomLockService.LockState(null, 0, null,
+                List.of(), List.of(List.of(true, false)), true, false, null));
+        UserAccount ana = UserAccount.builder().id(1L).participantName("Ana").build();
+        UserAccount bea = UserAccount.builder().id(2L).participantName("Bea").build();
+        UserAccount gone = UserAccount.builder().id(3L).participantName("Ex").build();
+        when(membershipRepository.findByLeagueId(GROUP_ID)).thenReturn(List.of(
+                Membership.builder().user(ana).build(), Membership.builder().user(bea).build()));
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(GROUP_ID)).thenReturn(List.of(
+                bracket(ana, "Real Madrid", "T1"), bracket(bea, "Barcelona", "G2"), bracket(gone, "Barcelona", "T1")));
+
+        List<MatchVotersDTO> voters = service.getVoters(EMAIL, GROUP_ID, List.of(1L, 2L));
+
+        assertEquals(1, voters.size());
+        assertEquals(1L, voters.get(0).matchId());
+        assertEquals(List.of("Ana"), voters.get(0).home().stream().map(MatchVotersDTO.Voter::name).toList());
+        assertEquals(List.of("Bea"), voters.get(0).away().stream().map(MatchVotersDTO.Voter::name).toList());
+        assertTrue(voters.get(0).draw().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Si el cuadro del miembro llega a la ronda por otro camino, cuenta el equipo que tiene pasando")
+    void bracketSideFallsBackToTheRoundPicks() {
+        List<List<String>> picks = List.of(List.of("A", "B", "C", "D"), List.of("C", "A", "E"));
+
+        assertEquals("1", MatchdayStatsService.bracketSide(picks, 1, 0, "A", "D"));
+        assertEquals("2", MatchdayStatsService.bracketSide(picks, 1, 1, "B", "C"));
+        assertNull(MatchdayStatsService.bracketSide(picks, 1, 2, "A", "C"));
+        assertNull(MatchdayStatsService.bracketSide(picks, 2, 0, "A", "C"));
+    }
+
+    private Prediction bracket(UserAccount user, String... firstRound) {
+        PredictionDataDTO data = new PredictionDataDTO();
+        data.setCustomRounds(List.of(List.of(firstRound)));
+        return Prediction.builder().user(user).edition(edition).bracketData(data).build();
     }
 }

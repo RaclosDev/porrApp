@@ -9,6 +9,8 @@ interface MatchVotersModalProps {
   homeTeam: string;
   awayTeam: string;
   onClose: () => void;
+  /** Cruce de cuadro: no hay empate que mostrar. */
+  twoWay?: boolean;
 }
 
 /** Quién ha votado cada signo de un partido cerrado, agrupado por opción. */
@@ -17,6 +19,7 @@ export default function MatchVotersModal({
   homeTeam,
   awayTeam,
   onClose,
+  twoWay = false,
 }: MatchVotersModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const open = voters != null;
@@ -38,7 +41,7 @@ export default function MatchVotersModal({
     { key: 'home', sign: '1', title: `Gana ${homeTeam}`, list: voters.home },
     { key: 'draw', sign: 'X', title: 'Empate', list: voters.draw },
     { key: 'away', sign: '2', title: `Gana ${awayTeam}`, list: voters.away },
-  ];
+  ].filter(({ key }) => !twoWay || key !== 'draw');
 
   return createPortal(
     <div

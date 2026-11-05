@@ -35,6 +35,16 @@ describe('SignVoters', () => {
   });
 });
 
+describe('SignVoters en cruces de cuadro', () => {
+  it('solo tiene dos columnas, una por equipo', () => {
+    const { container } = render(
+      <SignVoters voters={voters} matchName="T1 - G2" onOpen={() => {}} twoWay />,
+    );
+    expect(container.querySelector('.sign-voters')).toHaveClass('is-two-way');
+    expect(container.querySelectorAll('.sign-voters-cell')).toHaveLength(2);
+  });
+});
+
 describe('MatchVotersModal', () => {
   it('lista a quién ha votado cada opción', () => {
     render(
