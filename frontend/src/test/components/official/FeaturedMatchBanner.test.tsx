@@ -73,6 +73,7 @@ describe('FeaturedMatchBanner', () => {
     );
 
     expect(screen.getByText('En juego')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'En directo en el cuadro' })).toBeInTheDocument();
     expect(screen.queryByText('VS')).toBeNull();
   });
 

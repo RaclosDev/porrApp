@@ -205,7 +205,29 @@ class GroupServiceTest {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(BusinessException.class, () ->
-                groupService.updateGroup(10L, "   ", null, "admin@test.com"));
+                groupService.updateGroup(10L, "   ", null, null, "admin@test.com"));
+    }
+
+    @Test
+    @DisplayName("updateGroup activa la cuota de una liga privada")
+    void updateGroup_EnablesEntryFee() {
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(leagueRepository.save(league)).thenReturn(league);
+
+        groupService.updateGroup(10L, null, null, true, "admin@test.com");
+
+        assertTrue(league.isEntryFee());
+    }
+
+    @Test
+    @DisplayName("updateGroup no deja poner cuota a una liga pública")
+    void updateGroup_RejectsEntryFeeOnPublicLeague() {
+        league.setPublicLeague(true);
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+
+        assertThrows(BusinessException.class, () ->
+                groupService.updateGroup(10L, null, null, true, "admin@test.com"));
+        verify(leagueRepository, never()).save(any());
     }
 
     @Test
@@ -214,7 +236,7 @@ class GroupServiceTest {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(BusinessException.class, () ->
-                groupService.updateGroup(10L, "Nuevo Nombre", null, "member@test.com"));
+                groupService.updateGroup(10L, "Nuevo Nombre", null, null, "member@test.com"));
 
         verify(leagueRepository, never()).save(any());
     }

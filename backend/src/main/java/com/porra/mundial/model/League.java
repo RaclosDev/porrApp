@@ -43,6 +43,11 @@ public class League {
     @Column(name = "is_public", nullable = false)
     private boolean publicLeague = false;
 
+    /** Liga con cuota de inscripción: la clasificación marca a quien no ha pagado. */
+    @Builder.Default
+    @Column(name = "entry_fee", nullable = false)
+    private boolean entryFee = false;
+
     @Builder.Default
     private Instant createdAt = Instant.now();
 
