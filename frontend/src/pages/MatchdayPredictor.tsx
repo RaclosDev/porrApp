@@ -88,7 +88,6 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
             prediction={md.predictionFor(fixture.matchId)}
             locked={fixture.locked || activeGroupIsLocked}
             disabled={md.isSaving}
-            onScoreChange={md.handleScoreChange}
             onQuickSign={md.handleQuickSign}
             onShowFriends={md.setSelectedMatchForFriends}
           />
