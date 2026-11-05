@@ -67,7 +67,7 @@ public class PredictionService {
                 .orElseThrow(() -> BusinessException.notFound("No hay una edición activa para esta liga"));
 
         if (edition.isLocked()) {
-            throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
+            throw BusinessException.conflict("El plazo para enviar o modificar predicciones en esta porra ha finalizado.");
         }
 
         if (edition.getLeague() != null) {
@@ -84,10 +84,10 @@ public class PredictionService {
         if (progressiveCustom(edition)) {
             CustomLockService.LockState state = customLockService.state(edition);
             if (state.fullyLocked()) {
-                throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
+                throw BusinessException.conflict("El plazo para enviar o modificar predicciones en esta porra ha finalizado.");
             }
             if (existing.isEmpty() && state.anyLocked()) {
-                throw BusinessException.conflict("La competición ya ha empezado: no se admiten pronósticos nuevos.");
+                throw BusinessException.conflict("La competición ya ha empezado: no se admiten predicciones nuevas.");
             }
             existing.ifPresent(saved -> customLockService.requireLockedPartsUnchanged(state, saved.getBracketData(), predictionData));
         }
@@ -136,7 +136,7 @@ public class PredictionService {
             if (!mode.progressive() && edition.getLockDate() == null) {
                 throw BusinessException.badRequest(mode == PredictionLockMode.FIRST_MATCH
                         ? "El cierre llegará con el primer partido: el administrador debe ponerle fecha"
-                        : "El administrador debe fijar el cierre de pronósticos");
+                        : "El administrador debe fijar el cierre de predicciones");
             }
             customBracketValidator.validate(edition, data);
         } else {
@@ -198,7 +198,7 @@ public class PredictionService {
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id, String requesterEmail) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Predicción no encontrada"));
         boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
 
         if (!isOwner) {
@@ -210,7 +210,7 @@ public class PredictionService {
                 ? customLockService.state(pred.getEdition()) : null;
 
         if (!isLocked && !isOwner && (partial == null || !partial.anyLocked())) {
-            throw BusinessException.forbidden("Los pronósticos de otros participantes estarán ocultos hasta que finalice el plazo de inscripción.");
+            throw BusinessException.forbidden("Las predicciones de otros participantes estarán ocultas hasta que finalice el plazo de inscripción.");
         }
 
         PredictionDataDTO data = getPredictionData(id);
@@ -234,7 +234,7 @@ public class PredictionService {
 
     @Transactional(readOnly = true)
     public PredictionDataDTO getPredictionData(Long id) {
-        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
+        Prediction pred = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Predicción no encontrada"));
         PredictionDataDTO dto = pred.getBracketData();
         if (dto == null) {
             dto = new PredictionDataDTO();

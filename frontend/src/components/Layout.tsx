@@ -181,7 +181,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               <span>PorrApp</span>
             </NavLink>
 
-            {isLanding || isInviteAuthScreen ? null : isDemo ? (
+            {isLanding || isInviteAuthScreen || (!isUserLoggedIn && !isDemo) ? null : isDemo ? (
               <span className="ink-stamp ink-stamp-sm ink-stamp-ink inline-block min-w-0 truncate">
                 Mundial 2026
               </span>

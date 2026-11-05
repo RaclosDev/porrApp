@@ -6,12 +6,14 @@ import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
 import com.porra.mundial.dto.GroupUpdateDTO;
 import com.porra.mundial.dto.JoinCodeResponse;
+import com.porra.mundial.dto.LeagueSummaryDTO;
 import com.porra.mundial.dto.MemberPaymentRequest;
 import com.porra.mundial.dto.PaymentStatusResponse;
 import com.porra.mundial.dto.StatusResponse;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.LeagueSummaryService;
 import com.porra.mundial.service.WebSocketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,11 +41,18 @@ public class GroupController {
 
     private final GroupService groupService;
     private final WebSocketService webSocketService;
+    private final LeagueSummaryService leagueSummaryService;
 
     /** Ligas del usuario autenticado. */
     @GetMapping("/mine")
     public List<GroupResponseDTO> getMyGroups(Principal principal) {
         return groupService.getUserGroupDTOs(principal.getName());
+    }
+
+    /** Posición, puntos y predicciones pendientes del usuario en cada una de sus ligas. */
+    @GetMapping("/mine/summary")
+    public List<LeagueSummaryDTO> getMyLeagueSummaries(Principal principal) {
+        return leagueSummaryService.summaries(principal.getName());
     }
 
     /**

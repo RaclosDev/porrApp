@@ -218,6 +218,15 @@ export interface MatchdayPoints {
 
 // --- Ligas ---
 
+/** Situación del usuario en una de sus ligas; rank y points son null si aún no tiene predicción. */
+export interface LeagueSummary {
+  groupId: number;
+  rank: number | null;
+  points: number | null;
+  participants: number;
+  pendingPredictions: number;
+}
+
 export interface Group {
   id: number;
   name: string;

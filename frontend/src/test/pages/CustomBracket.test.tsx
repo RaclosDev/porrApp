@@ -177,7 +177,7 @@ describe('CustomBracket', () => {
     renderBracket();
 
     expect(
-      await screen.findByText('La competición ya ha empezado: no se admiten pronósticos nuevos.'),
+      await screen.findByText('La competición ya ha empezado: no se admiten predicciones nuevas.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Guardar pronóstico' })).toBeNull();
   });

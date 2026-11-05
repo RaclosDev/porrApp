@@ -324,7 +324,11 @@ export const useAppContext = () => {
     },
   });
 
-  const { data: leaderboard, error: leaderboardError } = useQuery({
+  const {
+    data: leaderboard,
+    error: leaderboardError,
+    isPending: leaderboardPending,
+  } = useQuery({
     queryKey: queryKeys.leaderboard(activeGroupId),
     queryFn: () => fetchLeaderboard(activeGroupId),
     enabled: Boolean(activeGroupId),
@@ -447,6 +451,8 @@ export const useAppContext = () => {
     leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
     loading,
     loadingGroup,
+    /** Ranking aún sin datos: evita mostrar un podio a cero mientras carga. */
+    loadingLeaderboard: Boolean(activeGroupId) && leaderboardPending && !leaderboardError,
     groupError:
       groupInfo && (!isApiError(groupError) || groupError.status === 0 || groupError.status >= 500)
         ? null

@@ -22,6 +22,8 @@ const asText = (id: Id | undefined) => (typeof id === 'number' ? String(id) : id
 export const queryKeys = {
   competitions: () => key('competitions'),
   myGroups: (isAuthenticated?: boolean) => key('myGroups', isAuthenticated),
+  /** Cuelga de `myGroups`: invalidar las ligas también refresca el resumen. */
+  myLeagueSummaries: () => key('myGroups', 'summary'),
   group: (groupId?: Id) => key('group', asText(groupId)),
   featuredGroup: () => key('featuredGroup'),
   groupMembers: (groupId?: Id) => key('groupMembers', asText(groupId)),

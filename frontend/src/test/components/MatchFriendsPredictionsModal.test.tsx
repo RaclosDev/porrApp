@@ -79,7 +79,7 @@ describe('MatchFriendsPredictionsModal', () => {
 
     expect(await screen.findByText('Toto')).toBeInTheDocument();
     expect(screen.getByText('Jornada 12')).toBeInTheDocument();
-    expect(screen.getByText('2/3 con pronóstico')).toBeInTheDocument();
+    expect(screen.getByText('2/3 con predicción')).toBeInTheDocument();
 
     const avatarSources = screen
       .getAllByTestId('avatar-image')
@@ -111,7 +111,7 @@ describe('MatchFriendsPredictionsModal', () => {
 
     renderModal({ locked: true });
 
-    expect(await screen.findByText('No pronosticó')).toBeInTheDocument();
+    expect(await screen.findByText('Sin predicción')).toBeInTheDocument();
     expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
   });
 });

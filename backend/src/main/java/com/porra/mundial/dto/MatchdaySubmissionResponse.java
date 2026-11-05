@@ -10,6 +10,6 @@ package com.porra.mundial.dto;
 public record MatchdaySubmissionResponse(boolean success, int saved, String message) {
 
     public static MatchdaySubmissionResponse of(int saved) {
-        return new MatchdaySubmissionResponse(true, saved, "Pronósticos guardados correctamente (" + saved + " partidos)");
+        return new MatchdaySubmissionResponse(true, saved, "Predicciones guardadas correctamente (" + saved + " partidos)");
     }
 }

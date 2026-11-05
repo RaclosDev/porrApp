@@ -10,6 +10,7 @@ import {
   roundLabelFor,
   roundsFromFixtures,
   roundsFromMatchdays,
+  sortNumberedRounds,
   withSign,
   withoutSaved,
   type Draft,
@@ -71,6 +72,24 @@ describe('round lists', () => {
       fixture(4, { round: 'Jornada 3' }),
     ]);
     expect(list).toEqual({ rounds: ['Jornada 1', 'Jornada 2', 'Jornada 3'], current: 'Jornada 2' });
+  });
+
+  it('sorts numbered matchdays by number even when a postponed match comes later', () => {
+    const list = roundsFromFixtures([
+      fixture(1, { round: 'Jornada 3', finished: true }),
+      fixture(2, { round: 'Jornada 6' }),
+      fixture(3, { round: 'Jornada 4' }),
+      fixture(4, { round: 'Jornada 5' }),
+    ]);
+    expect(list).toEqual({
+      rounds: ['Jornada 3', 'Jornada 4', 'Jornada 5', 'Jornada 6'],
+      current: 'Jornada 4',
+    });
+    expect(sortNumberedRounds(['Jornada 2', 'Octavos', 'Jornada 1'])).toEqual([
+      'Jornada 1',
+      'Octavos',
+      'Jornada 2',
+    ]);
   });
 
   it('falls back to the last round when everything has finished', () => {

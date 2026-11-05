@@ -7,6 +7,7 @@ import type {
   Competition,
   FriendPrediction,
   Group,
+  LeagueSummary,
   GroupMember,
   GroupOdds,
   GroupStandings,
@@ -419,6 +420,8 @@ export const fetchLeaderboardMatchdays = (groupId: number | string | null = null
 
 export const fetchMyGroups = () => request<Group[]>('/groups/mine');
 
+export const fetchMyLeagueSummaries = () => request<LeagueSummary[]>('/groups/mine/summary');
+
 export const fetchGroup = (id: number | string) => request<Group>(`/groups/${id}`);
 
 /** Liga pública destacada (portada, demo y entrada de invitados). */
@@ -629,7 +632,7 @@ export const submitMatchdayPredictions = (
   request<MatchdaySubmissionResult>('/predictions/matchday', {
     method: 'POST',
     json: { groupId: Number(groupId), predictions },
-    fallbackError: 'Error al guardar pronósticos de jornada',
+    fallbackError: 'Error al guardar las predicciones de la jornada',
   });
 
 export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId: number) =>

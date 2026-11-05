@@ -22,8 +22,8 @@ public class MatchdaySubmissionDTO {
     @NotNull(message = "Falta la liga")
     private Long groupId;
 
-    @NotEmpty(message = "Debes proporcionar al menos un pronóstico")
+    @NotEmpty(message = "Debes enviar al menos una predicción")
     // Una jornada tiene unos pocos partidos; el tope solo frena peticiones desmesuradas.
-    @Size(max = 200, message = "Demasiados pronósticos en una sola petición")
+    @Size(max = 200, message = "Demasiadas predicciones en una sola petición")
     private List<@Valid MatchPredictionItemDTO> predictions;
 }

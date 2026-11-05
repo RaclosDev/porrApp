@@ -841,6 +841,10 @@
     color: var(--hit);
   }
 
+  .paper-panel .lb-matchday-status.is-open {
+    color: var(--ink, inherit);
+  }
+
   .paper-panel .lb-matchday-status.is-finished {
     color: var(--text-muted);
   }

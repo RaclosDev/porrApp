@@ -63,7 +63,7 @@ export default function CustomPredictionViewer({
     <ViewerModal dialogRef={dialogRef} onClose={onClose} className="modal-content custom-viewer">
       <div className="custom-viewer-header">
         <div className="custom-viewer-heading">
-          <span className="custom-viewer-eyebrow">Pronóstico</span>
+          <span className="custom-viewer-eyebrow">Predicción</span>
           <h2 className="poster-title">
             {prediction?.user ? `Porra de ${prediction.user}` : 'Porra'}
           </h2>
@@ -74,10 +74,10 @@ export default function CustomPredictionViewer({
       </div>
 
       <div className="custom-viewer-body">
-        {isPending && <p role="status">Cargando pronóstico…</p>}
+        {isPending && <p role="status">Cargando predicción…</p>}
         {error && (
           <div className="custom-viewer-error" role="alert">
-            <p>{errorMessage(error, 'No se pudo cargar el pronóstico')}</p>
+            <p>{errorMessage(error, 'No se pudo cargar la predicción')}</p>
             <button type="button" className="glass-btn" onClick={() => void refetch()}>
               Reintentar
             </button>

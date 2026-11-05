@@ -61,7 +61,7 @@ public class CustomCompetitionService {
                 || !email.equalsIgnoreCase(edition.getLeague().getAdminUser().getGoogleEmail())) {
             throw BusinessException.forbidden("Solo el administrador puede cambiar el cierre");
         }
-        if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran los pronósticos");
+        if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran las predicciones");
         int offset = offsetMinutes == null ? 0 : offsetMinutes;
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
@@ -193,7 +193,7 @@ public class CustomCompetitionService {
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
         if (edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY
                 && !predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
-            throw BusinessException.conflict("No se pueden cambiar los equipos después del primer pronóstico");
+            throw BusinessException.conflict("No se pueden cambiar los equipos después de la primera predicción");
         }
         if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
             if (groupName == null || groupName.isBlank() || groupName.length() > 50) {
@@ -239,7 +239,7 @@ public class CustomCompetitionService {
         Competition competition = ownedCompetition(leagueId, email);
         Team selected = team(competition, teamId);
         if (!predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
-            throw BusinessException.conflict("No se pueden cambiar los equipos después del primer pronóstico");
+            throw BusinessException.conflict("No se pueden cambiar los equipos después de la primera predicción");
         }
         boolean inUse = matchRepository.findByCompetitionId(competition.getId()).stream()
                 .anyMatch(match -> match.getHomeTeam() != null && teamId.equals(match.getHomeTeam().getId())
@@ -282,7 +282,7 @@ public class CustomCompetitionService {
         if (repeated) throw BusinessException.conflict("Un equipo ya está en otro cruce de esta ronda");
         if ("bracket-1".equals(round)) {
             if (!predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
-                throw BusinessException.conflict("No se pueden cambiar los cruces después del primer pronóstico");
+                throw BusinessException.conflict("No se pueden cambiar los cruces después de la primera predicción");
             }
         } else if (bracket) {
             int remaining = (int) configuredMatches.stream()
@@ -391,7 +391,7 @@ public class CustomCompetitionService {
                 .orElseThrow(() -> BusinessException.notFound("Partido no encontrado"));
         if ("bracket-1".equals(match.getRound())
                 && !predictionRepository.findByEditionLeagueId(leagueId).isEmpty()) {
-            throw BusinessException.conflict("No se pueden cambiar los cruces después del primer pronóstico");
+            throw BusinessException.conflict("No se pueden cambiar los cruces después de la primera predicción");
         }
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
@@ -400,12 +400,12 @@ public class CustomCompetitionService {
             if (mode != null && mode.progressive()) {
                 CustomLockService.LockState before = lockService.state(edition);
                 if (before.anyLocked() && reopensClosedParts(before, lockService.stateWithoutMatch(edition, matchId))) {
-                    throw BusinessException.conflict("Ese partido mantiene cerrados pronósticos que ya no se pueden reabrir");
+                    throw BusinessException.conflict("Ese partido mantiene cerradas predicciones que ya no se pueden reabrir");
                 }
             } else if (mode == PredictionLockMode.FIRST_MATCH && edition.isLocked()) {
                 Instant nextLock = lockService.firstMatchLockWithoutMatch(edition, matchId);
                 if (nextLock == null || nextLock.isAfter(Instant.now())) {
-                    throw BusinessException.conflict("Ese partido mantiene cerrado el plazo de pronósticos");
+                    throw BusinessException.conflict("Ese partido mantiene cerrado el plazo de predicciones");
                 }
             }
         }
