@@ -1,0 +1,47 @@
+name: Auto-merge de PRs propios
+
+# Los PR que abre el dueño del repo se fusionan solos (squash) cuando la CI obligatoria pasa.
+# Los de cualquier otra persona o bot (Dependabot incluido) siguen esperando una fusión manual.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  enable:
+    if: >-
+      github.event.action != 'closed'
+      && github.event.pull_request.user.login == github.repository_owner
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Activar auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge "$PR_URL" --auto --squash
+
+  # Lo que fusiona el bot no dispara el push a main, así que se lanza aquí la CI de main:
+  # Railway espera a esa CI para desplegar.
+  main-ci:
+    if: >-
+      github.event.action == 'closed'
+      && github.event.pull_request.merged
+      && github.event.pull_request.merged_by.login == 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Lanzar la CI de main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run ci.yml --ref main
