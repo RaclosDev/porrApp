@@ -354,7 +354,7 @@ export const useAppContext = () => {
   });
   const changeGroup = store.changeGroup;
   useEffect(() => {
-    if (needsFeaturedGroup && featuredGroup) changeGroup(featuredGroup.id);
+    if (needsFeaturedGroup && featuredGroup?.id != null) changeGroup(featuredGroup.id);
   }, [needsFeaturedGroup, featuredGroup, changeGroup]);
 
   const isMatchdayPool =
