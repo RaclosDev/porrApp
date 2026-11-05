@@ -8,6 +8,7 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.EspnSportsDataProvider;
+import com.porra.mundial.sports.LolEsportsDataProvider;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +57,8 @@ public class CompetitionService {
         }
 
         List<LeagueStandingDTO> standings = new ArrayList<>();
-        if (competition.getExternalId() != null && !competition.getExternalId().isBlank()) {
+        if (competition.getExternalId() != null && !competition.getExternalId().isBlank()
+                && !LolEsportsDataProvider.isLolCompetition(competition.getExternalId())) {
             try {
                 standings = parseEspnStandings(espnSportsDataProvider.fetchStandings(competition.getExternalId()));
             } catch (Exception e) {

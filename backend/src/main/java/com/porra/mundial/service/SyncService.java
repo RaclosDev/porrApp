@@ -6,6 +6,7 @@ import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.sports.SportsDataProviderRegistry;
 import lombok.RequiredArgsConstructor;
@@ -171,7 +172,7 @@ public class SyncService {
 
     private CompetitionSync syncCompetition(Competition competition) {
         long start = System.currentTimeMillis();
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getName());
+        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
         String slug = competition.getExternalId();
         if (!provider.isAvailable()) {
             log.warn("Sincronización de {} omitida: el circuit breaker de {} está abierto",
@@ -185,6 +186,11 @@ public class SyncService {
 
             if (worldCup) {
                 processEvents(provider.fetchScoreboardEvents(slug, WORLD_CUP_DATE_RANGE), teams, batch);
+            } else if (LolEsportsDataProvider.isLolCompetition(slug)) {
+                // El calendario de lolesports llega entero de una vez (y en caché) e incluye ediciones
+                // anteriores: se repasa la temporada en curso para que las series ya jugadas reciban su fase.
+                String season = String.valueOf(LocalDate.now().getYear());
+                processEvents(provider.fetchScoreboardEvents(slug, season), teams, batch);
             } else {
                 LocalDate today = LocalDate.now();
                 for (LocalDate day : List.of(today.minusDays(1), today, today.plusDays(1))) {
@@ -294,7 +300,7 @@ public class SyncService {
         if (slug == null || slug.isBlank()) {
             throw new IllegalArgumentException("La competición no tiene proveedor externo configurado");
         }
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getName());
+        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
         LocalDate today = LocalDate.now();
         int startYear = today.getMonthValue() >= 7 ? today.getYear() : today.getYear() - 1;
         LocalDateTime windowStart = today.minusMonths(3).atStartOfDay();

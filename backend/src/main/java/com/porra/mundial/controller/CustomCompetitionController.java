@@ -10,6 +10,7 @@ import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.service.CustomLockService;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.service.CustomCompetitionService;
+import com.porra.mundial.service.OfficialCompetitionLinkService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomCompetitionController {
     private final CustomCompetitionService service;
+    private final OfficialCompetitionLinkService linkService;
+
+    public record LinkOfficialRequest(@jakarta.validation.constraints.NotNull Long competitionId) {}
+
+    /** Pasa la liga a una competición oficial con cuadro propio conservando las predicciones. */
+    @PostMapping("/link-official")
+    public void linkOfficial(@PathVariable Long leagueId, @Valid @RequestBody LinkOfficialRequest request,
+                             Principal principal) {
+        linkService.link(leagueId, principal.getName(), request.competitionId());
+    }
 
     public record TeamItem(Long id, String name, String groupName, String logoUrl) {
         static TeamItem of(Team team) {

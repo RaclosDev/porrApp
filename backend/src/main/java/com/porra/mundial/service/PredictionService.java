@@ -192,7 +192,10 @@ public class PredictionService {
     }
 
     private void validateBracket(Edition edition, PredictionDataDTO data) {
-        if (edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null) {
+        if (edition.getCompetition() != null && edition.getCompetition().hasOwnBracket()
+                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+            customBracketValidator.validate(edition, data);
+        } else if (edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null) {
             PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
             if (!mode.progressive() && edition.getLockDate() == null) {
                 throw BusinessException.badRequest(mode == PredictionLockMode.FIRST_MATCH

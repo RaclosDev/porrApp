@@ -186,6 +186,22 @@ class SyncServiceTest {
     }
 
     @Test
+    @DisplayName("Worlds de LoL repasa la temporada en curso, sin mezclar ediciones anteriores")
+    void lolCompetitionsSyncTheWholeSchedule() throws Exception {
+        Competition worlds = Competition.builder().id(19L).name("Worlds")
+                .externalId("lol.worlds").formatType("TOURNAMENT").build();
+        when(competitionRepository.findAll()).thenReturn(List.of(worlds));
+        String season = String.valueOf(java.time.LocalDate.now().getYear());
+        when(provider.fetchScoreboardEvents("lol.worlds", season)).thenReturn(JSON.createArrayNode());
+
+        syncService.syncAll();
+
+        verify(provider, times(1)).fetchScoreboardEvents("lol.worlds", season);
+        verify(provider, times(1)).fetchScoreboardEvents(anyString(), anyString());
+        assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
     @DisplayName("Las ligas traen las dos próximas semanas, pero no en cada pasada")
     void leaguesFetchUpcomingDaysPeriodically() throws Exception {
         when(competitionRepository.findAll()).thenReturn(List.of(laLiga));
