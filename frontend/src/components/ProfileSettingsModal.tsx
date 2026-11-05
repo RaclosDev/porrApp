@@ -8,6 +8,7 @@ import {
   deleteMyAvatar,
   completeProfileSetup,
   deleteMyAccount,
+  exportMyData,
 } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
@@ -41,7 +42,27 @@ export default function ProfileSettingsModal({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [exporting, setExporting] = useState(false);
   const navigate = useNavigate();
+
+  const downloadMyData = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const data = await exportMyData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'porra-mis-datos.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(errorMessage(err, 'No se pudieron descargar tus datos'));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const deleteAccount = async () => {
     if (deleting) return;
@@ -223,6 +244,14 @@ export default function ProfileSettingsModal({
                 </Link>
                 .
               </span>
+              <button
+                type="button"
+                className="glass-btn text-[0.8rem] self-start"
+                disabled={exporting}
+                onClick={() => void downloadMyData()}
+              >
+                {exporting ? 'Preparando…' : 'Descargar mis datos'}
+              </button>
               {confirmingDelete ? (
                 <div className="flex flex-col gap-2" role="group" aria-label="Confirmar borrado">
                   <p className="m-0 text-[0.85rem]">

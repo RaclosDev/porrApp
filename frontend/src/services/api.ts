@@ -725,6 +725,10 @@ export const setPushPreferences = (preferences: Partial<PushPreferences>) =>
 
 // --- Cuenta y administración ---
 
+/** Copia en JSON de los datos personales propios (derecho de acceso y portabilidad). */
+export const exportMyData = () =>
+  request<unknown>('/users/me/export', { fallbackError: 'No se pudieron descargar tus datos' });
+
 /** Borra la cuenta y todos sus datos. Falla con 409 si administra ligas con más miembros. */
 export const deleteMyAccount = () =>
   request<StatusResponse>('/users/me', {

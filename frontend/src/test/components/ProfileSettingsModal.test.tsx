@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
 import ProfileSettingsModal from '../../components/ProfileSettingsModal';
-import { deleteMyAccount, updateMyProfile } from '../../services/api';
+import { deleteMyAccount, exportMyData, updateMyProfile } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import type { ProfileResponse } from '../../types/api';
 
@@ -13,6 +13,7 @@ vi.mock('../../services/api', () => ({
   deleteMyAvatar: vi.fn(),
   completeProfileSetup: vi.fn(),
   deleteMyAccount: vi.fn(),
+  exportMyData: vi.fn(),
   fetchPushConfig: vi
     .fn()
     .mockResolvedValue({ publicKey: null, remindersEnabled: true, memberJoinedEnabled: true }),
@@ -65,4 +66,26 @@ it('borra la cuenta solo tras confirmar y cierra la sesión', async () => {
   await waitFor(() => expect(onClose).toHaveBeenCalled());
   expect(deleteMyAccount).toHaveBeenCalledTimes(1);
   expect(logout).toHaveBeenCalled();
+});
+
+it('descarga una copia de los datos propios en JSON', async () => {
+  useAppStore.setState({ userName: 'Ana', userId: '1' });
+  vi.mocked(exportMyData).mockResolvedValue({ profile: { participantName: 'Ana' } });
+  const createObjectURL = vi.fn(() => 'blob:datos');
+  const revokeObjectURL = vi.fn();
+  Object.assign(URL, { createObjectURL, revokeObjectURL });
+  const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={new QueryClient()}>
+        <ProfileSettingsModal onClose={vi.fn()} />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Descargar mis datos' }));
+  await waitFor(() => expect(click).toHaveBeenCalledOnce());
+  expect(exportMyData).toHaveBeenCalledOnce();
+  expect(createObjectURL).toHaveBeenCalledOnce();
+  expect(revokeObjectURL).toHaveBeenCalledWith('blob:datos');
+  click.mockRestore();
 });

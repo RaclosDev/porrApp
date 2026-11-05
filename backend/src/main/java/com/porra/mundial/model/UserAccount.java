@@ -35,6 +35,7 @@ public class UserAccount {
     @Column(nullable = false, unique = true)
     private String googleEmail;
 
+    /** Ya no se rellena (minimización de datos); la columna se mantiene por compatibilidad. */
     private String googleName;
 
     /** El apodo o nombre visible con el que se identifica en el ranking y grupos (Ej: "Raclos"). */
