@@ -12,7 +12,6 @@ import com.porra.mundial.scoring.ScoringRuleSet;
 import com.porra.mundial.util.MatchRound;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -192,7 +191,6 @@ public class MatchPredictionService {
      * Guarda o actualiza los pronósticos de una lista de partidos comprobando los plazos individuales.
      */
     @Transactional
-    @CacheEvict(value = "leaderboard", key = "#groupId")
     public int saveMatchdayPredictions(String email, Long groupId, List<MatchPredictionItemDTO> items) {
         if (email == null || email.isBlank()) {
             throw BusinessException.forbidden("Usuario no autenticado");
@@ -231,6 +229,9 @@ public class MatchPredictionService {
                     String paymentStatus = membership != null && membership.getPaymentStatus() != null
                             ? membership.getPaymentStatus()
                             : "PENDING";
+                    // La porra nueva entra en la clasificación. Pronosticar partidos abiertos no cambia
+                    // ningún punto, así que el resto de guardados no la invalidan.
+                    scoreInvalidationService.evictLeaderboardAfterCommit(groupId);
                     return predictionRepository.save(Prediction.builder()
                             .user(user)
                             .edition(edition)

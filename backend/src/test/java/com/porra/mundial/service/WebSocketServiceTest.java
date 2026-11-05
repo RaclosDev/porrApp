@@ -147,6 +147,25 @@ class WebSocketServiceTest {
     }
 
     @Test
+    @DisplayName("Guardar pronósticos de partidos abiertos avisa a la liga sin tirar su clasificación")
+    void savedMatchPredictionsKeepTheCachedLeaderboard() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        caches.getCache("groupById").put(10L, "liga 10");
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
+        WebSocketSession session = openSession("s1");
+        service.addSession(session);
+
+        service.notifyMatchPredictionsSaved(10L);
+
+        assertEquals("ranking 10", caches.getCache("leaderboard").get(10L).get());
+        assertEquals(null, caches.getCache("groupById").get(10L));
+        var message = new ObjectMapper().readTree(sentPayload(session));
+        assertEquals("LEAGUE_UPDATED", message.get("type").asString());
+        assertEquals(10L, message.get("leagueId").asLong());
+    }
+
+    @Test
     @DisplayName("Un cambio de resultados no borra las cachés de las ligas")
     void resultsChangeKeepsLeagueCaches() throws Exception {
         var caches = new ConcurrentMapCacheManager();
