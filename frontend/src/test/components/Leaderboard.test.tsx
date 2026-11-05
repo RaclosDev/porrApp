@@ -80,6 +80,7 @@ describe('Leaderboard Component', () => {
     ];
     vi.mocked(useAppContext).mockReturnValue(
       appContext({
+        activeGroupId: '1',
         leaderboardData: leaderboard,
         activeGroupPoolFormat: 'FULL_BRACKET',
         activeGroupName: 'Liga Santander',
@@ -117,6 +118,7 @@ describe('Leaderboard Component', () => {
     ];
     vi.mocked(useAppContext).mockReturnValue(
       appContext({
+        activeGroupId: '1',
         leaderboardData: leaderboard,
         activeGroupPoolFormat: 'MATCH_DAY',
         activeGroupName: 'Liga Santander',
@@ -323,5 +325,35 @@ describe('Leaderboard Component', () => {
     const row = screen.getByRole('row', { name: /Carlos/ });
     const cells = row.querySelectorAll('td');
     expect(cells.length).toBe(headers.length);
+  });
+
+  it('sin liga ni sesión invita a iniciar sesión en vez de mostrar una tabla vacía', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({ activeGroupId: undefined, userName: undefined, loading: false }),
+    );
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/');
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('muestra la carga mientras el ranking no ha llegado, sin podio a cero', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({ activeGroupId: '1', loadingLeaderboard: true, loading: false }),
+    );
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText(/0 pts/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 });

@@ -77,17 +77,28 @@ export interface RoundList {
   current: string | null;
 }
 
-/** Jornadas en el orden en que aparecen los partidos, con la jornada actual. */
+const matchdayNumber = (label: string): number | null => {
+  const match = /^jornada\s+(\d+)$/i.exec(label.trim());
+  return match ? Number(match[1]) : null;
+};
+
+/**
+ * Ordena por número las jornadas «Jornada N» (un aplazado no adelanta una jornada a otra) sin
+ * mover de su sitio las demás etiquetas, como las rondas de eliminatoria.
+ */
+export function sortNumberedRounds(rounds: string[]): string[] {
+  const numbered = rounds
+    .filter((r) => matchdayNumber(r) !== null)
+    .sort((a, b) => (matchdayNumber(a) ?? 0) - (matchdayNumber(b) ?? 0));
+  let next = 0;
+  return rounds.map((r) => (matchdayNumber(r) !== null ? numbered[next++] : r));
+}
+
+/** Jornadas en el orden de los partidos (las numeradas, por número), con la jornada actual. */
 export function roundsFromFixtures(fixtures: MatchdayFixture[]): RoundList {
-  const rounds: string[] = [];
   const seen = new Set<string>();
-  fixtures.forEach((f) => {
-    const label = roundLabelFor(f);
-    if (!seen.has(label)) {
-      seen.add(label);
-      rounds.push(label);
-    }
-  });
+  fixtures.forEach((f) => seen.add(roundLabelFor(f)));
+  const rounds = sortNumberedRounds([...seen]);
   if (rounds.length === 0) return { rounds, current: null };
 
   let activeIndex = rounds.findIndex((r) =>

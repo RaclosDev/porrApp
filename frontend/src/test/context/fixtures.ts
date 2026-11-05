@@ -22,6 +22,7 @@ export const appContext = (fields: Partial<AppContextValue> = {}): AppContextVal
   leaderboardMatchdays: [],
   loading: false,
   loadingGroup: false,
+  loadingLeaderboard: false,
   groupError: null,
   fetchData: vi.fn(async () => []),
   activeGroupName: '',

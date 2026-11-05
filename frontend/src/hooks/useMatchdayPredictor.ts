@@ -164,7 +164,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const saveMutation = useMutation<MatchdaySubmissionResult, Error, SaveVariables>({
     mutationFn: ({ groupId, items }) => submitMatchdayPredictions(groupId, items),
     onSuccess: (data, { groupId, savedMatchIds }) => {
-      setSaveSuccessMsg(data.message || '¡Pronósticos guardados correctamente!');
+      setSaveSuccessMsg(data.message || '¡Predicciones guardadas correctamente!');
       const rest = withoutSaved(draftRef.current ?? {}, savedMatchIds);
       persistDraft(rest);
       setHasUnsavedChanges(Object.keys(rest).length > 0);
@@ -173,7 +173,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
       queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
     },
     onError: (err) => {
-      setSaveErrorMsg(errorMessage(err, 'Error al guardar pronósticos'));
+      setSaveErrorMsg(errorMessage(err, 'Error al guardar las predicciones'));
       setSaveSuccessMsg('');
     },
   });
@@ -205,7 +205,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const handleSaveAll = () => {
     if (saveMutation.isPending || activeGroupIsLocked) return;
     if (!isAuthenticated) {
-      toast.error('Inicia sesión con Google para guardar tus pronósticos.');
+      toast.error('Inicia sesión con Google para guardar tus predicciones.');
       return;
     }
     const submission = buildSubmission(roundFixtures, draftRef.current || {});
@@ -214,7 +214,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
       return;
     }
     if (submission.kind === 'empty') {
-      toast('No hay pronósticos nuevos o modificados para guardar en esta jornada.');
+      toast('No hay predicciones nuevas o modificadas para guardar en esta jornada.');
       return;
     }
     saveMutation.mutate({

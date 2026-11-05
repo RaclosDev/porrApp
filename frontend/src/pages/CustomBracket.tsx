@@ -327,7 +327,7 @@ export default function CustomBracket() {
     }
     return {
       user: userName,
-      prediction: predictionName.trim() || userName || 'Mi pronóstico',
+      prediction: predictionName.trim() || userName || 'Mi predicción',
       groups: orderedGroups,
       customRounds: completed,
       r16: [],
@@ -355,7 +355,7 @@ export default function CustomBracket() {
         .catch((reason: unknown) => {
           failedRevision.current = revision;
           setSaveState('error');
-          setError(errorMessage(reason, 'No se pudo guardar el pronóstico'));
+          setError(errorMessage(reason, 'No se pudo guardar la predicción'));
         })
         .finally(() => setBusy(false));
     }, 600);
@@ -372,7 +372,7 @@ export default function CustomBracket() {
   ]);
 
   return (
-    <section className="view-section active block" aria-label={`Pronóstico de ${activeGroupName}`}>
+    <section className="view-section active block" aria-label={`Predicción de ${activeGroupName}`}>
       {editable && lock.configured && firstRound.length > 0 && (
         <p className="text-center text-muted text-[0.85rem] mb-[15px] min-h-[1.3em]" role="status">
           {error ? (
@@ -401,12 +401,12 @@ export default function CustomBracket() {
       )}
       {lateEntry && !lock.fullyLocked && (
         <p className="paper-panel album-sheet p-4 max-w-145 mx-auto text-center" role="status">
-          La competición ya ha empezado: no se admiten pronósticos nuevos.
+          La competición ya ha empezado: no se admiten predicciones nuevas.
         </p>
       )}
       {(activeGroupIsLocked || lock.fullyLocked) && (
         <p className="flex items-center justify-center gap-3 mb-[15px] text-[0.9rem] text-muted">
-          <InkStamp>Pronóstico cerrado</InkStamp>
+          <InkStamp>Predicción cerrada</InkStamp>
           El plazo para enviarlo o cambiarlo ha terminado.
         </p>
       )}
@@ -509,7 +509,7 @@ export default function CustomBracket() {
           {!firstRound.length && (
             <p className="paper-panel album-sheet p-5 text-center max-w-145 mx-auto">
               {official
-                ? 'Aún no hay cruces del cuadro: podrás pronosticarlo cuando termine la fase previa.'
+                ? 'Aún no hay cruces del cuadro: podrás hacer tu predicción cuando termine la fase previa.'
                 : 'El administrador aún no ha configurado los cruces.'}
             </p>
           )}
@@ -548,7 +548,7 @@ export default function CustomBracket() {
 
           {lock.state && !lock.configured && (
             <p className="paper-panel album-sheet p-5 mt-7.5 text-center max-w-145 mx-auto">
-              El administrador debe fijar el cierre antes de que se puedan guardar pronósticos.
+              El administrador debe fijar el cierre antes de que se puedan guardar predicciones.
             </p>
           )}
         </>

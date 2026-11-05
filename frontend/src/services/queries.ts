@@ -5,6 +5,7 @@ import {
   fetchLeaderboardLogs,
   fetchLeaderboardMatchdays,
   fetchMyGroups,
+  fetchMyLeagueSummaries,
   fetchMyPredictions,
   fetchOfficialBracket,
   fetchPredictions,
@@ -18,6 +19,15 @@ export const myGroupsQuery = (isAuthenticated: boolean) =>
     queryKey: queryKeys.myGroups(isAuthenticated),
     queryFn: () => (isAuthenticated ? fetchMyGroups() : Promise.resolve([])),
     staleTime: 60_000,
+  });
+
+/** Posición, puntos y predicciones pendientes del usuario en cada liga. */
+export const myLeagueSummariesQuery = (isAuthenticated: boolean) =>
+  queryOptions({
+    queryKey: queryKeys.myLeagueSummaries(),
+    queryFn: fetchMyLeagueSummaries,
+    enabled: isAuthenticated,
+    staleTime: 30_000,
   });
 
 /**

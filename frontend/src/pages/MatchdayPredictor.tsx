@@ -71,6 +71,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       <MatchdayHeader
         title={activeGroupName || 'Jornadas'}
         isLocked={activeGroupIsLocked}
+        canEdit={md.fixtures.some((fixture) => !fixture.locked)}
         predicted={md.counts.predicted}
         total={md.counts.total}
         isSaving={md.isSaving}

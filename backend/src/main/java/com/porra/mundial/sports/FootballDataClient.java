@@ -28,8 +28,9 @@ public class FootballDataClient {
     private static final String BASE_URL = "https://api.football-data.org/v4/competitions/";
     private static final Duration TIMEOUT = Duration.ofSeconds(20);
 
-    /** Ligas del plan gratuito, por slug de ESPN. */
+    /** Competiciones del plan gratuito, por slug de ESPN. */
     private static final Map<String, String> COMPETITION_CODES = Map.of(
+            "uefa.champions", "CL",
             "esp.1", "PD",
             "eng.1", "PL",
             "ger.1", "BL1",
@@ -37,6 +38,9 @@ public class FootballDataClient {
             "fra.1", "FL1",
             "ned.1", "DED",
             "por.1", "PPL");
+
+    /** Fases con jornadas numeradas: la liga regular y la fase de liga de la Champions. */
+    private static final java.util.Set<String> LEAGUE_STAGES = java.util.Set.of("REGULAR_SEASON", "LEAGUE_STAGE");
 
     /** Partido del calendario oficial; los equipos se identifican por su id en football-data. */
     public record OfficialFixture(Instant kickoff, int matchday, long homeTeamId, long awayTeamId) {}
@@ -79,6 +83,9 @@ public class FootballDataClient {
     static List<OfficialFixture> parseFixtures(JsonNode root) {
         List<OfficialFixture> fixtures = new ArrayList<>();
         for (JsonNode match : root.path("matches")) {
+            // Solo la fase de liga tiene jornadas; las eliminatorias conservan el nombre de su ronda.
+            String stage = match.path("stage").asText("");
+            if (!stage.isEmpty() && !LEAGUE_STAGES.contains(stage)) continue;
             int matchday = match.path("matchday").asInt(0);
             long home = match.path("homeTeam").path("id").asLong(0);
             long away = match.path("awayTeam").path("id").asLong(0);

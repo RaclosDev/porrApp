@@ -14,9 +14,15 @@ interface LeaderboardColumn {
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import { UserAvatar } from '../components/Avatar';
 import StickerCard from '../components/StickerCard';
+import { displayRoundLabel } from '../utils/matchday';
 
-/** Medalla para el podio, tortuga para el último que ha pagado y número para el resto. */
-function rankLabel(rank: number | '-' | undefined, lowestPaidRank: number): string | number {
+/** Medalla para el podio (solo con puntos), tortuga para el último que ha pagado y número para el resto. */
+function rankLabel(
+  rank: number | '-' | undefined,
+  lowestPaidRank: number,
+  points: number,
+): string | number {
+  if (points <= 0 && typeof rank === 'number' && rank <= 3) return rank;
   if (rank === 1) return '🥇';
   if (rank === 2) return '🥈';
   if (rank === 3) return '🥉';
@@ -77,6 +83,8 @@ function Leaderboard() {
   const [activeTab, setActiveTab] = useState<'table' | 'evolution'>('table');
   // En móvil el desglose por fase va oculto hasta que se pide.
   const [showDetail, setShowDetail] = useState(false);
+  // Hora fijada al montar: basta para distinguir una jornada abierta de una en juego.
+  const [now] = useState(() => Date.now());
 
   const isMatchday =
     activeGroupPoolFormat === 'MATCH_DAY' || state.activeCompetitionFormatType === 'LEAGUE';
@@ -100,12 +108,45 @@ function Leaderboard() {
 
   if (loading) return <PaperLoading label="Cargando clasificación" />;
 
+  if (!activeGroupId) {
+    const signedIn = Boolean(userName);
+    return (
+      <section className="view-section active">
+        <div className="paper-panel album-sheet text-center py-10 px-6 max-w-140 mx-auto my-5">
+          <h2 className="poster-title mt-0 mb-2 text-[1.5rem]">Clasificación</h2>
+          <p className="text-muted text-[0.92rem] mt-0 mb-5">
+            {signedIn
+              ? 'Únete a una liga o crea la tuya para ver su clasificación.'
+              : 'Inicia sesión para ver la clasificación de tus ligas.'}
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            {signedIn ? (
+              <Link to="/mis-ligas" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
+                Ir a Mis ligas
+              </Link>
+            ) : (
+              <>
+                <Link to="/" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
+                  Iniciar sesión
+                </Link>
+                <Link to="/demo" className="glass-btn py-2.5 px-5 font-bold">
+                  Ver la demo
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const showSharePodium = sharePodium.length > 0;
   const shareRows = validResults.filter(
     (row) => !sharePodium.some(({ leader }) => leader.total === row.points.total),
   );
   const shareMid = Math.ceil(shareRows.length / 2);
 
+  const ownBracketHasGroupPoints = validResults.some((row) => (row.points.r1 ?? 0) !== 0);
   const scorerColumn: LeaderboardColumn[] = activeGroupPichichi
     ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }]
     : [];
@@ -125,7 +166,10 @@ function Leaderboard() {
     : state.activeGroupOwnBracket
       ? [
           { key: 'total', label: 'Total', kind: 'total' },
-          { key: 'r1', label: 'Grupos', kind: 'detail' },
+          // Sin fase de grupos (o sin nada que puntuar en ella) la columna sería siempre 0.
+          ...(ownBracketHasGroupPoints
+            ? [{ key: 'r1', label: 'Grupos', kind: 'detail' } as LeaderboardColumn]
+            : []),
           { key: 'r32', label: 'Cuadro', kind: 'detail' },
         ]
       : [
@@ -161,6 +205,12 @@ function Leaderboard() {
   };
 
   const summaryMatchday = selectedMatchdayInfo || currentMatchday;
+  // «En juego» solo cuando ya ha empezado algún partido; antes, la jornada sigue abierta.
+  const matchdayStatus = summaryMatchday?.finished
+    ? { text: 'Finalizada', tone: 'finished' }
+    : summaryMatchday?.date && new Date(summaryMatchday.date).getTime() > now
+      ? { text: 'Abierta', tone: 'open' }
+      : { text: 'En juego', tone: 'live' };
 
   return (
     <section id="view-leaderboard" className="view-section block">
@@ -271,13 +321,11 @@ function Leaderboard() {
                       {selectedMatchdayInfo?.current ? 'Jornada actual' : 'Jornada seleccionada'}
                     </span>
                     <div className="lb-matchday-title-row">
-                      <strong className="lb-matchday-title">{summaryMatchday.label}</strong>
-                      <span
-                        className={`lb-matchday-status ${
-                          summaryMatchday.finished ? 'is-finished' : 'is-live'
-                        }`}
-                      >
-                        {summaryMatchday.finished ? 'Finalizada' : 'En juego'}
+                      <strong className="lb-matchday-title">
+                        {displayRoundLabel(summaryMatchday.label)}
+                      </strong>
+                      <span className={`lb-matchday-status is-${matchdayStatus.tone}`}>
+                        {matchdayStatus.text}
                       </span>
                     </div>
                     {summaryMatchday.matchCount > 0 && (
@@ -308,7 +356,7 @@ function Leaderboard() {
                   >
                     {matchdays.map((matchday) => (
                       <option key={matchday.label} value={matchday.label}>
-                        {matchday.label}
+                        {displayRoundLabel(matchday.label)}
                         {matchday.current ? ' · actual' : ''}
                       </option>
                     ))}
@@ -418,7 +466,7 @@ function Leaderboard() {
                         </tr>
                       )}
                       {results.map((r) => {
-                        const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+                        const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
 
                         const isPending = !r.paid;
                         const isMe = isOwnRow(r, userId, userName);
@@ -598,7 +646,7 @@ function Leaderboard() {
         <div className="flex gap-5 justify-between" id="share-image-columns">
           <div className="flex-1 flex flex-col gap-2" id="share-col-left">
             {shareRows.slice(0, shareMid).map((r) => {
-              const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+              const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
 
               const isMe = isOwnRow(r, userId, userName);
               return (
@@ -622,7 +670,7 @@ function Leaderboard() {
           </div>
           <div className="flex-1 flex flex-col gap-2" id="share-col-right">
             {shareRows.slice(shareMid).map((r) => {
-              const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+              const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
 
               const isMe = isOwnRow(r, userId, userName);
               return (

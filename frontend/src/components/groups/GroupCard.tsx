@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { GroupsDashboardState } from '../../hooks/useGroupsDashboard';
-import type { Group } from '../../types/api';
+import type { Group, LeagueSummary } from '../../types/api';
 import { LeagueAvatar } from '../Avatar';
 import InkStamp from '../InkStamp';
 
 interface GroupCardProps {
   group: Group;
+  /** Posición, puntos y pendientes del usuario; no llega hasta que responde el resumen. */
+  summary?: LeagueSummary;
   isSelected: boolean;
   isCreator: boolean;
   handleEnterGroup: GroupsDashboardState['handleEnterGroup'];
@@ -22,6 +24,7 @@ interface GroupCardProps {
 /** Fila de una liga en "Mis ligas": pulsarla abre la liga; el resto de acciones se despliegan. */
 export default function GroupCard({
   group,
+  summary,
   isSelected,
   isCreator,
   handleEnterGroup,
@@ -39,6 +42,7 @@ export default function GroupCard({
     group.competitionName,
     group.poolFormat ? (group.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro') : null,
   ].filter(Boolean);
+  const pending = summary?.pendingPredictions ?? 0;
 
   return (
     <li
@@ -63,6 +67,20 @@ export default function GroupCard({
               {isCreator ? 'Administras' : `Admin: ${group.adminParticipantName ?? '—'}`}
               {meta.length > 0 && ` · ${meta.join(' · ')}`}
             </span>
+            {summary && (summary.rank != null || pending > 0) && (
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[0.8rem]">
+                {summary.rank != null && (
+                  <span className="font-bold">
+                    {summary.rank}.º de {summary.participants} · {summary.points ?? 0} pts
+                  </span>
+                )}
+                {pending > 0 && (
+                  <span className="text-[var(--stamp-red)] font-bold">
+                    Te {pending === 1 ? 'falta 1 predicción' : `faltan ${pending} predicciones`}
+                  </span>
+                )}
+              </span>
+            )}
           </span>
           {isSelected && (
             <InkStamp tone="ink" size="sm">

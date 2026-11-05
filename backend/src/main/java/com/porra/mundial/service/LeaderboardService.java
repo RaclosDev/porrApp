@@ -267,9 +267,12 @@ public class LeaderboardService {
                     .addPoints(matchPrediction.getPrediction().getId(), matchPrediction.getPointsAwarded());
         }
 
+        List<MatchdayAccumulator> ordered = new ArrayList<>(matchdays.values());
+        MatchRound.sortNumberedMatchdays(ordered, accumulator -> accumulator.label);
+
         int currentIndex = -1;
         int index = 0;
-        for (MatchdayAccumulator accumulator : matchdays.values()) {
+        for (MatchdayAccumulator accumulator : ordered) {
             if (!accumulator.finished) {
                 currentIndex = index;
                 break;
@@ -282,7 +285,7 @@ public class LeaderboardService {
 
         List<MatchdayPointsDTO> result = new ArrayList<>(matchdays.size());
         index = 0;
-        for (MatchdayAccumulator accumulator : matchdays.values()) {
+        for (MatchdayAccumulator accumulator : ordered) {
             result.add(MatchdayPointsDTO.builder()
                     .label(accumulator.label)
                     .date(accumulator.date)

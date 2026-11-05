@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
 import { isLiveMatch } from '../../utils/homeMatches';
+import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
 import InkStamp from '../InkStamp';
@@ -151,7 +153,12 @@ export default function LeagueHomeDashboard() {
     leaderboardData,
     userName,
     userId,
+    isAuthenticated,
   } = useAppContext();
+  const { data: summaries } = useQuery(myLeagueSummariesQuery(isAuthenticated));
+  const pending =
+    summaries?.find((s) => s.groupId.toString() === activeGroupId?.toString())
+      ?.pendingPredictions ?? 0;
   const { subtitle, matches, standings } = useLeagueHomeData();
   const navigate = useNavigate();
   const [showRules, setShowRules] = useState(false);
@@ -189,6 +196,20 @@ export default function LeagueHomeDashboard() {
           Reglas
         </button>
       </header>
+
+      {pending > 0 && (
+        <button
+          type="button"
+          className="paper-panel album-sheet w-full flex items-center justify-between gap-3 px-4 py-3 mb-4.5 text-left cursor-pointer text-inherit font-[inherit] border-0"
+          onClick={() => navigate(matches.to)}
+        >
+          <span className="font-bold text-[var(--stamp-red)]">
+            Te {pending === 1 ? 'falta 1 predicción' : `faltan ${pending} predicciones`} para los
+            próximos partidos
+          </span>
+          <span className="shrink-0 font-bold">Predecir →</span>
+        </button>
+      )}
 
       <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
         <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
