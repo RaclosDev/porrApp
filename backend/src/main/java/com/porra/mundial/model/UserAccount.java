@@ -3,6 +3,7 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 /**
@@ -45,6 +46,11 @@ public class UserAccount {
     /** Fecha y hora en la que se registró por primera vez en la aplicación. */
     @Builder.Default
     private LocalDateTime linkedAt = LocalDateTime.now();
+
+    /** Último inicio de sesión o refresco de sesión, con precisión de un día. Sirve para borrar cuentas inactivas. */
+    @Column(name = "last_active_at", nullable = false)
+    @Builder.Default
+    private Instant lastActiveAt = Instant.now();
 
     /** 
      * ID del último grupo que tuvo seleccionado en el frontend.
