@@ -88,8 +88,9 @@ describe('FeaturedMatchBanner', () => {
       />,
     );
 
-    expect(screen.getByText('En juego')).toBeInTheDocument();
+    // El título ya lo dice: no se repite con un sello «En juego».
     expect(screen.getByRole('region', { name: 'En directo en el cuadro' })).toBeInTheDocument();
+    expect(screen.queryByText('En juego')).toBeNull();
     expect(screen.queryByText('VS')).toBeNull();
   });
 
@@ -100,7 +101,7 @@ describe('FeaturedMatchBanner', () => {
 
     expect(
       screen.getByRole('region', { name: 'Partido pendiente de resultado' }),
-    ).toHaveTextContent('Resultado pendiente');
+    ).toBeInTheDocument();
     expect(screen.queryByText('En juego')).toBeNull();
   });
 
@@ -116,10 +117,12 @@ describe('FeaturedMatchBanner', () => {
     render(<FeaturedMatchBanner featuredMatch={match({})} groupId={5} />);
 
     const home = await screen.findByRole('button', {
-      name: 'Ver quién ha votado 1 en Top Esports - Invictus Gaming (1)',
+      name: 'Ver quién ha votado Top Esports en Top Esports - Invictus Gaming (1)',
     });
     expect(fetchMatchVoters).toHaveBeenCalledWith(5, [1]);
     expect(screen.queryByRole('button', { name: /votado X/ })).toBeNull();
+    // Las fotos van dentro de la columna de cada equipo.
+    expect(home.closest('div')).toHaveTextContent('Top Esports');
 
     fireEvent.click(home);
     const dialog = screen.getByRole('dialog');

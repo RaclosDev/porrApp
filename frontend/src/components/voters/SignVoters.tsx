@@ -22,6 +22,39 @@ interface SignVotersProps {
   twoWay?: boolean;
 }
 
+interface VoterStackProps {
+  list: MatchVoter[];
+  /** Signo o equipo votado, para el nombre accesible. */
+  label: string;
+  matchName: string;
+  onOpen: () => void;
+  className?: string;
+}
+
+/**
+ * Las fotos de quienes han votado una opción, resumidas en «+N». Sin votos deja el hueco, para que
+ * las opciones de un partido queden a la misma altura.
+ */
+export function VoterStack({ list, label, matchName, onOpen, className = '' }: VoterStackProps) {
+  if (list.length === 0) return <span className={`sign-voters-cell ${className}`} />;
+  const extra = list.length - VISIBLE_VOTERS;
+  return (
+    <button
+      type="button"
+      className={`sign-voters-cell ${className}`}
+      onClick={onOpen}
+      aria-label={`Ver quién ha votado ${label} en ${matchName} (${list.length})`}
+    >
+      {list.slice(0, VISIBLE_VOTERS).map((voter) => (
+        <span key={voter.userId} className="sign-voters-avatar" title={voter.name}>
+          <UserAvatar url={voter.avatarUrl} userId={voter.userId} name={voter.name} size={22} />
+        </span>
+      ))}
+      {extra > 0 && <span className="sign-voters-more">+{extra}</span>}
+    </button>
+  );
+}
+
 /** Bajo cada signo, las fotos de quienes lo han votado; al pulsar se abre la lista completa. */
 export default function SignVoters({
   voters,
@@ -32,32 +65,15 @@ export default function SignVoters({
 }: SignVotersProps) {
   return (
     <div className={`sign-voters${twoWay ? ' is-two-way' : ''} ${className}`}>
-      {(twoWay ? WINNER_SIDES : SIGNS).map(({ key, label }) => {
-        const list: MatchVoter[] = voters[key];
-        if (list.length === 0) return <span key={key} className="sign-voters-cell" />;
-        const extra = list.length - VISIBLE_VOTERS;
-        return (
-          <button
-            key={key}
-            type="button"
-            className="sign-voters-cell"
-            onClick={onOpen}
-            aria-label={`Ver quién ha votado ${label} en ${matchName} (${list.length})`}
-          >
-            {list.slice(0, VISIBLE_VOTERS).map((voter) => (
-              <span key={voter.userId} className="sign-voters-avatar" title={voter.name}>
-                <UserAvatar
-                  url={voter.avatarUrl}
-                  userId={voter.userId}
-                  name={voter.name}
-                  size={22}
-                />
-              </span>
-            ))}
-            {extra > 0 && <span className="sign-voters-more">+{extra}</span>}
-          </button>
-        );
-      })}
+      {(twoWay ? WINNER_SIDES : SIGNS).map(({ key, label }) => (
+        <VoterStack
+          key={key}
+          list={voters[key]}
+          label={label}
+          matchName={matchName}
+          onOpen={onOpen}
+        />
+      ))}
     </div>
   );
 }

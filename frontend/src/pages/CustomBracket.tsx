@@ -484,24 +484,17 @@ export default function CustomBracket() {
                 Pulsa un equipo para pasarlo a la siguiente ronda
               </p>
             )}
-            {picks.some((round) => round.some(Boolean)) && (
+            {/* Lo elegido ya se ve en el cuadro; la leyenda solo explica los colores de acierto. */}
+            {picks.some((round) => round.some(Boolean)) && decidedRounds.some(Boolean) && (
               <ul className="pick-legend" aria-label="Leyenda del cuadro">
                 <li>
-                  <span className="pick-legend-swatch is-picked" aria-hidden="true" />
-                  Tu predicción
+                  <span className="pick-legend-swatch is-hit" aria-hidden="true" />
+                  Acertada
                 </li>
-                {decidedRounds.some(Boolean) && (
-                  <>
-                    <li>
-                      <span className="pick-legend-swatch is-hit" aria-hidden="true" />
-                      Acertada
-                    </li>
-                    <li>
-                      <span className="pick-legend-swatch is-miss" aria-hidden="true" />
-                      Fallada
-                    </li>
-                  </>
-                )}
+                <li>
+                  <span className="pick-legend-swatch is-miss" aria-hidden="true" />
+                  Fallada
+                </li>
               </ul>
             )}
           </div>

@@ -8,10 +8,10 @@ import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
 import InkStamp from '../InkStamp';
-import SignVoters from '../voters/SignVoters';
+import { VoterStack } from '../voters/SignVoters';
 import MatchVotersModal from '../voters/MatchVotersModal';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
-import type { Match, MatchVoters } from '../../types/api';
+import type { Match, MatchVoter, MatchVoters } from '../../types/api';
 
 const RANKING_SIZE = 5;
 
@@ -108,56 +108,67 @@ function MatchCard({
 }) {
   const isLive = isLiveMatch(match);
   const hasScore = match.home_score != null && match.away_score != null;
-  const card = (
-    <button
-      type="button"
-      className={`home-match-card${isLive ? ' is-live' : ''}`}
-      onClick={onOpen}
-      aria-label={`${match.home || 'Local'} contra ${match.away || 'Visitante'}, ${action}`}
-    >
+  const home = match.home || 'Local';
+  const away = match.away || 'Visitante';
+  const matchName = `${home} - ${away}`;
+  // Las fotos van dentro de la tarjeta: bajo cada equipo y, en las jornadas, el empate bajo el marcador.
+  const voterStack = (list: MatchVoter[], label: string) =>
+    voters && onShowVoters ? (
+      <VoterStack
+        list={list}
+        label={label}
+        matchName={matchName}
+        onOpen={() => onShowVoters(match)}
+      />
+    ) : null;
+  return (
+    <div className={`home-match-card${isLive ? ' is-live' : ''}`}>
+      <button
+        type="button"
+        className="home-match-open"
+        onClick={onOpen}
+        aria-label={`${home} contra ${away}, ${action}`}
+      />
       <div className="home-match-meta">
         <span>{formatMatchDate(match.date)}</span>
         {isLive && <InkStamp size="sm">En directo</InkStamp>}
       </div>
       <div className="home-match-teams">
-        <div className="home-match-team home">
-          <span className="home-match-crest">
-            <Flag
-              team={match.home}
-              logo={match.homeLogo || match.homeTeamLogo}
-              style={{ width: '22px', height: '22px' }}
-            />
-          </span>
-          <span className="home-match-name">{match.home || 'Local'}</span>
+        <div className="home-match-side home">
+          <div className="home-match-team home">
+            <span className="home-match-crest">
+              <Flag
+                team={match.home}
+                logo={match.homeLogo || match.homeTeamLogo}
+                style={{ width: '22px', height: '22px' }}
+              />
+            </span>
+            <span className="home-match-name">{home}</span>
+          </div>
+          {voterStack(voters?.home ?? [], twoWay ? home : '1')}
         </div>
-        <div
-          className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
-        >
-          {hasScore ? `${match.home_score} - ${match.away_score}` : formatKickOff(match.date)}
+        <div className="home-match-side">
+          <div
+            className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
+          >
+            {hasScore ? `${match.home_score} - ${match.away_score}` : formatKickOff(match.date)}
+          </div>
+          {voterStack(twoWay ? [] : (voters?.draw ?? []), 'X')}
         </div>
-        <div className="home-match-team away">
-          <span className="home-match-name">{match.away || 'Visitante'}</span>
-          <span className="home-match-crest">
-            <Flag
-              team={match.away}
-              logo={match.awayLogo || match.awayTeamLogo}
-              style={{ width: '22px', height: '22px' }}
-            />
-          </span>
+        <div className="home-match-side away">
+          <div className="home-match-team away">
+            <span className="home-match-name">{away}</span>
+            <span className="home-match-crest">
+              <Flag
+                team={match.away}
+                logo={match.awayLogo || match.awayTeamLogo}
+                style={{ width: '22px', height: '22px' }}
+              />
+            </span>
+          </div>
+          {voterStack(voters?.away ?? [], twoWay ? away : '2')}
         </div>
       </div>
-    </button>
-  );
-  if (!voters || !onShowVoters) return card;
-  return (
-    <div>
-      {card}
-      <SignVoters
-        voters={voters}
-        matchName={`${match.home || 'Local'} - ${match.away || 'Visitante'}`}
-        onOpen={() => onShowVoters(match)}
-        twoWay={twoWay}
-      />
     </div>
   );
 }
