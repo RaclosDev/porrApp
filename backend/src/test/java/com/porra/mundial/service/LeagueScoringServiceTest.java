@@ -59,11 +59,11 @@ class LeagueScoringServiceTest {
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
     }
 
-    private void globalLeague() {
-        League global = League.builder().id(League.GLOBAL_ID).name(League.GLOBAL_NAME).joinCode(League.GLOBAL_JOIN_CODE)
+    private void publicLeague() {
+        League global = League.builder().id(50L).name("Abierta").joinCode("ABIERTA").publicLeague(true)
                 .adminUser(UserAccount.builder().id(1L).googleEmail(ADMIN).build()).build();
-        when(leagueRepository.findById(League.GLOBAL_ID)).thenReturn(Optional.of(global));
-        when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(
+        when(leagueRepository.findById(50L)).thenReturn(Optional.of(global));
+        when(editionRepository.findByLeagueIdAndStatus(50L, "ACTIVE")).thenReturn(Optional.of(
                 Edition.builder().id(1L).league(global).poolFormat(PoolFormat.FULL_BRACKET).build()));
     }
 
@@ -101,16 +101,12 @@ class LeagueScoringServiceTest {
     }
 
     @Test
-    @DisplayName("La puntuación de la Porra Global es de solo lectura, también para su administrador")
-    void globalLeagueIsReadOnly() {
-        globalLeague();
+    @DisplayName("Una liga pública se lee sin ser miembro y su administrador la puede editar")
+    void publicLeagueBehavesLikeAnyOther() {
+        publicLeague();
 
-        assertFalse(leagueScoringService.getScoring(League.GLOBAL_ID, ADMIN).editable());
-        BusinessException error = assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(
-                League.GLOBAL_ID, ScoringRuleSet.builder().championPoints(300).build(), ADMIN));
-        assertTrue(error.getMessage().contains("Porra Global"));
-        verify(editionRepository, never()).save(any());
-        verifyNoInteractions(matchPredictionService, scoreInvalidationService);
+        assertFalse(leagueScoringService.getScoring(50L, null).editable());
+        assertTrue(leagueScoringService.getScoring(50L, ADMIN).editable());
     }
 
     @Test

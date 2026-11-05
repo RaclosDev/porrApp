@@ -192,7 +192,7 @@ export function useGroupsDashboard() {
   const handleShareWhatsApp = (group: Pick<Group, 'joinCode'> | null | undefined) => {
     if (!group?.joinCode) return;
 
-    const link = `https://porra.raclos.es/join/${encodeURIComponent(group.joinCode)}`;
+    const link = `${window.location.origin}/join/${encodeURIComponent(group.joinCode)}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, '_blank', 'noopener,noreferrer');
   };
 

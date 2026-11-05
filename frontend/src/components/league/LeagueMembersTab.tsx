@@ -85,7 +85,7 @@ export default function LeagueMembersTab({
   setSearch,
   visibleMembers,
 }: LeagueMembersTabProps) {
-  // La Porra Global no tiene pagos: el backend no manda estado de pago.
+  // Las ligas públicas no tienen pagos: el backend no manda estado de pago.
   const tracksPayments = members.length === 0 || members.some((m) => m.paymentStatus != null);
 
   return (

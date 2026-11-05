@@ -1,6 +1,5 @@
 package com.porra.mundial;
 
-import com.porra.mundial.config.GlobalLeagueInitializer;
 import com.porra.mundial.repository.LeagueRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.repository.MembershipRepository;
@@ -50,9 +49,6 @@ class PorraMundialApplicationTests {
     private int port;
 
     @Autowired
-    private GlobalLeagueInitializer globalLeagueInitializer;
-
-    @Autowired
     private LeagueRepository leagues;
 
     @Autowired
@@ -67,23 +63,6 @@ class PorraMundialApplicationTests {
 
     @MockitoBean
     private TopScorerService topScorerService;
-
-    @Test
-    @Transactional
-    void repeatedInitializationPreservesTheRealGlobalAdministrator() {
-        var owner = users.save(UserAccount.builder()
-                .googleEmail("global-owner@test.invalid").googleName("Owner").participantName("Owner").build());
-        var league = leagues.findById(League.GLOBAL_ID).orElseThrow();
-        league.setAdminUser(owner);
-        leagues.saveAndFlush(league);
-
-        globalLeagueInitializer.run();
-        globalLeagueInitializer.run();
-
-        assertThat(leagues.findById(league.getId()).orElseThrow().getAdminUser().getId()).isEqualTo(owner.getId());
-        var membershipId = new Membership.MembershipId(owner.getId(), league.getId());
-        assertThat(memberships.findById(membershipId).orElseThrow().getRole()).isEqualTo("ADMIN");
-    }
 
     private HttpResponse<String> get(String path) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path)).GET().build();

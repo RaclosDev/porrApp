@@ -11,6 +11,7 @@ import * as api from '../../services/api';
 vi.mock('../../services/api', () => ({
   getAuthToken: () => null,
   fetchMyGroups: vi.fn(),
+  fetchFeaturedGroup: vi.fn().mockResolvedValue({ id: 1, name: 'Liga abierta' }),
   fetchGroup: vi.fn(),
   fetchMatches: vi.fn(),
   fetchMatchRadar: vi.fn(),

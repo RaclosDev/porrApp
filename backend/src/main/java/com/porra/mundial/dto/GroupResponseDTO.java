@@ -51,6 +51,8 @@ public class GroupResponseDTO {
     private String rules;
     /** URL (versionada) de la imagen de la liga, o null si no tiene. */
     private String imageUrl;
+    /** Liga pública: se puede consultar sin ser miembro. */
+    private boolean publicLeague;
 
     /**
      * Vista completa de una liga con los datos de su edición activa.
@@ -68,6 +70,7 @@ public class GroupResponseDTO {
                 .createdAt(league.getCreatedAt())
                 .rules(league.getRules())
                 .imageUrl(league.getImageUrl())
+                .publicLeague(league.isPublicLeague())
                 .isLocked(edition != null && edition.isLocked());
         if (edition != null) {
             withEdition(builder, edition)
@@ -81,7 +84,8 @@ public class GroupResponseDTO {
         GroupResponseDTOBuilder builder = builder()
                 .id(league.getId())
                 .name(league.getName())
-                .imageUrl(league.getImageUrl());
+                .imageUrl(league.getImageUrl())
+                .publicLeague(league.isPublicLeague());
         if (edition != null) {
             withEdition(builder, edition);
         }

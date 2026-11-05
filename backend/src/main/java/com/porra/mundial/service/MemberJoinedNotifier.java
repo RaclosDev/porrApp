@@ -60,7 +60,8 @@ public class MemberJoinedNotifier {
     int notifyMembers(MemberJoinedLeagueEvent event) {
         if (!sender.isEnabled()) return 0;
         League league = leagueRepository.findById(event.leagueId()).orElse(null);
-        if (league == null || league.isGlobal() || League.isGlobalId(league.getId())) return 0;
+        // En una liga pública entra cualquiera: avisar de cada alta sería ruido.
+        if (league == null || league.isPublicLeague()) return 0;
         UserAccount joined = userAccountRepository.findById(event.userId()).orElse(null);
         if (joined == null) return 0;
 

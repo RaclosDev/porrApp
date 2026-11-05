@@ -35,6 +35,7 @@ for (const viewport of [
 
         const responses: Record<string, unknown> = {
           '/api/groups/1': demoLeague,
+          '/api/groups/featured': demoLeague,
           '/api/standings': {},
           '/api/standings/official-bracket': {},
           '/api/teams/odds': {},

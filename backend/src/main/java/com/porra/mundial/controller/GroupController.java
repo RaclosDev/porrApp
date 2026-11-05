@@ -81,6 +81,13 @@ public class GroupController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invitación no válida o caducada"));
     }
 
+    /** La liga pública destacada (portada y demo), o 404 si no hay ninguna. */
+    @GetMapping("/featured")
+    public GroupResponseDTO getFeaturedGroup(Principal principal) {
+        return groupService.findFeaturedGroupResponse(principal != null ? principal.getName() : null)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No hay ninguna liga pública"));
+    }
+
     /** Detalle de una liga. El código de invitación solo lo ven sus miembros. */
     @GetMapping("/{id}")
     public GroupResponseDTO getGroup(@PathVariable Long id, Principal principal) {
