@@ -12,6 +12,7 @@ const api = vi.hoisted(() => ({
   regenerateGroupJoinCode: vi.fn(),
   fetchLeagueScoring: vi.fn(),
   updateLeagueScoring: vi.fn(),
+  updateGroupEntryFee: vi.fn(),
 }));
 
 vi.mock('../../services/api', () => api);
@@ -55,6 +56,7 @@ describe('GroupMembersModal', () => {
         <GroupMembersModal
           groupId={1}
           groupName="Liga de prueba"
+          entryFee
           currentJoinCode="ABC123"
           isAdmin
           currentUserId={1}
@@ -79,6 +81,22 @@ describe('GroupMembersModal', () => {
     expect(screen.getByText('1/2 pagados')).toBeInTheDocument();
     expect(screen.getByText('Ana')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Miembros/i })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('el administrador activa la cuota desde el interruptor', async () => {
+    api.fetchGroupMembers.mockResolvedValue(
+      MEMBERS.map((member) => ({ ...member, paymentStatus: null })),
+    );
+    api.updateGroupEntryFee.mockReset().mockResolvedValue({ id: 1, entryFee: true });
+    const onEntryFeeChanged = vi.fn();
+    setup({ entryFee: false, onEntryFeeChanged });
+
+    expect(await screen.findByText('Bruno')).toBeInTheDocument();
+    expect(screen.queryByText('Resumen de pagos')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: /Cuota de inscripción/ }));
+
+    await waitFor(() => expect(api.updateGroupEntryFee).toHaveBeenCalledWith(1, true));
+    await waitFor(() => expect(onEntryFeeChanged).toHaveBeenCalledWith(true));
   });
 
   it('no muestra pagos cuando la liga no los tiene (liga pública)', async () => {

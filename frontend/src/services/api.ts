@@ -551,6 +551,14 @@ export const updateGroup = (
     fallbackError: 'Error al actualizar la liga',
   });
 
+/** Activa o quita la cuota de inscripción de una liga privada. */
+export const updateGroupEntryFee = (id: number | string, entryFee: boolean) =>
+  request<Group>(`/groups/${id}`, {
+    method: 'PUT',
+    json: { entryFee },
+    fallbackError: 'No se pudo cambiar la cuota',
+  });
+
 export const deleteGroup = (id: number | string) =>
   request<StatusResponse>(`/groups/${id}`, {
     method: 'DELETE',
