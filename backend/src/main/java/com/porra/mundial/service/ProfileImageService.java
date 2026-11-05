@@ -162,7 +162,7 @@ public class ProfileImageService {
             throw BusinessException.badRequest(
                     "El nombre solo puede contener letras, números, espacios y los símbolos . _ ' -");
         }
-        // "Admin" está reservado: es el nombre de la cuenta que administra la Porra Global.
+        // "Admin" está reservado: es el nombre de la cuenta interna del sistema.
         if (name.toLowerCase(Locale.ROOT).equals("admin")) {
             throw BusinessException.badRequest("Ese nombre no está disponible.");
         }

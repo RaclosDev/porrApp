@@ -14,4 +14,7 @@ public interface LeagueRepository extends JpaRepository<League, Long> {
     Optional<League> findByJoinCode(String joinCode);
 
     List<League> findByNameAndAdminUser(String name, UserAccount adminUser);
+
+    /** La liga pública más antigua: la que se enseña en la portada y en la demo. */
+    Optional<League> findFirstByPublicLeagueTrueOrderByIdAsc();
 }

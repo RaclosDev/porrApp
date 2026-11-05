@@ -103,36 +103,31 @@ class PredictionServiceTest {
     }
 
     @Test
-    void refusesMissingRequestedEditionInsteadOfSavingInGlobalLeague() {
-        group.setId(League.GLOBAL_ID);
+    void refusesMissingRequestedEditionInsteadOfSavingInAnotherLeague() {
+        group.setId(50L);
         when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
         when(editionRepository.findByLeagueIdAndStatus(999L, "ACTIVE")).thenReturn(Optional.empty());
-        lenient().when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        lenient().when(editionRepository.findByLeagueIdAndStatus(50L, "ACTIVE")).thenReturn(Optional.of(edition));
         assertThrows(BusinessException.class, () ->
                 predictionService.createPrediction("owner@test.com", "Mi liga", new PredictionDataDTO(), 999L));
-        verify(editionRepository, never()).findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE");
+        verify(editionRepository, never()).findByLeagueIdAndStatus(50L, "ACTIVE");
         verify(predictionRepository, never()).save(any());
     }
 
     @Test
     void refusesToSaveWithoutAnExistingUserAccount() {
         when(userAccountRepository.findByGoogleEmail("missing@test.com")).thenReturn(Optional.empty());
-        lenient().when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        lenient().when(editionRepository.findByLeagueIdAndStatus(50L, "ACTIVE")).thenReturn(Optional.of(edition));
         assertThrows(BusinessException.class, () ->
                 predictionService.createPrediction("missing@test.com", "Sin cuenta", new PredictionDataDTO(), null));
         verify(predictionRepository, never()).save(any());
     }
 
     @Test
-    void nullGroupExplicitlyUsesTheGlobalEdition() {
-        group.setId(League.GLOBAL_ID);
-        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
-        when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
-        when(predictionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        Prediction saved = predictionService.createPrediction("owner@test.com", "Global", new PredictionDataDTO(), null);
-        assertSame(edition, saved.getEdition());
-        assertSame(owner, saved.getUser());
-        verify(editionRepository).findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE");
+    void refusesToCreateAPredictionWithoutALeague() {
+        assertThrows(BusinessException.class, () ->
+                predictionService.createPrediction("owner@test.com", "Sin liga", new PredictionDataDTO(), null));
+        verify(predictionRepository, never()).save(any());
     }
 
     @Test
@@ -468,9 +463,9 @@ class PredictionServiceTest {
     }
 
     @Test
-    @DisplayName("Los pronósticos de la Porra Global los ve cualquiera tras el cierre")
-    void globalLeaguePredictionIsPublicAfterLock() {
-        League global = League.builder().id(League.GLOBAL_ID).joinCode(League.GLOBAL_JOIN_CODE).build();
+    @DisplayName("Los pronósticos de una liga pública los ve cualquiera tras el cierre")
+    void publicLeaguePredictionIsPublicAfterLock() {
+        League global = League.builder().id(50L).joinCode("ABIERTA").publicLeague(true).build();
         edition.setLeague(global);
         edition.setStatus("LOCKED");
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));

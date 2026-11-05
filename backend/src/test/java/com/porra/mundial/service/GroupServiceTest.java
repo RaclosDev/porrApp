@@ -262,8 +262,10 @@ class GroupServiceTest {
         assertEquals("member@test.com", members.get(1).getGoogleEmail(), "El miembro ve su propio email sin ofuscar");
     }
     @Test
-    void assertCanView_GlobalLeagueIsPublic() {
-        assertDoesNotThrow(() -> groupService.assertCanView(League.GLOBAL_ID, null));
+    void assertCanView_PublicLeagueIsOpen() {
+        when(leagueRepository.findById(50L)).thenReturn(Optional.of(
+                League.builder().id(50L).name("Abierta").joinCode("ABIERTA").publicLeague(true).build()));
+        assertDoesNotThrow(() -> groupService.assertCanView(50L, null));
     }
 
     @Test
@@ -333,18 +335,18 @@ class GroupServiceTest {
     }
 
     @Test
-    @DisplayName("En la Porra Global los miembros salen sin email ni estado de pago")
-    void globalLeagueMembersHideEmailAndPayment() {
-        League global = League.builder().id(League.GLOBAL_ID).name(League.GLOBAL_NAME)
-                .joinCode(League.GLOBAL_JOIN_CODE).adminUser(admin).build();
-        when(leagueRepository.findById(League.GLOBAL_ID)).thenReturn(Optional.of(global));
+    @DisplayName("En una liga pública los miembros salen sin email ni estado de pago")
+    void publicLeagueMembersHideEmailAndPayment() {
+        League global = League.builder().id(50L).name("Abierta")
+                .joinCode("ABIERTA").publicLeague(true).adminUser(admin).build();
+        when(leagueRepository.findById(50L)).thenReturn(Optional.of(global));
         Membership mem = Membership.builder()
-                .id(new Membership.MembershipId(member.getId(), League.GLOBAL_ID))
+                .id(new Membership.MembershipId(member.getId(), 50L))
                 .user(member).league(global).role("MEMBER").paymentStatus("PAID").build();
-        when(membershipRepository.findByLeagueId(League.GLOBAL_ID)).thenReturn(List.of(mem));
+        when(membershipRepository.findByLeagueId(50L)).thenReturn(List.of(mem));
 
         for (String viewer : new String[] {null, "member@test.com", "admin@test.com"}) {
-            List<GroupMemberDTO> members = groupService.getGroupMembers(League.GLOBAL_ID, viewer);
+            List<GroupMemberDTO> members = groupService.getGroupMembers(50L, viewer);
             assertEquals(1, members.size());
             assertNull(members.get(0).getGoogleEmail());
             assertNull(members.get(0).getPaymentStatus());

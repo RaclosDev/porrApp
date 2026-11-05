@@ -221,6 +221,8 @@ export interface Group {
   id: number;
   name: string;
   joinCode: string | null;
+  /** Liga pública: cualquiera puede consultarla sin ser miembro. */
+  publicLeague?: boolean;
   adminParticipantName: string | null;
   adminUserId: number | null;
   createdAt: string | null;
@@ -271,10 +273,10 @@ export interface LeagueScoring {
 export interface GroupMember {
   userId: number;
   participantName: string;
-  /** null en la Porra Global, que no publica emails. */
+  /** null en las ligas públicas, que no publican emails. */
   googleEmail: string | null;
   role: string;
-  /** null en la Porra Global, que no tiene pagos. */
+  /** null en las ligas públicas, que no tienen pagos. */
   paymentStatus: PaymentStatus | null;
   joinedAt: string | null;
   isAdmin: boolean;

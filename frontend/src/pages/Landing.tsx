@@ -19,11 +19,13 @@ const FAN_ANGLES = [-8, -3, 0, 3, 8];
 
 /**
  * Portada para quien aún no ha entrado: un cartel con la porra real del Mundial, los cromos de
- * los primeros de la Porra Global y los dos formatos de liga.
+ * los primeros de la liga pública destacada y los dos formatos de liga.
  */
 export default function Landing() {
   const { reduced } = useLandingMotion();
-  const { leaders, participants, champion, nextFixtures, loading, error } = useLandingData();
+  const { leaders, leagueName, participants, champion, nextFixtures, loading, error } =
+    useLandingData();
+  const leagueLabel = leagueName ?? 'la liga pública';
   const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
   const leader = leaders[0];
   const initial = reduced ? 'show' : 'hidden';
@@ -75,7 +77,7 @@ export default function Landing() {
         >
           {leader ? (
             <div>
-              <ul className="ranking-podium" aria-label="Podio de la Porra Global">
+              <ul className="ranking-podium" aria-label={`Podio de ${leagueLabel}`}>
                 {leaders.slice(0, 3).map((row) => (
                   <li
                     key={row.userId ?? row.name}
@@ -86,7 +88,7 @@ export default function Landing() {
                 ))}
               </ul>
               <p className="text-[#4b5563] text-sm text-center">
-                Va primero de {participants} en la Porra Global
+                Va primero de {participants} en {leagueLabel}
               </p>
             </div>
           ) : loading && !error ? (
@@ -104,7 +106,7 @@ export default function Landing() {
             <p className="text-[#4b5563] text-sm" role="status">
               {error
                 ? 'La clasificación no responde ahora mismo.'
-                : 'Todavía no hay cuadros en la Porra Global.'}
+                : `Todavía no hay cuadros en ${leagueLabel}.`}
             </p>
           )}
         </motion.div>
@@ -114,7 +116,7 @@ export default function Landing() {
 
       <GhostWord word="Álbum" className="py-10">
         <MarkerHeading
-          text="Los cromos de la Porra Global"
+          text={`Los cromos de ${leagueLabel}`}
           className="text-[clamp(2rem,5vw,3.6rem)] text-white"
         />
         {leaders.length > 0 ? (
@@ -124,7 +126,7 @@ export default function Landing() {
             whileInView="show"
             viewport={inViewOnce}
             className="landing-sticker-album mt-10 list-none"
-            aria-label="Cromos de la Porra Global"
+            aria-label={`Cromos de ${leagueLabel}`}
             tabIndex={0}
           >
             {leaders.map((row, index) => (
