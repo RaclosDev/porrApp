@@ -126,6 +126,22 @@ class SessionServiceTest {
     }
 
     @Test
+    void sessionsRecordTheLastActivityAtMostOnceADay() {
+        UserAccount eva = user("eva@test.com");
+        Instant longAgo = Instant.now().minus(Duration.ofDays(400));
+        eva.setLastActiveAt(longAgo);
+        em.flush();
+
+        SessionTokens first = sessionService.start(eva);
+        sessionService.refresh(first.refreshToken()).orElseThrow();
+        em.flush();
+        em.clear();
+
+        Instant recorded = userAccountRepository.findById(eva.getId()).orElseThrow().getLastActiveAt();
+        assertThat(recorded).isCloseTo(Instant.now(), within(Duration.ofMinutes(1)));
+    }
+
+    @Test
     void reusingARotatedTokenRevokesTheWholeSession() {
         UserAccount luis = user("luis@test.com");
         SessionTokens stolen = sessionService.start(luis);

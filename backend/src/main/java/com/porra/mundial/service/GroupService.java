@@ -513,6 +513,28 @@ public class GroupService {
     }
 
     /**
+     * Cede la administración de la liga a otro miembro. El administrador anterior sigue como miembro.
+     */
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    public void transferAdmin(Long groupId, Long targetUserId, String email) {
+        verifyGroupAdmin(groupId, email);
+        League group = leagueRepository.findById(groupId)
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
+        UserAccount currentAdmin = group.getAdminUser();
+        if (currentAdmin.getId().equals(targetUserId)) {
+            throw BusinessException.badRequest("Ya administras esta liga.");
+        }
+
+        Membership target = membershipRepository.findById(new Membership.MembershipId(targetUserId, groupId))
+                .orElseThrow(() -> BusinessException.badRequest("Solo puedes ceder la liga a uno de sus miembros."));
+        target.setRole("ADMIN");
+        membershipRepository.findById(new Membership.MembershipId(currentAdmin.getId(), groupId))
+                .ifPresent(m -> m.setRole("MEMBER"));
+        group.setAdminUser(target.getUser());
+    }
+
+    /**
      * Regenera el código de invitación de la liga si se ha filtrado.
      */
     @Transactional
