@@ -54,6 +54,7 @@ class SyncServiceTest {
     @Mock private StandingsService standingsService;
     @Mock private WebSocketService webSocketService;
     @Mock private ScoreInvalidationService scoreInvalidationService;
+    @Mock private CustomLockService customLockService;
     @Mock private PlatformTransactionManager transactionManager;
     @Mock private SportsDataProvider provider;
     @Mock private TopScorerService topScorerService;

@@ -80,15 +80,20 @@ public class OfficialCompetitionLinkService {
         }
         predictionRepository.flush();
 
-        LocalDateTime lockDate = edition.getLockDate();
-        if (lockDate == null) {
-            lockDate = officialFirst.stream().map(Match::getMatchDate).filter(Objects::nonNull)
-                    .min(LocalDateTime::compareTo).orElse(null);
-        }
+        // Se conserva el modo de cierre elegido; las fechas pasan a ser las de los cruces oficiales.
+        PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
+        int offset = mode == PredictionLockMode.FIXED_DATE ? 0 : Math.max(0, edition.getLockOffsetMinutes());
+        LocalDateTime firstMatch = officialFirst.stream().map(Match::getMatchDate).filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo).orElse(null);
+        LocalDateTime lockDate = switch (mode) {
+            case FIXED_DATE -> edition.getLockDate() != null ? edition.getLockDate() : firstMatch;
+            case FIRST_MATCH -> firstMatch == null ? null : firstMatch.minusMinutes(offset);
+            default -> null;
+        };
         edition.setCompetition(official);
         edition.setPoolFormat(PoolFormat.KNOCKOUTS_ONLY);
-        edition.setLockMode(PredictionLockMode.FIXED_DATE);
-        edition.setLockOffsetMinutes(0);
+        edition.setLockMode(mode);
+        edition.setLockOffsetMinutes(offset);
         edition.setLockDate(lockDate);
         Edition saved = editionRepository.save(edition);
         scoreInvalidationService.invalidateEdition(saved.getId());

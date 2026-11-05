@@ -91,15 +91,15 @@ describe('GroupMembersModal', () => {
     expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
   });
 
-  it('guarda nombre y reglas en una sola acción desde Ajustes', async () => {
+  it('guarda nombre y normas en una sola acción desde sus pestañas', async () => {
     const { onSaveSettings } = setup();
     await screen.findByText('Bruno');
 
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     fireEvent.change(screen.getByLabelText('Nombre de la liga'), {
       target: { value: 'Liga renovada' },
     });
-    fireEvent.click(screen.getByRole('tab', { name: 'Normas' }));
+    fireEvent.click(screen.getByRole('tab', { name: /Normas/ }));
     fireEvent.change(screen.getByLabelText('Normas de la liga'), {
       target: { value: 'Cuota de 15 €' },
     });
@@ -121,11 +121,7 @@ describe('GroupMembersModal', () => {
     const { onSaveSettings } = setup();
     await screen.findByText('Bruno');
 
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
-    expect(screen.getByRole('tab', { name: /Puntuación/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
     fireEvent.change(await screen.findByLabelText('Campeón'), { target: { value: '300' } });
     expect(screen.getByText('Por defecto: 200')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
@@ -153,17 +149,19 @@ describe('GroupMembersModal', () => {
     const onClose = vi.fn();
     setup({ onSaveSettings, onClose });
     await screen.findByText('Bruno');
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     fireEvent.change(screen.getByLabelText('Nombre de la liga'), {
       target: { value: 'Nueva liga' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
     await waitFor(() => expect(onSaveSettings).toHaveBeenCalled());
     expect(screen.getByLabelText('Nombre de la liga')).toBeDisabled();
-    expect(screen.getByLabelText('Campeón')).toBeDisabled();
+    fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
+    expect(await screen.findByLabelText('Campeón')).toBeDisabled();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
     finish(true);
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     await waitFor(() => expect(screen.getByLabelText('Nombre de la liga')).toBeEnabled());
     expect(screen.getByLabelText('Nombre de la liga')).toHaveValue('Nueva liga');
   });
@@ -177,7 +175,7 @@ describe('GroupMembersModal', () => {
     );
     setup();
     await screen.findByText('Bruno');
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
 
     const exact = await screen.findByLabelText('Resultado exacto');
     expect(exact).toHaveValue(10);
@@ -203,7 +201,7 @@ describe('GroupMembersModal', () => {
     api.fetchLeagueScoring.mockResolvedValue(leagueScoring({ editable: false }));
     setup();
     await screen.findByText('Bruno');
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
 
     expect(
       await screen.findByText('La puntuación de esta liga es fija y no se puede cambiar.'),
@@ -241,7 +239,7 @@ describe('GroupMembersModal', () => {
     const { onDelete } = setup();
     await screen.findByText('Bruno');
 
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     fireEvent.click(screen.getByRole('button', { name: /Eliminar liga/i }));
     const confirmButton = screen.getByRole('button', { name: /Eliminar definitivamente/i });
     expect(confirmButton).toBeDisabled();

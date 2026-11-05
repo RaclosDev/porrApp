@@ -75,8 +75,8 @@ class OfficialCompetitionLinkServiceTest {
         service.link(7L, "admin@test.dev", 19L);
 
         assertEquals(worlds, edition.getCompetition());
-        assertEquals(PredictionLockMode.FIXED_DATE, edition.getLockMode());
-        assertEquals(start, edition.getLockDate());
+        assertEquals(PredictionLockMode.PER_MATCH, edition.getLockMode());
+        assertNull(edition.getLockDate());
         PredictionDataDTO translated = prediction.getBracketData();
         assertEquals(List.of(
                 List.of("Invictus Gaming", "Gen.G Esports", "BILIBILI GAMING", "T1"),
