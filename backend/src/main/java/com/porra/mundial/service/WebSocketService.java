@@ -174,6 +174,16 @@ public class WebSocketService {
     public void notifyPredictionsChanged(Long leagueId) {
         if (leagueId == null) return;
         evictKey("leaderboard", leagueId);
+        notifyMatchPredictionsSaved(leagueId);
+    }
+
+    /**
+     * Se han guardado pronósticos de partidos aún abiertos: no cambian ningún punto, así que la
+     * clasificación cacheada sigue valiendo (si se creó la porra, ya la invalida el servicio).
+     * Tirarla en cada guardado obligaba a recalcularla para toda la liga en plena jornada.
+     */
+    public void notifyMatchPredictionsSaved(Long leagueId) {
+        if (leagueId == null) return;
         evictKey("groupById", leagueId);
         if (leagueNoticeDelayMs <= 0) {
             sendLeagueNotice(leagueId);
