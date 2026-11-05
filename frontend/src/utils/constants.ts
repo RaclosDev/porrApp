@@ -1,14 +1,4 @@
 /**
- * Porra Global: liga pública por defecto (demo, entrada desde LinkedIn y usuarios sin liga).
- * El backend garantiza este id al arrancar (League.GLOBAL_ID).
- */
-export const GLOBAL_LEAGUE_ID = '1';
-
-/** Comprueba si un id de liga (número o texto) es la Porra Global. */
-export const isGlobalLeagueId = (id: string | number | null | undefined) =>
-  id != null && String(id) === GLOBAL_LEAGUE_ID;
-
-/**
  * Corrige mojibake UTF-8 decodificado erróneamente como Latin-1 / Windows-1252.
  */
 export function fixMojibake(str: string): string {

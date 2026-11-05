@@ -11,7 +11,7 @@ import tools.jackson.databind.JsonNode;
 import java.security.Principal;
 
 /**
- * Puntuación de una liga. La lectura es pública para la Porra Global y para los miembros de una
+ * Puntuación de una liga. La lectura es pública en las ligas públicas y para los miembros de una
  * liga privada; el cambio exige sesión (ver {@code SecurityConfig}) y ser su administrador.
  */
 @RestController
@@ -30,7 +30,7 @@ public class LeagueScoringController {
 
     /**
      * Cambia las reglas y recalcula los puntos de la liga. Las reglas que no se envían toman su valor por defecto.
-     * Solo el administrador; la Porra Global no se cambia.
+     * Solo el administrador de la liga.
      */
     @PutMapping
     public LeagueScoringDTO updateScoring(@PathVariable Long id, @RequestBody JsonNode body, Principal principal) {

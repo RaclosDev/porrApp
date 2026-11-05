@@ -2,7 +2,6 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.MatchdayPointsDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
-import com.porra.mundial.model.League;
 import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.LeaderboardService;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +22,13 @@ public class LeaderboardController {
     private final GroupService groupService;
 
     /**
-     * Clasificación de una liga (por defecto, la Porra Global). Usa los puntos guardados y
+     * Clasificación de una liga. Usa los puntos guardados y
      * recalcula si alguna porra está invalidada.
      */
     @GetMapping
-    public List<ParticipantScoreDTO> getLeaderboard(@RequestParam(required = false) Long groupId, Principal principal) {
-        Long leagueId = groupId != null ? groupId : League.GLOBAL_ID;
-        groupService.assertCanView(leagueId, CurrentUser.email(principal));
-        return leaderboardService.getLeaderboard(leagueId);
+    public List<ParticipantScoreDTO> getLeaderboard(@RequestParam Long groupId, Principal principal) {
+        groupService.assertCanView(groupId, CurrentUser.email(principal));
+        return leaderboardService.getLeaderboard(groupId);
     }
 
     /**
@@ -38,9 +36,8 @@ public class LeaderboardController {
      * Permite navegar por jornadas en el ranking sin descargar el detalle completo de cada porra.
      */
     @GetMapping("/matchdays")
-    public List<MatchdayPointsDTO> getMatchdayBreakdown(@RequestParam(required = false) Long groupId, Principal principal) {
-        Long leagueId = groupId != null ? groupId : League.GLOBAL_ID;
-        groupService.assertCanView(leagueId, CurrentUser.email(principal));
-        return leaderboardService.getMatchdayBreakdown(leagueId);
+    public List<MatchdayPointsDTO> getMatchdayBreakdown(@RequestParam Long groupId, Principal principal) {
+        groupService.assertCanView(groupId, CurrentUser.email(principal));
+        return leaderboardService.getMatchdayBreakdown(groupId);
     }
 }

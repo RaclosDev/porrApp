@@ -7,7 +7,6 @@ import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
-import com.porra.mundial.model.League;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.PredictionService;
 import com.porra.mundial.service.WebSocketService;
@@ -65,14 +64,20 @@ class PredictionControllerTest {
                 .build();
 
         List<Prediction> predictions = List.of(Prediction.builder().id(1L).build());
-        Mockito.when(predictionService.getPredictionsByGroupId(League.GLOBAL_ID)).thenReturn(predictions);
+        Mockito.when(predictionService.getPredictionsByGroupId(7L)).thenReturn(predictions);
         Mockito.when(predictionService.toPredictionDtoList(predictions, null)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/predictions"))
+        mockMvc.perform(get("/api/predictions").param("groupId", "7"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].participantName").value("Juan"));
-        Mockito.verify(groupService).assertCanView(League.GLOBAL_ID, null);
-        Mockito.verify(predictionService).getPredictionsByGroupId(League.GLOBAL_ID);
+        Mockito.verify(groupService).assertCanView(7L, null);
+        Mockito.verify(predictionService).getPredictionsByGroupId(7L);
+    }
+
+    @Test
+    void getAllPredictions_RequiresALeague() throws Exception {
+        mockMvc.perform(get("/api/predictions")).andExpect(status().isBadRequest());
+        Mockito.verifyNoInteractions(predictionService);
     }
 
     @Test
@@ -92,7 +97,7 @@ class PredictionControllerTest {
 
         Mockito.when(predictionService.createPrediction(anyString(), anyString(), any(PredictionDataDTO.class), any())).thenReturn(saved);
 
-        mockMvc.perform(post("/api/predictions")
+        mockMvc.perform(post("/api/predictions").param("groupId", "7")
                         .principal(() -> "ana@test.com")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))

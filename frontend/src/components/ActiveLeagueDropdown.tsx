@@ -82,7 +82,7 @@ export default function ActiveLeagueDropdown() {
   const currentBadge = getCompetitionBadge(activeCompetitionName);
   const activeGroup = (userGroups || []).find((g) => String(g.id) === String(activeGroupId));
   const activeImageUrl = activeGroup?.imageUrl || null;
-  const displayLeagueName = activeGroupName || 'Porra Global';
+  const displayLeagueName = activeGroupName || 'Liga';
   const displayCompName =
     activeCompetitionName || (activeCompetitionFormatType === 'LEAGUE' ? 'Liga' : 'Mundial');
 

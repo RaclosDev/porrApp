@@ -114,7 +114,7 @@ public class MatchReminderService {
 
         for (Edition edition : editionRepository.findActiveByPoolFormat(PoolFormat.MATCH_DAY)) {
             League league = edition.getLeague();
-            if (league == null || league.isGlobal() || League.isGlobalId(league.getId())) continue;
+            if (league == null) continue;
             if (edition.getCompetition() == null || edition.isLocked()) continue;
             Long competitionId = edition.getCompetition().getId();
 

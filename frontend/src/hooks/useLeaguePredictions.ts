@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { leaguePredictionsQuery, myPredictionsQuery } from '../services/queries';
 import { useAppStore } from '../store/useAppStore';
-import { isGlobalLeagueId } from '../utils/constants';
 import type { PredictionSummary } from '../types/api';
 
 const NO_PREDICTIONS: PredictionSummary[] = [];
@@ -24,8 +23,6 @@ export function useMyLeaguePrediction(): PredictionSummary | undefined {
   const { data } = useQuery(myPredictionsQuery(isAuthenticated));
   return useMemo(() => {
     if (!activeGroupId || !Array.isArray(data)) return undefined;
-    return data.find((p) =>
-      p.groupId != null ? String(p.groupId) === activeGroupId : isGlobalLeagueId(activeGroupId),
-    );
+    return data.find((p) => p.groupId != null && String(p.groupId) === activeGroupId);
   }, [data, activeGroupId]);
 }

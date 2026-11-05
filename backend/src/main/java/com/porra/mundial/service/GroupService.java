@@ -314,11 +314,18 @@ public class GroupService {
     public Optional<GroupResponseDTO> findGroupResponse(Long id, String viewerEmail) {
         return getGroupById(id).map(league -> {
             boolean member = isUserMemberOrAdmin(id, viewerEmail);
-            if (member || League.isGlobalId(id) || league.isGlobal()) {
+            if (member || league.isPublicLeague()) {
                 return toResponse(league, member);
             }
             return GroupResponseDTO.preview(league, editionRepository.findByLeagueIdAndStatus(id, "ACTIVE").orElse(null));
         });
+    }
+
+    /** La liga pública más antigua, que la portada y la demo enseñan. */
+    @Transactional(readOnly = true)
+    public Optional<GroupResponseDTO> findFeaturedGroupResponse(String viewerEmail) {
+        return leagueRepository.findFirstByPublicLeagueTrueOrderByIdAsc()
+                .map(league -> toResponse(league, isUserMemberOrAdmin(league.getId(), viewerEmail)));
     }
 
     /** Datos públicos para previsualizar una invitación sin unirse a la liga. */
@@ -334,14 +341,17 @@ public class GroupService {
     }
 
     /**
-     * Comprueba que el usuario puede ver los datos de una liga: la Porra Global es pública,
-     * el resto solo para sus miembros.
+     * Comprueba que el usuario puede ver los datos de una liga: las públicas, cualquiera;
+     * el resto, solo sus miembros.
      *
      * @throws BusinessException si la liga es privada y el usuario no pertenece a ella
      */
     @Transactional(readOnly = true)
     public void assertCanView(Long groupId, String email) {
-        if (groupId == null || League.isGlobalId(groupId)) return;
+        if (groupId == null) {
+            throw BusinessException.badRequest("Falta la liga");
+        }
+        if (leagueRepository.findById(groupId).map(League::isPublicLeague).orElse(false)) return;
         if (!isUserMemberOrAdmin(groupId, email)) {
             throw BusinessException.forbidden("No perteneces a esta liga privada");
         }
@@ -402,19 +412,19 @@ public class GroupService {
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
-        boolean isGlobal = group.isGlobal();
+        boolean isPublic = group.isPublicLeague();
         boolean callerIsAdmin = false;
 
         if (email != null && !email.isBlank()) {
             boolean isLeagueAdmin = group.getAdminUser() != null && group.getAdminUser().getGoogleEmail() != null && group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email);
             callerIsAdmin = isLeagueAdmin;
-            if (!callerIsAdmin && !isGlobal) {
+            if (!callerIsAdmin && !isPublic) {
                 UserAccount caller = userAccountRepository.findByGoogleEmail(email).orElse(null);
                 if (caller == null || !membershipRepository.existsById(new Membership.MembershipId(caller.getId(), groupId))) {
                     throw BusinessException.forbidden("No perteneces a esta liga privada.");
                 }
             }
-        } else if (!isGlobal) {
+        } else if (!isPublic) {
             throw BusinessException.forbidden("No autenticado para consultar miembros de una liga privada.");
         }
 
@@ -427,12 +437,12 @@ public class GroupService {
             boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
                     || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
 
-            // La Porra Global es pública y no tiene pagos: ni emails ni estado de pago.
-            String displayEmail = isGlobal ? null
+            // Una liga pública la ve cualquiera: ni emails ni estado de pago.
+            String displayEmail = isPublic ? null
                     : (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
                             ? u.getGoogleEmail()
                             : maskEmail(u.getGoogleEmail());
-            String paymentStatus = isGlobal ? null
+            String paymentStatus = isPublic ? null
                     : m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING";
 
             list.add(GroupMemberDTO.builder()

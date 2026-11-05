@@ -79,7 +79,7 @@ describe('GroupMembersModal', () => {
     expect(screen.getByRole('tab', { name: /Miembros/i })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('no muestra pagos cuando la liga no los tiene (Porra Global)', async () => {
+  it('no muestra pagos cuando la liga no los tiene (liga pública)', async () => {
     api.fetchGroupMembers.mockResolvedValue(
       MEMBERS.map((member) => ({ ...member, paymentStatus: null })),
     );

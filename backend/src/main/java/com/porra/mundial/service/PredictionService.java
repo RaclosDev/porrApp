@@ -95,25 +95,27 @@ public class PredictionService {
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO predictionData, Long groupId) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email)
                 .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
-        Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
-        Edition edition = editionRepository.findByLeagueIdAndStatus(effectiveGroupId, "ACTIVE")
+        if (groupId == null) {
+            throw BusinessException.badRequest("Falta la liga");
+        }
+        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("No hay una edición activa para esta liga"));
 
         if (edition.isLocked()) {
             throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
         }
 
-        if (groupId != null && edition.getLeague() != null) {
+        if (edition.getLeague() != null) {
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-            boolean isGlobal = edition.getLeague().isGlobal();
-            if (!membershipRepository.existsById(memId) && !isGlobal) {
+            boolean publicLeague = edition.getLeague().isPublicLeague();
+            if (!membershipRepository.existsById(memId) && !publicLeague) {
                 throw BusinessException.forbidden("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
             }
         }
 
         validateBracket(edition, predictionData);
 
-        Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, effectiveGroupId);
+        Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId);
         if (progressiveCustom(edition)) {
             CustomLockService.LockState state = customLockService.state(edition);
             if (state.fullyLocked()) {
@@ -301,10 +303,10 @@ public class PredictionService {
         return data != null && partial != null && !partial.fullyLocked() ? customLockService.lockedPartsOnly(partial, data) : data;
     }
 
-    /** Los pronósticos de una liga privada solo los ven sus miembros; los de la Porra Global, todos. */
+    /** Los pronósticos de una liga privada solo los ven sus miembros; los de una pública, todos. */
     private void assertMemberOfPredictionLeague(Prediction pred, String requesterEmail) {
         League league = pred.getEdition() != null ? pred.getEdition().getLeague() : null;
-        if (league == null || league.isGlobal() || League.isGlobalId(league.getId())) {
+        if (league == null || league.isPublicLeague()) {
             return;
         }
         boolean member = requesterEmail != null && !requesterEmail.isBlank()

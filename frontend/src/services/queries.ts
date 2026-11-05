@@ -1,6 +1,7 @@
 /** Opciones de consulta compartidas por varios componentes (misma clave, misma función). */
 import { queryOptions } from '@tanstack/react-query';
 import {
+  fetchFeaturedGroup,
   fetchLeaderboardMatchdays,
   fetchMyGroups,
   fetchMyPredictions,
@@ -8,6 +9,7 @@ import {
   fetchPredictions,
   fetchPredictionScore,
 } from './api';
+import { isApiError } from './apiError';
 import { queryKeys } from './queryKeys';
 
 export const myGroupsQuery = (isAuthenticated: boolean) =>
@@ -15,6 +17,18 @@ export const myGroupsQuery = (isAuthenticated: boolean) =>
     queryKey: queryKeys.myGroups(isAuthenticated),
     queryFn: () => (isAuthenticated ? fetchMyGroups() : Promise.resolve([])),
     staleTime: 60_000,
+  });
+
+/**
+ * Liga pública destacada; no hay ninguna si el backend responde 404. Otros fallos (un despliegue,
+ * un arranque en frío) se reintentan para que la portada no se quede sin clasificación ni cromos.
+ */
+export const featuredGroupQuery = () =>
+  queryOptions({
+    queryKey: queryKeys.featuredGroup(),
+    queryFn: fetchFeaturedGroup,
+    staleTime: 5 * 60_000,
+    retry: (failureCount, error) => !isApiError(error, 404) && failureCount < 3,
   });
 
 /** Cuadro oficial; lo invalida el WebSocket cuando cambia un resultado. */

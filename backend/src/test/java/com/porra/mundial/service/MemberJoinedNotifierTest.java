@@ -82,12 +82,12 @@ class MemberJoinedNotifierTest {
     }
 
     @Test
-    void neverNotifiesInTheGlobalLeague() {
-        League global = League.builder().id(League.GLOBAL_ID).name(League.GLOBAL_NAME)
-                .joinCode(League.GLOBAL_JOIN_CODE).build();
-        when(leagues.findById(League.GLOBAL_ID)).thenReturn(Optional.of(global));
+    void neverNotifiesInAPublicLeague() {
+        League global = League.builder().id(50L).name("Abierta")
+                .joinCode("ABIERTA").publicLeague(true).build();
+        when(leagues.findById(50L)).thenReturn(Optional.of(global));
 
-        assertThat(notifier.notifyMembers(new MemberJoinedLeagueEvent(League.GLOBAL_ID, 4L))).isZero();
+        assertThat(notifier.notifyMembers(new MemberJoinedLeagueEvent(50L, 4L))).isZero();
         verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt());
     }
 

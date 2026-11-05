@@ -10,6 +10,7 @@ vi.mock('../../services/api', () => ({
   fetchPredictions: vi.fn().mockResolvedValue([]),
   fetchMatches: vi.fn().mockResolvedValue([]),
   fetchCompetitions: vi.fn(),
+  fetchFeaturedGroup: vi.fn().mockResolvedValue({ id: 5, name: 'Liga abierta' }),
 }));
 
 beforeEach(() => {
@@ -43,11 +44,18 @@ it('waits for the catalogue and does not request every competition when LaLiga i
   expect(api.fetchMatches).not.toHaveBeenCalled();
 });
 
-it('demo waits for global league metadata rather than assuming competition 2', () => {
+it('demo starts without a hardcoded league or competition', () => {
   useAppStore.setState({ activeCompetitionId: 99 });
   useAppStore.getState().enterDemoMode();
-  expect(useAppStore.getState().activeGroupId).toBe('1');
+  expect(useAppStore.getState().activeGroupId).toBe('');
   expect(useAppStore.getState().activeCompetitionId).toBeNull();
   expect(localStorage.getItem('activeCompetitionId')).toBeNull();
   useAppStore.setState({ isDemoMode: false });
+});
+
+it('reads the ranking of the featured public league', async () => {
+  vi.mocked(api.fetchCompetitions).mockResolvedValue([]);
+  const view = mount();
+  await waitFor(() => expect(api.fetchLeaderboard).toHaveBeenCalledWith('5'));
+  await waitFor(() => expect(view.result.current.leagueName).toBe('Liga abierta'));
 });

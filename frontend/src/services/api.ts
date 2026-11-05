@@ -414,6 +414,9 @@ export const fetchMyGroups = () => request<Group[]>('/groups/mine');
 
 export const fetchGroup = (id: number | string) => request<Group>(`/groups/${id}`);
 
+/** Liga pública destacada (portada, demo y entrada de invitados). */
+export const fetchFeaturedGroup = () => request<Group>('/groups/featured');
+
 /** Metadatos públicos de una invitación, sin unirse a la liga. */
 export const fetchGroupInvitationPreview = (joinCode: string) =>
   request<Group>(`/groups/preview/${encodeURIComponent(joinCode)}`);

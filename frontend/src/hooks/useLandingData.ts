@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCompetitions, fetchLeaderboard, fetchMatches } from '../services/api';
-import { leaguePredictionsQuery } from '../services/queries';
+import { featuredGroupQuery, leaguePredictionsQuery } from '../services/queries';
 import { queryKeys } from '../services/queryKeys';
 import { rankPicks, toBracketEntries } from '../utils/bracketStats';
-import { GLOBAL_LEAGUE_ID } from '../utils/constants';
 import type { Match } from '../types/api';
 import type { StickerLeader } from '../components/StickerCard';
 
@@ -17,17 +16,20 @@ export interface ChampionPick {
 }
 
 /**
- * Datos reales de la Porra Global para la portada: los primeros de la clasificación, el campeón
+ * Datos reales de la liga pública destacada para la portada: los primeros de la clasificación, el campeón
  * más elegido y los próximos partidos de LaLiga. Todo son lecturas públicas.
  */
 export function useLandingData() {
+  const featured = useQuery(featuredGroupQuery());
+  const leagueId = featured.data ? String(featured.data.id) : null;
   const leaderboard = useQuery({
-    queryKey: queryKeys.leaderboard(GLOBAL_LEAGUE_ID),
-    queryFn: () => fetchLeaderboard(GLOBAL_LEAGUE_ID),
+    queryKey: queryKeys.leaderboard(leagueId),
+    queryFn: () => fetchLeaderboard(leagueId),
+    enabled: leagueId != null,
     staleTime: 60_000,
     retry: 1,
   });
-  const predictions = useQuery(leaguePredictionsQuery(GLOBAL_LEAGUE_ID));
+  const predictions = useQuery(leaguePredictionsQuery(leagueId));
   const competitions = useQuery({
     queryKey: queryKeys.competitions(),
     queryFn: fetchCompetitions,
@@ -64,11 +66,12 @@ export function useLandingData() {
 
   return {
     leaders,
+    leagueName: featured.data?.name ?? null,
     participants: leaderboard.data?.length ?? 0,
     champion,
     nextFixtures,
-    loading: leaderboard.isPending,
-    error: leaderboard.isError,
+    loading: featured.isPending || (leagueId != null && leaderboard.isPending),
+    error: featured.isError || leaderboard.isError,
   };
 }
 
