@@ -52,17 +52,14 @@ const RootPage = () => {
 const DemoPredictionPage = () => {
   const participantsHashes = useLeaguePredictions();
 
-  // La demo muestra la porra pública de Raclos en modo estrictamente de solo lectura.
-  const raclosPrediction = participantsHashes.find((participant) =>
-    /raclos/i.test(participant?.participantName || ''),
-  );
-  const predictionId = raclosPrediction?.key;
+  // La demo muestra en solo lectura la porra de un participante de la liga pública.
+  const predictionId = participantsHashes[0]?.key;
 
   if (!predictionId) {
     return (
       <section className="view-section block paper-panel album-sheet p-6">
         <h2>Mi Porra · Demo</h2>
-        <p role="status">No se ha encontrado la porra pública de Raclos en esta liga.</p>
+        <p role="status">Todavía no hay porras en esta liga.</p>
       </section>
     );
   }
@@ -77,7 +74,7 @@ const DemoPage = () => {
     enterDemoMode?.();
   }, [enterDemoMode]);
 
-  // Reuse the same dashboard as a real session without impersonating raclos.
+  // Reuse the same dashboard as a real session without impersonating anyone.
   return <Home />;
 };
 
@@ -92,7 +89,7 @@ const ProtectedRoute = ({
   const isAuthed = isAuthenticated && Boolean(userName);
   const location = useLocation();
 
-  // En demo, Mi Porra abre la porra real de Raclos en modo de solo lectura.
+  // En demo, Mi Porra abre una porra real de la liga en modo de solo lectura.
   if (isDemoMode && location.pathname === '/prediction') {
     return <DemoPredictionPage />;
   }

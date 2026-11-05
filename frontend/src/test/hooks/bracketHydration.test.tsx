@@ -211,13 +211,14 @@ describe('useBracket: hidratación desde fetchMyPredictions', () => {
     expect(readJsonDraft('groups', '10', '7')).toBeUndefined();
   });
 
-  it('conserva la compatibilidad de la liga global con predicciones sin groupId', async () => {
+  it('una predicción sin liga no se asigna a ninguna liga', async () => {
     context.activeGroupId = '1';
     vi.mocked(api.fetchMyPredictions).mockResolvedValue([
       { ...prediction(1, 'Brasil'), groupId: null },
     ]);
     const { result } = renderHook(() => useBracket(), { wrapper });
-    await waitFor(() => expect(result.current.savedPredictionId).toBe('p1'));
+    await act(async () => {});
+    expect(result.current.savedPredictionId).toBeNull();
   });
 
   it('el fallback de participantes usa userId antes que un nombre compartido', async () => {

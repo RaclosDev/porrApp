@@ -1,6 +1,7 @@
 /** Opciones de consulta compartidas por varios componentes (misma clave, misma función). */
 import { queryOptions } from '@tanstack/react-query';
 import {
+  fetchFeaturedGroup,
   fetchLeaderboardMatchdays,
   fetchMyGroups,
   fetchMyPredictions,
@@ -15,6 +16,15 @@ export const myGroupsQuery = (isAuthenticated: boolean) =>
     queryKey: queryKeys.myGroups(isAuthenticated),
     queryFn: () => (isAuthenticated ? fetchMyGroups() : Promise.resolve([])),
     staleTime: 60_000,
+  });
+
+/** Liga pública destacada; no hay ninguna si el backend responde 404. */
+export const featuredGroupQuery = () =>
+  queryOptions({
+    queryKey: queryKeys.featuredGroup(),
+    queryFn: fetchFeaturedGroup,
+    staleTime: 5 * 60_000,
+    retry: false,
   });
 
 /** Cuadro oficial; lo invalida el WebSocket cuando cambia un resultado. */

@@ -4,7 +4,6 @@ import { useAppContext } from '../context/AppContext';
 import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
-import { isGlobalLeagueId } from '../utils/constants';
 import { advanceBracketWinner, replaceR32Team } from '../utils/bracketTransitions';
 import { r32SlotIndex, topologyVersion } from '../utils/bracketTopology';
 import {
@@ -188,9 +187,6 @@ export function useBracket() {
         if (cancelled || !Array.isArray(predictions)) return;
         const latest = latestRef.current;
         let current = predictions.find((b) => b.groupId?.toString() === groupId);
-        if (!current && isGlobalLeagueId(groupId)) {
-          current = predictions.find((b) => !b.groupId || isGlobalLeagueId(b.groupId));
-        }
         if (!current && latest.participantsHashes.length > 0) {
           if (userId) {
             current = latest.participantsHashes.find((p) => p.userId?.toString() === userId);

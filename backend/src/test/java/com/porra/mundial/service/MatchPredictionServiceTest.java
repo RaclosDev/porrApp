@@ -428,11 +428,8 @@ class MatchPredictionServiceTest {
     }
 
     @Test
-    @DisplayName("getMatchdayFixtures retorna lista vacía cuando el grupo es la Porra Global o no es modalidad MATCH_DAY")
+    @DisplayName("getMatchdayFixtures retorna lista vacía cuando la liga no es modalidad MATCH_DAY")
     void getMatchdayFixtures_ReturnsEmptyList_WhenNotMatchDay() {
-        List<MatchdayFixturePredictionDTO> globalFixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 1L, null);
-        assertTrue(globalFixtures.isEmpty(), "La Porra Global no debe devolver partidos de jornada");
-
         Edition bracketEdition = Edition.builder()
                 .id(101L)
                 .league(league)

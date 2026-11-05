@@ -63,6 +63,7 @@ for (const viewport of [
             });
           }
           const responses: Record<string, unknown> = {
+            '/api/groups/featured': league,
             '/api/standings': {},
             '/api/standings/official-bracket': {},
             '/api/teams/odds': {},

@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { AppProvider } from '../../context/AppContext';
 import { queryClient } from '../../services/queryClient';
 import { defaultBracketState, useAppStore } from '../../store/useAppStore';
-import { GLOBAL_LEAGUE_ID } from '../../utils/constants';
 
 const signIn = () => {
   localStorage.setItem('token', 'jwt');
@@ -80,7 +79,7 @@ describe('logout()', () => {
     expectSignedOut();
   });
 
-  it('salir de la demo cierra la sesión y deja la liga global', () => {
+  it('salir de la demo cierra la sesión y no deja ninguna liga elegida', () => {
     signIn();
     useAppStore.setState({ isDemoMode: true });
     useAppStore.getState().exitDemoMode();
@@ -88,7 +87,7 @@ describe('logout()', () => {
     expect(useAppStore.getState()).toMatchObject({
       isDemoMode: false,
       isAuthenticated: false,
-      activeGroupId: GLOBAL_LEAGUE_ID,
+      activeGroupId: '',
     });
   });
 });

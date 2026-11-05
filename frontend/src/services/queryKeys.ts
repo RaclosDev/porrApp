@@ -23,6 +23,7 @@ export const queryKeys = {
   competitions: () => key('competitions'),
   myGroups: (isAuthenticated?: boolean) => key('myGroups', isAuthenticated),
   group: (groupId?: Id) => key('group', asText(groupId)),
+  featuredGroup: () => key('featuredGroup'),
   groupMembers: (groupId?: Id) => key('groupMembers', asText(groupId)),
   leagueScoring: (groupId?: Id) => key('leagueScoring', asText(groupId)),
   predictions: (groupId?: Id) => key('predictions', asText(groupId)),

@@ -9,7 +9,7 @@ import com.porra.mundial.scoring.ScoringRuleSet;
  *
  * @param poolFormat formato de la porra (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY), que decide qué reglas se aplican
  * @param pichichi   si la edición puntúa al máximo goleador
- * @param editable   si quien consulta puede cambiarlas: el administrador de una liga que no sea la Porra Global
+ * @param editable   si quien consulta puede cambiarlas: el administrador de la liga
  * @param maxPoints  máximo que admite cada regla
  * @param rules      reglas con las que puntúa la edición
  * @param defaults   reglas por defecto
