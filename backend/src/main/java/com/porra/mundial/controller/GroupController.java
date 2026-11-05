@@ -81,10 +81,10 @@ public class GroupController {
         return groupService.toResponse(group, true);
     }
 
-    /** Cambia el nombre o las reglas de una liga. Solo el administrador. */
+    /** Cambia el nombre, las reglas o la cuota de una liga. Solo el administrador. */
     @PutMapping("/{id}")
     public GroupResponseDTO updateGroup(@PathVariable Long id, @Valid @RequestBody GroupUpdateDTO payload, Principal principal) {
-        League group = groupService.updateGroup(id, payload.getName(), payload.getRules(), principal.getName());
+        League group = groupService.updateGroup(id, payload.getName(), payload.getRules(), payload.getEntryFee(), principal.getName());
         return groupService.toResponse(group, true);
     }
 

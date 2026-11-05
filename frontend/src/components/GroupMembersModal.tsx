@@ -25,6 +25,7 @@ import {
   kickGroupMember,
   transferGroupAdmin,
   regenerateGroupJoinCode,
+  updateGroupEntryFee,
 } from '../services/api';
 import LeagueMembersTab from './league/LeagueMembersTab';
 import LeagueSettingsTab, { type LeagueSettingsSection } from './league/LeagueSettingsTab';
@@ -57,6 +58,8 @@ export default function GroupMembersModal({
   onUploadImage,
   onRemoveImage,
   lockSection,
+  entryFee,
+  onEntryFeeChanged,
 }: {
   groupId: number;
   groupName: string;
@@ -74,6 +77,9 @@ export default function GroupMembersModal({
   onRemoveImage: () => Promise<void>;
   /** Cierre de predicciones que se muestra en los ajustes. */
   lockSection?: ReactNode;
+  /** Cuota de inscripción; undefined en ligas públicas, que no la admiten. */
+  entryFee?: boolean;
+  onEntryFeeChanged?: (entryFee: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<AdminTab>('members');
@@ -96,6 +102,18 @@ export default function GroupMembersModal({
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const scoringEditor = useScoringEditor(groupId, isAdmin);
+  const entryFeeMutation = useMutation({
+    mutationFn: (value: boolean) => updateGroupEntryFee(groupId, value),
+    onSuccess: (_group, value) => {
+      onEntryFeeChanged?.(value);
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group() });
+      toast.success(value ? 'Cuota activada' : 'Cuota quitada');
+    },
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'No se pudo cambiar la cuota'),
+  });
   const nameDirty = name.trim() !== (groupName || '').trim();
   const rulesDirty = rulesText !== (initialRules || '');
   const settingsDirty = nameDirty || rulesDirty;
@@ -548,6 +566,9 @@ export default function GroupMembersModal({
               setPaymentFilter={setPaymentFilter}
               setSearch={setSearch}
               visibleMembers={visibleMembers}
+              entryFee={entryFee}
+              entryFeeSaving={entryFeeMutation.isPending}
+              onToggleEntryFee={(value) => entryFeeMutation.mutate(value)}
             />
           )}
 

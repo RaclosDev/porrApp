@@ -145,10 +145,12 @@ public class LeaderboardService {
                 .collect(Collectors.groupingBy(mp -> mp.getPrediction().getId()));
     }
 
+    /** Estado de pago por usuario, o null si la liga no cobra cuota (nadie queda pendiente). */
     private Map<Long, String> getMembershipPaymentStatus(Long groupId) {
         if (groupId == null) return Collections.emptyMap();
         Map<Long, String> statuses = new HashMap<>();
         for (Membership membership : membershipRepository.findByLeagueId(groupId)) {
+            if (membership.getLeague() != null && !membership.getLeague().isEntryFee()) return null;
             if (membership.getUser() == null || membership.getUser().getId() == null) continue;
             statuses.put(membership.getUser().getId(),
                     membership.getPaymentStatus() != null ? membership.getPaymentStatus() : "PENDING");
@@ -157,6 +159,7 @@ public class LeaderboardService {
     }
 
     private boolean isPaymentPending(Prediction pred, Map<Long, String> membershipPayment) {
+        if (membershipPayment == null) return false;
         Long userId = pred.getUser() != null ? pred.getUser().getId() : null;
         if (userId != null) {
             String status = membershipPayment.get(userId);
@@ -347,7 +350,9 @@ public class LeaderboardService {
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
                 officialResultsService.current(), scorers,
                 scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())));
-        score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
+        boolean entryFee = pred.getEdition() != null && pred.getEdition().getLeague() != null
+                && pred.getEdition().getLeague().isEntryFee();
+        score.setPending(entryFee && !Boolean.TRUE.equals(pred.getPaid()));
         return score;
     }
 

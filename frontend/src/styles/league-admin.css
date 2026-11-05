@@ -224,6 +224,32 @@
     background: rgba(185, 28, 28, 0.04);
   }
 
+  .league-admin-fee-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+  }
+
+  .league-admin-fee-toggle span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .league-admin-fee-toggle small {
+    color: var(--text-muted);
+  }
+
+  .league-admin-fee-toggle input {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    accent-color: var(--accent, currentColor);
+  }
+
   .league-admin-card-head {
     display: flex;
     align-items: center;
