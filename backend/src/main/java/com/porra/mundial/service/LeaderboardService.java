@@ -353,9 +353,7 @@ public class LeaderboardService {
                 && com.porra.mundial.model.Competition.WORLD_CUP_EXTERNAL_ID.equals(edition.getCompetition().getExternalId())
                 && (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.FULL_BRACKET
                     || edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY);
-        if (participant != null && edition != null && edition.getCompetition() != null
-                && edition.getCompetition().getOwnerLeague() != null
-                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+        if (participant != null && PredictableBracket.applies(edition)) {
             score = customBracketScoringService.score(pred);
         } else if (participant != null && bracketEdition) {
             score = calculatePoints(strategy, new CalculationContext(participant, official.bracket(), official.groupPoints(),

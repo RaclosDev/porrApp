@@ -2,19 +2,32 @@ import StickerCard from './StickerCard';
 import { UserAvatar } from './Avatar';
 import type { LeaderboardRow } from '../hooks/useLeaderboard';
 
-/** Agrupa los empates sin elegir un ganador arbitrario ni depender del orden de la tabla. */
-export default function MatchdayPodium({ rows }: { rows: LeaderboardRow[] }) {
-  const eligible = rows.filter((row) => row.paid && row.points.total > 0);
+/**
+ * Tres primeros puestos por puntos entre los que han pagado, con los empates juntos. Igual que
+ * las medallas de la tabla: cuenta también quien va tercero con 0 puntos. Sin podio mientras
+ * nadie ha puntuado, para no mostrar un empate de toda la liga a cero.
+ */
+export function podiumPlaces(rows: LeaderboardRow[]) {
+  const eligible = rows.filter((row) => row.paid);
   const scores = [...new Set(eligible.map((row) => row.points.total))]
     .sort((a, b) => b - a)
     .slice(0, 3);
-  if (scores.length === 0) return null;
+  if (!scores.length || scores[0] <= 0) return [];
+  return scores.map((score) => ({
+    score,
+    leaders: eligible.filter((row) => row.points.total === score),
+  }));
+}
+
+/** Podio de la clasificación, el mismo en todos los formatos de liga. */
+export default function MatchdayPodium({ rows }: { rows: LeaderboardRow[] }) {
+  const places = podiumPlaces(rows);
+  if (places.length === 0) return null;
 
   return (
     <section className="matchday-podium" aria-label="Podio de la clasificación general">
       <ul className="ranking-podium">
-        {scores.map((score, index) => {
-          const leaders = eligible.filter((row) => row.points.total === score);
+        {places.map(({ score, leaders }, index) => {
           return (
             <li key={score} className={`ranking-podium-place ranking-podium-place-${index + 1}`}>
               <StickerCard

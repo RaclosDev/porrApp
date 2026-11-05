@@ -32,12 +32,10 @@ public class CustomBracketScoringService {
         Long competitionId = prediction.getEdition().getCompetition().getId();
         List<Match> all = matches.findByCompetitionId(competitionId);
         ScoringRuleSet rules = ScoringRuleSet.effectiveForEdition(prediction.getEdition());
-        Map<Integer, List<Match>> byRound = all.stream()
-                .filter(match -> match.getRound() != null && match.getRound().matches("bracket-[1-9][0-9]*"))
-                .collect(Collectors.groupingBy(match -> Integer.parseInt(match.getRound().substring(8))));
+        List<List<Match>> byRound = PredictableBracket.rounds(prediction.getEdition().getCompetition(), all);
         int knockoutPoints = 0;
         for (int index = 0; index < data.getCustomRounds().size(); index++) {
-            Set<String> winners = byRound.getOrDefault(index + 1, List.of()).stream()
+            Set<String> winners = (index < byRound.size() ? byRound.get(index) : List.<Match>of()).stream()
                     .filter(match -> Boolean.TRUE.equals(match.getFinished()) && match.getWinnerTeam() != null)
                     .map(match -> match.getWinnerTeam().getName())
                     .collect(Collectors.toSet());

@@ -4,6 +4,7 @@ import type { CustomTeam } from '../../../services/api';
 import type { Group, Match } from '../../../types/api';
 import { isBye, type CustomTab, type SaveAction } from './customCompetition';
 import CustomLockCard from './CustomLockCard';
+import LinkOfficialCard from './LinkOfficialCard';
 import { useCustomLock } from '../../../hooks/useCustomLock';
 
 interface Step {
@@ -160,6 +161,8 @@ export default function CustomSummaryTab({
       </section>
 
       {!matchDay && <CustomLockCard group={group} save={save} onLockDateSaved={onLockDateSaved} />}
+
+      {!matchDay && <LinkOfficialCard group={group} save={save} />}
 
       <p className="league-admin-muted custom-admin-note">
         <Info size={13} aria-hidden="true" />

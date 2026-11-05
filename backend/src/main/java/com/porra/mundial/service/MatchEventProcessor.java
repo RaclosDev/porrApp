@@ -316,6 +316,7 @@ public class MatchEventProcessor {
     /** Ronda que ESPN indica en {@code season.slug}; null si el evento no la trae o no se reconoce. */
     static String roundFromSlug(String slug) {
         return switch (slug == null ? "" : slug.toLowerCase()) {
+            case "play-in" -> "playin";
             case "group-stage" -> "group";
             case "round-of-32" -> "r32";
             case "round-of-16" -> "r16";

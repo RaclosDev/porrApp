@@ -74,7 +74,7 @@ function realSituation(official: OfficialState, team: string): string | null {
 function Search() {
   const {
     activeGroupPoolFormat,
-    activeGroupCustomCompetition,
+    activeGroupOwnBracket,
     activeCompetitionFormatType,
     activeGroupId,
     userGroups,
@@ -98,7 +98,7 @@ function Search() {
       </section>
     );
   }
-  if (activeGroupCustomCompetition && activeGroupPoolFormat !== 'MATCH_DAY') {
+  if (activeGroupOwnBracket) {
     return <Navigate to="/" replace />;
   }
   if (activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE') {
