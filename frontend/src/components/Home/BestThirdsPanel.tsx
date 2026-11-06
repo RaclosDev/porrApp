@@ -1,62 +1,14 @@
 import { useMemo } from 'react';
 import Flag from '../Flag';
-import { compareTeams } from '../../utils/points';
-import type { GroupStandings, Match, TeamStanding } from '../../types/api';
-
-interface ThirdPlaceRow extends TeamStanding {
-  group: string;
-  name: string;
-}
+import { rankBestThirds } from '../../utils/bestThirds';
+import type { GroupStandings } from '../../types/api';
 
 interface BestThirdsPanelProps {
   officialPoints: GroupStandings;
-  allGames: Match[];
-  nameToIdMap: Record<string, number>;
 }
 
-function BestThirdsPanel({ officialPoints, allGames, nameToIdMap }: BestThirdsPanelProps) {
-  const thirds = useMemo(() => {
-    if (!officialPoints || Object.keys(officialPoints).length === 0) return [];
-
-    const arr: ThirdPlaceRow[] = [];
-    Object.keys(officialPoints).forEach((groupName) => {
-      const groupData = officialPoints[groupName];
-      const teamNames = Object.keys(groupData);
-
-      // Fast-path: pick the 3rd place team directly by materialized position
-      const thirdTeamName = teamNames.find((name) => groupData[name]?.pos === 3);
-      if (thirdTeamName) {
-        arr.push({ group: groupName, name: thirdTeamName, ...groupData[thirdTeamName] });
-      } else {
-        const teamsWithStats = teamNames.map((teamName) => ({
-          name: teamName,
-          ...groupData[teamName],
-        }));
-
-        teamsWithStats.sort((a, b) =>
-          compareTeams(a, b, groupName, officialPoints, allGames, nameToIdMap),
-        );
-
-        if (teamsWithStats.length >= 3) {
-          arr.push({ group: groupName, ...teamsWithStats[2] });
-        }
-      }
-    });
-
-    arr.sort((a, b) => {
-      if (b.pts !== a.pts) return b.pts - a.pts;
-      if (b.diff !== a.diff) return b.diff - a.diff;
-      if (b.gls !== a.gls) return b.gls - a.gls;
-
-      const fpA = a.fp || 0;
-      const fpB = b.fp || 0;
-      if (fpB !== fpA) return fpB - fpA;
-
-      return a.name.localeCompare(b.name);
-    });
-
-    return arr;
-  }, [officialPoints, allGames, nameToIdMap]);
+function BestThirdsPanel({ officialPoints }: BestThirdsPanelProps) {
+  const thirds = useMemo(() => rankBestThirds(officialPoints), [officialPoints]);
 
   if (thirds.length === 0) return null;
 

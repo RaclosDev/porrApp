@@ -2,8 +2,8 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.repository.UserAccountRepository;
 
-import com.porra.mundial.service.StandingsService;
-import com.porra.mundial.service.OfficialResultsService;
+import com.porra.mundial.service.tournament.StandingsService;
+import com.porra.mundial.service.tournament.OfficialResultsService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;

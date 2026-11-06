@@ -1,6 +1,6 @@
 package com.porra.mundial.config;
 
-import com.porra.mundial.service.SyncService;
+import com.porra.mundial.service.sync.SyncService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

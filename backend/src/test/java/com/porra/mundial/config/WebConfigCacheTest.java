@@ -1,7 +1,7 @@
 package com.porra.mundial.config;
 
 import com.porra.mundial.controller.TopScorerController;
-import com.porra.mundial.service.TopScorerService;
+import com.porra.mundial.service.tournament.TopScorerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
