@@ -8,6 +8,7 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.NewLeague;
 import com.porra.mundial.service.LeagueSummaryService;
 import com.porra.mundial.service.WebSocketService;
 import org.junit.jupiter.api.DisplayName;
@@ -104,7 +105,7 @@ class GroupControllerTest {
                 .joinCode("NUEVA30")
                 .adminUser(UserAccount.builder().id(2L).participantName("User2").build())
                 .build();
-        Mockito.when(groupService.createGroup(eq("Liga Nueva"), eq("user@test.com"), eq(1L), eq(PoolFormat.FULL_BRACKET), eq(true), eq(null), eq(null)))
+        Mockito.when(groupService.createGroup(new NewLeague("Liga Nueva", "user@test.com", 1L, PoolFormat.FULL_BRACKET, true, null, null)))
                 .thenReturn(createdGroup);
         Mockito.when(groupService.toResponse(createdGroup, true))
                 .thenReturn(GroupResponseDTO.builder().id(30L).name("Liga Nueva").joinCode("NUEVA30").poolFormat("FULL_BRACKET").build());
@@ -128,7 +129,7 @@ class GroupControllerTest {
     void createGroupWithConcurrentKeyReturnsExistingLeague() throws Exception {
         League existing = League.builder().id(31L).name("Liga Nueva").joinCode("NUEVA31").build();
         String key = "0b6f1c1e-6a3c-4d4e-9a55-7b1f2d3c4e5f";
-        Mockito.when(groupService.createGroup(eq("Liga Nueva"), eq("user@test.com"), eq(1L), eq(PoolFormat.FULL_BRACKET), eq(true), eq(null), eq(key)))
+        Mockito.when(groupService.createGroup(new NewLeague("Liga Nueva", "user@test.com", 1L, PoolFormat.FULL_BRACKET, true, null, key)))
                 .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uq_leagues_admin_creation_key"));
         Mockito.when(groupService.findCreatedWithKey("user@test.com", key)).thenReturn(java.util.Optional.of(existing));
         Mockito.when(groupService.toResponse(existing, true))

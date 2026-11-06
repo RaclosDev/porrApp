@@ -8,6 +8,7 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.LeagueMembershipService;
+import com.porra.mundial.service.NewLeague;
 import com.porra.mundial.service.SyncService;
 import com.porra.mundial.service.TopScorerService;
 import org.junit.jupiter.api.BeforeAll;
@@ -71,8 +72,8 @@ class LeagueAccessMatrixIntegrationTest {
         UserAccount admin = user("admin-matrix@test.invalid", "Admin");
         UserAccount member = user("member-matrix@test.invalid", "Miembro");
         UserAccount outsider = user("outsider-matrix@test.invalid", "Ajeno");
-        League league = groupService.createGroup("Liga privada", admin.getGoogleEmail(), null,
-                PoolFormat.MATCH_DAY, false, "Torneo de prueba");
+        League league = groupService.createGroup(NewLeague.custom("Liga privada", admin.getGoogleEmail(),
+                "Torneo de prueba", PoolFormat.MATCH_DAY).withPichichi(false));
         membershipService.join(league.getId(), member.getGoogleEmail());
 
         leagueId = league.getId();
