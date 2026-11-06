@@ -8,6 +8,7 @@ import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
 import { Toaster } from 'react-hot-toast';
 import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
+import { useSessionHandoffPending } from './hooks/useSessionHandoffPending';
 
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const Home = React.lazy(() => import('./pages/Home'));
@@ -43,12 +44,13 @@ const GUEST_ALLOWED_PATHS = [
 const RootPage = () => {
   const { isAuthenticated, userName } = useAppContext();
   const isAuthed = isAuthenticated && Boolean(userName);
+  const handoffPending = useSessionHandoffPending();
 
   if (isAuthed) {
     return <Home />;
   }
 
-  return <Landing />;
+  return handoffPending ? <PageSkeleton /> : <Landing />;
 };
 
 const DemoPredictionPage = () => {

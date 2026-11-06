@@ -5,6 +5,7 @@ import {
   fetchStandings,
   getAuthToken,
   initSession,
+  isRedeemingHandoff,
   loginWithGoogle,
   prepareSessionHandoff,
   setAuthToken,
@@ -316,9 +317,12 @@ describe('sesión con refresh token', () => {
       });
 
       const restored = initSession();
+      // Mientras se canjea no se sabe si hay cuenta: la app no enseña la portada de visitante.
+      expect(isRedeemingHandoff()).toBe(true);
       const standings = fetchStandings();
 
       await expect(restored).resolves.toBe('restored');
+      expect(isRedeemingHandoff()).toBe(false);
       await standings;
       expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
         '/api/auth/session/handoff',
