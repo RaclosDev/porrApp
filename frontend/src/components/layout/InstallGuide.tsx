@@ -152,7 +152,14 @@ export default function InstallGuide({ onClose, reason }: InstallGuideProps) {
           <ol className="m-0 mb-3 flex list-decimal flex-col gap-1.5 pl-5 text-[0.88rem] text-main">
             <li>{FIRST_STEP[place]}</li>
             <li>
-              Elige <strong>Añadir a pantalla de inicio</strong> {icon(SquarePlus)} y toca{' '}
+              {/* En Safari 27 la opción queda oculta tras «Ver más» en la hoja de Compartir. */}
+              {place === 'address-menu' && (
+                <>
+                  Toca <strong>Ver más</strong>,{' '}
+                </>
+              )}
+              {place === 'address-menu' ? 'elige' : 'Elige'}{' '}
+              <strong>Añadir a pantalla de inicio</strong> {icon(SquarePlus)} y toca{' '}
               <strong>Añadir</strong>.
             </li>
           </ol>
