@@ -13,6 +13,7 @@ import com.porra.mundial.dto.StatusResponse;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.LeagueMembershipService;
 import com.porra.mundial.service.LeagueSummaryService;
 import com.porra.mundial.service.WebSocketService;
 import jakarta.validation.Valid;
@@ -29,7 +30,7 @@ import java.util.regex.Pattern;
 /**
  * Ligas privadas: creación, invitaciones, miembros y administración de pagos y pronósticos.
  * Las rutas de escritura y las de miembros exigen sesión (ver {@code SecurityConfig});
- * los permisos de administrador los comprueba {@link GroupService}.
+ * los permisos de administrador los comprueban {@link GroupService} y {@link LeagueMembershipService}.
  */
 @RestController
 @RequestMapping("/api/groups")
@@ -40,6 +41,7 @@ public class GroupController {
     private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("[A-Za-z0-9_-]{8,64}");
 
     private final GroupService groupService;
+    private final LeagueMembershipService membershipService;
     private final WebSocketService webSocketService;
     private final LeagueSummaryService leagueSummaryService;
 
@@ -100,7 +102,7 @@ public class GroupController {
     public GroupResponseDTO joinGroup(@Valid @RequestBody GroupJoinDTO payload, Principal principal) {
         League group = groupService.getGroupByJoinCode(payload.getJoinCode().trim().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado con ese código"));
-        groupService.joinGroupMembership(group.getId(), principal.getName());
+        membershipService.join(group.getId(), principal.getName());
         // Refresca ranking, miembros y contadores de esa liga en las sesiones que la estén viendo.
         webSocketService.notifyLeagueChanged(group.getId());
         return groupService.toResponse(group, true);
@@ -130,7 +132,7 @@ public class GroupController {
     /** El usuario abandona la liga. */
     @DeleteMapping("/{id}/leave")
     public StatusResponse leaveGroup(@PathVariable Long id, Principal principal) {
-        groupService.leaveGroup(id, principal.getName());
+        membershipService.leave(id, principal.getName());
         webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success();
     }
@@ -138,7 +140,7 @@ public class GroupController {
     /** Miembros de la liga con su rol y estado de pago. */
     @GetMapping("/{id}/members")
     public List<GroupMemberDTO> getMembers(@PathVariable Long id, Principal principal) {
-        return groupService.getGroupMembers(id, principal.getName());
+        return membershipService.members(id, principal.getName());
     }
 
     /** Marca o desmarca el pago de un miembro. Solo el administrador. */
@@ -146,7 +148,7 @@ public class GroupController {
     public PaymentStatusResponse updateMemberPayment(@PathVariable Long id, @PathVariable Long userId,
                                                      @Valid @RequestBody MemberPaymentRequest body, Principal principal) {
         String status = body.statusOrDefault();
-        groupService.toggleMemberPayment(id, userId, principal.getName(), status);
+        membershipService.setPayment(id, userId, principal.getName(), status);
         webSocketService.notifyLeagueChanged(id);
         return PaymentStatusResponse.success(status);
     }
@@ -154,7 +156,7 @@ public class GroupController {
     /** Expulsa a un participante. Solo el administrador. */
     @DeleteMapping("/{id}/members/{userId}")
     public StatusResponse kickMember(@PathVariable Long id, @PathVariable Long userId, Principal principal) {
-        groupService.kickMember(id, userId, principal.getName());
+        membershipService.kick(id, userId, principal.getName());
         webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success("Miembro expulsado");
     }
@@ -162,7 +164,7 @@ public class GroupController {
     /** Cede la administración de la liga a otro miembro. Solo el administrador. */
     @PutMapping("/{id}/members/{userId}/admin")
     public StatusResponse transferAdmin(@PathVariable Long id, @PathVariable Long userId, Principal principal) {
-        groupService.transferAdmin(id, userId, principal.getName());
+        membershipService.transferAdmin(id, userId, principal.getName());
         webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success("Administración cedida");
     }

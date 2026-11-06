@@ -7,6 +7,7 @@ import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.LeagueMembershipService;
 import com.porra.mundial.service.SyncService;
 import com.porra.mundial.service.TopScorerService;
 import org.junit.jupiter.api.BeforeAll;
@@ -54,6 +55,7 @@ class LeagueAccessMatrixIntegrationTest {
     @MockitoBean private SyncService syncService;
 
     @Autowired private GroupService groupService;
+    @Autowired private LeagueMembershipService membershipService;
     @Autowired private UserAccountRepository users;
     @Autowired private JwtUtil jwtUtil;
 
@@ -71,7 +73,7 @@ class LeagueAccessMatrixIntegrationTest {
         UserAccount outsider = user("outsider-matrix@test.invalid", "Ajeno");
         League league = groupService.createGroup("Liga privada", admin.getGoogleEmail(), null,
                 PoolFormat.MATCH_DAY, false, "Torneo de prueba");
-        groupService.joinGroupMembership(league.getId(), member.getGoogleEmail());
+        membershipService.join(league.getId(), member.getGoogleEmail());
 
         leagueId = league.getId();
         adminId = admin.getId();
