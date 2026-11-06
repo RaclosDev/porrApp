@@ -198,8 +198,10 @@ function Layout({ children }: { children: React.ReactNode }) {
                     aria-label="Completar mi porra"
                     title="Completar mi porra"
                   >
-                    <span aria-hidden="true">✍️</span>
-                    <span className="header-porra-cta-label"> Completar mi porra</span>
+                    <span className="header-porra-cta-label">Completar mi porra</span>
+                    <span className="header-porra-cta-short" aria-hidden="true">
+                      Mi porra
+                    </span>
                   </button>
                 )}
               </>

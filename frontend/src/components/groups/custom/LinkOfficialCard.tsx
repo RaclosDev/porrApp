@@ -5,6 +5,7 @@ import { fetchCompetitions, linkOfficialCompetition } from '../../../services/ap
 import { queryKeys } from '../../../services/queryKeys';
 import type { Group } from '../../../types/api';
 import type { SaveAction } from './customCompetition';
+import { confirmAction } from '../../../utils/confirmAction';
 
 /**
  * Pasa una liga de cuadro personalizado a una competición oficial con cuadro propio (Worlds de LoL…):
@@ -41,9 +42,14 @@ export default function LinkOfficialCard({ group, save }: { group: Group; save: 
       </p>
       <form
         className="custom-admin-form"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
-          if (!window.confirm(`¿Pasar la liga a ${name}? No se puede deshacer.`)) return;
+          const confirmed = await confirmAction({
+            title: `¿Pasar la liga a ${name}?`,
+            message: 'Usará los cruces y resultados reales. No se puede deshacer.',
+            confirmLabel: 'Pasar a la competición oficial',
+          });
+          if (!confirmed) return;
           void save(async () => {
             await linkOfficialCompetition(group.id, competitionId);
             await queryClient.invalidateQueries();

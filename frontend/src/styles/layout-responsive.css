@@ -573,10 +573,18 @@
     }
   }
 
-  /* Hasta escritorio ancho, la llamada a rellenar la porra se queda en el icono. */
+  /* Hasta escritorio ancho, la llamada a rellenar la porra se acorta a «Mi porra». */
+  .header-porra-cta-short {
+    display: none;
+  }
+
   @media (min-width: 769px) and (max-width: 1199px) {
     .header-porra-cta-label {
       display: none;
+    }
+
+    .header-porra-cta-short {
+      display: inline;
     }
   }
 
@@ -656,6 +664,20 @@
       width: 96vw !important;
       max-height: 94dvh !important;
       padding: 16px 10px !important;
+    }
+  }
+
+  /* Objetivos táctiles: en pantallas táctiles los enlaces y botones sueltos miden al menos 44 px. */
+  @media (max-width: 768px), (pointer: coarse) {
+    .header-brand-link,
+    .home-link-btn,
+    .home-rules-btn,
+    .landing-link,
+    .landing-link-light,
+    .leaderboard-sort-button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
     }
   }
 }

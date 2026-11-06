@@ -474,7 +474,7 @@ export default function GroupMembersModal({
         className="league-admin-panel paper-panel landing-tape paper-dialog"
       >
         <header className="league-admin-header">
-          <LeagueAvatar url={imageUrl} size={46} />
+          <LeagueAvatar url={imageUrl} name={groupName} size={46} />
           <div className="league-admin-heading">
             <span className="league-admin-eyebrow">
               {isAdmin ? (
