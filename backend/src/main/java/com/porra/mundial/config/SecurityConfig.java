@@ -74,7 +74,7 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
-                // Refresco, logout y canje del JWT antiguo: se autentican con la cookie o el JWT.
+                // Refresco y logout: se autentican con la cookie del refresh token.
                 .requestMatchers(HttpMethod.POST, "/api/auth/session/**").permitAll()
                 // Errores del navegador, también de visitantes sin sesión; con límite por IP.
                 .requestMatchers(HttpMethod.POST, "/api/client-errors").permitAll()

@@ -8,11 +8,8 @@ import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.RefreshTokenRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.service.SessionService.SessionTokens;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
@@ -24,10 +21,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -67,9 +62,6 @@ class SessionServiceTest {
     @Autowired
     private UserAccountRepository userAccountRepository;
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
-
     private UserAccount user(String email) {
         return em.persist(UserAccount.builder().googleEmail(email).googleName(email).participantName(email).build());
     }
@@ -88,16 +80,6 @@ class SessionServiceTest {
         em.flush();
     }
 
-    private String legacyToken(String email, Instant expiresAt) {
-        return Jwts.builder()
-                .subject(email)
-                .claim("email", email)
-                .issuedAt(Date.from(expiresAt.minus(Duration.ofDays(7))))
-                .expiration(Date.from(expiresAt))
-                .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
-                .compact();
-    }
-
     @Test
     void startIssuesAnAccessTokenAndStoresOnlyTheRefreshTokenHash() {
         UserAccount ana = user("ana@test.com");
@@ -107,7 +89,6 @@ class SessionServiceTest {
         JwtUtil.VerifiedToken access = jwtUtil.verify(session.accessToken()).orElseThrow();
         assertThat(access.userId()).isEqualTo(ana.getId());
         assertThat(access.email()).isEqualTo("ana@test.com");
-        assertThat(access.legacy()).isFalse();
         // 32 bytes aleatorios en base64url.
         assertThat(session.refreshToken()).matches("[A-Za-z0-9_-]{43}");
         assertThat(session.refreshExpiresAt()).isCloseTo(Instant.now().plus(Duration.ofDays(30)), within(Duration.ofMinutes(1)));
@@ -202,39 +183,6 @@ class SessionServiceTest {
         assertThat(sessionService.refresh("desconocido")).isEmpty();
         assertThat(sessionService.refresh(null)).isEmpty();
         assertThat(sessionService.refresh("")).isEmpty();
-    }
-
-    @Test
-    void exchangesALegacyTokenForASessionThatEndsWhenTheTokenWould() {
-        UserAccount eva = user("eva@test.com");
-        Instant legacyExpiry = Instant.now().plus(Duration.ofDays(3));
-
-        SessionTokens session = sessionService.exchangeLegacyToken(legacyToken("eva@test.com", legacyExpiry)).orElseThrow();
-
-        assertThat(jwtUtil.verify(session.accessToken()).orElseThrow().userId()).isEqualTo(eva.getId());
-        assertThat(session.refreshExpiresAt()).isCloseTo(legacyExpiry, within(Duration.ofSeconds(1)));
-        assertThat(sessionService.refresh(session.refreshToken())).isPresent();
-    }
-
-    @Test
-    void onlyValidLegacyTokensOfExistingUsersCanBeExchanged() {
-        UserAccount pau = user("pau@test.com");
-
-        // Un access token de 15 minutos no puede convertirse en una sesión de 30 días.
-        assertThat(sessionService.exchangeLegacyToken(jwtUtil.generateAccessToken(pau.getId(), "pau@test.com"))).isEmpty();
-        assertThat(sessionService.exchangeLegacyToken(legacyToken("pau@test.com", Instant.now().minusSeconds(1)))).isEmpty();
-        assertThat(sessionService.exchangeLegacyToken(legacyToken("nadie@test.com", Instant.now().plusSeconds(60)))).isEmpty();
-        assertThat(sessionService.exchangeLegacyToken("no-es-un-jwt")).isEmpty();
-    }
-
-    @Test
-    void legacyTokensCannotBeExchangedForAnAccountWithAStableGoogleIdentity() {
-        UserAccount currentOwner = user("reassigned@test.com");
-        currentOwner.setGoogleSub("google-new-owner");
-        em.flush();
-
-        assertThat(sessionService.exchangeLegacyToken(legacyToken("reassigned@test.com",
-                Instant.now().plusSeconds(60))).isPresent()).isFalse();
     }
 
     @Test
