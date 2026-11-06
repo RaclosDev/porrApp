@@ -1,51 +1,29 @@
 import toast from 'react-hot-toast';
-import { teamKey } from '../utils/teamKey';
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useAppContext, useBracketDraft } from '../context/AppContext';
-import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/api';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
+import { useAppContext, useBracketDraft } from '../context/AppContext';
+import { createPrediction } from '../services/api';
 import { advanceBracketWinner, replaceR32Team } from '../utils/bracketTransitions';
-import { r32SlotIndex, topologyVersion } from '../utils/bracketTopology';
-import {
-  defaultBracketState,
-  getDefaultBracketState,
-  type BracketMatch,
-  type BracketState,
-  type BracketTeam,
-} from '../store/useAppStore';
-
-import type { TeamPair } from '../types/api';
-
-type Side = 'left' | 'right';
-
-const cloneBracket = (state: BracketState): BracketState => JSON.parse(JSON.stringify(state));
-
-/** El cuadro no tiene nada rellenado (no hay borrador local que conservar). */
-const isEmptyBracket = (state: BracketState): boolean =>
-  state === defaultBracketState ||
-  JSON.stringify({ ...state, topologyVersion: undefined }) ===
-    JSON.stringify({
-      ...getDefaultBracketState(state.topologyVersion),
-      topologyVersion: undefined,
-    });
-
-/** Nombres de los dos equipos de un cruce, si ya están los dos. */
-const matchPair = (m: BracketMatch | null): string[] | undefined => {
-  const home = m?.home?.name;
-  const away = m?.away?.name;
-  return home && away ? [home, away] : undefined;
-};
+import { getDefaultBracketState, type BracketTeam } from '../store/useAppStore';
 import { errorMessage } from '../utils/errors';
 import { readGroupsDraft, readThirdsDraft, removeDraft, writeDraft } from '../utils/drafts';
 import {
   extractGroupsFromR32,
   hasValidGroupSelections,
-  normalizeGroupsDraft,
-  reconstructBracketState,
   type GroupSelection,
-  teamName,
 } from '../utils/bracketDraft';
+import {
+  applyGroupStage,
+  buildBracketPrediction,
+  fillKnownQualifiers,
+  hasAnyRealTeam,
+  hasIncompleteR32,
+  hasPlaceholderSlots,
+  officialGroupStatus,
+} from '../utils/bracketEditor';
+import { useSavedBracketHydration } from './useSavedBracketHydration';
+
+type Side = 'left' | 'right';
 
 /** Estado y acciones del editor del cuadro (grupos, cruces y guardado). */
 export function useBracket() {
@@ -99,53 +77,8 @@ export function useBracket() {
 
   useEffect(() => {
     if (!isKnockoutsOnly) return;
-    if (!officialPoints || Object.keys(officialPoints).length === 0) return;
-    const hasAnyPlaceholder = [...bracketState.r32.left, ...bracketState.r32.right].some(
-      (m) => m.home?.name?.includes('º') || m.away?.name?.includes('º'),
-    );
-    if (!hasAnyPlaceholder) return;
-
-    const firstPlace: Record<string, string> = {};
-    const secondPlace: Record<string, string> = {};
-    Object.entries(officialPoints).forEach(([g, teams]) => {
-      Object.entries(teams).forEach(([name, s]) => {
-        if (s.status === 1) firstPlace[g] = name;
-        if (s.status === 2) secondPlace[g] = name;
-      });
-    });
-    Object.keys(firstPlace).forEach((g) => {
-      const orig = (groupOdds?.[g] || []).find((t) => teamKey(t.name) === firstPlace[g]);
-      if (orig) firstPlace[g] = orig.name;
-    });
-    Object.keys(secondPlace).forEach((g) => {
-      const orig = (groupOdds?.[g] || []).find((t) => teamKey(t.name) === secondPlace[g]);
-      if (orig) secondPlace[g] = orig.name;
-    });
-    if (!Object.keys(firstPlace).length && !Object.keys(secondPlace).length) return;
-
-    const ns = cloneBracket(bracketState);
-    let changed = false;
-    const updateSlot = (slot: BracketTeam | null) => {
-      if (slot?.name?.startsWith('1º Grupo ')) {
-        const g = slot.name.replace('1º Grupo ', '');
-        if (firstPlace[g]) {
-          slot.name = firstPlace[g];
-          changed = true;
-        }
-      } else if (slot?.name?.startsWith('2º Grupo ')) {
-        const g = slot.name.replace('2º Grupo ', '');
-        if (secondPlace[g]) {
-          slot.name = secondPlace[g];
-          changed = true;
-        }
-      }
-    };
-
-    [...ns.r32.left, ...ns.r32.right].forEach((m) => {
-      updateSlot(m.home);
-      updateSlot(m.away);
-    });
-    if (changed) setBracketState(ns);
+    const filled = fillKnownQualifiers(bracketState, officialPoints, groupOdds);
+    if (filled) setBracketState(filled);
   }, [officialPoints, groupOdds, bracketState, setBracketState, isKnockoutsOnly]);
 
   useEffect(() => {
@@ -155,129 +88,44 @@ export function useBracket() {
     }
   }, [activeGroupId, navigate, isAuthenticated]);
 
-  // Valores que la hidratación consulta al llegar la respuesta, sin volver a lanzarla.
-  const latestRef = useRef({ participantsHashes, groupOdds, userName, topScorer, bracketState });
-  useEffect(() => {
-    latestRef.current = { participantsHashes, groupOdds, userName, topScorer, bracketState };
+  useSavedBracketHydration({
+    isAuthenticated,
+    activeGroupId,
+    userId,
+    userName,
+    topScorer,
+    bracketState,
+    groupOdds,
+    participantsHashes,
+    setBracketState,
+    setTopScorer,
+    setUserName,
+    setPredictionName,
+    setSavedPredictionId,
+    setSavedGroupsDraft,
+    setSavedThirdsDraft,
   });
 
-  // Liga (y usuario) cuya porra guardada ya se ha volcado al editor.
-  const hydratedScopeRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!(isAuthenticated || Boolean(getAuthToken())) || !activeGroupId) return;
-    const scope = `${userId}:${activeGroupId}`;
-    // Una sola vez por liga: volver a hidratar pisaría lo que el usuario lleva editado.
-    if (hydratedScopeRef.current === scope) return;
-    hydratedScopeRef.current = scope;
-    const groupId = activeGroupId;
-    let cancelled = false;
-    let settled = false;
-
-    fetchMyPredictions()
-      .then((predictions) => {
-        settled = true;
-        // Si ha cambiado la liga mientras llegaba la respuesta, no es de esta liga.
-        if (cancelled || !Array.isArray(predictions)) return;
-        const latest = latestRef.current;
-        let current = predictions.find((b) => b.groupId?.toString() === groupId);
-        if (!current && latest.participantsHashes.length > 0) {
-          if (userId) {
-            current = latest.participantsHashes.find((p) => p.userId?.toString() === userId);
-          } else if (latest.userName) {
-            const matches = latest.participantsHashes.filter(
-              (p) =>
-                p.userId == null &&
-                p.participantName?.toLowerCase() === latest.userName.toLowerCase(),
-            );
-            if (matches.length === 1) current = matches[0];
-          }
-        }
-        if (!current) return;
-
-        setSavedPredictionId(current.key || null);
-        if (current.participantName && !latest.userName) setUserName(current.participantName);
-        const predictionTitle = current.predictionName;
-        if (predictionTitle) setPredictionName((prev) => prev || predictionTitle);
-        const currentData = current.data;
-        if (!currentData) return;
-        if (currentData.scorer && !latest.topScorer) setTopScorer(currentData.scorer);
-
-        let norm = normalizeGroupsDraft(currentData.groups);
-        let normThirds = Array.isArray(currentData.thirds) ? currentData.thirds : [];
-        if (!hasValidGroupSelections(norm) && (currentData.r32 || currentData.r1)) {
-          const extracted = extractGroupsFromR32(
-            currentData.r32 || currentData.r1,
-            latest.groupOdds,
-            currentData.topologyVersion,
-          );
-          norm = extracted.groups;
-          if (normThirds.length === 0) normThirds = extracted.thirds;
-        }
-
-        // Un borrador local sin guardar manda sobre lo que hay en el servidor.
-        if (
-          hasValidGroupSelections(norm) &&
-          !hasValidGroupSelections(readGroupsDraft(groupId, userId))
-        ) {
-          setSavedGroupsDraft(norm);
-          writeDraft('groups', groupId, userId, norm);
-        }
-        if (normThirds.length > 0 && readThirdsDraft(groupId, userId) === undefined) {
-          setSavedThirdsDraft(normThirds);
-          writeDraft('advancing', groupId, userId, normThirds);
-        }
-        const hydrated = reconstructBracketState(currentData);
-        if (hydrated && isEmptyBracket(latest.bracketState)) {
-          setBracketState(hydrated);
-        }
-      })
-      .catch((err) => {
-        settled = true;
-        // Sin respuesta no se ha hidratado nada: se reintentará la próxima vez.
-        if (hydratedScopeRef.current === scope) hydratedScopeRef.current = null;
-        console.error(err);
-      });
-
-    return () => {
-      cancelled = true;
-      // Una petición cortada a medias no cuenta como hidratada.
-      if (!settled && hydratedScopeRef.current === scope) hydratedScopeRef.current = null;
-    };
-  }, [userId, activeGroupId, isAuthenticated, setBracketState, setTopScorer, setUserName]);
-
-  // Si aún no hay borrador de grupos válido pero el bracket ya tiene equipos en R32, extraer automáticamente
-  useEffect(() => {
-    if (hasValidGroupSelections(savedGroupsDraft)) return;
-    const leftMatches = bracketState.r32?.left || [];
-    const rightMatches = bracketState.r32?.right || [];
-    const hasAnyRealTeam = [...leftMatches, ...rightMatches].some(
-      (m) =>
-        (m.home?.name &&
-          !m.home.name.includes('º') &&
-          m.home.name !== 'Por definir' &&
-          m.home.name !== '???') ||
-        (m.away?.name &&
-          !m.away.name.includes('º') &&
-          m.away.name !== 'Por definir' &&
-          m.away.name !== '???'),
-    );
-    if (!hasAnyRealTeam) return;
-
+  /** Si el cuadro tiene equipos pero no hay borrador de grupos, lo deduce del cuadro y lo guarda. */
+  const storeGroupsFromBracket = useCallback(() => {
     const extracted = extractGroupsFromR32(
       bracketState.r32,
       groupOdds,
       bracketState.topologyVersion,
     );
-    if (hasValidGroupSelections(extracted.groups)) {
-      setSavedGroupsDraft(extracted.groups);
-      writeDraft('groups', activeGroupId, userId, extracted.groups);
-      if (extracted.thirds.length > 0 && readThirdsDraft(activeGroupId, userId) === undefined) {
-        setSavedThirdsDraft(extracted.thirds);
-        writeDraft('advancing', activeGroupId, userId, extracted.thirds);
-      }
+    if (!hasValidGroupSelections(extracted.groups)) return;
+    setSavedGroupsDraft(extracted.groups);
+    writeDraft('groups', activeGroupId, userId, extracted.groups);
+    if (extracted.thirds.length > 0 && readThirdsDraft(activeGroupId, userId) === undefined) {
+      setSavedThirdsDraft(extracted.thirds);
+      writeDraft('advancing', activeGroupId, userId, extracted.thirds);
     }
-  }, [bracketState, savedGroupsDraft, groupOdds, activeGroupId, userId]);
+  }, [bracketState, groupOdds, activeGroupId, userId]);
+
+  useEffect(() => {
+    if (hasValidGroupSelections(savedGroupsDraft) || !hasAnyRealTeam(bracketState)) return;
+    storeGroupsFromBracket();
+  }, [bracketState, savedGroupsDraft, storeGroupsFromBracket]);
 
   const setR32Team = (teamName: string, side: Side, matchIndex: number, isHome: boolean) => {
     setBracketState(replaceR32Team(bracketState, teamName, side, matchIndex, isHome));
@@ -292,64 +140,11 @@ export function useBracket() {
     setBracketState(advanceBracketWinner(bracketState, team, side, roundIndex, matchIndex));
   };
 
-  const getTeamPairs = (matches: BracketMatch[]): TeamPair[] =>
-    matches.map((m): TeamPair => [
-      m.home?.name && !m.home.name.includes('º') ? m.home.name : null,
-      m.away?.name && !m.away.name.includes('º') ? m.away.name : null,
-    ]);
-
   const handleGroupStageComplete = (
     selections: Record<string, GroupSelection>,
     advancingThirds: string[],
   ) => {
-    const ns = cloneBracket(bracketState);
-    const applySlot = (slot: BracketTeam | null) => {
-      if (!slot?.name?.includes('º Grupo')) return;
-      const [pos, , group] = slot.name.split(' ');
-      const sel = selections[group];
-      if (sel) slot.name = pos === '1º' ? sel.first : sel.second;
-    };
-
-    [...ns.r32.left, ...ns.r32.right].forEach((m) => {
-      applySlot(m.home);
-      applySlot(m.away);
-    });
-
-    const teamToGroup: Record<string, string> = {};
-    Object.keys(selections).forEach((g) => {
-      if (selections[g].third) teamToGroup[selections[g].third] = g;
-    });
-
-    const thirdTeams = advancingThirds.map((t) => ({ team: t, group: teamToGroup[t] }));
-    const solvedMatrix = solveThirdPlaceMatrix(thirdTeams);
-
-    if (solvedMatrix) {
-      THIRD_PLACE_RULES.forEach((rule, idx) => {
-        const index = r32SlotIndex(
-          (rule.side === 'right' ? 8 : 0) + rule.matchIndex,
-          ns.topologyVersion,
-        );
-        const match = ns.r32[index < 8 ? 'left' : 'right'][index % 8];
-        const slot = rule.isHome ? match.home : match.away;
-        if (slot?.name?.startsWith('3º ')) {
-          slot.name = solvedMatrix[idx].team;
-        }
-      });
-    } else {
-      const sorted3rds = [...advancingThirds].sort((a, b) =>
-        teamToGroup[a].localeCompare(teamToGroup[b]),
-      );
-      let ti = 0;
-      const apply3rdFallback = (slot: BracketTeam | null) => {
-        if (slot?.name?.startsWith('3º ') && ti < sorted3rds.length) slot.name = sorted3rds[ti++];
-      };
-      [...ns.r32.left, ...ns.r32.right].forEach((m) => {
-        apply3rdFallback(m.home);
-        apply3rdFallback(m.away);
-      });
-    }
-
-    setBracketState(ns);
+    setBracketState(applyGroupStage(bracketState, selections, advancingThirds));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -366,52 +161,19 @@ export function useBracket() {
       toast.error('Falta el pichichi.');
       return;
     }
-    if (isKnockoutsOnly) {
-      const all = [...bracketState.r32.left, ...bracketState.r32.right];
-      if (
-        all.some(
-          (m) =>
-            !m.home?.name ||
-            m.home.name.includes('º') ||
-            !m.away?.name ||
-            m.away.name.includes('º'),
-        )
-      ) {
-        toast.error('Rellena todos los equipos de dieciseisavos.');
-        return;
-      }
+    if (isKnockoutsOnly && hasIncompleteR32(bracketState)) {
+      toast.error('Rellena todos los equipos de dieciseisavos.');
+      return;
     }
-    const r32 = [...getTeamPairs(bracketState.r32.left), ...getTeamPairs(bracketState.r32.right)];
-    const r16 = [...getTeamPairs(bracketState.r16.left), ...getTeamPairs(bracketState.r16.right)];
-    const qf = [...getTeamPairs(bracketState.qf.left), ...getTeamPairs(bracketState.qf.right)];
-    const sf = [...getTeamPairs(bracketState.sf.left), ...getTeamPairs(bracketState.sf.right)];
-
-    const groupsRaw = readGroupsDraft(activeGroupId, userId);
-    const advancingThirds = readThirdsDraft(activeGroupId, userId) ?? [];
-
-    const formattedGroups: Record<string, string[]> = {};
-    Object.keys(groupsRaw).forEach((g) => {
-      formattedGroups[g] = [groupsRaw[g].first, groupsRaw[g].second];
-      if (groupsRaw[g].third) formattedGroups[g].push(groupsRaw[g].third);
+    const predictionData = buildBracketPrediction({
+      state: bracketState,
+      userName,
+      predictionName,
+      topScorer,
+      groups: readGroupsDraft(activeGroupId, userId),
+      thirds: readThirdsDraft(activeGroupId, userId) ?? [],
+      knockoutsOnly: isKnockoutsOnly,
     });
-
-    const predictionData = {
-      topologyVersion: topologyVersion(bracketState.topologyVersion),
-      user: userName,
-      prediction: predictionName,
-      r1: r32,
-      r32,
-      r16,
-      qf,
-      sf,
-      final: matchPair(bracketState.final),
-      champion: teamName(bracketState.champion),
-      thirdPlaceMatch: matchPair(bracketState.thirdPlaceMatch),
-      thirdPlaceWinner: teamName(bracketState.thirdPlaceWinner),
-      scorer: topScorer,
-      groups: isKnockoutsOnly ? {} : formattedGroups,
-      thirds: isKnockoutsOnly ? [] : advancingThirds,
-    };
     if (activeGroupIsLocked) {
       toast.error('El plazo para enviar o modificar porras en esta liga ha finalizado.');
       return;
@@ -425,57 +187,17 @@ export function useBracket() {
     }
   };
 
-  const getTeamStatus = (teamName: string | null | undefined) => {
-    if (!teamName || !officialPoints || !groupOdds) return 0;
-    for (const groupName of Object.keys(officialPoints)) {
-      if (!groupOdds[groupName]) continue;
-      const isInGroup = groupOdds[groupName].some((t) => t.name === teamName);
-      if (!isInGroup) continue;
-      const safeKey = teamKey(teamName);
-      const officialData = officialPoints[groupName][safeKey];
-      if (typeof officialData === 'object' && officialData !== null) {
-        return officialData.status || 0;
-      }
-    }
-    return 0;
-  };
+  const getTeamStatus = (team: string | null | undefined) =>
+    officialGroupStatus(team, officialPoints, groupOdds);
 
-  const hasPlaceholders = useMemo(() => {
-    const leftMatches = bracketState.r32?.left || [];
-    const rightMatches = bracketState.r32?.right || [];
-    const allMatches = [...leftMatches, ...rightMatches];
-    if (allMatches.length === 0) return true;
-    return allMatches.some(
-      (m) =>
-        !m.home?.name ||
-        m.home.name.includes('º') ||
-        m.home.name.startsWith('3º') ||
-        !m.away?.name ||
-        m.away.name.includes('º') ||
-        m.away.name.startsWith('3º'),
-    );
-  }, [bracketState]);
+  const hasPlaceholders = useMemo(() => hasPlaceholderSlots(bracketState), [bracketState]);
 
   const isInitialState =
     !isKnockoutsOnly && hasPlaceholders && groupOdds && Object.keys(groupOdds).length > 0;
 
   const handleResetToGroupStage = () => {
-    // Si aún no tenemos selecciones válidas pero el cuadro actual tiene equipos, extraer antes de resetear
-    if (!hasValidGroupSelections(savedGroupsDraft)) {
-      const extracted = extractGroupsFromR32(
-        bracketState.r32,
-        groupOdds,
-        bracketState.topologyVersion,
-      );
-      if (hasValidGroupSelections(extracted.groups)) {
-        setSavedGroupsDraft(extracted.groups);
-        writeDraft('groups', activeGroupId, userId, extracted.groups);
-        if (extracted.thirds.length > 0 && readThirdsDraft(activeGroupId, userId) === undefined) {
-          setSavedThirdsDraft(extracted.thirds);
-          writeDraft('advancing', activeGroupId, userId, extracted.thirds);
-        }
-      }
-    }
+    // Antes de vaciar el cuadro se guardan los grupos que se deducen de él.
+    if (!hasValidGroupSelections(savedGroupsDraft)) storeGroupsFromBracket();
     setBracketState(getDefaultBracketState(bracketState.topologyVersion));
     removeDraft('bracket', activeGroupId, userId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
