@@ -23,7 +23,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final AppWebSocketHandler appWebSocketHandler;
     private final RateLimitingFilter rateLimitingFilter;
 
-    @Value("${app.cors.allowed-origins:https://porra.raclos.es,http://localhost:5173,http://localhost:8080}")
+    @Value("${app.cors.allowed-origins:https://porrapp.app,http://localhost:5173,http://localhost:8080}")
     private String allowedOrigins;
 
     public WebSocketConfig(AppWebSocketHandler appWebSocketHandler, RateLimitingFilter rateLimitingFilter) {

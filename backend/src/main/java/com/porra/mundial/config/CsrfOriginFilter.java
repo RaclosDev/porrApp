@@ -39,7 +39,7 @@ public class CsrfOriginFilter extends OncePerRequestFilter {
     private final CorsConfiguration allowedOrigins = new CorsConfiguration();
 
     public CsrfOriginFilter(
-            @Value("${app.cors.allowed-origins:https://porra.raclos.es,http://localhost:5173,http://localhost:8080}")
+            @Value("${app.cors.allowed-origins:https://porrapp.app,http://localhost:5173,http://localhost:8080}")
             String allowedOrigins) {
         this.allowedOrigins.setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)

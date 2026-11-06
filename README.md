@@ -6,7 +6,7 @@
 
 **Porras de fútbol con amigos: eliges el formato, los resultados llegan solos y la clasificación se mueve en directo.**
 
-[![Demo en vivo](https://img.shields.io/badge/Demo_en_vivo-porra.raclos.es-2fc4c4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://porra.raclos.es/demo)
+[![Demo en vivo](https://img.shields.io/badge/Demo_en_vivo-porrapp.app-2fc4c4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://porrapp.app/demo)
 [![CI](https://img.shields.io/github/actions/workflow/status/RaclosDev/porrApp/ci.yml?branch=main&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml)
 
 ![Java](https://img.shields.io/badge/Java_21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
@@ -20,7 +20,7 @@
 
 </div>
 
-> **Pruébala en 10 segundos:** abre la [demo](https://porra.raclos.es/demo) desde el móvil. Es una liga real de 21 personas del Mundial 2026 en modo de solo lectura, sin registro.
+> **Pruébala en 10 segundos:** abre la [demo](https://porrapp.app/demo) desde el móvil. Es una liga real de 21 personas del Mundial 2026 en modo de solo lectura, sin registro.
 
 ## 📱 La app
 

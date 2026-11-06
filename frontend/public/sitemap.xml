@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://porra.raclos.es/</loc>
+    <loc>https://porrapp.app/</loc>
   </url>
   <url>
-    <loc>https://porra.raclos.es/demo</loc>
+    <loc>https://porrapp.app/demo</loc>
   </url>
   <url>
-    <loc>https://porra.raclos.es/privacidad</loc>
+    <loc>https://porrapp.app/privacidad</loc>
   </url>
   <url>
-    <loc>https://porra.raclos.es/aviso-legal</loc>
+    <loc>https://porrapp.app/aviso-legal</loc>
   </url>
 </urlset>

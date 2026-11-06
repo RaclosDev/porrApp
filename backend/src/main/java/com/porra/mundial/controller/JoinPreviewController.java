@@ -25,8 +25,8 @@ import java.util.regex.Pattern;
 public class JoinPreviewController {
 
     /** Dirección pública de la web; la fija {@code app.public-base-url}. */
-    @Value("${app.public-base-url:https://porra.raclos.es}")
-    private String baseUrl = "https://porra.raclos.es";
+    @Value("${app.public-base-url:https://porrapp.app}")
+    private String baseUrl = "https://porrapp.app";
     private static final String DEFAULT_TITLE = "Invitación a una porra";
     private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
     private static final String IMAGE_VERSION = "3";
