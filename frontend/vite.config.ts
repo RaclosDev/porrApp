@@ -80,7 +80,7 @@ export default defineConfig({
         // Las banderas y logos (≈650 KB) se guardan al verlos, no todos en la primera visita.
         globIgnores: [
           '**/updates/**',
-          '**/og-image.jpg',
+          '**/og-paper.jpg',
           '**/assets/html2canvas-*.js',
           '**/flags/**',
           '**/logos/**',
