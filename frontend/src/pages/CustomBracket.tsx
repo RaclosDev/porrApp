@@ -465,7 +465,9 @@ export default function CustomBracket() {
                         ]}
                       />
                     ) : (
-                      <span className="glass-input">{groups[group]?.[position] || '—'}</span>
+                      <span className="glass-input">
+                        {groups[group]?.[position] || 'Sin elegir'}
+                      </span>
                     )}
                   </div>
                 ))}

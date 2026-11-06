@@ -4,13 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
 import { isLiveMatch } from '../../utils/homeMatches';
+import { formatMatchDate } from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
+import LeagueParticipantsDialog from '../league/LeagueParticipantsDialog';
 import InkStamp from '../InkStamp';
 import { VoterStack } from '../voters/SignVoters';
 import MatchVotersModal from '../voters/MatchVotersModal';
+import RoundParticipants from '../voters/RoundParticipants';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
+import { useRoundParticipants } from '../../hooks/useRoundParticipants';
 import type { Match, MatchVoter, MatchVoters } from '../../types/api';
 
 const RANKING_SIZE = 5;
@@ -22,34 +26,25 @@ function formatKickOff(date: string | null) {
   return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatMatchDate(date: string | null) {
-  if (!date) return 'Fecha por confirmar';
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return 'Fecha por confirmar';
-  return d.toLocaleDateString('es-ES', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 function PanelHeader({
   title,
   icon,
   onSeeAll,
+  children,
 }: {
   title: string;
   icon?: string;
   onSeeAll: () => void;
+  /** Lo que va entre el título y «Ver todo», como quién ya ha hecho su predicción. */
+  children?: ReactNode;
 }) {
   return (
-    <div className="home-list-header mb-2.5">
+    <div className={`home-list-header mb-2.5${children ? ' has-extra' : ''}`}>
       <h2>
         {icon && <span aria-hidden="true">{icon}</span>}
         <span>{title}</span>
       </h2>
+      {children}
       <button type="button" className="home-link-btn" onClick={onSeeAll}>
         Ver todo →
       </button>
@@ -196,6 +191,7 @@ export default function LeagueHomeDashboard() {
   const { subtitle, matches, standings } = useLeagueHomeData();
   const navigate = useNavigate();
   const [showRules, setShowRules] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
   const [votersMatch, setVotersMatch] = useState<Match | null>(null);
   // El servidor solo devuelve los partidos ya cerrados: los abiertos siguen ocultos. En las ligas de
   // cuadro cada uno aparece bajo el equipo que pasa en su pronóstico, sin empate.
@@ -204,6 +200,12 @@ export default function LeagueHomeDashboard() {
     matches.items.map((match) => match.id).filter(Boolean),
   );
   const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY';
+  // Quién ya ha hecho su predicción en la jornada: solo las ligas por jornadas y solo el quién.
+  const participants = useRoundParticipants(
+    activeGroupId,
+    matches.items.map((match) => match.id).filter(Boolean),
+    isAuthenticated && activeGroupPoolFormat === 'MATCH_DAY',
+  );
 
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
   const showCompetition =
@@ -222,6 +224,13 @@ export default function LeagueHomeDashboard() {
         twoWay={twoWayVoters}
         onClose={() => setVotersMatch(null)}
       />
+      {showParticipants && activeGroupId && (
+        <LeagueParticipantsDialog
+          groupId={activeGroupId}
+          groupName={activeGroupName || 'Mi Porra'}
+          onClose={() => setShowParticipants(false)}
+        />
+      )}
       {showRules && (
         <LeagueRulesModal
           group={{ id: activeGroupId, name: activeGroupName, rules: activeGroupRules }}
@@ -234,11 +243,21 @@ export default function LeagueHomeDashboard() {
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
           <div className="home-hero-pills">
             {showCompetition && <span className="home-hero-pill">{activeCompetitionName}</span>}
-            <span className="home-hero-pill muted">
-              {participantCount > 0
-                ? `${participantCount} ${participantCount === 1 ? 'participante' : 'participantes'}`
-                : subtitle}
-            </span>
+            {participantCount > 0 && activeGroupId ? (
+              <button
+                type="button"
+                className="home-hero-pill-btn"
+                onClick={() => setShowParticipants(true)}
+                aria-haspopup="dialog"
+                aria-label={`${participantCount} ${participantCount === 1 ? 'participante' : 'participantes'}: ver la lista`}
+              >
+                <span className="home-hero-pill muted">
+                  {participantCount} {participantCount === 1 ? 'participante' : 'participantes'}
+                </span>
+              </button>
+            ) : (
+              <span className="home-hero-pill muted">{subtitle}</span>
+            )}
           </div>
         </div>
         <button type="button" className="home-rules-btn" onClick={() => setShowRules(true)}>
@@ -249,7 +268,7 @@ export default function LeagueHomeDashboard() {
       {pending > 0 && (
         <button
           type="button"
-          className="paper-panel album-sheet w-full flex items-center justify-between gap-3 px-4 py-3 mb-4.5 text-left cursor-pointer text-inherit font-[inherit] border-0"
+          className="paper-panel album-sheet w-full flex items-center justify-between gap-3 px-4 py-3 mb-4.5 text-left cursor-pointer font-[inherit] border-0"
           onClick={() => navigate(matches.to)}
         >
           <span className="font-bold text-[var(--stamp-red)]">
@@ -262,7 +281,9 @@ export default function LeagueHomeDashboard() {
 
       <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
         <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
-          <PanelHeader title={matches.title} onSeeAll={() => navigate(matches.allTo)} />
+          <PanelHeader title={matches.title} onSeeAll={() => navigate(matches.allTo)}>
+            <RoundParticipants participants={participants} roundLabel={matches.title} />
+          </PanelHeader>
           {matches.items.length > 0 ? (
             matches.items.map((match) => (
               <MatchCard
@@ -284,7 +305,7 @@ export default function LeagueHomeDashboard() {
 
         <div className="flex flex-col gap-4.5 min-w-0">
           <div className="paper-panel album-sheet p-4">
-            <PanelHeader title="Ranking" icon="🏆" onSeeAll={() => navigate('/ranking')} />
+            <PanelHeader title="Ranking" onSeeAll={() => navigate('/ranking')} />
             {topParticipants.length > 0 ? (
               <ol className="flex flex-col gap-1.5 m-0 p-0 list-none" aria-label="Top del ranking">
                 {topParticipants.map((p, index) => {
@@ -309,11 +330,7 @@ export default function LeagueHomeDashboard() {
 
           {standings && standings.rows.length > 0 && (
             <div className="paper-panel album-sheet p-4">
-              <PanelHeader
-                title={standings.title}
-                icon="📊"
-                onSeeAll={() => navigate(standings.to)}
-              />
+              <PanelHeader title={standings.title} onSeeAll={() => navigate(standings.to)} />
               <ol className="flex flex-col gap-1.5 m-0 p-0 list-none" aria-label={standings.title}>
                 {standings.rows.map((row) => (
                   <MiniRow

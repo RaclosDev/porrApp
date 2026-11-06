@@ -133,7 +133,8 @@ describe('CustomBracket', () => {
       'aria-pressed',
       'true',
     );
-  });
+    // Recorre el cuadro entero con autoguardado: con toda la suite en paralelo supera los 5 s por defecto.
+  }, 15_000);
 
   it('en el cierre por partidos bloquea solo los cruces que ya han empezado', async () => {
     vi.mocked(leaguePredictions.useMyLeaguePrediction).mockReturnValue({

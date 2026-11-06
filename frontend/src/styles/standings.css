@@ -19,7 +19,7 @@
     display: inline-block;
     font-size: 0.7rem;
     font-weight: 800;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--accent-cyan);
     margin-bottom: 4px;
@@ -195,8 +195,10 @@
     width: 28px;
     height: 28px;
     flex-shrink: 0;
-    font-size: 1.05rem;
-    opacity: 0.85;
+    border-radius: 6px;
+    background: rgba(17, 24, 39, 0.06);
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 0.95rem;
   }
 
   .standings-team-name {
@@ -298,11 +300,6 @@
   .standings-empty {
     padding: 36px 20px;
     text-align: center;
-  }
-
-  .standings-empty-icon {
-    font-size: 2rem;
-    margin-bottom: 12px;
   }
 
   .standings-empty-title {

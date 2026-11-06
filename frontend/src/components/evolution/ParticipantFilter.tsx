@@ -97,7 +97,7 @@ export default function ParticipantFilter({
                 style={{ background: u.color }}
               ></span>
               <span className={`${u.isMe ? 'font-bold' : 'font-normal'}`}>
-                {u.name} {u.isMe && '★'}
+                {u.name} {u.isMe && '(tú)'}
               </span>
               {isSel && (
                 <span className="text-[0.75rem] font-bold ml-0.5" style={{ color: u.color }}>

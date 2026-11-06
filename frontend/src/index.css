@@ -18,5 +18,7 @@
 @import './styles/paper-overrides.css';
 @import './styles/bracket-layout.css';
 @import './styles/paper-details.css';
+@import './styles/sheet-dialog.css';
+@import './styles/radar.css';
 
 @import './styles/league-loading.css';

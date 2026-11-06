@@ -1,4 +1,5 @@
 import { LeagueAvatar } from './Avatar';
+import DialogBackdrop from './DialogBackdrop';
 import {
   Check,
   Loader2,
@@ -459,22 +460,17 @@ export default function GroupMembersModal({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="league-admin-title"
-      className="league-admin-overlay"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) requestClose();
-      }}
-    >
+    <DialogBackdrop className="league-admin-overlay" onDismiss={requestClose}>
       <div
         ref={panelRef}
         tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="league-admin-title"
         className="league-admin-panel paper-panel landing-tape paper-dialog"
       >
         <header className="league-admin-header">
-          <LeagueAvatar url={imageUrl} size={46} />
+          <LeagueAvatar url={imageUrl} name={groupName} size={46} />
           <div className="league-admin-heading">
             <span className="league-admin-eyebrow">
               {isAdmin ? (
@@ -635,7 +631,7 @@ export default function GroupMembersModal({
           <LeaveConfirmDialog onClose={onClose} setLeaveConfirmOpen={setLeaveConfirmOpen} />
         )}
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }
 

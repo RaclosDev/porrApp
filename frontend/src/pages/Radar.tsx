@@ -3,73 +3,128 @@ import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { openStats } from '../utils/navigation';
 import Flag from '../components/Flag';
-import type { Match } from '../types/api';
-import InkStamp from '../components/InkStamp';
+import type { Match, MatchRadar } from '../types/api';
+
+type Kind = 'live' | 'next' | 'last';
+type Tab = 'next' | 'last';
+
+const pad = (value: number) => value.toString().padStart(2, '0');
+const timeOf = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+const dayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+/** «Hoy», «Mañana», «Ayer» o el día con su fecha («Sábado, 7 nov»). */
+export function dayLabel(date: Date, now = new Date()) {
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((startOf(date) - startOf(now)) / 86_400_000);
+  if (diff === 0) return 'Hoy';
+  if (diff === 1) return 'Mañana';
+  if (diff === -1) return 'Ayer';
+  const label = new Intl.DateTimeFormat('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  }).format(date);
+  return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '');
+}
+
+/** Partidos agrupados por día, en el orden en que llegan. */
+function byDay(matches: Match[]) {
+  const groups: { key: string; label: string; matches: Match[] }[] = [];
+  for (const match of matches) {
+    const date = new Date(match.date ?? 0);
+    const key = dayKey(date);
+    const last = groups[groups.length - 1];
+    if (last?.key === key) last.matches.push(match);
+    else groups.push({ key, label: dayLabel(date), matches: [match] });
+  }
+  return groups;
+}
+
+const hasScore = (m: Match) => m.homeScore !== null && m.awayScore !== null;
+
+function MatchRow({ match, kind }: { match: Match; kind: Kind }) {
+  const date = new Date(match.date ?? 0);
+  const started = kind === 'live' && date <= new Date();
+  const showScore = kind === 'last' || (kind === 'live' && hasScore(match));
+  const home = match.homeScore ?? 0;
+  const away = match.awayScore ?? 0;
+  const outcome = (side: 'home' | 'away') => {
+    if (kind !== 'last' || home === away) return '';
+    return (side === 'home') === home > away ? ' is-winner' : ' is-loser';
+  };
+
+  const status =
+    kind === 'last' ? 'Final' : started ? match.displayClock || 'En juego' : timeOf(date);
+
+  return (
+    <li className={`radar-match${started ? ' is-live' : ''}`}>
+      <span className="radar-match-status">{status}</span>
+      <span className="radar-match-teams">
+        <span className={`radar-match-team${outcome('home')}`}>
+          <span className="radar-match-crest">
+            <Flag team={match.home} logo={match.homeLogo || match.homeTeamLogo} />
+          </span>
+          <span className="radar-match-name">{match.home}</span>
+          {showScore && <span className="radar-match-score">{match.homeScore}</span>}
+        </span>
+        <span className={`radar-match-team${outcome('away')}`}>
+          <span className="radar-match-crest">
+            <Flag team={match.away} logo={match.awayLogo || match.awayTeamLogo} />
+          </span>
+          <span className="radar-match-name">{match.away}</span>
+          {showScore && <span className="radar-match-score">{match.awayScore}</span>}
+        </span>
+      </span>
+    </li>
+  );
+}
+
+function MatchDays({ matches, kind }: { matches: Match[]; kind: Kind }) {
+  return byDay(matches).map((group) => (
+    <section key={group.key} className="radar-day" aria-label={group.label}>
+      <h4 className="radar-day-title">{group.label}</h4>
+      <ul className="radar-day-list">
+        {group.matches.map((match) => (
+          <MatchRow key={match.id} match={match} kind={kind} />
+        ))}
+      </ul>
+    </section>
+  ));
+}
 
 /** Partidos en directo, próximos y últimos resultados de la competición. */
 function Radar() {
   const { matchRadar, loading } = useAppContext();
-  const [activeTab, setActiveTab] = useState('proximos');
-
   if (loading) return <PaperLoading label="Cargando partidos" />;
+  return <RadarView matchRadar={matchRadar} />;
+}
+
+export function RadarView({ matchRadar }: { matchRadar: MatchRadar | null | undefined }) {
+  const [activeTab, setActiveTab] = useState<Tab>('next');
 
   const liveMatches = matchRadar?.live || [];
   const lastMatches = (matchRadar?.last || []).slice(0, 10);
   const nextMatches = (matchRadar?.next || []).slice(0, 10);
+  const isActuallyLive = liveMatches.some((m) => new Date(m.date ?? 0) <= new Date());
 
-  const renderMatchCard = (m: Match, type: 'live' | 'last' | 'next') => {
-    const d = new Date(m.date ?? 0);
-    const dateFormatted = `${d.getDate()}/${d.getMonth() + 1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-    const isActuallyLive = type === 'live' && new Date(m.date ?? 0) <= new Date();
-    const statusLabel = isActuallyLive ? m.displayClock || 'En juego' : dateFormatted;
-
-    const isPlaceholder = (t: string | null | undefined) =>
-      !t ||
-      t.toLowerCase().includes('por definir') ||
-      t.toLowerCase().includes('tbd') ||
-      t.includes('º') ||
-      t === '?';
-    const showStatsButton = m.home && m.away && !isPlaceholder(m.home) && !isPlaceholder(m.away);
-
-    return (
-      <div key={m.id} className="last-match-card">
-        <div className="last-match-date">{statusLabel}</div>
-        <div className="last-match-teams my-auto mx-0">
-          <div className="last-match-team">
-            <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
-            <span>{m.home}</span>
-          </div>
-
-          <div className="last-match-center flex flex-col items-center">
-            {type === 'last' ||
-            (type === 'live' && m.homeScore !== null && m.awayScore !== null) ? (
-              <span className="last-match-score">
-                {m.homeScore} - {m.awayScore}
-              </span>
-            ) : (
-              <span className="text-[0.9em] text-muted font-bold">VS</span>
-            )}
-          </div>
-
-          <div className="last-match-team away">
-            <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} />
-            <span>{m.away}</span>
-          </div>
-        </div>
-
-        {showStatsButton && (
-          <div className="text-center mt-2.5">
-            <button
-              onClick={() => openStats()}
-              className="glass-btn py-2 px-4.5 min-h-11 rounded-[8px] text-[0.9rem] font-bold inline-flex items-center justify-center"
-            >
-              Abrir Sofascore (fútbol)
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
+  const columns: { tab: Tab; title: string; matches: Match[]; empty: string }[] = [
+    {
+      tab: 'next',
+      title: 'Próximos',
+      matches: nextMatches,
+      empty:
+        lastMatches.length > 0
+          ? 'No hay próximos partidos programados. Si ya se han disputado todos, la competición ha terminado.'
+          : 'No hay próximos partidos programados. Es posible que el calendario aún no esté disponible.',
+    },
+    {
+      tab: 'last',
+      title: 'Resultados',
+      matches: lastMatches,
+      empty: 'No hay partidos finalizados recientemente.',
+    },
+  ];
 
   return (
     <section
@@ -80,76 +135,70 @@ function Radar() {
         <h2 className="m-0 poster-title">Partidos</h2>
       </div>
 
-      <div className="radar-container flex flex-col gap-7.5">
-        {liveMatches.length > 0 &&
-          (() => {
-            const isActuallyLive = liveMatches.some((m) => new Date(m.date ?? 0) <= new Date());
-            return (
-              <div className="radar-column w-full max-w-150 my-0 mx-auto mb-2.5">
-                <h3 className="text-center mb-[15px]">
-                  <InkStamp tone={isActuallyLive ? 'red' : 'ink'}>
-                    {isActuallyLive ? 'En directo' : 'A punto de comenzar'}
-                  </InkStamp>
-                </h3>
-                <div className="last-matches-grid grid-cols-[1fr]">
-                  {liveMatches.map((m) => renderMatchCard(m, 'live'))}
-                </div>
-              </div>
-            );
-          })()}
+      <div className="radar">
+        {liveMatches.length > 0 && (
+          <div className="radar-block radar-live">
+            <h3 className="radar-block-title">
+              {isActuallyLive && <span className="radar-live-dot" aria-hidden="true" />}
+              {isActuallyLive ? 'En directo' : 'A punto de comenzar'}
+            </h3>
+            <ul className="radar-day-list">
+              {liveMatches.map((match) => (
+                <MatchRow key={match.id} match={match} kind="live" />
+              ))}
+            </ul>
+          </div>
+        )}
 
-        <div className="radar-tabs hide-on-desktop flex justify-center gap-2.5 mb-2.5">
-          <button
-            className={`glass-btn flex-1 max-w-50 ${activeTab === 'proximos' ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : ''} ${activeTab === 'proximos' ? 'border border-cyan' : ''}`}
-            onClick={() => setActiveTab('proximos')}
-            aria-pressed={activeTab === 'proximos'}
-          >
-            Próximos partidos
-          </button>
-          <button
-            className={`glass-btn flex-1 max-w-50 ${activeTab === 'ultimos' ? 'bg-[rgba(0,_210,_211,_0.2)] bg-none' : ''} ${activeTab === 'ultimos' ? 'border border-cyan' : ''}`}
-            onClick={() => setActiveTab('ultimos')}
-            aria-pressed={activeTab === 'ultimos'}
-          >
-            Últimos resultados
-          </button>
+        <div className="md-filters radar-tabs" role="tablist" aria-label="Partidos">
+          {columns.map(({ tab, title }) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              id={`radar-tab-${tab}`}
+              aria-controls={`radar-panel-${tab}`}
+              aria-selected={activeTab === tab}
+              onClick={() => setActiveTab(tab)}
+              className={`md-filter${activeTab === tab ? ' is-active' : ''}`}
+            >
+              {title}
+            </button>
+          ))}
         </div>
 
-        <div className="flex flex-wrap gap-5 w-full">
-          <div
-            className={`radar-column radar-col-proximos ${activeTab === 'proximos' ? 'active-mobile' : ''}`}
-            style={{ flex: 1, width: '100%' }}
-          >
-            <h3 className="hide-on-mobile text-center text-cyan mb-[15px]">Próximos partidos</h3>
-            <div className="last-matches-grid grid-cols-[1fr]">
-              {nextMatches.length === 0 ? (
-                <div className="text-center text-muted py-6 px-0 italic">
-                  {lastMatches.length > 0
-                    ? 'No hay próximos partidos programados. Si ya se han disputado todos los encuentros, la competición ha terminado.'
-                    : 'No hay próximos partidos programados. Es posible que el calendario aún no esté disponible.'}
-                </div>
+        <div className="radar-columns">
+          {columns.map(({ tab, title, matches, empty }) => (
+            <div
+              key={tab}
+              id={`radar-panel-${tab}`}
+              role="tabpanel"
+              aria-labelledby={`radar-tab-${tab}`}
+              className={`radar-block${activeTab === tab ? ' is-active' : ''}`}
+            >
+              <h3 className="radar-block-title radar-column-title">{title}</h3>
+              {matches.length === 0 ? (
+                <p className="radar-empty">{empty}</p>
               ) : (
-                nextMatches.map((m) => renderMatchCard(m, 'next'))
+                <MatchDays matches={matches} kind={tab} />
               )}
             </div>
-          </div>
-
-          <div
-            className={`radar-column radar-col-ultimos ${activeTab === 'ultimos' ? 'active-mobile' : ''}`}
-            style={{ flex: 1, width: '100%' }}
-          >
-            <h3 className="hide-on-mobile text-center text-cyan mb-[15px]">Últimos resultados</h3>
-            <div className="last-matches-grid grid-cols-[1fr]">
-              {lastMatches.length === 0 ? (
-                <div className="text-center text-muted py-6 px-0 italic">
-                  No hay partidos finalizados recientemente.
-                </div>
-              ) : (
-                lastMatches.map((m) => renderMatchCard(m, 'last'))
-              )}
-            </div>
-          </div>
+          ))}
         </div>
+
+        <button type="button" className="radar-stats-link" onClick={() => openStats()}>
+          Estadísticas en Sofascore
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+            <path
+              d="M7 17L17 7M9 7h8v8"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
       </div>
     </section>
   );

@@ -57,7 +57,6 @@ export default function BracketStats({
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
       <InsightCard
         title="Campeón más elegido"
-        icon="🏆"
         subtitle={
           realChampion
             ? `Campeón: ${realChampion}. Lo acertó el ${champions.find((c) => c.team === realChampion)?.percent ?? 0} % de la liga.`
@@ -93,7 +92,6 @@ export default function BracketStats({
 
       <InsightCard
         title="Finales más repetidas"
-        icon="⚔️"
         subtitle={
           realFinal.length === 2 ? `Final real: ${realFinal[0]} - ${realFinal[1]}.` : undefined
         }
@@ -135,7 +133,6 @@ export default function BracketStats({
       {pichichi && scorers.length > 0 && (
         <InsightCard
           title="Pichichi más elegido"
-          icon="👟"
           subtitle={
             official.scorers.length > 0
               ? `${official.finished ? 'Pichichi' : 'Va líder'}: ${official.scorers.join(', ')}.`
@@ -168,7 +165,6 @@ export default function BracketStats({
       {groupWinners.length > 0 && (
         <InsightCard
           title="Primero de grupo más elegido"
-          icon="👑"
           subtitle="El favorito de la liga en cada grupo y, si el grupo ha terminado, el primero real."
           className="lg:col-span-2"
         >
@@ -224,7 +220,6 @@ function RoundPicks({
   return (
     <InsightCard
       title="Equipos más elegidos por ronda"
-      icon="📊"
       subtitle="Cuántos cuadros meten a cada equipo en la ronda."
       footer={
         accuracy || surprises.length > 0 ? (

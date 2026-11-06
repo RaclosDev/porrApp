@@ -5,6 +5,7 @@ import { useLeaguePredictions } from './hooks/useLeaguePredictions';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import { PageSkeleton } from './components/Skeleton';
+import ConfirmDialog from './components/ConfirmDialog';
 import { Toaster } from 'react-hot-toast';
 import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
 
@@ -134,6 +135,7 @@ function App() {
       />
       <Router>
         <PwaUpdater />
+        <ConfirmDialog />
         <Layout>
           <Suspense fallback={<PageSkeleton />}>
             <Routes>

@@ -41,7 +41,7 @@ export default function ChartToolbar({
             title="Reducir zoom horizontal"
             aria-label="Reducir zoom"
           >
-            🔍-
+            −
           </button>
           <span className="text-[0.75rem] text-muted py-0 px-1 font-bold min-w-10.5 text-center select-none">
             {Math.round(zoomLevel * 100)}%
@@ -54,7 +54,7 @@ export default function ChartToolbar({
             title="Aumentar zoom horizontal"
             aria-label="Aumentar zoom"
           >
-            🔍+
+            +
           </button>
           {zoomLevel !== 1 && (
             <button

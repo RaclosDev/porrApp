@@ -24,7 +24,7 @@
   /* Acierto exacto, pasa de ronda y fallo, en el cuadro y en los grupos. */
   --hit: #2ecc71;
   --pass: #3498db;
-  --miss: #e74c3c;
+  --miss: #f87171;
   /* Pestañas: sobre el fondo oscuro la activa es una pegatina de papel; sobre papel, tinta. */
   --tab-active-bg: var(--paper);
   --tab-active-fg: var(--ink);
