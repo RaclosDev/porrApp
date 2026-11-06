@@ -8,6 +8,7 @@ import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.EditionRepository;
@@ -252,7 +253,7 @@ class CustomCompetitionServiceTest {
         when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
         Instant deadline = Instant.now().plus(2, ChronoUnit.DAYS);
 
-        service.setLockDate(leagueId, "admin@example.com", deadline);
+        service.setLockConfig(leagueId, "admin@example.com", PredictionLockMode.FIXED_DATE, 0, deadline);
 
         assertEquals(deadline, edition.getLockDate());
     }
