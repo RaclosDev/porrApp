@@ -1,55 +1,51 @@
-import MatchdayPodium, { podiumPlaces } from '../components/MatchdayPodium';
-import PaperLoading from '../components/PaperLoading';
 import React, { useState, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Search, Share2 } from 'lucide-react';
-import { useLeaderboard, type SortColumn } from '../hooks/useLeaderboard';
+import { BarChart3, Search, Share2 } from 'lucide-react';
+import MatchdayPodium from '../components/MatchdayPodium';
+import PaperLoading from '../components/PaperLoading';
+import LeaderboardTable from '../components/leaderboard/LeaderboardTable';
+import MatchdaySummary from '../components/leaderboard/MatchdaySummary';
+import ShareImageTemplate from '../components/leaderboard/ShareImageTemplate';
+import { leaderboardColumns } from '../components/leaderboard/leaderboardColumns';
+import { useLeaderboard, type LeaderboardRow } from '../hooks/useLeaderboard';
 
-interface LeaderboardColumn {
-  key: SortColumn;
-  label: string;
-  shortLabel?: string;
-  kind: 'total' | 'matchday' | 'detail';
-}
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
-import { UserAvatar } from '../components/Avatar';
-import StickerCard from '../components/StickerCard';
-import { displayRoundLabel } from '../utils/matchday';
 
-/** Medalla para el podio (solo con puntos), tortuga para el último que ha pagado y número para el resto. */
-function rankLabel(
-  rank: number | '-' | undefined,
-  lowestPaidRank: number,
-  points: number,
-): string | number {
-  if (points <= 0 && typeof rank === 'number' && rank <= 3) return rank;
-  if (rank === 1) return '🥇';
-  if (rank === 2) return '🥈';
-  if (rank === 3) return '🥉';
-  if (rank === lowestPaidRank && lowestPaidRank > 3) return '🐢';
-  return rank ?? '-';
+type RankingTab = 'table' | 'evolution';
+
+/** Sin liga activa: qué hacer para tener una clasificación. */
+function NoLeague({ signedIn }: { signedIn: boolean }) {
+  return (
+    <section className="view-section active">
+      <div className="paper-panel album-sheet text-center py-10 px-6 max-w-140 mx-auto my-5">
+        <h2 className="poster-title mt-0 mb-2 text-[1.5rem]">Clasificación</h2>
+        <p className="text-muted text-[0.92rem] mt-0 mb-5">
+          {signedIn
+            ? 'Únete a una liga o crea la tuya para ver su clasificación.'
+            : 'Inicia sesión para ver la clasificación de tus ligas.'}
+        </p>
+        <div className="flex gap-3 justify-center flex-wrap">
+          {signedIn ? (
+            <Link to="/mis-ligas" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
+              Ir a Mis ligas
+            </Link>
+          ) : (
+            <>
+              <Link to="/" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
+                Iniciar sesión
+              </Link>
+              <Link to="/demo" className="glass-btn py-2.5 px-5 font-bold">
+                Ver la demo
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
-
-const compactMatchdayLabel = (label: string | null) => {
-  if (!label) return '';
-  const jornada = /^jornada\s+(\d+)$/i.exec(label);
-  if (jornada) return `J${jornada[1]}`;
-  const fecha = /^fecha\s+(\d{4})-(\d{2})-(\d{2})$/i.exec(label);
-  if (fecha) return `${fecha[3]}/${fecha[2]}`;
-  return label;
-};
 
 /** Clasificación de la liga activa (tabla y gráfica). */
-/** La fila es del usuario: por id cuando las dos partes lo tienen y, si no, por nombre. */
-function isOwnRow(
-  row: { userId?: number | string | null; name?: string },
-  userId: number | string | null | undefined,
-  userName: string | null | undefined,
-): boolean {
-  if (row.userId != null && userId != null) return String(row.userId) === String(userId);
-  return Boolean(userName) && row.name === userName;
-}
-
 function Leaderboard() {
   const {
     state,
@@ -80,203 +76,94 @@ function Leaderboard() {
   } = useLeaderboard();
 
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'table' | 'evolution'>('table');
+  const [activeTab, setActiveTab] = useState<RankingTab>('table');
   // En móvil el desglose por fase va oculto hasta que se pide.
   const [showDetail, setShowDetail] = useState(false);
-  // Hora fijada al montar: basta para distinguir una jornada abierta de una en juego.
-  const [now] = useState(() => Date.now());
+
+  if (loading) return <PaperLoading label="Cargando clasificación" />;
+  if (!activeGroupId) return <NoLeague signedIn={Boolean(userName)} />;
 
   const isMatchday =
     activeGroupPoolFormat === 'MATCH_DAY' || state.activeCompetitionFormatType === 'LEAGUE';
-
-  // Mismo podio en todos los formatos: los empates comparten cromo en vez de ocultar el podio.
-  const sharePodium = React.useMemo(() => {
-    return podiumPlaces(validResults).map(({ score, leaders: members }, index) => {
-      const first = members[0];
-      return {
-        leader: {
-          rank: index + 1,
-          name: members.length === 1 ? first.name : 'Empate',
-          userId: first.userId,
-          avatarUrl: first.avatarUrl,
-          total: score,
-        },
-        members,
-      };
-    });
-  }, [validResults]);
-
-  if (loading) return <PaperLoading label="Cargando clasificación" />;
-
-  if (!activeGroupId) {
-    const signedIn = Boolean(userName);
-    return (
-      <section className="view-section active">
-        <div className="paper-panel album-sheet text-center py-10 px-6 max-w-140 mx-auto my-5">
-          <h2 className="poster-title mt-0 mb-2 text-[1.5rem]">Clasificación</h2>
-          <p className="text-muted text-[0.92rem] mt-0 mb-5">
-            {signedIn
-              ? 'Únete a una liga o crea la tuya para ver su clasificación.'
-              : 'Inicia sesión para ver la clasificación de tus ligas.'}
-          </p>
-          <div className="flex gap-3 justify-center flex-wrap">
-            {signedIn ? (
-              <Link to="/mis-ligas" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
-                Ir a Mis ligas
-              </Link>
-            ) : (
-              <>
-                <Link to="/" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
-                  Iniciar sesión
-                </Link>
-                <Link to="/demo" className="glass-btn py-2.5 px-5 font-bold">
-                  Ver la demo
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const showSharePodium = sharePodium.length > 0;
-  const shareRows = validResults.filter(
-    (row) => !sharePodium.some(({ leader }) => leader.total === row.points.total),
-  );
-  const shareMid = Math.ceil(shareRows.length / 2);
-
-  const ownBracketHasGroupPoints = validResults.some((row) => (row.points.r1 ?? 0) !== 0);
-  const scorerColumn: LeaderboardColumn[] = activeGroupPichichi
-    ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }]
-    : [];
-  const columns: LeaderboardColumn[] = isMatchday
-    ? [
-        { key: 'total', label: 'Total', kind: 'total' },
-        selectedMatchday
-          ? {
-              key: 'matchday',
-              label: selectedMatchday,
-              shortLabel: compactMatchdayLabel(selectedMatchday),
-              kind: 'matchday',
-            }
-          : { key: 'matchPoints', label: 'Puntos de jornada', kind: 'detail' },
-        ...scorerColumn,
-      ]
-    : state.activeGroupOwnBracket
-      ? [
-          { key: 'total', label: 'Total', kind: 'total' },
-          // Sin fase de grupos (o sin nada que puntuar en ella) la columna sería siempre 0.
-          ...(ownBracketHasGroupPoints
-            ? [{ key: 'r1', label: 'Grupos', kind: 'detail' } as LeaderboardColumn]
-            : []),
-          { key: 'r32', label: 'Cuadro', kind: 'detail' },
-        ]
-      : [
-          { key: 'total', label: 'Total', kind: 'total' },
-          { key: 'matchPoints', label: 'Jornadas', kind: 'detail' },
-          { key: 'r1', label: 'F.Grupos', kind: 'detail' },
-          { key: 'r32', label: 'Dieciseisavos', kind: 'detail' },
-          { key: 'r16', label: 'Octavos', kind: 'detail' },
-          { key: 'qf', label: 'Cuartos', kind: 'detail' },
-          { key: 'sf', label: 'Semis', kind: 'detail' },
-          { key: 'finals', label: 'Finales', kind: 'detail' },
-          ...scorerColumn,
-        ];
-
-  const sortIndicator = (colKey: SortColumn) => {
-    if (sortColumn !== colKey) return '';
-    return sortDirection === 'desc' ? ' ▼' : ' ▲';
-  };
-
-  const thStyle = (colKey: SortColumn): React.CSSProperties => ({
-    userSelect: 'none',
-    whiteSpace: 'nowrap',
-    transition: 'color 0.2s, background 0.2s',
-    background: 'transparent',
-    color: 'inherit',
-    borderBottom: sortColumn === colKey ? '3px solid var(--ink)' : undefined,
+  const columns = leaderboardColumns({
+    isMatchday,
+    ownBracket: state.activeGroupOwnBracket,
+    pichichi: activeGroupPichichi,
+    ownBracketHasGroupPoints: validResults.some((row) => (row.points.r1 ?? 0) !== 0),
+    selectedMatchday,
   });
-
-  const columnClass = (col: LeaderboardColumn) => {
-    if (col.kind === 'matchday') return 'lb-matchday-cell';
-    if (col.kind === 'detail' && !isMatchday) return 'leaderboard-mobile-detail';
-    return '';
+  const summaryMatchday = selectedMatchdayInfo || currentMatchday;
+  const openRow = (row: LeaderboardRow) => {
+    if (isMatchday) navigate('/jornadas');
+    else state.setViewerPredictionId(row.id ?? null);
   };
 
-  const summaryMatchday = selectedMatchdayInfo || currentMatchday;
-  // «En juego» solo cuando ya ha empezado algún partido; antes, la jornada sigue abierta.
-  const matchdayStatus = summaryMatchday?.finished
-    ? { text: 'Finalizada', tone: 'finished' }
-    : summaryMatchday?.date && new Date(summaryMatchday.date).getTime() > now
-      ? { text: 'Abierta', tone: 'open' }
-      : { text: 'En juego', tone: 'live' };
+  const shareButton = (className: string, iconSize: number) => (
+    <button
+      type="button"
+      className={className}
+      onClick={handleShare}
+      disabled={sharing}
+      aria-busy={sharing}
+      aria-label="Compartir clasificación"
+    >
+      <Share2 size={iconSize} aria-hidden="true" />
+      <span>{sharing ? 'Generando…' : 'Compartir'}</span>
+    </button>
+  );
 
   return (
     <section id="view-leaderboard" className="view-section block">
       {!isMatchday && (
         <div className="ranking-toolbar">
-          {!isMatchday && (
-            // Las flechas se gestionan en el tablist y el foco va en las pestañas (tabindex móvil).
-            // eslint-disable-next-line jsx-a11y/interactive-supports-focus
-            <div
-              role="tablist"
-              aria-label="Vista de la clasificación"
-              className="ranking-view-tabs"
-              onKeyDown={(event) => {
-                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-                event.preventDefault();
-                const next =
-                  event.key === 'Home'
-                    ? 'table'
-                    : event.key === 'End'
+          {/* Las flechas se gestionan en el tablist y el foco va en las pestañas (tabindex móvil). */}
+          {/* eslint-disable-next-line jsx-a11y/interactive-supports-focus */}
+          <div
+            role="tablist"
+            aria-label="Vista de la clasificación"
+            className="ranking-view-tabs"
+            onKeyDown={(event) => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const next: RankingTab =
+                event.key === 'Home'
+                  ? 'table'
+                  : event.key === 'End'
+                    ? 'evolution'
+                    : activeTab === 'table'
                       ? 'evolution'
-                      : activeTab === 'table'
-                        ? 'evolution'
-                        : 'table';
-                setActiveTab(next);
-                document.getElementById(`leaderboard-tab-${next}`)?.focus();
-              }}
-            >
+                      : 'table';
+              setActiveTab(next);
+              document.getElementById(`leaderboard-tab-${next}`)?.focus();
+            }}
+          >
+            {(['table', 'evolution'] as const).map((tab) => (
               <button
-                className={`ranking-view-tab ${activeTab === 'table' ? 'is-active' : ''}`}
+                key={tab}
+                className={`ranking-view-tab ${activeTab === tab ? 'is-active' : ''}`}
                 type="button"
-                onClick={() => setActiveTab('table')}
+                onClick={() => setActiveTab(tab)}
                 role="tab"
-                id="leaderboard-tab-table"
-                aria-selected={activeTab === 'table'}
+                id={`leaderboard-tab-${tab}`}
+                aria-selected={activeTab === tab}
                 aria-controls="leaderboard-panel"
-                tabIndex={activeTab === 'table' ? 0 : -1}
+                tabIndex={activeTab === tab ? 0 : -1}
               >
-                Ranking
+                {tab === 'table' ? 'Ranking' : 'Gráfica'}
               </button>
-              <button
-                className={`ranking-view-tab ${activeTab === 'evolution' ? 'is-active' : ''}`}
-                type="button"
-                onClick={() => setActiveTab('evolution')}
-                role="tab"
-                id="leaderboard-tab-evolution"
-                aria-selected={activeTab === 'evolution'}
-                aria-controls="leaderboard-panel"
-                tabIndex={activeTab === 'evolution' ? 0 : -1}
-              >
-                Gráfica
-              </button>
-            </div>
-          )}
+            ))}
+          </div>
           {/* Más elegidos y Buscador comparan con el Mundial: no aplican a los cuadros propios. */}
-          {(isMatchday || !state.activeGroupOwnBracket) && (
+          {!state.activeGroupOwnBracket && (
             <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
               <Link to="/stats" className="ranking-secondary-link">
                 <BarChart3 size={16} aria-hidden="true" />
-                {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
+                Más elegidos
               </Link>
-              {!isMatchday && (
-                <Link to="/search" className="ranking-secondary-link">
-                  <Search size={16} aria-hidden="true" />
-                  Buscador
-                </Link>
-              )}
+              <Link to="/search" className="ranking-secondary-link">
+                <Search size={16} aria-hidden="true" />
+                Buscador
+              </Link>
             </nav>
           )}
           <button
@@ -315,74 +202,17 @@ function Leaderboard() {
         ) : (
           <>
             {isMatchday && summaryMatchday && (
-              <div className="lb-matchday-panel paper-panel album-sheet">
-                <div className="lb-matchday-summary">
-                  <div className="lb-matchday-heading">
-                    <span className="lb-matchday-eyebrow">
-                      <CalendarDays size={14} aria-hidden="true" />
-                      {selectedMatchdayInfo?.current ? 'Jornada actual' : 'Jornada seleccionada'}
-                    </span>
-                    <div className="lb-matchday-title-row">
-                      <strong className="lb-matchday-title">
-                        {displayRoundLabel(summaryMatchday.label)}
-                      </strong>
-                      <span className={`lb-matchday-status is-${matchdayStatus.tone}`}>
-                        {matchdayStatus.text}
-                      </span>
-                    </div>
-                    {summaryMatchday.matchCount > 0 && (
-                      <span className="lb-matchday-meta">
-                        {summaryMatchday.matchCount}{' '}
-                        {summaryMatchday.matchCount === 1 ? 'partido' : 'partidos'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="lb-matchday-nav">
-                  <button
-                    type="button"
-                    className="lb-matchday-step"
-                    onClick={() => handleStepMatchday(-1)}
-                    disabled={!canGoPrevMatchday}
-                    aria-label="Jornada anterior"
-                  >
-                    <ChevronLeft size={18} aria-hidden="true" />
-                  </button>
-
-                  <select
-                    className="lb-matchday-select"
-                    value={selectedMatchday || ''}
-                    onChange={(event) => handleSelectMatchday(event.target.value)}
-                    aria-label="Seleccionar jornada"
-                  >
-                    {matchdays.map((matchday) => (
-                      <option key={matchday.label} value={matchday.label}>
-                        {displayRoundLabel(matchday.label)}
-                        {matchday.current ? ' · actual' : ''}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="button"
-                    className="lb-matchday-step"
-                    onClick={() => handleStepMatchday(1)}
-                    disabled={!canGoNextMatchday}
-                    aria-label="Jornada siguiente"
-                  >
-                    <ChevronRight size={18} aria-hidden="true" />
-                  </button>
-                </div>
-                <div className="lb-matchday-footer">
-                  <span>
-                    Tus puntos en esta jornada <strong>{matchdayStats?.myPoints ?? 0}</strong>
-                  </span>
-                  <Link to="/stats" aria-label="Estadísticas por partido">
-                    <BarChart3 size={16} aria-hidden="true" /> Estadísticas
-                  </Link>
-                </div>
-              </div>
+              <MatchdaySummary
+                matchday={summaryMatchday}
+                selected={selectedMatchdayInfo}
+                matchdays={matchdays}
+                selectedLabel={selectedMatchday}
+                myPoints={matchdayStats?.myPoints ?? 0}
+                canGoPrev={canGoPrevMatchday}
+                canGoNext={canGoNextMatchday}
+                onSelect={handleSelectMatchday}
+                onStep={handleStepMatchday}
+              />
             )}
 
             {!isMatchday && <MatchdayPodium rows={results} />}
@@ -394,17 +224,7 @@ function Leaderboard() {
                   <>
                     <div className="matchday-ranking-heading">
                       <h2 className="poster-title">Clasificación general</h2>
-                      <button
-                        type="button"
-                        className="matchday-ranking-share"
-                        onClick={handleShare}
-                        disabled={sharing}
-                        aria-busy={sharing}
-                        aria-label="Compartir clasificación"
-                      >
-                        <Share2 size={18} aria-hidden="true" />
-                        <span>{sharing ? 'Generando…' : 'Compartir'}</span>
-                      </button>
+                      {shareButton('matchday-ranking-share', 18)}
                     </div>
                     <MatchdayPodium rows={results} />
                     {!summaryMatchday && (
@@ -424,278 +244,32 @@ function Leaderboard() {
                     {showDetail ? 'Ocultar desglose' : 'Ver desglose por fase'}
                   </button>
                 )}
-                <div className="ranking-table-scroll">
-                  <table className="leaderboard-table">
-                    <thead>
-                      <tr>
-                        <th>Pos</th>
-                        <th>Participante</th>
-                        {columns.map((col) => (
-                          <th
-                            key={col.key}
-                            className={columnClass(col)}
-                            style={thStyle(col.key)}
-                            aria-sort={
-                              sortColumn === col.key
-                                ? sortDirection === 'asc'
-                                  ? 'ascending'
-                                  : 'descending'
-                                : 'none'
-                            }
-                          >
-                            <button
-                              type="button"
-                              className="leaderboard-sort-button"
-                              onClick={() => handleSort(col.key)}
-                              title={`Ordenar por ${col.label}`}
-                              aria-label={`Ordenar por ${col.label}`}
-                            >
-                              {col.shortLabel || col.label}
-                              <span aria-hidden="true">{sortIndicator(col.key)}</span>
-                            </button>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody id="leaderboard-body-tab">
-                      {results.length === 0 && (
-                        <tr>
-                          <td colSpan={columns.length + 2}>
-                            <p role="status" className="py-6 text-muted">
-                              Todavía no hay participantes en la clasificación.
-                            </p>
-                          </td>
-                        </tr>
-                      )}
-                      {results.map((r) => {
-                        const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
-
-                        const isPending = !r.paid;
-                        const isMe = isOwnRow(r, userId, userName);
-                        const bgStyle = isMe
-                          ? 'rgba(11, 95, 116, 0.08)'
-                          : isPending
-                            ? 'rgba(255, 165, 0, 0.05)'
-                            : 'transparent';
-
-                        const rowStyle = {
-                          background: bgStyle,
-                          boxShadow: isMe ? 'inset 0 0 0 1px var(--accent-color)' : 'none',
-                        };
-
-                        return (
-                          <tr
-                            key={r.key}
-                            style={r.id != null ? { ...rowStyle, cursor: 'pointer' } : rowStyle}
-                            onClick={
-                              r.id != null
-                                ? () => {
-                                    if (isMatchday) {
-                                      navigate('/jornadas');
-                                    } else {
-                                      state.setViewerPredictionId(r.id);
-                                    }
-                                  }
-                                : undefined
-                            }
-                          >
-                            <td className="text-[1.2em] text-center">{rankDisplay}</td>
-                            <td>
-                              <div className="flex justify-start items-center flex-nowrap gap-1.5">
-                                <div className="flex items-center gap-2 min-w-0 flex-1">
-                                  <UserAvatar
-                                    url={r.avatarUrl}
-                                    userId={r.userId}
-                                    name={r.name}
-                                    size={28}
-                                  />
-                                  <div className="flex items-center flex-wrap gap-1.5 min-w-0">
-                                    <span className="text-[1.1em]">
-                                      <strong>
-                                        {r.name}
-                                        {isMe && (
-                                          <span className="text-accent-text ml-[5px] text-[0.8em] whitespace-nowrap">
-                                            (Tú)
-                                          </span>
-                                        )}
-                                      </strong>
-                                    </span>
-                                    {isPending && (
-                                      <span
-                                        className="lb-unpaid-badge"
-                                        title="Pago pendiente. El administrador debe marcarlo como pagado para mostrar sus puntos."
-                                      >
-                                        Sin pagar
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {r.id != null && (
-                                  <button
-                                    className="glass-btn bg-[rgba(11,_95,_116,_0.08)] bg-none text-accent-text border border-accent py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 whitespace-nowrap text-[0.95rem] leading-[1] inline-flex items-center justify-center"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (isMatchday) {
-                                        navigate('/jornadas');
-                                      } else {
-                                        state.setViewerPredictionId(r.id);
-                                      }
-                                    }}
-                                    title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
-                                  >
-                                    <span
-                                      aria-hidden="true"
-                                      className="poster-title text-[0.75rem]"
-                                    >
-                                      Ver
-                                    </span>
-                                    <span className="sr-only">
-                                      {isMatchday ? 'Ver jornadas' : 'Ver porra'}
-                                    </span>
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                            {columns.map((col) => (
-                              <td
-                                key={col.key}
-                                className={columnClass(col)}
-                                style={
-                                  col.kind === 'total'
-                                    ? {
-                                        color: 'var(--accent-text)',
-                                        fontWeight: 'bold',
-                                        fontSize: '1.1em',
-                                        textAlign: 'center',
-                                      }
-                                    : undefined
-                                }
-                              >
-                                {col.kind === 'total' ? (
-                                  <span className="lb-total-value">
-                                    {r.paid ? `${r.points.total ?? 0} pts` : '-'}
-                                  </span>
-                                ) : r.paid ? (
-                                  `${r.points[col.key] ?? 0}`
-                                ) : (
-                                  '-'
-                                )}
-                              </td>
-                            ))}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <LeaderboardTable
+                  rows={results}
+                  columns={columns}
+                  isMatchday={isMatchday}
+                  lowestPaidRank={lowestPaidRank}
+                  userId={userId}
+                  userName={userName}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  onOpenRow={openRow}
+                />
               </div>
             </div>
           </>
         )}
       </div>
 
-      {/* Plantilla de la imagen compartida; queda fuera de los paneles visibles. */}
-      <div
-        className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 paper-panel bg-[var(--paper)] bg-none text-main box-border rounded-[4px]"
-        id="share-image-template"
-        aria-hidden="true"
-        style={{ fontFamily: "'Outfit', sans-serif" }}
-      >
-        <div className="text-center mb-5 border-b-2 border-b-[var(--ink)] pb-2.5">
-          <h1 className="text-accent-text m-0 text-[28px] uppercase">
-            {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'PorrApp'}
-          </h1>
-          <p className="text-muted mt-[5px] mb-0 mx-0 text-[18px] font-bold">
-            Clasificación: {activeGroupName}
-          </p>
-        </div>
-        {showSharePodium && (
-          <ul className="ranking-podium share-image-podium" aria-label="Podio de la clasificación">
-            {sharePodium.map(({ leader, members }) => (
-              <li
-                className={`ranking-podium-place ranking-podium-place-${leader.rank}`}
-                key={`${leader.rank}-${leader.total}`}
-              >
-                <StickerCard
-                  leader={leader}
-                  featured={leader.rank === 1}
-                  compact
-                  staticCard
-                  className="share-image-podium-card"
-                >
-                  {members.length > 1 && (
-                    <div className="share-image-podium-tie">
-                      <div className="matchday-podium-avatars" aria-hidden="true">
-                        {members.slice(0, 3).map((member) => (
-                          <UserAvatar
-                            key={member.key}
-                            url={member.avatarUrl}
-                            userId={member.userId}
-                            name={member.name}
-                            size={32}
-                          />
-                        ))}
-                      </div>
-                      <span>{members.map((member) => member.name).join(' · ')}</span>
-                    </div>
-                  )}
-                </StickerCard>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="flex gap-5 justify-between" id="share-image-columns">
-          <div className="flex-1 flex flex-col gap-2" id="share-col-left">
-            {shareRows.slice(0, shareMid).map((r) => {
-              const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
-
-              const isMe = isOwnRow(r, userId, userName);
-              return (
-                <div
-                  data-share-row
-                  className={`share-image-ranking-row flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.08)] bg-none border border-accent' : 'bg-panel bg-none border border-line'}`}
-                  key={r.key}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
-                      {rankDisplay}
-                    </span>
-                    <span className="text-[1.1rem] font-bold text-main">{r.name}</span>
-                  </div>
-                  <span className="text-[1.2rem] font-bold text-accent-text">
-                    {r.points.total} pts
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex-1 flex flex-col gap-2" id="share-col-right">
-            {shareRows.slice(shareMid).map((r) => {
-              const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
-
-              const isMe = isOwnRow(r, userId, userName);
-              return (
-                <div
-                  data-share-row
-                  className={`share-image-ranking-row flex items-center justify-between py-2 px-3 rounded-[8px] ${isMe ? 'bg-[rgba(11,_95,_116,_0.08)] bg-none border border-accent' : 'bg-panel bg-none border border-line'}`}
-                  key={r.key}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[1.2rem] font-bold w-7.5 text-center text-accent-text">
-                      {rankDisplay}
-                    </span>
-                    <span className="text-[1.1rem] font-bold text-main">{r.name}</span>
-                  </div>
-                  <span className="text-[1.2rem] font-bold text-accent-text">
-                    {r.points.total} pts
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <ShareImageTemplate
+        rows={validResults}
+        competitionName={state.activeCompetitionName}
+        leagueName={activeGroupName}
+        lowestPaidRank={lowestPaidRank}
+        userId={userId}
+        userName={userName}
+      />
     </section>
   );
 }
