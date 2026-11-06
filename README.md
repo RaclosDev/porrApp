@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/screenshots/hero.jpg" alt="PorrApp: capturas móviles del inicio, la clasificación y el cuadro del Mundial 2026" width="100%">
+<img src="docs/screenshots/hero.jpg" alt="PorrApp, la porra de toda la vida, pero bien hecha: capturas móviles del inicio, la clasificación y el cuadro" width="100%">
 
 # PorrApp
 
