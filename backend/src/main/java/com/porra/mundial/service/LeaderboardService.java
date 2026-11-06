@@ -214,22 +214,22 @@ public class LeaderboardService {
      */
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<MatchdayPointsDTO> getMatchdayBreakdown(Long groupId) {
-        List<Prediction> groupPredictions = groupId != null
-                ? predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId)
-                : predictionRepository.findAllWithUserAndEdition();
+        // Sin liga o sin edición activa no hay jornadas que desglosar: nunca se cargan las tablas enteras.
+        Edition edition = groupId != null
+                ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null)
+                : null;
+        if (edition == null || edition.getCompetition() == null) {
+            return List.of();
+        }
+
+        List<Prediction> groupPredictions = predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId);
 
         Set<Long> participantPredictionIds = groupPredictions.stream()
                 .map(Prediction::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        Edition edition = groupId != null
-                ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null)
-                : null;
-
-        List<Match> competitionMatches = edition != null && edition.getCompetition() != null
-                ? matchRepository.findByCompetitionId(edition.getCompetition().getId())
-                : matchRepository.findAll();
+        List<Match> competitionMatches = matchRepository.findByCompetitionId(edition.getCompetition().getId());
 
         Map<String, MatchdayAccumulator> matchdays = new LinkedHashMap<>();
         competitionMatches.stream()
@@ -244,9 +244,7 @@ public class LeaderboardService {
                     }
                 });
 
-        List<MatchPrediction> matchPredictions = groupId != null
-                ? matchPredictionRepository.findByPredictionEditionLeagueId(groupId)
-                : matchPredictionRepository.findAll();
+        List<MatchPrediction> matchPredictions = matchPredictionRepository.findByPredictionEditionLeagueId(groupId);
 
         for (MatchPrediction matchPrediction : matchPredictions) {
             if (matchPrediction == null

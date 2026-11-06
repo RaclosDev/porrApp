@@ -82,4 +82,40 @@ class PredictionPersistenceTest {
         assertThat(reloaded.getScoreCalculatedAt()).isNull();
         assertThat(repository.findByEditionLeagueId(league.getId())).hasSize(1);
     }
+
+    @Test
+    void bulkDeletesRemoveOnlyThePredictionsOfThatUserAndLeague() {
+        Competition competition = em.getEntityManager().createQuery(
+                "select c from Competition c where c.externalId = :id", Competition.class)
+                .setParameter("id", Competition.WORLD_CUP_EXTERNAL_ID).getSingleResult();
+        UserAccount ana = em.persist(UserAccount.builder().googleEmail("ana-bulk@test.invalid")
+                .googleName("Ana").participantName("AnaBulk").build());
+        UserAccount bea = em.persist(UserAccount.builder().googleEmail("bea-bulk@test.invalid")
+                .googleName("Bea").participantName("BeaBulk").build());
+        League first = em.persist(League.builder().name("Primera").joinCode("BULKONE234").adminUser(ana).build());
+        League second = em.persist(League.builder().name("Segunda").joinCode("BULKTWO234").adminUser(ana).build());
+        Edition firstEdition = em.persist(Edition.builder().league(first).competition(competition)
+                .poolFormat(PoolFormat.KNOCKOUTS_ONLY).build());
+        Edition secondEdition = em.persist(Edition.builder().league(second).competition(competition)
+                .poolFormat(PoolFormat.KNOCKOUTS_ONLY).build());
+        for (UserAccount user : new UserAccount[] {ana, bea}) {
+            for (Edition edition : new Edition[] {firstEdition, secondEdition}) {
+                em.persist(Prediction.builder().user(user).edition(edition).name(user.getParticipantName())
+                        .paymentStatus("PENDING").createdAt(Instant.now()).build());
+            }
+        }
+        em.flush();
+
+        assertThat(repository.deleteByUserIdAndLeagueId(ana.getId(), first.getId())).isEqualTo(1);
+        em.clear();
+        assertThat(repository.findByEditionLeagueId(first.getId())).extracting(p -> p.getUser().getId())
+                .containsExactly(bea.getId());
+        assertThat(repository.findByEditionLeagueId(second.getId())).hasSize(2);
+        assertThat(repository.existsByEditionLeagueId(first.getId())).isTrue();
+
+        assertThat(repository.deleteByLeagueId(second.getId())).isEqualTo(2);
+        em.clear();
+        assertThat(repository.existsByEditionLeagueId(second.getId())).isFalse();
+        assertThat(repository.findByEditionLeagueId(first.getId())).hasSize(1);
+    }
 }

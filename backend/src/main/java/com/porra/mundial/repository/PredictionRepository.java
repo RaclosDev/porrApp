@@ -17,6 +17,19 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 
     List<Prediction> findByEditionLeagueId(Long groupId);
 
+    boolean existsByEditionLeagueId(Long groupId);
+
+    /** Borra en una sentencia las predicciones de un usuario en una liga (sus partidos caen en cascada). */
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM Prediction p WHERE p.user.id = :userId"
+            + " AND p.edition.id IN (SELECT e.id FROM Edition e WHERE e.league.id = :leagueId)")
+    int deleteByUserIdAndLeagueId(@Param("userId") Long userId, @Param("leagueId") Long leagueId);
+
+    /** Borra en una sentencia todas las predicciones de una liga. */
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM Prediction p WHERE p.edition.id IN (SELECT e.id FROM Edition e WHERE e.league.id = :leagueId)")
+    int deleteByLeagueId(@Param("leagueId") Long leagueId);
+
     List<Prediction> findByUserIdAndEditionLeagueId(Long userId, Long groupId);
 
     List<Prediction> findByUserId(Long userId);

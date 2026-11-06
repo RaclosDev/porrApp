@@ -7,7 +7,6 @@ import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
-import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.LeagueRepository;
 import com.porra.mundial.repository.PredictionRepository;
@@ -179,7 +178,11 @@ public class GroupService {
     }
     
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    // Un alta o baja solo cambia el ranking de esa liga y la lista de ligas de ese usuario: la liga
+    // en sí no cambia, y vaciar la caché de todas las ligas en cada alta dispararía recálculos.
+    @org.springframework.cache.annotation.Caching(evict = {
+            @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
+            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", key = "#email")})
     public void joinGroupMembership(Long groupId, String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user == null) return;
@@ -242,9 +245,7 @@ public class GroupService {
     public void deleteGroup(Long groupId, String email) {
         verifyGroupAdmin(groupId, email);
         
-        List<Prediction> predictions = predictionRepository.findByEditionLeagueId(groupId);
-        predictionRepository.deleteAll(predictions);
-        predictionRepository.flush();
+        predictionRepository.deleteByLeagueId(groupId);
         
         List<Edition> editions = editionRepository.findByLeagueId(groupId);
         editionRepository.deleteAll(editions);
@@ -261,8 +262,7 @@ public class GroupService {
 
         competitionRepository.flush();
         
-        List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
-        membershipRepository.deleteAll(memberships);
+        membershipRepository.deleteByLeagueId(groupId);
         
         leagueRepository.deleteById(groupId);
     }
@@ -390,7 +390,11 @@ public class GroupService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    // Una baja solo cambia el ranking de esa liga y la lista de ligas de ese usuario: la liga
+    // en sí no cambia, y vaciar la caché de todas las ligas en cada baja dispararía recálculos.
+    @org.springframework.cache.annotation.Caching(evict = {
+            @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
+            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", key = "#email")})
     public void leaveGroup(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
             .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
@@ -401,11 +405,8 @@ public class GroupService {
 
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user != null) {
-            List<Prediction> predictions = predictionRepository.findByEditionLeagueId(groupId).stream()
-                    .filter(b -> b.getUser().getId().equals(user.getId())) 
-                    .collect(Collectors.toList());
-            predictionRepository.deleteAll(predictions);
-            
+            predictionRepository.deleteByUserIdAndLeagueId(user.getId(), groupId);
+
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
             if (membershipRepository.existsById(memId)) {
                 membershipRepository.deleteById(memId);
@@ -484,7 +485,7 @@ public class GroupService {
      * Cambia el estado de pago de un miembro en la liga y sincroniza su pronóstico.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId")
     public void toggleMemberPayment(Long groupId, Long targetUserId, String email, String status) {
         verifyGroupAdmin(groupId, email);
 
@@ -497,7 +498,10 @@ public class GroupService {
      * Expulsa a un participante de la liga eliminando sus pronósticos y membresía.
      */
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
+    // La lista de ligas del expulsado se indexa por su email, que no llega aquí; las expulsiones son raras.
+    @org.springframework.cache.annotation.Caching(evict = {
+            @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
+            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", allEntries = true)})
     public void kickMember(Long groupId, Long targetUserId, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
@@ -507,12 +511,7 @@ public class GroupService {
             throw BusinessException.badRequest("No puedes expulsar al administrador creador de la liga.");
         }
 
-        List<Prediction> preds = predictionRepository.findByEditionLeagueId(groupId);
-        for (Prediction p : preds) {
-            if (p.getUser() != null && p.getUser().getId().equals(targetUserId)) {
-                predictionRepository.delete(p);
-            }
-        }
+        predictionRepository.deleteByUserIdAndLeagueId(targetUserId, groupId);
 
         Membership.MembershipId memId = new Membership.MembershipId(targetUserId, groupId);
         membershipRepository.deleteById(memId);

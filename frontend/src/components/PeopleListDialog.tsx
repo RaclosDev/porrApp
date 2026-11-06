@@ -48,6 +48,7 @@ export default function PeopleListDialog({
   return createPortal(
     <div
       className="friends-predictions-overlay"
+      role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}

@@ -81,6 +81,13 @@ class SessionServiceTest {
         return familyRepository.findById(token.getFamilyId()).orElseThrow();
     }
 
+    /** Lleva la rotación del token al pasado, como si el reintento llegara tarde. */
+    private void rotatedAgo(String refreshToken, Duration ago) {
+        RefreshToken token = tokenRepository.findByTokenHash(SessionService.hash(refreshToken)).orElseThrow();
+        token.setRotatedAt(Instant.now().minus(ago));
+        em.flush();
+    }
+
     private String legacyToken(String email, Instant expiresAt) {
         return Jwts.builder()
                 .subject(email)
@@ -147,6 +154,7 @@ class SessionServiceTest {
         SessionTokens stolen = sessionService.start(luis);
         SessionTokens otherDevice = sessionService.start(luis);
         SessionTokens legit = sessionService.refresh(stolen.refreshToken()).orElseThrow();
+        rotatedAgo(stolen.refreshToken(), SessionService.REUSE_GRACE.plusSeconds(1));
 
         assertThat(sessionService.refresh(stolen.refreshToken())).isEmpty();
 
@@ -154,6 +162,20 @@ class SessionServiceTest {
         assertThat(sessionService.refresh(legit.refreshToken())).isEmpty();
         // Las sesiones de otros dispositivos siguen.
         assertThat(sessionService.refresh(otherDevice.refreshToken())).isPresent();
+    }
+
+    @Test
+    void aRetryWithinTheGraceWindowKeepsTheSession() {
+        UserAccount marta = user("marta@test.com");
+        SessionTokens session = sessionService.start(marta);
+        SessionTokens lost = sessionService.refresh(session.refreshToken()).orElseThrow();
+
+        // La respuesta anterior no llegó: el navegador reintenta con la cookie antigua.
+        SessionTokens retry = sessionService.refresh(session.refreshToken()).orElseThrow();
+
+        assertThat(retry.refreshToken()).isNotEqualTo(lost.refreshToken());
+        assertThat(familyOf(retry.refreshToken()).getRevokedAt()).isNull();
+        assertThat(sessionService.refresh(retry.refreshToken())).isPresent();
     }
 
     @Test
@@ -234,11 +256,12 @@ class SessionServiceTest {
 
     /**
      * Dos refrescos a la vez con el mismo token: la familia bloqueada los pone en fila, así que
-     * uno rota y el otro es una reutilización. Nunca salen dos ramas válidas de la sesión.
+     * uno rota y el otro llega dentro del margen de reintento. Los dos reciben un token y la
+     * sesión sigue abierta.
      */
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void concurrentRefreshesWithTheSameTokenNeverBothSucceed() throws Exception {
+    void concurrentRefreshesWithTheSameTokenKeepTheSession() throws Exception {
         UserAccount user = userAccountRepository.save(UserAccount.builder().googleEmail("carrera@test.com")
                 .googleName("Carrera").participantName("Carrera").build());
         SessionTokens session = sessionService.start(user);
@@ -261,8 +284,8 @@ class SessionServiceTest {
             pool.shutdown();
         }
 
-        assertThat(results).filteredOn(Optional::isPresent).hasSize(1);
+        assertThat(results).allMatch(Optional::isPresent);
         RefreshToken spent = tokenRepository.findByTokenHash(SessionService.hash(session.refreshToken())).orElseThrow();
-        assertThat(familyRepository.findById(spent.getFamilyId()).orElseThrow().getRevokedAt()).isNotNull();
+        assertThat(familyRepository.findById(spent.getFamilyId()).orElseThrow().getRevokedAt()).isNull();
     }
 }

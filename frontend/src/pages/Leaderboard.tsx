@@ -217,6 +217,8 @@ function Leaderboard() {
       {!isMatchday && (
         <div className="ranking-toolbar">
           {!isMatchday && (
+            // Las flechas se gestionan en el tablist y el foco va en las pestañas (tabindex móvil).
+            // eslint-disable-next-line jsx-a11y/interactive-supports-focus
             <div
               role="tablist"
               aria-label="Vista de la clasificación"

@@ -29,7 +29,9 @@ import java.util.Optional;
  * <ul>
  *   <li>Cada inicio de sesión abre una familia que caduca a los {@link #SESSION_TTL}, se rote o no.</li>
  *   <li>Cada refresco gasta el token presentado y entrega otro de la misma familia.</li>
- *   <li>Si llega un token ya gastado, alguien tiene una copia: se revoca la familia, y con ella
+ *   <li>Si llega un token gastado hace menos de {@link #REUSE_GRACE}, es un reintento tras perder
+ *       la respuesta (red móvil): se entrega otro token de la misma familia sin revocarla.</li>
+ *   <li>Si llega un token gastado hace más, alguien tiene una copia: se revoca la familia, y con ella
  *       tanto al atacante como al usuario legítimo, que tendrá que volver a entrar.</li>
  *   <li>En la base solo está el SHA-256 del token. Con 256 bits aleatorios no hace falta un hash lento.</li>
  * </ul>
@@ -41,6 +43,11 @@ public class SessionService {
 
     /** Duración máxima de una sesión, contada desde el inicio de sesión. */
     public static final Duration SESSION_TTL = Duration.ofDays(30);
+    /**
+     * Margen en que un token recién rotado aún se acepta: cubre el reintento cuando se pierde la
+     * respuesta del refresco. Un token robado y usado dentro de este margen no se detecta.
+     */
+    static final Duration REUSE_GRACE = Duration.ofSeconds(30);
 
     private static final Duration ACTIVITY_PRECISION = Duration.ofDays(1);
     private static final int REFRESH_TOKEN_BYTES = 32;
@@ -59,8 +66,8 @@ public class SessionService {
 
     /**
      * Gasta el refresh token y entrega el siguiente de la misma familia. Vacío si no vale:
-     * desconocido, de una sesión cerrada o caducada, o ya gastado. En el último caso se revoca
-     * la familia entera.
+     * desconocido, de una sesión cerrada o caducada, o gastado hace más de {@link #REUSE_GRACE}.
+     * En el último caso se revoca la familia entera.
      */
     @Transactional
     public Optional<SessionTokens> refresh(String refreshToken) {
@@ -79,6 +86,11 @@ public class SessionService {
 
         if (family.getRevokedAt() != null || !now.isBefore(family.getExpiresAt())) {
             return Optional.empty();
+        }
+        if (token.getRotatedAt() != null && now.isBefore(token.getRotatedAt().plus(REUSE_GRACE))) {
+            log.info("Reintento de refresco dentro del margen (usuario {}, familia {}).",
+                    family.getUser().getId(), family.getId());
+            return Optional.of(issue(family, family.getUser(), now));
         }
         if (token.getRotatedAt() != null) {
             family.setRevokedAt(now);

@@ -31,7 +31,13 @@ export default function BracketInfoPanel({
   useDialogFocus(dialogRef, { onEscape: () => setActivePanel(null) });
 
   return (
-    <div className="paper-dialog-overlay" onClick={() => setActivePanel(null)}>
+    <div
+      className="paper-dialog-overlay"
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setActivePanel(null);
+      }}
+    >
       <div
         className="paper-panel landing-tape paper-dialog"
         role="dialog"
@@ -39,7 +45,6 @@ export default function BracketInfoPanel({
         aria-label={activePanel === 'live' ? 'Partidos en directo' : 'Goleadores'}
         ref={dialogRef}
         tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="paper-dialog-heading">
           <h2 className="poster-title m-0 text-xl">

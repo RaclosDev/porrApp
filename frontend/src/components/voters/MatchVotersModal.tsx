@@ -46,6 +46,7 @@ export default function MatchVotersModal({
   return createPortal(
     <div
       className="friends-predictions-overlay"
+      role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}

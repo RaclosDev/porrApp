@@ -101,6 +101,29 @@ class MatchPredictionValidationTest {
     }
 
     @Test
+    @DisplayName("submitMatchdayPredictions rechaza con 400 Bad Request un marcador por encima de 99")
+    void submitMatchdayPredictions_RejectsScoresAbove99() throws Exception {
+        MatchPredictionItemDTO invalidItem = MatchPredictionItemDTO.builder()
+                .matchId(101L)
+                .homeScore(100)
+                .awayScore(2)
+                .sign("1")
+                .build();
+
+        MatchdaySubmissionDTO submission = MatchdaySubmissionDTO.builder()
+                .groupId(10L)
+                .predictions(List.of(invalidItem))
+                .build();
+
+        mockMvc.perform(post("/api/predictions/matchday")
+                        .principal(mockPrincipal)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submission)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Los goles no pueden pasar de 99"));
+    }
+
+    @Test
     @DisplayName("submitMatchdayPredictions rechaza con 400 Bad Request si awayScore es negativo")
     void submitMatchdayPredictions_RejectsNegativeAwayScore() throws Exception {
         MatchPredictionItemDTO invalidItem = MatchPredictionItemDTO.builder()
