@@ -102,7 +102,12 @@ export function useLeagueHomeData(): LeagueHomeData {
       return {
         subtitle: 'Predicciones por jornada',
         matches: {
-          title: `Partidos${round ? ` ${displayRoundLabel(round)}` : ''}`,
+          // «Jornada 12» se explica sola; las jornadas por fecha siguen como «Partidos Sáb 7 nov».
+          title: !round
+            ? 'Partidos'
+            : displayRoundLabel(round) === round
+              ? round
+              : `Partidos ${displayRoundLabel(round)}`,
           items: matches,
           to: '/jornadas',
           action: 'hacer tu predicción',

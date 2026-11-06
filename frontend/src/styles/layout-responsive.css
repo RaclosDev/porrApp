@@ -1,20 +1,5 @@
 @layer components {
   /* Last Matches Widget */
-  .radar-container {
-    display: flex;
-    gap: 30px;
-    justify-content: center;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-
-  .radar-column {
-    flex: 1;
-    min-width: 300px;
-    background: var(--panel-bg);
-    border-radius: 12px;
-    padding: 20px;
-  }
 
   .last-matches-grid {
     display: flex;
@@ -269,14 +254,6 @@
       width: 100%;
     }
 
-    .radar-container {
-      flex-direction: column;
-    }
-
-    .radar-column {
-      min-width: 100%;
-    }
-
     .app-container {
       padding: 12px;
     }
@@ -307,17 +284,6 @@
   @media (max-width: 600px) {
     .section-header h2 {
       font-size: 1.4rem !important;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    .radar-col-ultimos,
-    .radar-col-proximos {
-      display: none !important;
-    }
-    .radar-col-ultimos.active-mobile,
-    .radar-col-proximos.active-mobile {
-      display: block !important;
     }
   }
 
