@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import { teamKey } from '../utils/teamKey';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext, useBracketDraft } from '../context/AppContext';
 import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from '../utils/matrix';
@@ -49,14 +49,11 @@ import {
 
 /** Estado y acciones del editor del cuadro (grupos, cruces y guardado). */
 export function useBracket() {
+  const { bracketState, setBracketState, topScorer, setTopScorer } = useBracketDraft();
   const {
-    bracketState,
-    setBracketState,
     userName,
     setUserName,
     userId,
-    topScorer,
-    setTopScorer,
     isAuthenticated,
     activeGroupId,
     fetchData,

@@ -13,6 +13,7 @@ vi.mock('../../services/api', () => ({
   }),
   fetchMyGroups: vi.fn().mockResolvedValue([]),
   fetchGroup: vi.fn().mockResolvedValue({}),
+  fetchFeaturedGroup: vi.fn().mockResolvedValue(null),
   fetchMatches: vi.fn().mockResolvedValue([]),
   fetchMatchRadar: vi.fn().mockResolvedValue({ live: [], last: [], next: [] }),
   fetchPredictions: vi.fn().mockResolvedValue([]),
