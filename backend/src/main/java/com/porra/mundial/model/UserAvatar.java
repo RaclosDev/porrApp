@@ -3,7 +3,8 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
 
 /**
  * Foto de perfil de un usuario de la aplicación. Es independiente de la identidad de Google:
@@ -28,5 +29,5 @@ public class UserAvatar {
     private int sizeBytes;
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 }

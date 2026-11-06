@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -98,7 +98,7 @@ public class LeaderboardService {
             if (!toUpdate.isEmpty()) {
                 try {
                     // Solo columnas de puntos: un saveAll de la entidad entera pisaría una predicción guardada a la vez.
-                    java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                    java.time.Instant now = java.time.Instant.now();
                     toUpdate.forEach((id, score) -> predictionRepository.saveCalculatedScore(id, score.getTotal(),
                             score.getR1(), score.getR32(), score.getR16(), score.getQf(), score.getSf(),
                             score.getFinals(), score.getScorer(), score.getMatchPoints(), now));
@@ -300,11 +300,11 @@ public class LeaderboardService {
     private static final class MatchdayAccumulator {
         private final String label;
         private final Map<Long, Integer> points = new HashMap<>();
-        private LocalDateTime date;
+        private Instant date;
         private int matchCount;
         private boolean finished = true;
 
-        private MatchdayAccumulator(String label, LocalDateTime date) {
+        private MatchdayAccumulator(String label, Instant date) {
             this.label = label;
             this.date = date;
         }

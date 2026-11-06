@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -46,7 +46,7 @@ public class ProfileImageService {
     private final UserAvatarRepository userAvatarRepository;
 
     /** Imagen lista para servir. */
-    public record StoredImage(byte[] data, String contentType, LocalDateTime updatedAt) {
+    public record StoredImage(byte[] data, String contentType, Instant updatedAt) {
     }
 
     // Ligas
@@ -55,7 +55,7 @@ public class ProfileImageService {
     public League saveLeagueImage(Long groupId, String email, byte[] raw) {
         League league = requireLeagueAdmin(groupId, email);
         ImageProcessor.ProcessedImage image = ImageProcessor.process(raw);
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         LeagueImage leagueImage = leagueImageRepository.findById(league.getId())
                 .orElseGet(() -> LeagueImage.builder().leagueId(league.getId()).build());
@@ -114,7 +114,7 @@ public class ProfileImageService {
     public UserAccount saveAvatar(String email, byte[] raw) {
         UserAccount user = requireUser(email);
         ImageProcessor.ProcessedImage image = ImageProcessor.process(raw);
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         UserAvatar avatar = userAvatarRepository.findById(user.getId())
                 .orElseGet(() -> UserAvatar.builder().userId(user.getId()).build());

@@ -6,7 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
 
 @Data
 @Builder
@@ -17,7 +18,7 @@ public class GroupMemberDTO {
     private String participantName;
     private String role;
     private String paymentStatus;
-    private LocalDateTime joinedAt;
+    private Instant joinedAt;
     // Lombok genera isAdmin(); sin @JsonProperty, Jackson lo publicaría como "admin".
     @JsonProperty("isAdmin")
     private boolean admin;

@@ -5,6 +5,7 @@ import com.porra.mundial.dto.TopScorerDTO;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,7 +55,7 @@ class OfficialResultsServiceTest {
     /** Partido de eliminatoria ya jugado; {@code winner} null deja el marcador en empate. */
     private Match knockout(String round, String home, String away, String winner) {
         Match m = Match.builder().round(round).homeTeam(team(home)).awayTeam(team(away))
-                .matchDate(LocalDateTime.of(2026, 7, 1, 20, 0).plusDays(day++)).finished(winner != null).build();
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 7, 1, 20, 0)).plus(day++, ChronoUnit.DAYS)).finished(winner != null).build();
         if (winner != null) {
             m.setHomeScore(winner.equals(home) ? 2 : 0);
             m.setAwayScore(winner.equals(home) ? 0 : 2);
@@ -180,7 +182,7 @@ class OfficialResultsServiceTest {
         knockout("final", expected.get(8).get(0), expected.get(0).get(0), expected.get(0).get(0));
         knockout("third", expected.get(12).get(0), expected.get(4).get(0), expected.get(4).get(0));
         java.util.Collections.reverse(matches);
-        for (int i = 0; i < matches.size(); i++) matches.get(i).setMatchDate(LocalDateTime.of(2026, 7, 1, 20, 0).plusDays(i));
+        for (int i = 0; i < matches.size(); i++) matches.get(i).setMatchDate(AppTime.fromLocal(LocalDateTime.of(2026, 7, 1, 20, 0)).plus(i, ChronoUnit.DAYS));
 
         PredictionDataDTO bracket = service.officialBracket();
 

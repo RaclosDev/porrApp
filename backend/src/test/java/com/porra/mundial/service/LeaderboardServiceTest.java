@@ -18,6 +18,7 @@ import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.scoring.ScoringRuleSet;
 import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -156,7 +158,7 @@ class LeaderboardServiceTest {
                 .paymentStatus("PAID")
                 .matchPoints(6)
                 .totalPoints(6)
-                .scoreCalculatedAt(LocalDateTime.now())
+                .scoreCalculatedAt(Instant.now())
                 .build();
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
@@ -175,7 +177,7 @@ class LeaderboardServiceTest {
         UserAccount fresh = UserAccount.builder().id(10L).participantName("Guardada").build();
         UserAccount changed = UserAccount.builder().id(11L).participantName("Cambiada").build();
         Prediction materialized = Prediction.builder().id(100L).user(fresh).name("Guardada").paymentStatus("PAID")
-                .matchPoints(6).totalPoints(6).scoreCalculatedAt(LocalDateTime.now()).build();
+                .matchPoints(6).totalPoints(6).scoreCalculatedAt(Instant.now()).build();
         Prediction stale = Prediction.builder().id(101L).user(changed).name("Cambiada").paymentStatus("PAID")
                 .scoreCalculatedAt(null).build();
         MatchPrediction mp = MatchPrediction.builder().id(1L).prediction(stale).pointsAwarded(3).build();
@@ -214,7 +216,7 @@ class LeaderboardServiceTest {
                 .paymentStatus("PAID")
                 .matchPoints(6)
                 .totalPoints(6)
-                .scoreCalculatedAt(LocalDateTime.now())
+                .scoreCalculatedAt(Instant.now())
                 .build();
         UserAccount joinedUser = UserAccount.builder().id(20L).participantName("Jugador Unido").build();
         Membership membership = Membership.builder().user(joinedUser).build();
@@ -245,7 +247,7 @@ class LeaderboardServiceTest {
                 .user(unpaidUser)
                 .name("Porra 1")
                 .paymentStatus("PAID")
-                .scoreCalculatedAt(LocalDateTime.now())
+                .scoreCalculatedAt(Instant.now())
                 .build();
         UserAccount paidUser = UserAccount.builder().id(20L).participantName("Pagado").build();
         Prediction unpaidPrediction = Prediction.builder()
@@ -253,7 +255,7 @@ class LeaderboardServiceTest {
                 .user(paidUser)
                 .name("Porra 2")
                 .paymentStatus("PENDING")
-                .scoreCalculatedAt(LocalDateTime.now())
+                .scoreCalculatedAt(Instant.now())
                 .build();
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L))
@@ -285,19 +287,19 @@ class LeaderboardServiceTest {
 
         Match jornada1 = Match.builder()
                 .round("Jornada 1")
-                .matchDate(LocalDateTime.of(2026, 8, 15, 17, 30))
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 15, 17, 30)))
                 .finished(true)
                 .status(MatchStatusNormalized.FINISHED)
                 .build();
         Match jornada2 = Match.builder()
                 .round("Jornada 2")
-                .matchDate(LocalDateTime.of(2026, 8, 22, 17, 30))
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 22, 17, 30)))
                 .finished(true)
                 .status(MatchStatusNormalized.FINISHED)
                 .build();
         Match jornada3 = Match.builder()
                 .round("Jornada 3")
-                .matchDate(LocalDateTime.of(2026, 8, 29, 17, 30))
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 29, 17, 30)))
                 .finished(false)
                 .status(MatchStatusNormalized.SCHEDULED)
                 .build();

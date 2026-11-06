@@ -3,7 +3,8 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
 
 /** Un dispositivo (navegador o PWA instalada) en el que el usuario aceptó recibir avisos push. */
 @Entity
@@ -33,5 +34,5 @@ public class PushSubscription {
 
     @Builder.Default
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 }

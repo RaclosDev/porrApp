@@ -2,8 +2,8 @@ package com.porra.mundial.util;
 
 import com.porra.mundial.model.Match;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
@@ -16,7 +16,7 @@ public final class MatchRound {
     private static final String DATE_PREFIX = "fecha ";
     private static final String NO_ROUND = "sin jornada";
     /** Rango vacío para las jornadas que no son de una fecha. */
-    private static final LocalDateTime NO_DAY = LocalDateTime.of(1970, 1, 1, 0, 0);
+    private static final Instant NO_DAY = Instant.EPOCH;
 
     public static String label(Match match) {
         if (match.getGroupName() != null && !match.getGroupName().isBlank()) {
@@ -26,7 +26,7 @@ public final class MatchRound {
                 && !"group".equalsIgnoreCase(match.getRound())) {
             return match.getRound();
         }
-        return match.getMatchDate() != null ? "Fecha " + match.getMatchDate().toLocalDate() : "Sin jornada";
+        return match.getMatchDate() != null ? "Fecha " + AppTime.day(match.getMatchDate()) : "Sin jornada";
     }
 
     public static boolean matches(Match match, String round) {
@@ -43,7 +43,7 @@ public final class MatchRound {
      * @param dayStart  inicio del día de una jornada "Fecha AAAA-MM-DD"; rango vacío si no lo es
      * @param undated   si la jornada es "Sin jornada" (partidos sin fecha)
      */
-    public record Lookup(List<String> names, LocalDateTime dayStart, LocalDateTime dayEnd, boolean undated) {}
+    public record Lookup(List<String> names, Instant dayStart, Instant dayEnd, boolean undated) {}
 
     public static Lookup lookup(String round) {
         String name = round.trim().toLowerCase(Locale.ROOT);
@@ -59,8 +59,8 @@ public final class MatchRound {
             }
         }
         return new Lookup(names,
-                day != null ? day.atStartOfDay() : NO_DAY,
-                day != null ? day.plusDays(1).atStartOfDay() : NO_DAY,
+                day != null ? AppTime.startOfDay(day) : NO_DAY,
+                day != null ? AppTime.startOfDay(day.plusDays(1)) : NO_DAY,
                 NO_ROUND.equals(name));
     }
 }

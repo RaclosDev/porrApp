@@ -1,6 +1,6 @@
 package com.porra.mundial.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import tools.jackson.databind.annotation.JsonSerialize;
 
@@ -29,7 +29,7 @@ public record MatchdayStatsDTO(long members, List<MatchStats> matches) {
     public record MatchStats(
             Long matchId,
             String round,
-            @JsonSerialize(using = MadridDateTimeSerializer.class) LocalDateTime matchDate,
+            @JsonSerialize(using = MadridDateTimeSerializer.class) Instant matchDate,
             String homeTeam,
             String awayTeam,
             String homeTeamLogo,

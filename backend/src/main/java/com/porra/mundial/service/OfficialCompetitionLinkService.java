@@ -18,7 +18,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,11 +84,11 @@ public class OfficialCompetitionLinkService {
         // Se conserva el modo de cierre elegido; las fechas pasan a ser las de los cruces oficiales.
         PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
         int offset = mode == PredictionLockMode.FIXED_DATE ? 0 : Math.max(0, edition.getLockOffsetMinutes());
-        LocalDateTime firstMatch = officialFirst.stream().map(Match::getMatchDate).filter(Objects::nonNull)
-                .min(LocalDateTime::compareTo).orElse(null);
-        LocalDateTime lockDate = switch (mode) {
+        Instant firstMatch = officialFirst.stream().map(Match::getMatchDate).filter(Objects::nonNull)
+                .min(Instant::compareTo).orElse(null);
+        Instant lockDate = switch (mode) {
             case FIXED_DATE -> edition.getLockDate() != null ? edition.getLockDate() : firstMatch;
-            case FIRST_MATCH -> firstMatch == null ? null : firstMatch.minusMinutes(offset);
+            case FIRST_MATCH -> firstMatch == null ? null : firstMatch.minus(offset, ChronoUnit.MINUTES);
             default -> null;
         };
         edition.setCompetition(official);

@@ -13,6 +13,7 @@ import org.hibernate.SessionFactory;
 import org.springframework.data.domain.PageRequest;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.util.AppTime;
 import com.porra.mundial.util.MatchRound;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +21,14 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,6 +69,7 @@ class MatchRepositoryTest {
     }
 
     @Test
+    @Sql("/legacy-laliga-fixtures.sql")
     void findsTheMatchesOfALeagueMatchdayWhateverTheCase() {
         Long laLiga = competitionRepository.findIdByExternalId("esp.1").orElseThrow();
 
@@ -79,13 +84,13 @@ class MatchRepositoryTest {
         Competition worldCup = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElseThrow();
         Team home = em.persist(Team.builder().name("Local A").groupName("A").build());
         Team away = em.persist(Team.builder().name("Visitante A").groupName("A").build());
-        LocalDateTime day = LocalDateTime.of(2026, 6, 20, 21, 0);
+        Instant day = AppTime.fromLocal(LocalDateTime.of(2026, 6, 20, 21, 0));
         Match groupA = em.persist(Match.builder().competition(worldCup).homeTeam(home).awayTeam(away)
                 .groupName("A").externalId("t-group-a").matchDate(day).build());
         Match dated = em.persist(Match.builder().competition(worldCup).homeTeam(away).awayTeam(home)
-                .externalId("t-dated").matchDate(day.withHour(23)).build());
+                .externalId("t-dated").matchDate(day.plus(2, ChronoUnit.HOURS)).build());
         em.persist(Match.builder().competition(worldCup).homeTeam(home).awayTeam(away)
-                .externalId("t-other-day").matchDate(day.plusDays(1)).build());
+                .externalId("t-other-day").matchDate(day.plus(1, ChronoUnit.DAYS)).build());
         em.flush();
 
         assertThat(roundIds(worldCup.getId(), "Grupo A")).containsExactly(groupA.getId());
@@ -110,21 +115,21 @@ class MatchRepositoryTest {
         var other = em.persist(Competition.builder().name("Other radar").build());
         var home = em.persist(Team.builder().name("Radar home").build());
         var placeholder = em.persist(Team.builder().name("Radar placeholder").nameEn("tBd").build());
-        var now = LocalDateTime.of(2040, 1, 1, 12, 0);
+        var now = AppTime.fromLocal(LocalDateTime.of(2040, 1, 1, 12, 0));
         for (int i = 1; i <= 200; i++) {
             em.persist(Match.builder().competition(competition).homeTeam(home).awayTeam(placeholder)
-                    .matchDate(now.plusHours(i)).build());
+                    .matchDate(now.plus(i, ChronoUnit.HOURS)).build());
         }
         // Both placeholders are excluded even if their date would sort first.
         em.persist(Match.builder().competition(competition).homeTeam(placeholder).awayTeam(placeholder)
-                .matchDate(now.plusMinutes(1)).build());
-        em.persist(Match.builder().competition(other).matchDate(now.plusMinutes(2)).build());
+                .matchDate(now.plus(1, ChronoUnit.MINUTES)).build());
+        em.persist(Match.builder().competition(other).matchDate(now.plus(2, ChronoUnit.MINUTES)).build());
         em.persist(Match.builder().competition(competition).status(MatchStatusNormalized.POSTPONED)
-                .matchDate(now.plusMinutes(3)).build());
+                .matchDate(now.plus(3, ChronoUnit.MINUTES)).build());
         var missingTeams = em.persist(Match.builder().competition(competition).status(null)
-                .matchDate(now.plusMinutes(4)).build());
+                .matchDate(now.plus(4, ChronoUnit.MINUTES)).build());
         var live = em.persist(Match.builder().competition(competition).status(MatchStatusNormalized.LIVE)
-                .finished(null).matchDate(now.minusMinutes(10)).build());
+                .finished(null).matchDate(now.minus(10, ChronoUnit.MINUTES)).build());
         var finished = em.persist(Match.builder().competition(competition).finished(true).matchDate(now).build());
         var undated = em.persist(Match.builder().competition(competition).finished(true).matchDate(null).build());
         em.flush(); em.clear();
@@ -135,7 +140,7 @@ class MatchRepositoryTest {
         assertThat(next.get(1).getHomeTeam().getName()).isEqualTo("Radar home");
         assertThat(stats.getPrepareStatementCount()).isEqualTo(1);
         assertThat(stats.getEntityLoadCount()).isLessThan(15);
-        assertThat(matchRepository.findRadarLive(competition.getId(), now.minusHours(3).minusMinutes(30), now.plusMinutes(20),
+        assertThat(matchRepository.findRadarLive(competition.getId(), now.minus(3, ChronoUnit.HOURS).minus(30, ChronoUnit.MINUTES), now.plus(20, ChronoUnit.MINUTES),
                 List.of(MatchStatusNormalized.SCHEDULED, MatchStatusNormalized.LIVE, MatchStatusNormalized.PAUSED)))
                 .extracting(Match::getId).containsExactly(missingTeams.getId(), live.getId());
         // PostgreSQL's descending null ordering remains the same as the previous derived query.

@@ -16,7 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,7 +63,7 @@ class MatchdayStatsServiceTest {
         lenient().when(membershipRepository.countByLeagueId(GROUP_ID)).thenReturn(6L);
     }
 
-    private Match match(long id, LocalDateTime date, boolean finished, Integer homeScore, Integer awayScore) {
+    private Match match(long id, Instant date, boolean finished, Integer homeScore, Integer awayScore) {
         return Match.builder()
                 .id(id)
                 .homeTeam(home)
@@ -110,8 +111,8 @@ class MatchdayStatsServiceTest {
     @Test
     @DisplayName("Los partidos sin empezar no se agregan: sus pronósticos siguen ocultos")
     void hidesMatchesThatHaveNotStarted() {
-        Match future = match(1L, LocalDateTime.now().plusHours(2), false, null, null);
-        Match started = match(2L, LocalDateTime.now().minusMinutes(20), false, 1, 0);
+        Match future = match(1L, Instant.now().plus(2, ChronoUnit.HOURS), false, null, null);
+        Match started = match(2L, Instant.now().minus(20, ChronoUnit.MINUTES), false, 1, 0);
         started.setStatus(MatchStatusNormalized.LIVE);
         when(matchPredictionRepository.findWithMatchByEditionId(100L)).thenReturn(List.of(
                 score(future, 2, 0), score(started, 1, 1), score(future, 0, 0)));
@@ -132,8 +133,8 @@ class MatchdayStatsServiceTest {
     @Test
     @DisplayName("Si la porra está cerrada se ven todos los partidos")
     void lockedEditionRevealsEveryMatch() {
-        edition.setLockDate(LocalDateTime.now().minusDays(1));
-        Match future = match(1L, LocalDateTime.now().plusDays(3), false, null, null);
+        edition.setLockDate(Instant.now().minus(1, ChronoUnit.DAYS));
+        Match future = match(1L, Instant.now().plus(3, ChronoUnit.DAYS), false, null, null);
         when(matchPredictionRepository.findWithMatchByEditionId(100L)).thenReturn(List.of(score(future, 2, 1)));
 
         assertEquals(1, service.getStats(EMAIL, GROUP_ID).matches().size());
@@ -142,7 +143,7 @@ class MatchdayStatsServiceTest {
     @Test
     @DisplayName("Cuenta signos, marcadores más repetidos y aciertos de un partido terminado")
     void aggregatesFinishedMatch() {
-        Match finished = match(3L, LocalDateTime.now().minusDays(1), true, 2, 1);
+        Match finished = match(3L, Instant.now().minus(1, ChronoUnit.DAYS), true, 2, 1);
         when(matchPredictionRepository.findWithMatchByEditionId(100L)).thenReturn(List.of(
                 score(finished, 2, 1),
                 score(finished, 2, 1),
@@ -172,8 +173,8 @@ class MatchdayStatsServiceTest {
     @Test
     @DisplayName("Los partidos salen por fecha")
     void sortsMatchesByDate() {
-        Match later = match(5L, LocalDateTime.now().minusHours(1), false, null, null);
-        Match earlier = match(4L, LocalDateTime.now().minusDays(2), true, 0, 0);
+        Match later = match(5L, Instant.now().minus(1, ChronoUnit.HOURS), false, null, null);
+        Match earlier = match(4L, Instant.now().minus(2, ChronoUnit.DAYS), true, 0, 0);
         when(matchPredictionRepository.findWithMatchByEditionId(100L)).thenReturn(List.of(
                 score(later, 1, 0), score(earlier, 0, 0)));
 

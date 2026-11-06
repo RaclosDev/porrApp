@@ -2,7 +2,8 @@ package com.porra.mundial.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 
 /** Partido real; se sincroniza con el proveedor deportivo para tener los resultados en directo. */
 @Entity
@@ -40,7 +41,7 @@ public class Match {
     private Integer awayScore;
 
     /** Fecha y hora del partido ajustada al horario configurado en el servidor. */
-    private LocalDateTime matchDate; 
+    private Instant matchDate; 
 
     /** ¿Ya ha pitado el árbitro el final del partido (Full Time / FT)? */
     @Builder.Default
