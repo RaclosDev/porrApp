@@ -4,7 +4,7 @@ CREATE TABLE editions (
     id bigint GENERATED ALWAYS AS IDENTITY,
     league_id bigint NOT NULL,
     competition_id bigint NOT NULL,
-    pool_format varchar(50) NOT NULL,
+    pool_format varchar(50) CONSTRAINT editions_bet_mode_not_null NOT NULL,
     status varchar(20) DEFAULT 'ACTIVE' NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL,
     pichichi boolean DEFAULT true NOT NULL,
