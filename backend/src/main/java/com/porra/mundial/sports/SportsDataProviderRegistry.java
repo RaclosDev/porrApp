@@ -22,8 +22,4 @@ public class SportsDataProviderRegistry {
                 .findFirst()
                 .orElse(providers.get(0));
     }
-
-    public List<SportsDataProvider> getAllProviders() {
-        return providers;
-    }
 }

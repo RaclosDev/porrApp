@@ -296,6 +296,16 @@ class LeaderboardServiceTest {
     }
 
     @Test
+    @DisplayName("getMatchdayBreakdown de una liga sin edición activa está vacío y no carga las tablas enteras")
+    void getMatchdayBreakdown_WithoutActiveEditionIsEmpty() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.empty());
+
+        assertTrue(leaderboardService.getMatchdayBreakdown(10L).isEmpty());
+        verify(matchRepository, never()).findAll();
+        verify(matchPredictionRepository, never()).findAll();
+    }
+
+    @Test
     @DisplayName("getMatchdayBreakdown agrupa los puntos por jornada y marca la jornada actual")
     void getMatchdayBreakdown_GroupsPointsByRoundAndMarksCurrentMatchday() {
         UserAccount user = UserAccount.builder().id(10L).participantName("Jugador 1").build();

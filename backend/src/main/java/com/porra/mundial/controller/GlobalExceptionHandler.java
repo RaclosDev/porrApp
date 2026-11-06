@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.config.RequestBodyLimitFilter;
 import com.porra.mundial.dto.ErrorResponse;
 import com.porra.mundial.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
@@ -92,6 +93,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     public ResponseEntity<ErrorResponse> handleMalformedRequest(Exception ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof RequestBodyLimitFilter.BodyTooLargeException) {
+                return error(HttpStatus.PAYLOAD_TOO_LARGE, "La petición es demasiado grande.");
+            }
+        }
         return error(HttpStatus.BAD_REQUEST, "La petición no tiene un formato válido.");
     }
 

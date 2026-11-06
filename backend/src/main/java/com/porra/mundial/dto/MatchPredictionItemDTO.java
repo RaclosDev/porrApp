@@ -2,6 +2,7 @@ package com.porra.mundial.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,9 +20,11 @@ public class MatchPredictionItemDTO {
     private Long matchId;
 
     @Min(value = 0, message = "Los goles no pueden ser negativos")
+    @Max(value = 99, message = "Los goles no pueden pasar de 99")
     private Integer homeScore;
 
     @Min(value = 0, message = "Los goles no pueden ser negativos")
+    @Max(value = 99, message = "Los goles no pueden pasar de 99")
     private Integer awayScore;
 
     private String sign; // "1", "X", "2"

@@ -49,7 +49,6 @@ class JwtUtilTest {
 
         assertEquals("ana@test.com", verified.email());
         assertEquals(42L, verified.userId());
-        assertFalse(verified.legacy());
         long minutes = Duration.between(Instant.now(), verified.expiresAt()).toMinutes();
         assertTrue(minutes >= 14 && minutes <= 15, "caduca en " + minutes + " minutos");
         String header = new String(Base64.getUrlDecoder().decode(token.split("\\.")[0]), StandardCharsets.UTF_8);
@@ -57,23 +56,13 @@ class JwtUtilTest {
     }
 
     @Test
-    @DisplayName("Los JWT de 7 días de la versión anterior se aceptan hasta que caducan")
-    void acceptsLegacyTokensUntilTheyExpire() {
+    @DisplayName("Los JWT de 7 días de antes de la v5 ya no se aceptan, aunque no hayan caducado")
+    void rejectsLegacyTokens() {
         JwtUtil jwtUtil = new JwtUtil(SECRET, new MockEnvironment());
         Instant expiresAt = Instant.now().plus(Duration.ofDays(3));
 
-        JwtUtil.VerifiedToken verified = jwtUtil.verify(legacyToken(SECRET, "ana@test.com", "ana@test.com", expiresAt))
-                .orElseThrow();
-        assertTrue(verified.legacy());
-        assertEquals("ana@test.com", verified.email());
-        assertNull(verified.userId());
-        assertEquals(expiresAt.getEpochSecond(), verified.expiresAt().getEpochSecond());
-
-        // Sin claim email, el usuario es el sub.
-        assertEquals("Ana", jwtUtil.verify(legacyToken(SECRET, "Ana", null, expiresAt)).orElseThrow().email());
-
-        assertTrue(jwtUtil.verify(legacyToken(SECRET, "ana@test.com", "ana@test.com",
-                Instant.now().minusSeconds(1))).isEmpty());
+        assertTrue(jwtUtil.verify(legacyToken(SECRET, "ana@test.com", "ana@test.com", expiresAt)).isEmpty());
+        assertTrue(jwtUtil.verify(legacyToken(SECRET, "Ana", null, expiresAt)).isEmpty());
     }
 
     @Test
@@ -115,8 +104,14 @@ class JwtUtilTest {
         }
         // La clave efímera no es el secreto de plantilla: un token firmado con él no vale.
         String template = "super-secret-jwt-key-change-me-in-production";
-        assertTrue(new JwtUtil(template, new MockEnvironment()).verify(legacyToken(template, "x@test.com", "x@test.com",
-                Instant.now().plusSeconds(60))).isEmpty());
+        String signedWithTemplate = Jwts.builder()
+                .header().type("at+jwt").and()
+                .subject("1")
+                .claim("email", "x@test.com")
+                .expiration(Date.from(Instant.now().plusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor(template.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+        assertTrue(new JwtUtil(template, new MockEnvironment()).verify(signedWithTemplate).isEmpty());
     }
 
     @Test

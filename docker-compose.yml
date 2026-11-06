@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    # Fijada por digest como las imágenes del Dockerfile.
+    image: postgres:16-alpine@sha256:aa6cb33cf4c19c765cefcf48d96176258800870a9a1e930ad126200f9d825139
     container_name: porrapp-db
     restart: unless-stopped
     environment:
@@ -36,8 +37,12 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      # Sin proxy delante, X-Forwarded-For lo escribe el cliente: el límite de peticiones usa la IP
+      # de la conexión. Pon 1 solo si un proxy inverso añade esa cabecera.
+      RATE_LIMIT_TRUSTED_PROXY_HOPS: ${RATE_LIMIT_TRUSTED_PROXY_HOPS:-0}
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      # Solo en este equipo, como PostgreSQL.
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
 
 
 

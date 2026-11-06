@@ -8,6 +8,7 @@ import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.EditionRepository;
@@ -85,7 +86,7 @@ class CustomCompetitionServiceTest {
     void createsFirstRoundWithByeForOwnedTeam() {
         Team home = Team.builder().id(1L).name("Azules").competition(competition).build();
         when(teams.findById(1L)).thenReturn(Optional.of(home));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of());
+        when(predictions.existsByEditionLeagueId(leagueId)).thenReturn(false);
         when(matches.findByCompetitionId(competition.getId())).thenReturn(java.util.List.of());
         when(matches.save(any(Match.class))).thenAnswer(invocation -> {
             Match saved = invocation.getArgument(0);
@@ -144,7 +145,7 @@ class CustomCompetitionServiceTest {
         Edition edition = Edition.builder().league(competition.getOwnerLeague()).competition(competition)
                 .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
         when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
-        lenient().when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of());
+        lenient().when(predictions.existsByEditionLeagueId(leagueId)).thenReturn(false);
         return edition;
     }
 
@@ -235,7 +236,7 @@ class CustomCompetitionServiceTest {
     void cannotDeleteTeamUsedInAConfiguredMatch() {
         Team selected = Team.builder().id(1L).name("Azules").competition(competition).build();
         when(teams.findById(1L)).thenReturn(Optional.of(selected));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of());
+        when(predictions.existsByEditionLeagueId(leagueId)).thenReturn(false);
         when(matches.findByCompetitionId(competition.getId())).thenReturn(java.util.List.of(
                 Match.builder().homeTeam(selected).competition(competition).build()));
 
@@ -252,7 +253,7 @@ class CustomCompetitionServiceTest {
         when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
         Instant deadline = Instant.now().plus(2, ChronoUnit.DAYS);
 
-        service.setLockDate(leagueId, "admin@example.com", deadline);
+        service.setLockConfig(leagueId, "admin@example.com", PredictionLockMode.FIXED_DATE, 0, deadline);
 
         assertEquals(deadline, edition.getLockDate());
     }
@@ -288,7 +289,7 @@ class CustomCompetitionServiceTest {
         edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
         Match future = Match.builder().id(12L).competition(competition).round("bracket-2").build();
         when(matches.findById(12L)).thenReturn(Optional.of(future));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(predictions.existsByEditionLeagueId(leagueId)).thenReturn(true);
         var before = new CustomLockService.LockState(com.porra.mundial.model.PredictionLockMode.PER_MATCH,
                 0, null, java.util.List.of(), java.util.List.of(java.util.List.of(false, false), java.util.List.of(false, true)),
                 true, false, null);
@@ -309,7 +310,7 @@ class CustomCompetitionServiceTest {
         edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
         Match future = Match.builder().id(12L).competition(competition).round("bracket-2").build();
         when(matches.findById(12L)).thenReturn(Optional.of(future));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(predictions.existsByEditionLeagueId(leagueId)).thenReturn(true);
         var state = new CustomLockService.LockState(com.porra.mundial.model.PredictionLockMode.PER_MATCH,
                 0, null, java.util.List.of(), java.util.List.of(java.util.List.of(true, false)), true, false, null);
         when(lockService.state(edition)).thenReturn(state);
@@ -327,7 +328,7 @@ class CustomCompetitionServiceTest {
         edition.setLockDate(Instant.now().minus(1, ChronoUnit.HOURS));
         Match first = Match.builder().id(12L).competition(competition).round("bracket-2").build();
         when(matches.findById(12L)).thenReturn(Optional.of(first));
-        when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
+        when(predictions.existsByEditionLeagueId(leagueId)).thenReturn(true);
         when(lockService.firstMatchLockWithoutMatch(edition, 12L)).thenReturn(Instant.now().plus(1, ChronoUnit.DAYS));
 
         assertThrows(BusinessException.class, () -> service.deleteMatch(leagueId, 12L, "admin@example.com"));

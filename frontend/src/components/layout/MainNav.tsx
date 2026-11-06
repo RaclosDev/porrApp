@@ -15,7 +15,6 @@ export default function MainNav({ isDemo, isMatchDayLeague, isNavLocked }: MainN
       <nav
         className="nav-links"
         inert={isNavLocked}
-        aria-disabled={isNavLocked || undefined}
         style={isNavLocked ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
       >
         {isDemo ? (

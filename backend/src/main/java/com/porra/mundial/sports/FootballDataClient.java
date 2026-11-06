@@ -93,7 +93,7 @@ public class FootballDataClient {
             if (matchday <= 0 || home == 0 || away == 0 || date.isEmpty()) continue;
             try {
                 fixtures.add(new OfficialFixture(Instant.parse(date), matchday, home, away));
-            } catch (RuntimeException invalidDate) {
+            } catch (java.time.format.DateTimeParseException invalidDate) {
                 log.debug("Fecha no válida en football-data.org: {}", date);
             }
         }

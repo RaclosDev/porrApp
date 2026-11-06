@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -77,14 +76,6 @@ public class CustomCompetitionController {
     public void deleteTeam(@PathVariable Long leagueId, @PathVariable Long teamId,
                            Principal principal) {
         service.deleteTeam(leagueId, teamId, principal.getName());
-    }
-
-    public record LockDateRequest(LocalDateTime lockDate) {}
-
-    @PutMapping("/lock-date")
-    public Instant setLockDate(@PathVariable Long leagueId,
-                                     @RequestBody LockDateRequest request, Principal principal) {
-        return service.setLockDate(leagueId, principal.getName(), AppTime.fromLocal(request.lockDate()));
     }
 
     public record LockConfigRequest(PredictionLockMode mode, Integer offsetMinutes, LocalDateTime lockDate) {}
