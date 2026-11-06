@@ -21,7 +21,6 @@ export default function OfficialGroupsView() {
     groupOdds,
     officialPoints,
     allGames,
-    nameToIdMap,
     loading,
     matchRadar,
     topScorers,
@@ -84,11 +83,7 @@ export default function OfficialGroupsView() {
       {/* Paneles superiores: Mejores Terceros, Partidos en Directo, Pichichi */}
       <div className="flex gap-5 justify-center items-stretch flex-wrap mb-7.5 w-full">
         <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
-          <BestThirdsPanel
-            officialPoints={officialPoints}
-            allGames={allGames}
-            nameToIdMap={nameToIdMap}
-          />
+          <BestThirdsPanel officialPoints={officialPoints} />
         </div>
         <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel
