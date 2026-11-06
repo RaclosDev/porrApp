@@ -78,7 +78,7 @@ export const deleteCustomTeam = (groupId: number, teamId: number) =>
 export type CustomLockMode = 'FIXED_DATE' | 'FIRST_MATCH' | 'PER_ROUND' | 'PER_MATCH' | 'PER_DAY';
 
 /** Qué partes del pronóstico están ya cerradas (GET /groups/{id}/competition/lock-state). */
-export interface CustomLockState {
+interface CustomLockState {
   mode: CustomLockMode;
   offsetMinutes: number;
   lockDate: string | null;

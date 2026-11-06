@@ -2,7 +2,7 @@
 import type { MatchStats } from '../types/api';
 import { percent } from './bracketStats';
 
-export interface MatchdayRound {
+interface MatchdayRound {
   label: string;
   matches: MatchStats[];
 }
@@ -33,7 +33,7 @@ export const latestRound = (rounds: MatchdayRound[]): string | null => {
 
 export type Sign = '1' | 'X' | '2';
 
-export interface SignShare {
+interface SignShare {
   sign: Sign;
   count: number;
   percent: number;

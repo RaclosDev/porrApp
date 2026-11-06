@@ -195,7 +195,7 @@ export function centerPointsTotal(points: ViewerPoints): number {
     .reduce((sum, l) => sum + (l.amount || 0), 0);
 }
 
-export interface GroupTeamData {
+interface GroupTeamData {
   /** Verde si acertó la posición, azul si solo acertó que pasa, rojo si falló. */
   color: string;
   mp: number;

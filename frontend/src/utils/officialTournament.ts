@@ -98,7 +98,7 @@ export function computeOfficialResultRounds(matches: Match[]): CustomResultRound
   return result;
 }
 
-export interface SwissRow {
+interface SwissRow {
   team: string;
   wins: number;
   losses: number;

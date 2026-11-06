@@ -1,6 +1,6 @@
 import type { GroupStandings, TeamStanding } from '../types/api';
 
-export interface ThirdPlaceRow extends TeamStanding {
+interface ThirdPlaceRow extends TeamStanding {
   group: string;
   name: string;
 }
