@@ -63,6 +63,16 @@ describe('league home', () => {
     id = 1;
   });
 
+  it('keeps every panel as a skeleton until the ranking and the matches arrive', () => {
+    renderHome({ activeGroupPoolFormat: 'MATCH_DAY', loadingLeaderboard: true });
+
+    // La cabecera de la liga ya se sabe; los paneles aparecen todos a la vez, no uno a uno.
+    expect(screen.getByRole('heading', { name: 'Liga de amigos' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Cargando la liga' })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Top del ranking' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Aún no hay puntuaciones en esta liga.')).not.toBeInTheDocument();
+  });
+
   it('shows the top five of the ranking with plain positions, without medals', () => {
     renderHome({ activeGroupPoolFormat: 'MATCH_DAY' });
     const ranking = screen.getByRole('list', { name: 'Top del ranking' });

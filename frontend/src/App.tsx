@@ -11,6 +11,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { Toaster } from 'react-hot-toast';
 import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
 import { useSessionHandoffPending } from './hooks/useSessionHandoffPending';
+import { hideSplash, isSplashVisible } from './services/splash';
 
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const Home = React.lazy(() => import('./pages/Home'));
@@ -42,6 +43,18 @@ const GUEST_ALLOWED_PATHS = [
   '/mis-ligas',
   '/tabla',
 ];
+
+/**
+ * Va dentro del Suspense de las rutas: solo se monta cuando la primera página ya ha cargado y se
+ * pinta, y entonces retira la pantalla de arranque.
+ */
+const SplashDone = () => {
+  React.useEffect(() => hideSplash(), []);
+  return null;
+};
+
+/** Con la pantalla de arranque delante, el esqueleto genérico solo asomaría un instante. */
+const RouteFallback = () => (isSplashVisible() ? null : <PageSkeleton />);
 
 const RootPage = () => {
   const { isAuthenticated, userName } = useAppContext();
@@ -143,7 +156,8 @@ function App() {
         <CookieConsent />
         <ConfirmDialog />
         <Layout>
-          <Suspense fallback={<PageSkeleton />}>
+          <Suspense fallback={<RouteFallback />}>
+            <SplashDone />
             <Routes>
               <Route path="/" element={<RootPage />} />
               <Route path="/demo" element={<DemoPage />} />

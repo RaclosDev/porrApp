@@ -43,6 +43,8 @@ function Layout({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
+    loadingGroup,
+    choosingLeague,
   } = useAppContext();
   // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
   const myPrediction = useMyLeaguePrediction();
@@ -180,7 +182,10 @@ function Layout({ children }: { children: React.ReactNode }) {
               <>
                 <ActiveLeagueDropdown />
 
-                {loading || isMatchDayLeague || (userName && myPrediction) ? null : (
+                {loading ||
+                choosingLeague ||
+                isMatchDayLeague ||
+                (userName && myPrediction) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
                     className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
@@ -201,7 +206,12 @@ function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {!isLanding && !isInviteAuthScreen && (
-          <MainNav isDemo={isDemo} isMatchDayLeague={isMatchDayLeague} isNavLocked={isNavLocked} />
+          <MainNav
+            isDemo={isDemo}
+            isMatchDayLeague={isMatchDayLeague}
+            isNavLocked={isNavLocked}
+            formatPending={loadingGroup || choosingLeague}
+          />
         )}
 
         {!isInviteAuthScreen && (

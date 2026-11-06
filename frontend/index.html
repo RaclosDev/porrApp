@@ -5,6 +5,61 @@
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-paper.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-paper.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Pantalla de arranque: el fondo de la pared se pinta antes de que lleguen el CSS y el JS, y el
+      icono solo aparece si el arranque tarda (en una recarga rápida no se llega a ver). La app la
+      retira con un fundido al montar (src/services/splash.ts). Mismo color que theme_color y
+      background_color del manifiesto: la app solo tiene este tema.
+    -->
+    <style>
+      html,
+      body {
+        background-color: #0f172a;
+      }
+      #app-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: grid;
+        place-items: center;
+        background-color: #0f172a;
+        transition: opacity 200ms ease-out;
+      }
+      #app-splash.is-leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #app-splash img {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+        transform: rotate(-2deg);
+        opacity: 0;
+        animation: app-splash-in 200ms ease-out 500ms forwards;
+      }
+      @keyframes app-splash-in {
+        to {
+          opacity: 1;
+        }
+      }
+      /* Sin fundidos: el icono aparece de golpe tras la misma espera y la pantalla se quita sin más. */
+      @media (prefers-reduced-motion: reduce) {
+        #app-splash {
+          transition: none;
+        }
+        #app-splash img {
+          animation-duration: 1ms;
+        }
+      }
+    </style>
+    <noscript>
+      <style>
+        #app-splash {
+          display: none;
+        }
+      </style>
+    </noscript>
     <title>PorrApp · Porras de fútbol con tus amigos</title>
     <meta
       name="description"
@@ -98,6 +153,9 @@
     </script>
   </head>
   <body>
+    <div id="app-splash" aria-hidden="true">
+      <img src="/icon-paper-192.png" width="96" height="96" alt="" decoding="async" />
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

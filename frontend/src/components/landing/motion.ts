@@ -1,13 +1,17 @@
 import { useReducedMotion } from 'motion/react';
 import type { Variants } from 'motion/react';
+import { useSplashGone } from '../../hooks/useSplashGone';
 
 /**
  * Movimiento de la portada. Cada animación guía la vista a un sitio una sola vez: nada se
- * repite en bucle, y con «reducir movimiento» activado todo aparece ya en su sitio.
+ * repite en bucle, y con «reducir movimiento» activado todo aparece ya en su sitio. `visible`
+ * dice si ya se ve la página: hasta entonces las animaciones se quedan en su estado inicial.
  */
 export const useLandingMotion = () => {
   const reduced = useReducedMotion();
-  return { reduced: Boolean(reduced) };
+  // Con la pantalla de arranque delante las animaciones no se verían: esperan a que se vaya.
+  const visible = useSplashGone();
+  return { reduced: Boolean(reduced), visible };
 };
 
 const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;

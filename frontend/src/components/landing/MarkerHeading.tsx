@@ -22,9 +22,13 @@ export default function MarkerHeading({
   className = '',
   onLoad = false,
 }: MarkerHeadingProps) {
-  const { reduced } = useLandingMotion();
+  const { reduced, visible } = useLandingMotion();
   const words = text.split(' ');
-  const trigger = onLoad ? { animate: 'show' as const } : { whileInView: 'show' as const };
+  const trigger = !visible
+    ? {}
+    : onLoad
+      ? { animate: 'show' as const }
+      : { whileInView: 'show' as const };
 
   return (
     <motion.div
