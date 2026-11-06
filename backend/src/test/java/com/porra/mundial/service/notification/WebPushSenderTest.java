@@ -42,15 +42,15 @@ class WebPushSenderTest {
 
     @Test
     void staysDisabledWithoutValidVapidKeys() {
-        assertThat(new WebPushSender("", "", "https://porra.raclos.es").isEnabled()).isFalse();
-        assertThat(new WebPushSender("bad", "keys", "https://porra.raclos.es").isEnabled()).isFalse();
+        assertThat(new WebPushSender("", "", "https://porrapp.app").isEnabled()).isFalse();
+        assertThat(new WebPushSender("bad", "keys", "https://porrapp.app").isEnabled()).isFalse();
     }
 
     @Test
     void enablesWithAValidVapidKeyPair() throws Exception {
         KeyPair vapid = newKey();
         String publicKey = b64(WebPushSender.encodePublicKey((ECPublicKey) vapid.getPublic()));
-        WebPushSender sender = new WebPushSender(publicKey, privateScalar(vapid), "https://porra.raclos.es");
+        WebPushSender sender = new WebPushSender(publicKey, privateScalar(vapid), "https://porrapp.app");
 
         assertThat(sender.isEnabled()).isTrue();
         assertThat(sender.publicKey()).isEqualTo(publicKey);

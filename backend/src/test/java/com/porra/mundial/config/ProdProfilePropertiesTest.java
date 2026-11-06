@@ -30,7 +30,7 @@ class ProdProfilePropertiesTest {
             assertThat(env.getProperty("springdoc.api-docs.enabled")).isEqualTo("false");
             assertThat(env.getProperty("springdoc.swagger-ui.enabled")).isEqualTo("false");
             if (System.getenv("CORS_ALLOWED_ORIGINS") == null) {
-                assertThat(env.getProperty("app.cors.allowed-origins")).isEqualTo("https://porra.raclos.es");
+                assertThat(env.getProperty("app.cors.allowed-origins")).isEqualTo("https://porrapp.app");
             }
         }
 

@@ -61,7 +61,7 @@ public class WebPushSender {
 
     public WebPushSender(@Value("${app.push.vapid-public-key:}") String publicKey,
                          @Value("${app.push.vapid-private-key:}") String privateKey,
-                         @Value("${app.push.vapid-subject:https://porra.raclos.es}") String subject) {
+                         @Value("${app.push.vapid-subject:https://porrapp.app}") String subject) {
         ECPrivateKey parsed = null;
         if (!publicKey.isBlank() && !privateKey.isBlank()) {
             try {

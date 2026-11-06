@@ -2,4 +2,4 @@ User-agent: *
 Disallow: /api/
 Disallow: /join/
 
-Sitemap: https://porra.raclos.es/sitemap.xml
+Sitemap: https://porrapp.app/sitemap.xml

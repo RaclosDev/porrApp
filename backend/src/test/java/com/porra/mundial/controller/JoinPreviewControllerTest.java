@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 class JoinPreviewControllerTest {
 
     // Uno por test: la caché de imágenes no se comparte entre pruebas.
-    private final InvitationImageRenderer renderer = new InvitationImageRenderer("https://porra.raclos.es");
+    private final InvitationImageRenderer renderer = new InvitationImageRenderer("https://porrapp.app");
 
     @Test
     void invitationUsesVersionedPaperArtworkAndMatchingMetadata() throws Exception {

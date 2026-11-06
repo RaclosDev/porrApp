@@ -54,7 +54,7 @@ public class InvitationImageRenderer {
 
     private final String host;
 
-    public InvitationImageRenderer(@Value("${app.public-base-url:https://porra.raclos.es}") String baseUrl) {
+    public InvitationImageRenderer(@Value("${app.public-base-url:https://porrapp.app}") String baseUrl) {
         this.host = URI.create(baseUrl).getHost();
     }
 

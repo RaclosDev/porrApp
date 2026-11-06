@@ -24,7 +24,7 @@ class InvitationImageRendererTest {
 
     @Test
     void genericCardIsDrawnOnce() {
-        InvitationImageRenderer renderer = new InvitationImageRenderer("https://porra.raclos.es");
+        InvitationImageRenderer renderer = new InvitationImageRenderer("https://porrapp.app");
         assertThat(renderer.generic()).isSameAs(renderer.generic());
     }
 }
