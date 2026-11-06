@@ -12,33 +12,23 @@ import {
 } from 'lucide-react';
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import {
-  fetchGroupMembers,
-  toggleGroupMemberPayment,
-  kickGroupMember,
-  transferGroupAdmin,
-  regenerateGroupJoinCode,
-  updateGroupEntryFee,
-} from '../services/api';
+import { updateGroupEntryFee } from '../services/api';
 import LeagueMembersTab from './league/LeagueMembersTab';
 import LeagueSettingsTab, { type LeagueSettingsSection } from './league/LeagueSettingsTab';
 import LeaveConfirmDialog from './league/LeaveConfirmDialog';
-import type { GroupMember, PaymentStatus } from '../types/api';
+import { useInviteCode } from './league/useInviteCode';
+import { useLeagueMembersAdmin } from './league/useLeagueMembersAdmin';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useScoringEditor } from '../hooks/useScoringEditor';
 import { queryKeys } from '../services/queryKeys';
-
-export type CopyTarget = 'code' | 'link';
-export type PaymentFilter = 'ALL' | 'PAID' | 'PENDING';
 
 /**
  * Administración de una liga: ajustes, invitaciones y control de pagos.
@@ -84,25 +74,28 @@ export default function GroupMembersModal({
 }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<AdminTab>('members');
-  const [activeCode, setActiveCode] = useState(currentJoinCode || '');
-  const [copiedTarget, setCopiedTarget] = useState<CopyTarget | ''>('');
   const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState('');
   const [name, setName] = useState(groupName || '');
   const [rulesText, setRulesText] = useState(initialRules || '');
   const [savingConfig, setSavingConfig] = useState(false);
-  const [search, setSearch] = useState('');
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('ALL');
-  const [kickTargetId, setKickTargetId] = useState<number | null>(null);
-  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const scoringEditor = useScoringEditor(groupId, isAdmin);
+  const membersAdmin = useLeagueMembersAdmin(groupId, setActionError);
+  const { members } = membersAdmin;
+  const invite = useInviteCode({
+    groupId,
+    groupName,
+    currentJoinCode,
+    onCodeRegenerated,
+    setActionError,
+  });
+  const { confirmRegenerate, setConfirmRegenerate } = invite;
   const entryFeeMutation = useMutation({
     mutationFn: (value: boolean) => updateGroupEntryFee(groupId, value),
     onSuccess: (_group, value) => {
@@ -166,174 +159,6 @@ export default function GroupMembersModal({
         : panelRef.current,
   });
 
-  useEffect(() => () => clearTimeout(copyTimeoutRef.current), []);
-
-  useEffect(() => {
-    setActiveCode(currentJoinCode || '');
-  }, [currentJoinCode]);
-
-  const {
-    data: members = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: queryKeys.groupMembers(groupId),
-    queryFn: () => fetchGroupMembers(groupId),
-    enabled: Boolean(groupId),
-  });
-
-  const paymentRequests = useRef(new Set<number>());
-  const [pendingPaymentIds, setPendingPaymentIds] = useState<ReadonlySet<number>>(new Set());
-
-  const paymentMutation = useMutation({
-    mutationFn: ({ userId, status }: { userId: number; status: PaymentStatus }) =>
-      toggleGroupMemberPayment(groupId, userId, status),
-    onMutate: async ({ userId, status }) => {
-      setActionError('');
-      await queryClient.cancelQueries({ queryKey: queryKeys.groupMembers(groupId) });
-      const previous = queryClient
-        .getQueryData<GroupMember[]>(queryKeys.groupMembers(groupId))
-        ?.find((member) => member.userId === userId)?.paymentStatus;
-      queryClient.setQueryData(queryKeys.groupMembers(groupId), (current) =>
-        Array.isArray(current)
-          ? current.map((member) =>
-              String(member.userId) === String(userId)
-                ? { ...member, paymentStatus: status }
-                : member,
-            )
-          : current,
-      );
-      return { previous };
-    },
-    onError: (err, { userId }, context) => {
-      const previous = context?.previous;
-      if (previous !== undefined) {
-        queryClient.setQueryData<GroupMember[]>(queryKeys.groupMembers(groupId), (current) =>
-          current?.map((member) =>
-            member.userId === userId ? { ...member, paymentStatus: previous } : member,
-          ),
-        );
-      }
-      const message = errorMessage(err, 'No se pudo actualizar el estado de pago.');
-      setActionError(message);
-      toast.error(message);
-    },
-    onSuccess: (_data, { status }) => {
-      toast.success(
-        status === 'PAID' ? 'Pago marcado como recibido' : 'Pago marcado como pendiente',
-      );
-    },
-    onSettled: (_data, _error, { userId }) => {
-      paymentRequests.current.delete(userId);
-      setPendingPaymentIds(new Set(paymentRequests.current));
-      // Wait for the other rows before replacing optimistic values with a server snapshot.
-      if (paymentRequests.current.size === 0) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
-      }
-    },
-  });
-
-  const changePayment = (userId: number, status: PaymentStatus) => {
-    if (paymentRequests.current.has(userId)) return;
-    paymentRequests.current.add(userId);
-    setPendingPaymentIds(new Set(paymentRequests.current));
-    paymentMutation.mutate({ userId, status });
-  };
-
-  const kickMutation = useMutation({
-    mutationFn: (userId: number) => kickGroupMember(groupId, userId),
-    onMutate: () => setActionError(''),
-    onSuccess: () => {
-      setKickTargetId(null);
-      toast.success('Miembro expulsado de la liga');
-      // El expulsado deja de contar en miembros, ranking, pronósticos y en la tarjeta de la liga.
-      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.predictions(groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
-    },
-    onError: (err) => {
-      const message = errorMessage(err, 'No se pudo expulsar al miembro.');
-      setActionError(message);
-      toast.error(message);
-    },
-  });
-
-  const transferMutation = useMutation({
-    mutationFn: (userId: number) => transferGroupAdmin(groupId, userId),
-    onMutate: () => setActionError(''),
-    onSuccess: () => {
-      toast.success('Has cedido la administración de la liga');
-      // Quien cede deja de ser admin: se recargan la liga y sus permisos.
-      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
-    },
-    onError: (err) => {
-      const message = errorMessage(err, 'No se pudo ceder la administración.');
-      setActionError(message);
-      toast.error(message);
-    },
-  });
-
-  const regenerateMutation = useMutation({
-    mutationFn: () => regenerateGroupJoinCode(groupId),
-    onMutate: () => setActionError(''),
-    onSuccess: (data) => {
-      setConfirmRegenerate(false);
-      if (data.joinCode) {
-        setActiveCode(data.joinCode);
-        onCodeRegenerated?.(data.joinCode);
-      }
-      // El código se muestra en la tarjeta (myGroups) y en los detalles de la liga.
-      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
-      toast.success('Código de invitación regenerado');
-    },
-    onError: (err) => {
-      const message = errorMessage(err, 'No se pudo regenerar el código.');
-      setActionError(message);
-      toast.error(message);
-    },
-  });
-
-  const markCopied = (target: CopyTarget) => {
-    setCopiedTarget(target);
-    clearTimeout(copyTimeoutRef.current);
-    copyTimeoutRef.current = setTimeout(() => setCopiedTarget(''), 2200);
-  };
-
-  const copyText = async (text: string, target: CopyTarget, message: string) => {
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error('Clipboard no disponible');
-      await navigator.clipboard.writeText(text);
-      markCopied(target);
-      toast.success(message);
-    } catch {
-      setActionError('No se pudo copiar automáticamente. Copia el código manualmente.');
-    }
-  };
-
-  const inviteLink = `${window.location.origin}/join/${encodeURIComponent(activeCode)}`;
-
-  const handleShare = async () => {
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({
-          title: `Liga ${groupName}`,
-          text: `Únete a la liga "${groupName}"`,
-          url: inviteLink,
-        });
-        return;
-      } catch (err) {
-        // Cancelar el diálogo nativo no debe copiar el enlace por sorpresa.
-        if (err instanceof DOMException && err.name === 'AbortError') return;
-      }
-    }
-    await copyText(inviteLink, 'link', 'Enlace de invitación copiado');
-  };
-
   const handleSave = async () => {
     if (savingConfig) return;
     const trimmedName = name.trim();
@@ -395,23 +220,6 @@ export default function GroupMembersModal({
       setDeleting(false);
     }
   };
-
-  const paidCount = members.filter((member) => member.paymentStatus === 'PAID').length;
-  const pendingCount = members.length - paidCount;
-  const paidPercent = members.length ? Math.round((paidCount / members.length) * 100) : 0;
-
-  const visibleMembers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return members.filter((member) => {
-      const matchesStatus =
-        paymentFilter === 'ALL' ||
-        (paymentFilter === 'PAID'
-          ? member.paymentStatus === 'PAID'
-          : member.paymentStatus !== 'PAID');
-      const matchesSearch = !term || (member.participantName || '').toLowerCase().includes(term);
-      return matchesStatus && matchesSearch;
-    });
-  }, [members, paymentFilter, search]);
 
   const currentTab = isAdmin ? tab : 'members';
   const isNameValid = Boolean(name.trim());
@@ -534,34 +342,11 @@ export default function GroupMembersModal({
 
           {currentTab === 'members' && (
             <LeagueMembersTab
-              members={members}
-              isLoading={isLoading}
-              error={error}
-              activeCode={activeCode}
-              confirmRegenerate={confirmRegenerate}
-              copiedTarget={copiedTarget}
-              copyText={copyText}
+              {...membersAdmin}
+              {...invite}
               currentUserId={currentUserId}
-              handleShare={handleShare}
-              inviteLink={inviteLink}
               isAdmin={isAdmin}
-              kickMutation={kickMutation}
-              kickTargetId={kickTargetId}
-              transferMutation={transferMutation}
-              paidCount={paidCount}
-              paidPercent={paidPercent}
-              paymentFilter={paymentFilter}
-              pendingPaymentIds={pendingPaymentIds}
-              changePayment={changePayment}
-              pendingCount={pendingCount}
-              regenerateMutation={regenerateMutation}
-              search={search}
               setActionError={setActionError}
-              setConfirmRegenerate={setConfirmRegenerate}
-              setKickTargetId={setKickTargetId}
-              setPaymentFilter={setPaymentFilter}
-              setSearch={setSearch}
-              visibleMembers={visibleMembers}
               entryFee={entryFee}
               entryFeeSaving={entryFeeMutation.isPending}
               onToggleEntryFee={(value) => entryFeeMutation.mutate(value)}

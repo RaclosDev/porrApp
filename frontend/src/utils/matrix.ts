@@ -1,11 +1,11 @@
-export interface ThirdPlaceRule {
+interface ThirdPlaceRule {
   side: 'left' | 'right';
   matchIndex: number;
   isHome: boolean;
   allowed: string[];
 }
 
-export interface ThirdPlaceTeam {
+interface ThirdPlaceTeam {
   team: string;
   group: string;
 }

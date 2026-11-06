@@ -69,6 +69,9 @@ jobs:
         run: npx prettier --check "**/*.{ts,tsx,json,css,md}"
       - name: Run ESLint
         run: npm run lint
+      # Ficheros, exports y dependencias sin uso.
+      - name: Find unused code (knip)
+        run: npm run knip
       - name: Run Vitest Tests with coverage
         run: npm run test:coverage
       - name: Coverage summary

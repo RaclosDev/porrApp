@@ -17,7 +17,6 @@ const api = vi.hoisted(() => ({
   setCustomResult: vi.fn(),
   setCustomMatchDate: vi.fn(),
   deleteCustomMatch: vi.fn(),
-  setCustomLockDate: vi.fn(),
   fetchCustomLockState: vi.fn(),
   setCustomLockConfig: vi.fn(),
   fetchCompetitions: vi.fn(),
