@@ -97,8 +97,10 @@ public class MemberJoinedNotifier {
     private PushMessage message(League league, UserAccount joined, int memberCount) {
         String name = joined.getParticipantName() == null || joined.getParticipantName().isBlank()
                 ? "Un nuevo participante" : joined.getParticipantName().trim();
-        // /jornadas cambia a la liga de ?group= y, si no es por jornadas, lleva a su inicio.
-        return new PushMessage(name + " se ha unido a " + league.getName(), "Ya sois " + memberCount + " en la liga.",
+        // El título se corta en una línea en la pantalla de bloqueo: quién y a qué liga van en el cuerpo,
+        // que se ve entero. /jornadas cambia a la liga de ?group= y, si no es por jornadas, lleva a su inicio.
+        return new PushMessage("Nuevo miembro en tu liga",
+                name + " se ha unido a " + league.getName() + ". Ya sois " + memberCount + ".",
                 "/jornadas?group=" + league.getId(), "member-joined-" + league.getId());
     }
 }
