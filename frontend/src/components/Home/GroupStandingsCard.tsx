@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Flag from '../Flag';
 
-export interface GroupStandingsRow {
+interface GroupStandingsRow {
   name: string;
   logo?: string | null;
   diff: number;

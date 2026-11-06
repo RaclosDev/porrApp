@@ -6,6 +6,7 @@ import {
   mergeDraftWithServer,
   parseDraft,
   resolveRound,
+  displayRoundLabel,
   roundLabelFor,
   roundsFromFixtures,
   roundsFromMatchdays,
@@ -43,6 +44,14 @@ const fixture = (matchId: number, extra: Partial<MatchdayFixture> = {}): Matchda
 });
 
 const pred = (homeScore: string, awayScore: string, sign = '') => ({ homeScore, awayScore, sign });
+
+describe('displayRoundLabel', () => {
+  it('muestra las jornadas por fecha como día de la semana y no toca las demás', () => {
+    expect(displayRoundLabel('Fecha 2026-11-24')).toBe('Martes 24 nov');
+    expect(displayRoundLabel('Jornada 3')).toBe('Jornada 3');
+    expect(displayRoundLabel('Grupo A')).toBe('Grupo A');
+  });
+});
 
 describe('roundLabelFor', () => {
   it('uses the group, then the round, then the calendar date', () => {

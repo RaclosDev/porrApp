@@ -1,4 +1,5 @@
 import PaperLoading from '../PaperLoading';
+import { displayRoundLabel } from '../../utils/matchday';
 import { useId, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -73,7 +74,7 @@ export default function MatchdayStatsView({ groupId }: { groupId: string }) {
         >
           {rounds.map((r) => (
             <option key={r.label} value={r.label}>
-              {r.label}
+              {displayRoundLabel(r.label)}
             </option>
           ))}
         </select>

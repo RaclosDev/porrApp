@@ -31,6 +31,23 @@ export const roundLabelFor = (fixture: MatchdayFixture): string =>
         ? `Fecha ${fixture.matchDate.slice(0, 10)}`
         : 'Sin jornada';
 
+const DATE_ROUND = /^Fecha (\d{4})-(\d{2})-(\d{2})$/;
+const ROUND_DAY_FORMAT = new Intl.DateTimeFormat('es-ES', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'short',
+});
+
+/** Texto que se muestra para una jornada: «Fecha 2026-11-24» pasa a «Martes 24 nov»; el resto no cambia. */
+export function displayRoundLabel(label: string): string {
+  const match = DATE_ROUND.exec(label);
+  if (!match) return label;
+  const text = ROUND_DAY_FORMAT.format(new Date(+match[1], +match[2] - 1, +match[3]))
+    .replace(',', '')
+    .replace('.', '');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 const LIVE_STATUSES = new Set(['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS']);
 
 /** El partido está en juego: lo marca el proveedor o ya ha empezado y no ha terminado. */

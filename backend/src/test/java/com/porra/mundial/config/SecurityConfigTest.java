@@ -62,6 +62,13 @@ class SecurityConfigTest {
     }
 
     @Test
+    void clientErrorReportsDoNotRequireLogin() throws Exception {
+        // Sin el controlador en este test: pasa la seguridad y llega al 404, no al 401.
+        mockMvc.perform(post("/api/client-errors").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void writesUnderPublicPathsRequireLogin() throws Exception {
         mockMvc.perform(post("/api/scorers/refresh")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/matches")).andExpect(status().isUnauthorized());

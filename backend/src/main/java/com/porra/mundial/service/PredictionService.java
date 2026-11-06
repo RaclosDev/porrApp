@@ -39,33 +39,6 @@ public class PredictionService {
     private final BracketPredictionValidator bracketValidator;
     private final CustomBracketPredictionValidator customBracketValidator;
     private final CustomLockService customLockService;
-    private final LeaguePaymentService paymentService;
-
-    /** Solo el dueño de un pronóstico puede cambiarlo o borrarlo; el admin de la liga tampoco. */
-    public void verifyPredictionOwnership(Prediction prediction, String requesterEmail) {
-        if (requesterEmail == null || requesterEmail.isBlank()) {
-            throw BusinessException.forbidden("Usuario no autenticado");
-        }
-        if (prediction.getUser() == null || prediction.getUser().getGoogleEmail() == null
-                || !prediction.getUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
-            throw BusinessException.forbidden("Solo puedes modificar o eliminar tu propio pronóstico.");
-        }
-    }
-
-    public void verifyGroupAdminForPayment(Prediction prediction, String requesterEmail) {
-        if (requesterEmail == null || requesterEmail.isBlank()) {
-            throw BusinessException.forbidden("Usuario no autenticado");
-        }
-
-        if (prediction.getEdition() != null && prediction.getEdition().getLeague() != null
-                && prediction.getEdition().getLeague().getAdminUser() != null
-                && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail() != null
-                && prediction.getEdition().getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(requesterEmail)) {
-            return;
-        }
-
-        throw BusinessException.forbidden("Solo el administrador de la liga puede marcar el pronóstico como pagado.");
-    }
 
     @Transactional(readOnly = true)
     public List<Prediction> getPredictionsByGroupId(Long groupId) {
@@ -148,36 +121,6 @@ public class PredictionService {
         return predictionRepository.save(prediction);
     }
 
-    @CacheEvict(value = "leaderboard", key = "#result.groupId")
-    public Prediction updatePrediction(Long id, String requesterEmail, String predictionName, PredictionDataDTO predictionData) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
-
-        verifyPredictionOwnership(prediction, requesterEmail);
-
-        if (prediction.getEdition() != null && prediction.getEdition().isLocked()) {
-            throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
-        }
-
-        if (predictionData != null) {
-            requireSameTopology(prediction.getBracketData(), predictionData);
-            validateBracket(prediction.getEdition(), predictionData);
-            if (progressiveCustom(prediction.getEdition())) {
-                CustomLockService.LockState state = customLockService.state(prediction.getEdition());
-                if (state.fullyLocked()) {
-                    throw BusinessException.conflict("El plazo para enviar o modificar pronósticos en esta porra ha finalizado.");
-                }
-                customLockService.requireLockedPartsUnchanged(state, prediction.getBracketData(), predictionData);
-            }
-        }
-        if (predictionName != null) prediction.setName(predictionName);
-        if (predictionData != null) {
-            prediction.setBracketData(predictionData);
-            prediction.setScoreCalculatedAt(null);
-        }
-
-        return predictionRepository.save(prediction);
-    }
-
     /** Competición personalizada de cuadro cuyo cierre llega por partes. */
     private static boolean progressiveCustom(Edition edition) {
         return PredictableBracket.applies(edition)
@@ -199,30 +142,6 @@ public class PredictionService {
         } else {
             bracketValidator.validate(edition, data);
         }
-    }
-
-    @CacheEvict(value = "leaderboard", key = "#result.groupId")
-    public Prediction markAsPaid(Long id, String requesterEmail) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
-
-        verifyGroupAdminForPayment(prediction, requesterEmail);
-
-        UserAccount admin = userAccountRepository.findByGoogleEmail(requesterEmail)
-                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
-        paymentService.setPayment(prediction.getEdition().getLeague().getId(), prediction.getUser().getId(), "PAID", admin);
-        return prediction;
-    }
-
-    /** Borra la predicción y devuelve el id de su liga. */
-    @CacheEvict(value = "leaderboard", key = "#result")
-    public Long deletePrediction(Long id, String requesterEmail) {
-        Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
-
-        verifyPredictionOwnership(prediction, requesterEmail);
-
-        Long groupId = prediction.getGroupId();
-        predictionRepository.delete(prediction);
-        return groupId;
     }
 
     @Transactional(readOnly = true)
