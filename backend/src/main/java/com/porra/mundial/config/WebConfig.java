@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${app.cors.allowed-origins:https://porra.raclos.es,http://localhost:5173,http://localhost:8080}")
+    @Value("${app.cors.allowed-origins:https://porrapp.app,http://localhost:5173,http://localhost:8080}")
     private String allowedOrigins;
 
     @Override

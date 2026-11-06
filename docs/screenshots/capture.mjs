@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(new URL('../../frontend/package.json', import.meta.url));
 const { chromium } = require('@playwright/test');
 
-const base = process.argv[2] ?? 'https://porra.raclos.es';
+const base = process.argv[2] ?? 'https://porrapp.app';
 const out = fileURLToPath(new URL('./', import.meta.url));
 
 const browser = await chromium.launch();
