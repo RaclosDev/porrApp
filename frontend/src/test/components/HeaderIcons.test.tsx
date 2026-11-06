@@ -7,8 +7,10 @@ import NotificationBell from '../../components/layout/NotificationBell';
 import {
   fetchPushConfig,
   fetchRecentPushNotifications,
+  prepareSessionHandoff,
   setPushPreferences,
 } from '../../services/api';
+import { useAppStore } from '../../store/useAppStore';
 import * as push from '../../services/push';
 import * as install from '../../services/installPrompt';
 
@@ -16,6 +18,7 @@ vi.mock('../../services/api', () => ({
   PREDICTION_SAVED_EVENT: 'prediction-saved',
   fetchPushConfig: vi.fn(),
   fetchRecentPushNotifications: vi.fn(),
+  prepareSessionHandoff: vi.fn(() => Promise.resolve(true)),
   setPushPreferences: vi.fn(() => Promise.resolve()),
 }));
 vi.mock('../../services/push', () => ({
@@ -68,6 +71,32 @@ describe('InstallAppButton', () => {
     expect(screen.getByTestId('install-guide-arrow')).toHaveClass('self-center');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Entendido' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('on iPhone with a session, prepares the handoff so the installed app opens signed in', async () => {
+    vi.mocked(install.installState).mockReturnValue('ios');
+    useAppStore.setState({ isAuthenticated: true, isDemoMode: false });
+    wrap(<InstallAppButton />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Instalar porrApp' }));
+
+    expect(
+      await screen.findByText(/entrarás con tu cuenta sin volver a iniciar sesión/),
+    ).toBeInTheDocument();
+    expect(prepareSessionHandoff).toHaveBeenCalledTimes(1);
+    useAppStore.setState({ isAuthenticated: false });
+  });
+
+  it('without a session there is nothing to hand off', () => {
+    vi.mocked(install.installState).mockReturnValue('ios');
+    vi.mocked(prepareSessionHandoff).mockClear();
+    useAppStore.setState({ isAuthenticated: false });
+    wrap(<InstallAppButton />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Instalar porrApp' }));
+
+    expect(prepareSessionHandoff).not.toHaveBeenCalled();
+    expect(screen.queryByText(/sin volver a iniciar sesión/)).toBeNull();
   });
 
   it.each([

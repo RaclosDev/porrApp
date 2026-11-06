@@ -9,6 +9,7 @@ export {
   initSession,
   whenSessionRestored,
   endSession,
+  prepareSessionHandoff,
   loginWithGoogle,
 } from './http';
 export * from './endpoints/tournament';

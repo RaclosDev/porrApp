@@ -91,7 +91,7 @@ class SessionServiceTest {
         assertThat(access.email()).isEqualTo("ana@test.com");
         // 32 bytes aleatorios en base64url.
         assertThat(session.refreshToken()).matches("[A-Za-z0-9_-]{43}");
-        assertThat(session.refreshExpiresAt()).isCloseTo(Instant.now().plus(Duration.ofDays(30)), within(Duration.ofMinutes(1)));
+        assertThat(session.refreshExpiresAt()).isCloseTo(Instant.now().plus(Duration.ofDays(90)), within(Duration.ofMinutes(1)));
         assertThat(tokenRepository.findByTokenHash(session.refreshToken())).isEmpty();
         assertThat(tokenRepository.findByTokenHash(SessionService.hash(session.refreshToken()))).isPresent();
     }
@@ -106,11 +106,44 @@ class SessionServiceTest {
         assertThat(second.refreshToken()).isNotEqualTo(first.refreshToken());
         assertThat(third.refreshToken()).isNotIn(first.refreshToken(), second.refreshToken());
         assertThat(jwtUtil.verify(third.accessToken()).orElseThrow().email()).isEqualTo("rota@test.com");
-        // Rotar no alarga la sesión.
-        assertThat(third.refreshExpiresAt()).isEqualTo(first.refreshExpiresAt());
+        assertThat(third.refreshExpiresAt()).isAfterOrEqualTo(first.refreshExpiresAt());
         assertThat(familyOf(third.refreshToken()).getId()).isEqualTo(familyOf(first.refreshToken()).getId());
         assertThat(tokenRepository.findByTokenHash(SessionService.hash(first.refreshToken())).orElseThrow().getRotatedAt())
                 .isNotNull();
+    }
+
+    @Test
+    void usingTheSessionPushesItsExpiryBackUpToTheMaximumLifetime() {
+        SessionTokens session = sessionService.start(user("desliza@test.com"));
+        RefreshTokenFamily family = familyOf(session.refreshToken());
+        family.setExpiresAt(Instant.now().plus(Duration.ofDays(1)));
+        familyRepository.saveAndFlush(family);
+
+        SessionTokens used = sessionService.refresh(session.refreshToken()).orElseThrow();
+
+        // Sigue sin caducar mientras se use: 90 días desde el último uso.
+        assertThat(used.refreshExpiresAt()).isCloseTo(Instant.now().plus(Duration.ofDays(90)), within(Duration.ofMinutes(1)));
+        assertThat(familyOf(used.refreshToken()).getExpiresAt()).isCloseTo(used.refreshExpiresAt(), within(Duration.ofSeconds(1)));
+
+        // Pero no más de un año desde que se inició sesión.
+        Instant loggedIn = Instant.now().minus(Duration.ofDays(300));
+        RefreshTokenFamily old = familyOf(used.refreshToken());
+        old.setCreatedAt(loggedIn);
+        familyRepository.saveAndFlush(old);
+
+        SessionTokens capped = sessionService.refresh(used.refreshToken()).orElseThrow();
+
+        assertThat(capped.refreshExpiresAt()).isCloseTo(loggedIn.plus(Duration.ofDays(365)), within(Duration.ofSeconds(1)));
+    }
+
+    @Test
+    void anExtendedSessionStillRevokesOnReuse() {
+        SessionTokens session = sessionService.start(user("reusa@test.com"));
+        SessionTokens legit = sessionService.refresh(session.refreshToken()).orElseThrow();
+        rotatedAgo(session.refreshToken(), Duration.ofDays(20));
+
+        assertThat(sessionService.refresh(session.refreshToken())).isEmpty();
+        assertThat(sessionService.refresh(legit.refreshToken())).isEmpty();
     }
 
     @Test
@@ -200,6 +233,21 @@ class SessionServiceTest {
         assertThat(familyRepository.findById(family.getId())).isEmpty();
         assertThat(tokenRepository.findByTokenHash(SessionService.hash(expired.refreshToken()))).isEmpty();
         assertThat(tokenRepository.findByTokenHash(SessionService.hash(active.refreshToken()))).isPresent();
+    }
+
+    @Test
+    void purgeForgetsTokensRotatedLongAgoButKeepsTheSession() {
+        SessionTokens first = sessionService.start(user("vieja@test.com"));
+        SessionTokens second = sessionService.refresh(first.refreshToken()).orElseThrow();
+        SessionTokens current = sessionService.refresh(second.refreshToken()).orElseThrow();
+        rotatedAgo(first.refreshToken(), SessionService.REUSE_DETECTION_WINDOW.plusDays(1));
+
+        sessionService.purgeExpiredSessions();
+        em.clear();
+
+        assertThat(tokenRepository.findByTokenHash(SessionService.hash(first.refreshToken()))).isEmpty();
+        assertThat(tokenRepository.findByTokenHash(SessionService.hash(second.refreshToken()))).isPresent();
+        assertThat(sessionService.refresh(current.refreshToken())).isPresent();
     }
 
     /**

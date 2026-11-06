@@ -6,6 +6,7 @@ import {
   getAuthToken,
   initSession,
   loginWithGoogle,
+  prepareSessionHandoff,
   setAuthToken,
   updateMyProfile,
 } from '../../services/api';
@@ -298,6 +299,101 @@ describe('sesión con refresh token', () => {
     await expect(initSession()).resolves.toBe('none');
 
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  describe('primera apertura de la app instalada en iPhone', () => {
+    const asHomeScreenApp = (standalone: boolean) =>
+      Object.defineProperty(navigator, 'standalone', { configurable: true, value: standalone });
+    afterEach(() => {
+      delete (navigator as Navigator & { standalone?: boolean }).standalone;
+    });
+
+    it('canjea el traspaso de Safari por una sesión propia, una sola vez', async () => {
+      asHomeScreenApp(true);
+      const fetchMock = stubFetch((url, init) => {
+        if (url === '/api/auth/session/handoff') return json(200, { token: 'de-la-app' });
+        return authHeader(init) === 'Bearer de-la-app' ? json(200, {}) : json(401);
+      });
+
+      const restored = initSession();
+      const standings = fetchStandings();
+
+      await expect(restored).resolves.toBe('restored');
+      await standings;
+      expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+        '/api/auth/session/handoff',
+        '/api/standings',
+      ]);
+      // El código va en su cookie: ni en la URL ni en una cabecera.
+      expect(authHeader(fetchMock.mock.calls[0][1])).toBeUndefined();
+      expect(fetchMock.mock.calls[0][1]?.method).toBe('POST');
+      expect(getAuthToken()).toBe('de-la-app');
+      expect(localStorage.getItem('has_session')).toBe('1');
+
+      // Las siguientes aperturas ya tienen sesión y solo la renuevan.
+      fetchMock.mockClear();
+      stubFetch((url) =>
+        url === '/api/auth/session/refresh' ? json(200, { token: 'renovado' }) : json(401),
+      );
+      await expect(initSession()).resolves.toBe('restored');
+    });
+
+    it('un código gastado o caducado deja la app sin sesión, sin error y sin reintentos', async () => {
+      asHomeScreenApp(true);
+      const fetchMock = stubFetch(() =>
+        json(401, { error: 'No hay ninguna sesión que traspasar.' }),
+      );
+
+      await expect(initSession()).resolves.toBe('none');
+      expect(getAuthToken()).toBeNull();
+
+      await expect(initSession()).resolves.toBe('none');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('sin conexión lo vuelve a intentar en la próxima apertura', async () => {
+      asHomeScreenApp(true);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))),
+      );
+      await expect(initSession()).resolves.toBe('unreachable');
+
+      const fetchMock = stubFetch(() => json(200, { token: 'de-la-app' }));
+      await expect(initSession()).resolves.toBe('restored');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('en el navegador no intenta ningún traspaso', async () => {
+      asHomeScreenApp(false);
+      const fetchMock = stubFetch(() => json(200, { token: 'x' }));
+
+      await expect(initSession()).resolves.toBe('none');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it('el traspaso se prepara con el access token y, si ha caducado, tras renovarlo', async () => {
+    setAuthToken('caducado');
+    const fetchMock = stubFetch((url, init) => {
+      if (url === '/api/auth/session/refresh') return json(200, { token: 'nuevo' });
+      return authHeader(init) === 'Bearer nuevo'
+        ? json(200, { expiresInSeconds: 1800 })
+        : json(401);
+    });
+
+    await expect(prepareSessionHandoff()).resolves.toBe(true);
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/auth/handoff',
+      '/api/auth/session/refresh',
+      '/api/auth/handoff',
+    ]);
+  });
+
+  it('si no se puede preparar el traspaso, no pasa nada', async () => {
+    stubFetch(() => json(401));
+    await expect(prepareSessionHandoff()).resolves.toBe(false);
   });
 
   it('borra el JWT antiguo de localStorage sin enviarlo al servidor', async () => {
