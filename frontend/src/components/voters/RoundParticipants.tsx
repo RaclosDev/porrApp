@@ -4,7 +4,7 @@ import PeopleListDialog from '../PeopleListDialog';
 import type { MatchVoter } from '../../types/api';
 
 /** Tamaño de cada cara, su borde y cuánto se solapa con la anterior, en píxeles. */
-const AVATAR_SIZE = 26;
+const AVATAR_SIZE = 28;
 const AVATAR_BORDER = 2;
 const AVATAR_OVERLAP = 8;
 /** Sitio que se reserva para «+N» cuando no caben todas. */
