@@ -6,7 +6,6 @@ import com.porra.mundial.model.RefreshTokenFamily;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.RefreshTokenRepository;
-import com.porra.mundial.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -55,7 +54,6 @@ public class SessionService {
 
     private final RefreshTokenFamilyRepository familyRepository;
     private final RefreshTokenRepository tokenRepository;
-    private final UserAccountRepository userAccountRepository;
     private final JwtUtil jwtUtil;
 
     /** Abre una sesión nueva para el usuario. */
@@ -113,21 +111,6 @@ public class SessionService {
                 family.setRevokedAt(Instant.now());
             }
         });
-    }
-
-    /**
-     * Cambia un JWT de 7 días de la versión anterior por una sesión. Esa sesión caduca cuando
-     * caducaría el JWT: el canje no da más tiempo del que ya daba el token guardado en
-     * localStorage. Solo se admite mientras la cuenta no haya migrado a una identidad estable
-     * de Google: después, un email reciclado no puede identificarla mediante un token antiguo.
-     */
-    @Transactional
-    public Optional<SessionTokens> exchangeLegacyToken(String legacyJwt) {
-        return jwtUtil.verify(legacyJwt)
-                .filter(JwtUtil.VerifiedToken::legacy)
-                .flatMap(legacy -> userAccountRepository.findByGoogleEmail(legacy.email())
-                        .filter(user -> user.getGoogleSub() == null)
-                        .map(user -> start(user, earliest(legacy.expiresAt(), Instant.now().plus(SESSION_TTL)))));
     }
 
     /** Borra cada noche las sesiones caducadas, que ya no sirven ni para detectar reutilizaciones. */
@@ -190,10 +173,6 @@ public class SessionService {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 no disponible", e);
         }
-    }
-
-    private static Instant earliest(Instant a, Instant b) {
-        return a.isBefore(b) ? a : b;
     }
 
     /**

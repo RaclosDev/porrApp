@@ -49,22 +49,11 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void legacyTokensCannotAuthenticateAnAccountAlreadyLinkedToAGoogleSubject() throws Exception {
-        when(users.findByGoogleEmail("reassigned@test.com")).thenReturn(Optional.of(UserAccount.builder()
-                .id(99L).googleSub("google-new-owner").googleEmail("reassigned@test.com").build()));
-        authenticate(JwtUtilTest.legacyToken(SECRET, "reassigned@test.com", "reassigned@test.com",
-                Instant.now().plusSeconds(60)));
-
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-    }
-
-    @Test
-    void legacyTokensStillAuthenticateExistingAccountsThatHaveNotMigrated() throws Exception {
-        when(users.findByGoogleEmail("legacy@test.com")).thenReturn(Optional.of(UserAccount.builder()
-                .id(7L).googleEmail("legacy@test.com").build()));
+    void legacyTokensNoLongerAuthenticateAnyAccount() throws Exception {
         authenticate(JwtUtilTest.legacyToken(SECRET, "legacy@test.com", "legacy@test.com",
                 Instant.now().plusSeconds(60)));
 
-        assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("legacy@test.com");
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verify(users, never()).findByGoogleEmail(anyString());
     }
 }
