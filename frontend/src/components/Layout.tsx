@@ -13,6 +13,8 @@ import MainNav from './layout/MainNav';
 import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
 import PushReminderPrompt from './layout/PushReminderPrompt';
+import PasskeyPrompt from './layout/PasskeyPrompt';
+import { usePasskeyPrompt } from '../hooks/usePasskeyPrompt';
 import { useAnalyticsConsentPending } from './layout/CookieConsent';
 import LoginModal from './layout/LoginModal';
 import { promptInstall } from '../services/installPrompt';
@@ -87,6 +89,18 @@ function Layout({ children }: { children: React.ReactNode }) {
     location.pathname === '/mis-ligas' ||
     location.pathname.startsWith('/join/') ||
     location.pathname.startsWith('/linkedin');
+
+  // Avisos inferiores, uno a la vez: el de cookies, el de instalar, el de la llave de acceso y
+  // por último el de los recordatorios.
+  const bottomPromptFree = !showInstallBanner && !isLanding && !consentPending;
+  const passkeyPrompt = usePasskeyPrompt(
+    userId,
+    isUserLoggedIn &&
+      !isDemo &&
+      bottomPromptFree &&
+      profileSetupCompleted !== false &&
+      !showProfileSettings,
+  );
 
   useEffect(() => {
     if (!isNavLocked || isNoLeagueAllowedPath) return;
@@ -227,8 +241,9 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}
 
+      {passkeyPrompt.show && <PasskeyPrompt userId={userId} onDone={passkeyPrompt.done} />}
       {isUserLoggedIn && !isDemo && (
-        <PushReminderPrompt canPrompt={!showInstallBanner && !isLanding && !consentPending} />
+        <PushReminderPrompt canPrompt={bottomPromptFree && !passkeyPrompt.show} />
       )}
 
       {showInstallBanner && (
