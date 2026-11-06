@@ -39,9 +39,15 @@ public class MatchPredictionService {
      */
     @Transactional(readOnly = true)
     public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(String email, Long groupId, String round) {
+        Edition edition = groupId != null
+                ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null)
+                : null;
         if (groupId != null) {
+            // Misma regla que al guardar: en una liga pública cualquiera puede pronosticar, así que
+            // también ve sus partidos; en una privada, solo los miembros.
+            boolean publicLeague = edition != null && edition.getLeague() != null && edition.getLeague().isPublicLeague();
             boolean isMember = false;
-            if (email != null && !email.isBlank()) {
+            if (!publicLeague && email != null && !email.isBlank()) {
                 UserAccount user = userAccountRepository.findByGoogleEmail(email)
                         .orElse(null);
                 if (user != null) {
@@ -49,13 +55,10 @@ public class MatchPredictionService {
                     isMember = membershipRepository.existsById(memId);
                 }
             }
-            if (!isMember) {
+            if (!publicLeague && !isMember) {
                 throw BusinessException.forbidden("No perteneces a esta liga privada.");
             }
         }
-        Edition edition = groupId != null
-                ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null)
-                : null;
 
         if (edition == null || edition.getPoolFormat() == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY) {
             return java.util.Collections.emptyList();

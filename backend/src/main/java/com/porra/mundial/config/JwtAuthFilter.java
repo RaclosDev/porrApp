@@ -67,10 +67,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private Optional<UserAccount> resolveAccount(JwtUtil.VerifiedToken token) {
-        if (!token.legacy()) {
-            return users.findById(token.userId());
-        }
-        // Un email reciclado no puede dar acceso a una cuenta nueva o ya vinculada por su sub.
-        return users.findByGoogleEmail(token.email()).filter(user -> user.getGoogleSub() == null);
+        return users.findById(token.userId());
     }
 }

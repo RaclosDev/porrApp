@@ -61,6 +61,9 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
+      # Falla con vulnerabilidades altas o críticas; las moderadas las sigue Dependabot.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
       - name: Check formatting (Prettier)
         # Mismos ficheros que formatea lint-staged en el pre-commit.
         run: npx prettier --check "**/*.{ts,tsx,json,css,md}"

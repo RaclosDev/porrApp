@@ -128,6 +128,16 @@ class RateLimitingFilterTest {
     }
 
     @Test
+    @DisplayName("Sin proxies de confianza (docker compose) X-Forwarded-For se ignora y no permite saltar el límite")
+    void ignoresForwardedForWithoutTrustedProxies() {
+        ReflectionTestUtils.setField(rateLimitingFilter, "trustedProxyHops", 0);
+        MockHttpServletRequest req = proxied("6.6.6.6");
+        req.setRemoteAddr("192.0.2.1");
+
+        assertEquals("192.0.2.1", rateLimitingFilter.getClientIp(req));
+    }
+
+    @Test
     @DisplayName("Con dos proxies de confianza se toma el penúltimo salto")
     void honoursConfiguredProxyHops() {
         ReflectionTestUtils.setField(rateLimitingFilter, "trustedProxyHops", 2);

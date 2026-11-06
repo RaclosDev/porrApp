@@ -90,7 +90,6 @@ export function getAuthToken(): string | null {
 export function setAuthToken(token: string | null): void {
   const changed = token !== accessToken;
   if (changed) sessionEpoch++;
-  if (token) localStorage.removeItem(LEGACY_TOKEN_KEY);
   storeAuthToken(token);
   if (changed) publishSessionChange();
   else if (token === null) boundRevision = localStorage.getItem(SESSION_REVISION_KEY);
@@ -106,8 +105,8 @@ function storeAuthToken(token: string | null): void {
 }
 
 /**
- * Recupera la sesión al arrancar: canjea el JWT antiguo si queda alguno y, si no, rota el
- * refresh token de la cookie. Las peticiones que salgan mientras tanto esperan a que acabe.
+ * Recupera la sesión al arrancar rotando el refresh token de la cookie. Las peticiones que
+ * salgan mientras tanto esperan a que acabe.
  */
 export function initSession(): Promise<SessionRestore> {
   restoring = true;
@@ -124,30 +123,16 @@ export function whenSessionRestored(): Promise<SessionRestore> | null {
 
 async function restoreSession(): Promise<SessionRestore> {
   const epoch = sessionEpoch;
+  // El JWT de antes de la v5 ya no se acepta: no se deja en localStorage.
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
   if (!hasStoredSession()) return 'none';
   try {
-    const exchanged = await withSessionLock(() => exchangeLegacyToken(epoch));
-    if (!currentSession(epoch)) return 'superseded';
-    if (exchanged) return 'restored';
     const refreshed = await refreshSession();
     if (!currentSession(epoch)) return 'superseded';
     return refreshed ? 'restored' : 'none';
   } catch {
     return currentSession(epoch) ? 'unreachable' : 'superseded';
   }
-}
-
-/** Canjea el JWT de 7 días de la versión anterior, si queda, por una sesión con cookie. */
-async function exchangeLegacyToken(epoch: number): Promise<boolean> {
-  if (!currentSession(epoch)) return false;
-  // Se lee dentro del cerrojo: otra pestaña puede haberlo canjeado ya.
-  const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
-  if (!legacyToken) return false;
-  const token = await requestSessionToken('exchange', legacyToken);
-  if (!currentSession(epoch)) return false;
-  localStorage.removeItem(LEGACY_TOKEN_KEY);
-  if (token) storeAuthToken(token);
-  return token !== null;
 }
 
 /**
@@ -159,7 +144,7 @@ function refreshSession(): Promise<string | null> {
   if (!pendingRefresh || pendingRefresh.epoch !== epoch) {
     const promise = withSessionLock(async () => {
       if (!currentSession(epoch)) return null;
-      const token = await requestSessionToken('refresh');
+      const token = await requestSessionToken();
       if (!currentSession(epoch)) return null;
       storeAuthToken(token);
       return token;
@@ -191,12 +176,9 @@ function withSessionLock<T>(task: () => Promise<T>): Promise<T> {
   return result;
 }
 
-/** POST a /api/auth/session/*: el access token nuevo, o null si el servidor rechaza la sesión. */
-async function requestSessionToken(
-  action: 'refresh' | 'exchange',
-  bearer: string | null = null,
-): Promise<string | null> {
-  const res = await send(`${SESSION_PATH}/${action}`, { method: 'POST' }, bearer);
+/** POST a /api/auth/session/refresh: el access token nuevo, o null si la sesión ha terminado. */
+async function requestSessionToken(): Promise<string | null> {
+  const res = await send(`${SESSION_PATH}/refresh`, { method: 'POST' }, null);
   if (res.status === 401) return null;
   if (!res.ok) throw new ApiError(res.status, `HTTP error! status: ${res.status}`);
   const body = (await res.json()) as { token: string };

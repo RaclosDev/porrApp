@@ -1,10 +1,13 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.config.RequestBodyLimitFilter;
 import com.porra.mundial.exception.BusinessException;
 import jakarta.persistence.PersistenceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -75,6 +78,13 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error").value("Ha ocurrido un error inesperado en el servidor."));
     }
 
+    @Test
+    void bodyCutByTheSizeLimitIsReportedAsPayloadTooLarge() throws Exception {
+        mockMvc.perform(get("/errors/body-too-large"))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.error").value("La petición es demasiado grande."));
+    }
+
     private void assertBusinessError(String type, int status, String message) throws Exception {
         mockMvc.perform(get("/errors/business/{type}", type))
                 .andExpect(status().is(status))
@@ -126,6 +136,12 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/errors/response-status-empty")
         void responseStatusEmpty() {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+
+        @GetMapping("/errors/body-too-large")
+        void bodyTooLarge() {
+            throw new HttpMessageNotReadableException("I/O error while reading input message",
+                    new RequestBodyLimitFilter.BodyTooLargeException(16), new MockHttpInputMessage(new byte[0]));
         }
 
         @GetMapping("/errors/response-status-internal")

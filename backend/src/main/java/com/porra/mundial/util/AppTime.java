@@ -23,11 +23,6 @@ public final class AppTime {
         return local == null ? null : local.atZone(ZONE).toInstant();
     }
 
-    /** Instante a hora peninsular sin desfase. */
-    public static LocalDateTime toLocal(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, ZONE);
-    }
-
     /** Día peninsular del instante. */
     public static LocalDate day(Instant instant) {
         return instant == null ? null : LocalDate.ofInstant(instant, ZONE);

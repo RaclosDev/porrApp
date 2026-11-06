@@ -6,7 +6,6 @@ import com.porra.mundial.model.RefreshTokenFamily;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.RefreshTokenRepository;
-import com.porra.mundial.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,7 +28,9 @@ import java.util.Optional;
  * <ul>
  *   <li>Cada inicio de sesión abre una familia que caduca a los {@link #SESSION_TTL}, se rote o no.</li>
  *   <li>Cada refresco gasta el token presentado y entrega otro de la misma familia.</li>
- *   <li>Si llega un token ya gastado, alguien tiene una copia: se revoca la familia, y con ella
+ *   <li>Si llega un token gastado hace menos de {@link #REUSE_GRACE}, es un reintento tras perder
+ *       la respuesta (red móvil): se entrega otro token de la misma familia sin revocarla.</li>
+ *   <li>Si llega un token gastado hace más, alguien tiene una copia: se revoca la familia, y con ella
  *       tanto al atacante como al usuario legítimo, que tendrá que volver a entrar.</li>
  *   <li>En la base solo está el SHA-256 del token. Con 256 bits aleatorios no hace falta un hash lento.</li>
  * </ul>
@@ -41,6 +42,11 @@ public class SessionService {
 
     /** Duración máxima de una sesión, contada desde el inicio de sesión. */
     public static final Duration SESSION_TTL = Duration.ofDays(30);
+    /**
+     * Margen en que un token recién rotado aún se acepta: cubre el reintento cuando se pierde la
+     * respuesta del refresco. Un token robado y usado dentro de este margen no se detecta.
+     */
+    static final Duration REUSE_GRACE = Duration.ofSeconds(30);
 
     private static final Duration ACTIVITY_PRECISION = Duration.ofDays(1);
     private static final int REFRESH_TOKEN_BYTES = 32;
@@ -48,7 +54,6 @@ public class SessionService {
 
     private final RefreshTokenFamilyRepository familyRepository;
     private final RefreshTokenRepository tokenRepository;
-    private final UserAccountRepository userAccountRepository;
     private final JwtUtil jwtUtil;
 
     /** Abre una sesión nueva para el usuario. */
@@ -59,8 +64,8 @@ public class SessionService {
 
     /**
      * Gasta el refresh token y entrega el siguiente de la misma familia. Vacío si no vale:
-     * desconocido, de una sesión cerrada o caducada, o ya gastado. En el último caso se revoca
-     * la familia entera.
+     * desconocido, de una sesión cerrada o caducada, o gastado hace más de {@link #REUSE_GRACE}.
+     * En el último caso se revoca la familia entera.
      */
     @Transactional
     public Optional<SessionTokens> refresh(String refreshToken) {
@@ -79,6 +84,11 @@ public class SessionService {
 
         if (family.getRevokedAt() != null || !now.isBefore(family.getExpiresAt())) {
             return Optional.empty();
+        }
+        if (token.getRotatedAt() != null && now.isBefore(token.getRotatedAt().plus(REUSE_GRACE))) {
+            log.info("Reintento de refresco dentro del margen (usuario {}, familia {}).",
+                    family.getUser().getId(), family.getId());
+            return Optional.of(issue(family, family.getUser(), now));
         }
         if (token.getRotatedAt() != null) {
             family.setRevokedAt(now);
@@ -101,21 +111,6 @@ public class SessionService {
                 family.setRevokedAt(Instant.now());
             }
         });
-    }
-
-    /**
-     * Cambia un JWT de 7 días de la versión anterior por una sesión. Esa sesión caduca cuando
-     * caducaría el JWT: el canje no da más tiempo del que ya daba el token guardado en
-     * localStorage. Solo se admite mientras la cuenta no haya migrado a una identidad estable
-     * de Google: después, un email reciclado no puede identificarla mediante un token antiguo.
-     */
-    @Transactional
-    public Optional<SessionTokens> exchangeLegacyToken(String legacyJwt) {
-        return jwtUtil.verify(legacyJwt)
-                .filter(JwtUtil.VerifiedToken::legacy)
-                .flatMap(legacy -> userAccountRepository.findByGoogleEmail(legacy.email())
-                        .filter(user -> user.getGoogleSub() == null)
-                        .map(user -> start(user, earliest(legacy.expiresAt(), Instant.now().plus(SESSION_TTL)))));
     }
 
     /** Borra cada noche las sesiones caducadas, que ya no sirven ni para detectar reutilizaciones. */
@@ -178,10 +173,6 @@ public class SessionService {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 no disponible", e);
         }
-    }
-
-    private static Instant earliest(Instant a, Instant b) {
-        return a.isBefore(b) ? a : b;
     }
 
     /**

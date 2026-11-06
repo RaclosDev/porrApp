@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Optional;
 
 /** Dispositivos suscritos a avisos push y preferencias de avisos de cada usuario. */
 @Service
@@ -20,6 +22,7 @@ public class PushSubscriptionService {
 
     private static final int MAX_ENDPOINT_LENGTH = 2048;
     private static final int MAX_KEY_LENGTH = 255;
+    static final int MAX_SUBSCRIPTIONS_PER_USER = 10;
 
     private final PushSubscriptionRepository subscriptionRepository;
     private final UserAccountRepository userAccountRepository;
@@ -32,19 +35,44 @@ public class PushSubscriptionService {
                 user.isMemberJoinedAlertsEnabled());
     }
 
-    /** Guarda el dispositivo; si ya estaba con otra cuenta (cambio de sesión), pasa a esta. */
+    /**
+     * Guarda el dispositivo; si ya estaba con otra cuenta (cambio de sesión en el mismo navegador,
+     * con las mismas claves), pasa a esta. Cada usuario conserva como mucho
+     * {@link #MAX_SUBSCRIPTIONS_PER_USER} dispositivos.
+     */
     @Transactional
     public void subscribe(String email, PushSubscriptionRequest request) {
         String endpoint = validEndpoint(request.endpoint());
         String p256dh = validKey(request.p256dh());
         String auth = validKey(request.auth());
         UserAccount user = findUser(email);
-        PushSubscription subscription = subscriptionRepository.findByEndpoint(endpoint)
-                .orElseGet(() -> PushSubscription.builder().endpoint(endpoint).build());
-        subscription.setUser(user);
-        subscription.setP256dh(p256dh);
-        subscription.setAuth(auth);
-        subscriptionRepository.save(subscription);
+        Optional<PushSubscription> existing = subscriptionRepository.findByEndpoint(endpoint);
+        if (existing.isPresent()) {
+            PushSubscription subscription = existing.get();
+            // El mismo navegador vuelve a mandar las mismas claves. Con otras, quien envía el
+            // endpoint no es ese navegador: no se le pasan los avisos de otra cuenta.
+            boolean sameBrowser = subscription.getP256dh().equals(p256dh) && subscription.getAuth().equals(auth);
+            if (!sameBrowser && !subscription.getUser().getId().equals(user.getId())) {
+                throw BusinessException.conflict("Este dispositivo ya está suscrito con otra cuenta.");
+            }
+            subscription.setUser(user);
+            subscription.setP256dh(p256dh);
+            subscription.setAuth(auth);
+            subscriptionRepository.save(subscription);
+            return;
+        }
+        // Un usuario no necesita más que unos pocos dispositivos: se descartan los más antiguos.
+        List<PushSubscription> current = subscriptionRepository.findByUserIdOrderByCreatedAtAsc(user.getId());
+        int excess = current.size() - (MAX_SUBSCRIPTIONS_PER_USER - 1);
+        if (excess > 0) {
+            subscriptionRepository.deleteAll(current.subList(0, excess));
+        }
+        subscriptionRepository.save(PushSubscription.builder()
+                .endpoint(endpoint)
+                .user(user)
+                .p256dh(p256dh)
+                .auth(auth)
+                .build());
     }
 
     @Transactional

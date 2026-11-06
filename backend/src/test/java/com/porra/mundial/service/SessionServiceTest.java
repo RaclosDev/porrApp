@@ -8,11 +8,8 @@ import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.RefreshTokenRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.service.SessionService.SessionTokens;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
@@ -24,10 +21,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -67,9 +62,6 @@ class SessionServiceTest {
     @Autowired
     private UserAccountRepository userAccountRepository;
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
-
     private UserAccount user(String email) {
         return em.persist(UserAccount.builder().googleEmail(email).googleName(email).participantName(email).build());
     }
@@ -81,14 +73,11 @@ class SessionServiceTest {
         return familyRepository.findById(token.getFamilyId()).orElseThrow();
     }
 
-    private String legacyToken(String email, Instant expiresAt) {
-        return Jwts.builder()
-                .subject(email)
-                .claim("email", email)
-                .issuedAt(Date.from(expiresAt.minus(Duration.ofDays(7))))
-                .expiration(Date.from(expiresAt))
-                .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
-                .compact();
+    /** Lleva la rotación del token al pasado, como si el reintento llegara tarde. */
+    private void rotatedAgo(String refreshToken, Duration ago) {
+        RefreshToken token = tokenRepository.findByTokenHash(SessionService.hash(refreshToken)).orElseThrow();
+        token.setRotatedAt(Instant.now().minus(ago));
+        em.flush();
     }
 
     @Test
@@ -100,7 +89,6 @@ class SessionServiceTest {
         JwtUtil.VerifiedToken access = jwtUtil.verify(session.accessToken()).orElseThrow();
         assertThat(access.userId()).isEqualTo(ana.getId());
         assertThat(access.email()).isEqualTo("ana@test.com");
-        assertThat(access.legacy()).isFalse();
         // 32 bytes aleatorios en base64url.
         assertThat(session.refreshToken()).matches("[A-Za-z0-9_-]{43}");
         assertThat(session.refreshExpiresAt()).isCloseTo(Instant.now().plus(Duration.ofDays(30)), within(Duration.ofMinutes(1)));
@@ -147,6 +135,7 @@ class SessionServiceTest {
         SessionTokens stolen = sessionService.start(luis);
         SessionTokens otherDevice = sessionService.start(luis);
         SessionTokens legit = sessionService.refresh(stolen.refreshToken()).orElseThrow();
+        rotatedAgo(stolen.refreshToken(), SessionService.REUSE_GRACE.plusSeconds(1));
 
         assertThat(sessionService.refresh(stolen.refreshToken())).isEmpty();
 
@@ -154,6 +143,20 @@ class SessionServiceTest {
         assertThat(sessionService.refresh(legit.refreshToken())).isEmpty();
         // Las sesiones de otros dispositivos siguen.
         assertThat(sessionService.refresh(otherDevice.refreshToken())).isPresent();
+    }
+
+    @Test
+    void aRetryWithinTheGraceWindowKeepsTheSession() {
+        UserAccount marta = user("marta@test.com");
+        SessionTokens session = sessionService.start(marta);
+        SessionTokens lost = sessionService.refresh(session.refreshToken()).orElseThrow();
+
+        // La respuesta anterior no llegó: el navegador reintenta con la cookie antigua.
+        SessionTokens retry = sessionService.refresh(session.refreshToken()).orElseThrow();
+
+        assertThat(retry.refreshToken()).isNotEqualTo(lost.refreshToken());
+        assertThat(familyOf(retry.refreshToken()).getRevokedAt()).isNull();
+        assertThat(sessionService.refresh(retry.refreshToken())).isPresent();
     }
 
     @Test
@@ -183,39 +186,6 @@ class SessionServiceTest {
     }
 
     @Test
-    void exchangesALegacyTokenForASessionThatEndsWhenTheTokenWould() {
-        UserAccount eva = user("eva@test.com");
-        Instant legacyExpiry = Instant.now().plus(Duration.ofDays(3));
-
-        SessionTokens session = sessionService.exchangeLegacyToken(legacyToken("eva@test.com", legacyExpiry)).orElseThrow();
-
-        assertThat(jwtUtil.verify(session.accessToken()).orElseThrow().userId()).isEqualTo(eva.getId());
-        assertThat(session.refreshExpiresAt()).isCloseTo(legacyExpiry, within(Duration.ofSeconds(1)));
-        assertThat(sessionService.refresh(session.refreshToken())).isPresent();
-    }
-
-    @Test
-    void onlyValidLegacyTokensOfExistingUsersCanBeExchanged() {
-        UserAccount pau = user("pau@test.com");
-
-        // Un access token de 15 minutos no puede convertirse en una sesión de 30 días.
-        assertThat(sessionService.exchangeLegacyToken(jwtUtil.generateAccessToken(pau.getId(), "pau@test.com"))).isEmpty();
-        assertThat(sessionService.exchangeLegacyToken(legacyToken("pau@test.com", Instant.now().minusSeconds(1)))).isEmpty();
-        assertThat(sessionService.exchangeLegacyToken(legacyToken("nadie@test.com", Instant.now().plusSeconds(60)))).isEmpty();
-        assertThat(sessionService.exchangeLegacyToken("no-es-un-jwt")).isEmpty();
-    }
-
-    @Test
-    void legacyTokensCannotBeExchangedForAnAccountWithAStableGoogleIdentity() {
-        UserAccount currentOwner = user("reassigned@test.com");
-        currentOwner.setGoogleSub("google-new-owner");
-        em.flush();
-
-        assertThat(sessionService.exchangeLegacyToken(legacyToken("reassigned@test.com",
-                Instant.now().plusSeconds(60))).isPresent()).isFalse();
-    }
-
-    @Test
     void purgeDeletesExpiredSessionsAndTheirTokens() {
         UserAccount mar = user("mar@test.com");
         SessionTokens expired = sessionService.start(mar);
@@ -234,11 +204,12 @@ class SessionServiceTest {
 
     /**
      * Dos refrescos a la vez con el mismo token: la familia bloqueada los pone en fila, así que
-     * uno rota y el otro es una reutilización. Nunca salen dos ramas válidas de la sesión.
+     * uno rota y el otro llega dentro del margen de reintento. Los dos reciben un token y la
+     * sesión sigue abierta.
      */
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void concurrentRefreshesWithTheSameTokenNeverBothSucceed() throws Exception {
+    void concurrentRefreshesWithTheSameTokenKeepTheSession() throws Exception {
         UserAccount user = userAccountRepository.save(UserAccount.builder().googleEmail("carrera@test.com")
                 .googleName("Carrera").participantName("Carrera").build());
         SessionTokens session = sessionService.start(user);
@@ -261,8 +232,8 @@ class SessionServiceTest {
             pool.shutdown();
         }
 
-        assertThat(results).filteredOn(Optional::isPresent).hasSize(1);
+        assertThat(results).allMatch(Optional::isPresent);
         RefreshToken spent = tokenRepository.findByTokenHash(SessionService.hash(session.refreshToken())).orElseThrow();
-        assertThat(familyRepository.findById(spent.getFamilyId()).orElseThrow().getRevokedAt()).isNotNull();
+        assertThat(familyRepository.findById(spent.getFamilyId()).orElseThrow().getRevokedAt()).isNull();
     }
 }

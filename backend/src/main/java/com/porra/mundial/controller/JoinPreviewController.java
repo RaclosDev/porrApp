@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.service.GroupService;
@@ -8,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,6 +30,8 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
@@ -37,7 +42,9 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class JoinPreviewController {
 
-    private static final String BASE_URL = "https://porra.raclos.es";
+    /** Dirección pública de la web; la fija {@code app.public-base-url}. */
+    @Value("${app.public-base-url:https://porra.raclos.es}")
+    private String baseUrl = "https://porra.raclos.es";
     private static final String DEFAULT_TITLE = "Invitación a una porra";
     private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
     private static final String IMAGE_VERSION = "3";
@@ -49,6 +56,13 @@ public class JoinPreviewController {
     private static final Font POSTER = loadFont("fonts/anton/Anton-Regular.ttf");
     private static final Font HANDWRITING = loadFont("fonts/permanent-marker/PermanentMarker-Regular.ttf");
 
+    /** Imágenes ya dibujadas; una liga ocupa unos 100 KB. */
+    private final Cache<String, byte[]> renderedImages = Caffeine.newBuilder()
+            .maximumSize(200)
+            .expireAfterAccess(Duration.ofHours(6))
+            .build();
+    private static final String GENERIC_IMAGE_KEY = "generic";
+
     private final GroupService groupService;
     private final ProfileImageService profileImageService;
 
@@ -57,7 +71,7 @@ public class JoinPreviewController {
         String html = new ClassPathResource("static/index.html")
                 .getContentAsString(StandardCharsets.UTF_8);
 
-        String canonicalUrl = BASE_URL + "/join/" + encodePathSegment(code);
+        String canonicalUrl = baseUrl + "/join/" + encodePathSegment(code);
         String title = DEFAULT_TITLE;
         String description = DEFAULT_DESCRIPTION;
         String imageAlt = "Invitación a una porra de PorrApp";
@@ -89,7 +103,7 @@ public class JoinPreviewController {
 
         // Mismo PNG que se adjunta al compartir por WhatsApp, con versión para
         // evitar que WhatsApp reutilice una vista previa antigua en caché.
-        String imageUrl = BASE_URL + "/join/" + encodePathSegment(code) + "/image.png?v=" + imageVersion;
+        String imageUrl = baseUrl + "/join/" + encodePathSegment(code) + "/image.png?v=" + imageVersion;
 
         html = replaceTitle(html, title);
         html = replaceMeta(html, "property", "og:title", title);
@@ -115,29 +129,37 @@ public class JoinPreviewController {
     /** Public PNG endpoint used by WhatsApp and other Open Graph crawlers. */
     @GetMapping(value = "/join/{code}/image.png", produces = MediaType.IMAGE_PNG_VALUE)
     public byte[] invitationImage(@PathVariable String code) throws IOException {
-        String name = "Invitación a una porra";
+        Optional<League> leagueOptional = findLeague(code);
+        if (leagueOptional.isEmpty()) {
+            // Todos los códigos inexistentes comparten la misma imagen genérica.
+            return renderedImages.get(GENERIC_IMAGE_KEY, key -> render("Invitación a una porra", "Fútbol",
+                    "Cuadro completo", null));
+        }
+        League league = leagueOptional.get();
+        String name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
         String competition = "Fútbol";
         String format = "Cuadro completo";
-        byte[] leagueImage = null;
-
-        Optional<League> leagueOptional = findLeague(code);
-        if (leagueOptional.isPresent()) {
-            League league = leagueOptional.get();
-            name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
-            leagueImage = profileImageService.getLeagueImage(league.getId())
-                    .map(ProfileImageService.StoredImage::data).orElse(null);
-            Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
-            if (activeEdition.isPresent()) {
-                Edition edition = activeEdition.get();
-                if (edition.getCompetition() != null && edition.getCompetition().getName() != null) {
-                    competition = edition.getCompetition().getName();
-                }
-                if (edition.getPoolFormat() != null) {
-                    format = formatLabel(edition.getPoolFormat().name());
-                }
+        Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
+        if (activeEdition.isPresent()) {
+            Edition edition = activeEdition.get();
+            if (edition.getCompetition() != null && edition.getCompetition().getName() != null) {
+                competition = edition.getCompetition().getName();
+            }
+            if (edition.getPoolFormat() != null) {
+                format = formatLabel(edition.getPoolFormat().name());
             }
         }
+        // Dibujar la imagen cuesta CPU: se guarda mientras no cambien el nombre, los datos o la foto.
+        String cacheKey = league.getId() + "|" + name + "|" + competition + "|" + format + "|" + league.getImageUpdatedAt();
+        String finalName = name;
+        String finalCompetition = competition;
+        String finalFormat = format;
+        return renderedImages.get(cacheKey, key -> render(finalName, finalCompetition, finalFormat,
+                profileImageService.getLeagueImage(league.getId())
+                        .map(ProfileImageService.StoredImage::data).orElse(null)));
+    }
 
+    private byte[] render(String name, String competition, String format, byte[] leagueImage) {
         // ARGB conserva la transparencia del lienzo y de logotipos PNG con fondo transparente.
         BufferedImage image = new BufferedImage(IMAGE_WIDTH, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = image.createGraphics();
@@ -191,7 +213,7 @@ public class JoinPreviewController {
             graphics.drawString("Te han invitado a jugar.", 72, 520);
             graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 22));
             graphics.setColor(INK);
-            graphics.drawString("porra.raclos.es", 944, 520);
+            graphics.drawString(java.net.URI.create(baseUrl).getHost(), 944, 520);
         } finally {
             graphics.dispose();
         }
@@ -199,6 +221,8 @@ public class JoinPreviewController {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             ImageIO.write(image, "png", output);
             return output.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

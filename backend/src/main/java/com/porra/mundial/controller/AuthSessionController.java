@@ -1,11 +1,9 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.config.JwtAuthFilter;
 import com.porra.mundial.dto.AccessTokenResponse;
 import com.porra.mundial.dto.ErrorResponse;
 import com.porra.mundial.service.SessionService;
 import com.porra.mundial.service.SessionService.SessionTokens;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,8 +12,6 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Optional;
 
 /**
  * Sesión con refresh token. Todas las rutas cuelgan de {@link RefreshTokenCookie#PATH}, que es
@@ -47,22 +43,6 @@ public class AuthSessionController {
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, RefreshTokenCookie.cleared())
                 .build();
-    }
-
-    /**
-     * Transición: cambia el JWT de 7 días que la versión anterior guardaba en localStorage
-     * (cabecera {@code Authorization: Bearer}) por una sesión con refresh token. Si no se
-     * puede, no toca la cookie: el navegador puede tener ya una sesión válida.
-     */
-    @PostMapping("/exchange")
-    public ResponseEntity<?> exchangeLegacyToken(HttpServletRequest request) {
-        String legacyToken = JwtAuthFilter.bearerToken(request);
-        Optional<SessionTokens> session = legacyToken != null
-                ? sessionService.exchangeLegacyToken(legacyToken)
-                : Optional.empty();
-        return session
-                .<ResponseEntity<?>>map(AuthSessionController::withSession)
-                .orElseGet(() -> unauthorized().body(new ErrorResponse("El token no se puede canjear.")));
     }
 
     private static ResponseEntity<AccessTokenResponse> withSession(SessionTokens tokens) {

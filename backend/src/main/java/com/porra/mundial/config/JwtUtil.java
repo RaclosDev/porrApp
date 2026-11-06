@@ -26,11 +26,7 @@ import java.util.Optional;
  * sesión es el refresh token ({@code SessionService}). Lleva la cabecera {@code typ: at+jwt}
  * (RFC 9068), {@code sub} con el id del usuario y el claim {@code email} del momento de emisión.
  * El filtro resuelve por id el email actual para identificar al usuario en el resto del backend.
- * </p>
- * <p>
- * Transición: los JWT de 7 días que emitía la versión anterior (sin {@code typ}, con el email
- * en {@code sub}) se verifican hasta que caducan. El filtro y el canje solo los aceptan para
- * cuentas que todavía no tienen un {@code googleSub}; después de migrar se exige la identidad estable.
+ * Cualquier otro token, incluidos los JWT de 7 días sin {@code typ} de antes de la v5, se rechaza.
  * </p>
  */
 @Component
@@ -111,8 +107,7 @@ public class JwtUtil {
     }
 
     /**
-     * Comprueba firma y caducidad. Acepta los access tokens nuevos y los JWT de 7 días de la
-     * versión anterior; cualquier otro {@code typ} se rechaza.
+     * Comprueba firma, caducidad y {@code typ: at+jwt}; cualquier otro token se rechaza.
      */
     public Optional<VerifiedToken> verify(String token) {
         Jws<Claims> jws;
@@ -129,17 +124,12 @@ public class JwtUtil {
         }
         String email = claims.get(EMAIL_CLAIM, String.class);
 
-        if (ACCESS_TOKEN_TYPE.equals(type)) {
-            Long userId = parseUserId(claims.getSubject());
-            if (userId == null || email == null) return Optional.empty();
-            return Optional.of(new VerifiedToken(email, userId, expiresAt, false));
+        if (!ACCESS_TOKEN_TYPE.equals(type)) {
+            return Optional.empty();
         }
-        if (type == null) {
-            String legacyEmail = email != null ? email : claims.getSubject();
-            if (legacyEmail == null) return Optional.empty();
-            return Optional.of(new VerifiedToken(legacyEmail, null, expiresAt, true));
-        }
-        return Optional.empty();
+        Long userId = parseUserId(claims.getSubject());
+        if (userId == null || email == null) return Optional.empty();
+        return Optional.of(new VerifiedToken(email, userId, expiresAt));
     }
 
     private static Long parseUserId(String subject) {
@@ -153,11 +143,10 @@ public class JwtUtil {
     /**
      * Token con firma y caducidad válidas.
      *
-     * @param email     nombre del usuario autenticado en el backend
-     * @param userId    id del usuario; null en los JWT de la versión anterior
+     * @param email     email de la cuenta en el momento de emisión
+     * @param userId    id del usuario
      * @param expiresAt caducidad (claim {@code exp})
-     * @param legacy    JWT de 7 días de la versión anterior
      */
-    public record VerifiedToken(String email, Long userId, Instant expiresAt, boolean legacy) {
+    public record VerifiedToken(String email, Long userId, Instant expiresAt) {
     }
 }

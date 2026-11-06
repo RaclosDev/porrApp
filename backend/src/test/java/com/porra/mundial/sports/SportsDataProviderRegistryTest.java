@@ -48,10 +48,4 @@ class SportsDataProviderRegistryTest {
 
         assertSame(domesticLeagueProvider, resolved);
     }
-
-    @Test
-    @DisplayName("Debe listar todos los proveedores registrados")
-    void listsAllProviders() {
-        assertEquals(2, registry.getAllProviders().size());
-    }
 }

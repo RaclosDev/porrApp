@@ -17,6 +17,8 @@ import java.awt.Color;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class JoinPreviewControllerTest {
@@ -54,6 +56,25 @@ class JoinPreviewControllerTest {
         assertThat(new Color(image.getRGB(1100, 420), true)).isEqualTo(new Color(243, 236, 220));
         Files.createDirectories(Path.of("target", "invitation-preview"));
         Files.write(Path.of("target", "invitation-preview", "paper.png"), png);
+    }
+
+    @Test
+    void invitationImagesAreDrawnOnceUntilTheLeagueChanges() throws Exception {
+        GroupService groupService = mock(GroupService.class);
+        ProfileImageService images = mock(ProfileImageService.class);
+        League league = League.builder().id(6L).name("Amigos").joinCode("ABCDEFGH24").build();
+        when(groupService.getGroupByJoinCode("ABCDEFGH24")).thenReturn(Optional.of(league));
+        when(groupService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
+        when(images.getLeagueImage(6L)).thenReturn(Optional.empty());
+        JoinPreviewController controller = new JoinPreviewController(groupService, images);
+
+        byte[] first = controller.invitationImage("ABCDEFGH24");
+        assertThat(controller.invitationImage("ABCDEFGH24")).isSameAs(first);
+        verify(images, times(1)).getLeagueImage(6L);
+
+        league.setName("Amigos 2026");
+        assertThat(controller.invitationImage("ABCDEFGH24")).isNotSameAs(first);
+        verify(images, times(2)).getLeagueImage(6L);
     }
 
     @Test
