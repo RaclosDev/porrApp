@@ -174,6 +174,16 @@ class KnockoutBracketServiceTest {
     }
 
     @Test
+    @DisplayName("Un fallo al leer los partidos llega a quien llama, que lo reintenta")
+    void failuresReachTheCaller() {
+        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID))
+                .thenThrow(new IllegalStateException("base de datos caída"));
+
+        assertThrows(IllegalStateException.class, () -> service.propagateKnockoutWinners());
+        verify(scoreInvalidationService, never()).invalidateWorldCup();
+    }
+
+    @Test
     @DisplayName("No toca nada si las semifinales aún no se han jugado")
     void doesNothingWithoutDecidedSemis() {
         Match semi1 = knockout("sf", spain, france, null, null, 14);

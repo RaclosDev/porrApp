@@ -161,11 +161,8 @@ public class PredictionService {
 
             PredictionDataDTO dataDto = null;
             if (canViewDetails) {
-                try {
-                    dataDto = pred.getBracketData();
-                } catch (Exception e) {
-                    log.warn("Error leyendo bracket_data para predicción {}: {}", pred.getId(), e.getMessage());
-                }
+                // El conversor ya devuelve null si el JSON guardado no se puede leer.
+                dataDto = pred.getBracketData();
                 if (dataDto != null && partial != null && !partial.fullyLocked()) {
                     dataDto = customLockService.lockedPartsOnly(partial, dataDto);
                 }
@@ -176,12 +173,7 @@ public class PredictionService {
                 }
             }
 
-            Long effectiveGroupId = null;
-            try {
-                effectiveGroupId = pred.getGroupId();
-            } catch (Exception e) {
-                log.warn("Error resolviendo groupId para predicción {}: {}", pred.getId(), e.getMessage());
-            }
+            Long effectiveGroupId = pred.getGroupId();
 
             return PredictionResponseDTO.builder()
                     .key(pred.getId() != null ? pred.getId().toString() : "")

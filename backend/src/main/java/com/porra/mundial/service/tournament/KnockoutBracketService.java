@@ -52,27 +52,26 @@ public class KnockoutBracketService {
         return propagate(() -> worldCupMatches);
     }
 
+    /**
+     * Los fallos llegan a quien llama: la sincronización los registra y repite el recálculo en la
+     * siguiente pasada, en vez de darlo por hecho.
+     */
     private int propagate(Supplier<List<Match>> worldCupMatches) {
-        try {
-            FinalRounds rounds = findFinalRounds(worldCupMatches.get());
-            List<Match> semis = rounds.semis();
-            List<Team> participants = semis.stream()
-                    .flatMap(m -> java.util.stream.Stream.of(m.getHomeTeam(), m.getAwayTeam()))
-                    .filter(Objects::nonNull).toList();
-            int updated = 0;
-            for (int slot = 0; slot < 2; slot++) {
-                Match semi = slot < semis.size() ? semis.get(slot) : null;
-                if (placeDerivedTeam(rounds.finalMatch(), winnerOf(semi), slot == 0, participants)) updated++;
-                if (placeDerivedTeam(rounds.thirdPlaceMatch(), loserOf(semi), slot == 0, participants)) updated++;
-            }
-            if (updated > 0) {
-                scoreInvalidationService.invalidateWorldCup();
-            }
-            return updated;
-        } catch (Exception e) {
-            log.warn("No se pudieron propagar los ganadores de eliminatorias: {}", e.getMessage());
-            return 0;
+        FinalRounds rounds = findFinalRounds(worldCupMatches.get());
+        List<Match> semis = rounds.semis();
+        List<Team> participants = semis.stream()
+                .flatMap(m -> java.util.stream.Stream.of(m.getHomeTeam(), m.getAwayTeam()))
+                .filter(Objects::nonNull).toList();
+        int updated = 0;
+        for (int slot = 0; slot < 2; slot++) {
+            Match semi = slot < semis.size() ? semis.get(slot) : null;
+            if (placeDerivedTeam(rounds.finalMatch(), winnerOf(semi), slot == 0, participants)) updated++;
+            if (placeDerivedTeam(rounds.thirdPlaceMatch(), loserOf(semi), slot == 0, participants)) updated++;
         }
+        if (updated > 0) {
+            scoreInvalidationService.invalidateWorldCup();
+        }
+        return updated;
     }
 
     /** Partidos del Mundial, el único torneo con cuadro oficial; los de otras competiciones no cuentan. */

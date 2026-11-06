@@ -42,7 +42,7 @@ public class PredictionDataConverter implements AttributeConverter<PredictionDat
         try {
             String sanitized = com.porra.mundial.util.TextSanitizer.fixBracketDataJson(dbData);
             return objectMapper.readValue(sanitized, PredictionDataDTO.class);
-        } catch (Exception e) {
+        } catch (JacksonException e) {
             log.error("Error deserializando JSON a PredictionDataDTO", e);
             return null;
         }

@@ -92,7 +92,7 @@ public class WebSocketService {
                 log.warn("WebSocket rechazado: demasiadas conexiones desde {}", clientIp);
                 try {
                     session.close(CloseStatus.POLICY_VIOLATION);
-                } catch (Exception ignored) {
+                } catch (java.io.IOException ignored) {
                     // La conexión ya no se usa.
                 }
                 return false;
@@ -272,7 +272,7 @@ public class WebSocketService {
             payload.put("awayScore", awayScore);
             payload.put("status", status != null ? status : "");
             broadcastRaw(objectMapper.writeValueAsString(payload));
-        } catch (Exception e) {
+        } catch (tools.jackson.core.JacksonException e) {
             log.warn("Error serializando actualización de partido en WebSocket: {}", e.getMessage());
         }
     }
@@ -304,7 +304,7 @@ public class WebSocketService {
     private void broadcastJson(Map<String, ?> payload) {
         try {
             broadcastRaw(objectMapper.writeValueAsString(payload));
-        } catch (Exception e) {
+        } catch (tools.jackson.core.JacksonException e) {
             log.warn("Error serializando actualización en WebSocket: {}", e.getMessage());
         }
     }
