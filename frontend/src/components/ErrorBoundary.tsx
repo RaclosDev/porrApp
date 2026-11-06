@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Trash2 } from 'lucide-react';
 import { reportClientError } from '../services/errorReporting';
+import { hideSplash } from '../services/splash';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -27,6 +28,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary capturó un error no controlado:', error, errorInfo);
     reportClientError('render', error, errorInfo.componentStack ?? undefined);
+    // El aviso de error no puede quedar tapado por la pantalla de arranque.
+    hideSplash();
   }
 
   handleReload = () => {
