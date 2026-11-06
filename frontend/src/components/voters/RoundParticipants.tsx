@@ -1,7 +1,6 @@
-import { createPortal } from 'react-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { UserAvatar } from '../Avatar';
-import { useDialogFocus } from '../../hooks/useDialogFocus';
+import PeopleListDialog from '../PeopleListDialog';
 import type { MatchVoter } from '../../types/api';
 
 /** Fotos que caben en una cabecera estrecha; el resto se resume en «+N». */
@@ -19,84 +18,6 @@ export function participantsSummary(count: number) {
   return count === 1
     ? '1 miembro ya ha hecho su predicción'
     : `${count} miembros ya han hecho su predicción`;
-}
-
-function ParticipantsDialog({
-  participants,
-  roundLabel,
-  onClose,
-}: {
-  participants: MatchVoter[];
-  roundLabel: string;
-  onClose: () => void;
-}) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
-  useDialogFocus(dialogRef, { onEscape: onClose });
-
-  return createPortal(
-    <div
-      className="friends-predictions-overlay"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="friends-predictions-panel paper-panel landing-tape paper-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="round-participants-title"
-        ref={dialogRef}
-        tabIndex={-1}
-      >
-        <div className="friends-predictions-head">
-          <div className="min-w-0">
-            <h2 id="round-participants-title" className="friends-predictions-title">
-              Ya han hecho su predicción
-            </h2>
-            {roundLabel && <p className="text-muted text-[0.85rem] m-0">{roundLabel}</p>}
-          </div>
-          <button
-            type="button"
-            className="friends-predictions-close"
-            onClick={onClose}
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="friends-predictions-list">
-          <p className="text-muted text-[0.85rem] mt-0 mb-2.5">
-            {participantsSummary(participants.length)}. Sus predicciones se verán cuando empiece
-            cada partido.
-          </p>
-          <ul className="match-voters-list">
-            {participants.map((participant) => (
-              <li key={participant.userId}>
-                <UserAvatar
-                  url={participant.avatarUrl}
-                  userId={participant.userId}
-                  name={participant.name}
-                  size={28}
-                />
-                <span className="min-w-0 truncate">{participant.name}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
 }
 
 /**
@@ -154,9 +75,11 @@ export default function RoundParticipants({
         </span>
       </button>
       {open && (
-        <ParticipantsDialog
-          participants={participants}
-          roundLabel={roundLabel}
+        <PeopleListDialog
+          title="Ya han hecho su predicción"
+          subtitle={roundLabel}
+          intro={`${participantsSummary(count)}. Sus predicciones se verán cuando empiece cada partido.`}
+          people={participants}
           onClose={() => setOpen(false)}
         />
       )}
