@@ -26,6 +26,7 @@ export const queryKeys = {
   myLeagueSummaries: () => key('myGroups', 'summary'),
   group: (groupId?: Id) => key('group', asText(groupId)),
   featuredGroup: () => key('featuredGroup'),
+  recentPushNotifications: () => key('recentPushNotifications'),
   groupMembers: (groupId?: Id) => key('groupMembers', asText(groupId)),
   leagueScoring: (groupId?: Id) => key('leagueScoring', asText(groupId)),
   predictions: (groupId?: Id) => key('predictions', asText(groupId)),

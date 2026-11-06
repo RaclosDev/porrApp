@@ -72,8 +72,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Login: 15 peticiones por minuto e IP.
-        if (path != null && path.startsWith("/api/auth/google/login")) {
+        // Login y canje del traspaso de sesión a la app instalada: 15 peticiones por minuto e IP.
+        if (path != null && (path.startsWith("/api/auth/google/login") || path.startsWith("/api/auth/session/handoff"))) {
             String clientIp = getClientIp(request);
             if (!isAllowedAuthLogin(clientIp)) {
                 log.warn("Límite de intentos de login excedido para IP: {}", clientIp);

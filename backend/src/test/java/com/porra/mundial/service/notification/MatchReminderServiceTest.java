@@ -34,6 +34,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -54,8 +55,9 @@ class MatchReminderServiceTest {
     private final PushSubscriptionRepository subscriptions = mock(PushSubscriptionRepository.class);
     private final WebPushSender sender = mock(WebPushSender.class);
     private final ObjectMapper json = JsonMapper.builder().build();
+    private final PushNotificationLogService notificationLog = mock(PushNotificationLogService.class);
     private final MatchReminderService service = new MatchReminderService(editions, matches, memberships,
-            predictions, reminders, subscriptions, sender, json);
+            predictions, reminders, subscriptions, sender, json, notificationLog);
 
     private final League league = League.builder().id(5L).name("Los del barrio").joinCode("BARRIO").build();
     private final Competition competition = Competition.builder().id(9L).build();
@@ -153,6 +155,8 @@ class MatchReminderServiceTest {
         verify(reminders).saveAll(saved.capture());
         assertThat(new ArrayList<>(saved.getValue())).extracting(r -> r.getId().getUserId()).containsOnly(1L);
         assertThat(saved.getValue()).hasSize(2);
+        verify(notificationLog).record(eq(1L), argThat(m -> m.title().equals("Te faltan 2 predicciones")), eq(NOW));
+        verify(notificationLog, never()).record(eq(2L), any(), any());
     }
 
     @Test
@@ -161,10 +165,10 @@ class MatchReminderServiceTest {
         List<MatchReminderService.Pending> pending =
                 List.of(new MatchReminderService.Pending(1L, league, match, NOW.plus(60, ChronoUnit.MINUTES)));
 
-        Map<?, ?> message = json.readValue(service.payload(pending, NOW.plus(60, ChronoUnit.MINUTES)), Map.class);
+        PushMessage message = service.message(pending, NOW.plus(60, ChronoUnit.MINUTES));
 
-        assertThat(message.get("title")).isEqualTo("Te falta predecir Betis – Sevilla");
-        assertThat(message.get("body")).isEqualTo("Los del barrio · cierra a las 18:00");
+        assertThat(message.title()).isEqualTo("Te falta predecir Betis – Sevilla");
+        assertThat(message.body()).isEqualTo("Los del barrio · cierra a las 18:00");
     }
 
     @Test

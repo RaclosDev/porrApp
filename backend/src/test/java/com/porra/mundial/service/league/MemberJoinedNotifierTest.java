@@ -1,5 +1,6 @@
 package com.porra.mundial.service.league;
 
+import com.porra.mundial.service.notification.PushNotificationLogService;
 import com.porra.mundial.service.notification.WebPushSender;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -39,8 +41,9 @@ class MemberJoinedNotifierTest {
     private final PushSubscriptionRepository subscriptions = mock(PushSubscriptionRepository.class);
     private final WebPushSender sender = mock(WebPushSender.class);
     private final ObjectMapper json = JsonMapper.builder().build();
+    private final PushNotificationLogService notificationLog = mock(PushNotificationLogService.class);
     private final MemberJoinedNotifier notifier = new MemberJoinedNotifier(leagues, users, memberships,
-            subscriptions, sender, json);
+            subscriptions, sender, json, notificationLog);
 
     private final League league = League.builder().id(5L).name("Los del barrio").joinCode("BARRIO").build();
     private final UserAccount ana = user(1L, "Ana", true);
@@ -73,6 +76,9 @@ class MemberJoinedNotifierTest {
         verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt());
         verify(sender).send(eq("https://push.test/l"), anyString(), anyString(), anyString(), anyInt());
         verify(sender, never()).send(eq("https://push.test/n"), anyString(), anyString(), anyString(), anyInt());
+        verify(notificationLog).record(eq(1L), argThat(m -> m.body().startsWith("Pepe se ha unido a Los del barrio")), any());
+        verify(notificationLog).record(eq(2L), any(), any());
+        verify(notificationLog, never()).record(eq(4L), any(), any());
     }
 
     @Test
@@ -125,8 +131,8 @@ class MemberJoinedNotifierTest {
         verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), payload.capture(), anyInt());
         @SuppressWarnings("unchecked")
         Map<String, Object> message = json.readValue(payload.getValue(), Map.class);
-        assertThat(message).containsEntry("title", "Pepe se ha unido a Los del barrio")
-                .containsEntry("body", "Ya sois 4 en la liga.")
+        assertThat(message).containsEntry("title", "Nuevo miembro en tu liga")
+                .containsEntry("body", "Pepe se ha unido a Los del barrio. Ya sois 4.")
                 .containsEntry("url", "/jornadas?group=5")
                 .containsEntry("tag", "member-joined-5");
     }

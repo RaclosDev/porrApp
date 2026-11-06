@@ -28,6 +28,21 @@ export function needsIosInstall(): boolean {
   return isIos() && !isStandalone();
 }
 
+/**
+ * Qué hace la campana de la cabecera al pulsarla: mostrar los últimos avisos, activarlos, explicar
+ * que en iPhone hay que instalar antes la app o que el navegador los tiene bloqueados.
+ * null: este navegador no admite avisos y la campana no se muestra.
+ */
+export type BellAction = 'recent' | 'enable' | 'install-first' | 'blocked';
+
+export function bellAction(accountEnabled: boolean): BellAction | null {
+  if (needsIosInstall()) return 'install-first';
+  const permission = notificationPermission();
+  if (permission === 'unsupported') return null;
+  if (permission === 'denied') return 'blocked';
+  return permission === 'granted' && accountEnabled ? 'recent' : 'enable';
+}
+
 export function notificationPermission(): NotificationPermission | 'unsupported' {
   return isPushSupported() ? Notification.permission : 'unsupported';
 }
@@ -50,6 +65,30 @@ function sameKey(subscription: PushSubscription, publicKey: string): boolean {
   return actual.length === expected.length && actual.every((b, i) => b === expected[i]);
 }
 
+/**
+ * El navegador no logra registrarse en su servicio push (AbortError «push service error»): suele ser
+ * Brave sin «Usar servicios de Google para mensajería push», o una red, VPN o bloqueador que corta FCM.
+ */
+export const PUSH_SERVICE_UNAVAILABLE =
+  'Tu navegador no ha podido conectar con su servicio de notificaciones. En Brave, activa «Usar servicios de Google para mensajería push» en brave://settings/privacy; si no, prueba sin VPN ni bloqueadores o con otro navegador.';
+
+async function subscribe(
+  registration: ServiceWorkerRegistration,
+  publicKey: string,
+): Promise<PushSubscription> {
+  try {
+    return await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: keyBytes(publicKey),
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(PUSH_SERVICE_UNAVAILABLE);
+    }
+    throw err;
+  }
+}
+
 /** Suscribe este dispositivo (si hace falta) y lo registra en el servidor. Requiere permiso concedido. */
 export async function syncPushSubscription(publicKey: string): Promise<void> {
   const registration = await navigator.serviceWorker.ready;
@@ -58,10 +97,7 @@ export async function syncPushSubscription(publicKey: string): Promise<void> {
     await subscription.unsubscribe();
     subscription = null;
   }
-  subscription ??= await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: keyBytes(publicKey),
-  });
+  subscription ??= await subscribe(registration, publicKey);
   const json = subscription.toJSON();
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
     throw new Error('Suscripción push incompleta');
