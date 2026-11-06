@@ -218,6 +218,15 @@ export interface MatchdayPoints {
 
 // --- Ligas ---
 
+/** Situación del usuario en una de sus ligas; rank y points son null si aún no tiene predicción. */
+export interface LeagueSummary {
+  groupId: number;
+  rank: number | null;
+  points: number | null;
+  participants: number;
+  pendingPredictions: number;
+}
+
 export interface Group {
   id: number;
   name: string;
@@ -388,6 +397,21 @@ export interface MatchStats {
   /** null mientras el partido no ha terminado. */
   exactHits: number | null;
   signHits: number | null;
+}
+
+/** Un miembro que ha pronosticado un signo. */
+export interface MatchVoter {
+  userId: number;
+  name: string;
+  avatarUrl: string | null;
+}
+
+/** Quién ha pronosticado 1, X y 2 en un partido ya cerrado (`/stats/voters`). */
+export interface MatchVoters {
+  matchId: number;
+  home: MatchVoter[];
+  draw: MatchVoter[];
+  away: MatchVoter[];
 }
 
 /** Estadísticas de una liga por jornadas (`/api/predictions/matchday/stats`). */

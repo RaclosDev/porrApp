@@ -47,7 +47,8 @@ export function useLeaderboard() {
   const {
     leaderboardData,
     leaderboardMatchdays,
-    loading,
+    loading: loadingData,
+    loadingLeaderboard,
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
@@ -60,6 +61,7 @@ export function useLeaderboard() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('total');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedMatchdayState, setSelectedMatchdayState] = useState<string | null>(null);
+  const loading = loadingData || loadingLeaderboard;
 
   const isLeagueAdmin = Boolean(
     activeGroupAdminId != null && userId && String(activeGroupAdminId) === String(userId),

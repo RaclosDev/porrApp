@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import OfficialTournamentHome from '../../pages/OfficialTournamentHome';
 import * as appContextModule from '../../context/AppContext';
 import { appContext } from '../context/fixtures';
@@ -41,9 +42,11 @@ const games = [
 
 const renderHome = () =>
   render(
-    <MemoryRouter>
-      <OfficialTournamentHome />
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <OfficialTournamentHome />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 describe('OfficialTournamentHome', () => {

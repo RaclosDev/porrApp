@@ -50,7 +50,10 @@ export default function ReminderSettings() {
   };
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-2" aria-labelledby="reminder-settings-title">
+      <h3 id="reminder-settings-title" className="m-0 text-[0.95rem] font-bold text-main">
+        Avisos
+      </h3>
       <label className="flex items-center gap-2.5 cursor-pointer">
         <input
           type="checkbox"

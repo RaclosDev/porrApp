@@ -3,10 +3,12 @@ package com.porra.mundial.controller;
 import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.dto.GroupResponseDTO;
+import com.porra.mundial.dto.LeagueSummaryDTO;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.LeagueSummaryService;
 import com.porra.mundial.service.WebSocketService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.eq;
@@ -47,6 +50,9 @@ class GroupControllerTest {
     @MockitoBean
     private JwtUtil jwtUtil;
 
+    @MockitoBean
+    private LeagueSummaryService leagueSummaryService;
+
     private Principal userPrincipal(String email) {
         return () -> email;
     }
@@ -61,6 +67,19 @@ class GroupControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Grupo Amigos"))
                 .andExpect(jsonPath("$.joinCode").value("AMIGOS"));
+    }
+
+    @Test
+    @DisplayName("El resumen de mis ligas se pide con el email de la sesión")
+    void leagueSummariesUseSessionEmail() throws Exception {
+        Mockito.when(leagueSummaryService.summaries("member@test.com"))
+                .thenReturn(List.of(new LeagueSummaryDTO(10L, 2, 40, 5, 3)));
+
+        mockMvc.perform(get("/api/groups/mine/summary").principal(userPrincipal("member@test.com")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].groupId").value(10))
+                .andExpect(jsonPath("$[0].rank").value(2))
+                .andExpect(jsonPath("$[0].pendingPredictions").value(3));
     }
 
     @Test

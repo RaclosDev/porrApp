@@ -47,8 +47,8 @@ export default function Landing() {
             animate="show"
             className="text-[#1f2937] text-lg max-w-130 leading-snug"
           >
-            Rellena tu cuadro del Mundial o pronostica jornada a jornada, y compite con tus amigos.
-            Los puntos se calculan solos con los resultados reales.
+            Rellena tu cuadro del Mundial o haz tus predicciones jornada a jornada, y compite con
+            tus amigos. Los puntos se calculan solos con los resultados reales.
           </motion.p>
           <motion.div
             variants={rise}
@@ -200,8 +200,8 @@ export default function Landing() {
           >
             <h3 className="poster-title text-4xl">Jornadas</h3>
             <p className="text-[#1f2937] leading-snug">
-              Para LaLiga, la Premier, la Champions y otras ocho competiciones. Pronosticas el
-              marcador de cada partido, y cada uno se cierra solo cuando empieza.
+              Para LaLiga, la Premier, la Champions y otras ocho competiciones. Predices el marcador
+              de cada partido, y cada uno se cierra solo cuando empieza.
             </p>
             <figure className="m-0">
               <img
@@ -220,7 +220,7 @@ export default function Landing() {
           </motion.article>
         </div>
         <p className="text-muted text-sm text-center mt-8">
-          Se instala en el móvil como una app. Los pronósticos quedan a la vista de la liga en
+          Se instala en el móvil como una app. Las predicciones quedan a la vista de la liga en
           cuanto empieza cada partido.
         </p>
       </GhostWord>

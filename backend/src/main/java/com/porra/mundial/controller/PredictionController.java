@@ -75,7 +75,7 @@ public class PredictionController {
         predictionService.getPredictionData(id, CurrentUser.email(principal));
         ParticipantScoreDTO score = leaderboardService.calculateScoreForPrediction(id);
         if (score == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pronóstico no encontrado");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Predicción no encontrada");
         }
         return score;
     }

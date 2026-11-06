@@ -45,8 +45,8 @@ export default function CustomSummaryTab({
   if (!matchDay) {
     steps.push({
       done: lock.configured || Boolean(lockDate),
-      label: 'Elige cuándo se cierran los pronósticos',
-      hint: 'Puedes cambiar el criterio más adelante, aunque ya haya pronósticos cerrados.',
+      label: 'Elige cuándo se cierran las predicciones',
+      hint: 'Puedes cambiar el criterio más adelante, aunque ya haya predicciones cerradas.',
       tab: 'summary',
     });
   }
@@ -167,8 +167,8 @@ export default function CustomSummaryTab({
       <p className="league-admin-muted custom-admin-note">
         <Info size={13} aria-hidden="true" />
         {matchDay
-          ? 'Tras el primer pronóstico ya no se pueden cambiar los equipos. Los escudos y los resultados sí.'
-          : 'Tras el primer pronóstico ya no se pueden cambiar los equipos ni los cruces de la primera ronda. Los escudos y los resultados sí.'}
+          ? 'Tras la primera predicción ya no se pueden cambiar los equipos. Los escudos y los resultados sí.'
+          : 'Tras la primera predicción ya no se pueden cambiar los equipos ni los cruces de la primera ronda. Los escudos y los resultados sí.'}
       </p>
     </>
   );

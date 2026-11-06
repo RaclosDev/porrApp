@@ -67,7 +67,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/client-errors").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/info").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
-                .requestMatchers("/api/predictions/mine", "/api/groups/mine").authenticated()
+                .requestMatchers("/api/predictions/mine", "/api/groups/mine", "/api/groups/mine/summary").authenticated()
                 .requestMatchers("/api/groups/*/members").authenticated()
                 .requestMatchers("/api/groups/*/competition/**").authenticated()
                 // Lecturas públicas: cada controlador filtra los datos de ligas privadas. HEAD sigue

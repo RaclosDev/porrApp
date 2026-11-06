@@ -25,7 +25,7 @@ class PredictionDataConverterTest {
         PersistenceException error = assertThrows(PersistenceException.class,
                 () -> converter.convertToDatabaseColumn(new PredictionDataDTO()));
 
-        assertEquals("Error interno al persistir el pronóstico", error.getMessage());
+        assertEquals("Error interno al guardar la predicción", error.getMessage());
         assertSame(technicalFailure, error.getCause());
     }
 }

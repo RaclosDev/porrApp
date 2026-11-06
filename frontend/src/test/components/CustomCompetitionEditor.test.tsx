@@ -129,7 +129,7 @@ describe('CustomCompetitionEditor', () => {
     setup();
 
     expect(screen.getByRole('dialog', { name: 'Copa del barrio' })).toBeInTheDocument();
-    expect(await screen.findByText('Elige cuándo se cierran los pronósticos')).toBeInTheDocument();
+    expect(await screen.findByText('Elige cuándo se cierran las predicciones')).toBeInTheDocument();
     expect(screen.getByText('Crea los partidos de grupos')).toBeInTheDocument();
     expect(screen.getByText('Faltan 3 pasos')).toBeInTheDocument();
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
@@ -187,7 +187,7 @@ describe('CustomCompetitionEditor', () => {
     setup();
 
     expect(
-      await screen.findByText(/Puedes cambiar el criterio aunque ya haya pronósticos/),
+      await screen.findByText(/Puedes cambiar el criterio aunque ya haya predicciones/),
     ).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('radio', { name: 'Por partidos' }));
     fireEvent.change(screen.getByLabelText('Margen antes del partido'), { target: { value: '2' } });
@@ -232,12 +232,12 @@ describe('CustomCompetitionEditor', () => {
     expect(screen.getByLabelText('Grupo')).toHaveValue('B');
 
     api.addCustomTeam.mockRejectedValueOnce(
-      new Error('No se pueden cambiar los equipos después del primer pronóstico'),
+      new Error('No se pueden cambiar los equipos después de la primera predicción'),
     );
     fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Linces' } });
     fireEvent.click(screen.getByRole('button', { name: 'Añadir equipo' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'No se pueden cambiar los equipos después del primer pronóstico',
+      'No se pueden cambiar los equipos después de la primera predicción',
     );
     expect(screen.getByLabelText('Nombre')).toHaveValue('Linces');
   });

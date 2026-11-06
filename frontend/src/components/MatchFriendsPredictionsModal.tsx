@@ -111,7 +111,7 @@ export default function MatchFriendsPredictionsModal({
       >
         <div className="friends-predictions-head">
           <h2 id="friends-predictions-title" className="friends-predictions-title">
-            Pronósticos del partido
+            Predicciones del partido
           </h2>
           <button
             type="button"
@@ -144,7 +144,7 @@ export default function MatchFriendsPredictionsModal({
           {matchDate && <span>📅 {matchDate}</span>}
           {!isLoading && !error && (
             <span className="friends-predictions-count">
-              {predictedCount}/{predictions.length} con pronóstico
+              {predictedCount}/{predictions.length} con predicción
             </span>
           )}
         </div>
@@ -155,7 +155,7 @@ export default function MatchFriendsPredictionsModal({
         <div className="friends-predictions-list">
           {isLoading && (
             <div className="friends-predictions-skeletons" role="status">
-              <span className="sr-only">Cargando pronósticos…</span>
+              <span className="sr-only">Cargando predicciones…</span>
               {[0, 1, 2].map((row) => (
                 <div key={row} className="friends-predictions-skeleton skeleton" />
               ))}
@@ -164,13 +164,13 @@ export default function MatchFriendsPredictionsModal({
 
           {error && (
             <p className="friends-predictions-message is-error">
-              No se pudieron cargar los pronósticos de la liga.
+              No se pudieron cargar las predicciones de la liga.
             </p>
           )}
 
           {!isLoading && !error && predictions.length === 0 && (
             <p className="friends-predictions-message">
-              Todavía no hay miembros con pronósticos en este partido.
+              Todavía no hay miembros con predicciones en este partido.
             </p>
           )}
 
@@ -205,9 +205,9 @@ export default function MatchFriendsPredictionsModal({
                       <span>{prediction.participantName}</span>
                       {prediction.isCaller && <span className="friends-prediction-you">Tú</span>}
                     </div>
-                    <div className="friends-prediction-time">
-                      {formattedTime ?? 'Sin fecha de envío'}
-                    </div>
+                    {formattedTime && (
+                      <div className="friends-prediction-time">{formattedTime}</div>
+                    )}
                   </div>
 
                   <div className="friends-prediction-result">
@@ -242,7 +242,7 @@ export default function MatchFriendsPredictionsModal({
                       <span
                         className={`friends-prediction-status ${isMatchLocked ? 'is-missed' : 'is-pending'}`}
                       >
-                        {isMatchLocked ? 'No pronosticó' : 'Pendiente'}
+                        {isMatchLocked ? 'Sin predicción' : 'Pendiente'}
                       </span>
                     )}
                   </div>
@@ -253,7 +253,7 @@ export default function MatchFriendsPredictionsModal({
 
         <div className="friends-predictions-foot">
           <span aria-hidden="true">🔒</span>
-          <span>Los pronósticos se revelan al empezar el partido.</span>
+          <span>Las predicciones se revelan al empezar el partido.</span>
         </div>
       </div>
     </div>,

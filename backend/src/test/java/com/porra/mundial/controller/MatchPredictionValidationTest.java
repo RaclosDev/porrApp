@@ -136,6 +136,6 @@ class MatchPredictionValidationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(submission)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Debes proporcionar al menos un pronóstico"));
+                .andExpect(jsonPath("$.error").value("Debes enviar al menos una predicción"));
     }
 }

@@ -13,6 +13,7 @@ import { ApiError, NETWORK_ERROR_MESSAGE } from '../../services/apiError';
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../services/api', () => ({
   fetchMyGroups: vi.fn(),
+  fetchMyLeagueSummaries: vi.fn(async () => []),
   fetchCompetitions: vi.fn().mockResolvedValue([]),
   fetchGroup: vi.fn(),
   fetchGroupInvitationPreview: vi.fn(),

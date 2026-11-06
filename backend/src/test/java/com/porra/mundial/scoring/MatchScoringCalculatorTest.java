@@ -112,6 +112,6 @@ class MatchScoringCalculatorTest {
         MatchScoreResult res = calculator.calculate(null, 1, 2, 1, rules);
 
         assertEquals(0, res.totalPoints());
-        assertTrue(res.explanation().contains("incompleto"));
+        assertTrue(res.explanation().contains("incompleta"));
     }
 }

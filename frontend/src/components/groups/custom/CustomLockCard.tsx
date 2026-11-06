@@ -11,7 +11,7 @@ const MODES: { value: CustomLockMode; label: string; hint: string }[] = [
   {
     value: 'FIXED_DATE',
     label: 'En una fecha fija',
-    hint: 'Todos los pronósticos se cierran a la vez en la fecha que elijas.',
+    hint: 'Todas las predicciones se cierran a la vez en la fecha que elijas.',
   },
   {
     value: 'FIRST_MATCH',
@@ -134,7 +134,7 @@ export default function CustomLockCard({
       <div className="league-admin-card-head">
         <h3>
           <CalendarClock size={14} aria-hidden="true" />
-          Cierre de pronósticos
+          Cierre de predicciones
         </h3>
         <span className="league-admin-card-meta">{status}</span>
       </div>
@@ -163,7 +163,7 @@ export default function CustomLockCard({
               });
               await queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
               onLockDateSaved?.(state.lockDate ?? '');
-            }, 'Cierre de pronósticos guardado');
+            }, 'Cierre de predicciones guardado');
           }}
         >
           <fieldset className="league-admin-field custom-lock-modes">
@@ -237,11 +237,11 @@ export default function CustomLockCard({
         </form>
       )}
       <p className="league-admin-muted">
-        Puedes cambiar el criterio aunque ya haya pronósticos. Si el nuevo cierre es posterior, lo
+        Puedes cambiar el criterio aunque ya haya predicciones. Si el nuevo cierre es posterior, lo
         que ya estaba cerrado vuelve a abrirse.
         {lock.progressive &&
           !matchday &&
-          ' Quien no haya enviado su pronóstico antes del primer cierre ya no podrá entrar, y de los demás solo se ve lo que ya está cerrado.'}
+          ' Quien no haya enviado su predicción antes del primer cierre ya no podrá entrar, y de los demás solo se ve lo que ya está cerrado.'}
       </p>
     </section>
   );
