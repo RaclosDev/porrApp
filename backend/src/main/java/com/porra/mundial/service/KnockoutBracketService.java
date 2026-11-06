@@ -1,6 +1,5 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.KnockoutRound;
@@ -11,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -73,47 +71,6 @@ public class KnockoutBracketService {
         } catch (Exception e) {
             log.warn("No se pudieron propagar los ganadores de eliminatorias: {}", e.getMessage());
             return 0;
-        }
-    }
-
-    /**
-     * Rellena final, campeón, partido por el tercer puesto y su ganador a partir de los partidos
-     * reales. Los huecos que todavía no se conocen conservan el valor que ya tuviera el DTO.
-     */
-    public void enrichPredictionDataWithMatches(PredictionDataDTO dto) {
-        if (dto == null) return;
-        try {
-            FinalRounds rounds = findFinalRounds(worldCupMatches());
-            List<Match> semis = rounds.semis();
-            Match semi0 = semis.isEmpty() ? null : semis.get(0);
-            Match semi1 = semis.size() > 1 ? semis.get(1) : null;
-
-            Match fm = rounds.finalMatch();
-            if (fm != null || semis.size() >= 2) {
-                String home = fm != null ? realName(fm.getHomeTeam()) : null;
-                String away = fm != null ? realName(fm.getAwayTeam()) : null;
-                if (home == null) home = nameOf(winnerOf(semi0));
-                if (away == null) away = nameOf(winnerOf(semi1));
-                dto.setFinalMatch(mergePair(dto.getFinalMatch(), home, away));
-                if (!Team.isPlaceholder(winnerOf(fm))) {
-                    dto.setChampion(winnerOf(fm).getName());
-                }
-            }
-
-            Match tm = rounds.thirdPlaceMatch();
-            if (tm != null || semis.size() >= 2) {
-                String home = tm != null ? realName(tm.getHomeTeam()) : null;
-                String away = tm != null ? realName(tm.getAwayTeam()) : null;
-                if (home == null) home = realName(loserOf(semi0));
-                if (away == null) away = realName(loserOf(semi1));
-                dto.setThirdPlaceMatch(mergePair(dto.getThirdPlaceMatch(), home, away));
-                Team thirdWinner = tm != null ? winnerOf(tm) : null;
-                if (!Team.isPlaceholder(thirdWinner)) {
-                    dto.setThirdPlaceWinner(thirdWinner.getName());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("No se pudo completar el cuadro oficial con los partidos: {}", e.getMessage());
         }
     }
 
@@ -184,20 +141,5 @@ public class KnockoutBracketService {
 
     private static boolean hasDecisiveScore(Match m) {
         return m.getHomeScore() != null && m.getAwayScore() != null && !Objects.equals(m.getHomeScore(), m.getAwayScore());
-    }
-
-    private static String nameOf(Team team) {
-        return team != null ? team.getName() : null;
-    }
-
-    private static String realName(Team team) {
-        return Team.isPlaceholder(team) ? null : team.getName();
-    }
-
-    private static List<String> mergePair(List<String> current, String home, String away) {
-        if (home == null && away == null) return current;
-        String currentHome = current != null && !current.isEmpty() ? current.get(0) : null;
-        String currentAway = current != null && current.size() > 1 ? current.get(1) : null;
-        return Arrays.asList(home != null ? home : currentHome, away != null ? away : currentAway);
     }
 }
