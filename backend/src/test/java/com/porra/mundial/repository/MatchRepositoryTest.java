@@ -21,6 +21,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -68,6 +69,7 @@ class MatchRepositoryTest {
     }
 
     @Test
+    @Sql("/legacy-laliga-fixtures.sql")
     void findsTheMatchesOfALeagueMatchdayWhateverTheCase() {
         Long laLiga = competitionRepository.findIdByExternalId("esp.1").orElseThrow();
 

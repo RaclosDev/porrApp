@@ -34,6 +34,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -137,6 +138,7 @@ class SyncQueryCountTest {
     }
 
     @Test
+    @Sql("/legacy-laliga-fixtures.sql")
     void countsTheQueriesOfASyncPassAndOfAMatchdayRequest() throws Exception {
         List<Team> worldCupTeams = seedWorldCupTeams();
         events.put(Competition.WORLD_CUP_EXTERNAL_ID, worldCupEvents(worldCupTeams));
