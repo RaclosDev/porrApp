@@ -185,6 +185,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Métricas en /actuator/prometheus (protegido con METRICS_TOKEN) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
 
         <!-- OpenAPI / Swagger 3 UI -->
         <dependency>

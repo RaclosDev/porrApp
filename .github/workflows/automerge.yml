@@ -1,0 +1,46 @@
+name: Auto-merge de PRs propios
+
+# Los PR que abre el dueño del repo se fusionan solos (squash) cuando su CI termina en verde.
+# Los de cualquier otra persona o bot (Dependabot incluido) siguen esperando una fusión manual.
+#
+# Lo que fusiona el GITHUB_TOKEN no dispara eventos (ni el push a main ni el borrado automático de
+# la rama), así que este mismo job borra la rama y lanza la CI de main, que Railway espera para
+# desplegar.
+on:
+  workflow_run:
+    workflows: [Porra Mundial CI/CD]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request'
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Fusionar, borrar la rama y lanzar la CI de main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(gh pr list --head "$BRANCH" --base main --state open \
+            --json number,author,isDraft,headRefOid \
+            --jq ".[] | select(.author.login == \"$OWNER\" and (.isDraft | not) and .headRefOid == \"$SHA\") | .number")
+          if [ -z "$pr" ]; then
+            echo "Nada que fusionar: PR ajeno, en borrador o con commits más nuevos."
+            exit 0
+          fi
+          gh pr merge "$pr" --squash --delete-branch --match-head-commit "$SHA"
+          gh workflow run ci.yml --ref main
