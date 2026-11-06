@@ -166,6 +166,61 @@ describe('useLeaderboard hook', () => {
     expect(elenaJornada1?.points.matchday).toBe(2);
   });
 
+  it('al cambiar de jornada ordena por sus puntos y la general sigue disponible', () => {
+    mockAppContext({
+      leaderboardData: mockLeaderboardData,
+      leaderboardMatchdays: [
+        {
+          label: 'Jornada 1',
+          current: false,
+          finished: true,
+          matchCount: 2,
+          pointsByPrediction: { 1: 6, 2: 2 },
+        },
+        {
+          label: 'Jornada 2',
+          current: true,
+          finished: false,
+          matchCount: 2,
+          pointsByPrediction: { 1: 3, 2: 5 },
+        },
+      ],
+      loading: false,
+      activeGroupName: 'Liga Amigos',
+      activeGroupId: 10,
+      activeGroupPichichi: false,
+      activeGroupPoolFormat: 'MATCH_DAY',
+      activeGroupAdminId: 10,
+      userId: 10,
+      userName: 'Carlos',
+    });
+
+    const { result } = renderHook(() => useLeaderboard());
+    const paidNames = () => result.current.validResults.map((row) => row.name);
+
+    // Al entrar, la general: Elena (120) por delante de Carlos (100); Carlos va 2º en la jornada 2.
+    expect(result.current.sortColumn).toBe('total');
+    expect(paidNames()).toEqual(['Elena', 'Carlos']);
+    expect(result.current.matchdayStats?.myRank).toBe(2);
+
+    act(() => {
+      result.current.handleStepMatchday(-1);
+    });
+
+    expect(result.current.sortColumn).toBe('matchday');
+    expect(paidNames()).toEqual(['Carlos', 'Elena']);
+    expect(result.current.validResults[0].rank).toBe(1);
+    expect(result.current.matchdayStats?.myRank).toBe(1);
+    // La imagen para compartir sigue con la general.
+    expect(result.current.generalValidResults.map((row) => row.name)).toEqual(['Elena', 'Carlos']);
+
+    act(() => {
+      result.current.handleRankingView('general');
+    });
+
+    expect(paidNames()).toEqual(['Elena', 'Carlos']);
+  });
+
   it('comparte la clasificación como archivo PNG sin convertirla a Base64', async () => {
     const template = document.createElement('div');
     template.id = 'share-image-template';

@@ -39,3 +39,14 @@ it('hides the podium while nobody has scored and skips unpaid members', () => {
   expect(podiumPlaces([row(1, 'A', 0), row(2, 'B', 0)])).toEqual([]);
   expect(podiumPlaces([row(1, 'A', 5, false), row(2, 'B', 3)]).map((p) => p.score)).toEqual([3]);
 });
+
+it('builds the podium from the selected matchday points when asked', () => {
+  const rows = [
+    { ...row(1, 'Raclos', 20), points: { total: 20, matchday: 1 } },
+    { ...row(2, 'Cristian', 10), points: { total: 10, matchday: 7 } },
+  ] as unknown as LeaderboardRow[];
+  expect(podiumPlaces(rows, 'matchday').map((p) => [p.score, p.leaders[0].name])).toEqual([
+    [7, 'Cristian'],
+    [1, 'Raclos'],
+  ]);
+});

@@ -42,6 +42,9 @@ export const queryKeys = {
   /** Cuelga de matchdayStats: al invalidar las estadísticas de la liga se refrescan también. */
   matchVoters: (groupId: Id, matchIds: string) =>
     key('matchdayStats', asText(groupId), 'voters', matchIds),
+  /** También cuelga de matchdayStats, para refrescarse con cada predicción nueva de la liga. */
+  roundParticipants: (groupId: Id, matchIds: string) =>
+    key('matchdayStats', asText(groupId), 'participants', matchIds),
   standings: () => key('standings'),
   odds: () => key('odds'),
   topScorers: () => key('topScorers'),

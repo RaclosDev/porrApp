@@ -98,8 +98,13 @@ for (const width of [360, 390, 1440]) {
     await podium.getByText('3 empatados').click();
     for (const name of ['Jokin', 'Neglaso', 'Raclos'])
       await expect(podium.getByText(name, { exact: true })).toBeVisible();
+    // Ordenar por la jornada pasa la clasificación y el podio a esa jornada.
     await page.getByRole('button', { name: 'Ordenar por Jornada 12' }).click();
-    await expect(podium.getByText('Giorgi - Winamax')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Clasificación · Jornada 12' })).toBeVisible();
+    const matchdayPodium = page.getByRole('region', { name: 'Podio de la Jornada 12' });
+    await expect(matchdayPodium.getByText('Giorgi - Winamax')).toBeVisible();
+    await page.getByRole('button', { name: 'General', exact: true }).click();
+    await expect(podium).toBeVisible();
     const download = page.waitForEvent('download');
     await share.click();
     expect((await download).suggestedFilename()).toMatch(/\.png$/);
