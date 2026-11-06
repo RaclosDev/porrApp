@@ -33,7 +33,11 @@ function LiveMatchesPanel({
     return (
       <div key={m.id} className="last-match-card">
         <div className="last-match-date">
-          {hasStarted ? '🔴' : '🕒'} {hasStarted ? m.displayClock || 'EN JUEGO' : dateFormatted}
+          {hasStarted
+            ? m.displayClock
+              ? `En juego · ${m.displayClock}`
+              : 'En juego'
+            : dateFormatted}
         </div>
         <div className="last-match-teams my-auto mx-0">
           <div className="last-match-team">
@@ -83,9 +87,6 @@ function LiveMatchesPanel({
         className="paper-panel album-sheet w-full max-w-120 mt-0 mb-5 mx-auto p-6 text-center text-muted"
         role="status"
       >
-        <div className="text-[1.6rem] mb-2" aria-hidden="true">
-          📅
-        </div>
         <p className="m-0 font-bold text-[color:var(--text-primary,_#fff)]">
           No hay próximos partidos
         </p>

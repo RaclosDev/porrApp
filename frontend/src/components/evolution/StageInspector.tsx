@@ -31,17 +31,15 @@ export default function StageInspector({
           <div className="flex justify-between items-center flex-wrap gap-2.5 border-b border-b-[rgba(17,_24,_39,_0.08)] pb-2 mb-2.5">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="font-bold text-accent-text text-[0.95rem] bg-[rgba(11,_95,_116,_0.15)] bg-none py-[3px] px-2.5 rounded-[15px] border border-[rgba(11,_95,_116,_0.4)]">
-                📍 {currentInspectedStage.roundName || currentInspectedStage.label}
+                {currentInspectedStage.roundName || currentInspectedStage.label}
               </span>
               {currentInspectedStage.matchTitle && (
                 <span className="text-[0.88rem] text-main font-bold">
-                  ⚽ {currentInspectedStage.matchTitle}
+                  {currentInspectedStage.matchTitle}
                 </span>
               )}
               {currentInspectedStage.matchTime && (
-                <span className="text-[0.8rem] text-muted">
-                  🕒 {currentInspectedStage.matchTime}
-                </span>
+                <span className="text-[0.8rem] text-muted">{currentInspectedStage.matchTime}</span>
               )}
             </div>
             <button

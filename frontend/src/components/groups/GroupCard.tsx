@@ -55,7 +55,7 @@ export default function GroupCard({
           className="flex-1 min-w-0 flex items-center gap-3 p-1.5 text-left bg-transparent border-0 rounded-[8px] cursor-pointer text-inherit font-[inherit] min-h-11"
           aria-label={`Abrir ${group.name}`}
         >
-          <LeagueAvatar url={group.imageUrl} size={44} />
+          <LeagueAvatar url={group.imageUrl} name={group.name} size={44} />
           <span className="min-w-0 flex-1">
             <span
               className="block poster-title text-[1.05rem] leading-tight overflow-hidden text-ellipsis whitespace-nowrap"
@@ -64,7 +64,7 @@ export default function GroupCard({
               {group.name}
             </span>
             <span className="block text-muted text-[0.78rem] mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
-              {isCreator ? 'Administras' : `Admin: ${group.adminParticipantName ?? '—'}`}
+              {isCreator ? 'Administras' : `Admin: ${group.adminParticipantName ?? 'sin asignar'}`}
               {meta.length > 0 && ` · ${meta.join(' · ')}`}
             </span>
             {summary && (summary.rank != null || pending > 0) && (

@@ -88,7 +88,7 @@ describe('MatchFriendsPredictionsModal', () => {
     expect(avatarSources).toEqual(['/api/users/1/avatar?v=10']);
     expect(screen.getAllByTestId('avatar-generated')).toHaveLength(2);
 
-    expect(screen.getByText('🔒 Oculto')).toBeInTheDocument();
+    expect(screen.getByText('Oculto')).toBeInTheDocument();
     expect(screen.getByText('Pendiente')).toBeInTheDocument();
     expect(screen.getByText('2 - 1')).toBeInTheDocument();
     expect(screen.getByText('Tú')).toBeInTheDocument();

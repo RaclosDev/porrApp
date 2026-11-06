@@ -284,7 +284,7 @@ export default function LeagueHomeDashboard() {
 
         <div className="flex flex-col gap-4.5 min-w-0">
           <div className="paper-panel album-sheet p-4">
-            <PanelHeader title="Ranking" icon="🏆" onSeeAll={() => navigate('/ranking')} />
+            <PanelHeader title="Ranking" onSeeAll={() => navigate('/ranking')} />
             {topParticipants.length > 0 ? (
               <ol className="flex flex-col gap-1.5 m-0 p-0 list-none" aria-label="Top del ranking">
                 {topParticipants.map((p, index) => {
@@ -309,11 +309,7 @@ export default function LeagueHomeDashboard() {
 
           {standings && standings.rows.length > 0 && (
             <div className="paper-panel album-sheet p-4">
-              <PanelHeader
-                title={standings.title}
-                icon="📊"
-                onSeeAll={() => navigate(standings.to)}
-              />
+              <PanelHeader title={standings.title} onSeeAll={() => navigate(standings.to)} />
               <ol className="flex flex-col gap-1.5 m-0 p-0 list-none" aria-label={standings.title}>
                 {standings.rows.map((row) => (
                   <MiniRow

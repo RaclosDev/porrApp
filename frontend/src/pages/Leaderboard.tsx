@@ -602,7 +602,7 @@ function Leaderboard() {
       >
         <div className="text-center mb-5 border-b-2 border-b-[var(--ink)] pb-2.5">
           <h1 className="text-accent-text m-0 text-[28px] uppercase">
-            🏆 {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'PorrApp'}
+            {state.activeCompetitionName ? `Porra ${state.activeCompetitionName}` : 'PorrApp'}
           </h1>
           <p className="text-muted mt-[5px] mb-0 mx-0 text-[18px] font-bold">
             Clasificación: {activeGroupName}

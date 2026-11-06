@@ -40,7 +40,7 @@ function SwissMatchRow({ match, logos }: { match: Match; logos: Record<string, s
           </>
         ) : (
           <span className="font-normal text-muted">
-            {match.date ? timeFormat.format(new Date(match.date)) : '—'}
+            {match.date ? timeFormat.format(new Date(match.date)) : 'Por fijar'}
           </span>
         )}
       </span>

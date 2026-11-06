@@ -83,7 +83,7 @@ export default function ChartCanvas({
                     fontWeight={rk === 1 ? 'bold' : 'normal'}
                     fill={rk === 1 ? 'var(--accent-cyan)' : 'var(--text-muted)'}
                   >
-                    {rk === 1 ? '🥇 1º' : `${rk}º`}
+                    {`${rk}º`}
                   </text>
                 </g>
               );

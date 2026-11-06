@@ -22,10 +22,13 @@ export default function Legal({ kind }: LegalProps) {
       <p className="text-muted text-[0.9rem]">Última actualización: {UPDATED_AT}</p>
       {kind === 'privacy' ? <PrivacyContent /> : <LegalNoticeContent />}
       <nav className="mt-8 flex flex-wrap gap-4 text-[0.9rem]" aria-label="Información legal">
-        <Link to={kind === 'privacy' ? '/aviso-legal' : '/privacidad'} className="underline">
+        <Link
+          to={kind === 'privacy' ? '/aviso-legal' : '/privacidad'}
+          className="underline inline-flex items-center min-h-11"
+        >
           {kind === 'privacy' ? 'Aviso legal' : 'Política de privacidad'}
         </Link>
-        <Link to="/" className="underline">
+        <Link to="/" className="underline inline-flex items-center min-h-11">
           Volver a PorrApp
         </Link>
       </nav>

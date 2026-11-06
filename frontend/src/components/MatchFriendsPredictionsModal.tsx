@@ -6,7 +6,7 @@ import { UserAvatar } from './Avatar';
 import type { MatchdayFixture } from '../types/api';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 
-function TeamCrest({ logo }: { logo: string | null }) {
+function TeamCrest({ logo, name }: { logo: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => setFailed(false), [logo]);
@@ -29,7 +29,7 @@ function TeamCrest({ logo }: { logo: string | null }) {
       className="friends-predictions-crest friends-predictions-crest-fallback"
       aria-hidden="true"
     >
-      ⚽
+      {name.trim().charAt(0).toLocaleUpperCase('es')}
     </span>
   );
 }
@@ -125,7 +125,7 @@ export default function MatchFriendsPredictionsModal({
 
         <div className="friends-predictions-match">
           <div className="friends-predictions-team">
-            <TeamCrest logo={match.homeTeamLogo} />
+            <TeamCrest logo={match.homeTeamLogo} name={match.homeTeam} />
             <span>{match.homeTeam}</span>
           </div>
           <div className="friends-predictions-center">
@@ -136,12 +136,12 @@ export default function MatchFriendsPredictionsModal({
           </div>
           <div className="friends-predictions-team is-away">
             <span>{match.awayTeam}</span>
-            <TeamCrest logo={match.awayTeamLogo} />
+            <TeamCrest logo={match.awayTeamLogo} name={match.awayTeam} />
           </div>
         </div>
 
         <div className="friends-predictions-meta">
-          {matchDate && <span>📅 {matchDate}</span>}
+          {matchDate && <span>{matchDate}</span>}
           {!isLoading && !error && (
             <span className="friends-predictions-count">
               {predictedCount}/{predictions.length} con predicción
@@ -226,9 +226,9 @@ export default function MatchFriendsPredictionsModal({
                             className={`friends-prediction-points${(prediction.pointsAwarded ?? 0) > 0 ? '' : ' is-zero'}`}
                           >
                             {prediction.isExactScore
-                              ? '🎯 '
+                              ? 'Exacto '
                               : prediction.isCorrectSign
-                                ? '✅ '
+                                ? 'Signo '
                                 : ''}
                             {(prediction.pointsAwarded ?? 0) > 0
                               ? `+${prediction.pointsAwarded} pts`
@@ -237,7 +237,7 @@ export default function MatchFriendsPredictionsModal({
                         )}
                       </>
                     ) : hidden ? (
-                      <span className="friends-prediction-status is-hidden">🔒 Oculto</span>
+                      <span className="friends-prediction-status is-hidden">Oculto</span>
                     ) : (
                       <span
                         className={`friends-prediction-status ${isMatchLocked ? 'is-missed' : 'is-pending'}`}
@@ -252,7 +252,6 @@ export default function MatchFriendsPredictionsModal({
         </div>
 
         <div className="friends-predictions-foot">
-          <span aria-hidden="true">🔒</span>
           <span>Las predicciones se revelan al empezar el partido.</span>
         </div>
       </div>

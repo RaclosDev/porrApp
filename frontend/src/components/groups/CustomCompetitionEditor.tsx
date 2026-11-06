@@ -143,7 +143,7 @@ export default function CustomCompetitionEditor({
         className="league-admin-panel paper-panel landing-tape paper-dialog"
       >
         <header className="league-admin-header">
-          <LeagueAvatar url={group.imageUrl} size={46} />
+          <LeagueAvatar url={group.imageUrl} name={group.name} size={46} />
           <div className="league-admin-heading">
             <span className="league-admin-eyebrow">
               <ClipboardList size={12} aria-hidden="true" />

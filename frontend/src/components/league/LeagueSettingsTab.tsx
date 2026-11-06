@@ -84,7 +84,7 @@ export default function LeagueSettingsTab({
             <ImagePicker
               idPrefix="league-image-picker"
               currentUrl={imageUrl}
-              renderPreview={(url) => <LeagueAvatar url={url} size={72} />}
+              renderPreview={(url) => <LeagueAvatar url={url} name={groupName} size={72} />}
               onUpload={async (blob) => {
                 await onUploadImage?.(blob);
               }}
