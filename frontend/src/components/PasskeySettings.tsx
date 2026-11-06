@@ -12,7 +12,7 @@ import {
 import { createPasskey, deviceName, isPasskeyCancel, passkeysSupported } from '../utils/webauthn';
 import { errorMessage } from '../utils/errors';
 
-export const PASSKEYS_QUERY_KEY = ['passkeys'] as const;
+const PASSKEYS_QUERY_KEY = ['passkeys'] as const;
 
 const dateFormat = new Intl.DateTimeFormat('es-ES', {
   day: 'numeric',
