@@ -1,9 +1,9 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.model.League;
-import com.porra.mundial.service.LeagueService;
-import com.porra.mundial.service.InvitationImageRenderer;
-import com.porra.mundial.service.ProfileImageService;
+import com.porra.mundial.service.league.LeagueService;
+import com.porra.mundial.service.league.InvitationImageRenderer;
+import com.porra.mundial.service.account.ProfileImageService;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;

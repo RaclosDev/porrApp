@@ -7,10 +7,10 @@ import com.porra.mundial.dto.LeagueSummaryDTO;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.UserAccount;
-import com.porra.mundial.service.LeagueService;
-import com.porra.mundial.service.NewLeague;
-import com.porra.mundial.service.LeagueSummaryService;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.league.LeagueService;
+import com.porra.mundial.service.league.NewLeague;
+import com.porra.mundial.service.league.LeagueSummaryService;
+import com.porra.mundial.service.notification.WebSocketService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -46,7 +46,7 @@ class LeagueControllerTest {
     private LeagueService leagueService;
 
     @MockitoBean
-    private com.porra.mundial.service.LeagueMembershipService membershipService;
+    private com.porra.mundial.service.league.LeagueMembershipService membershipService;
 
     @MockitoBean
     private WebSocketService webSocketService;

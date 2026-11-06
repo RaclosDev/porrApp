@@ -3,7 +3,7 @@ package com.porra.mundial.controller;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.config.JwtUtil;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.notification.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

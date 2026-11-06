@@ -2,8 +2,8 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.AccessTokenResponse;
 import com.porra.mundial.dto.ErrorResponse;
-import com.porra.mundial.service.SessionService;
-import com.porra.mundial.service.SessionService.SessionTokens;
+import com.porra.mundial.service.account.SessionService;
+import com.porra.mundial.service.account.SessionService.SessionTokens;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

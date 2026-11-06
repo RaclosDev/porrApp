@@ -8,8 +8,8 @@ import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
-import com.porra.mundial.service.PredictionService;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.prediction.PredictionService;
+import com.porra.mundial.service.notification.WebSocketService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,13 +45,13 @@ class PredictionControllerTest {
     private PredictionService predictionService;
 
     @MockitoBean
-    private com.porra.mundial.service.LeagueService leagueService;
+    private com.porra.mundial.service.league.LeagueService leagueService;
 
     @MockitoBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
     @MockitoBean
-    private com.porra.mundial.service.LeaderboardService leaderboardService;
+    private com.porra.mundial.service.prediction.LeaderboardService leaderboardService;
 
     @MockitoBean
     private WebSocketService webSocketService;

@@ -2,7 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO;
-import com.porra.mundial.service.MatchdayStatsService;
+import com.porra.mundial.service.prediction.MatchdayStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

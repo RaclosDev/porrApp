@@ -3,7 +3,7 @@ package com.porra.mundial.controller;
 import com.porra.mundial.dto.MatchRadarDTO;
 import com.porra.mundial.dto.MatchResponseDTO;
 import com.porra.mundial.model.Match;
-import com.porra.mundial.service.MatchService;
+import com.porra.mundial.service.tournament.MatchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;

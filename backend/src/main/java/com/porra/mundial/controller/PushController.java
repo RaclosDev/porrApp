@@ -4,7 +4,7 @@ import com.porra.mundial.dto.PushConfigResponse;
 import com.porra.mundial.dto.PushPreferencesRequest;
 import com.porra.mundial.dto.PushSubscriptionRequest;
 import com.porra.mundial.dto.StatusResponse;
-import com.porra.mundial.service.PushSubscriptionService;
+import com.porra.mundial.service.notification.PushSubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

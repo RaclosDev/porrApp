@@ -2,8 +2,8 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.LeagueImageResponse;
 import com.porra.mundial.model.League;
-import com.porra.mundial.service.ProfileImageService;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.account.ProfileImageService;
+import com.porra.mundial.service.notification.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

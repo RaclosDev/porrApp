@@ -2,8 +2,8 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.repository.UserAccountRepository;
-import com.porra.mundial.service.LeagueService;
-import com.porra.mundial.service.LeaderboardService;
+import com.porra.mundial.service.league.LeagueService;
+import com.porra.mundial.service.prediction.LeaderboardService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
