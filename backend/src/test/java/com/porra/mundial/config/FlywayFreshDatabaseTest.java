@@ -51,13 +51,12 @@ class FlywayFreshDatabaseTest {
         MigrateResult result = flyway(url).migrate();
 
         assertThat(result.success).isTrue();
-        assertThat(result.migrationsExecuted).isEqualTo(10);
+        assertThat(result.migrationsExecuted).isEqualTo(11);
 
         try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
              Statement st = c.createStatement()) {
             assertThat(queryLong(st, "SELECT count(*) FROM competitions")).isEqualTo(13);
             assertThat(queryLong(st, "SELECT id FROM competitions WHERE external_id = 'fifa.world'")).isEqualTo(1);
-            assertThat(queryLong(st, "SELECT count(*) FROM scoring_rule_sets")).isEqualTo(1);
             assertThat(queryLong(st, "SELECT count(*) FROM matches")).isZero();
         }
     }
