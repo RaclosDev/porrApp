@@ -13,6 +13,7 @@ import MainNav from './layout/MainNav';
 import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
 import PushReminderPrompt from './layout/PushReminderPrompt';
+import { useAnalyticsConsentPending } from './layout/CookieConsent';
 import LoginModal from './layout/LoginModal';
 import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
@@ -55,7 +56,9 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [installBannerDismissed, setInstallBannerDismissed] = useState(
     () => localStorage.getItem('pwa_banner_dismissed') === 'true',
   );
-  const showInstallBanner = !installBannerDismissed && installState === 'native';
+  // El aviso de cookies va primero; los demás avisos inferiores esperan a que se resuelva.
+  const consentPending = useAnalyticsConsentPending();
+  const showInstallBanner = !installBannerDismissed && installState === 'native' && !consentPending;
 
   const isUserLoggedIn = isAuthenticated && Boolean(userName);
   const isMatchDayLeague =
@@ -222,7 +225,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}
 
       {isUserLoggedIn && !isDemo && (
-        <PushReminderPrompt canPrompt={!showInstallBanner && !isLanding} />
+        <PushReminderPrompt canPrompt={!showInstallBanner && !isLanding && !consentPending} />
       )}
 
       {showInstallBanner && (

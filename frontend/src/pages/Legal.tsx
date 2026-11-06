@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { resetAnalyticsConsent } from '../services/analytics';
 
 const CONTACT_EMAIL = 'raclosdev@gmail.com';
-const UPDATED_AT = '5 de noviembre de 2026';
+const UPDATED_AT = '6 de noviembre de 2026';
 
 interface LegalProps {
   kind: 'privacy' | 'legal';
@@ -74,6 +75,11 @@ function PrivacyContent() {
           temporal para limitar abusos. Si la aplicación falla en tu navegador, se envía el error
           técnico (mensaje, traza y página, sin datos de tu cuenta) para poder corregirlo.
         </li>
+        <li>
+          Solo si aceptas la analítica: datos de uso que recoge Google Analytics (páginas que ves,
+          tipo de dispositivo y navegador, país o ciudad aproximados y de dónde llegas), asociados a
+          un identificador aleatorio de tu navegador, no a tu cuenta.
+        </li>
       </ul>
 
       <h2>Para qué y con qué base</h2>
@@ -87,6 +93,10 @@ function PrivacyContent() {
           momento desde los ajustes de avisos o del navegador.
         </li>
         <li>Proteger el servicio frente a abusos: interés legítimo (art. 6.1.f RGPD).</li>
+        <li>
+          Medir cuánta gente usa PorrApp y qué mejorar con Google Analytics: tu consentimiento (art.
+          6.1.a RGPD), que puedes retirar cuando quieras desde el botón de esta página.
+        </li>
       </ul>
       <p>No hacemos perfiles, no vendemos datos y ahora mismo no mostramos publicidad.</p>
 
@@ -100,8 +110,9 @@ function PrivacyContent() {
         <li>
           Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos)
           y Google (inicio de sesión; su código solo se carga cuando abres el botón de «Continuar
-          con Google»). Los servicios de avisos push del navegador (Google, Apple o Mozilla) solo
-          reciben el aviso cifrado.
+          con Google») y, solo si aceptas la analítica, Google Analytics, sin compartir los datos
+          con otros servicios de Google ni usarlos para publicidad. Los servicios de avisos push del
+          navegador (Google, Apple o Mozilla) solo reciben el aviso cifrado.
         </li>
         <li>
           Algunos de estos proveedores están en EE. UU. Las transferencias se amparan en el Marco de
@@ -112,9 +123,18 @@ function PrivacyContent() {
       <h2>Almacenamiento en tu navegador</h2>
       <p>
         Usamos una cookie de sesión y el almacenamiento local del navegador para recordar tu sesión,
-        tu liga activa y los borradores de tus predicciones. Son necesarios para que la app
-        funcione, no sirven para seguirte y no requieren consentimiento. No usamos cookies de
-        publicidad ni de analítica.
+        tu liga activa, los borradores de tus predicciones y tu elección sobre la analítica. Son
+        necesarios para que la app funcione, no sirven para seguirte y no requieren consentimiento.
+      </p>
+      <p>
+        Si aceptas la analítica, Google Analytics guarda las cookies <code>_ga</code> y{' '}
+        <code>_ga_*</code> para distinguir visitas, durante un máximo de 2 años. Si la rechazas, no
+        se carga ningún código de Google Analytics. No usamos cookies de publicidad.
+      </p>
+      <p>
+        <button type="button" onClick={resetAnalyticsConsent} className="glass-btn px-[15px] py-2">
+          Cambiar mi elección sobre la analítica
+        </button>
       </p>
 
       <h2>Cuánto tiempo los guardamos</h2>
