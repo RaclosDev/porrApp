@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class GroupCreateDTO {
+public class LeagueCreateDTO {
     
     /** Nombre visible del grupo. Ej: "Los Amigos del Barrio" */
     @NotBlank(message = "El nombre de la liga es obligatorio")

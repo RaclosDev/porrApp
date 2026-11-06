@@ -49,7 +49,7 @@ class MemberJoinedPushIntegrationTest {
     @MockitoBean private SyncService syncService;
     @MockitoBean private WebPushSender sender;
 
-    @Autowired private GroupService groupService;
+    @Autowired private LeagueService leagueService;
     @Autowired private LeagueMembershipService membershipService;
     @Autowired private UserAccountRepository userAccountRepository;
     @Autowired private LeagueRepository leagueRepository;

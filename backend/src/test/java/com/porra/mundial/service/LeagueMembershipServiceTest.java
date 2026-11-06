@@ -1,7 +1,7 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.exception.BusinessException;
-import com.porra.mundial.dto.GroupMemberDTO;
+import com.porra.mundial.dto.LeagueMemberDTO;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.UserAccount;
@@ -125,7 +125,7 @@ class LeagueMembershipServiceTest {
 
         when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(mem, adminMem));
 
-        List<GroupMemberDTO> members = membershipService.members(10L, "member@test.com");
+        List<LeagueMemberDTO> members = membershipService.members(10L, "member@test.com");
 
         assertEquals(2, members.size());
         members.forEach(m -> assertFalse(m.toString().contains("@"), "La respuesta no debe incluir emails"));
@@ -143,7 +143,7 @@ class LeagueMembershipServiceTest {
         when(membershipRepository.findByLeagueId(50L)).thenReturn(List.of(mem));
 
         for (String viewer : new String[] {null, "member@test.com", "admin@test.com"}) {
-            List<GroupMemberDTO> members = membershipService.members(50L, viewer);
+            List<LeagueMemberDTO> members = membershipService.members(50L, viewer);
             assertEquals(1, members.size());
             assertNull(members.get(0).getPaymentStatus());
             assertEquals("Miembro Regular", members.get(0).getParticipantName());

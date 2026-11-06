@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class GroupResponseDTOTest {
+class LeagueResponseDTOTest {
 
     private final League league = League.builder()
             .id(20L)
@@ -32,14 +32,14 @@ class GroupResponseDTOTest {
     @Test
     @DisplayName("Los miembros ven el código de invitación; el resto no")
     void joinCodeOnlyForMembers() {
-        assertEquals("WC2026", GroupResponseDTO.of(league, edition, true).getJoinCode());
-        assertNull(GroupResponseDTO.of(league, edition, false).getJoinCode());
+        assertEquals("WC2026", LeagueResponseDTO.of(league, edition, true).getJoinCode());
+        assertNull(LeagueResponseDTO.of(league, edition, false).getJoinCode());
     }
 
     @Test
     @DisplayName("Incluye los datos de la edición activa")
     void includesActiveEdition() {
-        GroupResponseDTO dto = GroupResponseDTO.of(league, edition, true);
+        LeagueResponseDTO dto = LeagueResponseDTO.of(league, edition, true);
 
         assertEquals("KNOCKOUTS_ONLY", dto.getPoolFormat());
         assertEquals("Mundial 2026", dto.getCompetitionName());
@@ -52,7 +52,7 @@ class GroupResponseDTOTest {
     @Test
     @DisplayName("Sin edición activa la liga figura como abierta y sin competición")
     void withoutEdition() {
-        GroupResponseDTO dto = GroupResponseDTO.of(league, null, true);
+        LeagueResponseDTO dto = LeagueResponseDTO.of(league, null, true);
 
         assertFalse(dto.getIsLocked());
         assertNull(dto.getPoolFormat());
@@ -62,7 +62,7 @@ class GroupResponseDTOTest {
     @Test
     @DisplayName("La previsualización de invitación no expone administrador, reglas ni código")
     void previewHidesPrivateFields() {
-        GroupResponseDTO dto = GroupResponseDTO.preview(league, edition);
+        LeagueResponseDTO dto = LeagueResponseDTO.preview(league, edition);
 
         assertEquals("Liga Mundial", dto.getName());
         assertEquals("KNOCKOUTS_ONLY", dto.getPoolFormat());

@@ -37,7 +37,7 @@ class LeagueScoringServiceTest {
     @Mock
     private EditionRepository editionRepository;
     @Mock
-    private GroupService groupService;
+    private LeagueService leagueService;
     @Mock
     private MatchPredictionService matchPredictionService;
     @Mock
@@ -72,7 +72,7 @@ class LeagueScoringServiceTest {
     void memberReadsTheRulesWithoutEditing() {
         LeagueScoringDTO scoring = leagueScoringService.getScoring(10L, MEMBER);
 
-        verify(groupService).assertCanView(10L, MEMBER);
+        verify(leagueService).assertCanView(10L, MEMBER);
         assertFalse(scoring.editable());
         assertEquals("MATCH_DAY", scoring.poolFormat());
         assertFalse(scoring.pichichi());
@@ -90,7 +90,7 @@ class LeagueScoringServiceTest {
     @DisplayName("Quien no pertenece a una liga privada no ve su puntuación")
     void outsidersCannotReadAPrivateLeague() {
         doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
-                .when(groupService).assertCanView(10L, "intruso@test.com");
+                .when(leagueService).assertCanView(10L, "intruso@test.com");
 
         assertThrows(BusinessException.class, () -> leagueScoringService.getScoring(10L, "intruso@test.com"));
     }

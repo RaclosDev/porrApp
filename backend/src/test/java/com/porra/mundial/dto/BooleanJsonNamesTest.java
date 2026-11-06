@@ -16,9 +16,9 @@ class BooleanJsonNamesTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
-    @DisplayName("GroupMemberDTO publica isAdmin")
+    @DisplayName("LeagueMemberDTO publica isAdmin")
     void groupMemberExposesIsAdmin() {
-        JsonNode json = mapper.valueToTree(GroupMemberDTO.builder().userId(1L).admin(true).build());
+        JsonNode json = mapper.valueToTree(LeagueMemberDTO.builder().userId(1L).admin(true).build());
         assertTrue(json.path("isAdmin").asBoolean(), json.toString());
         assertFalse(json.has("admin"), json.toString());
     }

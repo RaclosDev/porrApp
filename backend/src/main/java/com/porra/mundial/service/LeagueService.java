@@ -3,7 +3,7 @@ package com.porra.mundial.service;
 import com.porra.mundial.exception.BusinessException;
 import java.time.Instant;
 import java.util.Map;
-import com.porra.mundial.dto.GroupResponseDTO;
+import com.porra.mundial.dto.LeagueResponseDTO;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.model.League;
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GroupService {
+public class LeagueService {
 
     private final LeagueRepository leagueRepository;
     private final PredictionRepository predictionRepository;
@@ -55,7 +55,7 @@ public class GroupService {
     /** Crea una liga; quien la crea pasa a ser su administrador y su primer miembro. */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public League createGroup(NewLeague request) {
+    public League createLeague(NewLeague request) {
         String name = request.name();
         String email = request.adminEmail();
         Long competitionId = request.competitionId();
@@ -167,7 +167,7 @@ public class GroupService {
 
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public League updateGroup(Long groupId, String newName, String newRules, Boolean entryFee, String email) {
+    public League updateLeague(Long groupId, String newName, String newRules, Boolean entryFee, String email) {
         League group = LeagueAdmins.require(leagueRepository, groupId, email);
 
         boolean changed = false;
@@ -202,7 +202,7 @@ public class GroupService {
 
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public void deleteGroup(Long groupId, String email) {
+    public void deleteLeague(Long groupId, String email) {
         LeagueAdmins.require(leagueRepository, groupId, email);
         
         predictionRepository.deleteByLeagueId(groupId);
@@ -230,7 +230,7 @@ public class GroupService {
     // Solo se cachean los aciertos: un código inexistente no debe quedarse en memoria
     // (ni hacer crecer la caché con cada intento) ni ocultar una liga creada después.
     @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode", unless = "#result == null")
-    public Optional<League> getGroupByJoinCode(String joinCode) {
+    public Optional<League> getLeagueByJoinCode(String joinCode) {
         return leagueRepository.findByJoinCode(joinCode);
     }
 
@@ -239,7 +239,7 @@ public class GroupService {
      * @return Las ligas donde está jugando.
      */
     @Transactional(readOnly = true)
-    public List<League> getUserGroups(String email) {
+    public List<League> getUserLeagues(String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user == null) return List.of();
         
@@ -258,8 +258,8 @@ public class GroupService {
      */
     @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "userGroups", key = "#email")
-    public List<GroupResponseDTO> getUserGroupDTOs(String email) {
-        List<League> groups = getUserGroups(email);
+    public List<LeagueResponseDTO> getUserLeagueDTOs(String email) {
+        List<League> groups = getUserLeagues(email);
         if (groups.isEmpty()) return List.of();
 
         List<Long> groupIds = groups.stream().map(League::getId).collect(Collectors.toList());
@@ -269,7 +269,7 @@ public class GroupService {
                 .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e, (e1, e2) -> e1));
 
         return groups.stream()
-                .map(g -> GroupResponseDTO.of(g, editionMap.get(g.getId()), true))
+                .map(g -> LeagueResponseDTO.of(g, editionMap.get(g.getId()), true))
                 .collect(Collectors.toList());
     }
 
@@ -281,9 +281,9 @@ public class GroupService {
 
     /** Liga con su edición activa; el código de invitación solo se incluye si se indica. */
     @Transactional(readOnly = true)
-    public GroupResponseDTO toResponse(League league, boolean includeJoinCode) {
+    public LeagueResponseDTO toResponse(League league, boolean includeJoinCode) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null);
-        return GroupResponseDTO.of(league, edition, includeJoinCode);
+        return LeagueResponseDTO.of(league, edition, includeJoinCode);
     }
 
     /**
@@ -291,10 +291,10 @@ public class GroupService {
      * vista previa de una invitación; solo los miembros ven el código de invitación.
      */
     @Transactional(readOnly = true)
-    public Optional<GroupResponseDTO> findGroupResponse(Long id, String viewerEmail) {
+    public Optional<LeagueResponseDTO> findLeagueResponse(Long id, String viewerEmail) {
         // Una liga privada no existe para quien no es miembro: así no se pueden recorrer por id.
         // Para unirse, la vista previa va por código de invitación (findInvitationPreview).
-        return getGroupById(id).flatMap(league -> {
+        return getLeagueById(id).flatMap(league -> {
             boolean member = isUserMemberOrAdmin(id, viewerEmail);
             return member || league.isPublicLeague() ? Optional.of(toResponse(league, member)) : Optional.empty();
         });
@@ -302,20 +302,20 @@ public class GroupService {
 
     /** La liga pública más antigua, que la portada y la demo enseñan. */
     @Transactional(readOnly = true)
-    public Optional<GroupResponseDTO> findFeaturedGroupResponse(String viewerEmail) {
+    public Optional<LeagueResponseDTO> findFeaturedLeagueResponse(String viewerEmail) {
         return leagueRepository.findFirstByPublicLeagueTrueOrderByIdAsc()
                 .map(league -> toResponse(league, isUserMemberOrAdmin(league.getId(), viewerEmail)));
     }
 
     /** Datos públicos para previsualizar una invitación sin unirse a la liga. */
     @Transactional(readOnly = true)
-    public Optional<GroupResponseDTO> findInvitationPreview(String joinCode) {
-        return getGroupByJoinCode(joinCode).map(league -> GroupResponseDTO.preview(
+    public Optional<LeagueResponseDTO> findInvitationPreview(String joinCode) {
+        return getLeagueByJoinCode(joinCode).map(league -> LeagueResponseDTO.preview(
                 league, editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null)));
     }
 
     @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
-    public Optional<League> getGroupById(Long id) {
+    public Optional<League> getLeagueById(Long id) {
         return leagueRepository.findById(id);
     }
 

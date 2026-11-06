@@ -17,7 +17,7 @@ import java.time.Instant;
  */
 @Data
 @Builder
-public class GroupResponseDTO {
+public class LeagueResponseDTO {
     private Long id;
     private String name;
     private String joinCode;
@@ -63,8 +63,8 @@ public class GroupResponseDTO {
      * @param edition         edición activa, o null si la liga no tiene
      * @param includeJoinCode solo los miembros ven el código de invitación
      */
-    public static GroupResponseDTO of(League league, Edition edition, boolean includeJoinCode) {
-        GroupResponseDTOBuilder builder = builder()
+    public static LeagueResponseDTO of(League league, Edition edition, boolean includeJoinCode) {
+        LeagueResponseDTOBuilder builder = builder()
                 .id(league.getId())
                 .name(league.getName())
                 .joinCode(includeJoinCode ? league.getJoinCode() : null)
@@ -84,8 +84,8 @@ public class GroupResponseDTO {
     }
 
     /** Vista pública para la previsualización de una invitación: sin administrador, reglas ni código. */
-    public static GroupResponseDTO preview(League league, Edition edition) {
-        GroupResponseDTOBuilder builder = builder()
+    public static LeagueResponseDTO preview(League league, Edition edition) {
+        LeagueResponseDTOBuilder builder = builder()
                 .id(league.getId())
                 .name(league.getName())
                 .imageUrl(league.getImageUrl())
@@ -96,7 +96,7 @@ public class GroupResponseDTO {
         return builder.build();
     }
 
-    private static GroupResponseDTOBuilder withEdition(GroupResponseDTOBuilder builder, Edition edition) {
+    private static LeagueResponseDTOBuilder withEdition(LeagueResponseDTOBuilder builder, Edition edition) {
         Competition competition = edition.getCompetition();
         return builder
                 .competitionId(competition != null ? competition.getId() : null)

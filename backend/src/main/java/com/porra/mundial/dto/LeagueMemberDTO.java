@@ -13,7 +13,7 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GroupMemberDTO {
+public class LeagueMemberDTO {
     private Long userId;
     private String participantName;
     private String role;

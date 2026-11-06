@@ -25,7 +25,7 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/groups/{id}/image")
 @RequiredArgsConstructor
-public class GroupImageController {
+public class LeagueImageController {
 
     private final ProfileImageService profileImageService;
     private final WebSocketService webSocketService;

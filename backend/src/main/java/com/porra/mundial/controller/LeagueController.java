@@ -1,10 +1,10 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.dto.GroupCreateDTO;
-import com.porra.mundial.dto.GroupJoinDTO;
-import com.porra.mundial.dto.GroupMemberDTO;
-import com.porra.mundial.dto.GroupResponseDTO;
-import com.porra.mundial.dto.GroupUpdateDTO;
+import com.porra.mundial.dto.LeagueCreateDTO;
+import com.porra.mundial.dto.LeagueJoinDTO;
+import com.porra.mundial.dto.LeagueMemberDTO;
+import com.porra.mundial.dto.LeagueResponseDTO;
+import com.porra.mundial.dto.LeagueUpdateDTO;
 import com.porra.mundial.dto.JoinCodeResponse;
 import com.porra.mundial.dto.LeagueSummaryDTO;
 import com.porra.mundial.dto.MemberPaymentRequest;
@@ -12,7 +12,7 @@ import com.porra.mundial.dto.PaymentStatusResponse;
 import com.porra.mundial.dto.StatusResponse;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
-import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.LeagueService;
 import com.porra.mundial.service.LeagueMembershipService;
 import com.porra.mundial.service.NewLeague;
 import com.porra.mundial.service.LeagueSummaryService;
@@ -31,25 +31,25 @@ import java.util.regex.Pattern;
 /**
  * Ligas privadas: creación, invitaciones, miembros y administración de pagos y pronósticos.
  * Las rutas de escritura y las de miembros exigen sesión (ver {@code SecurityConfig});
- * los permisos de administrador los comprueban {@link GroupService} y {@link LeagueMembershipService}.
+ * los permisos de administrador los comprueban {@link LeagueService} y {@link LeagueMembershipService}.
  */
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor
-public class GroupController {
+public class LeagueController {
 
     /** Formato admitido para la cabecera {@code Idempotency-Key} (p. ej. un UUID). */
     private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("[A-Za-z0-9_-]{8,64}");
 
-    private final GroupService groupService;
+    private final LeagueService leagueService;
     private final LeagueMembershipService membershipService;
     private final WebSocketService webSocketService;
     private final LeagueSummaryService leagueSummaryService;
 
     /** Ligas del usuario autenticado. */
     @GetMapping("/mine")
-    public List<GroupResponseDTO> getMyGroups(Principal principal) {
-        return groupService.getUserGroupDTOs(principal.getName());
+    public List<LeagueResponseDTO> getMyLeagues(Principal principal) {
+        return leagueService.getUserLeagueDTOs(principal.getName());
     }
 
     /** Posición, puntos y predicciones pendientes del usuario en cada una de sus ligas. */
@@ -63,7 +63,7 @@ public class GroupController {
      * {@code Idempotency-Key}, repetir la petición devuelve la misma liga en vez de crear otra.
      */
     @PostMapping
-    public GroupResponseDTO createGroup(@Valid @RequestBody GroupCreateDTO payload,
+    public LeagueResponseDTO createLeague(@Valid @RequestBody LeagueCreateDTO payload,
                                         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
                                         Principal principal) {
         if (idempotencyKey != null && !IDEMPOTENCY_KEY.matcher(idempotencyKey).matches()) {
@@ -71,7 +71,7 @@ public class GroupController {
         }
         League group;
         try {
-            group = groupService.createGroup(new NewLeague(payload.getName().trim(), principal.getName(),
+            group = leagueService.createLeague(new NewLeague(payload.getName().trim(), principal.getName(),
                     payload.getCompetitionId(), PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi(),
                     payload.getCustomCompetitionName(), idempotencyKey));
         } catch (DataIntegrityViolationException e) {
@@ -79,60 +79,60 @@ public class GroupController {
             if (idempotencyKey == null) {
                 throw e;
             }
-            group = groupService.findCreatedWithKey(principal.getName(), idempotencyKey).orElseThrow(() -> e);
+            group = leagueService.findCreatedWithKey(principal.getName(), idempotencyKey).orElseThrow(() -> e);
         }
-        return groupService.toResponse(group, true);
+        return leagueService.toResponse(group, true);
     }
 
     /** Cambia el nombre, las reglas o la cuota de una liga. Solo el administrador. */
     @PutMapping("/{id}")
-    public GroupResponseDTO updateGroup(@PathVariable Long id, @Valid @RequestBody GroupUpdateDTO payload, Principal principal) {
-        League group = groupService.updateGroup(id, payload.getName(), payload.getRules(), payload.getEntryFee(), principal.getName());
-        return groupService.toResponse(group, true);
+    public LeagueResponseDTO updateLeague(@PathVariable Long id, @Valid @RequestBody LeagueUpdateDTO payload, Principal principal) {
+        League group = leagueService.updateLeague(id, payload.getName(), payload.getRules(), payload.getEntryFee(), principal.getName());
+        return leagueService.toResponse(group, true);
     }
 
     /** Elimina la liga con todos sus pronósticos. Solo el administrador. */
     @DeleteMapping("/{id}")
-    public StatusResponse deleteGroup(@PathVariable Long id, Principal principal) {
-        groupService.deleteGroup(id, principal.getName());
+    public StatusResponse deleteLeague(@PathVariable Long id, Principal principal) {
+        leagueService.deleteLeague(id, principal.getName());
         return StatusResponse.success();
     }
 
     /** Une al usuario a la liga del código de invitación. */
     @PostMapping("/join")
-    public GroupResponseDTO joinGroup(@Valid @RequestBody GroupJoinDTO payload, Principal principal) {
-        League group = groupService.getGroupByJoinCode(payload.getJoinCode().trim().toUpperCase())
+    public LeagueResponseDTO joinLeague(@Valid @RequestBody LeagueJoinDTO payload, Principal principal) {
+        League group = leagueService.getLeagueByJoinCode(payload.getJoinCode().trim().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado con ese código"));
         membershipService.join(group.getId(), principal.getName());
         // Refresca ranking, miembros y contadores de esa liga en las sesiones que la estén viendo.
         webSocketService.notifyLeagueChanged(group.getId());
-        return groupService.toResponse(group, true);
+        return leagueService.toResponse(group, true);
     }
 
     /** Metadatos públicos para previsualizar una invitación sin unirse. */
     @GetMapping("/preview/{code}")
-    public GroupResponseDTO previewGroupInvitation(@PathVariable String code) {
-        return groupService.findInvitationPreview(code.trim().toUpperCase())
+    public LeagueResponseDTO previewLeagueInvitation(@PathVariable String code) {
+        return leagueService.findInvitationPreview(code.trim().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invitación no válida o caducada"));
     }
 
     /** La liga pública destacada (portada y demo), o 404 si no hay ninguna. */
     @GetMapping("/featured")
-    public GroupResponseDTO getFeaturedGroup(Principal principal) {
-        return groupService.findFeaturedGroupResponse(principal != null ? principal.getName() : null)
+    public LeagueResponseDTO getFeaturedLeague(Principal principal) {
+        return leagueService.findFeaturedLeagueResponse(principal != null ? principal.getName() : null)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No hay ninguna liga pública"));
     }
 
     /** Detalle de una liga. El código de invitación solo lo ven sus miembros. */
     @GetMapping("/{id}")
-    public GroupResponseDTO getGroup(@PathVariable Long id, Principal principal) {
-        return groupService.findGroupResponse(id, principal != null ? principal.getName() : null)
+    public LeagueResponseDTO getLeague(@PathVariable Long id, Principal principal) {
+        return leagueService.findLeagueResponse(id, principal != null ? principal.getName() : null)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado"));
     }
 
     /** El usuario abandona la liga. */
     @DeleteMapping("/{id}/leave")
-    public StatusResponse leaveGroup(@PathVariable Long id, Principal principal) {
+    public StatusResponse leaveLeague(@PathVariable Long id, Principal principal) {
         membershipService.leave(id, principal.getName());
         webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success();
@@ -140,7 +140,7 @@ public class GroupController {
 
     /** Miembros de la liga con su rol y estado de pago. */
     @GetMapping("/{id}/members")
-    public List<GroupMemberDTO> getMembers(@PathVariable Long id, Principal principal) {
+    public List<LeagueMemberDTO> getMembers(@PathVariable Long id, Principal principal) {
         return membershipService.members(id, principal.getName());
     }
 
@@ -173,6 +173,6 @@ public class GroupController {
     /** Genera un código de invitación nuevo e invalida el anterior. Solo el administrador. */
     @PostMapping("/{id}/regenerate-code")
     public JoinCodeResponse regenerateCode(@PathVariable Long id, Principal principal) {
-        return new JoinCodeResponse(groupService.regenerateJoinCode(id, principal.getName()));
+        return new JoinCodeResponse(leagueService.regenerateJoinCode(id, principal.getName()));
     }
 }

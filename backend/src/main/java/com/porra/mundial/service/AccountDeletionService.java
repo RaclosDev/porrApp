@@ -35,7 +35,7 @@ public class AccountDeletionService {
     private final LeagueRepository leagueRepository;
     private final MembershipRepository membershipRepository;
     private final PredictionRepository predictionRepository;
-    private final GroupService groupService;
+    private final LeagueService leagueService;
     private final LeagueMembershipService membershipService;
 
     @Transactional
@@ -84,7 +84,7 @@ public class AccountDeletionService {
     }
 
     private void erase(UserAccount user, List<League> leaguesToDelete) {
-        leaguesToDelete.forEach(l -> groupService.deleteGroup(l.getId(), user.getGoogleEmail()));
+        leaguesToDelete.forEach(l -> leagueService.deleteLeague(l.getId(), user.getGoogleEmail()));
 
         predictionRepository.clearPaymentMarkedBy(user.getId());
         predictionRepository.deleteAll(predictionRepository.findByUserId(user.getId()));

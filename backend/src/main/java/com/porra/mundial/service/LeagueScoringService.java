@@ -26,7 +26,7 @@ public class LeagueScoringService {
 
     private final LeagueRepository leagueRepository;
     private final EditionRepository editionRepository;
-    private final GroupService groupService;
+    private final LeagueService leagueService;
     private final MatchPredictionService matchPredictionService;
     private final ScoreInvalidationService scoreInvalidationService;
 
@@ -38,7 +38,7 @@ public class LeagueScoringService {
     @Transactional(readOnly = true)
     public LeagueScoringDTO getScoring(Long leagueId, String email) {
         League league = findLeague(leagueId);
-        groupService.assertCanView(leagueId, email);
+        leagueService.assertCanView(leagueId, email);
         return LeagueScoringDTO.of(activeEdition(leagueId), canEdit(league, email));
     }
 
