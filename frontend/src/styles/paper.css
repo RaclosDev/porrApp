@@ -225,8 +225,7 @@
   .md-page-header h1,
   .home-hero-title,
   .standings-title,
-  .league-admin-title,
-  .friends-predictions-title {
+  .league-admin-title {
     font-family: 'Anton', 'Outfit', sans-serif;
     font-weight: 400;
     text-transform: uppercase;

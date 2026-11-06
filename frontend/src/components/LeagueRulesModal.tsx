@@ -1,4 +1,5 @@
 import PaperLoading from './PaperLoading';
+import DialogBackdrop from './DialogBackdrop';
 import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -38,18 +39,15 @@ export default function LeagueRulesModal({
   });
 
   return (
-    <div
-      className="paper-dialog-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="league-rules-title"
-      ref={dialogRef}
-      tabIndex={-1}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="paper-panel landing-tape paper-dialog">
+    <DialogBackdrop className="paper-dialog-overlay" onDismiss={onClose}>
+      <div
+        className="paper-panel landing-tape paper-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="league-rules-title"
+        ref={dialogRef}
+        tabIndex={-1}
+      >
         <div className="py-4 px-5 border-b border-b-[rgba(17,_24,_39,_0.15)] flex flex-col gap-3">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
@@ -115,6 +113,6 @@ export default function LeagueRulesModal({
           )}
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

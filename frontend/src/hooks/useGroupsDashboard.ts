@@ -20,6 +20,7 @@ import type { Competition, Group, LeagueSummary, PoolFormat } from '../types/api
 import { errorMessage } from '../utils/errors';
 import { isApiError } from '../services/apiError';
 import { useAppStore } from '../store/useAppStore';
+import { confirmAction } from '../utils/confirmAction';
 
 /** Identificador aleatorio para la cabecera `Idempotency-Key`. */
 function newIdempotencyKey(): string {
@@ -253,9 +254,11 @@ export function useGroupsDashboard() {
   ) => {
     if (
       !skipConfirm &&
-      !window.confirm(
-        `¿Eliminar la liga "${groupName}"? Se borrarán todas sus predicciones y no se puede deshacer.`,
-      )
+      !(await confirmAction({
+        title: `¿Eliminar «${groupName}»?`,
+        message: 'Se borrarán todas sus predicciones y no se puede deshacer.',
+        confirmLabel: 'Eliminar liga',
+      }))
     )
       return false;
 
@@ -317,9 +320,11 @@ export function useGroupsDashboard() {
 
   const handleLeaveGroup = async (groupId: GroupId, groupName: string) => {
     if (
-      !window.confirm(
-        `¿Estás seguro de que quieres abandonar la liga "${groupName}"? Perderás tus porras en esta liga.`,
-      )
+      !(await confirmAction({
+        title: `¿Salir de «${groupName}»?`,
+        message: 'Perderás tus porras en esta liga.',
+        confirmLabel: 'Salir de la liga',
+      }))
     )
       return;
     try {

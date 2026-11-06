@@ -66,7 +66,7 @@ function TopScorersPanel({
   const uniqueGoals = [...new Set(topScorers.slice(0, 4).map((s) => s.goals))];
   const getMedal = (goals: number, idx: number) => {
     const rank = uniqueGoals.indexOf(goals);
-    if (rank === 0) return '👑';
+    if (rank === 0) return '🥇';
     if (rank === 1) return '🥈';
     if (rank === 2) return '🥉';
     return idx + 1;

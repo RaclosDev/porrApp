@@ -24,7 +24,7 @@ vi.mock('../../context/AppContext', () => ({
 }));
 
 describe('ActiveLeagueDropdown con imágenes de liga', () => {
-  it('muestra la imagen de la liga activa y de cada liga del selector, con emoji como respaldo', () => {
+  it('muestra la imagen de la liga activa y de cada liga del selector, con su monograma como respaldo', () => {
     const { container } = render(
       <MemoryRouter>
         <ActiveLeagueDropdown />
@@ -35,6 +35,6 @@ describe('ActiveLeagueDropdown con imágenes de liga', () => {
     fireEvent.click(screen.getByRole('button', { name: /Peña Madridista/i }));
     expect(container.querySelectorAll('img').length).toBe(2); // activa + primera fila
     expect(screen.getByText('Sin imagen')).toBeInTheDocument();
-    expect(screen.getByText('🌍')).toBeInTheDocument(); // respaldo de la liga sin imagen
+    expect(screen.getByText('S')).toBeInTheDocument(); // monograma de «Sin imagen»
   });
 });

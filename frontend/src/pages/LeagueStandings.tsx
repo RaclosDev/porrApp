@@ -83,9 +83,6 @@ export default function LeagueStandings() {
         </div>
       ) : !standings || !Array.isArray(standings) || standings.length === 0 ? (
         <div className="paper-panel album-sheet landing-tape standings-empty">
-          <div className="standings-empty-icon" aria-hidden="true">
-            📊
-          </div>
           <p className="standings-empty-title">
             No hay datos de clasificación disponibles en este momento.
           </p>
@@ -165,12 +162,12 @@ export default function LeagueStandings() {
                                 hidden
                                 aria-hidden="true"
                               >
-                                🛡️
+                                {row.teamName.trim().charAt(0).toLocaleUpperCase('es')}
                               </span>
                             </>
                           ) : (
                             <span className="standings-team-placeholder" aria-hidden="true">
-                              🛡️
+                              {row.teamName.trim().charAt(0).toLocaleUpperCase('es')}
                             </span>
                           )}
                           <span className="standings-team-name">{row.teamName}</span>

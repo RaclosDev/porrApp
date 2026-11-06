@@ -4,8 +4,9 @@ import { useAppContext } from '../context/AppContext';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 import { LeagueAvatar } from './Avatar';
 
+/** Bandera del país de la competición; sin país conocido, la liga muestra su monograma. */
 function getCompetitionBadge(competitionName: string | null | undefined) {
-  if (!competitionName) return '🏆';
+  if (!competitionName) return null;
   const lower = competitionName.toLowerCase();
   if (lower.includes('laliga') || lower.includes('copa del rey') || lower.includes('españa'))
     return '🇪🇸';
@@ -17,9 +18,7 @@ function getCompetitionBadge(competitionName: string | null | undefined) {
   if (lower.includes('ligue 1') || lower.includes('francia')) return '🇫🇷';
   if (lower.includes('mex') || lower.includes('bbva')) return '🇲🇽';
   if (lower.includes('mls') || lower.includes('usa')) return '🇺🇸';
-  if (lower.includes('mundial') || lower.includes('world cup') || lower.includes('fifa'))
-    return '🌍';
-  return '🏆';
+  return null;
 }
 
 export default function ActiveLeagueDropdown() {
@@ -71,7 +70,6 @@ export default function ActiveLeagueDropdown() {
         className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-11 rounded-[10px] border-dashed cursor-pointer text-[0.82rem]"
         title="Crear o unirse a una liga"
       >
-        <span>➕</span>
         <span className="max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
           Crear o unirse
         </span>
@@ -96,7 +94,12 @@ export default function ActiveLeagueDropdown() {
         aria-expanded={isOpen}
         title={`Cambiar de liga (${displayLeagueName} · ${displayCompName})`}
       >
-        <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
+        <LeagueAvatar
+          url={activeImageUrl}
+          badge={currentBadge}
+          name={displayLeagueName}
+          size={26}
+        />
         <div
           key={activeGroupId}
           className="league-selection flex flex-col items-start text-left leading-[1.15] min-w-0"
@@ -141,7 +144,7 @@ export default function ActiveLeagueDropdown() {
                     }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <LeagueAvatar url={g.imageUrl} badge={gBadge} size={30} />
+                      <LeagueAvatar url={g.imageUrl} badge={gBadge} name={g.name} size={30} />
                       <div className="min-w-0 flex flex-col">
                         <span
                           className={`text-[0.88rem] overflow-hidden text-ellipsis whitespace-nowrap ${isSelected ? 'font-bold' : 'font-medium'}`}
@@ -176,7 +179,6 @@ export default function ActiveLeagueDropdown() {
                 navigate('/mis-ligas');
               }}
             >
-              <span>➕</span>
               <span>Crear o unirse a una liga</span>
             </button>
           </div>

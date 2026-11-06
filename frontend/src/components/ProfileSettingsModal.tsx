@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import DialogBackdrop from './DialogBackdrop';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -141,18 +142,15 @@ export default function ProfileSettingsModal({
   };
 
   return (
-    <div
-      className="paper-dialog-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="profile-settings-title"
-      ref={dialogRef}
-      tabIndex={-1}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) void dismiss();
-      }}
-    >
-      <div className="paper-panel landing-tape paper-dialog">
+    <DialogBackdrop className="paper-dialog-overlay" onDismiss={() => void dismiss()}>
+      <div
+        className="paper-panel landing-tape paper-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-settings-title"
+        ref={dialogRef}
+        tabIndex={-1}
+      >
         <div className="paper-dialog-body flex flex-col gap-4.5">
           <div className="flex justify-between items-center">
             <h3 className="m-0 poster-title text-main text-[1.2rem]" id="profile-settings-title">
@@ -318,6 +316,6 @@ export default function ProfileSettingsModal({
           </div>
         )}
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

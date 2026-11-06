@@ -228,11 +228,17 @@ export default function Landing() {
       <footer className="mt-10 pt-5 border-t border-t-[rgba(255,255,255,0.08)] flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-[#94a3b8] text-[0.85rem]">
         <strong className="text-white">PorrApp</strong>
         <span aria-hidden="true">·</span>
-        <Link to="/privacidad" className="underline hover:text-white">
+        <Link
+          to="/privacidad"
+          className="underline hover:text-white inline-flex items-center min-h-11"
+        >
           Privacidad
         </Link>
         <span aria-hidden="true">·</span>
-        <Link to="/aviso-legal" className="underline hover:text-white">
+        <Link
+          to="/aviso-legal"
+          className="underline hover:text-white inline-flex items-center min-h-11"
+        >
           Aviso legal
         </Link>
       </footer>

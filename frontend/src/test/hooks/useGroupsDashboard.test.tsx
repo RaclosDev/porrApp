@@ -8,6 +8,8 @@ import { useAppContext } from '../../context/AppContext';
 import * as api from '../../services/api';
 import { appContext, group } from '../context/fixtures';
 import { useAppStore } from '../../store/useAppStore';
+
+vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn().mockResolvedValue(true) }));
 import { ApiError, NETWORK_ERROR_MESSAGE } from '../../services/apiError';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
@@ -114,7 +116,6 @@ describe('useGroupsDashboard', () => {
         appContext({ isAuthenticated: true, userName: 'Ana', activeGroupId: '1', changeGroup }),
       );
       useAppStore.setState({ activeGroupId: '1' });
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
       const { result } = renderHook(() => useGroupsDashboard(), { wrapper });
       let action!: Promise<unknown>;
       act(() => {

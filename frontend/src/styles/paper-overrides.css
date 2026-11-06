@@ -29,6 +29,18 @@
     box-shadow: none;
   }
 
+  /* El botón principal de la cabecera es papel con tinta: sin este fondo, la tinta no se ve. */
+  .top-bar .glass-btn.primary-btn {
+    background: var(--paper);
+    border-color: var(--paper);
+    color: var(--ink);
+  }
+
+  .top-bar .glass-btn.primary-btn:hover:not(:disabled) {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
+
   .top-bar .nav-links a {
     border: 1px solid transparent;
     color: var(--paper);
@@ -155,7 +167,6 @@
   .album-sheet-title,
   .standings-title,
   .league-admin-title,
-  .friends-predictions-title,
   .home-hero-title,
   .md-page-header h1,
   .home-list-header h2 {
@@ -180,8 +191,7 @@
     min-height: 0;
   }
 
-  .paper-panel .league-admin-title,
-  .paper-panel .friends-predictions-title {
+  .paper-panel .league-admin-title {
     color: var(--ink);
   }
 
