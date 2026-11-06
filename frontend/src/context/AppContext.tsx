@@ -113,7 +113,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let isCancelled = false;
     const autoSelectGroup = async () => {
       const selectedAtStart = useAppStore.getState().activeGroupId;
-      if (isDemoMode || !isUserAuthed) return;
+      // Si se cancela, la siguiente ejecución del efecto termina la elección.
+      const doneChoosing = () => {
+        if (!isCancelled) useAppStore.getState().setChoosingLeague(false);
+      };
+      if (isDemoMode || !isUserAuthed) {
+        doneChoosing();
+        return;
+      }
       try {
         let dbGroupId = null;
         try {
@@ -190,6 +197,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         /* ignore */
+      } finally {
+        doneChoosing();
       }
     };
     autoSelectGroup();

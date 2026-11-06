@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 const mockChangeGroup = vi.fn();
 const mockNavigate = vi.fn();
+const mockState = vi.hoisted(() => ({ userGroupsLoaded: true }));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -36,10 +37,25 @@ vi.mock('../../context/AppContext', () => ({
     ],
     changeGroup: mockChangeGroup,
     isAuthenticated: true,
+    userGroupsLoaded: mockState.userGroupsLoaded,
   }),
 }));
 
 describe('ActiveLeagueDropdown Component', () => {
+  it('reserva el hueco mientras llegan las ligas en vez de enseñar «Crear o unirse»', () => {
+    mockState.userGroupsLoaded = false;
+    const { container } = render(
+      <MemoryRouter>
+        <ActiveLeagueDropdown />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText('Crear o unirse')).not.toBeInTheDocument();
+    expect(container.querySelector('.chrome-placeholder')).toHaveAttribute('aria-hidden', 'true');
+    mockState.userGroupsLoaded = true;
+  });
+
   it('Despliega el menú al pulsar y ejecuta changeGroup con navegación al inicio y accesibilidad Escape', () => {
     render(
       <MemoryRouter>

@@ -104,6 +104,14 @@
     }
   }
 
+  /* Hueco de un control de la cabecera o del menú que depende de datos que aún no han llegado. */
+  .chrome-placeholder {
+    display: block;
+    flex: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .skeleton::after {
       animation: none;
