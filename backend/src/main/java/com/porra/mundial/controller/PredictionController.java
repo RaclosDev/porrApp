@@ -4,7 +4,6 @@ import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.dto.PredictionSavedResponse;
-import com.porra.mundial.dto.StatusResponse;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.LeaderboardService;
@@ -64,14 +63,6 @@ public class PredictionController {
         return PredictionSavedResponse.created(prediction.getId(), prediction.getParticipantName(), prediction.getGroupId());
     }
 
-    @PutMapping("/{id}")
-    public PredictionSavedResponse updatePrediction(@PathVariable Long id, @Valid @RequestBody PredictionDataDTO body,
-                                                    Principal principal) {
-        Prediction prediction = predictionService.updatePrediction(id, CurrentUser.email(principal), body.getPrediction(), body);
-        webSocketService.notifyPredictionsChanged(prediction.getGroupId());
-        return PredictionSavedResponse.updated(prediction.getId());
-    }
-
     @GetMapping("/{id}")
     public PredictionDataDTO getPrediction(@PathVariable Long id, Principal principal) {
         return predictionService.getPredictionData(id, CurrentUser.email(principal));
@@ -87,19 +78,5 @@ public class PredictionController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pronóstico no encontrado");
         }
         return score;
-    }
-
-    /** Marca un pronóstico como pagado. Solo el administrador de su liga. */
-    @PutMapping("/{id}/pay")
-    public StatusResponse markAsPaid(@PathVariable Long id, Principal principal) {
-        Prediction prediction = predictionService.markAsPaid(id, CurrentUser.email(principal));
-        webSocketService.notifyPredictionsChanged(prediction.getGroupId());
-        return new StatusResponse("paid", null);
-    }
-
-    @DeleteMapping("/{id}")
-    public StatusResponse deletePrediction(@PathVariable Long id, Principal principal) {
-        webSocketService.notifyPredictionsChanged(predictionService.deletePrediction(id, CurrentUser.email(principal)));
-        return new StatusResponse("deleted", null);
     }
 }

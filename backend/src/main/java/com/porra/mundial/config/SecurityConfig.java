@@ -63,6 +63,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
                 // Refresco, logout y canje del JWT antiguo: se autentican con la cookie o el JWT.
                 .requestMatchers(HttpMethod.POST, "/api/auth/session/**").permitAll()
+                // Errores del navegador, también de visitantes sin sesión; con límite por IP.
+                .requestMatchers(HttpMethod.POST, "/api/client-errors").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/info").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
                 .requestMatchers("/api/predictions/mine", "/api/groups/mine").authenticated()

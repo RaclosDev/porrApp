@@ -9,7 +9,7 @@ import CustomLockCard from './custom/CustomLockCard';
 import type { SaveAction } from './custom/customCompetition';
 
 /** El cuadro se pronostica cruce a cruce: torneos con cuadro propio (no el Mundial). */
-export const allowsProgressiveLock = (group: Group) =>
+const allowsProgressiveLock = (group: Group) =>
   group.customCompetition ||
   (group.formatType === 'TOURNAMENT' && group.competitionExternalId !== 'fifa.world');
 

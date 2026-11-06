@@ -1,7 +1,8 @@
 import PaperLoading from './PaperLoading';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import type { CredentialResponse } from '@react-oauth/google';
+import GoogleSignInButton from './GoogleSignInButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
@@ -110,7 +111,7 @@ export default function JoinRedirect() {
                   tu porra.
                 </p>
                 <div className="flex justify-center">
-                  <GoogleLogin
+                  <GoogleSignInButton
                     onSuccess={(response) => accept(response)}
                     onError={() =>
                       setError('No se ha podido iniciar sesión. Puedes volver a intentarlo.')

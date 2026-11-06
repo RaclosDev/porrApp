@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
 import { Navigate } from 'react-router-dom';
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import type { CredentialResponse } from '@react-oauth/google';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
 import GroupCard from '../components/groups/GroupCard';
@@ -94,7 +95,7 @@ export default function GroupsDashboard() {
       <div className="join-auth-screen paper-panel album-sheet landing-tape text-center p-6">
         <h2 className="poster-title text-2xl mb-5">Inicia sesión para crear o unirte a una liga</h2>
         <div className="flex justify-center">
-          <GoogleLogin
+          <GoogleSignInButton
             onSuccess={handleDirectGoogleLogin}
             onError={() => toast.error('Inicio de sesión cancelado')}
             theme="outline"

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useId, type KeyboardEvent } from 'react';
 import Flag from './Flag';
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
 }

@@ -1,7 +1,7 @@
 import { savePushSubscription } from './api';
 
 /** El navegador puede recibir avisos push (en iOS, solo con la app añadida a la pantalla de inicio). */
-export function isPushSupported(): boolean {
+function isPushSupported(): boolean {
   return (
     typeof window !== 'undefined' &&
     'serviceWorker' in navigator &&
