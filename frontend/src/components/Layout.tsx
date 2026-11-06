@@ -14,7 +14,6 @@ import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
 import PushReminderPrompt from './layout/PushReminderPrompt';
 import LoginModal from './layout/LoginModal';
-import { isIos } from '../services/push';
 import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
 
@@ -56,8 +55,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [installBannerDismissed, setInstallBannerDismissed] = useState(
     () => localStorage.getItem('pwa_banner_dismissed') === 'true',
   );
-  const showInstallBanner =
-    !installBannerDismissed && (installState === 'native' || installState === 'ios');
+  const showInstallBanner = !installBannerDismissed && installState === 'native';
 
   const isUserLoggedIn = isAuthenticated && Boolean(userName);
   const isMatchDayLeague =
@@ -231,7 +229,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         <InstallBanner
           handleDismissBanner={handleDismissBanner}
           handleInstallClick={handleInstallClick}
-          isIos={isIos}
         />
       )}
 

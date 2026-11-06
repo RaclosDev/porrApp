@@ -101,3 +101,39 @@ it('shows the manual steps on iPhone and nothing once added to the home screen',
     Reflect.deleteProperty(navigator, 'standalone');
   }
 });
+
+it('sends people inside another app’s browser to the real browser first', () => {
+  vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(`${IPHONE} Instagram 350.0.0`);
+
+  expect(install.installState()).toBe('in-app');
+});
+
+it.each([
+  [`${IPHONE} Instagram 350.0.0.32.109 (iPhone15,2; iOS 18_0)`, true],
+  [`${IPHONE} [FBAN/FBIOS;FBAV/480.0]`, true],
+  [`${ANDROID} [FB_IAB/FB4A;FBAV/480.0]`, true],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) GSA/350.0 Mobile/15E148', true],
+  [IPHONE, false],
+  [ANDROID, false],
+])('detects in-app browsers: %s', (userAgent, expected) => {
+  expect(install.isInAppBrowser(userAgent)).toBe(expected);
+});
+
+it.each([
+  [IPHONE, 'bottom'],
+  [IPHONE.replace('Version/18.0', 'Version/26.0'), 'bottom-menu'],
+  [
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
+    'top-right',
+  ],
+  [
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0 Mobile/15E148 Safari/604.1',
+    'top-right',
+  ],
+  [
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/132.0 Mobile/15E148 Safari/605.1.15',
+    'menu',
+  ],
+])('finds the Share button for %s', (userAgent, place) => {
+  expect(install.shareButtonPlace(userAgent)).toBe(place);
+});

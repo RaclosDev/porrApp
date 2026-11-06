@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getAuthToken, setAuthToken, fetchStandings, fetchMatches } from '../../services/api';
+import {
+  getAuthToken,
+  setAuthToken,
+  fetchStandings,
+  fetchMatches,
+  PREDICTION_SAVED_EVENT,
+  submitMatchdayPredictions,
+} from '../../services/api';
 import { hasStoredSession } from '../../services/sessionHint';
 import {
   ApiError,
@@ -44,6 +51,25 @@ describe('api.ts service', () => {
     expect(calledUrl).toBe('/api/standings');
     expect(calledOptions.headers).toHaveProperty('Authorization', 'Bearer valid-jwt-token-xyz');
     expect(standings).toEqual([{ group: 'A', teams: [] }]);
+  });
+
+  it('avisa en window al guardar predicciones, y solo si se guardan', async () => {
+    const saved = vi.fn();
+    window.addEventListener(PREDICTION_SAVED_EVENT, saved);
+    try {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
+      await submitMatchdayPredictions(5, []);
+      expect(saved).toHaveBeenCalledTimes(1);
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({}) }),
+      );
+      await expect(submitMatchdayPredictions(5, [])).rejects.toThrow();
+      expect(saved).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(PREDICTION_SAVED_EVENT, saved);
+    }
   });
 
   it('construye la URL con competitionId para fetchMatches', async () => {

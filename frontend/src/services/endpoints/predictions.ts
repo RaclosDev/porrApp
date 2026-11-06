@@ -26,6 +26,14 @@ export const fetchPredictions = (groupId: number | string | null = null) =>
 
 export const fetchMyPredictions = () => request<PredictionSummary[]>('/predictions/mine');
 
+/** Se lanza en `window` tras guardar una predicción (la cabecera ofrece entonces instalar la app). */
+export const PREDICTION_SAVED_EVENT = 'prediction-saved';
+
+function announceSaved<T>(result: T): T {
+  window.dispatchEvent(new Event(PREDICTION_SAVED_EVENT));
+  return result;
+}
+
 export const createPrediction = (
   predictionData: PredictionData,
   groupId: number | string | null = null,
@@ -34,7 +42,7 @@ export const createPrediction = (
     method: 'POST',
     json: predictionData,
     fallbackError: 'Hubo un error al guardar la porra.',
-  });
+  }).then(announceSaved);
 
 export const fetchMatchdayFixtures = (groupId: number | string, round = '') =>
   request<MatchdayFixture[]>(`/predictions/matchday${query({ groupId, round })}`);
@@ -47,7 +55,7 @@ export const submitMatchdayPredictions = (
     method: 'POST',
     json: { groupId: Number(groupId), predictions },
     fallbackError: 'Error al guardar las predicciones de la jornada',
-  });
+  }).then(announceSaved);
 
 export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId: number) =>
   request<FriendPrediction[]>(

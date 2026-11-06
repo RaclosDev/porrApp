@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,6 +13,7 @@ import * as push from '../../services/push';
 import * as install from '../../services/installPrompt';
 
 vi.mock('../../services/api', () => ({
+  PREDICTION_SAVED_EVENT: 'prediction-saved',
   fetchPushConfig: vi.fn(),
   fetchRecentPushNotifications: vi.fn(),
   setPushPreferences: vi.fn(() => Promise.resolve()),
@@ -20,10 +21,12 @@ vi.mock('../../services/api', () => ({
 vi.mock('../../services/push', () => ({
   bellAction: vi.fn(),
   enablePush: vi.fn(),
+  isIos: vi.fn(() => true),
 }));
 vi.mock('../../services/installPrompt', () => ({
   installState: vi.fn(),
   promptInstall: vi.fn(() => Promise.resolve('accepted')),
+  shareButtonPlace: vi.fn(() => 'bottom'),
   subscribeInstallState: vi.fn(() => () => {}),
 }));
 
@@ -36,7 +39,14 @@ const wrap = (ui: React.ReactNode) =>
     </QueryClientProvider>,
   );
 
+const GUIDE = 'Añade porrApp a tu pantalla de inicio';
+
 describe('InstallAppButton', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(install.shareButtonPlace).mockReturnValue('bottom');
+  });
+
   it('opens the browser install dialog with a single tap', () => {
     vi.mocked(install.installState).mockReturnValue('native');
     wrap(<InstallAppButton />);
@@ -46,16 +56,71 @@ describe('InstallAppButton', () => {
     expect(install.promptInstall).toHaveBeenCalledTimes(1);
   });
 
-  it('explains the Share → Add to Home Screen steps on iPhone', () => {
+  it('on iPhone, points at Share and then Add to Home Screen', () => {
     vi.mocked(install.installState).mockReturnValue('ios');
     wrap(<InstallAppButton />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Instalar porrApp' }));
 
-    const dialog = screen.getByRole('dialog', { name: 'Instala porrApp en tu iPhone' });
-    expect(within(dialog).getByText('Compartir')).toBeInTheDocument();
-    expect(within(dialog).getByText('Añadir a pantalla de inicio')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: GUIDE });
+    expect(dialog).toHaveTextContent('Toca Compartir en la barra de abajo.');
+    expect(dialog).toHaveTextContent('Elige Añadir a pantalla de inicio y toca Añadir.');
+    expect(screen.getByTestId('install-guide-arrow')).toHaveClass('self-center');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Entendido' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it.each([
+    ['bottom-menu', 'abajo a la derecha y luego Compartir', 'self-end'],
+    ['top-right', 'Compartir arriba a la derecha', 'self-end'],
+  ] as const)('adapts the first step and the arrow to %s', (place, text, arrowClass) => {
+    vi.mocked(install.installState).mockReturnValue('ios');
+    vi.mocked(install.shareButtonPlace).mockReturnValue(place);
+    wrap(<InstallAppButton />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Instalar porrApp' }));
+
+    expect(screen.getByRole('dialog', { name: GUIDE })).toHaveTextContent(text);
+    expect(screen.getByTestId('install-guide-arrow')).toHaveClass(arrowClass);
+  });
+
+  it('inside another app’s browser, asks to open Safari and copies the link', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    vi.mocked(install.installState).mockReturnValue('in-app');
+    wrap(<InstallAppButton />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Instalar porrApp' }));
+    const dialog = screen.getByRole('dialog', { name: 'Ábrela en Safari' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Copiar enlace' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(window.location.href));
+  });
+
+  it('offers the guide by itself after saving a prediction, then not again for a while', () => {
+    vi.mocked(install.installState).mockReturnValue('ios');
+    wrap(<InstallAppButton />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new Event('prediction-saved'));
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Entendido' }));
+
+    act(() => {
+      window.dispatchEvent(new Event('prediction-saved'));
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('does not interrupt after saving where the browser has its own install dialog', () => {
+    vi.mocked(install.installState).mockReturnValue('native');
+    wrap(<InstallAppButton />);
+
+    act(() => {
+      window.dispatchEvent(new Event('prediction-saved'));
+    });
+
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
@@ -112,11 +177,12 @@ describe('NotificationBell', () => {
 
   it('on an iPhone browser tab, offers to install the app first', async () => {
     vi.mocked(push.bellAction).mockReturnValue('install-first');
+    vi.mocked(install.installState).mockReturnValue('ios');
     wrap(<NotificationBell onOpenSettings={onOpenSettings} />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Activar avisos' }));
 
-    expect(screen.getByRole('dialog', { name: 'Instala porrApp en tu iPhone' })).toHaveTextContent(
+    expect(screen.getByRole('dialog', { name: GUIDE })).toHaveTextContent(
       'los avisos solo llegan con porrApp instalada',
     );
     expect(push.enablePush).not.toHaveBeenCalled();
