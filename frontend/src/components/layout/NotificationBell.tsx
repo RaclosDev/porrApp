@@ -13,7 +13,7 @@ import { bellAction, enablePush } from '../../services/push';
 import { queryKeys } from '../../services/queryKeys';
 import { errorMessage } from '../../utils/errors';
 import { PUSH_CONFIG_QUERY_KEY } from './PushReminderPrompt';
-import IosInstallDialog from './IosInstallDialog';
+import InstallGuide from './InstallGuide';
 
 const LABELS = {
   recent: 'Últimos avisos',
@@ -215,7 +215,7 @@ export default function NotificationBell({ onOpenSettings }: { onOpenSettings: (
       )}
 
       {showIosSteps && (
-        <IosInstallDialog
+        <InstallGuide
           onClose={() => setShowIosSteps(false)}
           reason="En iPhone y iPad los avisos solo llegan con porrApp instalada. Instálala, ábrela desde su icono y pulsa la campana para activarlos."
         />
