@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { savePushSubscription } from '../../services/api';
 import {
+  bellAction,
   enablePush,
   PUSH_SERVICE_UNAVAILABLE,
   syncPushSubscription,
@@ -110,4 +111,41 @@ it('unsubscribes the device on logout', async () => {
   await unsubscribeThisDevice();
 
   expect(subscription.unsubscribe).toHaveBeenCalled();
+});
+
+describe('bell action', () => {
+  const setPermission = (permission: NotificationPermission) =>
+    vi.stubGlobal('Notification', { permission, requestPermission });
+
+  it('opens the recent notifications only when this device and the account have them on', () => {
+    setPermission('granted');
+    expect(bellAction(true)).toBe('recent');
+    expect(bellAction(false)).toBe('enable');
+  });
+
+  it('asks to enable them while the browser has not been asked', () => {
+    setPermission('default');
+    expect(bellAction(true)).toBe('enable');
+  });
+
+  it('explains a blocked browser and hides the bell without push support', () => {
+    setPermission('denied');
+    expect(bellAction(true)).toBe('blocked');
+
+    Reflect.deleteProperty(window, 'PushManager');
+    expect(bellAction(true)).toBeNull();
+  });
+
+  it('asks to install the app first on an iPhone browser tab', () => {
+    const userAgent = vi
+      .spyOn(navigator, 'userAgent', 'get')
+      .mockReturnValue(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+      );
+    try {
+      expect(bellAction(true)).toBe('install-first');
+    } finally {
+      userAgent.mockRestore();
+    }
+  });
 });

@@ -193,6 +193,21 @@
       }
     }
 
+    /* Con los iconos de instalar y avisos, la liga activa conserva el sitio en 375 px. */
+    .header-right:has(.header-icon-btn) {
+      gap: 4px !important;
+    }
+
+    .header-icon-btn {
+      width: 40px;
+    }
+
+    /* El selector de liga cede sitio (y trunca el nombre) en vez de tapar los iconos. */
+    .header-title-row > :has(#btn-active-league-dropdown),
+    #btn-active-league-dropdown {
+      min-width: 0 !important;
+    }
+
     #btn-profile-menu {
       width: 44px !important;
       height: 44px !important;

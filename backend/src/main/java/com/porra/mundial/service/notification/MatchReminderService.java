@@ -59,6 +59,7 @@ public class MatchReminderService {
     private final PushSubscriptionRepository subscriptionRepository;
     private final WebPushSender sender;
     private final ObjectMapper objectMapper;
+    private final PushNotificationLogService notificationLog;
 
     /** Un partido que el usuario aún no ha predicho en una liga y que cierra pronto. */
     record Pending(Long userId, League league, Match match, Instant lockAt) {}
@@ -90,7 +91,8 @@ public class MatchReminderService {
             List<Pending> pending = entry.getValue();
             Instant firstLock = pending.stream().map(Pending::lockAt).min(Comparator.naturalOrder()).orElseThrow();
             int ttl = (int) Math.max(60, Duration.between(now, firstLock).toSeconds());
-            String payload = payload(pending, firstLock);
+            PushMessage message = message(pending, firstLock);
+            String payload = message.toJson(objectMapper);
 
             boolean any = false;
             for (PushSubscription device : userDevices) {
@@ -102,6 +104,7 @@ public class MatchReminderService {
             // Si no llegó a ningún dispositivo se reintenta en la siguiente pasada, mientras siga abierto.
             if (any) {
                 delivered++;
+                notificationLog.record(entry.getKey(), message, now);
                 reminderRepository.saveAll(pending.stream()
                         .map(p -> new MatchReminderSent(new MatchReminderSent.Key(p.userId(), p.match().getId()), now))
                         .collect(Collectors.toMap(r -> r.getId(), r -> r, (a, b) -> a))
@@ -175,7 +178,7 @@ public class MatchReminderService {
     }
 
     /** Aviso con título, texto y la jornada a la que lleva al pulsarlo. */
-    String payload(List<Pending> pending, Instant firstLock) {
+    PushMessage message(List<Pending> pending, Instant firstLock) {
         Map<Long, League> leagues = new LinkedHashMap<>();
         Set<Long> matches = new HashSet<>();
         for (Pending p : pending) {
@@ -195,12 +198,7 @@ public class MatchReminderService {
             body = where + " · " + (matches.size() == 1 ? "cierra" : "la primera cierra") + " a las "
                     + HOUR.format(firstLock);
         }
-        Map<String, Object> message = new LinkedHashMap<>();
-        message.put("title", title);
-        message.put("body", body);
-        message.put("url", "/jornadas?group=" + first.getId());
-        message.put("tag", "prediction-reminder");
-        return objectMapper.writeValueAsString(message);
+        return new PushMessage(title, body, "/jornadas?group=" + first.getId(), "prediction-reminder");
     }
 
     private static String teamName(Team team) {

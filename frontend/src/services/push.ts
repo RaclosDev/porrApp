@@ -28,6 +28,21 @@ export function needsIosInstall(): boolean {
   return isIos() && !isStandalone();
 }
 
+/**
+ * Qué hace la campana de la cabecera al pulsarla: mostrar los últimos avisos, activarlos, explicar
+ * que en iPhone hay que instalar antes la app o que el navegador los tiene bloqueados.
+ * null: este navegador no admite avisos y la campana no se muestra.
+ */
+export type BellAction = 'recent' | 'enable' | 'install-first' | 'blocked';
+
+export function bellAction(accountEnabled: boolean): BellAction | null {
+  if (needsIosInstall()) return 'install-first';
+  const permission = notificationPermission();
+  if (permission === 'unsupported') return null;
+  if (permission === 'denied') return 'blocked';
+  return permission === 'granted' && accountEnabled ? 'recent' : 'enable';
+}
+
 export function notificationPermission(): NotificationPermission | 'unsupported' {
   return isPushSupported() ? Notification.permission : 'unsupported';
 }

@@ -14,15 +14,11 @@ import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
 import PushReminderPrompt from './layout/PushReminderPrompt';
 import LoginModal from './layout/LoginModal';
-import { isIos, isStandalone } from '../services/push';
+import { isIos } from '../services/push';
+import { promptInstall } from '../services/installPrompt';
+import { useInstallState } from '../hooks/useInstallState';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
-
-/** Evento de instalación de la PWA (solo Chromium; no está en los tipos del DOM). */
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
 
 /**
  * Componente Layout principal que envuelve a todas las rutas.
@@ -56,8 +52,12 @@ function Layout({ children }: { children: React.ReactNode }) {
   const userId = useAppStore((state) => state.userId);
   const logout = useAppStore((state) => state.logout);
 
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const installState = useInstallState();
+  const [installBannerDismissed, setInstallBannerDismissed] = useState(
+    () => localStorage.getItem('pwa_banner_dismissed') === 'true',
+  );
+  const showInstallBanner =
+    !installBannerDismissed && (installState === 'native' || installState === 'ios');
 
   const isUserLoggedIn = isAuthenticated && Boolean(userName);
   const isMatchDayLeague =
@@ -117,39 +117,13 @@ function Layout({ children }: { children: React.ReactNode }) {
     }
   }, [location.state]);
 
-  useEffect(() => {
-    if (isIos() && !isStandalone() && localStorage.getItem('pwa_banner_dismissed') !== 'true') {
-      setShowInstallBanner(true);
-    }
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      if (localStorage.getItem('pwa_banner_dismissed') !== 'true') {
-        setShowInstallBanner(true);
-      }
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
   const handleInstallClick = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => {
-        setDeferredPrompt(null);
-        setShowInstallBanner(false);
-      });
-    }
+    void promptInstall();
   };
 
   const handleDismissBanner = () => {
     localStorage.setItem('pwa_banner_dismissed', 'true');
-    setShowInstallBanner(false);
+    setInstallBannerDismissed(true);
   };
 
   const signInWithGoogle = useGoogleSignIn();
@@ -227,6 +201,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             setShowProfileMenu={setShowProfileMenu}
             setShowProfileSettings={setShowProfileSettings}
             showProfileMenu={showProfileMenu}
+            showNotificationBell={isUserLoggedIn && !isDemo}
             userAvatarUrl={userAvatarUrl}
             userId={userId}
             userName={userName}

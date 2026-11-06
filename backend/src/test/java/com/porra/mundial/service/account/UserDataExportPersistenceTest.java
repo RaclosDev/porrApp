@@ -7,6 +7,7 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Prediction;
+import com.porra.mundial.model.PushNotificationLog;
 import com.porra.mundial.model.PushSubscription;
 import com.porra.mundial.model.UserAccount;
 import org.junit.jupiter.api.Test;
@@ -56,6 +57,10 @@ class UserDataExportPersistenceTest {
         }
         em.persist(PushSubscription.builder().user(ana).endpoint("https://push.test/ana")
                 .p256dh("secret-key").auth("secret-auth").build());
+        em.persist(PushNotificationLog.builder().userId(ana.getId()).title("Te faltan 2 predicciones")
+                .body("Export League").url("/jornadas").build());
+        em.persist(PushNotificationLog.builder().userId(other.getId()).title("Aviso de Otro")
+                .body("Export League").build());
         em.flush();
         em.clear();
 
@@ -68,6 +73,8 @@ class UserDataExportPersistenceTest {
         assertThat(export.predictions()).singleElement()
                 .satisfies(p -> assertThat(p.name()).isEqualTo("Ana"));
         assertThat(export.pushDevices()).hasSize(1);
+        assertThat(export.pushNotifications()).singleElement()
+                .satisfies(n -> assertThat(n.title()).isEqualTo("Te faltan 2 predicciones"));
         assertThat(export.toString()).doesNotContain("Otro", "secret-key", "secret-auth", "push.test");
     }
 }

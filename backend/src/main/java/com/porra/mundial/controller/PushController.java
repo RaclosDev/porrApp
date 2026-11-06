@@ -1,22 +1,26 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.PushConfigResponse;
+import com.porra.mundial.dto.PushNotificationResponse;
 import com.porra.mundial.dto.PushPreferencesRequest;
 import com.porra.mundial.dto.PushSubscriptionRequest;
 import com.porra.mundial.dto.StatusResponse;
+import com.porra.mundial.service.notification.PushNotificationLogService;
 import com.porra.mundial.service.notification.PushSubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 
-/** Avisos push del usuario autenticado: clave VAPID, dispositivos suscritos y preferencia. */
+/** Avisos push del usuario autenticado: clave VAPID, dispositivos suscritos, preferencias y últimos avisos. */
 @RestController
 @RequestMapping("/api/push")
 @RequiredArgsConstructor
 public class PushController {
 
     private final PushSubscriptionService pushSubscriptionService;
+    private final PushNotificationLogService notificationLogService;
 
     @GetMapping("/config")
     public PushConfigResponse config(Principal principal) {
@@ -33,6 +37,12 @@ public class PushController {
     public StatusResponse unsubscribe(@RequestBody PushSubscriptionRequest request, Principal principal) {
         pushSubscriptionService.unsubscribe(principal.getName(), request.endpoint());
         return StatusResponse.success();
+    }
+
+    /** Los 3 últimos avisos que han llegado al usuario, del más reciente al más antiguo. */
+    @GetMapping("/recent")
+    public List<PushNotificationResponse> recent(Principal principal) {
+        return notificationLogService.recent(principal.getName());
     }
 
     @PutMapping("/preferences")
