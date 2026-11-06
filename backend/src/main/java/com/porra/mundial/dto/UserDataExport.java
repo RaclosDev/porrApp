@@ -14,7 +14,12 @@ public record UserDataExport(
         List<LeagueMembership> leagues,
         List<PredictionExport> predictions,
         List<PushDevice> pushDevices,
-        List<SentNotification> pushNotifications) {
+        List<SentNotification> pushNotifications,
+        List<PasskeyExport> passkeys) {
+
+    /** De cada llave de acceso, su nombre y fechas; la clave pública no es un dato personal útil. */
+    public record PasskeyExport(String name, Instant createdAt, Instant lastUsedAt) {
+    }
 
     public record Profile(String email, String participantName, Instant registeredAt,
                           java.time.Instant lastActiveAt, boolean hasAvatar, boolean matchRemindersEnabled, boolean memberJoinedAlertsEnabled) {

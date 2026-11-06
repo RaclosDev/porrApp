@@ -4,6 +4,7 @@
  * excepciones con el mensaje del servidor. Los endpoints viven en `endpoints/`.
  */
 import type { LoginResponse } from '../types/api';
+import type { BrowserOptions } from '../utils/webauthn';
 import { ApiError, NETWORK_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE } from './apiError';
 import {
   hasStoredSession,
@@ -360,22 +361,36 @@ export const imageForm = (blob: Blob): FormData => {
 };
 
 /** Inicia sesión con la credencial de Google y guarda el access token. */
-export async function loginWithGoogle(credential: string): Promise<LoginResponse> {
+export function loginWithGoogle(credential: string): Promise<LoginResponse> {
+  return login('/auth/google/login', { credential }, 'Error al iniciar sesión con Google');
+}
+
+/** Reto para entrar con una llave de acceso: el dispositivo ofrecerá las que tenga guardadas. */
+export function startPasskeyLogin(): Promise<{ requestId: string; options: BrowserOptions }> {
+  return request(
+    '/auth/passkeys/login/options',
+    { method: 'POST', fallbackError: 'No se pudo preparar el acceso con llave' },
+    false,
+  );
+}
+
+/** Inicia sesión con la firma de una llave de acceso y guarda el access token. */
+export function loginWithPasskey(requestId: string, credential: unknown): Promise<LoginResponse> {
+  return login(
+    '/auth/passkeys/login',
+    { requestId, credential },
+    'No se ha podido entrar con esta llave de acceso',
+  );
+}
+
+async function login(path: string, json: unknown, fallbackError: string): Promise<LoginResponse> {
   const epoch = sessionEpoch;
   // La restauración necesita este mismo cerrojo: esperarla dentro lo bloquearía.
   if (restoring && sessionRestore) await sessionRestore;
   ensureSession(epoch);
   return withSessionLock(async () => {
     ensureSession(epoch);
-    const data = await request<LoginResponse>(
-      '/auth/google/login',
-      {
-        method: 'POST',
-        json: { credential },
-        fallbackError: 'Error al iniciar sesión con Google',
-      },
-      false,
-    );
+    const data = await request<LoginResponse>(path, { method: 'POST', json, fallbackError }, false);
     ensureSession(epoch);
     setAuthToken(data.token);
     return data;

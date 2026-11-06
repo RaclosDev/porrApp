@@ -70,6 +70,10 @@ function PrivacyContent() {
           Si activas los avisos, la suscripción push de tu navegador y tus preferencias de avisos.
         </li>
         <li>
+          Si añades una llave de acceso, su clave pública, el nombre del dispositivo y cuándo la
+          añadiste y la usaste por última vez. Tu Face ID, huella o PIN nunca salen del dispositivo.
+        </li>
+        <li>
           Datos técnicos imprescindibles: la sesión (una cookie que caduca a los 30 días), el día de
           tu última entrada (para el plazo de conservación) y la dirección IP, que se usa de forma
           temporal para limitar abusos. Si la aplicación falla en tu navegador, se envía el error
