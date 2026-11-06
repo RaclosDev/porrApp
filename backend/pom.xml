@@ -137,6 +137,13 @@
             <version>2.9.2</version>
         </dependency>
 
+        <!-- Reglas de arquitectura (ArchitectureTest) -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>1.5.1</version>
+            <scope>test</scope>
+        </dependency>
         <!-- Spring Boot Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

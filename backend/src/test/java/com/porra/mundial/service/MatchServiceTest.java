@@ -1,7 +1,10 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,13 +16,35 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MatchServiceTest {
     @Mock private MatchRepository matchRepository;
+    @Mock private CompetitionRepository competitionRepository;
     @InjectMocks private MatchService matchService;
+
+    @Test
+    void privateCompetitionsAreNotFound() {
+        when(competitionRepository.existsByIdAndOwnerLeagueIsNotNull(9L)).thenReturn(true);
+        assertThatThrownBy(() -> matchService.requirePublicCompetition(9L)).isInstanceOf(BusinessException.class);
+        matchService.requirePublicCompetition(null);
+        verify(competitionRepository).existsByIdAndOwnerLeagueIsNotNull(9L);
+    }
+
+    @Test
+    void publicOnlyDropsMatchesOfPrivateCompetitions() {
+        Match privateMatch = Match.builder().id(1L).competition(Competition.builder().id(9L).build()).build();
+        Match worldCup = Match.builder().id(2L).competition(Competition.builder().id(1L).build()).build();
+        Match noCompetition = Match.builder().id(3L).build();
+        when(competitionRepository.findPrivateCompetitionIds()).thenReturn(List.of(9L));
+
+        assertThat(matchService.publicOnly(List.of(privateMatch, worldCup, noCompetition)))
+                .containsExactly(worldCup, noCompetition);
+        assertThat(matchService.publicOnly(List.of())).isEmpty();
+    }
 
     @Test
     void queriesOnlyTheLiveTimeWindowAndCompetition() {

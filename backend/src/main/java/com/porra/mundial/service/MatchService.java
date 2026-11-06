@@ -1,7 +1,9 @@
 package com.porra.mundial.service;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,23 @@ import org.springframework.data.domain.PageRequest;
 public class MatchService {
 
     private final MatchRepository matchRepository;
+    private final CompetitionRepository competitionRepository;
+
+    /** Las competiciones de una liga (cuadros personalizados) son privadas: no se listan en público. */
+    public void requirePublicCompetition(Long competitionId) {
+        if (competitionId != null && competitionRepository.existsByIdAndOwnerLeagueIsNotNull(competitionId)) {
+            throw BusinessException.notFound("Competición no encontrada");
+        }
+    }
+
+    /** Quita los partidos de competiciones privadas. */
+    public List<Match> publicOnly(List<Match> matches) {
+        if (matches == null || matches.isEmpty()) return List.of();
+        List<Long> privateIds = competitionRepository.findPrivateCompetitionIds();
+        if (privateIds == null || privateIds.isEmpty()) return matches;
+        return matches.stream().filter(match -> match.getCompetition() == null
+                || !privateIds.contains(match.getCompetition().getId())).toList();
+    }
 
     @org.springframework.cache.annotation.Cacheable(value = "matches", sync = true)
     public List<Match> getAllMatches() {
