@@ -2,7 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.repository.UserAccountRepository;
 
-import com.porra.mundial.service.TeamService;
+import com.porra.mundial.service.tournament.TeamService;
 import com.porra.mundial.dto.TeamOddsDTO;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

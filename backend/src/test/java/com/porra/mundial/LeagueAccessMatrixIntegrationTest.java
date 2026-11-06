@@ -6,9 +6,11 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.UserAccountRepository;
-import com.porra.mundial.service.GroupService;
-import com.porra.mundial.service.SyncService;
-import com.porra.mundial.service.TopScorerService;
+import com.porra.mundial.service.league.LeagueService;
+import com.porra.mundial.service.league.LeagueMembershipService;
+import com.porra.mundial.service.league.NewLeague;
+import com.porra.mundial.service.sync.SyncService;
+import com.porra.mundial.service.tournament.TopScorerService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -53,7 +55,8 @@ class LeagueAccessMatrixIntegrationTest {
     @MockitoBean private TopScorerService topScorerService;
     @MockitoBean private SyncService syncService;
 
-    @Autowired private GroupService groupService;
+    @Autowired private LeagueService leagueService;
+    @Autowired private LeagueMembershipService membershipService;
     @Autowired private UserAccountRepository users;
     @Autowired private JwtUtil jwtUtil;
 
@@ -69,9 +72,9 @@ class LeagueAccessMatrixIntegrationTest {
         UserAccount admin = user("admin-matrix@test.invalid", "Admin");
         UserAccount member = user("member-matrix@test.invalid", "Miembro");
         UserAccount outsider = user("outsider-matrix@test.invalid", "Ajeno");
-        League league = groupService.createGroup("Liga privada", admin.getGoogleEmail(), null,
-                PoolFormat.MATCH_DAY, false, "Torneo de prueba");
-        groupService.joinGroupMembership(league.getId(), member.getGoogleEmail());
+        League league = leagueService.createLeague(NewLeague.custom("Liga privada", admin.getGoogleEmail(),
+                "Torneo de prueba", PoolFormat.MATCH_DAY).withPichichi(false));
+        membershipService.join(league.getId(), member.getGoogleEmail());
 
         leagueId = league.getId();
         adminId = admin.getId();

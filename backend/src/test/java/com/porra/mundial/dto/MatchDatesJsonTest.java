@@ -25,7 +25,7 @@ class MatchDatesJsonTest {
                 mapper.valueToTree(MatchResponseDTO.fromEntity(Match.builder().matchDate(local).build())).path("date"),
                 mapper.valueToTree(MatchdayFixturePredictionDTO.builder().matchDate(local).build()).path("matchDate"),
                 mapper.valueToTree(MatchdayPointsDTO.builder().date(local).build()).path("date"),
-                mapper.valueToTree(GroupResponseDTO.builder().lockDate(local).build()).path("lockDate"),
+                mapper.valueToTree(LeagueResponseDTO.builder().lockDate(local).build()).path("lockDate"),
                 mapper.valueToTree(new MatchdayStatsDTO.MatchStats(1L, "1", local, "A", "B", null, null,
                         false, false, null, null, 0, 0, 0, 0, List.of(), null, null)).path("matchDate"));
         for (var value : values) {

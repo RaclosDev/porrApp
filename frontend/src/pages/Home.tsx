@@ -25,7 +25,6 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
     groupOdds,
     officialPoints,
     allGames,
-    nameToIdMap,
     loading,
     matchRadar,
     topScorers,
@@ -191,11 +190,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
 
       <div className="hide-on-desktop mb-5 flex flex-col items-center w-full">
         <div className={activeMobilePanel === 'thirds' ? '' : 'mobile-step-hidden'}>
-          <BestThirdsPanel
-            officialPoints={officialPoints}
-            allGames={allGames}
-            nameToIdMap={nameToIdMap}
-          />
+          <BestThirdsPanel officialPoints={officialPoints} />
         </div>
         <div className={activeMobilePanel === 'live' ? '' : 'mobile-step-hidden'}>
           <LiveMatchesPanel
@@ -219,11 +214,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
       {/* Paneles desktop (siempre visibles, solo en groups) */}
       <div className="hide-on-mobile flex flex-wrap justify-center items-start mb-5 w-full gap-5">
         <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
-          <BestThirdsPanel
-            officialPoints={officialPoints}
-            allGames={allGames}
-            nameToIdMap={nameToIdMap}
-          />
+          <BestThirdsPanel officialPoints={officialPoints} />
         </div>
         <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel

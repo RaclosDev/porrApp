@@ -1,6 +1,6 @@
 package com.porra.mundial.config;
 
-import com.porra.mundial.service.SyncService;
+import com.porra.mundial.service.sync.SyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;

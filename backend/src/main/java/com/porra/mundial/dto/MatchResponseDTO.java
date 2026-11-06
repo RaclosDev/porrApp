@@ -44,7 +44,7 @@ public record MatchResponseDTO(
         boolean isStartingSoon = false;
         if (m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())) {
             long diffMs = java.time.Duration.between(Instant.now(), m.getMatchDate()).toMillis();
-            isStartingSoon = diffMs > 0 && diffMs <= com.porra.mundial.service.MatchService.STARTING_SOON_MINUTES * 60_000L;
+            isStartingSoon = diffMs > 0 && diffMs <= com.porra.mundial.service.tournament.MatchService.STARTING_SOON_MINUTES * 60_000L;
         }
 
         String homeLogo = m.getHomeTeam() != null ? m.getHomeTeam().getLogoUrl() : null;

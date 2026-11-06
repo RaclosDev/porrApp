@@ -1,8 +1,8 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.PredictionDataDTO;
-import com.porra.mundial.service.OfficialResultsService;
-import com.porra.mundial.service.StandingsService;
+import com.porra.mundial.service.tournament.OfficialResultsService;
+import com.porra.mundial.service.tournament.StandingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

@@ -2,7 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.CompetitionDTO;
 import com.porra.mundial.dto.LeagueStandingDTO;
-import com.porra.mundial.service.CompetitionService;
+import com.porra.mundial.service.tournament.CompetitionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

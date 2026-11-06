@@ -2,8 +2,8 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.LeagueScoringDTO;
 import com.porra.mundial.scoring.ScoringRuleSet;
-import com.porra.mundial.service.LeagueScoringService;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.league.LeagueScoringService;
+import com.porra.mundial.service.notification.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import tools.jackson.databind.JsonNode;

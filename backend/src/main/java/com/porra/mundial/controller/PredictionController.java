@@ -5,10 +5,10 @@ import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.dto.PredictionSavedResponse;
 import com.porra.mundial.model.Prediction;
-import com.porra.mundial.service.GroupService;
-import com.porra.mundial.service.LeaderboardService;
-import com.porra.mundial.service.PredictionService;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.league.LeagueService;
+import com.porra.mundial.service.prediction.LeaderboardService;
+import com.porra.mundial.service.prediction.PredictionService;
+import com.porra.mundial.service.notification.WebSocketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,7 +29,7 @@ import java.util.List;
 public class PredictionController {
 
     private final PredictionService predictionService;
-    private final GroupService groupService;
+    private final LeagueService leagueService;
     private final WebSocketService webSocketService;
     private final LeaderboardService leaderboardService;
 
@@ -38,7 +38,7 @@ public class PredictionController {
     @Transactional(readOnly = true)
     public List<PredictionResponseDTO> getAllPredictions(@RequestParam Long groupId, Principal principal) {
         String email = CurrentUser.email(principal);
-        groupService.assertCanView(groupId, email);
+        leagueService.assertCanView(groupId, email);
         return predictionService.toPredictionDtoList(predictionService.getPredictionsByGroupId(groupId), email);
     }
 
@@ -55,7 +55,7 @@ public class PredictionController {
                                                     @RequestParam Long groupId,
                                                     Principal principal) {
         String email = CurrentUser.email(principal);
-        groupService.assertCanView(groupId, email);
+        leagueService.assertCanView(groupId, email);
 
         String name = body.getPrediction() != null ? body.getPrediction() : body.getUser();
         Prediction prediction = predictionService.createPrediction(email, name, body, groupId);

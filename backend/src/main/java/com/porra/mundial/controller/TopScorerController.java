@@ -1,6 +1,6 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.service.TopScorerService;
+import com.porra.mundial.service.tournament.TopScorerService;
 import com.porra.mundial.dto.TopScorerDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
