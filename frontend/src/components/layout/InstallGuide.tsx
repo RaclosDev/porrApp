@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDown, ArrowUp, Ellipsis, Share, SquarePlus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Ellipsis, Menu, Share, SquarePlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DialogBackdrop from '../DialogBackdrop';
 import { useDialogFocus } from '../../hooks/useDialogFocus';
@@ -38,6 +38,12 @@ const FIRST_STEP: Record<ShareButtonPlace, ReactNode> = {
   'bottom-menu': (
     <>
       Toca {icon(Ellipsis, 'Más')} abajo a la derecha y luego <strong>Compartir</strong>.
+    </>
+  ),
+  'address-menu': (
+    <>
+      Toca {icon(Menu, 'Menú')} a la izquierda de la barra de dirección y luego{' '}
+      <strong>Compartir</strong>.
     </>
   ),
   'top-right': (
@@ -94,6 +100,11 @@ export default function InstallGuide({ onClose, reason }: InstallGuideProps) {
   // En los navegadores de otras apps, el menú para abrir fuera suele estar arriba a la derecha.
   const place: ShareButtonPlace = inApp ? 'top-right' : shareButtonPlace();
   const arrowAtTop = place === 'top-right';
+  // La flecha baja hacia el botón: centrada, sobre el «≡» de la barra de dirección o a la derecha.
+  const arrowPosition: Partial<Record<ShareButtonPlace, string>> = {
+    bottom: 'self-center',
+    'address-menu': 'self-start ml-[20%]',
+  };
   const browser = isIos() ? 'Safari' : 'tu navegador';
   const keepsSession = useSessionHandoff(!inApp && installState() === 'ios');
 
@@ -102,7 +113,7 @@ export default function InstallGuide({ onClose, reason }: InstallGuideProps) {
       <span
         aria-hidden="true"
         data-testid="install-guide-arrow"
-        className={`text-[var(--paper)] motion-safe:animate-bounce ${place === 'bottom' ? 'self-center' : 'mr-1 self-end'}`}
+        className={`text-[var(--paper)] motion-safe:animate-bounce ${arrowPosition[place] ?? 'mr-1 self-end'}`}
       >
         {arrowAtTop ? (
           <ArrowUp size={44} strokeWidth={2.5} />

@@ -101,6 +101,7 @@ describe('InstallAppButton', () => {
 
   it.each([
     ['bottom-menu', 'abajo a la derecha y luego Compartir', 'self-end'],
+    ['address-menu', 'izquierda de la barra de dirección y luego Compartir', 'self-start'],
     ['top-right', 'Compartir arriba a la derecha', 'self-end'],
   ] as const)('adapts the first step and the arrow to %s', (place, text, arrowClass) => {
     vi.mocked(install.installState).mockReturnValue('ios');

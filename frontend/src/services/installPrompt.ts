@@ -32,11 +32,13 @@ export function isInAppBrowser(userAgent = navigator.userAgent): boolean {
 /**
  * Dónde está «Compartir» en el navegador de iPhone o iPad, para señalarlo:
  * - `bottom`: Safari de iPhone hasta iOS 18, en la barra de abajo.
- * - `bottom-menu`: Safari de iPhone desde iOS 26, dentro del menú «⋯» de abajo a la derecha.
+ * - `bottom-menu`: Safari 26 de iPhone, dentro del menú «⋯» de abajo a la derecha.
+ * - `address-menu`: Safari de iPhone desde la 27, dentro del menú «≡» a la izquierda de la barra de
+ *   dirección (el «⋯» pasó a ser el botón de pestañas).
  * - `top-right`: Safari de iPad y Chrome, arriba a la derecha.
  * - `menu`: otros navegadores (Firefox, Edge…), en su menú.
  */
-export type ShareButtonPlace = 'bottom' | 'bottom-menu' | 'top-right' | 'menu';
+export type ShareButtonPlace = 'bottom' | 'bottom-menu' | 'address-menu' | 'top-right' | 'menu';
 
 export function shareButtonPlace(userAgent = navigator.userAgent): ShareButtonPlace {
   if (/CriOS/.test(userAgent)) return 'top-right';
@@ -44,6 +46,7 @@ export function shareButtonPlace(userAgent = navigator.userAgent): ShareButtonPl
   if (!/iPhone|iPod/.test(userAgent)) return 'top-right';
   // Safari 26 congela la versión de iOS en el agente, pero no la suya propia.
   const safariVersion = Number(/Version\/(\d+)/.exec(userAgent)?.[1] ?? 0);
+  if (safariVersion >= 27) return 'address-menu';
   return safariVersion >= 26 ? 'bottom-menu' : 'bottom';
 }
 
