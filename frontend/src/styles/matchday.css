@@ -173,6 +173,10 @@
     flex-shrink: 0;
   }
 
+  .md-lock-at {
+    font-weight: 600;
+  }
+
   .md-match-top > span:first-child {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -191,6 +195,11 @@
     color: var(--hit);
   }
 
+  .md-badge.is-live {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--miss);
+  }
+
   .md-badge.is-locked {
     background: rgba(231, 76, 60, 0.15);
     color: var(--miss);
@@ -204,7 +213,7 @@
   .md-team-rows {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   .md-team-row {
@@ -230,35 +239,6 @@
     font-weight: 700;
     color: var(--text-main);
     line-height: 1.25;
-  }
-
-  .md-score-input {
-    flex-shrink: 0;
-    width: 52px;
-    height: 44px;
-    padding: 0;
-    text-align: center;
-    font-family: inherit;
-    font-size: 1.15rem;
-    font-weight: 800;
-    border-radius: 8px;
-    background: var(--panel-bg);
-    border: 1px solid var(--accent-cyan);
-    color: var(--accent-cyan);
-    appearance: textfield;
-    -moz-appearance: textfield;
-  }
-
-  .md-score-input::-webkit-outer-spin-button,
-  .md-score-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  .md-score-input:disabled {
-    background: var(--panel-bg);
-    border-color: rgba(17, 24, 39, 0.1);
-    color: var(--text-muted);
   }
 
   .md-signs {
@@ -295,6 +275,24 @@
     cursor: not-allowed;
   }
 
+  /* Partido terminado: el signo real se marca en verde; la predicción fallada, tachada. */
+  .md-sign-btn.is-result,
+  .paper-panel .md-sign-btn.is-result {
+    opacity: 1;
+    border-color: var(--hit);
+    box-shadow: inset 0 0 0 2px var(--hit);
+  }
+
+  .md-sign-btn.is-active.is-result,
+  .paper-panel .md-sign-btn.is-active.is-result {
+    background: var(--hit);
+    color: var(--paper);
+  }
+
+  .md-sign-btn.is-miss {
+    text-decoration: line-through;
+  }
+
   @media (max-width: 480px) {
     .md-match {
       padding: 12px;
@@ -321,16 +319,11 @@
     .md-team-name {
       font-size: 0.88rem;
     }
-
-    .md-score-input {
-      width: 44px;
-      height: 44px;
-      font-size: 1.05rem;
-    }
   }
 
   @media (min-width: 700px) {
-    .md-signs {
+    .md-signs,
+    .md-match .sign-voters {
       grid-template-columns: repeat(3, 84px);
       justify-content: flex-end;
     }

@@ -54,10 +54,12 @@ class SyncServiceTest {
     @Mock private StandingsService standingsService;
     @Mock private WebSocketService webSocketService;
     @Mock private ScoreInvalidationService scoreInvalidationService;
+    @Mock private CustomLockService customLockService;
     @Mock private PlatformTransactionManager transactionManager;
     @Mock private SportsDataProvider provider;
     @Mock private TopScorerService topScorerService;
     @Mock private LegacyFixtureRepairService legacyFixtureRepairService;
+    @Mock private com.porra.mundial.repository.MatchRepository matchRepository;
 
     @InjectMocks
     private SyncService syncService;
@@ -99,6 +101,30 @@ class SyncServiceTest {
         List<Match> worldCupMatches = List.of(Match.builder().id(1L).build());
         when(knockoutBracketService.worldCupMatches()).thenReturn(worldCupMatches);
         return worldCupMatches;
+    }
+
+    @Test
+    void liveSyncDoesNothingWithoutMatchesInPlay() {
+        when(matchRepository.findCompetitionIdsWithOpenMatchesBetween(any(), any())).thenReturn(List.of());
+
+        syncService.syncLive();
+
+        verifyNoInteractions(provider);
+        verify(competitionRepository, never()).findAllById(any());
+    }
+
+    @Test
+    void liveSyncOnlyFetchesTodayAndYesterdayOfCompetitionsInPlay() throws Exception {
+        when(matchRepository.findCompetitionIdsWithOpenMatchesBetween(any(), any())).thenReturn(List.of(5L));
+        when(competitionRepository.findAllById(List.of(5L))).thenReturn(List.of(laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+
+        syncService.syncLive();
+
+        verify(provider, times(2)).fetchScoreboardEvents(eq("esp.1"), anyString());
+        verify(provider, never()).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
+        // La pasada en directo no sustituye al estado de salud de la pasada completa.
+        org.junit.jupiter.api.Assertions.assertEquals("INITIALIZING", syncService.getLastSyncStatus());
     }
 
     @Test
@@ -181,8 +207,40 @@ class SyncServiceTest {
         syncService.syncAll();
 
         assertEquals("error", syncService.getLastSyncStatus());
-        verify(provider, times(3)).fetchScoreboardEvents(anyString(), anyString());
+        verify(provider, times(3 + SyncService.UPCOMING_DAYS - 1)).fetchScoreboardEvents(anyString(), anyString());
         assertTrue(syncService.getLastErrorMessage().contains("HTTP 503"));
+    }
+
+    @Test
+    @DisplayName("Worlds de LoL repasa la temporada en curso, sin mezclar ediciones anteriores")
+    void lolCompetitionsSyncTheWholeSchedule() throws Exception {
+        Competition worlds = Competition.builder().id(19L).name("Worlds")
+                .externalId("lol.worlds").formatType("TOURNAMENT").build();
+        when(competitionRepository.findAll()).thenReturn(List.of(worlds));
+        String season = String.valueOf(java.time.LocalDate.now().getYear());
+        when(provider.fetchScoreboardEvents("lol.worlds", season)).thenReturn(JSON.createArrayNode());
+
+        syncService.syncAll();
+
+        verify(provider, times(1)).fetchScoreboardEvents("lol.worlds", season);
+        verify(provider, times(1)).fetchScoreboardEvents(anyString(), anyString());
+        assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
+    @DisplayName("Las ligas traen las dos próximas semanas, pero no en cada pasada")
+    void leaguesFetchUpcomingDaysPeriodically() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+        String lastDay = java.time.LocalDate.now().plusDays(SyncService.UPCOMING_DAYS)
+                .format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+
+        syncService.syncAll();
+        syncService.syncAll();
+
+        verify(provider, times(1)).fetchScoreboardEvents("esp.1", lastDay);
+        verify(provider, times(3 * 2 + SyncService.UPCOMING_DAYS - 1)).fetchScoreboardEvents(anyString(), anyString());
+        assertEquals("success", syncService.getLastSyncStatus());
     }
 
     @Test

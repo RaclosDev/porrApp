@@ -6,7 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
 
 /**
  * DTO para visualizar los pronósticos de los miembros de un grupo para un partido concreto.
@@ -27,7 +28,7 @@ public class MatchdayFriendPredictionDTO {
     private Boolean isExactScore;
     private Boolean isCorrectSign;
     private String scoringDetails;
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
     // Lombok genera isCaller(); sin @JsonProperty, Jackson lo publicaría como "caller".
     @JsonProperty("isCaller")
     private boolean caller;

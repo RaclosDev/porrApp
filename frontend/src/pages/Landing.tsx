@@ -19,11 +19,13 @@ const FAN_ANGLES = [-8, -3, 0, 3, 8];
 
 /**
  * Portada para quien aún no ha entrado: un cartel con la porra real del Mundial, los cromos de
- * los primeros de la Porra Global y los dos formatos de liga.
+ * los primeros de la liga pública destacada y los dos formatos de liga.
  */
 export default function Landing() {
   const { reduced } = useLandingMotion();
-  const { leaders, participants, champion, nextFixtures, loading, error } = useLandingData();
+  const { leaders, leagueName, participants, champion, nextFixtures, loading, error } =
+    useLandingData();
+  const leagueLabel = leagueName ?? 'la liga pública';
   const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
   const leader = leaders[0];
   const initial = reduced ? 'show' : 'hidden';
@@ -45,8 +47,8 @@ export default function Landing() {
             animate="show"
             className="text-[#1f2937] text-lg max-w-130 leading-snug"
           >
-            Rellena tu cuadro del Mundial o pronostica jornada a jornada, y compite con tus amigos.
-            Los puntos se calculan solos con los resultados reales.
+            Rellena tu cuadro del Mundial o haz tus predicciones jornada a jornada, y compite con
+            tus amigos. Los puntos se calculan solos con los resultados reales.
           </motion.p>
           <motion.div
             variants={rise}
@@ -75,7 +77,7 @@ export default function Landing() {
         >
           {leader ? (
             <div>
-              <ul className="ranking-podium" aria-label="Podio de la Porra Global">
+              <ul className="ranking-podium" aria-label={`Podio de ${leagueLabel}`}>
                 {leaders.slice(0, 3).map((row) => (
                   <li
                     key={row.userId ?? row.name}
@@ -86,7 +88,7 @@ export default function Landing() {
                 ))}
               </ul>
               <p className="text-[#4b5563] text-sm text-center">
-                Va primero de {participants} en la Porra Global
+                Va primero de {participants} en {leagueLabel}
               </p>
             </div>
           ) : loading && !error ? (
@@ -104,7 +106,7 @@ export default function Landing() {
             <p className="text-[#4b5563] text-sm" role="status">
               {error
                 ? 'La clasificación no responde ahora mismo.'
-                : 'Todavía no hay cuadros en la Porra Global.'}
+                : `Todavía no hay cuadros en ${leagueLabel}.`}
             </p>
           )}
         </motion.div>
@@ -114,7 +116,7 @@ export default function Landing() {
 
       <GhostWord word="Álbum" className="py-10">
         <MarkerHeading
-          text="Los cromos de la Porra Global"
+          text={`Los cromos de ${leagueLabel}`}
           className="text-[clamp(2rem,5vw,3.6rem)] text-white"
         />
         {leaders.length > 0 ? (
@@ -124,7 +126,7 @@ export default function Landing() {
             whileInView="show"
             viewport={inViewOnce}
             className="landing-sticker-album mt-10 list-none"
-            aria-label="Cromos de la Porra Global"
+            aria-label={`Cromos de ${leagueLabel}`}
             tabIndex={0}
           >
             {leaders.map((row, index) => (
@@ -198,8 +200,8 @@ export default function Landing() {
           >
             <h3 className="poster-title text-4xl">Jornadas</h3>
             <p className="text-[#1f2937] leading-snug">
-              Para LaLiga, la Premier, la Champions y otras ocho competiciones. Pronosticas el
-              marcador de cada partido, y cada uno se cierra solo cuando empieza.
+              Para LaLiga, la Premier, la Champions y otras ocho competiciones. Predices el marcador
+              de cada partido, y cada uno se cierra solo cuando empieza.
             </p>
             <figure className="m-0">
               <img
@@ -218,13 +220,21 @@ export default function Landing() {
           </motion.article>
         </div>
         <p className="text-muted text-sm text-center mt-8">
-          Se instala en el móvil como una app. Los pronósticos quedan a la vista de la liga en
+          Se instala en el móvil como una app. Las predicciones quedan a la vista de la liga en
           cuanto empieza cada partido.
         </p>
       </GhostWord>
 
       <footer className="mt-10 pt-5 border-t border-t-[rgba(255,255,255,0.08)] flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-[#94a3b8] text-[0.85rem]">
         <strong className="text-white">PorrApp</strong>
+        <span aria-hidden="true">·</span>
+        <Link to="/privacidad" className="underline hover:text-white">
+          Privacidad
+        </Link>
+        <span aria-hidden="true">·</span>
+        <Link to="/aviso-legal" className="underline hover:text-white">
+          Aviso legal
+        </Link>
       </footer>
     </div>
   );

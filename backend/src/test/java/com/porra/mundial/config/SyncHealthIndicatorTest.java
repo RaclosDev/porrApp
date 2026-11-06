@@ -10,7 +10,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.Status;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -42,7 +43,7 @@ class SyncHealthIndicatorTest {
     @Test
     @DisplayName("Sincronizacion exitosa reporta UP con detalles de partidos y equipos")
     void testSuccessfulSync() {
-        when(syncService.getLastSyncTime()).thenReturn(LocalDateTime.now().minusMinutes(2));
+        when(syncService.getLastSyncTime()).thenReturn(Instant.now().minus(2, ChronoUnit.MINUTES));
         when(syncService.getLastSyncStatus()).thenReturn("success");
         when(syncService.getLastMatchesUpdated()).thenReturn(5);
         when(syncService.getLastTeamsUpdated()).thenReturn(0);
@@ -59,7 +60,7 @@ class SyncHealthIndicatorTest {
     @Test
     @DisplayName("Fallo en sincronizacion reporta DOWN con mensaje de error")
     void testFailedSync() {
-        when(syncService.getLastSyncTime()).thenReturn(LocalDateTime.now().minusMinutes(10));
+        when(syncService.getLastSyncTime()).thenReturn(Instant.now().minus(10, ChronoUnit.MINUTES));
         when(syncService.getLastSyncStatus()).thenReturn("error");
         when(syncService.getLastErrorMessage()).thenReturn("Connection timeout");
 

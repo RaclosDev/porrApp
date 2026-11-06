@@ -92,7 +92,6 @@ public class AuthService {
         return userAccountRepository.save(UserAccount.builder()
                 .googleSub(google.subject())
                 .googleEmail(email)
-                .googleName(googleName != null ? googleName : participantName)
                 .participantName(participantName)
                 .build());
     }

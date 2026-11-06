@@ -2,7 +2,8 @@ package com.porra.mundial.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 
 /**
  * Entidad 'League' (Liga / Grupo Privado).
@@ -15,24 +16,6 @@ import java.time.LocalDateTime;
 @Table(name = "leagues")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class League {
-
-    /**
-     * La Porra Global es la liga pública por defecto (demo, entrada desde LinkedIn y usuarios sin liga).
-     * {@code GroupService#initDefaultGroup} garantiza al arrancar que existe con este id y este código.
-     */
-    public static final Long GLOBAL_ID = 1L;
-    public static final String GLOBAL_JOIN_CODE = "GLOBAL";
-    public static final String GLOBAL_NAME = "Porra Global";
-
-    /** @return true si el id corresponde a la Porra Global. */
-    public static boolean isGlobalId(Long leagueId) {
-        return GLOBAL_ID.equals(leagueId);
-    }
-
-    /** @return true si esta liga es la Porra Global. */
-    public boolean isGlobal() {
-        return GLOBAL_JOIN_CODE.equalsIgnoreCase(joinCode);
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,8 +35,26 @@ public class League {
     @JoinColumn(name = "admin_user_id", nullable = false)
     private UserAccount adminUser;
 
+    /**
+     * Liga pública: cualquiera puede ver su clasificación, sus miembros (sin emails) y sus
+     * pronósticos, y participar sin código de invitación.
+     */
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "is_public", nullable = false)
+    private boolean publicLeague = false;
+
+    /** Liga con cuota de inscripción: la clasificación marca a quien no ha pagado. */
+    @Builder.Default
+    @Column(name = "entry_fee", nullable = false)
+    private boolean entryFee = false;
+
+    @Builder.Default
+    private Instant createdAt = Instant.now();
+
+    /** Clave de idempotencia con la que se creó la liga (única por administrador). */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(name = "creation_key", length = 64)
+    private String creationKey;
 
     /** Reglas personalizadas de la liga (texto libre definido por el admin). */
     @Column(columnDefinition = "TEXT")
@@ -61,19 +62,23 @@ public class League {
 
     /** Momento de la última subida de imagen. Null si la liga no tiene imagen. Sirve para versionar la URL. */
     @Column(name = "image_updated_at")
-    private LocalDateTime imageUpdatedAt;
+    private Instant imageUpdatedAt;
+
+    /** Clave aleatoria de la URL de la imagen; cambia en cada subida. */
+    @Column(name = "image_key", length = 32)
+    private String imageKey;
 
     @Transient
     public String getAdminParticipantName() {
         return adminUser != null ? adminUser.getParticipantName() : null;
     }
 
-    /** URL pública (versionada) de la imagen de la liga, o null si no tiene. */
+    /** URL no adivinable de la imagen de la liga, o null si no tiene. */
     @com.fasterxml.jackson.annotation.JsonProperty("imageUrl")
     @Transient
     public String getImageUrl() {
-        if (id == null || imageUpdatedAt == null) return null;
-        return "/api/groups/" + id + "/image?v=" + imageUpdatedAt.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+        if (id == null || imageUpdatedAt == null || imageKey == null) return null;
+        return "/api/groups/" + id + "/image/" + imageKey;
     }
 
     @com.fasterxml.jackson.annotation.JsonProperty("adminUserId")

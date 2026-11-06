@@ -141,7 +141,7 @@ export default function CreateLeagueWizard({
                 checked={includePichichi}
                 onChange={(e) => setIncludePichichi(e.target.checked)}
               />
-              <span>Incluir pronóstico del pichichi</span>
+              <span>Incluir predicción del pichichi</span>
             </label>
           )}
 

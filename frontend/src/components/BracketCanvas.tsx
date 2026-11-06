@@ -6,7 +6,7 @@ import BracketFinale from './BracketFinale';
 import type { BracketTeam } from '../store/useAppStore';
 
 const SLOT_H = 36;
-export const MATCH_H = SLOT_H * 2 + 2; // 74px
+const MATCH_H = SLOT_H * 2 + 2; // 74px
 const R32_PITCH = MATCH_H + 14; // 88px
 
 const leafTop = (i: number) => i * R32_PITCH;
@@ -79,6 +79,8 @@ interface TeamSlotProps {
    * nombre, que solo sirve para selecciones con bandera.
    */
   placeholder?: boolean;
+  /** Clases de estado (elegido, acertado, clasificado…) que pinta el cuadro. */
+  className?: string;
 }
 
 /** Casilla de un equipo en el cuadro; solo es pulsable si el equipo es real. */
@@ -90,6 +92,7 @@ export function TeamSlot({
   pressed = false,
   logo,
   placeholder,
+  className = '',
 }: TeamSlotProps) {
   const isEmpty = !name;
   const lower = name?.toLowerCase() || '';
@@ -107,6 +110,8 @@ export function TeamSlot({
         name === '?' ||
         getCountryCode(name) === 'xx'));
   const clickable = !!onClick && !isEmpty && !isPlaceholder;
+  // El elegido se sombrea; is-hit / is-miss, si llegan, cambian el color del sombreado.
+  const stateClass = `${pressed ? 'is-picked ' : ''}${className}`.trim();
 
   const style: React.CSSProperties = {
     cursor: clickable ? 'pointer' : 'default',
@@ -153,7 +158,7 @@ export function TeamSlot({
         </div>
       )}
       <span
-        className={`overflow-hidden text-ellipsis whitespace-nowrap flex-1 ${isCombined ? 'text-[0.65rem]' : 'text-[0.78rem]'}`}
+        className={`team-slot-name overflow-hidden text-ellipsis whitespace-nowrap flex-1 ${isCombined ? 'text-[0.65rem]' : 'text-[0.78rem]'}`}
       >
         {name ?? 'Por definir'}
       </span>
@@ -165,7 +170,7 @@ export function TeamSlot({
     return (
       <button
         type="button"
-        className="team-slot team-slot-btn"
+        className={`team-slot team-slot-btn ${stateClass}`.trim()}
         onClick={onClick}
         aria-label={`Pasar a ${name}`}
         aria-pressed={pressed}
@@ -177,7 +182,10 @@ export function TeamSlot({
   }
 
   return (
-    <div className={`team-slot${isEmpty || isPlaceholder ? ' empty' : ''}`} style={style}>
+    <div
+      className={`team-slot${isEmpty || isPlaceholder ? ' empty' : ''} ${stateClass}`.trim()}
+      style={style}
+    >
       {content}
     </div>
   );
@@ -235,7 +243,7 @@ export type RenderSlot<T extends SlotTeam = SlotTeam> = (
 ) => ReactNode;
 
 /** Huecos de la final y del tercer puesto, que la página pinta fuera del lienzo. */
-export interface CenterSlotContext {
+interface CenterSlotContext {
   side: 'center';
   roundIndex: 'final' | 'thirdPlaceMatch';
   isHome: boolean;
@@ -271,6 +279,8 @@ interface BracketCanvasProps<T extends SlotTeam> {
   renderRoundFooter?: (roundIndex: number, side: 'left' | 'right') => ReactNode;
   /** Final destacada compartida entre móvil y escritorio. */
   renderFinal?: (expandedThirdPlace?: boolean) => ReactNode;
+  /** Ronda que se abre en móvil; por defecto, la primera con cruces por definir. */
+  defaultRound?: number;
 }
 
 /** Tres hojas: dos ramas de cruces y el desenlace en la hoja central. */
@@ -283,6 +293,7 @@ export default function BracketCanvas<T extends SlotTeam>({
   hiddenRounds = {},
   renderRoundFooter,
   renderFinal,
+  defaultRound,
 }: BracketCanvasProps<T>) {
   const semiIndex = roundLabels.length - 1;
   const sideRounds = Array.from({ length: Math.max(0, semiIndex) }, (_, round) => round);
@@ -358,7 +369,7 @@ export default function BracketCanvas<T extends SlotTeam>({
           renderSlot={renderSlot}
           renderFinal={renderFinal}
           roundLabels={roundLabels}
-          defaultTab={computeActiveTab(leftRounds, rightRounds, semiIndex)}
+          defaultTab={defaultRound ?? computeActiveTab(leftRounds, rightRounds, semiIndex)}
           renderRoundFooter={renderRoundFooter}
         />
       </div>

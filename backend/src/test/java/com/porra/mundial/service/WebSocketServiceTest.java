@@ -34,7 +34,15 @@ class WebSocketServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new WebSocketService(new ConcurrentMapCacheManager(), new ObjectMapper());
+        service = newService(new ConcurrentMapCacheManager(), id -> WebSocketService.Audience.EVERYONE);
+    }
+
+    /** Sin retraso de agrupación, para que los avisos de liga se envíen en el acto. */
+    private static WebSocketService newService(org.springframework.cache.CacheManager caches,
+                                               WebSocketService.LeagueAudience audience) {
+        WebSocketService created = new WebSocketService(caches, new ObjectMapper(), audience);
+        created.leagueNoticeDelayMs = 0;
+        return created;
     }
 
     private static WebSocketSession openSession(String id) {
@@ -121,7 +129,7 @@ class WebSocketServiceTest {
         caches.getCache("groupById").put(10L, "liga 10");
         caches.getCache("competitionStandings").put(4L, "tabla de ESPN");
         caches.getCache("userGroups").put("a@test.com", "mis ligas");
-        service = new WebSocketService(caches, new ObjectMapper());
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
         WebSocketSession session = openSession("s1");
         service.addSession(session);
 
@@ -139,13 +147,32 @@ class WebSocketServiceTest {
     }
 
     @Test
+    @DisplayName("Guardar pronósticos de partidos abiertos avisa a la liga sin tirar su clasificación")
+    void savedMatchPredictionsKeepTheCachedLeaderboard() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        caches.getCache("groupById").put(10L, "liga 10");
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
+        WebSocketSession session = openSession("s1");
+        service.addSession(session);
+
+        service.notifyMatchPredictionsSaved(10L);
+
+        assertEquals("ranking 10", caches.getCache("leaderboard").get(10L).get());
+        assertEquals(null, caches.getCache("groupById").get(10L));
+        var message = new ObjectMapper().readTree(sentPayload(session));
+        assertEquals("LEAGUE_UPDATED", message.get("type").asString());
+        assertEquals(10L, message.get("leagueId").asLong());
+    }
+
+    @Test
     @DisplayName("Un cambio de resultados no borra las cachés de las ligas")
     void resultsChangeKeepsLeagueCaches() throws Exception {
         var caches = new ConcurrentMapCacheManager();
         caches.getCache("matches").put("all", "partidos");
         caches.getCache("userGroups").put("a@test.com", "mis ligas");
         caches.getCache("competitions").put("all", "competiciones");
-        service = new WebSocketService(caches, new ObjectMapper());
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
         WebSocketSession session = openSession("s1");
         service.addSession(session);
 
@@ -164,12 +191,106 @@ class WebSocketServiceTest {
         caches.getCache("leaderboard").put(10L, "ranking 10");
         caches.getCache("leaderboard").put(20L, "ranking 20");
         caches.getCache("matches").put("all", "partidos");
-        service = new WebSocketService(caches, new ObjectMapper());
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
 
         service.notifyProfileChanged();
 
         assertEquals(null, caches.getCache("leaderboard").get(10L));
         assertEquals(null, caches.getCache("leaderboard").get(20L));
         assertEquals("partidos", caches.getCache("matches").get("all").get());
+    }
+
+    @Test
+    @DisplayName("El aviso de una liga privada solo llega a sus miembros identificados")
+    void privateLeagueNoticeOnlyReachesMembers() throws Exception {
+        service = newService(new ConcurrentMapCacheManager(),
+                id -> new WebSocketService.Audience(false, java.util.Set.of(7L)));
+        WebSocketSession member = openSession("member");
+        WebSocketSession stranger = openSession("stranger");
+        WebSocketSession anonymous = openSession("anon");
+        service.addSession(member);
+        service.addSession(stranger);
+        service.addSession(anonymous);
+        service.authenticate(member, 7L);
+        service.authenticate(stranger, 8L);
+
+        service.notifyLeagueChanged(10L);
+
+        verify(member).sendMessage(any());
+        verify(stranger, never()).sendMessage(any());
+        verify(anonymous, never()).sendMessage(any());
+
+        service.authenticate(member, null);
+        service.notifyLeagueChanged(10L);
+        verify(member, times(1)).sendMessage(any());
+    }
+
+    @Test
+    @DisplayName("Guardar predicciones seguidas en una liga manda un solo aviso y no vacía la lista de ligas")
+    void predictionSavesAreCoalescedPerLeague() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        caches.getCache("userGroups").put("a@test.com", "mis ligas");
+        service = new WebSocketService(caches, new ObjectMapper(), id -> WebSocketService.Audience.EVERYONE);
+        service.leagueNoticeDelayMs = 100;
+        WebSocketSession session = openSession("s1");
+        CountDownLatch sent = new CountDownLatch(1);
+        doAnswer(inv -> { sent.countDown(); return null; }).when(session).sendMessage(any());
+        service.addSession(session);
+
+        for (int i = 0; i < 20; i++) service.notifyPredictionsChanged(10L);
+
+        assertEquals(null, caches.getCache("leaderboard").get(10L), "la clasificación se borra en el acto");
+        assertEquals("mis ligas", caches.getCache("userGroups").get("a@test.com").get());
+        assertEquals(true, sent.await(5, TimeUnit.SECONDS));
+        Thread.sleep(300);
+        verify(session, times(1)).sendMessage(any());
+        service.shutdown();
+    }
+
+    @Test
+    @DisplayName("Si solo avanza el minuto de juego, se borran los partidos pero no las clasificaciones")
+    void clockChangeKeepsStandings() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("matches").put("all", "partidos");
+        caches.getCache("standings").put("all", "tabla");
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
+        WebSocketSession session = openSession("s1");
+        service.addSession(session);
+
+        service.notifyClockChanged();
+
+        assertEquals(null, caches.getCache("matches").get("all"));
+        assertEquals("tabla", caches.getCache("standings").get("all").get());
+        assertEquals("ranking 10", caches.getCache("leaderboard").get(10L).get());
+        assertEquals("CLOCK_UPDATED", new ObjectMapper().readTree(sentPayload(session)).get("type").asString());
+    }
+
+    @Test
+    @DisplayName("Una IP no puede abrir más conexiones que el tope; al cerrar una, deja hueco")
+    void capsConnectionsPerIp() throws Exception {
+        service.maxConnectionsPerIp = 2;
+        WebSocketSession first = sessionFromIp("a", "1.2.3.4");
+        WebSocketSession second = sessionFromIp("b", "1.2.3.4");
+        WebSocketSession third = sessionFromIp("c", "1.2.3.4");
+        WebSocketSession otherIp = sessionFromIp("d", "5.6.7.8");
+
+        assertEquals(true, service.addSession(first));
+        assertEquals(true, service.addSession(second));
+        assertEquals(false, service.addSession(third));
+        assertEquals(true, service.addSession(otherIp));
+        verify(third).close(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION);
+
+        service.removeSession(first);
+        assertEquals(true, service.addSession(sessionFromIp("e", "1.2.3.4")));
+    }
+
+    private static WebSocketSession sessionFromIp(String id, String ip) {
+        WebSocketSession session = openSession(id);
+        java.util.Map<String, Object> attributes = new java.util.HashMap<>();
+        attributes.put(WebSocketService.CLIENT_IP_ATTRIBUTE, ip);
+        when(session.getAttributes()).thenReturn(attributes);
+        return session;
     }
 }

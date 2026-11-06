@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Trash2 } from 'lucide-react';
+import { reportClientError } from '../services/errorReporting';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -10,7 +11,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -25,6 +26,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary capturó un error no controlado:', error, errorInfo);
+    reportClientError('render', error, errorInfo.componentStack ?? undefined);
   }
 
   handleReload = () => {

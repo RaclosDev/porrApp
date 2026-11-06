@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { endSession, updateUserPreferences } from '../services/api';
 import { hasStoredSession } from '../services/sessionHint';
 import { queryClient } from '../services/queryClient';
-import { GLOBAL_LEAGUE_ID } from '../utils/constants';
+import { unsubscribeThisDevice } from '../services/push';
 import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
 import { isBracketState } from '../utils/bracketValidation';
 import { orderR32, topologyVersion, type TopologyVersion } from '../utils/bracketTopology';
@@ -19,7 +19,7 @@ export interface BracketMatch {
   away: BracketTeam | null;
 }
 
-export interface BracketSide {
+interface BracketSide {
   left: BracketMatch[];
   right: BracketMatch[];
 }
@@ -60,7 +60,8 @@ interface AppState {
   setIsAuthenticated: (isAuthenticated: boolean) => void;
   isDemoMode: boolean;
   setIsDemoMode: (isDemoMode: boolean) => void;
-  enterDemoMode: () => void;
+  /** Entra en la demo; sin liga, AppContext abre la liga pública destacada. */
+  enterDemoMode: (groupId?: string | null) => void;
   exitDemoMode: () => void;
   /**
    * Cierra la sesión: la revoca en el servidor, olvida el token, borra los datos del usuario,
@@ -259,13 +260,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ isDemoMode });
   },
 
-  enterDemoMode: () => {
+  enterDemoMode: (groupId = null) => {
+    const nextGroupId = groupId ?? '';
     localStorage.setItem('isDemoMode', 'true');
-    localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
+    if (nextGroupId) localStorage.setItem('activeGroupId', nextGroupId);
+    else localStorage.removeItem('activeGroupId');
     localStorage.removeItem('activeCompetitionId');
     set({
       isDemoMode: true,
-      activeGroupId: GLOBAL_LEAGUE_ID,
+      activeGroupId: nextGroupId,
       activeCompetitionId: null,
       viewerPredictionId: null,
     });
@@ -273,11 +276,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   exitDemoMode: () => {
     get().logout();
-    localStorage.setItem('activeGroupId', GLOBAL_LEAGUE_ID);
-    set({ activeGroupId: GLOBAL_LEAGUE_ID });
+    localStorage.removeItem('activeGroupId');
+    set({ activeGroupId: '' });
   },
 
   logout: () => {
+    void unsubscribeThisDevice().catch(() => undefined);
     endSession();
     SESSION_KEYS.forEach((k) => localStorage.removeItem(k));
     clearAllDrafts();

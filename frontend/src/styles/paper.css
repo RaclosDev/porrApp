@@ -633,11 +633,17 @@
   /* Cuadro en móvil: pestañas y tarjetas de cruce sobre el papel. */
   .paper-panel .mb-match-card {
     background: #fffdf7;
-    border: 1.5px solid var(--ink);
+    border: 1px solid rgba(17, 24, 39, 0.55);
+    box-shadow: 0 1px 0 rgba(17, 24, 39, 0.08);
+  }
+
+  .paper-panel .mb-match-card .team-slot + .team-slot {
+    border-top-color: rgba(17, 24, 39, 0.12) !important;
   }
 
   .paper-panel .mb-match-placeholder {
     border-color: rgba(17, 24, 39, 0.35);
+    box-shadow: none;
   }
 
   .paper-panel .mb-next-btn {
@@ -719,12 +725,6 @@
   .paper-panel .home-match-card {
     background: #fffdf7;
     border: 1.5px solid var(--ink);
-  }
-
-  .paper-panel .md-score-input {
-    background: #ffffff;
-    border-color: var(--ink);
-    color: var(--ink);
   }
 
   .paper-panel .md-sign-btn,
@@ -822,10 +822,6 @@
     color: var(--miss);
   }
 
-  .paper-panel .md-score-input:disabled {
-    border-color: rgba(17, 24, 39, 0.3);
-  }
-
   .paper-panel .home-match-score.is-live {
     color: var(--miss);
   }
@@ -843,6 +839,10 @@
 
   .paper-panel .lb-matchday-status.is-live {
     color: var(--hit);
+  }
+
+  .paper-panel .lb-matchday-status.is-open {
+    color: var(--ink, inherit);
   }
 
   .paper-panel .lb-matchday-status.is-finished {

@@ -19,7 +19,7 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 
 ### Sincronización de resultados
 
-`SyncService` se ejecuta con `@Scheduled` (intervalo en `app.sync.interval-ms`) y bajo un `ReentrantLock` para no solaparse:
+`SyncService` hace una pasada completa cada `app.sync.interval-ms` (15 min) y, mientras haya partidos en juego, otra solo de esas competiciones cada `app.sync.live-interval-ms` (1 min). Las dos van bajo un `ReentrantLock` para no solaparse:
 
 1. Pide los partidos de cada competición a su proveedor a través de `SportsDataProviderRegistry` (hoy, `EspnSportsDataProvider`).
 2. `MatchEventProcessor` aplica los cambios de marcador y estado a cada `Match`.
@@ -73,6 +73,6 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 
 ## Despliegue
 
-Flyway valida los checksums en cada arranque y no ejecuta `repair()` automáticamente, tampoco para V38. Las bases que ya pasaron por la reconciliación histórica conservan su historial; una copia antigua con discrepancias debe revisarse antes de actualizar. Si aparece una discrepancia, compara el script aplicado y el esquema con las migraciones del repositorio y realiza una copia de seguridad antes de una reparación administrativa. No edites migraciones aplicadas ni desactives la validación para arrancar.
+Flyway valida los checksums en cada arranque y no ejecuta `repair()` automáticamente. Las migraciones V1–V10 son la consolidación por dominio de las 72 originales (V1–V71 y V33.1, en git hasta `e619cc2`) y montan el esquema de producción; las nuevas se numeran desde V11. Una base creada con las migraciones antiguas, incluida una copia local, no valida contra las nuevas: recréala (`docker compose down -v`). Si aparece una discrepancia, compara el script aplicado y el esquema con las migraciones del repositorio y realiza una copia de seguridad antes de una reparación administrativa. No edites migraciones aplicadas ni desactives la validación para arrancar.
 
 El `Dockerfile` compila el frontend con Vite y copia el resultado a los recursos estáticos de Spring Boot, de modo que la API y la aplicación se sirven desde el mismo servicio y puerto. En producción corre en Railway; el health check usa Spring Boot Actuator.

@@ -23,6 +23,7 @@ import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.sports.SportsDataProviderRegistry;
+import com.porra.mundial.util.AppTime;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -33,6 +34,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -41,10 +43,12 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -134,6 +138,7 @@ class SyncQueryCountTest {
     }
 
     @Test
+    @Sql("/legacy-laliga-fixtures.sql")
     void countsTheQueriesOfASyncPassAndOfAMatchdayRequest() throws Exception {
         List<Team> worldCupTeams = seedWorldCupTeams();
         events.put(Competition.WORLD_CUP_EXTERNAL_ID, worldCupEvents(worldCupTeams));
@@ -189,21 +194,21 @@ class SyncQueryCountTest {
     private static List<ObjectNode> worldCupEvents(List<Team> teams) {
         List<ObjectNode> list = new ArrayList<>();
         int id = 0;
-        LocalDateTime day = LocalDateTime.of(2026, 6, 11, 18, 0);
+        Instant day = AppTime.fromLocal(LocalDateTime.of(2026, 6, 11, 18, 0));
         int[][] pairs = {{0, 1}, {2, 3}, {0, 2}, {1, 3}, {0, 3}, {1, 2}};
         for (int g = 0; g < 12; g++) {
             String group = String.valueOf((char) ('A' + g));
             for (int[] pair : pairs) {
                 Team home = teams.get(g * 4 + pair[0]);
                 Team away = teams.get(g * 4 + pair[1]);
-                list.add(event("wc-" + (++id), day.plusHours(id), "group-stage", "Group " + group,
+                list.add(event("wc-" + (++id), day.plus(id, ChronoUnit.HOURS), "group-stage", "Group " + group,
                         home, away, id % 3, id % 2, true));
             }
         }
-        list.add(event("wc-sf1", day.plusDays(30), "semifinals", "", teams.get(0), teams.get(4), 2, 1, true));
-        list.add(event("wc-sf2", day.plusDays(31), "semifinals", "", teams.get(8), teams.get(12), 0, 1, true));
-        list.add(event("wc-3rd", day.plusDays(34), "3rd-place-match", "", teams.get(4), teams.get(8), null, null, false));
-        list.add(event("wc-final", day.plusDays(35), "final", "", teams.get(0), teams.get(12), null, null, false));
+        list.add(event("wc-sf1", day.plus(30, ChronoUnit.DAYS), "semifinals", "", teams.get(0), teams.get(4), 2, 1, true));
+        list.add(event("wc-sf2", day.plus(31, ChronoUnit.DAYS), "semifinals", "", teams.get(8), teams.get(12), 0, 1, true));
+        list.add(event("wc-3rd", day.plus(34, ChronoUnit.DAYS), "3rd-place-match", "", teams.get(4), teams.get(8), null, null, false));
+        list.add(event("wc-final", day.plus(35, ChronoUnit.DAYS), "final", "", teams.get(0), teams.get(12), null, null, false));
         return list;
     }
 
@@ -212,7 +217,7 @@ class SyncQueryCountTest {
                 match.getHomeScore(), match.getAwayScore(), Boolean.TRUE.equals(match.getFinished()));
     }
 
-    private static ObjectNode event(String id, LocalDateTime date, String seasonSlug, String note, Team home,
+    private static ObjectNode event(String id, Instant date, String seasonSlug, String note, Team home,
                                     Team away, Integer homeScore, Integer awayScore, boolean finished) {
         ObjectNode event = JSON.createObjectNode();
         event.put("id", id);

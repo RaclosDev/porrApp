@@ -18,7 +18,7 @@ export default function CustomPredictionViewer({
   predictionId: string | number;
   onClose: () => void;
 }) {
-  const { activeGroupId } = useAppContext();
+  const { activeGroupId, activeGroupCustomCompetition, allGames } = useAppContext();
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(dialogRef, { active: true, onEscape: onClose });
 
@@ -36,9 +36,16 @@ export default function CustomPredictionViewer({
   const { data: teams = [] } = useQuery({
     queryKey: queryKeys.customTeams(activeGroupId),
     queryFn: () => fetchCustomTeams(Number(activeGroupId)),
-    enabled: Boolean(activeGroupId),
+    enabled: Boolean(activeGroupId) && activeGroupCustomCompetition,
   });
-  const logos = Object.fromEntries(teams.map((team) => [team.name, team.logoUrl]));
+  const logos: Record<string, string | null | undefined> = activeGroupCustomCompetition
+    ? Object.fromEntries(teams.map((team) => [team.name, team.logoUrl]))
+    : Object.fromEntries(
+        allGames.flatMap((match) => [
+          [match.home, match.homeLogo || match.homeTeamLogo],
+          [match.away, match.awayLogo || match.awayTeamLogo],
+        ]),
+      );
   const groups = Object.entries(prediction?.groups ?? {});
   const rounds = prediction?.customRounds ?? [];
 
@@ -56,7 +63,7 @@ export default function CustomPredictionViewer({
     <ViewerModal dialogRef={dialogRef} onClose={onClose} className="modal-content custom-viewer">
       <div className="custom-viewer-header">
         <div className="custom-viewer-heading">
-          <span className="custom-viewer-eyebrow">Pronóstico</span>
+          <span className="custom-viewer-eyebrow">Predicción</span>
           <h2 className="poster-title">
             {prediction?.user ? `Porra de ${prediction.user}` : 'Porra'}
           </h2>
@@ -67,10 +74,10 @@ export default function CustomPredictionViewer({
       </div>
 
       <div className="custom-viewer-body">
-        {isPending && <p role="status">Cargando pronóstico…</p>}
+        {isPending && <p role="status">Cargando predicción…</p>}
         {error && (
           <div className="custom-viewer-error" role="alert">
-            <p>{errorMessage(error, 'No se pudo cargar el pronóstico')}</p>
+            <p>{errorMessage(error, 'No se pudo cargar la predicción')}</p>
             <button type="button" className="glass-btn" onClick={() => void refetch()}>
               Reintentar
             </button>

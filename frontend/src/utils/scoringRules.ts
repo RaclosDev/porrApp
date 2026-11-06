@@ -1,6 +1,6 @@
 import type { PoolFormat, ScoringRuleKey, ScoringRules } from '../types/api';
 
-export interface ScoringField {
+interface ScoringField {
   key: ScoringRuleKey;
   label: string;
   hint: string;

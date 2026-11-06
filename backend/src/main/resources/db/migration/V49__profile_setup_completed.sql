@@ -1,1 +1,0 @@
-ALTER TABLE app_users ADD COLUMN profile_setup_completed BOOLEAN NOT NULL DEFAULT FALSE;

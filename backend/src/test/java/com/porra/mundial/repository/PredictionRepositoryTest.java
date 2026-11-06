@@ -18,7 +18,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,7 +52,7 @@ class PredictionRepositoryTest {
         Edition edition = em.persist(Edition.builder().league(league).competition(competition)
                 .poolFormat(PoolFormat.FULL_BRACKET).build());
         return em.persist(Prediction.builder().user(user).edition(edition).name("Porra")
-                .totalPoints(42).scoreCalculatedAt(LocalDateTime.now()).build());
+                .totalPoints(42).scoreCalculatedAt(Instant.now()).build());
     }
 
     @Test
@@ -75,7 +75,7 @@ class PredictionRepositoryTest {
         Prediction league = persistScoredPrediction("jornada@test.com", laLiga);
         Prediction otherLeague = persistScoredPrediction("vecina@test.com", laLiga);
         Match match = em.persist(Match.builder().competition(laLiga).externalId("test-reglas-1")
-                .matchDate(LocalDateTime.now()).finished(true).homeScore(1).awayScore(0).build());
+                .matchDate(Instant.now()).finished(true).homeScore(1).awayScore(0).build());
         MatchPrediction mine = em.persist(MatchPrediction.builder().prediction(league).match(match)
                 .homeScore(1).awayScore(0).predictionSign("1").build());
         em.persist(MatchPrediction.builder().prediction(otherLeague).match(match).predictionSign("2").build());

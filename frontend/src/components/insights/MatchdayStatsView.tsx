@@ -1,4 +1,5 @@
 import PaperLoading from '../PaperLoading';
+import { displayRoundLabel } from '../../utils/matchday';
 import { useId, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -44,7 +45,7 @@ export default function MatchdayStatsView({ groupId }: { groupId: string }) {
   if (!selected) {
     return (
       <InsightsNotice title="Todavía no hay partidos que mostrar">
-        Los pronósticos de cada partido se ven en cuanto empieza. Entonces aparecerá aquí qué ha
+        Las predicciones de cada partido se ven en cuanto empieza. Entonces aparecerá aquí qué ha
         puesto la liga.
       </InsightsNotice>
     );
@@ -73,7 +74,7 @@ export default function MatchdayStatsView({ groupId }: { groupId: string }) {
         >
           {rounds.map((r) => (
             <option key={r.label} value={r.label}>
-              {r.label}
+              {displayRoundLabel(r.label)}
             </option>
           ))}
         </select>
@@ -88,8 +89,8 @@ export default function MatchdayStatsView({ groupId }: { groupId: string }) {
         </button>
       </div>
       <p className="m-0 text-center text-[0.85rem] text-muted">
-        Solo salen los partidos que ya han empezado: antes, los pronósticos de los demás están
-        ocultos.
+        Solo salen los partidos que ya han empezado: antes, las predicciones de los demás están
+        ocultas.
       </p>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {selected.matches.map((m) => (

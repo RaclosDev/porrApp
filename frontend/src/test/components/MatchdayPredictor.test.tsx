@@ -1,8 +1,8 @@
-import { appContext, matchdayFixture, type AppContextValue } from '../context/fixtures';
+import { appContext, group, matchdayFixture, type AppContextValue } from '../context/fixtures';
 import type { MatchdaySubmissionResult } from '../../types/api';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MatchdayPredictor from '../../pages/MatchdayPredictor';
 import { hasLiveMatch } from '../../utils/matchday';
@@ -31,6 +31,9 @@ const fixture = (matchId: number, round: string, homeTeam: string) =>
     predAwayScore: null,
     predSign: null,
   });
+
+const signA = (sign: string) => `Predecir ${sign} en Equipo A - Visitante 101`;
+const signB = (sign: string) => `Predecir ${sign} en Equipo B - Visitante 201`;
 
 describe('matchday editing and navigation', () => {
   let context: AppContextValue;
@@ -75,31 +78,36 @@ describe('matchday editing and navigation', () => {
 
   it('resets the selected round and preserves an immediate draft when switching leagues', async () => {
     const view = render(tree());
-    fireEvent.change(await screen.findByLabelText('Marcador de Equipo A'), {
-      target: { value: '2' },
-    });
-    fireEvent.change(screen.getByLabelText('Marcador de Visitante 101'), {
-      target: { value: '0' },
-    });
+    fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
     context = { ...context, activeGroupId: '20', activeGroupName: 'Liga B' };
     view.rerender(tree());
-    expect(await screen.findByLabelText('Marcador de Equipo B')).toHaveValue(null);
-    expect(screen.queryByLabelText('Marcador de Equipo A')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: signB('1') })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.queryByRole('button', { name: signA('1') })).not.toBeInTheDocument();
     expect(localStorage.getItem('draft_matchday_u7_g20')).toBeNull();
     context = { ...context, activeGroupId: '10' };
     view.rerender(tree());
-    await waitFor(() => expect(screen.getByLabelText('Marcador de Equipo A')).toHaveValue(2));
-    expect(screen.getByLabelText('Marcador de Visitante 101')).toHaveValue(0);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: signA('1') })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
+  });
+
+  it('only offers 1X2 picks, without score inputs', async () => {
+    render(tree());
+    expect(
+      await screen.findByRole('group', { name: 'Predicción de Equipo A - Visitante 101' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
   });
 
   it('keeps unsaved edits across a live refresh and only submits edited matches', async () => {
     render(tree());
-    fireEvent.change(await screen.findByLabelText('Marcador de Equipo A'), {
-      target: { value: '3' },
-    });
-    fireEvent.change(screen.getByLabelText('Marcador de Visitante 101'), {
-      target: { value: '1' },
-    });
+    fireEvent.click(await screen.findByRole('button', { name: signA('2') }));
     act(() =>
       client.setQueryData(
         ['matchdayFixtures', '10', '7', ''],
@@ -114,23 +122,18 @@ describe('matchday editing and navigation', () => {
         ],
       ),
     );
-    await waitFor(() => expect(screen.getByLabelText('Marcador de Equipo A')).toHaveValue(3));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: signA('2') })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() =>
       expect(api.submitMatchdayPredictions).toHaveBeenCalledWith('10', [
-        { matchId: 101, homeScore: 3, awayScore: 1, sign: '1' },
+        { matchId: 101, homeScore: null, awayScore: null, sign: '2' },
       ]),
     );
-  });
-
-  it('rejects a partial score instead of sending a stale sign', async () => {
-    render(tree());
-    fireEvent.change(await screen.findByLabelText('Marcador de Equipo A'), {
-      target: { value: '1' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Completa los dos marcadores');
-    expect(api.submitMatchdayPredictions).not.toHaveBeenCalled();
   });
 
   it('includes the final and provides calendar dates when the provider has no round', async () => {
@@ -142,8 +145,8 @@ describe('matchday editing and navigation', () => {
     const roundSelect = await screen.findByLabelText('Seleccionar jornada');
     expect(await screen.findByRole('option', { name: 'final' })).toBeInTheDocument();
     fireEvent.change(roundSelect, { target: { value: 'Fecha 2099-01-01' } });
-    expect(screen.getByLabelText('Marcador de Sin ronda')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Marcador de Finalista')).not.toBeInTheDocument();
+    expect(screen.getByText('Sin ronda')).toBeInTheDocument();
+    expect(screen.queryByText('Finalista')).not.toBeInTheDocument();
   });
 
   it('does not clear another league draft when a save finishes after switching', async () => {
@@ -155,25 +158,24 @@ describe('matchday editing and navigation', () => {
         }),
     );
     const view = render(tree());
-    fireEvent.click(await screen.findByRole('button', { name: 'Pronosticar signo 1' }));
+    fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(api.submitMatchdayPredictions).toHaveBeenCalled());
     context = { ...context, activeGroupId: '20' };
     view.rerender(tree());
-    fireEvent.change(await screen.findByLabelText('Marcador de Equipo B'), {
-      target: { value: '4' },
-    });
+    fireEvent.click(await screen.findByRole('button', { name: signB('X') }));
     await act(async () => finishSave({ success: true, saved: 1, message: 'Guardado A' }));
-    expect(screen.getByLabelText('Marcador de Equipo B')).toHaveValue(4);
-    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g20') ?? '{}')['201'].homeScore).toBe(
-      '4',
+    expect(screen.getByRole('button', { name: signB('X') })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
+    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g20') ?? '{}')['201'].sign).toBe('X');
     expect(screen.queryByText('Guardado A')).not.toBeInTheDocument();
   });
 
   it('hides the save confirmation after 4 s and clears the timer on unmount', async () => {
     const view = render(tree());
-    fireEvent.click(await screen.findByRole('button', { name: 'Pronosticar signo 1' }));
+    fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
@@ -182,7 +184,7 @@ describe('matchday editing and navigation', () => {
       act(() => vi.advanceTimersByTime(4000));
       expect(screen.queryByText('Guardado')).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Pronosticar signo 2' }));
+      fireEvent.click(screen.getByRole('button', { name: signA('2') }));
       fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
       expect(await screen.findByText('Guardado')).toBeInTheDocument();
       clearSpy.mockClear();
@@ -239,7 +241,114 @@ describe('matchday editing and navigation', () => {
     expect(screen.getByRole('button', { name: 'Jornada anterior' })).toBeDisabled();
 
     // Counter scopes to the selected round (J1 has 1 match, 0 predicted -> 0/1, not 0/6)
-    expect(screen.getByText('0/1 pronosticados')).toBeInTheDocument();
+    expect(screen.getByText('0/1 predicciones')).toBeInTheDocument();
+    // A fully played round shows its finished matches instead of an empty "Todos" tab
+    expect(screen.getByRole('tab', { name: /Finalizados/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByText('Equipo 1')).toBeInTheDocument();
+  });
+
+  it('hides finished matches from "Todos" and lists unpredicted ones in "Pendientes"', async () => {
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
+      { ...fixture(1, 'Jornada 1', 'Jugado'), finished: true, locked: true },
+      { ...fixture(2, 'Jornada 1', 'Pronosticado'), predSign: '1' },
+      fixture(3, 'Jornada 1', 'Sin pronóstico'),
+    ]);
+    render(tree());
+    expect(await screen.findByRole('tab', { name: 'Todos 2' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.queryByText('Jugado')).not.toBeInTheDocument();
+    expect(screen.getByText('Pronosticado')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Pendientes 1' }));
+    expect(screen.getByText('Sin pronóstico')).toBeInTheDocument();
+    expect(screen.queryByText('Pronosticado')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Finalizados 1' }));
+    expect(screen.getByText('Jugado')).toBeInTheDocument();
+  });
+});
+
+describe('opening a league from a reminder link', () => {
+  it('waits for the leagues to load and switches instead of leaving through the active league', () => {
+    const champions = group({ id: 20, name: 'Champions', poolFormat: 'MATCH_DAY' });
+    // Como el store real, cambiar de liga la activa al momento.
+    const changeGroup = vi.fn(() => {
+      current = { ...current, activeGroupId: '20', activeGroupPoolFormat: 'MATCH_DAY' };
+    });
+    // Liga activa sin jornadas (p. ej. un cuadro de LoL) y las ligas del usuario aún cargando.
+    let current: AppContextValue = appContext({
+      activeGroupId: '5',
+      activeGroupPoolFormat: 'FULL_BRACKET',
+      isAuthenticated: true,
+      userId: '7',
+      userGroups: [],
+      userGroupsLoaded: false,
+      changeGroup,
+    });
+    vi.mocked(useAppContext).mockImplementation(() => current);
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([]);
+    vi.mocked(api.fetchLeaderboardMatchdays).mockResolvedValue([]);
+    const client = new QueryClient();
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/jornadas?group=20']}>
+          <Routes>
+            <Route path="/jornadas" element={<MatchdayPredictor />} />
+            <Route path="/" element={<p>Inicio</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const view = render(tree());
+    expect(screen.queryByText('Inicio')).not.toBeInTheDocument();
+    expect(changeGroup).not.toHaveBeenCalled();
+
+    current = { ...current, userGroups: [champions], userGroupsLoaded: true };
+    view.rerender(tree());
+    expect(changeGroup).toHaveBeenCalledWith(20);
+    expect(screen.queryByText('Inicio')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Jornadas|Champions/ })).toBeInTheDocument();
+  });
+});
+
+describe('opening a league without matchdays from a notification link', () => {
+  it('switches to it and lands on its home', () => {
+    const bracket = group({ id: 30, name: 'Cuadro', poolFormat: 'FULL_BRACKET' });
+    let current: AppContextValue = appContext({
+      activeGroupId: '5',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      isAuthenticated: true,
+      userId: '7',
+      userGroups: [bracket],
+      userGroupsLoaded: true,
+    });
+    const changeGroup = vi.fn(() => {
+      current = { ...current, activeGroupId: '30', activeGroupPoolFormat: 'FULL_BRACKET' };
+    });
+    current = { ...current, changeGroup };
+    vi.mocked(useAppContext).mockImplementation(() => current);
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([]);
+    vi.mocked(api.fetchLeaderboardMatchdays).mockResolvedValue([]);
+    const client = new QueryClient();
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/jornadas?group=30']}>
+          <Routes>
+            <Route path="/jornadas" element={<MatchdayPredictor />} />
+            <Route path="/" element={<p>Inicio</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const view = render(tree());
+    expect(changeGroup).toHaveBeenCalledWith(30);
+    view.rerender(tree());
+    expect(screen.getByText('Inicio')).toBeInTheDocument();
   });
 });
 
@@ -296,12 +405,12 @@ describe('matchday screen with the league round summary', () => {
       'Jornada 2',
       'Jornada 3',
     ]);
-    expect(await screen.findByLabelText('Marcador de Local Jornada 2')).toBeInTheDocument();
+    expect(await screen.findByText('Local Jornada 2')).toBeInTheDocument();
     expect(api.fetchMatchdayFixtures).toHaveBeenCalledTimes(1);
     expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith('10', 'Jornada 2');
 
     fireEvent.click(screen.getByRole('button', { name: 'Jornada siguiente' }));
-    expect(await screen.findByLabelText('Marcador de Local Jornada 3')).toBeInTheDocument();
+    expect(await screen.findByText('Local Jornada 3')).toBeInTheDocument();
     expect(api.fetchMatchdayFixtures).toHaveBeenLastCalledWith('10', 'Jornada 3');
     expect(api.fetchMatchdayFixtures).not.toHaveBeenCalledWith('10', '');
   });
@@ -310,24 +419,21 @@ describe('matchday screen with the league round summary', () => {
     vi.mocked(api.fetchLeaderboardMatchdays).mockRejectedValue(new Error('caído'));
     vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([fixture(1, 'Jornada 1', 'Equipo 1')]);
     render(tree());
-    expect(await screen.findByLabelText('Marcador de Equipo 1')).toBeInTheDocument();
+    expect(await screen.findByText('Equipo 1')).toBeInTheDocument();
     expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith('10', '');
   });
 
   it('keeps the draft of another round while browsing rounds', async () => {
     render(tree());
-    fireEvent.change(await screen.findByLabelText('Marcador de Local Jornada 2'), {
-      target: { value: '2' },
-    });
+    const pickJ2 = 'Predecir X en Local Jornada 2 - Visitante 2';
+    fireEvent.click(await screen.findByRole('button', { name: pickJ2 }));
     fireEvent.click(screen.getByRole('button', { name: 'Jornada siguiente' }));
-    await screen.findByLabelText('Marcador de Local Jornada 3');
-    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g10') ?? '{}')['2'].homeScore).toBe(
-      '2',
-    );
+    await screen.findByText('Local Jornada 3');
+    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g10') ?? '{}')['2'].sign).toBe('X');
 
     fireEvent.click(screen.getByRole('button', { name: 'Jornada anterior' }));
     await waitFor(() =>
-      expect(screen.getByLabelText('Marcador de Local Jornada 2')).toHaveValue(2),
+      expect(screen.getByRole('button', { name: pickJ2 })).toHaveAttribute('aria-pressed', 'true'),
     );
   });
 });

@@ -14,8 +14,10 @@ import InkStamp from '../components/InkStamp';
 import CustomBracket from './CustomBracket';
 
 function Bracket() {
-  const { activeGroupCustomCompetition, activeGroupPoolFormat } = useAppContext();
-  if (activeGroupCustomCompetition && activeGroupPoolFormat !== 'MATCH_DAY') {
+  // Las competiciones personalizadas y los torneos oficiales con cuadro propio (Worlds de LoL…) se
+  // pronostican sobre sus cruces; el editor de grupos y terceros es solo del Mundial.
+  const { activeGroupOwnBracket } = useAppContext();
+  if (activeGroupOwnBracket) {
     return <CustomBracket />;
   }
   return <WorldCupBracket />;

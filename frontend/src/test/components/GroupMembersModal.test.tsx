@@ -8,9 +8,11 @@ const api = vi.hoisted(() => ({
   fetchGroupMembers: vi.fn(),
   toggleGroupMemberPayment: vi.fn(),
   kickGroupMember: vi.fn(),
+  transferGroupAdmin: vi.fn(),
   regenerateGroupJoinCode: vi.fn(),
   fetchLeagueScoring: vi.fn(),
   updateLeagueScoring: vi.fn(),
+  updateGroupEntryFee: vi.fn(),
 }));
 
 vi.mock('../../services/api', () => api);
@@ -40,6 +42,7 @@ describe('GroupMembersModal', () => {
     api.fetchGroupMembers.mockReset().mockResolvedValue(MEMBERS);
     api.toggleGroupMemberPayment.mockReset().mockResolvedValue({ paymentStatus: 'PAID' });
     api.kickGroupMember.mockReset().mockResolvedValue({ status: 'success' });
+    api.transferGroupAdmin.mockReset().mockResolvedValue({ status: 'success' });
     api.regenerateGroupJoinCode.mockReset().mockResolvedValue({ joinCode: 'NEW123' });
     api.fetchLeagueScoring.mockReset().mockResolvedValue(leagueScoring());
     api.updateLeagueScoring.mockReset();
@@ -53,6 +56,7 @@ describe('GroupMembersModal', () => {
         <GroupMembersModal
           groupId={1}
           groupName="Liga de prueba"
+          entryFee
           currentJoinCode="ABC123"
           isAdmin
           currentUserId={1}
@@ -79,7 +83,23 @@ describe('GroupMembersModal', () => {
     expect(screen.getByRole('tab', { name: /Miembros/i })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('no muestra pagos cuando la liga no los tiene (Porra Global)', async () => {
+  it('el administrador activa la cuota desde el interruptor', async () => {
+    api.fetchGroupMembers.mockResolvedValue(
+      MEMBERS.map((member) => ({ ...member, paymentStatus: null })),
+    );
+    api.updateGroupEntryFee.mockReset().mockResolvedValue({ id: 1, entryFee: true });
+    const onEntryFeeChanged = vi.fn();
+    setup({ entryFee: false, onEntryFeeChanged });
+
+    expect(await screen.findByText('Bruno')).toBeInTheDocument();
+    expect(screen.queryByText('Resumen de pagos')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: /Cuota de inscripción/ }));
+
+    await waitFor(() => expect(api.updateGroupEntryFee).toHaveBeenCalledWith(1, true));
+    await waitFor(() => expect(onEntryFeeChanged).toHaveBeenCalledWith(true));
+  });
+
+  it('no muestra pagos cuando la liga no los tiene (liga pública)', async () => {
     api.fetchGroupMembers.mockResolvedValue(
       MEMBERS.map((member) => ({ ...member, paymentStatus: null })),
     );
@@ -91,15 +111,15 @@ describe('GroupMembersModal', () => {
     expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
   });
 
-  it('guarda nombre y reglas en una sola acción desde Ajustes', async () => {
+  it('guarda nombre y normas en una sola acción desde sus pestañas', async () => {
     const { onSaveSettings } = setup();
     await screen.findByText('Bruno');
 
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     fireEvent.change(screen.getByLabelText('Nombre de la liga'), {
       target: { value: 'Liga renovada' },
     });
-    fireEvent.click(screen.getByRole('tab', { name: 'Normas' }));
+    fireEvent.click(screen.getByRole('tab', { name: /Normas/ }));
     fireEvent.change(screen.getByLabelText('Normas de la liga'), {
       target: { value: 'Cuota de 15 €' },
     });
@@ -121,11 +141,7 @@ describe('GroupMembersModal', () => {
     const { onSaveSettings } = setup();
     await screen.findByText('Bruno');
 
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
-    expect(screen.getByRole('tab', { name: /Puntuación/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
     fireEvent.change(await screen.findByLabelText('Campeón'), { target: { value: '300' } });
     expect(screen.getByText('Por defecto: 200')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
@@ -153,17 +169,19 @@ describe('GroupMembersModal', () => {
     const onClose = vi.fn();
     setup({ onSaveSettings, onClose });
     await screen.findByText('Bruno');
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     fireEvent.change(screen.getByLabelText('Nombre de la liga'), {
       target: { value: 'Nueva liga' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
     await waitFor(() => expect(onSaveSettings).toHaveBeenCalled());
     expect(screen.getByLabelText('Nombre de la liga')).toBeDisabled();
-    expect(screen.getByLabelText('Campeón')).toBeDisabled();
+    fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
+    expect(await screen.findByLabelText('Campeón')).toBeDisabled();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
     finish(true);
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     await waitFor(() => expect(screen.getByLabelText('Nombre de la liga')).toBeEnabled());
     expect(screen.getByLabelText('Nombre de la liga')).toHaveValue('Nueva liga');
   });
@@ -177,7 +195,7 @@ describe('GroupMembersModal', () => {
     );
     setup();
     await screen.findByText('Bruno');
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
 
     const exact = await screen.findByLabelText('Resultado exacto');
     expect(exact).toHaveValue(10);
@@ -203,7 +221,7 @@ describe('GroupMembersModal', () => {
     api.fetchLeagueScoring.mockResolvedValue(leagueScoring({ editable: false }));
     setup();
     await screen.findByText('Bruno');
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
 
     expect(
       await screen.findByText('La puntuación de esta liga es fija y no se puede cambiar.'),
@@ -237,11 +255,23 @@ describe('GroupMembersModal', () => {
     await waitFor(() => expect(api.kickGroupMember).toHaveBeenCalledWith(1, 2));
   });
 
+  it('pide confirmación antes de ceder la administración', async () => {
+    setup();
+    await screen.findByText('Bruno');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hacer admin a Bruno' }));
+    expect(screen.getByText('¿Hacer admin? Dejarás de serlo.')).toBeInTheDocument();
+    expect(api.transferGroupAdmin).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    await waitFor(() => expect(api.transferGroupAdmin).toHaveBeenCalledWith(1, 2));
+  });
+
   it('solo elimina la liga al escribir su nombre exacto', async () => {
     const { onDelete } = setup();
     await screen.findByText('Bruno');
 
-    fireEvent.click(screen.getByRole('tab', { name: /Ajustes/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     fireEvent.click(screen.getByRole('button', { name: /Eliminar liga/i }));
     const confirmButton = screen.getByRole('button', { name: /Eliminar definitivamente/i });
     expect(confirmButton).toBeDisabled();

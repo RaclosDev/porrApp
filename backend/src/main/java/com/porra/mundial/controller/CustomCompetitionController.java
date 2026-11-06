@@ -10,12 +10,15 @@ import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.service.CustomLockService;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.service.CustomCompetitionService;
+import com.porra.mundial.service.OfficialCompetitionLinkService;
+import com.porra.mundial.util.AppTime;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,6 +27,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomCompetitionController {
     private final CustomCompetitionService service;
+    private final OfficialCompetitionLinkService linkService;
+
+    public record LinkOfficialRequest(@jakarta.validation.constraints.NotNull Long competitionId) {}
+
+    /** Pasa la liga a una competición oficial con cuadro propio conservando las predicciones. */
+    @PostMapping("/link-official")
+    public void linkOfficial(@PathVariable Long leagueId, @Valid @RequestBody LinkOfficialRequest request,
+                             Principal principal) {
+        linkService.link(leagueId, principal.getName(), request.competitionId());
+    }
 
     public record TeamItem(Long id, String name, String groupName, String logoUrl) {
         static TeamItem of(Team team) {
@@ -69,9 +82,9 @@ public class CustomCompetitionController {
     public record LockDateRequest(LocalDateTime lockDate) {}
 
     @PutMapping("/lock-date")
-    public LocalDateTime setLockDate(@PathVariable Long leagueId,
+    public Instant setLockDate(@PathVariable Long leagueId,
                                      @RequestBody LockDateRequest request, Principal principal) {
-        return service.setLockDate(leagueId, principal.getName(), request.lockDate());
+        return service.setLockDate(leagueId, principal.getName(), AppTime.fromLocal(request.lockDate()));
     }
 
     public record LockConfigRequest(PredictionLockMode mode, Integer offsetMinutes, LocalDateTime lockDate) {}
@@ -90,7 +103,8 @@ public class CustomCompetitionController {
     @PutMapping("/lock")
     public LockStateResponse setLockConfig(@PathVariable Long leagueId, @RequestBody LockConfigRequest request,
                                            Principal principal) {
-        service.setLockConfig(leagueId, principal.getName(), request.mode(), request.offsetMinutes(), request.lockDate());
+        service.setLockConfig(leagueId, principal.getName(), request.mode(), request.offsetMinutes(),
+                AppTime.fromLocal(request.lockDate()));
         return LockStateResponse.of(service.lockState(leagueId, principal.getName()));
     }
 
@@ -115,7 +129,7 @@ public class CustomCompetitionController {
     @PutMapping("/matches/{matchId}/date")
     public MatchResponseDTO setMatchDate(@PathVariable Long leagueId, @PathVariable Long matchId,
                                          @RequestBody MatchDateRequest request, Principal principal) {
-        return service.setMatchDate(leagueId, matchId, principal.getName(), request.matchDate());
+        return service.setMatchDate(leagueId, matchId, principal.getName(), AppTime.fromLocal(request.matchDate()));
     }
 
     @DeleteMapping("/matches/{matchId}")

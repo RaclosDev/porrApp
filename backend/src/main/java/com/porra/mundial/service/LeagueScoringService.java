@@ -31,7 +31,7 @@ public class LeagueScoringService {
     private final ScoreInvalidationService scoreInvalidationService;
 
     /**
-     * Puntuación de la liga. La de la Porra Global es pública; la de una liga privada, solo para sus miembros.
+     * Puntuación de la liga. La de una liga pública la ve cualquiera; la de una privada, solo para sus miembros.
      *
      * @throws BusinessException si la liga o su edición activa no existen o el usuario no puede verla
      */
@@ -46,14 +46,11 @@ public class LeagueScoringService {
      * Cambia las reglas de la edición activa. Si cambian, vuelve a puntuar los partidos terminados
      * e invalida las puntuaciones guardadas para que la clasificación se recalcule.
      *
-     * @throws BusinessException si no es el administrador, la liga es global o las reglas no son válidas
+     * @throws BusinessException si no es el administrador o las reglas no son válidas
      */
     @Transactional
     public LeagueScoringDTO updateScoring(Long leagueId, ScoringRuleSet rules, String email) {
         League league = findLeague(leagueId);
-        if (isGlobal(league)) {
-            throw BusinessException.forbidden("La puntuación de la Porra Global no se puede cambiar.");
-        }
         if (!isAdmin(league, email)) {
             throw BusinessException.forbidden("Solo el administrador de la liga puede cambiar la puntuación.");
         }
@@ -86,11 +83,7 @@ public class LeagueScoringService {
     }
 
     private static boolean canEdit(League league, String email) {
-        return !isGlobal(league) && isAdmin(league, email);
-    }
-
-    private static boolean isGlobal(League league) {
-        return League.isGlobalId(league.getId()) || league.isGlobal();
+        return isAdmin(league, email);
     }
 
     private static boolean isAdmin(League league, String email) {

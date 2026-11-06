@@ -3,7 +3,8 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
 
 /**
  * Entidad 'UserAccount'.
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 public class UserAccount {
 
     /**
-     * Cuenta interna "Admin" que crea {@code GroupService.initDefaultGroup}. Ningún login de
+     * Cuenta interna "Admin" del sistema (administra la antigua Porra Global). Ningún login de
      * Google puede devolver este email, así que solo el servidor actúa en su nombre.
      */
     public static final String SYSTEM_ADMIN_EMAIL = "admin@local";
@@ -35,6 +36,7 @@ public class UserAccount {
     @Column(nullable = false, unique = true)
     private String googleEmail;
 
+    /** Ya no se rellena (minimización de datos); la columna se mantiene por compatibilidad. */
     private String googleName;
 
     /** El apodo o nombre visible con el que se identifica en el ranking y grupos (Ej: "Raclos"). */
@@ -43,7 +45,12 @@ public class UserAccount {
 
     /** Fecha y hora en la que se registró por primera vez en la aplicación. */
     @Builder.Default
-    private LocalDateTime linkedAt = LocalDateTime.now();
+    private Instant linkedAt = Instant.now();
+
+    /** Último inicio de sesión o refresco de sesión, con precisión de un día. Sirve para borrar cuentas inactivas. */
+    @Column(name = "last_active_at", nullable = false)
+    @Builder.Default
+    private Instant lastActiveAt = Instant.now();
 
     /** 
      * ID del último grupo que tuvo seleccionado en el frontend.
@@ -54,15 +61,29 @@ public class UserAccount {
 
     /** Momento de la última subida de foto de perfil. Null si no tiene foto. Sirve para versionar la URL. */
     @Column(name = "avatar_updated_at")
-    private LocalDateTime avatarUpdatedAt;
+    private Instant avatarUpdatedAt;
+
+    /** Clave aleatoria de la URL de la foto; cambia en cada subida. */
+    @Column(name = "avatar_key", length = 32)
+    private String avatarKey;
+
+    /** Recibe un aviso push una hora antes de que cierre un partido que aún no ha predicho. */
+    @Column(name = "match_reminders_enabled", nullable = false)
+    @Builder.Default
+    private boolean matchRemindersEnabled = true;
+
+    /** Recibe un aviso push cuando alguien se une a una de sus ligas. */
+    @Column(name = "member_joined_alerts_enabled", nullable = false)
+    @Builder.Default
+    private boolean memberJoinedAlertsEnabled = true;
 
     @Column(name = "profile_setup_completed", nullable = false)
     private boolean profileSetupCompleted;
 
-    /** URL pública (versionada) de la foto de perfil, o null si no tiene. */
+    /** URL no adivinable de la foto de perfil, o null si no tiene. */
     @Transient
     public String getAvatarUrl() {
-        if (id == null || avatarUpdatedAt == null) return null;
-        return "/api/users/" + id + "/avatar?v=" + avatarUpdatedAt.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+        if (id == null || avatarUpdatedAt == null || avatarKey == null) return null;
+        return "/api/users/" + id + "/avatar/" + avatarKey;
     }
 }

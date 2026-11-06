@@ -12,7 +12,9 @@ import DemoBanner from './layout/DemoBanner';
 import MainNav from './layout/MainNav';
 import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
+import PushReminderPrompt from './layout/PushReminderPrompt';
 import LoginModal from './layout/LoginModal';
+import { isIos, isStandalone } from '../services/push';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -87,18 +89,6 @@ function Layout({ children }: { children: React.ReactNode }) {
     if (!isNavLocked || isNoLeagueAllowedPath) return;
     navigate('/mis-ligas', { replace: true });
   }, [isNavLocked, isNoLeagueAllowedPath, navigate]);
-
-  const isIos = () => {
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    return /iphone|ipad|ipod/.test(userAgent);
-  };
-
-  const isStandalone = () => {
-    return (
-      ('standalone' in window.navigator && window.navigator.standalone) ||
-      window.matchMedia('(display-mode: standalone)').matches
-    );
-  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -191,7 +181,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               <span>PorrApp</span>
             </NavLink>
 
-            {isLanding || isInviteAuthScreen ? null : isDemo ? (
+            {isLanding || isInviteAuthScreen || (!isUserLoggedIn && !isDemo) ? null : isDemo ? (
               <span className="ink-stamp ink-stamp-sm ink-stamp-ink inline-block min-w-0 truncate">
                 Mundial 2026
               </span>
@@ -255,6 +245,10 @@ function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}
+
+      {isUserLoggedIn && !isDemo && (
+        <PushReminderPrompt canPrompt={!showInstallBanner && !isLanding} />
+      )}
 
       {showInstallBanner && (
         <InstallBanner

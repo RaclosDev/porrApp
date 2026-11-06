@@ -9,13 +9,14 @@ import com.porra.mundial.repository.LeagueImageRepository;
 import com.porra.mundial.repository.LeagueRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.repository.UserAvatarRepository;
+import com.porra.mundial.util.ImageKeys;
 import com.porra.mundial.util.ImageProcessor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -45,7 +46,7 @@ public class ProfileImageService {
     private final UserAvatarRepository userAvatarRepository;
 
     /** Imagen lista para servir. */
-    public record StoredImage(byte[] data, String contentType, LocalDateTime updatedAt) {
+    public record StoredImage(byte[] data, String contentType, Instant updatedAt) {
     }
 
     // Ligas
@@ -54,7 +55,7 @@ public class ProfileImageService {
     public League saveLeagueImage(Long groupId, String email, byte[] raw) {
         League league = requireLeagueAdmin(groupId, email);
         ImageProcessor.ProcessedImage image = ImageProcessor.process(raw);
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         LeagueImage leagueImage = leagueImageRepository.findById(league.getId())
                 .orElseGet(() -> LeagueImage.builder().leagueId(league.getId()).build());
@@ -64,6 +65,7 @@ public class ProfileImageService {
         leagueImage.setUpdatedAt(now);
         leagueImageRepository.save(leagueImage);
         league.setImageUpdatedAt(now);
+        league.setImageKey(ImageKeys.newKey());
         return leagueRepository.save(league);
     }
 
@@ -74,11 +76,23 @@ public class ProfileImageService {
             leagueImageRepository.deleteById(league.getId());
         }
         league.setImageUpdatedAt(null);
+        league.setImageKey(null);
         return leagueRepository.save(league);
     }
 
+    /** Uso interno del servidor (vista previa de una invitación); no comprueba la clave. */
     @Transactional(readOnly = true)
     public Optional<StoredImage> getLeagueImage(Long groupId) {
+        return leagueImageRepository.findById(groupId)
+                .map(i -> new StoredImage(i.getData(), i.getContentType(), i.getUpdatedAt()));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<StoredImage> getLeagueImage(Long groupId, String key) {
+        boolean keyOk = leagueRepository.findById(groupId)
+                .map(l -> l.getImageUpdatedAt() != null && ImageKeys.matches(l.getImageKey(), key))
+                .orElse(false);
+        if (!keyOk) return Optional.empty();
         return leagueImageRepository.findById(groupId)
                 .map(i -> new StoredImage(i.getData(), i.getContentType(), i.getUpdatedAt()));
     }
@@ -100,7 +114,7 @@ public class ProfileImageService {
     public UserAccount saveAvatar(String email, byte[] raw) {
         UserAccount user = requireUser(email);
         ImageProcessor.ProcessedImage image = ImageProcessor.process(raw);
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         UserAvatar avatar = userAvatarRepository.findById(user.getId())
                 .orElseGet(() -> UserAvatar.builder().userId(user.getId()).build());
@@ -110,6 +124,7 @@ public class ProfileImageService {
         avatar.setUpdatedAt(now);
         userAvatarRepository.save(avatar);
         user.setAvatarUpdatedAt(now);
+        user.setAvatarKey(ImageKeys.newKey());
         return userAccountRepository.save(user);
     }
 
@@ -120,11 +135,16 @@ public class ProfileImageService {
             userAvatarRepository.deleteById(user.getId());
         }
         user.setAvatarUpdatedAt(null);
+        user.setAvatarKey(null);
         return userAccountRepository.save(user);
     }
 
     @Transactional(readOnly = true)
-    public Optional<StoredImage> getAvatar(Long userId) {
+    public Optional<StoredImage> getAvatar(Long userId, String key) {
+        boolean keyOk = userAccountRepository.findById(userId)
+                .map(u -> u.getAvatarUpdatedAt() != null && ImageKeys.matches(u.getAvatarKey(), key))
+                .orElse(false);
+        if (!keyOk) return Optional.empty();
         return userAvatarRepository.findById(userId)
                 .map(a -> new StoredImage(a.getData(), a.getContentType(), a.getUpdatedAt()));
     }
@@ -162,7 +182,7 @@ public class ProfileImageService {
             throw BusinessException.badRequest(
                     "El nombre solo puede contener letras, números, espacios y los símbolos . _ ' -");
         }
-        // "Admin" está reservado: es el nombre de la cuenta que administra la Porra Global.
+        // "Admin" está reservado: es el nombre de la cuenta interna del sistema.
         if (name.toLowerCase(Locale.ROOT).equals("admin")) {
             throw BusinessException.badRequest("Ese nombre no está disponible.");
         }

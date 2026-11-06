@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
 import { Navigate } from 'react-router-dom';
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import type { CredentialResponse } from '@react-oauth/google';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
 import GroupCard from '../components/groups/GroupCard';
@@ -12,7 +13,9 @@ import JoinGroupPanel from '../components/groups/JoinGroupPanel';
 import CreateLeagueWizard from '../components/groups/CreateLeagueWizard';
 import CreatedLeagueModal from '../components/groups/CreatedLeagueModal';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
+import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
 import type { Group } from '../types/api';
+import { sortGroupsByRecent } from '../utils/groupOrder';
 
 /** Mis ligas: crear, unirse con código y administrar. */
 export default function GroupsDashboard() {
@@ -24,6 +27,7 @@ export default function GroupsDashboard() {
 
   const {
     groups,
+    summaries,
     competitions,
     loading,
     error,
@@ -92,7 +96,7 @@ export default function GroupsDashboard() {
       <div className="join-auth-screen paper-panel album-sheet landing-tape text-center p-6">
         <h2 className="poster-title text-2xl mb-5">Inicia sesión para crear o unirte a una liga</h2>
         <div className="flex justify-center">
-          <GoogleLogin
+          <GoogleSignInButton
             onSuccess={handleDirectGoogleLogin}
             onError={() => toast.error('Inicio de sesión cancelado')}
             theme="outline"
@@ -242,14 +246,15 @@ export default function GroupsDashboard() {
           </div>
         </div>
       ) : (
-        <div className="flex gap-[15px] flex-wrap justify-center">
-          {groups.map((group) => {
+        <ul className="grid gap-2.5 md:grid-cols-2 max-w-240 mx-auto my-0 p-0 list-none">
+          {sortGroupsByRecent(groups, activeGroupId).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
             const isCreator = isGroupAdmin(group);
             return (
               <GroupCard
                 key={group.id}
                 group={group}
+                summary={summaries.get(group.id)}
                 isSelected={isSelected}
                 isCreator={isCreator}
                 handleEnterGroup={handleEnterGroup}
@@ -263,7 +268,7 @@ export default function GroupsDashboard() {
               />
             );
           })}
-        </div>
+        </ul>
       )}
       {selectedGroupForMembers && (
         <GroupMembersModal
@@ -286,11 +291,26 @@ export default function GroupsDashboard() {
             );
           }}
           isAdmin={isGroupAdmin(selectedGroupForMembers)}
+          lockSection={
+            hasLeagueLockSetting(selectedGroupForMembers) ? (
+              <LeagueLockSection group={selectedGroupForMembers} />
+            ) : null
+          }
           currentUserId={userId}
           onClose={() => setSelectedGroupForMembers(null)}
           onCodeRegenerated={(newCode) => {
             setSelectedGroupForMembers((prev) =>
               prev?.id === selectedGroupForMembers.id ? { ...prev, joinCode: newCode } : prev,
+            );
+          }}
+          entryFee={
+            selectedGroupForMembers.publicLeague
+              ? undefined
+              : Boolean(selectedGroupForMembers.entryFee)
+          }
+          onEntryFeeChanged={(entryFee) => {
+            setSelectedGroupForMembers((prev) =>
+              prev?.id === selectedGroupForMembers.id ? { ...prev, entryFee } : prev,
             );
           }}
           onSaveSettings={async ({ name, rules }) => {

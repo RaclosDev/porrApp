@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { fetchCustomTeams, fetchCustomMatches } from '../services/api';
@@ -11,22 +11,15 @@ import {
   customMatchWinner,
   nextCustomBracketMatch,
   splitCustomRounds,
-  type CustomResultSlot,
 } from '../utils/customBracket';
 import PaperLoading from '../components/PaperLoading';
-import BracketCanvas, { TeamSlot, type CanvasMatch } from '../components/BracketCanvas';
-import { BracketFinalMatch } from '../components/BracketFinale';
+import ResultBracket from '../components/official/ResultBracket';
 import OfficialBracketTabs from '../components/official/OfficialBracketTabs';
 import FeaturedMatchBanner from '../components/official/FeaturedMatchBanner';
 import BracketInfoPanel from '../components/official/BracketInfoPanel';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import GroupStandingsCard from '../components/Home/GroupStandingsCard';
 import GroupMatchesModal, { type SelectedGroup } from '../components/GroupMatchesModal';
-
-const toCanvasMatch = (slot: CustomResultSlot): CanvasMatch<string | null> => ({
-  home: slot.home,
-  away: slot.away,
-});
 
 /**
  * Portada de una competición personalizada con el aspecto del cuadro oficial: pestañas de cuadro y
@@ -77,48 +70,6 @@ export default function CustomTournamentHome() {
   const loading = teamsQuery.isPending || matchesQuery.isPending;
   const loadError = teamsQuery.error ?? matchesQuery.error;
   const hasGroups = Object.keys(groupTables).length > 0;
-  const finalMatch = layout.final?.match;
-  const champion = finalMatch ? customMatchWinner(finalMatch) : null;
-
-  /** Casilla de un equipo con su marcador, como en el cuadro oficial. */
-  const renderResultSlot = (slot: CustomResultSlot | null | undefined, isHome: boolean) => {
-    if (!slot) return <TeamSlot name={null} />;
-    const name = isHome ? slot.home : slot.isBye ? null : slot.away;
-    const label = name ?? (isHome ? slot.homePlaceholder : slot.awayPlaceholder);
-    const match = slot.match;
-    const played = Boolean(match?.finished && match.homeScore != null && match.awayScore != null);
-    const isWinner = Boolean(name && match && played && customMatchWinner(match) === name);
-
-    let style: CSSProperties = {};
-    if (name && match && featuredMatch?.id === match.id) {
-      style = {
-        border: '2px solid var(--accent-cyan)',
-        position: 'relative',
-        zIndex: 10,
-        fontWeight: 'bold',
-      };
-    }
-
-    return (
-      <TeamSlot
-        name={label}
-        logo={name ? logos[name] : null}
-        placeholder={!name}
-        slotStyle={style}
-        rightContent={
-          played && name ? (
-            <span
-              className={`ml-1 text-[0.85em] font-bold bg-[rgba(17,24,39,0.06)] bg-none py-0.5 px-1 rounded-[4px] ${isWinner ? 'text-[var(--hit)]' : 'text-muted'}`}
-            >
-              {isHome ? match?.homeScore : match?.awayScore}
-              {isWinner && <span className="sr-only"> (ganador)</span>}
-            </span>
-          ) : null
-        }
-      />
-    );
-  };
-
   const groupRows = (group: string) =>
     (groupTables[group] ?? []).map((row) => ({
       name: row.team,
@@ -189,6 +140,7 @@ export default function CustomTournamentHome() {
               featuredMatch={featuredMatch}
               manualResults
               roundTitle={featuredRound?.title}
+              groupId={activeGroupId}
               homeLogo={logos[featuredMatch.home]}
               awayLogo={logos[featuredMatch.away]}
             />
@@ -208,27 +160,11 @@ export default function CustomTournamentHome() {
           )}
 
           {layout.final ? (
-            <BracketCanvas
-              leftRounds={layout.left.map((round) => round.map(toCanvasMatch))}
-              rightRounds={layout.right.map((round) => round.map(toCanvasMatch))}
-              roundLabels={layout.roundLabels}
-              centerLabel={layout.roundLabels.length ? 'Semifinales y final' : 'Final'}
-              renderSlot={(_, { side, roundIndex, matchIndex, isHome }) =>
-                renderResultSlot(layout[side][roundIndex]?.[matchIndex], isHome)
-              }
-              renderFinal={() => (
-                <BracketFinalMatch
-                  home={renderResultSlot(layout.final, true)}
-                  away={renderResultSlot(layout.final, false)}
-                  champion={
-                    <TeamSlot
-                      name={champion}
-                      logo={champion ? logos[champion] : null}
-                      placeholder={!champion}
-                    />
-                  }
-                />
-              )}
+            <ResultBracket
+              layout={layout}
+              logos={logos}
+              featuredMatchId={featuredMatch?.id}
+              winnerOf={customMatchWinner}
             />
           ) : (
             <p className="paper-panel album-sheet p-5 text-center max-w-145 mx-auto">

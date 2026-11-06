@@ -18,6 +18,7 @@ import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.scoring.ScoringRuleSet;
 import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -133,8 +135,13 @@ class LeaderboardServiceTest {
         ParticipantScoreDTO first = leaderboard.get(0);
         assertEquals(4, first.getMatchPoints(), "matchPoints debe ser la suma de los puntos otorgados (3 + 1)");
         assertEquals(4, first.getTotal(), "total debe incluir los matchPoints (4)");
-        assertEquals(4, pred.getMatchPoints(), "La entidad Prediction debe recibir el valor calculado de matchPoints");
-        assertEquals(4, pred.getTotalPoints(), "La entidad Prediction debe recibir el valor calculado de totalPoints");
+        // Se guardan solo las columnas de puntos, sin tocar la entidad (no pisa predicciones guardadas a la vez).
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(100L),
+                org.mockito.ArgumentMatchers.eq(4), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(4),
+                org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(predictionRepository, org.mockito.Mockito.never()).saveAll(org.mockito.ArgumentMatchers.any());
         // Una sola consulta para todos los participantes, no una por participante.
         org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.times(1)).findWithMatchByPredictionIdIn(org.mockito.ArgumentMatchers.any());
         org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.never()).findByPredictionId(org.mockito.ArgumentMatchers.anyLong());
@@ -151,7 +158,7 @@ class LeaderboardServiceTest {
                 .paymentStatus("PAID")
                 .matchPoints(6)
                 .totalPoints(6)
-                .scoreCalculatedAt(LocalDateTime.now())
+                .scoreCalculatedAt(Instant.now())
                 .build();
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
@@ -165,6 +172,40 @@ class LeaderboardServiceTest {
     }
 
     @Test
+    @DisplayName("getLeaderboard solo recalcula las porras invalidadas y reutiliza los puntos guardados del resto")
+    void getLeaderboard_RecalculatesOnlyStalePredictions() {
+        UserAccount fresh = UserAccount.builder().id(10L).participantName("Guardada").build();
+        UserAccount changed = UserAccount.builder().id(11L).participantName("Cambiada").build();
+        Prediction materialized = Prediction.builder().id(100L).user(fresh).name("Guardada").paymentStatus("PAID")
+                .matchPoints(6).totalPoints(6).scoreCalculatedAt(Instant.now()).build();
+        Prediction stale = Prediction.builder().id(101L).user(changed).name("Cambiada").paymentStatus("PAID")
+                .scoreCalculatedAt(null).build();
+        MatchPrediction mp = MatchPrediction.builder().id(1L).prediction(stale).pointsAwarded(3).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(materialized, stale));
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(101L))).thenReturn(List.of(mp));
+        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+                new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of(), null));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertEquals(2, leaderboard.size());
+        assertEquals(6, leaderboard.get(0).getTotal());
+        assertEquals(3, leaderboard.get(1).getTotal());
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(101L),
+                org.mockito.ArgumentMatchers.eq(3), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(3),
+                org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(predictionRepository, org.mockito.Mockito.never()).saveCalculatedScore(
+                org.mockito.ArgumentMatchers.eq(100L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     @DisplayName("getLeaderboard incluye miembros de la liga aunque todavía no tengan una porra")
     void getLeaderboard_IncludesMembersWithoutPredictions() {
         UserAccount existingUser = UserAccount.builder().id(10L).participantName("Jugador 1").build();
@@ -175,7 +216,7 @@ class LeaderboardServiceTest {
                 .paymentStatus("PAID")
                 .matchPoints(6)
                 .totalPoints(6)
-                .scoreCalculatedAt(LocalDateTime.now())
+                .scoreCalculatedAt(Instant.now())
                 .build();
         UserAccount joinedUser = UserAccount.builder().id(20L).participantName("Jugador Unido").build();
         Membership membership = Membership.builder().user(joinedUser).build();
@@ -206,7 +247,7 @@ class LeaderboardServiceTest {
                 .user(unpaidUser)
                 .name("Porra 1")
                 .paymentStatus("PAID")
-                .scoreCalculatedAt(LocalDateTime.now())
+                .scoreCalculatedAt(Instant.now())
                 .build();
         UserAccount paidUser = UserAccount.builder().id(20L).participantName("Pagado").build();
         Prediction unpaidPrediction = Prediction.builder()
@@ -214,14 +255,15 @@ class LeaderboardServiceTest {
                 .user(paidUser)
                 .name("Porra 2")
                 .paymentStatus("PENDING")
-                .scoreCalculatedAt(LocalDateTime.now())
+                .scoreCalculatedAt(Instant.now())
                 .build();
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L))
                 .thenReturn(List.of(paidPrediction, unpaidPrediction));
+        com.porra.mundial.model.League feeLeague = com.porra.mundial.model.League.builder().id(10L).entryFee(true).build();
         when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
-                Membership.builder().user(unpaidUser).paymentStatus("PENDING").build(),
-                Membership.builder().user(paidUser).paymentStatus("PAID").build()));
+                Membership.builder().league(feeLeague).user(unpaidUser).paymentStatus("PENDING").build(),
+                Membership.builder().league(feeLeague).user(paidUser).paymentStatus("PAID").build()));
 
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
 
@@ -231,6 +273,26 @@ class LeaderboardServiceTest {
         assertFalse(leaderboard.stream()
                 .filter(score -> Long.valueOf(20L).equals(score.getUserId()))
                 .findFirst().orElseThrow().isPending());
+    }
+
+    @Test
+    @DisplayName("getLeaderboard no deja a nadie pendiente de pago si la liga no tiene cuota")
+    void getLeaderboard_NoEntryFeeNeverPending() {
+        UserAccount user = UserAccount.builder().id(10L).participantName("Sin Cuota").build();
+        Prediction prediction = Prediction.builder()
+                .id(100L)
+                .user(user)
+                .name("Porra 1")
+                .paymentStatus("PENDING")
+                .scoreCalculatedAt(Instant.now())
+                .build();
+        com.porra.mundial.model.League freeLeague = com.porra.mundial.model.League.builder().id(10L).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(prediction));
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().league(freeLeague).user(user).paymentStatus("PENDING").build()));
+
+        assertFalse(leaderboardService.getLeaderboard(10L).get(0).isPending());
     }
 
     @Test
@@ -246,19 +308,19 @@ class LeaderboardServiceTest {
 
         Match jornada1 = Match.builder()
                 .round("Jornada 1")
-                .matchDate(LocalDateTime.of(2026, 8, 15, 17, 30))
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 15, 17, 30)))
                 .finished(true)
                 .status(MatchStatusNormalized.FINISHED)
                 .build();
         Match jornada2 = Match.builder()
                 .round("Jornada 2")
-                .matchDate(LocalDateTime.of(2026, 8, 22, 17, 30))
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 22, 17, 30)))
                 .finished(true)
                 .status(MatchStatusNormalized.FINISHED)
                 .build();
         Match jornada3 = Match.builder()
                 .round("Jornada 3")
-                .matchDate(LocalDateTime.of(2026, 8, 29, 17, 30))
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 29, 17, 30)))
                 .finished(false)
                 .status(MatchStatusNormalized.SCHEDULED)
                 .build();
@@ -343,8 +405,11 @@ class LeaderboardServiceTest {
         assertEquals(500, leaderboard.get(0).getFinals());
         assertEquals(200, leaderboard.get(1).getFinals());
         assertEquals(200, leaderboard.get(2).getFinals());
-        assertEquals(500, withCustom.getTotalPoints(), "se guarda la puntuación con las reglas de la liga");
-        assertEquals(200, withDefaults.getTotalPoints());
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(300L),
+                org.mockito.ArgumentMatchers.eq(500), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
     }
 
     @Test

@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   createGroup,
   joinGroup,
@@ -15,11 +15,19 @@ import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
-import { myGroupsQuery } from '../services/queries';
-import type { Competition, Group, PoolFormat } from '../types/api';
+import { myGroupsQuery, myLeagueSummariesQuery } from '../services/queries';
+import type { Competition, Group, LeagueSummary, PoolFormat } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { isApiError } from '../services/apiError';
 import { useAppStore } from '../store/useAppStore';
+
+/** Identificador aleatorio para la cabecera `Idempotency-Key`. */
+function newIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
 
 type GroupId = number | string;
 
@@ -72,6 +80,11 @@ export function useGroupsDashboard() {
     error: myGroupsError,
     refetch: refetchMyGroups,
   } = useQuery(myGroupsQuery(isAuthenticated));
+  const { data: summaryList } = useQuery(myLeagueSummariesQuery(isAuthenticated));
+  const summaries = useMemo(
+    () => new Map<number, LeagueSummary>((summaryList ?? []).map((s) => [s.groupId, s])),
+    [summaryList],
+  );
   const [extraGroups, setExtraGroups] = useState<Group[]>([]);
   const groups = useMemo(() => [...(myGroups ?? []), ...extraGroups], [myGroups, extraGroups]);
   const loading = Boolean(userName) && myGroupsPending;
@@ -155,6 +168,10 @@ export function useGroupsDashboard() {
     refetchMyGroups();
   }, [refetchMyGroups]);
 
+  // Clave de idempotencia de la creación en curso: se mantiene entre reintentos para que
+  // el servidor devuelva la misma liga si la primera respuesta se perdió.
+  const creationKeyRef = useRef<string | null>(null);
+
   const handleCreate = async (e?: { preventDefault?: () => void }) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isCreating) return;
@@ -167,6 +184,7 @@ export function useGroupsDashboard() {
       return;
     }
     setIsCreating(true);
+    creationKeyRef.current ??= newIdempotencyKey();
     try {
       const group = await createGroup(
         newGroupName.trim(),
@@ -174,7 +192,9 @@ export function useGroupsDashboard() {
         selectedPoolFormat,
         includePichichi,
         selectedCompetition ? undefined : customCompetitionName.trim(),
+        creationKeyRef.current,
       );
+      creationKeyRef.current = null;
       setNewGroupName('');
       setCustomCompetitionName('');
       setNewlyCreatedGroup(group);
@@ -192,7 +212,7 @@ export function useGroupsDashboard() {
   const handleShareWhatsApp = (group: Pick<Group, 'joinCode'> | null | undefined) => {
     if (!group?.joinCode) return;
 
-    const link = `https://porra.raclos.es/join/${encodeURIComponent(group.joinCode)}`;
+    const link = `${window.location.origin}/join/${encodeURIComponent(group.joinCode)}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, '_blank', 'noopener,noreferrer');
   };
 
@@ -234,7 +254,7 @@ export function useGroupsDashboard() {
     if (
       !skipConfirm &&
       !window.confirm(
-        `¿Eliminar la liga "${groupName}"? Se borrarán todos sus pronósticos y no se puede deshacer.`,
+        `¿Eliminar la liga "${groupName}"? Se borrarán todas sus predicciones y no se puede deshacer.`,
       )
     )
       return false;
@@ -340,6 +360,7 @@ export function useGroupsDashboard() {
   };
 
   return {
+    summaries,
     groups,
     competitions,
     loading,

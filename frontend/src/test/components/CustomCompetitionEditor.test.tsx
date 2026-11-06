@@ -17,6 +17,8 @@ const api = vi.hoisted(() => ({
   setCustomLockDate: vi.fn(),
   fetchCustomLockState: vi.fn(),
   setCustomLockConfig: vi.fn(),
+  fetchCompetitions: vi.fn(),
+  linkOfficialCompetition: vi.fn(),
 }));
 
 const LOCK_STATE = {
@@ -91,6 +93,16 @@ describe('CustomCompetitionEditor', () => {
     api.fetchCustomTeams.mockResolvedValue(TEAMS);
     api.fetchCustomMatches.mockResolvedValue([]);
     api.fetchCustomLockState.mockResolvedValue(LOCK_STATE);
+    api.fetchCompetitions.mockResolvedValue([
+      { id: 4, name: 'LaLiga EA Sports', externalId: 'esp.1', formatType: 'LEAGUE' },
+      { id: 10, name: 'Copa del Rey', externalId: 'esp.copa_del_rey', formatType: 'TOURNAMENT' },
+      {
+        id: 19,
+        name: 'Worlds de League of Legends',
+        externalId: 'lol.worlds',
+        formatType: 'TOURNAMENT',
+      },
+    ]);
     api.setCustomLockConfig.mockImplementation((_id: number, config: object) => {
       const state = { ...LOCK_STATE, ...config };
       api.fetchCustomLockState.mockResolvedValue(state);
@@ -117,7 +129,7 @@ describe('CustomCompetitionEditor', () => {
     setup();
 
     expect(screen.getByRole('dialog', { name: 'Copa del barrio' })).toBeInTheDocument();
-    expect(await screen.findByText('Elige cuándo se cierran los pronósticos')).toBeInTheDocument();
+    expect(await screen.findByText('Elige cuándo se cierran las predicciones')).toBeInTheDocument();
     expect(screen.getByText('Crea los partidos de grupos')).toBeInTheDocument();
     expect(screen.getByText('Faltan 3 pasos')).toBeInTheDocument();
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
@@ -175,7 +187,7 @@ describe('CustomCompetitionEditor', () => {
     setup();
 
     expect(
-      await screen.findByText(/Puedes cambiar el criterio aunque ya haya pronósticos/),
+      await screen.findByText(/Puedes cambiar el criterio aunque ya haya predicciones/),
     ).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('radio', { name: 'Por partidos' }));
     fireEvent.change(screen.getByLabelText('Margen antes del partido'), { target: { value: '2' } });
@@ -220,12 +232,12 @@ describe('CustomCompetitionEditor', () => {
     expect(screen.getByLabelText('Grupo')).toHaveValue('B');
 
     api.addCustomTeam.mockRejectedValueOnce(
-      new Error('No se pueden cambiar los equipos después del primer pronóstico'),
+      new Error('No se pueden cambiar los equipos después de la primera predicción'),
     );
     fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Linces' } });
     fireEvent.click(screen.getByRole('button', { name: 'Añadir equipo' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'No se pueden cambiar los equipos después del primer pronóstico',
+      'No se pueden cambiar los equipos después de la primera predicción',
     );
     expect(screen.getByLabelText('Nombre')).toHaveValue('Linces');
   });
@@ -368,5 +380,19 @@ describe('CustomCompetitionEditor', () => {
     expect(
       screen.getByRole('button', { name: 'Guardar resultado de Osos – Tigres' }),
     ).toBeDisabled();
+  });
+
+  it('pasa la liga a una competición oficial tras confirmarlo', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { invalidate } = setup('KNOCKOUTS_ONLY');
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Pasar a Worlds de League of Legends' }),
+    );
+
+    await waitFor(() => expect(api.linkOfficialCompetition).toHaveBeenCalledWith(7, 19));
+    expect(confirm).toHaveBeenCalled();
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith());
+    confirm.mockRestore();
   });
 });

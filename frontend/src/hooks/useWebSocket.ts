@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
-import type { Match } from '../types/api';
+import type { Group, Match } from '../types/api';
 import { queryKeys } from '../services/queryKeys';
+import { getAuthToken } from '../services/api';
 
 /** Consultas que cambian cuando cambia un resultado. */
 const SCORE_DEPENDENT_KEYS = [
@@ -34,23 +35,47 @@ const RECONNECT_KEYS = [
   queryKeys.myGroups(),
 ];
 
+/** Consultas que cambian cuando avanza solo el minuto de juego. */
+const CLOCK_KEYS = [queryKeys.matches(), queryKeys.radar()];
+
+/**
+ * Retraso aleatorio máximo antes de volver a pedir datos tras un aviso: reparte en el tiempo
+ * las peticiones de todos los clientes conectados en vez de lanzarlas a la vez.
+ */
+export const INVALIDATION_JITTER_MS = 2000;
+const INVALIDATION_BASE_DELAY_MS = 100;
+
 /** Consultas de una liga concreta: solo se vuelven a pedir si están en pantalla. */
-const leagueKeys = (leagueId: string | number) => [
+const leagueKeys = (leagueId: string | number, isMine: boolean) => [
   queryKeys.group(leagueId),
   queryKeys.groupMembers(leagueId),
   queryKeys.leagueScoring(leagueId),
   queryKeys.predictions(leagueId),
-  // El aviso no dice de quién es el cambio: puede ser la porra propia (o su borrado).
-  queryKeys.myPredictions(),
   queryKeys.leaderboard(leagueId),
   queryKeys.leaderboardMatchdays(leagueId),
   queryKeys.matchdayFixtures(leagueId),
   queryKeys.matchFriendPredictions(leagueId),
   queryKeys.matchdayStats(leagueId),
-  queryKeys.predictionScore(),
-  // Las tarjetas de "Mis ligas" muestran miembros e imagen.
-  queryKeys.myGroups(),
+  // Están en pantalla en casi todas las vistas: solo se piden si la liga es mía, para que
+  // el aviso de una liga pública no haga recargar a todos los conectados.
+  ...(isMine
+    ? [
+        // El aviso no dice de quién es el cambio: puede ser la porra propia (o su borrado).
+        queryKeys.myPredictions(),
+        queryKeys.predictionScore(),
+        // Las tarjetas de "Mis ligas" muestran miembros e imagen.
+        queryKeys.myGroups(),
+      ]
+    : []),
 ];
+
+const isMyLeague = (queryClient: QueryClient, leagueId: string | number) =>
+  queryClient
+    .getQueriesData<Group[]>({ queryKey: queryKeys.myGroups() })
+    .some(
+      ([, groups]) =>
+        Array.isArray(groups) && groups.some((group) => String(group?.id) === String(leagueId)),
+    );
 
 const invalidateAll = (queryClient: QueryClient, keys: readonly (readonly unknown[])[]) => {
   keys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
@@ -71,11 +96,14 @@ export function useWebSocket(queryClient: QueryClient) {
     const queueInvalidations = (keys: readonly (readonly unknown[])[]) => {
       keys.forEach((key) => pendingInvalidations.set(JSON.stringify(key), key));
       if (invalidationTimer !== null) return;
-      invalidationTimer = setTimeout(() => {
-        invalidationTimer = null;
-        invalidateAll(queryClient, [...pendingInvalidations.values()]);
-        pendingInvalidations.clear();
-      }, 100);
+      invalidationTimer = setTimeout(
+        () => {
+          invalidationTimer = null;
+          invalidateAll(queryClient, [...pendingInvalidations.values()]);
+          pendingInvalidations.clear();
+        },
+        INVALIDATION_BASE_DELAY_MS + Math.floor(Math.random() * INVALIDATION_JITTER_MS),
+      );
     };
 
     const connectWebSocket = () => {
@@ -92,8 +120,17 @@ export function useWebSocket(queryClient: QueryClient) {
           invalidateAll(queryClient, RECONNECT_KEYS);
           disconnected = false;
         }
+        // Los avisos de una liga privada solo llegan a sus miembros: el servidor necesita
+        // saber quién está conectado. Se reenvía si el token cambia (refresco, login o logout).
+        let sentToken = getAuthToken();
+        socket.send(JSON.stringify({ type: 'AUTH', token: sentToken }));
         wsPingInterval = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
+            const token = getAuthToken();
+            if (token !== sentToken) {
+              sentToken = token;
+              socket.send(JSON.stringify({ type: 'AUTH', token }));
+            }
             socket.send(JSON.stringify({ type: 'PING' }));
           }
         }, 10000);
@@ -105,8 +142,12 @@ export function useWebSocket(queryClient: QueryClient) {
           const msg = JSON.parse(event.data);
           if (msg.type === 'DATA_UPDATED') {
             queueInvalidations(DATA_DEPENDENT_KEYS);
+          } else if (msg.type === 'CLOCK_UPDATED') {
+            queueInvalidations(CLOCK_KEYS);
           } else if (msg.type === 'LEAGUE_UPDATED') {
-            if (msg.leagueId != null) invalidateAll(queryClient, leagueKeys(msg.leagueId));
+            if (msg.leagueId != null) {
+              queueInvalidations(leagueKeys(msg.leagueId, isMyLeague(queryClient, msg.leagueId)));
+            }
           } else if (msg.type === 'MATCH_SCORE_UPDATED') {
             if (msg.matchId) {
               queryClient.setQueriesData(

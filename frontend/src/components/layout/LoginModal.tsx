@@ -1,6 +1,7 @@
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import type { CredentialResponse } from '@react-oauth/google';
+import GoogleSignInButton from '../GoogleSignInButton';
 import toast from 'react-hot-toast';
-import type { NavigateFunction } from 'react-router-dom';
+import { Link, type NavigateFunction } from 'react-router-dom';
 import { useRef } from 'react';
 import { useDialogFocus } from '../../hooks/useDialogFocus';
 
@@ -45,14 +46,36 @@ export default function LoginModal({
             Inicia sesión con Google para ver tus ligas y rellenar tu porra.
           </p>
           <div className="flex justify-center mb-5">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => toast.error('Inicio de sesión cancelado o fallido')}
-              theme="outline"
-              shape="pill"
-              text="continue_with"
-            />
+            {/* El diálogo siempre está montado: el SDK de Google solo se carga al abrirlo. */}
+            {showMyPredictionModal && (
+              <GoogleSignInButton
+                onSuccess={handleGoogleSuccess}
+                onError={() => toast.error('Inicio de sesión cancelado o fallido')}
+                theme="outline"
+                shape="pill"
+                text="continue_with"
+              />
+            )}
           </div>
+          <p className="mb-4 text-[0.8rem] text-muted leading-[1.5]">
+            Al continuar aceptas el{' '}
+            <Link
+              to="/aviso-legal"
+              className="underline"
+              onClick={() => setShowMyPredictionModal(false)}
+            >
+              aviso legal
+            </Link>{' '}
+            y la{' '}
+            <Link
+              to="/privacidad"
+              className="underline"
+              onClick={() => setShowMyPredictionModal(false)}
+            >
+              política de privacidad
+            </Link>
+            .
+          </p>
           <button
             className="glass-btn mt-2.5 text-[0.85rem] py-2 px-[15px] opacity-[0.8] w-full"
             onClick={() => {

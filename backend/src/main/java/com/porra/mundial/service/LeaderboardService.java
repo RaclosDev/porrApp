@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -51,78 +51,60 @@ public class LeaderboardService {
             .thenComparing(Comparator.comparingInt(ParticipantScoreDTO::getMatchPoints).reversed())
             .thenComparing(score -> score.getName() != null ? score.getName() : "", String.CASE_INSENSITIVE_ORDER);
 
-    @Cacheable(value = "leaderboard", key = "#groupId != null ? #groupId : 0L")
+    @Cacheable(value = "leaderboard", key = "#groupId != null ? #groupId : 0L", sync = true)
     @org.springframework.transaction.annotation.Transactional
     public List<ParticipantScoreDTO> getLeaderboard(Long groupId) {
         List<Prediction> groupPredictions = groupId != null
                 ? predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId)
                 : predictionRepository.findAllWithUserAndEdition();
 
-        boolean allMaterialized = !groupPredictions.isEmpty() && groupPredictions.stream()
-                .allMatch(p -> p.getScoreCalculatedAt() != null);
-
-        if (allMaterialized) {
-            Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
-            List<ParticipantScoreDTO> fastLeaderboard = new ArrayList<>(groupPredictions.size());
-            for (Prediction pred : groupPredictions) {
-                ParticipantScoreDTO score = ParticipantScoreDTO.builder()
-                        .id(pred.getId())
-                        .userId(pred.getUser() != null ? pred.getUser().getId() : null)
-                        .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()))
-                        .predictionName(pred.getPredictionName())
-                        .avatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null)
-                        .pending(isPaymentPending(pred, membershipPayment))
-                        .total(pred.getTotalPoints() != null ? pred.getTotalPoints() : 0)
-                        .r1(pred.getR1Points() != null ? pred.getR1Points() : 0)
-                        .r32(pred.getR32Points() != null ? pred.getR32Points() : 0)
-                        .r16(pred.getR16Points() != null ? pred.getR16Points() : 0)
-                        .qf(pred.getQfPoints() != null ? pred.getQfPoints() : 0)
-                        .sf(pred.getSfPoints() != null ? pred.getSfPoints() : 0)
-                        .finals(pred.getFinalsPoints() != null ? pred.getFinalsPoints() : 0)
-                        .scorer(pred.getScorerPoints() != null ? pred.getScorerPoints() : 0)
-                        .matchPoints(pred.getMatchPoints() != null ? pred.getMatchPoints() : 0)
-                        .log(new ArrayList<>())
-                        .exactMatches(new HashMap<>())
-                        .passedTeams(new HashMap<>())
-                        .build();
-                fastLeaderboard.add(score);
-            }
-            addLeagueMembersWithoutPredictions(groupId, fastLeaderboard);
-            fastLeaderboard.sort(LEADERBOARD_ORDER);
-            return fastLeaderboard;
-        }
-
-        OfficialResultsService.OfficialResults official = officialResultsService.current();
-        boolean pichichiActive = groupPredictions.stream()
-                .anyMatch(p -> p.getEdition() == null || p.getEdition().isPichichi());
-        List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
-
-        Map<Long, List<MatchPrediction>> matchPredsByPrediction = matchPredictionsByPrediction(groupPredictions);
-        // Una estrategia por juego de reglas: en la clasificación global conviven ediciones con reglas distintas.
-        Map<String, ScoringStrategy> strategiesByRules = new HashMap<>();
-
-        List<ParticipantScoreDTO> leaderboard = new ArrayList<>();
-        List<Prediction> toUpdate = new ArrayList<>();
+        // Los puntos guardados siguen valiendo hasta que algo los invalida (score_calculated_at a null):
+        // solo se recalculan esas porras, para que guardar una predicción no obligue a puntuar toda la liga.
+        List<ParticipantScoreDTO> leaderboard = new ArrayList<>(groupPredictions.size());
+        List<Prediction> stale = new ArrayList<>();
         for (Prediction pred : groupPredictions) {
-            List<MatchPrediction> matchPreds = matchPredsByPrediction.getOrDefault(pred.getId(), List.of());
-            if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
-
-            ScoringRuleSet effectiveRules = ScoringRuleSet.effectiveForEdition(pred.getEdition());
-            ScoringStrategy strategy = strategiesByRules.computeIfAbsent(effectiveRules.toJson(),
-                    json -> scoringStrategy.withRules(effectiveRules));
-            ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers, strategy);
-            score.setPending(isPaymentPending(pred, membershipPayment));
-            leaderboard.add(score);
-            materialize(pred, score);
-            toUpdate.add(pred);
+            if (pred.getScoreCalculatedAt() != null) {
+                leaderboard.add(materializedScore(pred, membershipPayment));
+            } else {
+                stale.add(pred);
+            }
         }
 
-        if (!toUpdate.isEmpty()) {
-            try {
-                predictionRepository.saveAll(toUpdate);
-            } catch (Exception e) {
-                log.warn("Could not save materialized prediction scores: {}", e.getMessage());
+        if (!stale.isEmpty()) {
+            OfficialResultsService.OfficialResults official = officialResultsService.current();
+            boolean pichichiActive = stale.stream()
+                    .anyMatch(p -> p.getEdition() == null || p.getEdition().isPichichi());
+            List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
+
+            Map<Long, List<MatchPrediction>> matchPredsByPrediction = matchPredictionsByPrediction(stale);
+            // Una estrategia por juego de reglas: en la clasificación global conviven ediciones con reglas distintas.
+            Map<String, ScoringStrategy> strategiesByRules = new HashMap<>();
+
+            Map<Long, ParticipantScoreDTO> toUpdate = new HashMap<>();
+            for (Prediction pred : stale) {
+                List<MatchPrediction> matchPreds = matchPredsByPrediction.getOrDefault(pred.getId(), List.of());
+                if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
+
+                ScoringRuleSet effectiveRules = ScoringRuleSet.effectiveForEdition(pred.getEdition());
+                ScoringStrategy strategy = strategiesByRules.computeIfAbsent(effectiveRules.toJson(),
+                        json -> scoringStrategy.withRules(effectiveRules));
+                ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers, strategy);
+                score.setPending(isPaymentPending(pred, membershipPayment));
+                leaderboard.add(score);
+                if (pred.getId() != null) toUpdate.put(pred.getId(), score);
+            }
+
+            if (!toUpdate.isEmpty()) {
+                try {
+                    // Solo columnas de puntos: un saveAll de la entidad entera pisaría una predicción guardada a la vez.
+                    java.time.Instant now = java.time.Instant.now();
+                    toUpdate.forEach((id, score) -> predictionRepository.saveCalculatedScore(id, score.getTotal(),
+                            score.getR1(), score.getR32(), score.getR16(), score.getQf(), score.getSf(),
+                            score.getFinals(), score.getScorer(), score.getMatchPoints(), now));
+                } catch (Exception e) {
+                    log.warn("Could not save materialized prediction scores: {}", e.getMessage());
+                }
             }
         }
 
@@ -132,6 +114,30 @@ public class LeaderboardService {
     }
 
     /** Una sola consulta para los pronósticos por partido de todas las porras de la clasificación. */
+    /** Fila de la clasificación con los puntos ya guardados de la porra. */
+    private ParticipantScoreDTO materializedScore(Prediction pred, Map<Long, String> membershipPayment) {
+        return ParticipantScoreDTO.builder()
+                .id(pred.getId())
+                .userId(pred.getUser() != null ? pred.getUser().getId() : null)
+                .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(pred.getParticipantName()))
+                .predictionName(pred.getPredictionName())
+                .avatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null)
+                .pending(isPaymentPending(pred, membershipPayment))
+                .total(pred.getTotalPoints() != null ? pred.getTotalPoints() : 0)
+                .r1(pred.getR1Points() != null ? pred.getR1Points() : 0)
+                .r32(pred.getR32Points() != null ? pred.getR32Points() : 0)
+                .r16(pred.getR16Points() != null ? pred.getR16Points() : 0)
+                .qf(pred.getQfPoints() != null ? pred.getQfPoints() : 0)
+                .sf(pred.getSfPoints() != null ? pred.getSfPoints() : 0)
+                .finals(pred.getFinalsPoints() != null ? pred.getFinalsPoints() : 0)
+                .scorer(pred.getScorerPoints() != null ? pred.getScorerPoints() : 0)
+                .matchPoints(pred.getMatchPoints() != null ? pred.getMatchPoints() : 0)
+                .log(new ArrayList<>())
+                .exactMatches(new HashMap<>())
+                .passedTeams(new HashMap<>())
+                .build();
+    }
+
     private Map<Long, List<MatchPrediction>> matchPredictionsByPrediction(List<Prediction> predictions) {
         List<Long> ids = predictions.stream().map(Prediction::getId).filter(Objects::nonNull).toList();
         if (ids.isEmpty()) return Map.of();
@@ -139,10 +145,12 @@ public class LeaderboardService {
                 .collect(Collectors.groupingBy(mp -> mp.getPrediction().getId()));
     }
 
+    /** Estado de pago por usuario, o null si la liga no cobra cuota (nadie queda pendiente). */
     private Map<Long, String> getMembershipPaymentStatus(Long groupId) {
         if (groupId == null) return Collections.emptyMap();
         Map<Long, String> statuses = new HashMap<>();
         for (Membership membership : membershipRepository.findByLeagueId(groupId)) {
+            if (membership.getLeague() != null && !membership.getLeague().isEntryFee()) return null;
             if (membership.getUser() == null || membership.getUser().getId() == null) continue;
             statuses.put(membership.getUser().getId(),
                     membership.getPaymentStatus() != null ? membership.getPaymentStatus() : "PENDING");
@@ -151,6 +159,7 @@ public class LeaderboardService {
     }
 
     private boolean isPaymentPending(Prediction pred, Map<Long, String> membershipPayment) {
+        if (membershipPayment == null) return false;
         Long userId = pred.getUser() != null ? pred.getUser().getId() : null;
         if (userId != null) {
             String status = membershipPayment.get(userId);
@@ -258,9 +267,12 @@ public class LeaderboardService {
                     .addPoints(matchPrediction.getPrediction().getId(), matchPrediction.getPointsAwarded());
         }
 
+        List<MatchdayAccumulator> ordered = new ArrayList<>(matchdays.values());
+        MatchRound.sortNumberedMatchdays(ordered, accumulator -> accumulator.label);
+
         int currentIndex = -1;
         int index = 0;
-        for (MatchdayAccumulator accumulator : matchdays.values()) {
+        for (MatchdayAccumulator accumulator : ordered) {
             if (!accumulator.finished) {
                 currentIndex = index;
                 break;
@@ -273,7 +285,7 @@ public class LeaderboardService {
 
         List<MatchdayPointsDTO> result = new ArrayList<>(matchdays.size());
         index = 0;
-        for (MatchdayAccumulator accumulator : matchdays.values()) {
+        for (MatchdayAccumulator accumulator : ordered) {
             result.add(MatchdayPointsDTO.builder()
                     .label(accumulator.label)
                     .date(accumulator.date)
@@ -294,11 +306,11 @@ public class LeaderboardService {
     private static final class MatchdayAccumulator {
         private final String label;
         private final Map<Long, Integer> points = new HashMap<>();
-        private LocalDateTime date;
+        private Instant date;
         private int matchCount;
         private boolean finished = true;
 
-        private MatchdayAccumulator(String label, LocalDateTime date) {
+        private MatchdayAccumulator(String label, Instant date) {
             this.label = label;
             this.date = date;
         }
@@ -338,7 +350,9 @@ public class LeaderboardService {
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
                 officialResultsService.current(), scorers,
                 scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())));
-        score.setPending(!Boolean.TRUE.equals(pred.getPaid()));
+        boolean entryFee = pred.getEdition() != null && pred.getEdition().getLeague() != null
+                && pred.getEdition().getLeague().isEntryFee();
+        score.setPending(entryFee && !Boolean.TRUE.equals(pred.getPaid()));
         return score;
     }
 
@@ -353,9 +367,7 @@ public class LeaderboardService {
                 && com.porra.mundial.model.Competition.WORLD_CUP_EXTERNAL_ID.equals(edition.getCompetition().getExternalId())
                 && (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.FULL_BRACKET
                     || edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY);
-        if (participant != null && edition != null && edition.getCompetition() != null
-                && edition.getCompetition().getOwnerLeague() != null
-                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+        if (participant != null && PredictableBracket.applies(edition)) {
             score = customBracketScoringService.score(pred);
         } else if (participant != null && bracketEdition) {
             score = calculatePoints(strategy, new CalculationContext(participant, official.bracket(), official.groupPoints(),
@@ -386,20 +398,6 @@ public class LeaderboardService {
         score.setPredictionName(pred.getPredictionName());
         score.setAvatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null);
         return score;
-    }
-
-    /** Guarda en el pronóstico su puntuación para que la clasificación no se recalcule en cada petición. */
-    private static void materialize(Prediction pred, ParticipantScoreDTO score) {
-        pred.setTotalPoints(score.getTotal());
-        pred.setR1Points(score.getR1());
-        pred.setR32Points(score.getR32());
-        pred.setR16Points(score.getR16());
-        pred.setQfPoints(score.getQf());
-        pred.setSfPoints(score.getSf());
-        pred.setFinalsPoints(score.getFinals());
-        pred.setScorerPoints(score.getScorer());
-        pred.setMatchPoints(score.getMatchPoints());
-        pred.setScoreCalculatedAt(java.time.LocalDateTime.now());
     }
 
     private static ParticipantScoreDTO emptyScore() {

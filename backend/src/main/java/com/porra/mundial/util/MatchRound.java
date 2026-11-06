@@ -2,11 +2,16 @@ package com.porra.mundial.util;
 
 import com.porra.mundial.model.Match;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Calendar grouping when the provider does not supply an official matchday. */
 public final class MatchRound {
@@ -16,7 +21,8 @@ public final class MatchRound {
     private static final String DATE_PREFIX = "fecha ";
     private static final String NO_ROUND = "sin jornada";
     /** Rango vacío para las jornadas que no son de una fecha. */
-    private static final LocalDateTime NO_DAY = LocalDateTime.of(1970, 1, 1, 0, 0);
+    private static final Instant NO_DAY = Instant.EPOCH;
+    private static final Pattern NUMBERED_MATCHDAY = Pattern.compile("(?i)jornada\\s+(\\d{1,4})");
 
     public static String label(Match match) {
         if (match.getGroupName() != null && !match.getGroupName().isBlank()) {
@@ -26,7 +32,7 @@ public final class MatchRound {
                 && !"group".equalsIgnoreCase(match.getRound())) {
             return match.getRound();
         }
-        return match.getMatchDate() != null ? "Fecha " + match.getMatchDate().toLocalDate() : "Sin jornada";
+        return match.getMatchDate() != null ? "Fecha " + AppTime.day(match.getMatchDate()) : "Sin jornada";
     }
 
     public static boolean matches(Match match, String round) {
@@ -43,7 +49,7 @@ public final class MatchRound {
      * @param dayStart  inicio del día de una jornada "Fecha AAAA-MM-DD"; rango vacío si no lo es
      * @param undated   si la jornada es "Sin jornada" (partidos sin fecha)
      */
-    public record Lookup(List<String> names, LocalDateTime dayStart, LocalDateTime dayEnd, boolean undated) {}
+    public record Lookup(List<String> names, Instant dayStart, Instant dayEnd, boolean undated) {}
 
     public static Lookup lookup(String round) {
         String name = round.trim().toLowerCase(Locale.ROOT);
@@ -59,8 +65,34 @@ public final class MatchRound {
             }
         }
         return new Lookup(names,
-                day != null ? day.atStartOfDay() : NO_DAY,
-                day != null ? day.plusDays(1).atStartOfDay() : NO_DAY,
+                day != null ? AppTime.startOfDay(day) : NO_DAY,
+                day != null ? AppTime.startOfDay(day.plusDays(1)) : NO_DAY,
                 NO_ROUND.equals(name));
+    }
+
+    /** Número de una jornada "Jornada N", o null si la etiqueta no es de ese tipo. */
+    public static Integer matchdayNumber(String label) {
+        if (label == null) return null;
+        Matcher m = NUMBERED_MATCHDAY.matcher(label.trim());
+        return m.matches() ? Integer.valueOf(m.group(1)) : null;
+    }
+
+    /**
+     * Ordena por número las jornadas "Jornada N" (un aplazado no adelanta una jornada a otra)
+     * sin mover de su sitio las demás etiquetas, como las rondas de eliminatoria.
+     */
+    public static <T> void sortNumberedMatchdays(List<T> items, Function<T, String> label) {
+        List<Integer> slots = new ArrayList<>();
+        List<T> numbered = new ArrayList<>();
+        for (int i = 0; i < items.size(); i++) {
+            if (matchdayNumber(label.apply(items.get(i))) != null) {
+                slots.add(i);
+                numbered.add(items.get(i));
+            }
+        }
+        numbered.sort(Comparator.comparing(item -> matchdayNumber(label.apply(item))));
+        for (int i = 0; i < slots.size(); i++) {
+            items.set(slots.get(i), numbered.get(i));
+        }
     }
 }

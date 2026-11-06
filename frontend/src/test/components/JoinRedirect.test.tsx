@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { appContext, group } from '../context/fixtures';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -12,6 +13,7 @@ const changeGroup = vi.hoisted(() => vi.fn());
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../hooks/useGoogleSignIn', () => ({ useGoogleSignIn: () => signIn }));
 vi.mock('@react-oauth/google', () => ({
+  GoogleOAuthProvider: ({ children }: { children: ReactNode }) => children,
   GoogleLogin: ({ onSuccess }: { onSuccess: (response: { credential: string }) => void }) => (
     <button onClick={() => onSuccess({ credential: 'test' })}>Continuar con Google</button>
   ),

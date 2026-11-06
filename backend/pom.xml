@@ -18,6 +18,7 @@
     <description>Porra del Mundial 2026 - Spring Boot Edition</description>
 
     <properties>
+        <shedlock.version>7.10.1</shedlock.version>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -34,6 +35,21 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <!-- Bloqueo de tareas programadas entre instancias (tabla shedlock en Postgres) -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>${shedlock.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+            <version>${shedlock.version}</version>
         </dependency>
 
         <!-- Validation -->
@@ -168,6 +184,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Métricas en /actuator/prometheus (protegido con METRICS_TOKEN) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
         <!-- OpenAPI / Swagger 3 UI -->

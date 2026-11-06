@@ -1,7 +1,6 @@
 package com.porra.mundial.repository;
 
 import com.porra.mundial.model.League;
-import com.porra.mundial.model.UserAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,5 +12,11 @@ public interface LeagueRepository extends JpaRepository<League, Long> {
     
     Optional<League> findByJoinCode(String joinCode);
 
-    List<League> findByNameAndAdminUser(String name, UserAccount adminUser);
+    /** Liga que creó el administrador con esa clave de idempotencia. */
+    Optional<League> findByAdminUserIdAndCreationKey(Long adminUserId, String creationKey);
+
+    List<League> findByAdminUserId(Long adminUserId);
+
+    /** La liga pública más antigua: la que se enseña en la portada y en la demo. */
+    Optional<League> findFirstByPublicLeagueTrueOrderByIdAsc();
 }

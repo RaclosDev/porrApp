@@ -1,6 +1,7 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 import MatchdayHeader from '../components/matchday/MatchdayHeader';
@@ -9,10 +10,14 @@ import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
 import FloatingSaveButton from '../components/matchday/FloatingSaveButton';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
+import { useMatchVoters } from '../hooks/useMatchVoters';
+import MatchVotersModal from '../components/voters/MatchVotersModal';
+import type { MatchdayFixture } from '../types/api';
 
 function MatchdayPredictor() {
   const context = useAppContext();
-  if (context.loadingGroup || context.groupError)
+  const switchingGroup = useRequestedGroup(context);
+  if (switchingGroup || context.loadingGroup || context.groupError)
     return <LeagueLoadState error={context.groupError} />;
   return (
     <MatchdayLeague
@@ -23,12 +28,49 @@ function MatchdayPredictor() {
 }
 
 /**
+ * Abre la liga de `?group=ID` (p. ej. desde un recordatorio) si el usuario es miembro.
+ * Devuelve `true` mientras la petición está pendiente, para no pintar (ni redirigir desde)
+ * la liga que estaba activa antes de cambiar.
+ */
+function useRequestedGroup({
+  userGroups,
+  userGroupsLoaded,
+  activeGroupId,
+  changeGroup,
+}: ReturnType<typeof useAppContext>) {
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('group');
+  useEffect(() => {
+    // Hasta que llegan las ligas, `userGroups` es una lista vacía: esperar o se descartaría la petición.
+    if (!requested || !userGroupsLoaded) return;
+    const group = userGroups.find((candidate) => String(candidate.id) === requested);
+    if (group && String(activeGroupId) !== requested) changeGroup(group.id);
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('group');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requested, userGroups, userGroupsLoaded, activeGroupId, changeGroup, setParams]);
+  return Boolean(requested);
+}
+
+/**
  * Pronósticos por jornada (1X2 y marcador exacto), partido a partido: cada uno se cierra al
  * empezar y muestra los puntos obtenidos.
  */
 function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext> }) {
   const { activeGroupId, activeGroupName, activeGroupIsLocked, activeGroupPoolFormat } = context;
   const md = useMatchdayPredictor(context);
+  const [votersFixture, setVotersFixture] = useState<MatchdayFixture | null>(null);
+  const voters = useMatchVoters(
+    md.isMatchDay ? activeGroupId : null,
+    md.fixtures
+      .filter((fixture) => fixture.locked || activeGroupIsLocked)
+      .map((fixture) => fixture.matchId),
+  );
 
   if (activeGroupPoolFormat && !md.isMatchDay) {
     return <Navigate to="/" replace />;
@@ -39,6 +81,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       <MatchdayHeader
         title={activeGroupName || 'Jornadas'}
         isLocked={activeGroupIsLocked}
+        canEdit={md.fixtures.some((fixture) => !fixture.locked)}
         predicted={md.counts.predicted}
         total={md.counts.total}
         isSaving={md.isSaving}
@@ -88,9 +131,10 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
             prediction={md.predictionFor(fixture.matchId)}
             locked={fixture.locked || activeGroupIsLocked}
             disabled={md.isSaving}
-            onScoreChange={md.handleScoreChange}
             onQuickSign={md.handleQuickSign}
             onShowFriends={md.setSelectedMatchForFriends}
+            voters={voters.get(fixture.matchId)}
+            onShowVoters={setVotersFixture}
           />
         ))}
       </div>
@@ -105,6 +149,12 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         />
       )}
 
+      <MatchVotersModal
+        voters={votersFixture ? (voters.get(votersFixture.matchId) ?? null) : null}
+        homeTeam={votersFixture?.homeTeam ?? ''}
+        awayTeam={votersFixture?.awayTeam ?? ''}
+        onClose={() => setVotersFixture(null)}
+      />
       <MatchFriendsPredictionsModal
         groupId={activeGroupId}
         match={md.selectedMatchForFriends}

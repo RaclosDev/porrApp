@@ -4,6 +4,7 @@ import type { CustomTeam } from '../../../services/api';
 import type { Group, Match } from '../../../types/api';
 import { isBye, type CustomTab, type SaveAction } from './customCompetition';
 import CustomLockCard from './CustomLockCard';
+import LinkOfficialCard from './LinkOfficialCard';
 import { useCustomLock } from '../../../hooks/useCustomLock';
 
 interface Step {
@@ -44,8 +45,8 @@ export default function CustomSummaryTab({
   if (!matchDay) {
     steps.push({
       done: lock.configured || Boolean(lockDate),
-      label: 'Elige cuándo se cierran los pronósticos',
-      hint: 'Puedes cambiar el criterio más adelante sin reabrir partes ya cerradas.',
+      label: 'Elige cuándo se cierran las predicciones',
+      hint: 'Puedes cambiar el criterio más adelante, aunque ya haya predicciones cerradas.',
       tab: 'summary',
     });
   }
@@ -159,13 +160,15 @@ export default function CustomSummaryTab({
         </ol>
       </section>
 
-      {!matchDay && <CustomLockCard group={group} save={save} onLockDateSaved={onLockDateSaved} />}
+      <CustomLockCard group={group} save={save} onLockDateSaved={onLockDateSaved} />
+
+      {!matchDay && <LinkOfficialCard group={group} save={save} />}
 
       <p className="league-admin-muted custom-admin-note">
         <Info size={13} aria-hidden="true" />
         {matchDay
-          ? 'Tras el primer pronóstico ya no se pueden cambiar los equipos. Los escudos y los resultados sí.'
-          : 'Tras el primer pronóstico ya no se pueden cambiar los equipos ni los cruces de la primera ronda. Los escudos y los resultados sí.'}
+          ? 'Tras la primera predicción ya no se pueden cambiar los equipos. Los escudos y los resultados sí.'
+          : 'Tras la primera predicción ya no se pueden cambiar los equipos ni los cruces de la primera ronda. Los escudos y los resultados sí.'}
       </p>
     </>
   );

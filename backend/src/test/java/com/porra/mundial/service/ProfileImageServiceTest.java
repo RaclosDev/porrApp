@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -70,7 +71,7 @@ class ProfileImageServiceTest {
         League saved = service.saveLeagueImage(10L, "ADMIN@test.com", png());
 
         assertNotNull(saved.getImageUpdatedAt());
-        assertTrue(saved.getImageUrl().startsWith("/api/groups/10/image?v="));
+        assertTrue(saved.getImageUrl().matches("/api/groups/10/image/[0-9a-f]{32}"));
         ArgumentCaptor<LeagueImage> captor = ArgumentCaptor.forClass(LeagueImage.class);
         verify(leagueImageRepository).save(captor.capture());
         assertEquals(10L, captor.getValue().getLeagueId());
@@ -113,7 +114,7 @@ class ProfileImageServiceTest {
     @Test
     @DisplayName("Borrar la imagen elimina la fila y limpia la marca de versión")
     void adminCanDeleteLeagueImage() {
-        league.setImageUpdatedAt(java.time.LocalDateTime.now());
+        league.setImageUpdatedAt(java.time.Instant.now());
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         when(leagueImageRepository.existsById(10L)).thenReturn(true);
         when(leagueRepository.save(any(League.class))).thenAnswer(i -> i.getArgument(0));
@@ -138,7 +139,7 @@ class ProfileImageServiceTest {
         ArgumentCaptor<UserAvatar> captor = ArgumentCaptor.forClass(UserAvatar.class);
         verify(userAvatarRepository).save(captor.capture());
         assertEquals(2L, captor.getValue().getUserId());
-        assertTrue(saved.getAvatarUrl().startsWith("/api/users/2/avatar?v="));
+        assertTrue(saved.getAvatarUrl().matches("/api/users/2/avatar/[0-9a-f]{32}"));
         verify(userAccountRepository, never()).findByGoogleEmail("admin@test.com");
     }
 
@@ -185,5 +186,20 @@ class ProfileImageServiceTest {
         assertThrows(BusinessException.class, () -> service.updateParticipantName(null, "Nombre"));
         assertThrows(BusinessException.class, () -> service.deleteAvatar(" "));
         verify(userAccountRepository, never()).findByGoogleEmail(anyString());
+    }
+
+    @Test
+    @DisplayName("La foto solo se sirve con su clave; sin ella o con otra, como si no existiera")
+    void avatarRequiresItsRandomKey() {
+        other.setAvatarUpdatedAt(java.time.Instant.now());
+        other.setAvatarKey("0123456789abcdef0123456789abcdef");
+        when(userAccountRepository.findById(2L)).thenReturn(Optional.of(other));
+        when(userAvatarRepository.findById(2L)).thenReturn(Optional.of(UserAvatar.builder()
+                .userId(2L).data(new byte[]{1}).contentType("image/png").build()));
+
+        assertTrue(service.getAvatar(2L, "0123456789abcdef0123456789abcdef").isPresent());
+        assertTrue(service.getAvatar(2L, "ffffffffffffffffffffffffffffffff").isEmpty());
+        assertTrue(service.getAvatar(2L, "").isEmpty());
+        verify(userAvatarRepository, times(1)).findById(2L);
     }
 }

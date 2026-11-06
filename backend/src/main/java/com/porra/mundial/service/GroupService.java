@@ -1,6 +1,7 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.exception.BusinessException;
+import java.time.Instant;
 import java.util.Map;
 import com.porra.mundial.dto.GroupMemberDTO;
 import com.porra.mundial.dto.GroupResponseDTO;
@@ -26,7 +27,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.ArrayList;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -63,6 +63,19 @@ public class GroupService {
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi, String customCompetitionName) {
+        return createGroup(name, email, competitionId, poolFormat, pichichi, customCompetitionName, null);
+    }
+
+    /** Liga ya creada por este usuario con esa clave de idempotencia, si existe. */
+    @Transactional(readOnly = true)
+    public Optional<League> findCreatedWithKey(String email, String creationKey) {
+        return userAccountRepository.findByGoogleEmail(email)
+                .flatMap(user -> leagueRepository.findByAdminUserIdAndCreationKey(user.getId(), creationKey));
+    }
+
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi, String customCompetitionName, String creationKey) {
         boolean custom = customCompetitionName != null && !customCompetitionName.isBlank();
         if (custom == (competitionId != null)) {
             throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
@@ -70,24 +83,22 @@ public class GroupService {
         if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
             throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
         }
+        UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
+
+        // Repetición de la misma creación (doble clic o reintento): se devuelve la liga ya creada.
+        if (creationKey != null) {
+            Optional<League> existing = leagueRepository.findByAdminUserIdAndCreationKey(adminUser.getId(), creationKey);
+            if (existing.isPresent()) {
+                log.info("Creación de liga repetida por el usuario {}: se reutiliza la liga {}", adminUser.getId(), existing.get().getId());
+                return existing.get();
+            }
+        }
+
         String joinCode;
         do {
             joinCode = JoinCodeGenerator.next();
         } while (leagueRepository.findByJoinCode(joinCode).isPresent());
-
-        UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
-
-        // Proteccion contra doble-click / peticiones concurrentes duplicadas
-        List<League> existingLeagues = leagueRepository.findByNameAndAdminUser(name, adminUser);
-        if (existingLeagues != null && !existingLeagues.isEmpty()) {
-            League latest = existingLeagues.get(existingLeagues.size() - 1);
-            if (latest.getCreatedAt() != null &&
-                    Math.abs(java.time.Duration.between(latest.getCreatedAt(), LocalDateTime.now()).getSeconds()) < 10) {
-                log.info("Doble peticion detectada para crear liga '{}' por usuario {}. Reutilizando liga existente.", name, email);
-                return latest;
-            }
-        }
 
         Competition comp = null;
         if (!custom) {
@@ -103,6 +114,7 @@ public class GroupService {
                 .name(name)
                 .joinCode(joinCode)
                 .adminUser(adminUser)
+                .creationKey(creationKey)
                 .build();
         group = leagueRepository.save(group);
 
@@ -183,12 +195,14 @@ public class GroupService {
                     .league(group)
                     .role("MEMBER")
                     .build());
+            // Se avisa a los demás miembros tras confirmar el alta (MemberJoinedNotifier).
+            eventPublisher.publishEvent(new MemberJoinedLeagueEvent(group.getId(), user.getId()));
         }
     }
 
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public League updateGroup(Long groupId, String newName, String newRules, String email) {
+    public League updateGroup(Long groupId, String newName, String newRules, Boolean entryFee, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
@@ -205,6 +219,14 @@ public class GroupService {
 
         if (newRules != null) {
             group.setRules(newRules.trim());
+            changed = true;
+        }
+
+        if (entryFee != null) {
+            if (entryFee && group.isPublicLeague()) {
+                throw BusinessException.badRequest("Una liga pública no puede tener cuota");
+            }
+            group.setEntryFee(entryFee);
             changed = true;
         }
 
@@ -310,13 +332,19 @@ public class GroupService {
      */
     @Transactional(readOnly = true)
     public Optional<GroupResponseDTO> findGroupResponse(Long id, String viewerEmail) {
-        return getGroupById(id).map(league -> {
+        // Una liga privada no existe para quien no es miembro: así no se pueden recorrer por id.
+        // Para unirse, la vista previa va por código de invitación (findInvitationPreview).
+        return getGroupById(id).flatMap(league -> {
             boolean member = isUserMemberOrAdmin(id, viewerEmail);
-            if (member || League.isGlobalId(id) || league.isGlobal()) {
-                return toResponse(league, member);
-            }
-            return GroupResponseDTO.preview(league, editionRepository.findByLeagueIdAndStatus(id, "ACTIVE").orElse(null));
+            return member || league.isPublicLeague() ? Optional.of(toResponse(league, member)) : Optional.empty();
         });
+    }
+
+    /** La liga pública más antigua, que la portada y la demo enseñan. */
+    @Transactional(readOnly = true)
+    public Optional<GroupResponseDTO> findFeaturedGroupResponse(String viewerEmail) {
+        return leagueRepository.findFirstByPublicLeagueTrueOrderByIdAsc()
+                .map(league -> toResponse(league, isUserMemberOrAdmin(league.getId(), viewerEmail)));
     }
 
     /** Datos públicos para previsualizar una invitación sin unirse a la liga. */
@@ -332,14 +360,17 @@ public class GroupService {
     }
 
     /**
-     * Comprueba que el usuario puede ver los datos de una liga: la Porra Global es pública,
-     * el resto solo para sus miembros.
+     * Comprueba que el usuario puede ver los datos de una liga: las públicas, cualquiera;
+     * el resto, solo sus miembros.
      *
      * @throws BusinessException si la liga es privada y el usuario no pertenece a ella
      */
     @Transactional(readOnly = true)
     public void assertCanView(Long groupId, String email) {
-        if (groupId == null || League.isGlobalId(groupId)) return;
+        if (groupId == null) {
+            throw BusinessException.badRequest("Falta la liga");
+        }
+        if (leagueRepository.findById(groupId).map(League::isPublicLeague).orElse(false)) return;
         if (!isUserMemberOrAdmin(groupId, email)) {
             throw BusinessException.forbidden("No perteneces a esta liga privada");
         }
@@ -400,19 +431,19 @@ public class GroupService {
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
-        boolean isGlobal = group.isGlobal();
+        boolean isPublic = group.isPublicLeague();
         boolean callerIsAdmin = false;
 
         if (email != null && !email.isBlank()) {
             boolean isLeagueAdmin = group.getAdminUser() != null && group.getAdminUser().getGoogleEmail() != null && group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email);
             callerIsAdmin = isLeagueAdmin;
-            if (!callerIsAdmin && !isGlobal) {
+            if (!callerIsAdmin && !isPublic) {
                 UserAccount caller = userAccountRepository.findByGoogleEmail(email).orElse(null);
                 if (caller == null || !membershipRepository.existsById(new Membership.MembershipId(caller.getId(), groupId))) {
                     throw BusinessException.forbidden("No perteneces a esta liga privada.");
                 }
             }
-        } else if (!isGlobal) {
+        } else if (!isPublic) {
             throw BusinessException.forbidden("No autenticado para consultar miembros de una liga privada.");
         }
 
@@ -425,18 +456,13 @@ public class GroupService {
             boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
                     || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
 
-            // La Porra Global es pública y no tiene pagos: ni emails ni estado de pago.
-            String displayEmail = isGlobal ? null
-                    : (callerIsAdmin || (email != null && email.equalsIgnoreCase(u.getGoogleEmail())))
-                            ? u.getGoogleEmail()
-                            : maskEmail(u.getGoogleEmail());
-            String paymentStatus = isGlobal ? null
+            // Nunca se envía el email de nadie; una liga pública o sin cuota no muestra pagos.
+            String paymentStatus = isPublic || !group.isEntryFee() ? null
                     : m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING";
 
             list.add(GroupMemberDTO.builder()
                     .userId(u.getId())
                     .participantName(u.getParticipantName())
-                    .googleEmail(displayEmail)
                     .role(m.getRole())
                     .paymentStatus(paymentStatus)
                     .joinedAt(m.getJoinedAt())
@@ -453,14 +479,6 @@ public class GroupService {
         return list;
     }
 
-    private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) return null;
-        int atIdx = email.indexOf("@");
-        String name = email.substring(0, atIdx);
-        String domain = email.substring(atIdx);
-        if (name.length() <= 2) return name.charAt(0) + "***" + domain;
-        return name.substring(0, 2) + "***" + domain;
-    }
 
     /**
      * Cambia el estado de pago de un miembro en la liga y sincroniza su pronóstico.
@@ -498,6 +516,28 @@ public class GroupService {
 
         Membership.MembershipId memId = new Membership.MembershipId(targetUserId, groupId);
         membershipRepository.deleteById(memId);
+    }
+
+    /**
+     * Cede la administración de la liga a otro miembro. El administrador anterior sigue como miembro.
+     */
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    public void transferAdmin(Long groupId, Long targetUserId, String email) {
+        verifyGroupAdmin(groupId, email);
+        League group = leagueRepository.findById(groupId)
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
+        UserAccount currentAdmin = group.getAdminUser();
+        if (currentAdmin.getId().equals(targetUserId)) {
+            throw BusinessException.badRequest("Ya administras esta liga.");
+        }
+
+        Membership target = membershipRepository.findById(new Membership.MembershipId(targetUserId, groupId))
+                .orElseThrow(() -> BusinessException.badRequest("Solo puedes ceder la liga a uno de sus miembros."));
+        target.setRole("ADMIN");
+        membershipRepository.findById(new Membership.MembershipId(currentAdmin.getId(), groupId))
+                .ifPresent(m -> m.setRole("MEMBER"));
+        group.setAdminUser(target.getUser());
     }
 
     /**

@@ -3,6 +3,8 @@ import { Check, TriangleAlert } from 'lucide-react';
 interface MatchdayHeaderProps {
   title: string;
   isLocked: boolean;
+  /** Queda algún partido abierto; si no, no hay nada que guardar y el botón no se muestra. */
+  canEdit: boolean;
   predicted: number;
   total: number;
   isSaving: boolean;
@@ -15,6 +17,7 @@ interface MatchdayHeaderProps {
 export default function MatchdayHeader({
   title,
   isLocked,
+  canEdit,
   predicted,
   total,
   isSaving,
@@ -28,17 +31,19 @@ export default function MatchdayHeader({
         <div className="min-w-0">
           <h1>{title}</h1>
           <p className="md-page-sub">
-            {isLocked ? <InkStamp>Porra cerrada</InkStamp> : `${predicted}/${total} pronosticados`}
+            {isLocked ? <InkStamp>Porra cerrada</InkStamp> : `${predicted}/${total} predicciones`}
           </p>
         </div>
 
-        <button
-          onClick={onSave}
-          disabled={isSaving || isLocked}
-          className={`glass-btn primary-btn md-save-btn ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-        >
-          {isSaving ? 'Guardando…' : 'Guardar'}
-        </button>
+        {canEdit && !isLocked && (
+          <button
+            onClick={onSave}
+            disabled={isSaving}
+            className="glass-btn primary-btn md-save-btn cursor-pointer"
+          >
+            {isSaving ? 'Guardando…' : 'Guardar'}
+          </button>
+        )}
       </div>
 
       {successMsg && (

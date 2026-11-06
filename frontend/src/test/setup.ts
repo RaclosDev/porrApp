@@ -26,6 +26,7 @@ Object.defineProperty(window, 'matchMedia', {
 vi.mock('@react-oauth/google', () => ({
   GoogleLogin: () =>
     React.createElement('button', { 'data-testid': 'google-login-btn' }, 'Google Sign In'),
+  GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => children,
   useGoogleLogin: () => vi.fn(),
 }));
 

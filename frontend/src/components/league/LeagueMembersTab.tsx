@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { GroupMember, PaymentStatus } from '../../types/api';
 import { UserAvatar } from '../Avatar';
 import type { CopyTarget, PaymentFilter } from '../GroupMembersModal';
@@ -39,6 +39,7 @@ interface LeagueMembersTabProps {
   isAdmin: boolean;
   kickMutation: UseMutationResult<unknown, Error, number>;
   kickTargetId: number | null;
+  transferMutation: UseMutationResult<unknown, Error, number>;
   paidCount: number;
   paidPercent: number;
   paymentFilter: PaymentFilter;
@@ -53,6 +54,10 @@ interface LeagueMembersTabProps {
   setPaymentFilter: (filter: PaymentFilter) => void;
   setSearch: (value: string) => void;
   visibleMembers: GroupMember[];
+  /** Cuota de inscripción; undefined si la liga no la admite (pública). */
+  entryFee?: boolean;
+  entryFeeSaving?: boolean;
+  onToggleEntryFee?: (value: boolean) => void;
 }
 
 /** Miembros de la liga, invitación y control de pagos. */
@@ -70,6 +75,7 @@ export default function LeagueMembersTab({
   isAdmin,
   kickMutation,
   kickTargetId,
+  transferMutation,
   paidCount,
   paidPercent,
   paymentFilter,
@@ -84,9 +90,13 @@ export default function LeagueMembersTab({
   setPaymentFilter,
   setSearch,
   visibleMembers,
+  entryFee,
+  entryFeeSaving = false,
+  onToggleEntryFee,
 }: LeagueMembersTabProps) {
-  // La Porra Global no tiene pagos: el backend no manda estado de pago.
-  const tracksPayments = members.length === 0 || members.some((m) => m.paymentStatus != null);
+  // Solo las ligas con cuota llevan control de pagos; el backend no manda estado de pago en las demás.
+  const tracksPayments = entryFee === true && members.some((m) => m.paymentStatus != null);
+  const [adminTargetId, setAdminTargetId] = useState<number | null>(null);
 
   return (
     <div
@@ -95,6 +105,27 @@ export default function LeagueMembersTab({
       role={isAdmin ? 'tabpanel' : undefined}
       aria-labelledby={isAdmin ? 'league-admin-tab-members' : undefined}
     >
+      {isAdmin && entryFee !== undefined && onToggleEntryFee && (
+        <section className="league-admin-card">
+          <label className="league-admin-fee-toggle">
+            <span>
+              <strong>Cuota de inscripción</strong>
+              <small>
+                {entryFee
+                  ? 'El ranking marca a quien no ha pagado.'
+                  : 'Sin cuota: todos puntúan y nadie sale como «Sin pagar».'}
+              </small>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={entryFee}
+              disabled={entryFeeSaving}
+              onChange={(event) => onToggleEntryFee(event.target.checked)}
+            />
+          </label>
+        </section>
+      )}
       {tracksPayments && (
         <section className="league-admin-card">
           <div className="league-admin-card-head">
@@ -368,6 +399,52 @@ export default function LeagueMembersTab({
                   )}
 
                   {canManage &&
+                    !confirmingKick &&
+                    (adminTargetId === member.userId ? (
+                      <div
+                        className="league-admin-inline-confirm"
+                        role="group"
+                        aria-label={`Confirmar ceder la administración a ${member.participantName}`}
+                      >
+                        <span>¿Hacer admin? Dejarás de serlo.</span>
+                        <button
+                          type="button"
+                          className="league-admin-mini-btn is-danger"
+                          onClick={() => transferMutation.mutate(member.userId)}
+                          disabled={transferMutation.isPending}
+                        >
+                          {transferMutation.isPending ? (
+                            <Loader2 className="league-admin-spin" size={12} aria-hidden="true" />
+                          ) : (
+                            'Sí'
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          className="league-admin-mini-btn"
+                          onClick={() => setAdminTargetId(null)}
+                          disabled={transferMutation.isPending}
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="league-admin-icon-btn"
+                        onClick={() => {
+                          setKickTargetId(null);
+                          setAdminTargetId(member.userId);
+                        }}
+                        title={`Hacer admin a ${member.participantName}`}
+                        aria-label={`Hacer admin a ${member.participantName}`}
+                      >
+                        <Crown size={16} aria-hidden="true" />
+                      </button>
+                    ))}
+
+                  {canManage &&
+                    adminTargetId !== member.userId &&
                     (confirmingKick ? (
                       <div
                         className="league-admin-inline-confirm"
@@ -400,7 +477,10 @@ export default function LeagueMembersTab({
                       <button
                         type="button"
                         className="league-admin-icon-btn is-danger"
-                        onClick={() => setKickTargetId(member.userId)}
+                        onClick={() => {
+                          setAdminTargetId(null);
+                          setKickTargetId(member.userId);
+                        }}
                         title={`Expulsar a ${member.participantName}`}
                         aria-label={`Expulsar a ${member.participantName}`}
                       >

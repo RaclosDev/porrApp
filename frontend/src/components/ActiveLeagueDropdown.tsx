@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { readGroupVisits } from '../store/useAppStore';
+import { sortGroupsByRecent } from '../utils/groupOrder';
 import { LeagueAvatar } from './Avatar';
 
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -38,20 +38,10 @@ export default function ActiveLeagueDropdown() {
   const navigate = useNavigate();
 
   // La liga activa primero y, después, las visitadas más recientemente.
-  const sortedGroups = useMemo(() => {
-    const visits = readGroupVisits();
-    return [...(userGroups || [])].sort((a, b) => {
-      const aSelected = String(a.id) === String(activeGroupId);
-      const bSelected = String(b.id) === String(activeGroupId);
-      if (aSelected !== bSelected) return aSelected ? -1 : 1;
-
-      const aVisited = Number(visits[a.id]) || 0;
-      const bVisited = Number(visits[b.id]) || 0;
-      if (aVisited !== bVisited) return bVisited - aVisited;
-
-      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-    });
-  }, [userGroups, activeGroupId]);
+  const sortedGroups = useMemo(
+    () => sortGroupsByRecent(userGroups || [], activeGroupId),
+    [userGroups, activeGroupId],
+  );
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -92,7 +82,7 @@ export default function ActiveLeagueDropdown() {
   const currentBadge = getCompetitionBadge(activeCompetitionName);
   const activeGroup = (userGroups || []).find((g) => String(g.id) === String(activeGroupId));
   const activeImageUrl = activeGroup?.imageUrl || null;
-  const displayLeagueName = activeGroupName || 'Porra Global';
+  const displayLeagueName = activeGroupName || 'Liga';
   const displayCompName =
     activeCompetitionName || (activeCompetitionFormatType === 'LEAGUE' ? 'Liga' : 'Mundial');
 
@@ -104,17 +94,17 @@ export default function ActiveLeagueDropdown() {
         onClick={() => setIsOpen(!isOpen)}
         className="glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem]"
         aria-expanded={isOpen}
-        title="Cambiar de liga"
+        title={`Cambiar de liga (${displayLeagueName} · ${displayCompName})`}
       >
         <LeagueAvatar url={activeImageUrl} badge={currentBadge} size={26} />
         <div
           key={activeGroupId}
           className="league-selection flex flex-col items-start text-left leading-[1.15] min-w-0"
         >
-          <span className="poster-title w-full max-w-35 overflow-hidden text-ellipsis whitespace-nowrap text-main text-[0.95rem] tracking-[0.02em]">
+          <span className="poster-title w-full max-w-35 lg:max-w-60 overflow-hidden text-ellipsis whitespace-nowrap text-main text-[0.95rem] tracking-[0.02em]">
             {displayLeagueName}
           </span>
-          <span className="w-full text-[0.7rem] text-muted font-medium max-w-32.5 overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="w-full text-[0.7rem] text-muted font-medium max-w-32.5 lg:max-w-60 overflow-hidden text-ellipsis whitespace-nowrap">
             {displayCompName}
           </span>
         </div>

@@ -20,7 +20,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.security.Principal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -52,13 +52,14 @@ class ProfileImageControllersTest {
     @Test
     @DisplayName("PUT /api/groups/{id}/image devuelve la nueva URL cuando el servicio acepta la subida")
     void uploadLeagueImage() throws Exception {
-        League league = League.builder().id(10L).imageUpdatedAt(LocalDateTime.now()).build();
+        League league = League.builder().id(10L).imageUpdatedAt(Instant.now())
+                .imageKey("0123456789abcdef0123456789abcdef").build();
         Mockito.when(profileImageService.saveLeagueImage(eq(10L), eq("admin@test.com"), any())).thenReturn(league);
 
         mockMvc.perform(multipart(HttpMethod.PUT, "/api/groups/10/image").file(file())
                         .principal(user("admin@test.com")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.startsWith("/api/groups/10/image?v=")));
+                .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.matchesPattern("/api/groups/10/image/[0-9a-f]{32}")));
         Mockito.verify(webSocketService).notifyLeagueChanged(10L);
     }
 
@@ -89,12 +90,12 @@ class ProfileImageControllersTest {
     @Test
     @DisplayName("GET de imagen de liga: 404 si no hay imagen y 200 con tipo y caché si existe")
     void getLeagueImage() throws Exception {
-        Mockito.when(profileImageService.getLeagueImage(1L)).thenReturn(Optional.empty());
-        mockMvc.perform(get("/api/groups/1/image")).andExpect(status().isNotFound());
+        Mockito.when(profileImageService.getLeagueImage(1L, "k1")).thenReturn(Optional.empty());
+        mockMvc.perform(get("/api/groups/1/image/k1")).andExpect(status().isNotFound());
 
-        Mockito.when(profileImageService.getLeagueImage(2L)).thenReturn(Optional.of(
-                new ProfileImageService.StoredImage(new byte[]{1, 2, 3}, "image/png", LocalDateTime.now())));
-        mockMvc.perform(get("/api/groups/2/image"))
+        Mockito.when(profileImageService.getLeagueImage(2L, "k2")).thenReturn(Optional.of(
+                new ProfileImageService.StoredImage(new byte[]{1, 2, 3}, "image/png", Instant.now())));
+        mockMvc.perform(get("/api/groups/2/image/k2"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.IMAGE_PNG))
                 .andExpect(header().exists("ETag"))
@@ -144,7 +145,7 @@ class ProfileImageControllersTest {
     @DisplayName("Subir y borrar la foto de perfil usa siempre el email del token")
     void avatarUploadAndDelete() throws Exception {
         UserAccount withAvatar = UserAccount.builder().id(2L).participantName("Otro")
-                .avatarUpdatedAt(LocalDateTime.now()).build();
+                .avatarUpdatedAt(Instant.now()).avatarKey("0123456789abcdef0123456789abcdef").build();
         Mockito.when(profileImageService.saveAvatar(eq("other@test.com"), any())).thenReturn(withAvatar);
         Mockito.when(profileImageService.deleteAvatar("other@test.com"))
                 .thenReturn(UserAccount.builder().id(2L).participantName("Otro").build());
@@ -152,7 +153,7 @@ class ProfileImageControllersTest {
         mockMvc.perform(multipart(HttpMethod.PUT, "/api/users/me/avatar").file(file())
                         .principal(user("other@test.com")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.avatarUrl").value(org.hamcrest.Matchers.startsWith("/api/users/2/avatar?v=")));
+                .andExpect(jsonPath("$.avatarUrl").value(org.hamcrest.Matchers.matchesPattern("/api/users/2/avatar/[0-9a-f]{32}")));
         mockMvc.perform(delete("/api/users/me/avatar").principal(user("other@test.com")))
                 .andExpect(status().isOk());
     }
@@ -160,12 +161,12 @@ class ProfileImageControllersTest {
     @Test
     @DisplayName("GET de la foto de perfil: 404 sin foto y 200 con imagen")
     void getAvatar() throws Exception {
-        Mockito.when(profileImageService.getAvatar(5L)).thenReturn(Optional.empty());
-        mockMvc.perform(get("/api/users/5/avatar")).andExpect(status().isNotFound());
+        Mockito.when(profileImageService.getAvatar(5L, "k5")).thenReturn(Optional.empty());
+        mockMvc.perform(get("/api/users/5/avatar/k5")).andExpect(status().isNotFound());
 
-        Mockito.when(profileImageService.getAvatar(6L)).thenReturn(Optional.of(
-                new ProfileImageService.StoredImage(new byte[]{9}, "image/jpeg", LocalDateTime.now())));
-        mockMvc.perform(get("/api/users/6/avatar"))
+        Mockito.when(profileImageService.getAvatar(6L, "k6")).thenReturn(Optional.of(
+                new ProfileImageService.StoredImage(new byte[]{9}, "image/jpeg", Instant.now())));
+        mockMvc.perform(get("/api/users/6/avatar/k6"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.IMAGE_JPEG));
     }

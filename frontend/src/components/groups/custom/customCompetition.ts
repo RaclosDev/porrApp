@@ -10,11 +10,10 @@ export const isBye = (match: Match) => match.round?.startsWith('bracket-') && !m
 
 export const isKnockout = (match: Match) => Boolean(match.round?.startsWith('bracket-'));
 
-export const roundNumber = (match: Match) =>
-  isKnockout(match) ? Number(match.round.substring(8)) : 0;
+const roundNumber = (match: Match) => (isKnockout(match) ? Number(match.round.substring(8)) : 0);
 
 /** Título de la fase de un partido: grupo, ronda del cuadro o jornada. */
-export const phaseLabel = (match: Match) => {
+const phaseLabel = (match: Match) => {
   if (isKnockout(match)) return `Ronda ${roundNumber(match)}`;
   if (match.groupName) return `Grupo ${match.groupName}`;
   return 'Jornadas';

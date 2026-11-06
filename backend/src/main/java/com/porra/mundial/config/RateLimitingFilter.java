@@ -7,6 +7,7 @@ import jakarta.servlet.ServletRequestWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,6 +32,17 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final Map<String, WindowCounter> requestCounts = new ConcurrentHashMap<>();
     private final Map<String, WindowCounter> authLoginCounts = new ConcurrentHashMap<>();
+    /** Para contar por usuario a quien trae sesión; null en los tests que solo miran la IP. */
+    private final JwtUtil jwtUtil;
+
+    @Autowired
+    public RateLimitingFilter(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
+
+    RateLimitingFilter() {
+        this(null);
+    }
 
     @Value("${app.rate-limiting.enabled:true}")
     private boolean enabled;
@@ -73,11 +85,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             }
         }
 
-        // Lecturas públicas: 120 por minuto.
+        // Lecturas públicas: 120 por minuto, por usuario si trae sesión y si no por IP.
         if (isRateLimitedPath(path, request.getMethod())) {
-            String clientIp = getClientIp(request);
-            if (!isAllowed(clientIp)) {
-                log.warn("Rate limit exceeded for IP: {} on path: {}", clientIp, path);
+            String clientKey = rateLimitKey(request);
+            if (!isAllowed(clientKey)) {
+                log.warn("Rate limit excedido para {} en {}", clientKey, path);
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.setHeader("Retry-After", "60");
@@ -96,13 +108,27 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                path.startsWith("/api/predictions") ||
                path.startsWith("/api/leaderboard") ||
                path.startsWith("/api/auth/") ||
+               path.startsWith("/api/client-errors") ||
                path.startsWith("/api/users/me") ||
                // Invitaciones: sin límite se podrían probar códigos por fuerza bruta.
                path.startsWith("/api/groups/preview/") ||
                path.startsWith("/join/") ||
                (path.equals("/api/groups/join") && "POST".equalsIgnoreCase(method)) ||
-               (path.startsWith("/api/groups/") && path.endsWith("/image")) ||
-               (path.startsWith("/api/users/") && path.endsWith("/avatar"));
+               (path.startsWith("/api/groups/") && path.contains("/image")) ||
+               (path.startsWith("/api/users/") && path.contains("/avatar"));
+    }
+
+    /**
+     * Con un token válido cada usuario tiene su propio cupo, aunque compartan IP (la wifi de un
+     * bar). Sin token o con uno no válido se cuenta por IP: inventar tokens no da más cupo.
+     */
+    String rateLimitKey(HttpServletRequest request) {
+        String token = JwtAuthFilter.bearerToken(request);
+        if (jwtUtil != null && token != null) {
+            Long userId = jwtUtil.verify(token).map(JwtUtil.VerifiedToken::userId).orElse(null);
+            if (userId != null) return "user:" + userId;
+        }
+        return "ip:" + getClientIp(request);
     }
 
     private boolean isAllowedAuthLogin(String clientIp) {

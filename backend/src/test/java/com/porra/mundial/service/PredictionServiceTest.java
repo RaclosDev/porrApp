@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -103,48 +102,31 @@ class PredictionServiceTest {
     }
 
     @Test
-    void refusesMissingRequestedEditionInsteadOfSavingInGlobalLeague() {
-        group.setId(League.GLOBAL_ID);
+    void refusesMissingRequestedEditionInsteadOfSavingInAnotherLeague() {
+        group.setId(50L);
         when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
         when(editionRepository.findByLeagueIdAndStatus(999L, "ACTIVE")).thenReturn(Optional.empty());
-        lenient().when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        lenient().when(editionRepository.findByLeagueIdAndStatus(50L, "ACTIVE")).thenReturn(Optional.of(edition));
         assertThrows(BusinessException.class, () ->
                 predictionService.createPrediction("owner@test.com", "Mi liga", new PredictionDataDTO(), 999L));
-        verify(editionRepository, never()).findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE");
+        verify(editionRepository, never()).findByLeagueIdAndStatus(50L, "ACTIVE");
         verify(predictionRepository, never()).save(any());
     }
 
     @Test
     void refusesToSaveWithoutAnExistingUserAccount() {
         when(userAccountRepository.findByGoogleEmail("missing@test.com")).thenReturn(Optional.empty());
-        lenient().when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
+        lenient().when(editionRepository.findByLeagueIdAndStatus(50L, "ACTIVE")).thenReturn(Optional.of(edition));
         assertThrows(BusinessException.class, () ->
                 predictionService.createPrediction("missing@test.com", "Sin cuenta", new PredictionDataDTO(), null));
         verify(predictionRepository, never()).save(any());
     }
 
     @Test
-    void nullGroupExplicitlyUsesTheGlobalEdition() {
-        group.setId(League.GLOBAL_ID);
-        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
-        when(editionRepository.findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE")).thenReturn(Optional.of(edition));
-        when(predictionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        Prediction saved = predictionService.createPrediction("owner@test.com", "Global", new PredictionDataDTO(), null);
-        assertSame(edition, saved.getEdition());
-        assertSame(owner, saved.getUser());
-        verify(editionRepository).findByLeagueIdAndStatus(League.GLOBAL_ID, "ACTIVE");
-    }
-
-    @Test
-    void rejectsChangingTheTopologyOfAnExistingPredictionThroughUpdate() {
-        var stored = new PredictionDataDTO();
-        stored.setTopologyVersion(2);
-        prediction.setBracketData(stored);
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+    void refusesToCreateAPredictionWithoutALeague() {
         assertThrows(BusinessException.class, () ->
-                predictionService.updatePrediction(1L, "owner@test.com", "Old client", new PredictionDataDTO()));
+                predictionService.createPrediction("owner@test.com", "Sin liga", new PredictionDataDTO(), null));
         verify(predictionRepository, never()).save(any());
-        assertSame(stored, prediction.getBracketData());
     }
 
     @Test
@@ -174,8 +156,6 @@ class PredictionServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(predictionService, "paymentService", new LeaguePaymentService(membershipRepository, predictionRepository));
-
         owner = UserAccount.builder()
                 .id(10L)
                 .googleEmail("owner@test.com")
@@ -222,124 +202,12 @@ class PredictionServiceTest {
     @Test
     void rejectsBracketInMatchDayEdition() {
         edition.setPoolFormat(com.porra.mundial.model.PoolFormat.MATCH_DAY);
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(membershipRepository.existsById(any())).thenReturn(true);
         assertThrows(BusinessException.class, () ->
-                predictionService.updatePrediction(1L, "owner@test.com", null, new PredictionDataDTO()));
+                predictionService.createPrediction("owner@test.com", null, new PredictionDataDTO(), 100L));
         verify(predictionRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Dueño puede actualizar su propio pronostico")
-    void ownerCanUpdateOwnPrediction() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        Prediction updated = predictionService.updatePrediction(1L, "owner@test.com", "Nuevo Nombre", null);
-
-        assertNotNull(updated);
-        assertEquals("Nuevo Nombre", updated.getName());
-        verify(predictionRepository).save(prediction);
-    }
-
-    @Test
-    @DisplayName("Admin del grupo puede actualizar el pronostico de un miembro")
-    void groupAdminCanUpdateMemberPrediction() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        Prediction updated = predictionService.updatePrediction(1L, "admin@test.com", "Corregido por Admin", null);
-
-        assertNotNull(updated);
-        assertEquals("Corregido por Admin", updated.getName());
-    }
-
-    @Test
-    @DisplayName("Cambiar el cuadro de una porra obliga a recalcular sus puntos")
-    void updatingTheBracketClearsTheStoredScore() {
-        prediction.setScoreCalculatedAt(java.time.LocalDateTime.now());
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        predictionService.updatePrediction(1L, "owner@test.com", null, new PredictionDataDTO());
-
-        assertNull(prediction.getScoreCalculatedAt());
-    }
-
-    @Test
-    @DisplayName("Extraño NO puede actualizar el pronostico de otro usuario (403 SecurityException)")
-    void strangerCannotUpdatePrediction() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-
-        assertThrows(BusinessException.class, () ->
-                predictionService.updatePrediction(1L, "stranger@test.com", "Robada", null)
-        );
-
-        verify(predictionRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Usuario no autenticado (email null) es rechazado")
-    void unauthenticatedCannotUpdatePrediction() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-
-        assertThrows(BusinessException.class, () ->
-                predictionService.updatePrediction(1L, null, "Sin Auth", null)
-        );
-    }
-
-    @Test
-    @DisplayName("Participante normal NO puede marcar su propio pronostico como pagado")
-    void ownerCannotMarkOwnPredictionAsPaid() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-
-        assertThrows(BusinessException.class, () ->
-                predictionService.markAsPaid(1L, "owner@test.com")
-        );
-
-        assertFalse(prediction.getPaid());
-        verify(predictionRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Admin del grupo sí puede marcar el pronostico de un miembro como pagado")
-    void groupAdminCanMarkPredictionAsPaid() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-        when(predictionRepository.save(any(Prediction.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(groupAdmin));
-
-        Membership membership = Membership.builder().paymentStatus("PENDING").build();
-        when(membershipRepository.findById(any())).thenReturn(Optional.of(membership));
-        when(predictionRepository.findByUserIdAndEditionLeagueId(owner.getId(), group.getId()))
-                .thenReturn(List.of(prediction));
-        Prediction paidPrediction = predictionService.markAsPaid(1L, "admin@test.com");
-
-        assertTrue(paidPrediction.getPaid());
-        assertEquals("PAID", membership.getPaymentStatus());
-        verify(membershipRepository).save(membership);
-        assertEquals(groupAdmin, paidPrediction.getPaymentMarkedBy());
-        verify(predictionRepository).save(prediction);
-    }
-
-    @Test
-    @DisplayName("Dueño puede borrar su propio pronostico")
-    void ownerCanDeleteOwnPrediction() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-
-        predictionService.deletePrediction(1L, "owner@test.com");
-
-        verify(predictionRepository).delete(prediction);
-    }
-
-    @Test
-    @DisplayName("Extraño NO puede borrar el pronostico de otro usuario")
-    void strangerCannotDeletePrediction() {
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-
-        assertThrows(BusinessException.class, () ->
-                predictionService.deletePrediction(1L, "stranger@test.com")
-        );
-
-        verify(predictionRepository, never()).delete(any());
     }
 
     @Test
@@ -369,32 +237,6 @@ class PredictionServiceTest {
                 predictionService.createPrediction("owner@test.com", "Mi Porra", new PredictionDataDTO(), 100L)
         );
 
-        verify(predictionRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("No se puede actualizar pronostico si la edicion/porra ha superado la fecha limite")
-    void cannotUpdatePredictionWhenEditionLockDatePassed() {
-        edition.setLockDate(LocalDateTime.now().minusHours(2));
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-
-        assertThrows(BusinessException.class, () ->
-                predictionService.updatePrediction(1L, "owner@test.com", "Cambio", null)
-        );
-
-        verify(predictionRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Nadie puede actualizar pronostico con la edicion bloqueada")
-    void cannotUpdatePredictionWhenEditionIsLocked() {
-        edition.setStatus("LOCKED");
-
-        when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));
-
-        assertThrows(BusinessException.class, () ->
-                predictionService.updatePrediction(1L, "admin@test.com", "Fix de Admin", null)
-        );
         verify(predictionRepository, never()).save(any());
     }
 
@@ -468,9 +310,9 @@ class PredictionServiceTest {
     }
 
     @Test
-    @DisplayName("Los pronósticos de la Porra Global los ve cualquiera tras el cierre")
-    void globalLeaguePredictionIsPublicAfterLock() {
-        League global = League.builder().id(League.GLOBAL_ID).joinCode(League.GLOBAL_JOIN_CODE).build();
+    @DisplayName("Los pronósticos de una liga pública los ve cualquiera tras el cierre")
+    void publicLeaguePredictionIsPublicAfterLock() {
+        League global = League.builder().id(50L).joinCode("ABIERTA").publicLeague(true).build();
         edition.setLeague(global);
         edition.setStatus("LOCKED");
         when(predictionRepository.findById(1L)).thenReturn(Optional.of(prediction));

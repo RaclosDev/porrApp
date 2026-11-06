@@ -10,6 +10,7 @@ import com.porra.mundial.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ public class SessionService {
     /** Duración máxima de una sesión, contada desde el inicio de sesión. */
     public static final Duration SESSION_TTL = Duration.ofDays(30);
 
+    private static final Duration ACTIVITY_PRECISION = Duration.ofDays(1);
     private static final int REFRESH_TOKEN_BYTES = 32;
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -118,6 +120,7 @@ public class SessionService {
 
     /** Borra cada noche las sesiones caducadas, que ya no sirven ni para detectar reutilizaciones. */
     @Scheduled(cron = "0 15 4 * * *")
+    @SchedulerLock(name = "sessionCleanup", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
     @Transactional
     public void purgeExpiredSessions() {
         int deleted = familyRepository.deleteExpired(Instant.now());
@@ -137,6 +140,7 @@ public class SessionService {
     }
 
     private SessionTokens issue(RefreshTokenFamily family, UserAccount user, Instant now) {
+        markActive(user, now);
         String refreshToken = newRefreshToken();
         tokenRepository.save(RefreshToken.builder()
                 .familyId(family.getId())
@@ -145,6 +149,14 @@ public class SessionService {
                 .build());
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getGoogleEmail());
         return new SessionTokens(accessToken, refreshToken, family.getExpiresAt(), user);
+    }
+
+    /** Como mucho una escritura al día por usuario: basta para el plazo de cuentas inactivas. */
+    private static void markActive(UserAccount user, Instant now) {
+        Instant last = user.getLastActiveAt();
+        if (last == null || last.isBefore(now.minus(ACTIVITY_PRECISION))) {
+            user.setLastActiveAt(now);
+        }
     }
 
     /** SELECT ... FOR UPDATE de la familia del token, sin cargar antes el token. */

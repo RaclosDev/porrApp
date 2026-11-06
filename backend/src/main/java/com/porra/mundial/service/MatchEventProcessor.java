@@ -12,9 +12,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -36,7 +36,6 @@ import java.util.function.Consumer;
 @Slf4j
 public class MatchEventProcessor {
 
-    private static final ZoneId SPAIN_ZONE = ZoneId.of("Europe/Madrid");
     private static final long TEAM_CACHE_TTL_MS = 3_600_000;
 
     private final TeamRepository teamRepository;
@@ -55,6 +54,8 @@ public class MatchEventProcessor {
         private final List<Runnable> notifications = new ArrayList<>();
         private int teamsUpdated;
         private int matchesUpdated;
+        /** Partidos en los que solo ha cambiado el reloj de juego. */
+        private int clockUpdated;
         private boolean resultsChanged;
         private final List<String> errors = new ArrayList<>();
 
@@ -87,6 +88,10 @@ public class MatchEventProcessor {
 
         public int matchesUpdated() {
             return matchesUpdated;
+        }
+
+        public int clockUpdated() {
+            return clockUpdated;
         }
 
         public String competitionName() {
@@ -207,10 +212,10 @@ public class MatchEventProcessor {
     }
 
     /** Fecha del evento en hora peninsular española, o null si no se puede interpretar. */
-    public LocalDateTime parseDate(String isoDate) {
+    public Instant parseDate(String isoDate) {
         if (isoDate == null) return null;
         try {
-            return ZonedDateTime.parse(isoDate).withZoneSameInstant(SPAIN_ZONE).toLocalDateTime();
+            return ZonedDateTime.parse(isoDate).toInstant();
         } catch (Exception e) {
             log.debug("Fecha no interpretable '{}': {}", isoDate, e.getMessage());
             return null;
@@ -316,6 +321,7 @@ public class MatchEventProcessor {
     /** Ronda que ESPN indica en {@code season.slug}; null si el evento no la trae o no se reconoce. */
     static String roundFromSlug(String slug) {
         return switch (slug == null ? "" : slug.toLowerCase()) {
+            case "play-in" -> "playin";
             case "group-stage" -> "group";
             case "round-of-32" -> "r32";
             case "round-of-16" -> "r16";
@@ -369,8 +375,60 @@ public class MatchEventProcessor {
         return new MatchMetadata(group, round);
     }
 
+    static final String MATCHDAY_PREFIX = "Jornada ";
+    /** Separación máxima entre partidos de una misma jornada. */
+    private static final long SAME_MATCHDAY_DAYS = 4;
+    /** Más allá de este parón se da por empezada otra temporada y no se sigue numerando. */
+    private static final long NEW_SEASON_GAP_DAYS = 45;
+
+    /**
+     * Jornada de un partido de liga nuevo, siguiendo la numeración "Jornada N" que ya tenga la competición:
+     * va a la última jornada si aún le faltan partidos y está a pocos días; si no, a la siguiente.
+     * Null si la competición no numera jornadas o el partido no encaja (aplazado antiguo, temporada nueva).
+     */
+    String inferLeagueMatchday(Competition competition, Instant date) {
+        if (competition == null || competition.getId() == null || date == null
+                || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())) {
+            return null;
+        }
+        List<Match> numbered = matchRepository.findByCompetitionIdAndRoundStartingWith(competition.getId(), MATCHDAY_PREFIX);
+        int latest = 0;
+        for (Match m : numbered) latest = Math.max(latest, matchdayNumber(m.getRound()));
+        if (latest == 0) return null;
+
+        Set<Long> teams = new HashSet<>();
+        Instant latestStart = null;
+        Instant latestEnd = null;
+        int latestCount = 0;
+        for (Match m : numbered) {
+            if (m.getHomeTeam() != null && !Team.isPlaceholder(m.getHomeTeam())) teams.add(m.getHomeTeam().getId());
+            if (m.getAwayTeam() != null && !Team.isPlaceholder(m.getAwayTeam())) teams.add(m.getAwayTeam().getId());
+            if (matchdayNumber(m.getRound()) != latest) continue;
+            latestCount++;
+            Instant d = m.getMatchDate();
+            if (d == null) continue;
+            if (latestStart == null || d.isBefore(latestStart)) latestStart = d;
+            if (latestEnd == null || d.isAfter(latestEnd)) latestEnd = d;
+        }
+        if (latestEnd == null || date.isBefore(latestStart) || date.isAfter(latestEnd.plus(NEW_SEASON_GAP_DAYS, ChronoUnit.DAYS))) {
+            return null;
+        }
+        int matchesPerMatchday = Math.max(1, teams.size() / 2);
+        boolean fitsLatest = latestCount < matchesPerMatchday && !date.isAfter(latestEnd.plus(SAME_MATCHDAY_DAYS, ChronoUnit.DAYS));
+        return MATCHDAY_PREFIX + (fitsLatest ? latest : latest + 1);
+    }
+
+    private static int matchdayNumber(String round) {
+        if (round == null || !round.startsWith(MATCHDAY_PREFIX)) return 0;
+        try {
+            return Integer.parseInt(round.substring(MATCHDAY_PREFIX.length()).trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     private void upsertMatch(String eventId, Team home, Team away, Scores scores, int[] fairPlay,
-                             LocalDateTime date, MatchStatus status, MatchMetadata meta, Batch batch) {
+                             Instant date, MatchStatus status, MatchMetadata meta, Batch batch) {
         Match match = matchRepository.findByExternalId(eventId)
                 .orElseGet(() -> Match.builder().externalId(eventId).build());
 
@@ -391,13 +449,19 @@ public class MatchEventProcessor {
         updated |= setIfChanged(match.getMatchDate(), date, match::setMatchDate);
         boolean finishedChanged = setIfChanged(match.getFinished(), status.finished(), match::setFinished);
         updated |= finishedChanged;
-        updated |= setIfChanged(match.getDisplayClock(), status.displayClock(), match::setDisplayClock);
+        // El reloj cambia en cada pasada mientras se juega: no cuenta como cambio de datos.
+        boolean clockChanged = setIfChanged(match.getDisplayClock(), status.displayClock(), match::setDisplayClock);
         if (meta.groupName() != null) {
             updated |= setIfChanged(match.getGroupName(), meta.groupName(), match::setGroupName);
         }
         // La ronda "group" es la de por defecto: nunca sobrescribe una ronda ya asignada.
         if (meta.round() != null && !"group".equals(meta.round())) {
             updated |= setIfChanged(match.getRound(), meta.round(), match::setRound);
+        }
+        // ESPN no da el número de jornada de las ligas: un partido nuevo hereda la numeración existente.
+        if (match.getId() == null && (match.getRound() == null || match.getRound().isBlank())) {
+            String matchday = inferLeagueMatchday(batch.competition, date);
+            if (matchday != null) match.setRound(matchday);
         }
         boolean fairPlayChanged = setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay)
                 | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
@@ -420,6 +484,9 @@ public class MatchEventProcessor {
                 batch.notifyScore(() -> webSocketService.broadcastMatchScore(matchId, homeName, awayName,
                         scores.home(), scores.away(), normalized == MatchStatusNormalized.LIVE ? "IN_PLAY" : normalized.name()));
             }
+        } else if (clockChanged) {
+            matchRepository.save(match);
+            batch.clockUpdated++;
         }
 
         if (status.finished() || status.live()) {

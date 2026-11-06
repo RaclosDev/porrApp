@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
@@ -17,33 +16,54 @@ import {
   type CustomPair,
 } from '../utils/customBracket';
 import { useCustomLock } from '../hooks/useCustomLock';
+import { officialBracketMatches } from '../utils/officialTournament';
 import PaperLoading from '../components/PaperLoading';
 import Flag from '../components/Flag';
 import CustomSelect from '../components/CustomSelect';
 import InkStamp from '../components/InkStamp';
 import BracketCanvas, { TeamSlot, type CanvasMatch } from '../components/BracketCanvas';
 import { BracketFinalMatch } from '../components/BracketFinale';
+import BracketTeamStatus from '../components/BracketTeamStatus';
 
 type Pair = CustomPair;
+
+/** Texto para el lector de pantalla del equipo elegido en cada cruce. */
+const PICK_LABELS = {
+  picked: ' · tu predicción',
+  hit: ' · tu predicción, acertada',
+  miss: ' · tu predicción, fallada',
+} as const;
 
 const toCanvasMatch = (slot: CustomBracketMatchSlot): CanvasMatch<string | null> => ({
   home: slot.home,
   away: slot.isBye ? null : slot.away,
 });
 
-/** Pronóstico de una competición personalizada, con el mismo cuadro que el pronóstico del Mundial. */
+/**
+ * Pronóstico de un cuadro propio, con el mismo cuadro que el pronóstico del Mundial: el de una
+ * competición personalizada o los cruces reales de un torneo oficial (Worlds de LoL…).
+ */
 export default function CustomBracket() {
-  const { activeGroupId, activeGroupPoolFormat, activeGroupName, activeGroupIsLocked, userName } =
-    useAppContext();
+  const {
+    activeGroupId,
+    activeGroupPoolFormat,
+    activeGroupName,
+    activeGroupIsLocked,
+    activeGroupCustomCompetition,
+    allGames,
+    userName,
+  } = useAppContext();
+  const official = !activeGroupCustomCompetition;
   const saved = useMyLeaguePrediction();
-  const lock = useCustomLock(activeGroupId);
+  const customLock = useCustomLock(activeGroupId);
+  // Un torneo oficial siempre tiene cierre (su fecha o sus partidos), aunque aún no se conozca la fecha.
+  const lock = official ? { ...customLock, configured: true } : customLock;
   const queryClient = useQueryClient();
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const [groups, setGroups] = useState<Record<string, string[]>>({});
   const [picks, setPicks] = useState<string[][]>([]);
   // Solo hay un pronóstico por persona: se guarda con el nombre que ya tuviera o el del participante.
   const [predictionName, setPredictionName] = useState('');
-  const savedNoticeShown = useRef(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
@@ -55,23 +75,40 @@ export default function CustomBracket() {
   const teamsQuery = useQuery({
     queryKey: queryKeys.customTeams(activeGroupId),
     queryFn: () => fetchCustomTeams(groupId!),
-    enabled: groupId != null,
+    enabled: groupId != null && !official,
   });
   const matchesQuery = useQuery({
     queryKey: queryKeys.customMatches(activeGroupId),
     queryFn: () => fetchCustomMatches(groupId!),
-    enabled: groupId != null,
+    enabled: groupId != null && !official,
   });
-  const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
-  const matches = useMemo(() => matchesQuery.data ?? [], [matchesQuery.data]);
-  const loadingData = teamsQuery.isPending || matchesQuery.isPending;
-  const loadError = teamsQuery.error ?? matchesQuery.error;
+  const teams = useMemo(
+    () =>
+      official
+        ? [...new Set(allGames.flatMap((match) => [match.home, match.away]))]
+            .filter(Boolean)
+            .map((name) => ({
+              name,
+              groupName: null,
+              logoUrl:
+                allGames.find((match) => match.home === name)?.homeLogo ||
+                allGames.find((match) => match.away === name)?.awayLogo ||
+                null,
+            }))
+        : (teamsQuery.data ?? []),
+    [official, allGames, teamsQuery.data],
+  );
+  const matches = useMemo(
+    () => (official ? officialBracketMatches(allGames) : (matchesQuery.data ?? [])),
+    [official, allGames, matchesQuery.data],
+  );
+  const loadingData = !official && (teamsQuery.isPending || matchesQuery.isPending);
+  const loadError = official ? null : (teamsQuery.error ?? matchesQuery.error);
 
   useEffect(() => {
     setGroups({});
     setPicks([]);
     setPredictionName('');
-    savedNoticeShown.current = false;
     setLoadedKey('');
     setError('');
     setRevision(0);
@@ -87,13 +124,7 @@ export default function CustomBracket() {
     setGroups(saved.data?.groups ?? {});
     setPicks((saved.data?.customRounds ?? []).map((round) => round.map((pick) => pick ?? '')));
     setPredictionName(saved.predictionName ?? '');
-    if (!activeGroupIsLocked && !savedNoticeShown.current) {
-      savedNoticeShown.current = true;
-      toast('Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.', {
-        id: 'custom-prediction-saved',
-      });
-    }
-  }, [saved, loadedKey, activeGroupIsLocked, revision]);
+  }, [saved, loadedKey, revision]);
 
   const logos = useMemo(
     () => Object.fromEntries(teams.map((team) => [team.name, team.logoUrl] as const)),
@@ -114,9 +145,10 @@ export default function CustomBracket() {
     () =>
       matches
         .filter((match) => match.round === 'bracket-1')
-        .sort((left, right) => left.id - right.id)
+        // Los cruces oficiales ya llegan en el orden en que se pintan.
+        .sort((left, right) => (official ? 0 : left.id - right.id))
         .map((match) => [match.home, match.away_team_id ? match.away : null]),
-    [matches],
+    [matches, official],
   );
 
   // Ganadores reales de cada ronda, para marcar aciertos y fallos en el pronóstico.
@@ -126,6 +158,18 @@ export default function CustomBracket() {
       const found = /^bracket-(\d+)$/.exec(match.round ?? '');
       const winner = found && match.away_team_id ? customMatchWinner(match) : null;
       if (found && winner) (result[Number(found[1]) - 1] ??= new Set()).add(winner);
+    }
+    return result;
+  }, [matches]);
+  // Ronda en la que cayó cada equipo, para marcarlo eliminado desde ahí en adelante.
+  const eliminatedAt = useMemo(() => {
+    const result = new Map<string, number>();
+    for (const match of matches) {
+      const found = /^bracket-(\d+)$/.exec(match.round ?? '');
+      const winner = found && match.away_team_id ? customMatchWinner(match) : null;
+      if (!found || !winner) continue;
+      const loser = winner === match.home ? match.away : match.home;
+      if (loser) result.set(loser, Number(found[1]) - 1);
     }
     return result;
   }, [matches]);
@@ -148,6 +192,13 @@ export default function CustomBracket() {
     () => splitCustomRounds(displayRounds.map((round) => round.matches)),
     [displayRounds],
   );
+
+  // Se abre en la primera ronda con partidos reales por jugar, como en los resultados.
+  const currentRound = useMemo(() => {
+    const semiIndex = layout.roundLabels.length - 1;
+    const pending = displayRounds.findIndex((_, index) => !decidedRounds[index]);
+    return pending < 0 ? semiIndex : Math.min(pending, semiIndex);
+  }, [displayRounds, decidedRounds, layout.roundLabels.length]);
 
   const isFullBracket = activeGroupPoolFormat === 'FULL_BRACKET';
   const hasGroups = isFullBracket && Object.keys(teamsByGroup).length > 0;
@@ -202,23 +253,38 @@ export default function CustomBracket() {
     const name = isHome ? slot.home : slot.isBye ? null : slot.away;
     const label = name ?? (isHome ? slot.homePlaceholder : slot.awayPlaceholder);
     const picked = Boolean(name && !slot.isBye && picks[roundIndex]?.[matchIndex] === name);
+    const qualified = Boolean(name && realWinners[roundIndex]?.has(name));
+    const outRound = name ? eliminatedAt.get(name) : undefined;
+    const eliminated = !qualified && outRound != null && outRound <= roundIndex;
+    const outcome = !picked
+      ? null
+      : qualified
+        ? 'hit'
+        : eliminated || decidedRounds[roundIndex]
+          ? 'miss'
+          : 'picked';
+    const classes = [outcome ? `is-${outcome}` : '', eliminated && !picked ? 'is-out' : '']
+      .filter(Boolean)
+      .join(' ');
     return (
       <TeamSlot
         name={label}
         logo={name ? logos[name] : null}
         placeholder={!name}
         pressed={picked}
+        className={classes}
         onClick={
           editable && name && !slot.isBye && !lock.pickLocked(roundIndex, matchIndex)
             ? () => selectWinner(roundIndex, matchIndex, name)
             : undefined
         }
         rightContent={
-          <PickOutcome
-            picked={picked}
-            won={Boolean(name && realWinners[roundIndex]?.has(name))}
-            decided={Boolean(decidedRounds[roundIndex])}
-          />
+          <>
+            {outcome && <span className="sr-only">{PICK_LABELS[outcome]}</span>}
+            <BracketTeamStatus
+              outcome={qualified ? 'qualified' : eliminated ? 'eliminated' : null}
+            />
+          </>
         }
       />
     );
@@ -261,7 +327,7 @@ export default function CustomBracket() {
     }
     return {
       user: userName,
-      prediction: predictionName.trim() || userName || 'Mi pronóstico',
+      prediction: predictionName.trim() || userName || 'Mi predicción',
       groups: orderedGroups,
       customRounds: completed,
       r16: [],
@@ -279,7 +345,6 @@ export default function CustomBracket() {
       void createPrediction(completeData, activeGroupId)
         .then(async () => {
           setLastSaved(fingerprint);
-          savedNoticeShown.current = true;
           setSaveState('saved');
           setError('');
           await Promise.all([
@@ -290,7 +355,7 @@ export default function CustomBracket() {
         .catch((reason: unknown) => {
           failedRevision.current = revision;
           setSaveState('error');
-          setError(errorMessage(reason, 'No se pudo guardar el pronóstico'));
+          setError(errorMessage(reason, 'No se pudo guardar la predicción'));
         })
         .finally(() => setBusy(false));
     }, 600);
@@ -307,12 +372,9 @@ export default function CustomBracket() {
   ]);
 
   return (
-    <section className="view-section active block" aria-label={`Pronóstico de ${activeGroupName}`}>
+    <section className="view-section active block" aria-label={`Predicción de ${activeGroupName}`}>
       {editable && lock.configured && firstRound.length > 0 && (
-        <div
-          className="paper-panel album-sheet p-3 mb-5 max-w-145 mx-auto text-center"
-          role="status"
-        >
+        <p className="text-center text-muted text-[0.85rem] mb-[15px] min-h-[1.3em]" role="status">
           {error ? (
             <>
               <span role="alert" className="text-[var(--miss)]">
@@ -327,32 +389,24 @@ export default function CustomBracket() {
               </button>
             </>
           ) : busy ? (
-            'Guardando pronóstico…'
-          ) : (saveState === 'saved' &&
-              completeData &&
-              JSON.stringify(completeData) === lastSaved) ||
-            (saved && revision === 0) ? (
-            'Pronóstico guardado'
-          ) : completeData && revision > 0 ? (
-            'Se guardará automáticamente…'
-          ) : (
-            'Completa el pronóstico para guardarlo automáticamente.'
-          )}
-        </div>
+            'Guardando…'
+          ) : revision === 0 ? null : saveState === 'saved' &&
+            completeData &&
+            JSON.stringify(completeData) === lastSaved ? (
+            '✓ Guardado'
+          ) : completeData ? (
+            'Guardando…'
+          ) : null}
+        </p>
       )}
       {lateEntry && !lock.fullyLocked && (
         <p className="paper-panel album-sheet p-4 max-w-145 mx-auto text-center" role="status">
-          La competición ya ha empezado: no se admiten pronósticos nuevos.
-        </p>
-      )}
-      {editable && lock.anyLocked && (
-        <p className="text-center text-muted text-[0.9rem] mb-[15px]">
-          Lo que ya ha empezado está cerrado; el resto puedes cambiarlo.
+          La competición ya ha empezado: no se admiten predicciones nuevas.
         </p>
       )}
       {(activeGroupIsLocked || lock.fullyLocked) && (
         <p className="flex items-center justify-center gap-3 mb-[15px] text-[0.9rem] text-muted">
-          <InkStamp>Pronóstico cerrado</InkStamp>
+          <InkStamp>Predicción cerrada</InkStamp>
           El plazo para enviarlo o cambiarlo ha terminado.
         </p>
       )}
@@ -366,10 +420,7 @@ export default function CustomBracket() {
       {!loadingData && hasGroups && (
         <div className="w-full mb-7.5">
           <div className="text-center mb-7.5">
-            <h2 className="poster-title text-accent-text mt-0 mb-2.5 mx-0">
-              Paso 1: fase de grupos
-            </h2>
-            <p className="text-muted">Ordena los equipos de cada grupo.</p>
+            <h2 className="poster-title text-accent-text m-0">Fase de grupos</h2>
           </div>
           <div className="groups-grid">
             {Object.entries(teamsByGroup).map(([group, members], groupIndex) => (
@@ -427,25 +478,32 @@ export default function CustomBracket() {
       {!loadingData && !loadError && (
         <>
           <div className="section-header mb-7.5 text-center">
-            <h2 className="m-0 poster-title">
-              {hasGroups ? 'Paso 2: Eliminatorias' : 'Eliminatorias'}
-            </h2>
-            {editable && firstRound.length > 0 && (
+            <h2 className="m-0 poster-title">Eliminatorias</h2>
+            {editable && firstRound.length > 0 && !saved && revision === 0 && (
               <p className="text-muted mt-2 text-[0.9rem]">
                 Pulsa un equipo para pasarlo a la siguiente ronda
               </p>
             )}
-            {decidedRounds.some(Boolean) && (
-              <p className="text-muted mt-1 text-[0.85rem]">
-                <span className="text-[var(--hit)] font-bold">✓ Acertado</span> ·{' '}
-                <span className="text-[var(--miss)] font-bold">✗ Fallado</span>
-              </p>
+            {/* Lo elegido ya se ve en el cuadro; la leyenda solo explica los colores de acierto. */}
+            {picks.some((round) => round.some(Boolean)) && decidedRounds.some(Boolean) && (
+              <ul className="pick-legend" aria-label="Leyenda del cuadro">
+                <li>
+                  <span className="pick-legend-swatch is-hit" aria-hidden="true" />
+                  Acertada
+                </li>
+                <li>
+                  <span className="pick-legend-swatch is-miss" aria-hidden="true" />
+                  Fallada
+                </li>
+              </ul>
             )}
           </div>
 
           {!firstRound.length && (
             <p className="paper-panel album-sheet p-5 text-center max-w-145 mx-auto">
-              El administrador aún no ha configurado los cruces.
+              {official
+                ? 'Aún no hay cruces del cuadro: podrás hacer tu predicción cuando termine la fase previa.'
+                : 'El administrador aún no ha configurado los cruces.'}
             </p>
           )}
 
@@ -454,6 +512,7 @@ export default function CustomBracket() {
               leftRounds={layout.left.map((round) => round.map(toCanvasMatch))}
               rightRounds={layout.right.map((round) => round.map(toCanvasMatch))}
               roundLabels={layout.roundLabels}
+              defaultRound={currentRound}
               centerLabel={layout.roundLabels.length ? 'Semifinales y final' : 'Final'}
               renderSlot={(_, { side, roundIndex, matchIndex, isHome }) =>
                 renderPickSlot(
@@ -482,34 +541,11 @@ export default function CustomBracket() {
 
           {lock.state && !lock.configured && (
             <p className="paper-panel album-sheet p-5 mt-7.5 text-center max-w-145 mx-auto">
-              El administrador debe fijar el cierre antes de que se puedan guardar pronósticos.
+              El administrador debe fijar el cierre antes de que se puedan guardar predicciones.
             </p>
           )}
         </>
       )}
     </section>
-  );
-}
-
-/** Marca de acierto o fallo; solo el icono, para no comerse el nombre en casillas estrechas. */
-function PickOutcome({
-  picked,
-  won,
-  decided,
-}: {
-  picked: boolean;
-  won: boolean;
-  decided: boolean;
-}) {
-  if (!picked || (!won && !decided)) return null;
-  const label = won ? 'Acertado' : 'Fallado';
-  return (
-    <span
-      className={`ml-1 shrink-0 text-[0.95em] font-bold ${won ? 'text-[var(--hit)]' : 'text-[var(--miss)]'}`}
-      title={label}
-    >
-      <span aria-hidden="true">{won ? '✓' : '✗'}</span>
-      <span className="sr-only"> {label}</span>
-    </span>
   );
 }

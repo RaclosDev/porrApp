@@ -16,7 +16,8 @@ export type Draft = Record<string, DraftPrediction>;
 
 export type MatchSign = '1' | 'X' | '2';
 
-export type StatusFilter = 'ALL' | 'PENDING' | 'FINISHED';
+/** `UPCOMING`: todos los que no han terminado; `PENDING`: abiertos y sin pronóstico. */
+export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
 
 export const EMPTY_PREDICTION: DraftPrediction = { homeScore: '', awayScore: '', sign: '' };
 
@@ -29,6 +30,31 @@ export const roundLabelFor = (fixture: MatchdayFixture): string =>
       : fixture.matchDate
         ? `Fecha ${fixture.matchDate.slice(0, 10)}`
         : 'Sin jornada';
+
+const DATE_ROUND = /^Fecha (\d{4})-(\d{2})-(\d{2})$/;
+const ROUND_DAY_FORMAT = new Intl.DateTimeFormat('es-ES', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'short',
+});
+
+/** Texto que se muestra para una jornada: «Fecha 2026-11-24» pasa a «Martes 24 nov»; el resto no cambia. */
+export function displayRoundLabel(label: string): string {
+  const match = DATE_ROUND.exec(label);
+  if (!match) return label;
+  const text = ROUND_DAY_FORMAT.format(new Date(+match[1], +match[2] - 1, +match[3]))
+    .replace(',', '')
+    .replace('.', '');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+const LIVE_STATUSES = new Set(['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS']);
+
+/** El partido está en juego: lo marca el proveedor o ya ha empezado y no ha terminado. */
+export const isLiveFixture = (fixture: MatchdayFixture, now: number = Date.now()): boolean =>
+  !fixture.finished &&
+  (LIVE_STATUSES.has(fixture.status ?? '') ||
+    (fixture.matchDate != null && Date.parse(fixture.matchDate) <= now));
 
 /** Hay algún partido empezado y sin terminar. */
 export const hasLiveMatch = (
@@ -51,17 +77,28 @@ export interface RoundList {
   current: string | null;
 }
 
-/** Jornadas en el orden en que aparecen los partidos, con la jornada actual. */
+const matchdayNumber = (label: string): number | null => {
+  const match = /^jornada\s+(\d+)$/i.exec(label.trim());
+  return match ? Number(match[1]) : null;
+};
+
+/**
+ * Ordena por número las jornadas «Jornada N» (un aplazado no adelanta una jornada a otra) sin
+ * mover de su sitio las demás etiquetas, como las rondas de eliminatoria.
+ */
+export function sortNumberedRounds(rounds: string[]): string[] {
+  const numbered = rounds
+    .filter((r) => matchdayNumber(r) !== null)
+    .sort((a, b) => (matchdayNumber(a) ?? 0) - (matchdayNumber(b) ?? 0));
+  let next = 0;
+  return rounds.map((r) => (matchdayNumber(r) !== null ? numbered[next++] : r));
+}
+
+/** Jornadas en el orden de los partidos (las numeradas, por número), con la jornada actual. */
 export function roundsFromFixtures(fixtures: MatchdayFixture[]): RoundList {
-  const rounds: string[] = [];
   const seen = new Set<string>();
-  fixtures.forEach((f) => {
-    const label = roundLabelFor(f);
-    if (!seen.has(label)) {
-      seen.add(label);
-      rounds.push(label);
-    }
-  });
+  fixtures.forEach((f) => seen.add(roundLabelFor(f)));
+  const rounds = sortNumberedRounds([...seen]);
   if (rounds.length === 0) return { rounds, current: null };
 
   let activeIndex = rounds.findIndex((r) =>
@@ -124,40 +161,12 @@ export function mergeDraftWithServer(fixtures: MatchdayFixture[], draft: Draft):
   return { predictions, draft: kept };
 }
 
-/** Cambia un marcador (solo dígitos, máximo dos) y recalcula el signo si están los dos. */
-export function withScore(
-  current: DraftPrediction,
-  side: 'home' | 'away',
-  value: string,
-): DraftPrediction {
-  const clean = value.replace(/[^0-9]/g, '').slice(0, 2);
-  const updated = { ...current, [side === 'home' ? 'homeScore' : 'awayScore']: clean };
-  if (updated.homeScore !== '' && updated.awayScore !== '') {
-    const h = parseInt(updated.homeScore, 10);
-    const a = parseInt(updated.awayScore, 10);
-    updated.sign = h > a ? '1' : h === a ? 'X' : '2';
-  } else {
-    updated.sign = '';
-  }
-  return updated;
-}
-
-/** Elige un signo y ajusta el marcador para que sea coherente con él. */
-export function withSign(current: DraftPrediction, sign: MatchSign): DraftPrediction {
-  let h = current.homeScore;
-  let a = current.awayScore;
-  if (sign === '1' && (h === '' || a === '' || Number(h) <= Number(a))) {
-    h = '2';
-    a = '1';
-  } else if (sign === 'X') {
-    h = '1';
-    a = '1';
-  } else if (sign === '2' && (a === '' || h === '' || Number(a) <= Number(h))) {
-    h = '1';
-    a = '2';
-  }
-  return { homeScore: h, awayScore: a, sign };
-}
+/** Elige un signo 1X2. El pronóstico es solo de signo: se descarta cualquier marcador anterior. */
+export const withSign = (sign: MatchSign): DraftPrediction => ({
+  homeScore: '',
+  awayScore: '',
+  sign,
+});
 
 export type Submission =
   { kind: 'incomplete' } | { kind: 'empty' } | { kind: 'ready'; items: MatchdayPredictionInput[] };
@@ -209,11 +218,17 @@ export function filterFixtures(
   filter: StatusFilter,
   predictions: Draft,
   leagueLocked: boolean,
+  now: number = Date.now(),
 ): MatchdayFixture[] {
   if (filter === 'PENDING')
     return fixtures.filter((f) => isPendingFixture(f, predictions, leagueLocked));
   if (filter === 'FINISHED') return fixtures.filter((f) => f.finished);
-  return fixtures;
+  // Los partidos en juego van primero; el resto conserva su orden.
+  const upcoming = fixtures.filter((f) => !f.finished);
+  return [
+    ...upcoming.filter((f) => isLiveFixture(f, now)),
+    ...upcoming.filter((f) => !isLiveFixture(f, now)),
+  ];
 }
 
 export function formatMatchDate(dateStr: string | null): string {

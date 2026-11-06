@@ -1,13 +1,17 @@
 /** Opciones de consulta compartidas por varios componentes (misma clave, misma función). */
 import { queryOptions } from '@tanstack/react-query';
 import {
+  fetchFeaturedGroup,
+  fetchLeaderboardLogs,
   fetchLeaderboardMatchdays,
   fetchMyGroups,
+  fetchMyLeagueSummaries,
   fetchMyPredictions,
   fetchOfficialBracket,
   fetchPredictions,
   fetchPredictionScore,
 } from './api';
+import { isApiError } from './apiError';
 import { queryKeys } from './queryKeys';
 
 export const myGroupsQuery = (isAuthenticated: boolean) =>
@@ -15,6 +19,27 @@ export const myGroupsQuery = (isAuthenticated: boolean) =>
     queryKey: queryKeys.myGroups(isAuthenticated),
     queryFn: () => (isAuthenticated ? fetchMyGroups() : Promise.resolve([])),
     staleTime: 60_000,
+  });
+
+/** Posición, puntos y predicciones pendientes del usuario en cada liga. */
+export const myLeagueSummariesQuery = (isAuthenticated: boolean) =>
+  queryOptions({
+    queryKey: queryKeys.myLeagueSummaries(),
+    queryFn: fetchMyLeagueSummaries,
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  });
+
+/**
+ * Liga pública destacada; no hay ninguna si el backend responde 404. Otros fallos (un despliegue,
+ * un arranque en frío) se reintentan para que la portada no se quede sin clasificación ni cromos.
+ */
+export const featuredGroupQuery = () =>
+  queryOptions({
+    queryKey: queryKeys.featuredGroup(),
+    queryFn: fetchFeaturedGroup,
+    staleTime: 5 * 60_000,
+    retry: (failureCount, error) => !isApiError(error, 404) && failureCount < 3,
   });
 
 /** Cuadro oficial; lo invalida el WebSocket cuando cambia un resultado. */
@@ -30,6 +55,14 @@ export const predictionScoreQuery = (predictionId: number | string) =>
   queryOptions({
     queryKey: queryKeys.predictionScore(String(predictionId)),
     queryFn: () => fetchPredictionScore(predictionId),
+    staleTime: 60_000,
+  });
+
+/** Registro de puntos de toda la liga; solo lo pide la gráfica de evolución por partidos. */
+export const leaderboardLogsQuery = (groupId: number | string) =>
+  queryOptions({
+    queryKey: queryKeys.leaderboardLogs(groupId),
+    queryFn: () => fetchLeaderboardLogs(groupId),
     staleTime: 60_000,
   });
 

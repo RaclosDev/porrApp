@@ -1,6 +1,6 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { normalizeCountryName, isGlobalLeagueId } from '../utils/constants';
+import { normalizeCountryName } from '../utils/constants';
 import {
   fetchStandings,
   fetchMatches,
@@ -19,7 +19,7 @@ import {
 import { isApiError } from '../services/apiError';
 import { SESSION_REVISION_KEY } from '../services/sessionHint';
 import { queryKeys } from '../services/queryKeys';
-import { leaguePredictionsQuery, myGroupsQuery } from '../services/queries';
+import { featuredGroupQuery, leaguePredictionsQuery, myGroupsQuery } from '../services/queries';
 import { useWebSocket } from '../hooks/useWebSocket';
 import {
   useAppStore,
@@ -250,6 +250,7 @@ export const useAppContext = () => {
           name: fromList.name,
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
+          competitionExternalId: fromList.competitionExternalId,
           customCompetition: fromList.customCompetition,
           formatType: fromList.formatType,
           poolFormat: fromList.poolFormat,
@@ -323,7 +324,11 @@ export const useAppContext = () => {
     },
   });
 
-  const { data: leaderboard, error: leaderboardError } = useQuery({
+  const {
+    data: leaderboard,
+    error: leaderboardError,
+    isPending: leaderboardPending,
+  } = useQuery({
     queryKey: queryKeys.leaderboard(activeGroupId),
     queryFn: () => fetchLeaderboard(activeGroupId),
     enabled: Boolean(activeGroupId),
@@ -335,9 +340,8 @@ export const useAppContext = () => {
     isApiError(error, 403),
   );
   useEffect(() => {
-    if (!store.isDemoMode && forbiddenError && activeGroupId && !isGlobalLeagueId(activeGroupId)) {
-      // No cambiar silenciosamente a la liga global: eso hace que parezca
-      // que la liga recién seleccionada se ha sustituido por el Mundial.
+    if (!store.isDemoMode && forbiddenError && activeGroupId) {
+      // No cambiar silenciosamente a otra liga: parecería que la seleccionada se ha sustituido.
       console.warn('No se pudieron cargar los datos de la liga activa', {
         activeGroupId,
         message: forbiddenError.message,
@@ -345,6 +349,17 @@ export const useAppContext = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
     }
   }, [forbiddenError, activeGroupId, queryClient, store.isDemoMode]);
+
+  // La demo sin liga elegida abre la liga pública destacada.
+  const needsFeaturedGroup = store.isDemoMode && !activeGroupId;
+  const { data: featuredGroup } = useQuery({
+    ...featuredGroupQuery(),
+    enabled: needsFeaturedGroup,
+  });
+  const changeGroup = store.changeGroup;
+  useEffect(() => {
+    if (needsFeaturedGroup && featuredGroup?.id != null) changeGroup(featuredGroup.id);
+  }, [needsFeaturedGroup, featuredGroup, changeGroup]);
 
   const isMatchdayPool =
     groupInfo?.poolFormat === 'MATCH_DAY' || groupInfo?.formatType === 'LEAGUE';
@@ -436,6 +451,8 @@ export const useAppContext = () => {
     leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
     loading,
     loadingGroup,
+    /** Ranking aún sin datos: evita mostrar un podio a cero mientras carga. */
+    loadingLeaderboard: Boolean(activeGroupId) && leaderboardPending && !leaderboardError,
     groupError:
       groupInfo && (!isApiError(groupError) || groupError.status === 0 || groupError.status >= 500)
         ? null
@@ -461,12 +478,21 @@ export const useAppContext = () => {
     activeGroupAdminId,
     activeGroupPoolFormat,
     activeGroupCustomCompetition: Boolean(groupInfo?.customCompetition),
+    // Se pronostica sobre sus propios cruces: competición personalizada o torneo oficial que no es
+    // el Mundial (Worlds de LoL…). Las de jornadas no tienen cuadro.
+    activeGroupOwnBracket:
+      groupInfo?.poolFormat !== 'MATCH_DAY' &&
+      (Boolean(groupInfo?.customCompetition) ||
+        (groupInfo?.formatType === 'TOURNAMENT' &&
+          Boolean(groupInfo?.competitionExternalId) &&
+          groupInfo?.competitionExternalId !== 'fifa.world')),
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,
     activeGroupRules: groupInfo?.rules || '',
     activeCompetitionId,
     activeCompetitionName: groupInfo?.competitionName || null,
+    activeCompetitionExternalId: groupInfo?.competitionExternalId || null,
     activeCompetitionFormatType:
       groupInfo?.formatType ||
       (activeGroupPoolFormat

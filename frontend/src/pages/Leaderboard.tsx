@@ -1,4 +1,4 @@
-import MatchdayPodium from '../components/MatchdayPodium';
+import MatchdayPodium, { podiumPlaces } from '../components/MatchdayPodium';
 import PaperLoading from '../components/PaperLoading';
 import React, { useState, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -13,10 +13,16 @@ interface LeaderboardColumn {
 }
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 import { UserAvatar } from '../components/Avatar';
-import StickerCard, { type StickerLeader } from '../components/StickerCard';
+import StickerCard from '../components/StickerCard';
+import { displayRoundLabel } from '../utils/matchday';
 
-/** Medalla para el podio, tortuga para el último que ha pagado y número para el resto. */
-function rankLabel(rank: number | '-' | undefined, lowestPaidRank: number): string | number {
+/** Medalla para el podio (solo con puntos), tortuga para el último que ha pagado y número para el resto. */
+function rankLabel(
+  rank: number | '-' | undefined,
+  lowestPaidRank: number,
+  points: number,
+): string | number {
+  if (points <= 0 && typeof rank === 'number' && rank <= 3) return rank;
   if (rank === 1) return '🥇';
   if (rank === 2) return '🥈';
   if (rank === 3) return '🥉';
@@ -50,6 +56,7 @@ function Leaderboard() {
     results,
     loading,
     activeGroupName,
+    activeGroupId,
     activeGroupPichichi,
     activeGroupPoolFormat,
     userId,
@@ -72,45 +79,19 @@ function Leaderboard() {
     handleStepMatchday,
   } = useLeaderboard();
 
-  // Los tres primeros como cromos, igual que en la portada; el resto sigue en la tabla.
-  const podium = React.useMemo<StickerLeader[]>(
-    () =>
-      results
-        .filter((r) => typeof r.rank === 'number' && r.rank <= 3)
-        .sort((a, b) => (a.rank as number) - (b.rank as number))
-        .map((r) => ({
-          rank: r.rank as number,
-          userId: r.userId,
-          name: r.name,
-          avatarUrl: r.avatarUrl,
-          total: r.points.total,
-        })),
-    [results],
-  );
-
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'table' | 'evolution'>('table');
   // En móvil el desglose por fase va oculto hasta que se pide.
   const [showDetail, setShowDetail] = useState(false);
+  // Hora fijada al montar: basta para distinguir una jornada abierta de una en juego.
+  const [now] = useState(() => Date.now());
 
   const isMatchday =
     activeGroupPoolFormat === 'MATCH_DAY' || state.activeCompetitionFormatType === 'LEAGUE';
 
+  // Mismo podio en todos los formatos: los empates comparten cromo en vez de ocultar el podio.
   const sharePodium = React.useMemo(() => {
-    if (!isMatchday) {
-      return podium.map((leader) => ({
-        leader,
-        members: results.filter((row) => row.rank === leader.rank),
-      }));
-    }
-
-    const eligible = validResults.filter((row) => row.points.total > 0);
-    const scores = [...new Set(eligible.map((row) => row.points.total))]
-      .sort((a, b) => b - a)
-      .slice(0, 3);
-
-    return scores.map((score, index) => {
-      const members = eligible.filter((row) => row.points.total === score);
+    return podiumPlaces(validResults).map(({ score, leaders: members }, index) => {
       const first = members[0];
       return {
         leader: {
@@ -123,18 +104,49 @@ function Leaderboard() {
         members,
       };
     });
-  }, [isMatchday, podium, results, validResults]);
+  }, [validResults]);
 
   if (loading) return <PaperLoading label="Cargando clasificación" />;
 
-  const showSharePodium = isMatchday ? sharePodium.length > 0 : sharePodium.length === 3;
-  const shareRows = validResults.filter((row) => {
-    if (!showSharePodium) return true;
-    if (isMatchday) return !sharePodium.some(({ leader }) => leader.total === row.points.total);
-    return typeof row.rank !== 'number' || row.rank > 3;
-  });
+  if (!activeGroupId) {
+    const signedIn = Boolean(userName);
+    return (
+      <section className="view-section active">
+        <div className="paper-panel album-sheet text-center py-10 px-6 max-w-140 mx-auto my-5">
+          <h2 className="poster-title mt-0 mb-2 text-[1.5rem]">Clasificación</h2>
+          <p className="text-muted text-[0.92rem] mt-0 mb-5">
+            {signedIn
+              ? 'Únete a una liga o crea la tuya para ver su clasificación.'
+              : 'Inicia sesión para ver la clasificación de tus ligas.'}
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            {signedIn ? (
+              <Link to="/mis-ligas" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
+                Ir a Mis ligas
+              </Link>
+            ) : (
+              <>
+                <Link to="/" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
+                  Iniciar sesión
+                </Link>
+                <Link to="/demo" className="glass-btn py-2.5 px-5 font-bold">
+                  Ver la demo
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const showSharePodium = sharePodium.length > 0;
+  const shareRows = validResults.filter(
+    (row) => !sharePodium.some(({ leader }) => leader.total === row.points.total),
+  );
   const shareMid = Math.ceil(shareRows.length / 2);
 
+  const ownBracketHasGroupPoints = validResults.some((row) => (row.points.r1 ?? 0) !== 0);
   const scorerColumn: LeaderboardColumn[] = activeGroupPichichi
     ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }]
     : [];
@@ -151,10 +163,13 @@ function Leaderboard() {
           : { key: 'matchPoints', label: 'Puntos de jornada', kind: 'detail' },
         ...scorerColumn,
       ]
-    : state.activeGroupCustomCompetition
+    : state.activeGroupOwnBracket
       ? [
           { key: 'total', label: 'Total', kind: 'total' },
-          { key: 'r1', label: 'Grupos', kind: 'detail' },
+          // Sin fase de grupos (o sin nada que puntuar en ella) la columna sería siempre 0.
+          ...(ownBracketHasGroupPoints
+            ? [{ key: 'r1', label: 'Grupos', kind: 'detail' } as LeaderboardColumn]
+            : []),
           { key: 'r32', label: 'Cuadro', kind: 'detail' },
         ]
       : [
@@ -190,6 +205,12 @@ function Leaderboard() {
   };
 
   const summaryMatchday = selectedMatchdayInfo || currentMatchday;
+  // «En juego» solo cuando ya ha empezado algún partido; antes, la jornada sigue abierta.
+  const matchdayStatus = summaryMatchday?.finished
+    ? { text: 'Finalizada', tone: 'finished' }
+    : summaryMatchday?.date && new Date(summaryMatchday.date).getTime() > now
+      ? { text: 'Abierta', tone: 'open' }
+      : { text: 'En juego', tone: 'live' };
 
   return (
     <section id="view-leaderboard" className="view-section block">
@@ -241,18 +262,21 @@ function Leaderboard() {
               </button>
             </div>
           )}
-          <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
-            <Link to="/stats" className="ranking-secondary-link">
-              <BarChart3 size={16} aria-hidden="true" />
-              {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
-            </Link>
-            {!isMatchday && (
-              <Link to="/search" className="ranking-secondary-link">
-                <Search size={16} aria-hidden="true" />
-                Buscador
+          {/* Más elegidos y Buscador comparan con el Mundial: no aplican a los cuadros propios. */}
+          {(isMatchday || !state.activeGroupOwnBracket) && (
+            <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
+              <Link to="/stats" className="ranking-secondary-link">
+                <BarChart3 size={16} aria-hidden="true" />
+                {isMatchday ? 'Estadísticas por partido' : 'Más elegidos'}
               </Link>
-            )}
-          </nav>
+              {!isMatchday && (
+                <Link to="/search" className="ranking-secondary-link">
+                  <Search size={16} aria-hidden="true" />
+                  Buscador
+                </Link>
+              )}
+            </nav>
+          )}
           <button
             className="ranking-share-button"
             id="btn-share-wa"
@@ -279,6 +303,7 @@ function Leaderboard() {
           <div className="w-full mt-2.5">
             <Suspense fallback={<PaperLoading label="Cargando gráfica" />}>
               <EvolutionChart
+                groupId={activeGroupId}
                 validResults={validResults}
                 userName={userName}
                 allGames={state.allGames}
@@ -296,13 +321,11 @@ function Leaderboard() {
                       {selectedMatchdayInfo?.current ? 'Jornada actual' : 'Jornada seleccionada'}
                     </span>
                     <div className="lb-matchday-title-row">
-                      <strong className="lb-matchday-title">{summaryMatchday.label}</strong>
-                      <span
-                        className={`lb-matchday-status ${
-                          summaryMatchday.finished ? 'is-finished' : 'is-live'
-                        }`}
-                      >
-                        {summaryMatchday.finished ? 'Finalizada' : 'En juego'}
+                      <strong className="lb-matchday-title">
+                        {displayRoundLabel(summaryMatchday.label)}
+                      </strong>
+                      <span className={`lb-matchday-status is-${matchdayStatus.tone}`}>
+                        {matchdayStatus.text}
                       </span>
                     </div>
                     {summaryMatchday.matchCount > 0 && (
@@ -333,7 +356,7 @@ function Leaderboard() {
                   >
                     {matchdays.map((matchday) => (
                       <option key={matchday.label} value={matchday.label}>
-                        {matchday.label}
+                        {displayRoundLabel(matchday.label)}
                         {matchday.current ? ' · actual' : ''}
                       </option>
                     ))}
@@ -360,18 +383,7 @@ function Leaderboard() {
               </div>
             )}
 
-            {!isMatchday && podium.length === 3 && (
-              <ul className="ranking-podium" aria-label="Podio">
-                {podium.map((row) => (
-                  <li
-                    key={row.rank}
-                    className={`ranking-podium-place ranking-podium-place-${row.rank}`}
-                  >
-                    <StickerCard leader={row} featured={row.rank === 1} compact />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {!isMatchday && <MatchdayPodium rows={results} />}
             <div className="flex gap-5 items-start flex-wrap justify-center w-full">
               <div
                 className={`table-container paper-panel album-sheet flex-1 min-w-75 max-w-350 my-0 mx-auto ${showDetail ? 'show-detail' : ''}`}
@@ -454,7 +466,7 @@ function Leaderboard() {
                         </tr>
                       )}
                       {results.map((r) => {
-                        const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+                        const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
 
                         const isPending = !r.paid;
                         const isMe = isOwnRow(r, userId, userName);
@@ -470,7 +482,21 @@ function Leaderboard() {
                         };
 
                         return (
-                          <tr key={r.key} style={rowStyle}>
+                          <tr
+                            key={r.key}
+                            style={r.id != null ? { ...rowStyle, cursor: 'pointer' } : rowStyle}
+                            onClick={
+                              r.id != null
+                                ? () => {
+                                    if (isMatchday) {
+                                      navigate('/jornadas');
+                                    } else {
+                                      state.setViewerPredictionId(r.id);
+                                    }
+                                  }
+                                : undefined
+                            }
+                          >
                             <td className="text-[1.2em] text-center">{rankDisplay}</td>
                             <td>
                               <div className="flex justify-start items-center flex-nowrap gap-1.5">
@@ -620,7 +646,7 @@ function Leaderboard() {
         <div className="flex gap-5 justify-between" id="share-image-columns">
           <div className="flex-1 flex flex-col gap-2" id="share-col-left">
             {shareRows.slice(0, shareMid).map((r) => {
-              const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+              const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
 
               const isMe = isOwnRow(r, userId, userName);
               return (
@@ -644,7 +670,7 @@ function Leaderboard() {
           </div>
           <div className="flex-1 flex flex-col gap-2" id="share-col-right">
             {shareRows.slice(shareMid).map((r) => {
-              const rankDisplay = rankLabel(r.rank, lowestPaidRank);
+              const rankDisplay = rankLabel(r.rank, lowestPaidRank, r.points.total);
 
               const isMe = isOwnRow(r, userId, userName);
               return (

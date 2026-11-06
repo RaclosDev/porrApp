@@ -4,8 +4,6 @@ import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.dto.PredictionSavedResponse;
-import com.porra.mundial.dto.StatusResponse;
-import com.porra.mundial.model.League;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.LeaderboardService;
@@ -22,8 +20,8 @@ import java.security.Principal;
 import java.util.List;
 
 /**
- * Pronósticos de cuadro completo (Mundial). Las lecturas son públicas para la Porra Global;
- * las de ligas privadas y todas las escrituras exigen pertenecer a la liga.
+ * Pronósticos de cuadro completo (Mundial). Las lecturas de una liga pública son públicas;
+ * las de ligas privadas exigen pertenecer a la liga.
  */
 @RestController
 @RequestMapping("/api/predictions")
@@ -35,14 +33,13 @@ public class PredictionController {
     private final WebSocketService webSocketService;
     private final LeaderboardService leaderboardService;
 
-    /** Pronósticos de una liga (por defecto, la Porra Global). */
+    /** Pronósticos de una liga. */
     @GetMapping
     @Transactional(readOnly = true)
-    public List<PredictionResponseDTO> getAllPredictions(@RequestParam(required = false) Long groupId, Principal principal) {
+    public List<PredictionResponseDTO> getAllPredictions(@RequestParam Long groupId, Principal principal) {
         String email = CurrentUser.email(principal);
-        Long targetGroupId = groupId != null ? groupId : League.GLOBAL_ID;
-        groupService.assertCanView(targetGroupId, email);
-        return predictionService.toPredictionDtoList(predictionService.getPredictionsByGroupId(targetGroupId), email);
+        groupService.assertCanView(groupId, email);
+        return predictionService.toPredictionDtoList(predictionService.getPredictionsByGroupId(groupId), email);
     }
 
     /** Pronósticos del usuario autenticado en todas sus ligas. */
@@ -55,23 +52,15 @@ public class PredictionController {
 
     @PostMapping
     public PredictionSavedResponse createPrediction(@Valid @RequestBody PredictionDataDTO body,
-                                                    @RequestParam(required = false) Long groupId,
+                                                    @RequestParam Long groupId,
                                                     Principal principal) {
         String email = CurrentUser.email(principal);
-        Long effectiveGroupId = groupId != null ? groupId : League.GLOBAL_ID;
-        groupService.assertCanView(effectiveGroupId, email);
+        groupService.assertCanView(groupId, email);
 
         String name = body.getPrediction() != null ? body.getPrediction() : body.getUser();
-        Prediction prediction = predictionService.createPrediction(email, name, body, effectiveGroupId);
-        webSocketService.notifyLeagueChanged(effectiveGroupId);
+        Prediction prediction = predictionService.createPrediction(email, name, body, groupId);
+        webSocketService.notifyPredictionsChanged(groupId);
         return PredictionSavedResponse.created(prediction.getId(), prediction.getParticipantName(), prediction.getGroupId());
-    }
-
-    @PutMapping("/{id}")
-    public PredictionSavedResponse updatePrediction(@PathVariable Long id, @Valid @RequestBody PredictionDataDTO body,
-                                                    Principal principal) {
-        Prediction prediction = predictionService.updatePrediction(id, CurrentUser.email(principal), body.getPrediction(), body);
-        return PredictionSavedResponse.updated(prediction.getId());
     }
 
     @GetMapping("/{id}")
@@ -86,21 +75,8 @@ public class PredictionController {
         predictionService.getPredictionData(id, CurrentUser.email(principal));
         ParticipantScoreDTO score = leaderboardService.calculateScoreForPrediction(id);
         if (score == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pronóstico no encontrado");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Predicción no encontrada");
         }
         return score;
-    }
-
-    /** Marca un pronóstico como pagado. Solo el administrador de su liga. */
-    @PutMapping("/{id}/pay")
-    public StatusResponse markAsPaid(@PathVariable Long id, Principal principal) {
-        predictionService.markAsPaid(id, CurrentUser.email(principal));
-        return new StatusResponse("paid", null);
-    }
-
-    @DeleteMapping("/{id}")
-    public StatusResponse deletePrediction(@PathVariable Long id, Principal principal) {
-        predictionService.deletePrediction(id, CurrentUser.email(principal));
-        return new StatusResponse("deleted", null);
     }
 }

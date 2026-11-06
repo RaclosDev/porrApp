@@ -7,6 +7,7 @@ import type {
   Competition,
   FriendPrediction,
   Group,
+  LeagueSummary,
   GroupMember,
   GroupOdds,
   GroupStandings,
@@ -21,6 +22,7 @@ import type {
   MatchdayPoints,
   MatchdayPredictionInput,
   MatchdayStats,
+  MatchVoters,
   MatchdaySubmissionResult,
   Me,
   ParticipantScore,
@@ -31,6 +33,7 @@ import type {
   PredictionSaved,
   PredictionSummary,
   ProfileResponse,
+  ScoreLogEntry,
   ScoringRules,
   StatusResponse,
   TopScorer,
@@ -242,6 +245,8 @@ interface RequestOptions {
   timeoutMs?: number;
   /** Mensaje si el servidor no explica el error. */
   fallbackError?: string;
+  /** Cabeceras adicionales (p. ej. `Idempotency-Key`). */
+  headers?: Record<string, string>;
 }
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -271,7 +276,7 @@ async function send(
     signal,
     timeoutMs = form ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
   } = options;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...options.headers };
   if (json !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -405,6 +410,10 @@ export const createPrediction = (
 export const fetchLeaderboard = (groupId: number | string | null = null) =>
   request<ParticipantScore[]>(`/leaderboard${query({ groupId })}`);
 
+/** Registro de puntos de cada pronóstico de la liga (id -> entradas), para la evolución por partidos. */
+export const fetchLeaderboardLogs = (groupId: number | string) =>
+  request<Record<string, ScoreLogEntry[]>>(`/leaderboard/logs${query({ groupId })}`);
+
 export const fetchLeaderboardMatchdays = (groupId: number | string | null = null) =>
   request<MatchdayPoints[]>(`/leaderboard/matchdays${query({ groupId })}`);
 
@@ -412,7 +421,12 @@ export const fetchLeaderboardMatchdays = (groupId: number | string | null = null
 
 export const fetchMyGroups = () => request<Group[]>('/groups/mine');
 
+export const fetchMyLeagueSummaries = () => request<LeagueSummary[]>('/groups/mine/summary');
+
 export const fetchGroup = (id: number | string) => request<Group>(`/groups/${id}`);
+
+/** Liga pública destacada (portada, demo y entrada de invitados). */
+export const fetchFeaturedGroup = () => request<Group>('/groups/featured');
 
 /** Metadatos públicos de una invitación, sin unirse a la liga. */
 export const fetchGroupInvitationPreview = (joinCode: string) =>
@@ -424,10 +438,12 @@ export const createGroup = (
   poolFormat: PoolFormat,
   pichichi = true,
   customCompetitionName?: string,
+  idempotencyKey?: string,
 ) =>
   request<Group>('/groups', {
     method: 'POST',
     json: { name, competitionId, poolFormat, pichichi, customCompetitionName },
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     fallbackError: 'Error al crear la liga',
   });
 
@@ -462,7 +478,7 @@ export const setCustomTeamLogo = (groupId: number, teamId: number, logoUrl: stri
 export const deleteCustomTeam = (groupId: number, teamId: number) =>
   request<void>(`/groups/${groupId}/competition/teams/${teamId}`, { method: 'DELETE' });
 /** Cuándo se cierran los pronósticos de una competición personalizada. */
-export type CustomLockMode = 'FIXED_DATE' | 'FIRST_MATCH' | 'PER_ROUND' | 'PER_MATCH';
+export type CustomLockMode = 'FIXED_DATE' | 'FIRST_MATCH' | 'PER_ROUND' | 'PER_MATCH' | 'PER_DAY';
 
 /** Qué partes del pronóstico están ya cerradas (GET /groups/{id}/competition/lock-state). */
 export interface CustomLockState {
@@ -486,6 +502,12 @@ export const setCustomLockConfig = (
   request<CustomLockState>(`/groups/${groupId}/competition/lock`, {
     method: 'PUT',
     json: config,
+  });
+/** Pasa la liga de cuadro personalizado a una competición oficial con cuadro propio. */
+export const linkOfficialCompetition = (groupId: number, competitionId: number) =>
+  request<void>(`/groups/${groupId}/competition/link-official`, {
+    method: 'POST',
+    json: { competitionId },
   });
 export const setCustomLockDate = (groupId: number, lockDate: string) =>
   request<string>(`/groups/${groupId}/competition/lock-date`, {
@@ -531,6 +553,14 @@ export const updateGroup = (
     method: 'PUT',
     json: { name, rules },
     fallbackError: 'Error al actualizar la liga',
+  });
+
+/** Activa o quita la cuota de inscripción de una liga privada. */
+export const updateGroupEntryFee = (id: number | string, entryFee: boolean) =>
+  request<Group>(`/groups/${id}`, {
+    method: 'PUT',
+    json: { entryFee },
+    fallbackError: 'No se pudo cambiar la cuota',
   });
 
 export const deleteGroup = (id: number | string) =>
@@ -611,7 +641,7 @@ export const submitMatchdayPredictions = (
   request<MatchdaySubmissionResult>('/predictions/matchday', {
     method: 'POST',
     json: { groupId: Number(groupId), predictions },
-    fallbackError: 'Error al guardar pronósticos de jornada',
+    fallbackError: 'Error al guardar las predicciones de la jornada',
   });
 
 export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId: number) =>
@@ -669,3 +699,64 @@ export const deleteMyAvatar = () =>
 /** Reparto 1X2 y marcadores más repetidos de los partidos ya empezados de una liga por jornadas. */
 export const fetchMatchdayStats = (groupId: number | string) =>
   request<MatchdayStats>(`/predictions/matchday/stats${query({ groupId })}`);
+
+/** Votantes de cada signo; el servidor solo devuelve los partidos ya cerrados. */
+export const fetchMatchVoters = (groupId: number | string, matchIds: number[]) =>
+  request<MatchVoters[]>(
+    `/predictions/matchday/stats/voters${query({ groupId, matchIds: matchIds.join(',') })}`,
+  );
+
+// --- Recordatorios push ---
+
+export interface PushConfig {
+  /** Clave pública VAPID; null si el servidor no tiene avisos configurados. */
+  publicKey: string | null;
+  remindersEnabled: boolean;
+  /** Avisar cuando alguien se une a una de sus ligas. */
+  memberJoinedEnabled: boolean;
+}
+
+export type PushPreferences = Pick<PushConfig, 'remindersEnabled' | 'memberJoinedEnabled'>;
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
+export const fetchPushConfig = () => request<PushConfig>('/push/config');
+
+export const savePushSubscription = (subscription: PushSubscriptionPayload) =>
+  request<void>('/push/subscriptions', {
+    method: 'POST',
+    json: subscription,
+    fallbackError: 'No se pudieron activar los avisos',
+  });
+
+/** Solo cambia las preferencias que se envían. */
+export const setPushPreferences = (preferences: Partial<PushPreferences>) =>
+  request<void>('/push/preferences', {
+    method: 'PUT',
+    json: preferences,
+    fallbackError: 'No se pudo guardar la preferencia',
+  });
+
+// --- Cuenta y administración ---
+
+/** Copia en JSON de los datos personales propios (derecho de acceso y portabilidad). */
+export const exportMyData = () =>
+  request<unknown>('/users/me/export', { fallbackError: 'No se pudieron descargar tus datos' });
+
+/** Borra la cuenta y todos sus datos. Falla con 409 si administra ligas con más miembros. */
+export const deleteMyAccount = () =>
+  request<StatusResponse>('/users/me', {
+    method: 'DELETE',
+    fallbackError: 'No se pudo borrar la cuenta',
+  });
+
+/** Cede la administración de la liga a otro miembro. */
+export const transferGroupAdmin = (groupId: number | string, userId: number) =>
+  request<StatusResponse>(`/groups/${groupId}/members/${userId}/admin`, {
+    method: 'PUT',
+    fallbackError: 'No se pudo ceder la administración',
+  });

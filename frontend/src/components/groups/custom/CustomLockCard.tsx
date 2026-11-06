@@ -11,7 +11,7 @@ const MODES: { value: CustomLockMode; label: string; hint: string }[] = [
   {
     value: 'FIXED_DATE',
     label: 'En una fecha fija',
-    hint: 'Todos los pronósticos se cierran a la vez en la fecha que elijas.',
+    hint: 'Todas las predicciones se cierran a la vez en la fecha que elijas.',
   },
   {
     value: 'FIRST_MATCH',
@@ -30,6 +30,25 @@ const MODES: { value: CustomLockMode; label: string; hint: string }[] = [
   },
 ];
 
+/** Ligas por jornadas: cada partido se pronostica por separado. */
+const MATCHDAY_MODES: { value: CustomLockMode; label: string; hint: string }[] = [
+  {
+    value: 'PER_MATCH',
+    label: 'Cada partido',
+    hint: 'Cada partido se cierra al empezar, o antes si pones margen.',
+  },
+  {
+    value: 'PER_DAY',
+    label: 'Por días',
+    hint: 'Todos los partidos de un mismo día se cierran al empezar el primero de ese día. Con 1 día de margen, se cierran la víspera.',
+  },
+  {
+    value: 'PER_ROUND',
+    label: 'Por jornadas',
+    hint: 'Toda la jornada se cierra al empezar su primer partido, o antes si pones margen.',
+  },
+];
+
 type Unit = 'minutes' | 'hours' | 'days';
 const UNIT_MINUTES: Record<Unit, number> = { minutes: 1, hours: 60, days: 1440 };
 
@@ -39,7 +58,7 @@ function splitOffset(minutes: number): { amount: number; unit: Unit } {
   return { amount: minutes, unit: 'minutes' };
 }
 
-function describe(mode: CustomLockMode, offsetMinutes: number): string {
+function describe(mode: CustomLockMode, offsetMinutes: number, matchday: boolean): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
   const { amount, unit } = splitOffset(offsetMinutes);
   const unitLabel = {
@@ -48,20 +67,28 @@ function describe(mode: CustomLockMode, offsetMinutes: number): string {
     days: amount === 1 ? 'día' : 'días',
   }[unit];
   const margin = offsetMinutes ? ` · ${amount} ${unitLabel} antes` : '';
-  return `${MODES.find((item) => item.value === mode)?.label ?? mode}${margin}`;
+  const modes = matchday ? MATCHDAY_MODES : MODES;
+  return `${modes.find((item) => item.value === mode)?.label ?? mode}${margin}`;
 }
 
-/** Cómo y cuándo se cierran los pronósticos de una competición personalizada. */
+/**
+ * Cómo y cuándo se cierran los pronósticos de una liga. En una de cuadro, el cierre por rondas o por
+ * partidos solo existe cuando se pronostica cruce a cruce (personalizado o torneo con cuadro propio);
+ * en una por jornadas se cierra cada partido, cada día o cada jornada.
+ */
 export default function CustomLockCard({
   group,
   save,
   onLockDateSaved,
+  allowProgressive = true,
 }: {
   group: Group;
   save: SaveAction;
-  onLockDateSaved: (lockDate: string) => void;
+  onLockDateSaved?: (lockDate: string) => void;
+  allowProgressive?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const matchday = group.poolFormat === 'MATCH_DAY';
   const lock = useCustomLock(group.id.toString());
   const current = lock.state;
   const [mode, setMode] = useState<CustomLockMode>('FIXED_DATE');
@@ -82,11 +109,18 @@ export default function CustomLockCard({
   }, [current]);
 
   const offsetMinutes = Math.max(0, Math.round(amount)) * UNIT_MINUTES[unit];
-  const selected = MODES.find((item) => item.value === mode)!;
+  let modes = MODES;
+  if (matchday) modes = MATCHDAY_MODES;
+  else if (!allowProgressive) {
+    modes = MODES.filter((item) => item.value === 'FIXED_DATE' || item.value === 'FIRST_MATCH');
+  }
+  const selected = modes.find((item) => item.value === mode) ?? modes[0];
 
   let status = 'Sin fijar';
-  if (current && lock.configured) {
-    status = describe(current.mode, current.offsetMinutes);
+  if (current && matchday) {
+    status = describe(current.mode, current.offsetMinutes, true);
+  } else if (current && lock.configured) {
+    status = describe(current.mode, current.offsetMinutes, false);
     if (current.fullyLocked) status += ' · cerrado';
     else if (current.mode === 'FIXED_DATE' || current.mode === 'FIRST_MATCH') {
       status += current.lockDate ? ` · ${formatMatchDate(current.lockDate)}` : '';
@@ -100,13 +134,18 @@ export default function CustomLockCard({
       <div className="league-admin-card-head">
         <h3>
           <CalendarClock size={14} aria-hidden="true" />
-          Cierre de pronósticos
+          Cierre de predicciones
         </h3>
         <span className="league-admin-card-meta">{status}</span>
       </div>
-      {current?.nextLockAt && !current.fullyLocked && current.mode !== 'FIXED_DATE' && (
-        <p className="league-admin-muted">Próximo cierre: {formatMatchDate(current.nextLockAt)}.</p>
-      )}
+      {current?.nextLockAt &&
+        !current.fullyLocked &&
+        current.mode !== 'FIXED_DATE' &&
+        !matchday && (
+          <p className="league-admin-muted">
+            Próximo cierre: {formatMatchDate(current.nextLockAt)}.
+          </p>
+        )}
       {current && (
         <form
           className="custom-admin-form"
@@ -123,13 +162,13 @@ export default function CustomLockCard({
                 queryKey: queryKeys.group(group.id.toString()),
               });
               await queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
-              onLockDateSaved(state.lockDate ?? '');
-            }, 'Cierre de pronósticos guardado');
+              onLockDateSaved?.(state.lockDate ?? '');
+            }, 'Cierre de predicciones guardado');
           }}
         >
           <fieldset className="league-admin-field custom-lock-modes">
             <legend>Cuándo se cierran</legend>
-            {MODES.map((item) => (
+            {modes.map((item) => (
               <label key={item.value} className="custom-lock-mode">
                 <input
                   type="radio"
@@ -158,7 +197,11 @@ export default function CustomLockCard({
             </div>
           ) : (
             <div className="league-admin-field">
-              <label htmlFor="custom-admin-lock-offset">Margen antes del partido</label>
+              <label htmlFor="custom-admin-lock-offset">
+                {mode === 'PER_MATCH'
+                  ? 'Margen antes del partido'
+                  : 'Margen antes del primer partido'}
+              </label>
               <div className="flex gap-2">
                 <input
                   id="custom-admin-lock-offset"
@@ -194,10 +237,11 @@ export default function CustomLockCard({
         </form>
       )}
       <p className="league-admin-muted">
-        Puedes cambiar el criterio aunque ya haya pronósticos. Lo que ya esté cerrado seguirá
-        cerrado.
+        Puedes cambiar el criterio aunque ya haya predicciones. Si el nuevo cierre es posterior, lo
+        que ya estaba cerrado vuelve a abrirse.
         {lock.progressive &&
-          ' Quien no haya enviado su pronóstico antes del primer cierre ya no podrá entrar, y de los demás solo se ve lo que ya está cerrado.'}
+          !matchday &&
+          ' Quien no haya enviado su predicción antes del primer cierre ya no podrá entrar, y de los demás solo se ve lo que ya está cerrado.'}
       </p>
     </section>
   );

@@ -3,10 +3,12 @@ package com.porra.mundial.controller;
 import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.repository.UserAccountRepository;
 
+import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
 import com.porra.mundial.service.MatchdayStatsService;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -47,7 +49,7 @@ class MatchdayStatsControllerTest {
     @Test
     @DisplayName("GET /api/predictions/matchday/stats devuelve el reparto de cada partido")
     void returnsMatchStats() throws Exception {
-        MatchStats match = new MatchStats(7L, "Jornada 3", LocalDateTime.of(2026, 10, 25, 21, 0),
+        MatchStats match = new MatchStats(7L, "Jornada 3", AppTime.fromLocal(LocalDateTime.of(2026, 10, 25, 21, 0)),
                 "Real Madrid", "Barcelona", null, null, true, false, 2, 1,
                 5, 3, 1, 1, List.of(new ScoreCount(2, 1, 2)), 2, 3);
         Mockito.when(matchdayStatsService.getStats("user@test.com", 10L))
@@ -74,5 +76,20 @@ class MatchdayStatsControllerTest {
         mockMvc.perform(get("/api/predictions/matchday/stats?groupId=10"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("No perteneces a esta liga privada"));
+    }
+
+    @Test
+    @DisplayName("GET /api/predictions/matchday/stats/voters devuelve quién ha votado cada signo")
+    void returnsVoters() throws Exception {
+        Mockito.when(matchdayStatsService.getVoters("user@test.com", 10L, List.of(7L, 8L)))
+                .thenReturn(List.of(new MatchVotersDTO(7L,
+                        List.of(new MatchVotersDTO.Voter(2L, "Ana", "ana.png")), List.of(), List.of())));
+
+        mockMvc.perform(get("/api/predictions/matchday/stats/voters?groupId=10&matchIds=7,8").principal(USER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].matchId").value(7))
+                .andExpect(jsonPath("$[0].home[0].name").value("Ana"))
+                .andExpect(jsonPath("$[0].home[0].avatarUrl").value("ana.png"))
+                .andExpect(jsonPath("$[0].draw").isEmpty());
     }
 }

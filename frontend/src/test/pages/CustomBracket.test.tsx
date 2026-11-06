@@ -48,6 +48,7 @@ describe('CustomBracket', () => {
     vi.mocked(appContextModule.useAppContext).mockReturnValue(
       appContext({
         activeGroupId: '10',
+        activeGroupCustomCompetition: true,
         activeCompetitionId: null,
         activeGroupPoolFormat: 'KNOCKOUTS_ONLY',
         activeGroupName: 'LOL Worlds 2026',
@@ -115,7 +116,7 @@ describe('CustomBracket', () => {
         '10',
       ),
     );
-    expect(await screen.findByText('Pronóstico guardado')).toBeInTheDocument();
+    expect(await screen.findByText('✓ Guardado')).toBeInTheDocument();
 
     fireEvent.click(center.getAllByRole('button', { name: 'Pasar a BLG' })[1]);
     await waitFor(() =>
@@ -153,11 +154,12 @@ describe('CustomBracket', () => {
 
     renderBracket();
 
-    expect(
-      await screen.findByText('Lo que ya ha empezado está cerrado; el resto puedes cambiarlo.'),
-    ).toBeInTheDocument();
+    expect((await screen.findAllByRole('button', { name: 'Pasar a DK' })).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.queryByText(/Lo que ya ha empezado/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Pasar a Gen.G' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Pasar a DK' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Pasar a DK' }).length).toBeGreaterThan(0);
   });
 
   it('no deja entrar a quien no tiene pronóstico cuando ya se ha cerrado algo', async () => {
@@ -175,7 +177,7 @@ describe('CustomBracket', () => {
     renderBracket();
 
     expect(
-      await screen.findByText('La competición ya ha empezado: no se admiten pronósticos nuevos.'),
+      await screen.findByText('La competición ya ha empezado: no se admiten predicciones nuevas.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Guardar pronóstico' })).toBeNull();
   });
@@ -196,20 +198,105 @@ describe('CustomBracket', () => {
 
     const left = within(await screen.findByRole('region', { name: 'Cruces del lado izquierdo' }));
     const right = within(screen.getByRole('region', { name: 'Cruces del lado derecho' }));
-    expect(left.getByTitle('Acertado')).toHaveTextContent('✓ Acertado');
-    expect(left.getByTitle('Fallado').closest('.team-slot')).toHaveTextContent('Club');
-    expect(left.getByTitle('Acertado').closest('.team-slot')).toHaveTextContent('Rayo');
+    // El equipo elegido se sombrea en verde o rojo y cada uno lleva su sello de clasificado o eliminado.
+    const hit = left.getByText(/tu predicción, acertada/).closest('.team-slot');
+    const miss = left.getByText(/tu predicción, fallada/).closest('.team-slot');
+    expect(hit).toHaveClass('is-hit');
+    expect(hit).toHaveTextContent('Rayo');
+    expect(hit).toHaveTextContent('Clasificado');
+    expect(miss).toHaveClass('is-miss');
+    expect(miss).toHaveTextContent('Club');
+    expect(miss).toHaveTextContent('Eliminado');
+    expect(left.getByText('Peña').closest('.team-slot')).toHaveTextContent('Clasificado');
+    expect(left.getByText('Barrio').closest('.team-slot')).toHaveClass('is-out');
+    expect(screen.getByRole('list', { name: 'Leyenda del cuadro' })).toHaveTextContent(
+      /^Acertada.*Fallada$/,
+    );
     expect(right.getAllByText('Descanso').length).toBeGreaterThan(0);
     // El equipo que descansa no se elige: pasa solo a semifinales.
     expect(right.queryByRole('button', { name: 'Pasar a Solo' })).toBeNull();
     const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
     expect(center.getAllByText('Solo').length).toBeGreaterThan(0);
-    // El aviso de pronóstico guardado es una notificación temporal, no un bloque fijo.
-    expect(toast).toHaveBeenCalledOnce();
-    expect(toast).toHaveBeenCalledWith(
-      'Ya tienes un pronóstico guardado. Puedes cambiarlo hasta el cierre.',
-      expect.anything(),
+    // Al entrar con el pronóstico ya hecho no se muestra ningún aviso.
+    expect(toast).not.toHaveBeenCalled();
+    expect(screen.queryByText(/guardado/i)).toBeNull();
+  });
+
+  it('con el pronóstico completo abre en la ronda que aún tiene partidos por jugar', async () => {
+    vi.mocked(leaguePredictions.useMyLeaguePrediction).mockReturnValue({
+      key: '8',
+      predictionName: 'Guardado',
+      data: { customRounds: [['A', 'C', 'E', 'G'], ['A', 'E'], ['A']] },
+    } as unknown as ReturnType<typeof leaguePredictions.useMyLeaguePrediction>);
+    vi.mocked(api.fetchCustomMatches).mockResolvedValue([
+      knockout(1, 'A', 'B', { finished: true, winner: 'A' }),
+      knockout(2, 'C', 'D', { finished: true, winner: 'C' }),
+      knockout(3, 'E', 'F'),
+      knockout(4, 'G', 'H'),
+    ]);
+
+    renderBracket();
+
+    const tabs = within(await screen.findByRole('tablist', { name: 'Rondas del cuadro' }));
+    const [first] = tabs.getAllByRole('tab');
+    expect(first).toHaveAttribute('aria-selected', 'true');
+    expect(tabs.getByRole('tab', { name: /Semis y final/ })).toHaveAttribute(
+      'aria-selected',
+      'false',
     );
-    expect(screen.queryByText(/Ya tienes un pronóstico guardado/)).toBeNull();
+  });
+
+  it('en un torneo oficial pronostica sobre los cruces reales con su estado de cierre', async () => {
+    vi.mocked(appContextModule.useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '10',
+        activeGroupCustomCompetition: false,
+        activeGroupOwnBracket: true,
+        activeCompetitionExternalId: 'lol.worlds',
+        activeGroupPoolFormat: 'FULL_BRACKET',
+        activeGroupName: 'Worlds',
+        activeGroupIsLocked: false,
+        userName: 'Tester',
+        allGames: [
+          knockout(4, 'BLG', 'DK', { round: 'qf', date: '2026-11-02T10:00:00Z' }),
+          knockout(2, 'IG', 'TOP', { round: 'qf', date: '2026-10-31T10:00:00Z' }),
+          knockout(1, 'T1', 'KC', { round: 'qf', date: '2026-10-30T10:00:00Z' }),
+          knockout(3, 'GEN', 'LYON', { round: 'qf', date: '2026-11-01T10:00:00Z' }),
+          knockout(5, 'T1', 'IG', { round: 'group' }),
+        ],
+      }),
+    );
+    vi.mocked(api.createPrediction).mockResolvedValue({} as never);
+    vi.mocked(api.fetchCustomLockState).mockResolvedValue({
+      mode: 'FIXED_DATE',
+      offsetMinutes: 0,
+      lockDate: '2026-11-07T00:00:00+01:00',
+      lockedGroups: [],
+      lockedPicks: [],
+      anyLocked: false,
+      fullyLocked: false,
+      nextLockAt: '2026-11-07T00:00:00+01:00',
+    });
+    renderBracket();
+
+    expect(api.fetchCustomMatches).not.toHaveBeenCalled();
+    expect((await screen.findAllByRole('button', { name: 'Pasar a T1' })).length).toBeGreaterThan(
+      0,
+    );
+    expect(api.fetchCustomLockState).toHaveBeenCalledWith(10);
+    pick('T1');
+    pick('IG');
+    pick('GEN');
+    pick('BLG');
+    const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
+    fireEvent.click(center.getByRole('button', { name: 'Pasar a IG' }));
+    fireEvent.click(center.getByRole('button', { name: 'Pasar a BLG' }));
+    fireEvent.click(center.getAllByRole('button', { name: 'Pasar a IG' })[1]);
+
+    await waitFor(() => expect(api.createPrediction).toHaveBeenCalled());
+    expect(vi.mocked(api.createPrediction).mock.calls[0][0]).toMatchObject({
+      customRounds: [['T1', 'IG', 'GEN', 'BLG'], ['IG', 'BLG'], ['IG']],
+      champion: 'IG',
+    });
   });
 });

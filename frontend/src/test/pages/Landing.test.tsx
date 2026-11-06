@@ -15,6 +15,7 @@ const data = {
     { rank: 3, userId: 12, name: 'Raclos', avatarUrl: null, total: 1500 },
     { rank: 4, userId: 13, name: 'Ana', avatarUrl: null, total: 1400 },
   ],
+  leagueName: 'Liga abierta',
   participants: 21,
   champion: { team: 'España', count: 17, total: 21 },
   nextFixtures: [],
@@ -37,7 +38,7 @@ describe('Landing', () => {
   it('shows the real leaders and the most picked champion', () => {
     renderLanding();
     expect(screen.getAllByText('Xegami').length).toBeGreaterThan(0);
-    expect(screen.getByText('Va primero de 21 en la Porra Global')).toBeInTheDocument();
+    expect(screen.getByText('Va primero de 21 en Liga abierta')).toBeInTheDocument();
     expect(screen.getByText('España campeona en 17 de 21 cuadros')).toBeInTheDocument();
   });
 
@@ -56,13 +57,13 @@ describe('Landing', () => {
 
   it('shows only the top three in the hero podium and keeps the album accessible', () => {
     renderLanding();
-    const podium = screen.getByRole('list', { name: 'Podio de la Porra Global' });
+    const podium = screen.getByRole('list', { name: 'Podio de Liga abierta' });
     expect(within(podium).getAllByRole('listitem')).toHaveLength(3);
     for (const name of ['Xegami', 'Gonza', 'Raclos']) {
       expect(within(podium).getByText(name)).toBeInTheDocument();
     }
     expect(within(podium).queryByText('Ana')).not.toBeInTheDocument();
-    const album = screen.getByRole('list', { name: 'Cromos de la Porra Global' });
+    const album = screen.getByRole('list', { name: 'Cromos de Liga abierta' });
     expect(within(album).getAllByRole('listitem')).toHaveLength(4);
     expect(album).toHaveAttribute('tabindex', '0');
   });

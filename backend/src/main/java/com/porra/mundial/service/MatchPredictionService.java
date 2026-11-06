@@ -12,11 +12,10 @@ import com.porra.mundial.scoring.ScoringRuleSet;
 import com.porra.mundial.util.MatchRound;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,14 +39,10 @@ public class MatchPredictionService {
      */
     @Transactional(readOnly = true)
     public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(String email, Long groupId, String round) {
-        if (League.isGlobalId(groupId)) {
-            return java.util.Collections.emptyList();
-        }
         if (groupId != null) {
             boolean isMember = false;
             if (email != null && !email.isBlank()) {
                 UserAccount user = userAccountRepository.findByGoogleEmail(email)
-                        .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
                         .orElse(null);
                 if (user != null) {
                     Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
@@ -113,7 +108,9 @@ public class MatchPredictionService {
 
         ScoringRuleSet rules = ScoringRuleSet.forEdition(edition);
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
+        Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
+                MatchdayLock.needsWholeCalendar(edition) ? matchRepository.findByCompetitionId(competitionId) : matches);
         List<MatchdayFixturePredictionDTO> result = new ArrayList<>();
 
         for (Match match : matches) {
@@ -130,10 +127,10 @@ public class MatchPredictionService {
                 lockReason = "El partido ya ha finalizado";
             } else if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
                 isLocked = true;
-                lockReason = "El estado del partido no admite pronósticos";
-            } else if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) {
+                lockReason = "El estado del partido no admite predicciones";
+            } else if (lockTimes.containsKey(match.getId()) && !lockTimes.get(match.getId()).isAfter(now)) {
                 isLocked = true;
-                lockReason = "El partido ya ha comenzado";
+                lockReason = MatchdayLock.reason(edition, match, now);
             }
 
             Integer pointsAwarded = null;
@@ -178,6 +175,7 @@ public class MatchPredictionService {
                     .predAwayScore(mp != null ? mp.getAwayScore() : null)
                     .predSign(mp != null ? mp.getPredictionSign() : null)
                     .locked(isLocked)
+                    .lockAt(lockTimes.get(match.getId()))
                     .lockReason(lockReason)
                     .pointsAwarded(pointsAwarded)
                     .isExactScore(isExact)
@@ -193,7 +191,6 @@ public class MatchPredictionService {
      * Guarda o actualiza los pronósticos de una lista de partidos comprobando los plazos individuales.
      */
     @Transactional
-    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
     public int saveMatchdayPredictions(String email, Long groupId, List<MatchPredictionItemDTO> items) {
         if (email == null || email.isBlank()) {
             throw BusinessException.forbidden("Usuario no autenticado");
@@ -212,7 +209,7 @@ public class MatchPredictionService {
                 .orElseThrow(() -> BusinessException.notFound("No se encontró una edición activa para esta liga"));
 
         if (edition.getPoolFormat() != PoolFormat.MATCH_DAY) {
-            throw BusinessException.badRequest("Esta liga no utiliza la modalidad de pronósticos por jornadas.");
+            throw BusinessException.badRequest("Esta liga no utiliza la modalidad de predicciones por jornadas.");
         }
 
         if (edition.isLocked()) {
@@ -220,8 +217,8 @@ public class MatchPredictionService {
         }
 
         Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
-        boolean isGlobal = edition.getLeague() != null && edition.getLeague().isGlobal();
-        if (!membershipRepository.existsById(memId) && !isGlobal) {
+        boolean publicLeague = edition.getLeague() != null && edition.getLeague().isPublicLeague();
+        if (!membershipRepository.existsById(memId) && !publicLeague) {
             throw BusinessException.forbidden("No perteneces a esta liga privada. Debes unirte primero con un código de invitación válido.");
         }
 
@@ -232,25 +229,40 @@ public class MatchPredictionService {
                     String paymentStatus = membership != null && membership.getPaymentStatus() != null
                             ? membership.getPaymentStatus()
                             : "PENDING";
+                    // La porra nueva entra en la clasificación. Pronosticar partidos abiertos no cambia
+                    // ningún punto, así que el resto de guardados no la invalidan.
+                    scoreInvalidationService.evictLeaderboardAfterCommit(groupId);
                     return predictionRepository.save(Prediction.builder()
                             .user(user)
                             .edition(edition)
                             .name(predName)
                             .paymentStatus(paymentStatus)
-                            .createdAt(LocalDateTime.now())
+                            .createdAt(Instant.now())
                             .build());
                 });
 
         
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
+        List<Match> calendar = MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
+                ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : null;
         int savedCount = 0;
+
+        // Dos consultas para toda la jornada en vez de dos por partido.
+        List<Long> matchIds = items.stream().map(MatchPredictionItemDTO::getMatchId)
+                .filter(Objects::nonNull).distinct().toList();
+        Map<Long, Match> matchesById = matchRepository.findAllById(matchIds).stream()
+                .collect(Collectors.toMap(Match::getId, m -> m));
+        Map<Long, MatchPrediction> existingByMatchId = prediction.getId() == null || matchIds.isEmpty()
+                ? new HashMap<>()
+                : matchPredictionRepository.findByPredictionIdAndMatchIdIn(prediction.getId(), matchIds).stream()
+                        .collect(Collectors.toMap(mp -> mp.getMatch().getId(), mp -> mp, (a, b) -> a));
 
         for (MatchPredictionItemDTO item : items) {
             if (item.getMatchId() == null) continue;
 
-            Match match = matchRepository.findById(item.getMatchId())
-                    .orElseThrow(() -> BusinessException.notFound("Partido no encontrado"));
+            Match match = matchesById.get(item.getMatchId());
+            if (match == null) throw BusinessException.notFound("Partido no encontrado");
 
             if (edition.getCompetition() == null || match.getCompetition() == null
                     || !Objects.equals(edition.getCompetition().getId(), match.getCompetition().getId())) {
@@ -263,13 +275,15 @@ public class MatchPredictionService {
                         match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante"));
             }
             if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
-                throw BusinessException.conflict("El estado del partido no admite pronósticos.");
+                throw BusinessException.conflict("El estado del partido no admite predicciones.");
             }
-            if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) {
-                throw BusinessException.conflict(String.format("El partido %s vs %s ya ha comenzado (hora de inicio: %s) y su pronóstico está bloqueado.",
+            Instant lockAt = MatchdayLock.lockTimes(edition, List.of(match),
+                    calendar == null ? List.of(match) : calendar).get(match.getId());
+            if (lockAt != null && !lockAt.isAfter(now)) {
+                throw BusinessException.conflict(String.format("%s: la predicción de %s vs %s está bloqueada.",
+                        MatchdayLock.reason(edition, match, now),
                         match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Local",
-                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante",
-                        match.getMatchDate()));
+                        match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante"));
             }
 
             // Calcular signo automáticamente si no se especifica explícitamente pero hay goles
@@ -282,14 +296,13 @@ public class MatchPredictionService {
                 sign = cmp > 0 ? "1" : (cmp == 0 ? "X" : "2");
             }
             if (!Set.of("1", "X", "2").contains(sign == null ? "" : sign)) {
-                throw BusinessException.badRequest("El pronóstico debe incluir un marcador completo o un signo 1, X o 2.");
+                throw BusinessException.badRequest("La predicción debe incluir un marcador completo o un signo 1, X o 2.");
             }
 
-            MatchPrediction matchPred = matchPredictionRepository.findByPredictionIdAndMatchId(prediction.getId(), match.getId())
-                    .orElseGet(() -> MatchPrediction.builder()
-                            .prediction(prediction)
-                            .match(match)
-                            .build());
+            MatchPrediction matchPred = existingByMatchId.computeIfAbsent(match.getId(), id -> MatchPrediction.builder()
+                    .prediction(prediction)
+                    .match(match)
+                    .build());
 
             matchPred.setHomeScore(item.getHomeScore());
             matchPred.setAwayScore(item.getAwayScore());
@@ -403,11 +416,11 @@ public class MatchPredictionService {
 
         UserAccount caller = (email != null && !email.isBlank())
                 ? userAccountRepository.findByGoogleEmail(email)
-                    .or(() -> userAccountRepository.findByParticipantNameIgnoreCase(email))
                     .orElse(null)
                 : null;
 
-        if (!League.isGlobalId(groupId)) {
+        boolean publicLeague = edition != null && edition.getLeague() != null && edition.getLeague().isPublicLeague();
+        if (!publicLeague) {
             boolean isMember = false;
             if (caller != null) {
                     Membership.MembershipId memId = new Membership.MembershipId(caller.getId(), groupId);
@@ -418,10 +431,16 @@ public class MatchPredictionService {
             }
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
+        Instant lockAt = edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY
+                ? match.getMatchDate()
+                : MatchdayLock.lockTimes(edition, List.of(match), MatchdayLock.needsWholeCalendar(edition)
+                        && match.getCompetition() != null
+                        ? matchRepository.findByCompetitionId(match.getCompetition().getId()) : List.of(match))
+                        .get(match.getId());
         boolean isMatchLocked = Boolean.TRUE.equals(match.getFinished())
                 || (match.getStatus() != null && !match.getStatus().isOpenForPrediction())
-                || (match.getMatchDate() != null && !match.getMatchDate().isAfter(now))
+                || (lockAt != null && !lockAt.isAfter(now))
                 || (edition != null && edition.isLocked());
 
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
@@ -466,11 +485,11 @@ public class MatchPredictionService {
                             .isCorrectSign(mp.getIsCorrectSign())
                             .scoringDetails(mp.getScoringDetails());
                 } else {
-                    builder.scoringDetails("Pronóstico oculto hasta el pitido inicial");
+                    builder.scoringDetails("Predicción oculta hasta el pitido inicial");
                 }
             } else {
                 builder.hasPredicted(false)
-                        .scoringDetails(isMatchLocked ? "Sin pronóstico (0 pts)" : "Pendiente de pronosticar");
+                        .scoringDetails(isMatchLocked ? "Sin predicción (0 pts)" : "Predicción pendiente");
             }
 
             list.add(builder.build());

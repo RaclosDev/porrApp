@@ -8,6 +8,7 @@ import com.porra.mundial.repository.*;
 import com.porra.mundial.scoring.MatchScoreResult;
 import com.porra.mundial.scoring.MatchScoringCalculator;
 import com.porra.mundial.scoring.ScoringRuleSet;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -92,7 +94,7 @@ class MatchPredictionServiceTest {
                 .competition(edition.getCompetition())
                 .homeTeam(home)
                 .awayTeam(away)
-                .matchDate(LocalDateTime.now().plusDays(2))
+                .matchDate(Instant.now().plus(2, ChronoUnit.DAYS))
                 .finished(false)
                 .round("Jornada 1")
                 .build();
@@ -102,7 +104,7 @@ class MatchPredictionServiceTest {
                 .competition(edition.getCompetition())
                 .homeTeam(home)
                 .awayTeam(away)
-                .matchDate(LocalDateTime.now().minusHours(1))
+                .matchDate(Instant.now().minus(1, ChronoUnit.HOURS))
                 .finished(false)
                 .round("Jornada 1")
                 .build();
@@ -112,7 +114,7 @@ class MatchPredictionServiceTest {
                 .competition(edition.getCompetition())
                 .homeTeam(home)
                 .awayTeam(away)
-                .matchDate(LocalDateTime.now().minusDays(1))
+                .matchDate(Instant.now().minus(1, ChronoUnit.DAYS))
                 .finished(true)
                 .homeScore(2)
                 .awayScore(1)
@@ -152,8 +154,7 @@ class MatchPredictionServiceTest {
 
         Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
-        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
-        when(matchPredictionRepository.findByPredictionIdAndMatchId(50L, 101L)).thenReturn(Optional.empty());
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
 
         MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
                 .matchId(101L)
@@ -176,7 +177,7 @@ class MatchPredictionServiceTest {
 
         Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
-        when(matchRepository.findById(102L)).thenReturn(Optional.of(pastMatch));
+        when(matchRepository.findAllById(List.of(102L))).thenReturn(List.of(pastMatch));
 
         MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
                 .matchId(102L)
@@ -199,7 +200,7 @@ class MatchPredictionServiceTest {
 
         Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
-        when(matchRepository.findById(103L)).thenReturn(Optional.of(finishedMatch));
+        when(matchRepository.findAllById(List.of(103L))).thenReturn(List.of(finishedMatch));
 
         MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
                 .matchId(103L)
@@ -274,7 +275,7 @@ class MatchPredictionServiceTest {
     @Test
     @DisplayName("Si se corrige el marcador final, los puntos del pronóstico se recalculan")
     void evaluatePredictionsForMatch_ReplacesPointsAfterACorrection() {
-        Prediction prediction = Prediction.builder().id(50L).edition(edition).scoreCalculatedAt(LocalDateTime.now()).build();
+        Prediction prediction = Prediction.builder().id(50L).edition(edition).scoreCalculatedAt(Instant.now()).build();
         MatchPrediction mp = MatchPrediction.builder().id(1L).match(finishedMatch).prediction(prediction)
                 .homeScore(2).awayScore(1).build();
         when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(mp));
@@ -283,7 +284,7 @@ class MatchPredictionServiceTest {
         when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(2), any(ScoringRuleSet.class)))
                 .thenReturn(new MatchScoreResult(0, false, false, false, "Fallo (0 pts)"));
         matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
-        prediction.setScoreCalculatedAt(LocalDateTime.now());
+        prediction.setScoreCalculatedAt(Instant.now());
 
         finishedMatch.setAwayScore(2);
         matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
@@ -305,8 +306,8 @@ class MatchPredictionServiceTest {
     @DisplayName("getMatchdayFixtures filtra correctamente por 'Grupo A' cuando el partido tiene groupName 'A'")
     void getMatchdayFixtures_FiltersByRoundGroup() {
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
-        Match groupAMatch = Match.builder().id(201L).groupName("A").finished(false).matchDate(LocalDateTime.now().plusDays(1)).build();
-        Match groupBMatch = Match.builder().id(202L).groupName("B").finished(false).matchDate(LocalDateTime.now().plusDays(1)).build();
+        Match groupAMatch = Match.builder().id(201L).groupName("A").finished(false).matchDate(Instant.now().plus(1, ChronoUnit.DAYS)).build();
+        Match groupBMatch = Match.builder().id(202L).groupName("B").finished(false).matchDate(Instant.now().plus(1, ChronoUnit.DAYS)).build();
         when(matchRepository.findRoundCandidates(eq(2L), eq(List.of("grupo a", "a")), any(), any(), eq(false)))
                 .thenReturn(List.of(groupAMatch, groupBMatch));
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.empty());
@@ -324,7 +325,7 @@ class MatchPredictionServiceTest {
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L))
                 .thenReturn(Optional.of(Prediction.builder().id(50L).edition(edition).build()));
         futureMatch.setCompetition(Competition.builder().id(999L).build());
-        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
 
         var item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
         var error = assertThrows(BusinessException.class, () ->
@@ -337,9 +338,10 @@ class MatchPredictionServiceTest {
     void groupsUnknownRoundsByDateAndAllowsFilteringThatDate() {
         futureMatch.setRound("group");
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
-        String dateRound = "Fecha " + futureMatch.getMatchDate().toLocalDate();
-        LocalDateTime day = futureMatch.getMatchDate().toLocalDate().atStartOfDay();
-        when(matchRepository.findRoundCandidates(2L, List.of(dateRound.toLowerCase()), day, day.plusDays(1), false))
+        String dateRound = "Fecha " + AppTime.day(futureMatch.getMatchDate());
+        Instant day = AppTime.startOfDay(AppTime.day(futureMatch.getMatchDate()));
+        when(matchRepository.findRoundCandidates(2L, List.of(dateRound.toLowerCase()), day,
+                AppTime.startOfDay(AppTime.day(futureMatch.getMatchDate()).plusDays(1)), false))
                 .thenReturn(List.of(futureMatch, pastMatch));
 
         var fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, dateRound);
@@ -350,7 +352,7 @@ class MatchPredictionServiceTest {
     @Test
     void cancelledAndLiveMatchesCannotBeEditedEvenWithFutureKickoff() {
         futureMatch.setStatus(MatchStatusNormalized.CANCELLED);
-        pastMatch.setMatchDate(LocalDateTime.now().plusHours(1));
+        pastMatch.setMatchDate(Instant.now().plus(1, ChronoUnit.HOURS));
         pastMatch.setStatus(MatchStatusNormalized.LIVE);
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
         when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch, pastMatch));
@@ -365,7 +367,7 @@ class MatchPredictionServiceTest {
                 .thenReturn(Optional.of(Prediction.builder().id(50L).edition(edition).build()));
         futureMatch.setHomeScore(0);
         futureMatch.setAwayScore(0);
-        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
         var item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(0).awayScore(0).sign("1").build();
         matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item));
 
@@ -428,11 +430,8 @@ class MatchPredictionServiceTest {
     }
 
     @Test
-    @DisplayName("getMatchdayFixtures retorna lista vacía cuando el grupo es la Porra Global o no es modalidad MATCH_DAY")
+    @DisplayName("getMatchdayFixtures retorna lista vacía cuando la liga no es modalidad MATCH_DAY")
     void getMatchdayFixtures_ReturnsEmptyList_WhenNotMatchDay() {
-        List<MatchdayFixturePredictionDTO> globalFixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 1L, null);
-        assertTrue(globalFixtures.isEmpty(), "La Porra Global no debe devolver partidos de jornada");
-
         Edition bracketEdition = Edition.builder()
                 .id(101L)
                 .league(league)

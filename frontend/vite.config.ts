@@ -73,11 +73,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        importScripts: ['/sw-cleanup.js'],
+        importScripts: ['/sw-cleanup.js', '/sw-push.js'],
         navigateFallbackDenylist: [/^\/api(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,svg}'],
         // html2canvas solo se carga con import() al compartir la clasificación: se baja al usarlo.
-        globIgnores: ['**/updates/**', '**/og-image.jpg', '**/assets/html2canvas-*.js'],
+        // Las banderas y logos (≈650 KB) se guardan al verlos, no todos en la primera visita.
+        globIgnores: [
+          '**/updates/**',
+          '**/og-image.jpg',
+          '**/assets/html2canvas-*.js',
+          '**/flags/**',
+          '**/logos/**',
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => /^\/assets\/html2canvas-[\w-]+\.js$/.test(url.pathname),
@@ -91,6 +98,16 @@ export default defineConfig({
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
             handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /^\/(?:flags|logos)\//.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'local-images-cache',
+              expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [200] },
+            },
           },
           {
             urlPattern: ({ url }) =>
@@ -112,11 +129,15 @@ export default defineConfig({
     },
   },
   server: {
+    // Solo en los tests: cspHashes.test.ts lee la CSP de SecurityConfig.java del backend.
+    ...(process.env.VITEST ? { fs: { allow: ['..'] } } : {}),
     proxy: {
       // API_PROXY_TARGET permite usar otra API (p. ej. la de producción en modo demo).
       '/api': {
         target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
+        // Reenvía también /api/ws: sin esto los avisos en tiempo real no llegan en desarrollo.
+        ws: true,
       },
       // Permite probar la imagen de invitación contra el backend local.
       '/join': {

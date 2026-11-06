@@ -6,6 +6,7 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +60,7 @@ class KnockoutBracketServiceTest {
                 .homeScore(homeScore)
                 .awayScore(awayScore)
                 .finished(homeScore != null)
-                .matchDate(LocalDateTime.of(2026, 7, day, 21, 0))
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 7, day, 21, 0)))
                 .build();
     }
 

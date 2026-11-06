@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +18,13 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     List<Prediction> findByEditionLeagueId(Long groupId);
 
     List<Prediction> findByUserIdAndEditionLeagueId(Long userId, Long groupId);
+
+    List<Prediction> findByUserId(Long userId);
+
+    /** Olvida quién marcó el pago para poder borrar la cuenta de ese administrador. */
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE Prediction p SET p.paymentMarkedBy = NULL WHERE p.paymentMarkedBy.id = :userId")
+    int clearPaymentMarkedBy(@Param("userId") Long userId);
 
     @Query("SELECT p FROM Prediction p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.edition e LEFT JOIN FETCH e.league l WHERE l.id = :groupId OR (:groupId = 1 AND (p.edition IS NULL OR l.id IS NULL))")
     List<Prediction> findByEditionLeagueIdWithUserAndEdition(@Param("groupId") Long groupId);
@@ -47,4 +56,24 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     @Query("UPDATE Prediction p SET p.scoreCalculatedAt = NULL WHERE p.scoreCalculatedAt IS NOT NULL"
             + " AND p.edition.id = :editionId")
     int clearCalculatedScoresByEditionId(@Param("editionId") Long editionId);
+
+    /**
+     * Guarda la puntuación calculada de una porra tocando solo las columnas de puntos, para que
+     * leer la clasificación nunca pise una predicción guardada a la vez.
+     * <p>
+     * Va en su propia transacción: la clasificación se pide también desde transacciones de solo lectura
+     * («Mis ligas»), donde el UPDATE fallaría y dejaría abortada la transacción de quien llama. No la llames
+     * con la fila bloqueada en la transacción actual: esperaría a sí misma.
+     */
+    @Modifying
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Query("UPDATE Prediction p SET p.totalPoints = :total, p.r1Points = :r1, p.r32Points = :r32,"
+            + " p.r16Points = :r16, p.qfPoints = :qf, p.sfPoints = :sf, p.finalsPoints = :finals,"
+            + " p.scorerPoints = :scorer, p.matchPoints = :matchPoints, p.scoreCalculatedAt = :calculatedAt"
+            + " WHERE p.id = :id")
+    int saveCalculatedScore(@Param("id") Long id, @Param("total") Integer total, @Param("r1") Integer r1,
+                            @Param("r32") Integer r32, @Param("r16") Integer r16, @Param("qf") Integer qf,
+                            @Param("sf") Integer sf, @Param("finals") Integer finals,
+                            @Param("scorer") Integer scorer, @Param("matchPoints") Integer matchPoints,
+                            @Param("calculatedAt") java.time.Instant calculatedAt);
 }

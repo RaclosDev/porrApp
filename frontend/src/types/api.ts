@@ -4,7 +4,7 @@
  */
 
 export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY';
-export type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
+type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
 export interface StatusResponse {
@@ -170,7 +170,7 @@ export interface PredictionSaved {
   id: number;
   participantName?: string;
   groupId?: string;
-  status: 'creada_con_exito' | 'actualizada_con_exito';
+  status: 'creada_con_exito';
 }
 
 // --- Clasificación ---
@@ -198,10 +198,11 @@ export interface ParticipantScore {
   scorer: number;
   matchPoints: number;
   total: number;
-  log: ScoreLogEntry[];
-  /** grupo -> posición (1-4) -> acertada. */
-  exactMatches: Record<string, Record<string, boolean>>;
-  passedTeams: Record<string, boolean>;
+  /** Solo en el desglose de un pronóstico (`/predictions/{id}/score`); la clasificación no lo trae. */
+  log?: ScoreLogEntry[] | null;
+  /** grupo -> posición (1-4) -> acertada. Solo en el desglose. */
+  exactMatches?: Record<string, Record<string, boolean>> | null;
+  passedTeams?: Record<string, boolean> | null;
   pending: boolean;
 }
 
@@ -217,15 +218,29 @@ export interface MatchdayPoints {
 
 // --- Ligas ---
 
+/** Situación del usuario en una de sus ligas; rank y points son null si aún no tiene predicción. */
+export interface LeagueSummary {
+  groupId: number;
+  rank: number | null;
+  points: number | null;
+  participants: number;
+  pendingPredictions: number;
+}
+
 export interface Group {
   id: number;
   name: string;
   joinCode: string | null;
+  /** Liga pública: cualquiera puede consultarla sin ser miembro. */
+  publicLeague?: boolean;
+  /** Liga con cuota de inscripción: el ranking marca a quien no ha pagado. */
+  entryFee?: boolean;
   adminParticipantName: string | null;
   adminUserId: number | null;
   createdAt: string | null;
   competitionId: number | null;
   customCompetition?: boolean;
+  competitionExternalId?: string | null;
   competitionName: string | null;
   formatType: CompetitionFormat | null;
   poolFormat: PoolFormat | null;
@@ -270,10 +285,8 @@ export interface LeagueScoring {
 export interface GroupMember {
   userId: number;
   participantName: string;
-  /** null en la Porra Global, que no publica emails. */
-  googleEmail: string | null;
   role: string;
-  /** null en la Porra Global, que no tiene pagos. */
+  /** null en las ligas públicas, que no tienen pagos. */
   paymentStatus: PaymentStatus | null;
   joinedAt: string | null;
   isAdmin: boolean;
@@ -317,6 +330,8 @@ export interface MatchdayFixture {
   predSign: string | null;
   locked: boolean;
   lockReason: string | null;
+  /** Cuándo se cierra el pronóstico; puede ser antes de que empiece el partido. */
+  lockAt?: string | null;
   pointsAwarded: number | null;
   isExactScore: boolean | null;
   isCorrectSign: boolean | null;
@@ -355,7 +370,7 @@ export interface FriendPrediction {
 // --- Estadísticas de las ligas por jornadas ---
 
 /** Marcador pronosticado y cuántos lo han puesto. */
-export interface ScoreCount {
+interface ScoreCount {
   home: number;
   away: number;
   count: number;
@@ -382,6 +397,21 @@ export interface MatchStats {
   /** null mientras el partido no ha terminado. */
   exactHits: number | null;
   signHits: number | null;
+}
+
+/** Un miembro que ha pronosticado un signo. */
+export interface MatchVoter {
+  userId: number;
+  name: string;
+  avatarUrl: string | null;
+}
+
+/** Quién ha pronosticado 1, X y 2 en un partido ya cerrado (`/stats/voters`). */
+export interface MatchVoters {
+  matchId: number;
+  home: MatchVoter[];
+  draw: MatchVoter[];
+  away: MatchVoter[];
 }
 
 /** Estadísticas de una liga por jornadas (`/api/predictions/matchday/stats`). */

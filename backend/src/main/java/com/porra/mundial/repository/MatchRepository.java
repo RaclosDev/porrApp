@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -33,8 +33,11 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             ORDER BY m.matchDate DESC
             """)
     List<Match> findRadarLive(@Param("competitionId") Long competitionId,
-                             @Param("past") LocalDateTime past, @Param("soon") LocalDateTime soon,
+                             @Param("past") Instant past, @Param("soon") Instant soon,
                              @Param("statuses") Collection<MatchStatusNormalized> statuses);
+
+    /** Partidos de una competición con una ronda numerada ("Jornada 12"). */
+    List<Match> findByCompetitionIdAndRoundStartingWith(Long competitionId, String roundPrefix);
 
     @Query(RADAR_MATCHES + " AND m.finished = TRUE ORDER BY m.matchDate DESC")
     List<Match> findRadarLast(@Param("competitionId") Long competitionId, Pageable pageable);
@@ -44,7 +47,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
               AND m.matchDate > :now
             ORDER BY m.matchDate ASC
             """)
-    List<Match> findRadarNext(@Param("competitionId") Long competitionId, @Param("now") LocalDateTime now,
+    List<Match> findRadarNext(@Param("competitionId") Long competitionId, @Param("now") Instant now,
                              @Param("scheduled") MatchStatusNormalized scheduled, Pageable pageable);
 
     /** Con sus equipos en la misma consulta: la sincronización la llama una vez por evento. */
@@ -71,8 +74,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             """)
     List<Match> findRoundCandidates(@Param("competitionId") Long competitionId,
                                     @Param("names") Collection<String> names,
-                                    @Param("dayStart") LocalDateTime dayStart,
-                                    @Param("dayEnd") LocalDateTime dayEnd,
+                                    @Param("dayStart") Instant dayStart,
+                                    @Param("dayEnd") Instant dayEnd,
                                     @Param("undated") boolean undated);
     /** Filas de V34 que aún apuntan a los equipos provisionales de V33.1. */
     @Query("""
@@ -83,4 +86,16 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             ORDER BY m.id
             """)
     List<Match> findLegacyPlaceholderFixtures(@Param("afterId") long afterId, Pageable pageable);
+
+    /** Partidos sin terminar de una competición que empiezan dentro del intervalo, con sus equipos. */
+    @Query("SELECT m FROM Match m LEFT JOIN FETCH m.homeTeam LEFT JOIN FETCH m.awayTeam"
+            + " WHERE m.competition.id = :competitionId AND m.matchDate > :from AND m.matchDate <= :to"
+            + " AND (m.finished = FALSE OR m.finished IS NULL)")
+    List<Match> findUnfinishedStartingBetween(@Param("competitionId") Long competitionId,
+                                              @Param("from") Instant from, @Param("to") Instant to);
+
+    /** Competiciones con algún partido sin terminar cuyo inicio cae en el intervalo (partidos en juego). */
+    @Query("SELECT DISTINCT m.competition.id FROM Match m WHERE (m.finished = FALSE OR m.finished IS NULL)"
+            + " AND m.matchDate BETWEEN :from AND :to")
+    List<Long> findCompetitionIdsWithOpenMatchesBetween(@Param("from") Instant from, @Param("to") Instant to);
 }
