@@ -36,7 +36,7 @@ public class MatchController {
 
     /** En juego, últimos terminados y próximos. */
     @GetMapping("/radar")
-    @Cacheable(value = "matchRadar", key = "#competitionId != null ? #competitionId : 'all'")
+    @Cacheable(value = "matchRadar", key = "#competitionId != null ? #competitionId : 'all'", sync = true)
     public MatchRadarDTO getMatchRadar(@RequestParam(required = false) Long competitionId) {
         requirePublicCompetition(competitionId);
         List<Match> live = competitionId != null ? matchService.getLiveMatches(competitionId) : matchService.getLiveMatches();

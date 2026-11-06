@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -53,6 +54,7 @@ public class OfficialMatchdayService {
 
     /** Una llamada por liga cada seis horas: muy por debajo del límite del plan gratuito (10 por minuto). */
     @Scheduled(initialDelay = 180_000, fixedDelay = 6 * 60 * 60 * 1000)
+    @SchedulerLock(name = "officialMatchdays", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
     public void scheduledRefresh() {
         if (!footballData.isEnabled()) return;
         int relabeled = 0;

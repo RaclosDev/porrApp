@@ -29,6 +29,8 @@ export const queryKeys = {
   predictions: (groupId?: Id) => key('predictions', asText(groupId)),
   myPredictions: () => key('myPredictions'),
   leaderboard: (groupId?: Id) => key('leaderboard', asText(groupId)),
+  /** Cuelga del ranking: invalidar `leaderboard(groupId)` también lo invalida. */
+  leaderboardLogs: (groupId: Id) => key('leaderboard', asText(groupId), 'logs'),
   leaderboardMatchdays: (groupId?: Id) => key('leaderboardMatchdays', asText(groupId)),
   matchdayFixtures: (groupId?: Id, user?: Id, round?: string) =>
     key('matchdayFixtures', asText(groupId), user, round),

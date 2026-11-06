@@ -29,6 +29,20 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    /** Lecturas que no exigen sesión (GET y HEAD). */
+    private static final String[] PUBLIC_READS = {
+            "/api/predictions/**",
+            "/api/matches/**",
+            "/api/standings/**",
+            "/api/scorers/**",
+            "/api/rules/**",
+            "/api/teams/odds",
+            "/api/leaderboard", "/api/leaderboard/**",
+            "/api/groups/**",
+            "/api/users/*/avatar/*",
+            "/api/competitions/**"
+    };
+
     /** Hash del contenido de &lt;script type="speculationrules"&gt; de frontend/index.html. */
     static final String INDEX_SPECULATION_RULES_HASH = "'sha256-I3eLRc1Jk/ZvRCXECwqrMwPVfsi5QuCkSMpeXQKg2Fw='";
     /** Hash de onload="this.media = 'all'" de la hoja de fuentes de frontend/index.html. */
@@ -52,22 +66,12 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/info").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
                 .requestMatchers("/api/predictions/mine", "/api/groups/mine").authenticated()
-                .requestMatchers(HttpMethod.GET,
-                        "/api/groups/*/members").authenticated()
-                .requestMatchers(HttpMethod.GET,
-                        "/api/groups/*/competition/**").authenticated()
-                // Lecturas públicas: cada controlador filtra los datos de ligas privadas.
-                .requestMatchers(HttpMethod.GET,
-                        "/api/predictions/**",
-                        "/api/matches/**",
-                        "/api/standings/**",
-                        "/api/scorers/**",
-                        "/api/rules/**",
-                        "/api/teams/odds",
-                        "/api/leaderboard", "/api/leaderboard/**",
-                        "/api/groups/**",
-                        "/api/users/*/avatar/*",
-                        "/api/competitions/**").permitAll()
+                .requestMatchers("/api/groups/*/members").authenticated()
+                .requestMatchers("/api/groups/*/competition/**").authenticated()
+                // Lecturas públicas: cada controlador filtra los datos de ligas privadas. HEAD sigue
+                // las mismas reglas que GET para los monitores de disponibilidad.
+                .requestMatchers(HttpMethod.GET, PUBLIC_READS).permitAll()
+                .requestMatchers(HttpMethod.HEAD, PUBLIC_READS).permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/**").permitAll()
             )

@@ -90,10 +90,24 @@ class GroupServiceTest {
     }
 
     @Test
+    @DisplayName("createGroup con una clave ya usada devuelve la liga existente sin crear otra")
+    void createGroupWithRepeatedKeyReturnsExistingLeague() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(leagueRepository.findByAdminUserIdAndCreationKey(admin.getId(), "clave-1234"))
+                .thenReturn(Optional.of(league));
+
+        League result = groupService.createGroup("Liga Privada", "admin@test.com", 8L,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY, false, null, "clave-1234");
+
+        assertSame(league, result);
+        verify(leagueRepository, never()).save(any());
+        verify(editionRepository, never()).save(any());
+    }
+
+    @Test
     void createCustomCompetitionBelongsToNewLeague() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
-        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
         when(leagueRepository.save(any(League.class))).thenReturn(league);
         when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -112,7 +126,6 @@ class GroupServiceTest {
     void createCustomBracketCompetitionUsesTournamentFormat() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
-        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
         when(leagueRepository.save(any(League.class))).thenReturn(league);
         when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -129,7 +142,6 @@ class GroupServiceTest {
     void existingCustomCompetitionCannotBeReusedByAnotherLeague() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
-        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
         when(competitionRepository.findById(8L)).thenReturn(Optional.of(Competition.builder()
                 .ownerLeague(league).build()));
 
@@ -143,7 +155,6 @@ class GroupServiceTest {
     void createGroup_ResolvesLegacyCompetitionToCanonical() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
-        when(leagueRepository.findByNameAndAdminUser(anyString(), any())).thenReturn(List.of());
 
         Competition legacy = Competition.builder()
                 .id(1L)

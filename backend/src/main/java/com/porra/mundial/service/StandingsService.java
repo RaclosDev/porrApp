@@ -35,7 +35,7 @@ public class StandingsService {
     /**
      * Obtiene la clasificación completa de todos los grupos ya ordenada.
      */
-    @org.springframework.cache.annotation.Cacheable("standings")
+    @org.springframework.cache.annotation.Cacheable(value = "standings", sync = true)
     public List<GroupStanding> getAllStandings() {
         List<GroupStanding> raw = standingRepository.findAllByOrderByGroupNameAscPositionAsc();
         if (raw == null || raw.isEmpty()) {
@@ -80,7 +80,7 @@ public class StandingsService {
     }
 
     /** grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). */
-    @org.springframework.cache.annotation.Cacheable("officialPoints")
+    @org.springframework.cache.annotation.Cacheable(value = "officialPoints", sync = true)
     public Map<String, Map<String, Map<String, Integer>>> getOfficialPoints() {
         Map<String, Map<String, Map<String, Integer>>> result = new TreeMap<>();
         List<GroupStanding> allStandings = getAllStandings();

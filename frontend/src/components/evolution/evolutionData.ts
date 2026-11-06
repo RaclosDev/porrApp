@@ -33,6 +33,8 @@ export interface EvolutionChartProps {
   validResults: LeaderboardRow[];
   userName: string;
   allGames: Match[];
+  /** Liga cuyo registro de puntos se pide al cambiar a la escala por partidos. */
+  groupId?: number | string | null;
 }
 
 /** Campos de ParticipantScore con los puntos de cada ronda. */

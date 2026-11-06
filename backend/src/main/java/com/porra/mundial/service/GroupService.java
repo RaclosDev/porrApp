@@ -63,6 +63,19 @@ public class GroupService {
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi, String customCompetitionName) {
+        return createGroup(name, email, competitionId, poolFormat, pichichi, customCompetitionName, null);
+    }
+
+    /** Liga ya creada por este usuario con esa clave de idempotencia, si existe. */
+    @Transactional(readOnly = true)
+    public Optional<League> findCreatedWithKey(String email, String creationKey) {
+        return userAccountRepository.findByGoogleEmail(email)
+                .flatMap(user -> leagueRepository.findByAdminUserIdAndCreationKey(user.getId(), creationKey));
+    }
+
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi, String customCompetitionName, String creationKey) {
         boolean custom = customCompetitionName != null && !customCompetitionName.isBlank();
         if (custom == (competitionId != null)) {
             throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
@@ -70,24 +83,22 @@ public class GroupService {
         if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
             throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
         }
+        UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
+
+        // Repetición de la misma creación (doble clic o reintento): se devuelve la liga ya creada.
+        if (creationKey != null) {
+            Optional<League> existing = leagueRepository.findByAdminUserIdAndCreationKey(adminUser.getId(), creationKey);
+            if (existing.isPresent()) {
+                log.info("Creación de liga repetida por el usuario {}: se reutiliza la liga {}", adminUser.getId(), existing.get().getId());
+                return existing.get();
+            }
+        }
+
         String joinCode;
         do {
             joinCode = JoinCodeGenerator.next();
         } while (leagueRepository.findByJoinCode(joinCode).isPresent());
-
-        UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
-                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
-
-        // Proteccion contra doble-click / peticiones concurrentes duplicadas
-        List<League> existingLeagues = leagueRepository.findByNameAndAdminUser(name, adminUser);
-        if (existingLeagues != null && !existingLeagues.isEmpty()) {
-            League latest = existingLeagues.get(existingLeagues.size() - 1);
-            if (latest.getCreatedAt() != null &&
-                    Math.abs(java.time.Duration.between(latest.getCreatedAt(), LocalDateTime.now()).getSeconds()) < 10) {
-                log.info("Doble peticion detectada para crear liga '{}' por usuario {}. Reutilizando liga existente.", name, adminUser.getId());
-                return latest;
-            }
-        }
 
         Competition comp = null;
         if (!custom) {
@@ -103,6 +114,7 @@ public class GroupService {
                 .name(name)
                 .joinCode(joinCode)
                 .adminUser(adminUser)
+                .creationKey(creationKey)
                 .build();
         group = leagueRepository.save(group);
 

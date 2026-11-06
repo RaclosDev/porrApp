@@ -82,7 +82,7 @@ class GroupControllerTest {
                 .joinCode("NUEVA30")
                 .adminUser(UserAccount.builder().id(2L).participantName("User2").build())
                 .build();
-        Mockito.when(groupService.createGroup(eq("Liga Nueva"), eq("user@test.com"), eq(1L), eq(PoolFormat.FULL_BRACKET), eq(true), eq(null)))
+        Mockito.when(groupService.createGroup(eq("Liga Nueva"), eq("user@test.com"), eq(1L), eq(PoolFormat.FULL_BRACKET), eq(true), eq(null), eq(null)))
                 .thenReturn(createdGroup);
         Mockito.when(groupService.toResponse(createdGroup, true))
                 .thenReturn(GroupResponseDTO.builder().id(30L).name("Liga Nueva").joinCode("NUEVA30").poolFormat("FULL_BRACKET").build());
@@ -99,6 +99,37 @@ class GroupControllerTest {
                 .andExpect(jsonPath("$.id").value(30))
                 .andExpect(jsonPath("$.joinCode").value("NUEVA30"))
                 .andExpect(jsonPath("$.poolFormat").value("FULL_BRACKET"));
+    }
+
+    @Test
+    @DisplayName("Si la misma clave de idempotencia choca con el índice único se devuelve la liga ya creada")
+    void createGroupWithConcurrentKeyReturnsExistingLeague() throws Exception {
+        League existing = League.builder().id(31L).name("Liga Nueva").joinCode("NUEVA31").build();
+        String key = "0b6f1c1e-6a3c-4d4e-9a55-7b1f2d3c4e5f";
+        Mockito.when(groupService.createGroup(eq("Liga Nueva"), eq("user@test.com"), eq(1L), eq(PoolFormat.FULL_BRACKET), eq(true), eq(null), eq(key)))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uq_leagues_admin_creation_key"));
+        Mockito.when(groupService.findCreatedWithKey("user@test.com", key)).thenReturn(java.util.Optional.of(existing));
+        Mockito.when(groupService.toResponse(existing, true))
+                .thenReturn(GroupResponseDTO.builder().id(31L).name("Liga Nueva").joinCode("NUEVA31").build());
+
+        mockMvc.perform(post("/api/groups")
+                        .principal(userPrincipal("user@test.com"))
+                        .header("Idempotency-Key", key)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Liga Nueva\", \"competitionId\": 1, \"poolFormat\": \"FULL_BRACKET\", \"pichichi\": true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(31));
+    }
+
+    @Test
+    @DisplayName("Una Idempotency-Key con formato extraño se rechaza")
+    void createGroupRejectsMalformedKey() throws Exception {
+        mockMvc.perform(post("/api/groups")
+                        .principal(userPrincipal("user@test.com"))
+                        .header("Idempotency-Key", "x")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Liga\", \"competitionId\": 1, \"poolFormat\": \"FULL_BRACKET\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -2,6 +2,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
   fetchFeaturedGroup,
+  fetchLeaderboardLogs,
   fetchLeaderboardMatchdays,
   fetchMyGroups,
   fetchMyPredictions,
@@ -44,6 +45,14 @@ export const predictionScoreQuery = (predictionId: number | string) =>
   queryOptions({
     queryKey: queryKeys.predictionScore(String(predictionId)),
     queryFn: () => fetchPredictionScore(predictionId),
+    staleTime: 60_000,
+  });
+
+/** Registro de puntos de toda la liga; solo lo pide la gráfica de evolución por partidos. */
+export const leaderboardLogsQuery = (groupId: number | string) =>
+  queryOptions({
+    queryKey: queryKeys.leaderboardLogs(groupId),
+    queryFn: () => fetchLeaderboardLogs(groupId),
     staleTime: 60_000,
   });
 

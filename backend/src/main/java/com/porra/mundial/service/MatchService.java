@@ -18,7 +18,7 @@ public class MatchService {
 
     private final MatchRepository matchRepository;
 
-    @org.springframework.cache.annotation.Cacheable("matches")
+    @org.springframework.cache.annotation.Cacheable(value = "matches", sync = true)
     public List<Match> getAllMatches() {
         return matchRepository.findAll();
     }
