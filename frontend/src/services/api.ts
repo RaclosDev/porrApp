@@ -22,6 +22,7 @@ import type {
   MatchdayPoints,
   MatchdayPredictionInput,
   MatchdayStats,
+  MatchVoter,
   MatchVoters,
   MatchdaySubmissionResult,
   Me,
@@ -704,6 +705,12 @@ export const fetchMatchdayStats = (groupId: number | string) =>
 export const fetchMatchVoters = (groupId: number | string, matchIds: number[]) =>
   request<MatchVoters[]>(
     `/predictions/matchday/stats/voters${query({ groupId, matchIds: matchIds.join(',') })}`,
+  );
+
+/** Miembros que ya han hecho su predicción en alguno de los partidos (quién, no qué). */
+export const fetchRoundParticipants = (groupId: number | string, matchIds: number[]) =>
+  request<MatchVoter[]>(
+    `/predictions/matchday/stats/participants${query({ groupId, matchIds: matchIds.join(',') })}`,
   );
 
 // --- Recordatorios push ---
