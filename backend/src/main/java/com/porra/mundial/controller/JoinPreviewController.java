@@ -1,38 +1,20 @@
 package com.porra.mundial.controller;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.InvitationImageRenderer;
 import com.porra.mundial.service.ProfileImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.HtmlUtils;
 
-import javax.imageio.ImageIO;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.FontFormatException;
-import java.awt.geom.Path2D;
-import java.util.Locale;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.geom.RoundRectangle2D;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.time.Duration;
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -48,23 +30,10 @@ public class JoinPreviewController {
     private static final String DEFAULT_TITLE = "Invitación a una porra";
     private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
     private static final String IMAGE_VERSION = "3";
-    private static final int IMAGE_WIDTH = 1200;
-    private static final int IMAGE_HEIGHT = 630;
-    private static final Color PAPER = new Color(243, 236, 220);
-    private static final Color INK = new Color(17, 24, 39);
-    private static final Color MARKER = new Color(11, 95, 116);
-    private static final Font POSTER = loadFont("fonts/anton/Anton-Regular.ttf");
-    private static final Font HANDWRITING = loadFont("fonts/permanent-marker/PermanentMarker-Regular.ttf");
-
-    /** Imágenes ya dibujadas; una liga ocupa unos 100 KB. */
-    private final Cache<String, byte[]> renderedImages = Caffeine.newBuilder()
-            .maximumSize(200)
-            .expireAfterAccess(Duration.ofHours(6))
-            .build();
-    private static final String GENERIC_IMAGE_KEY = "generic";
 
     private final GroupService groupService;
     private final ProfileImageService profileImageService;
+    private final InvitationImageRenderer imageRenderer;
 
     @GetMapping(value = "/join/{code}", produces = MediaType.TEXT_HTML_VALUE)
     public String preview(@PathVariable String code) throws IOException {
@@ -112,8 +81,8 @@ public class JoinPreviewController {
         html = replaceMeta(html, "property", "og:url", canonicalUrl);
         html = replaceMeta(html, "property", "og:image", imageUrl);
         html = replaceMeta(html, "property", "og:image:type", "image/png");
-        html = replaceMeta(html, "property", "og:image:width", Integer.toString(IMAGE_WIDTH));
-        html = replaceMeta(html, "property", "og:image:height", Integer.toString(IMAGE_HEIGHT));
+        html = replaceMeta(html, "property", "og:image:width", Integer.toString(InvitationImageRenderer.WIDTH));
+        html = replaceMeta(html, "property", "og:image:height", Integer.toString(InvitationImageRenderer.HEIGHT));
         html = replaceMeta(html, "property", "og:image:alt", imageAlt);
         html = replaceMeta(html, "property", "og:site_name", "PorrApp");
         html = replaceMeta(html, "property", "og:locale", "es_ES");
@@ -132,8 +101,7 @@ public class JoinPreviewController {
         Optional<League> leagueOptional = findLeague(code);
         if (leagueOptional.isEmpty()) {
             // Todos los códigos inexistentes comparten la misma imagen genérica.
-            return renderedImages.get(GENERIC_IMAGE_KEY, key -> render("Invitación a una porra", "Fútbol",
-                    "Cuadro completo", null));
+            return imageRenderer.generic();
         }
         League league = leagueOptional.get();
         String name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
@@ -149,161 +117,15 @@ public class JoinPreviewController {
                 format = formatLabel(edition.getPoolFormat().name());
             }
         }
-        // Dibujar la imagen cuesta CPU: se guarda mientras no cambien el nombre, los datos o la foto.
+        // La tarjeta se vuelve a dibujar solo si cambian el nombre, los datos o la foto.
         String cacheKey = league.getId() + "|" + name + "|" + competition + "|" + format + "|" + league.getImageUpdatedAt();
-        String finalName = name;
-        String finalCompetition = competition;
-        String finalFormat = format;
-        return renderedImages.get(cacheKey, key -> render(finalName, finalCompetition, finalFormat,
-                profileImageService.getLeagueImage(league.getId())
-                        .map(ProfileImageService.StoredImage::data).orElse(null)));
-    }
-
-    private byte[] render(String name, String competition, String format, byte[] leagueImage) {
-        // ARGB conserva la transparencia del lienzo y de logotipos PNG con fondo transparente.
-        BufferedImage image = new BufferedImage(IMAGE_WIDTH, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D graphics = image.createGraphics();
-        try {
-            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-            graphics.setColor(new Color(15, 23, 42));
-            graphics.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-
-            // Solo se inclina el soporte, como en la web: texto y foto permanecen rectos.
-            graphics.setColor(new Color(216, 207, 185));
-            graphics.fillRoundRect(42, 66, 1122, 514, 6, 6);
-            Path2D sheet = new Path2D.Double();
-            sheet.moveTo(32, 60);
-            sheet.lineTo(1152, 48);
-            sheet.lineTo(1152, 558);
-            sheet.lineTo(32, 570);
-            sheet.closePath();
-            graphics.setColor(PAPER);
-            graphics.fill(sheet);
-            graphics.setColor(new Color(255, 230, 140, 220));
-            graphics.fillPolygon(new int[]{520, 672, 674, 522}, new int[]{32, 26, 66, 72}, 4);
-
-            graphics.setColor(MARKER);
-            graphics.setFont(HANDWRITING.deriveFont(32f));
-            graphics.drawString("PorrApp", 72, 116);
-
-            if (!drawLeaguePhoto(graphics, leagueImage)) {
-                graphics.setColor(new Color(231, 223, 206));
-                graphics.fillRoundRect(72, 162, 244, 244, 6, 6);
-                graphics.setColor(MARKER);
-                graphics.setStroke(new BasicStroke(3));
-                graphics.drawRoundRect(90, 180, 208, 208, 4, 4);
-                graphics.setFont(POSTER.deriveFont(48f));
-                graphics.drawString("TU LIGA", 120, 305);
-            }
-
-            graphics.setColor(INK);
-            graphics.setFont(POSTER.deriveFont(64f));
-            drawFittedText(graphics, name.toUpperCase(Locale.ROOT), 364, 224, 744, 64);
-            graphics.setFont(POSTER.deriveFont(32f));
-            drawFittedText(graphics, competition.toUpperCase(Locale.ROOT), 364, 293, 744, 32);
-            drawStamp(graphics, format.toUpperCase(Locale.ROOT), 364, 332, 744);
-
-            graphics.setColor(new Color(17, 24, 39, 45));
-            graphics.setStroke(new BasicStroke(2));
-            graphics.drawLine(72, 454, 1112, 454);
-            graphics.setColor(MARKER);
-            graphics.setFont(HANDWRITING.deriveFont(32f));
-            graphics.drawString("Te han invitado a jugar.", 72, 520);
-            graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 22));
-            graphics.setColor(INK);
-            graphics.drawString(java.net.URI.create(baseUrl).getHost(), 944, 520);
-        } finally {
-            graphics.dispose();
-        }
-
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            ImageIO.write(image, "png", output);
-            return output.toByteArray();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private boolean drawLeaguePhoto(Graphics2D graphics, byte[] imageData) {
-        if (imageData == null || imageData.length == 0) {
-            return false;
-        }
-        try (ByteArrayInputStream input = new ByteArrayInputStream(imageData)) {
-            BufferedImage photo = ImageIO.read(input);
-            if (photo == null) {
-                return false;
-            }
-
-            int x = 72;
-            int y = 162;
-            int size = 244;
-            double scale = Math.max((double) size / photo.getWidth(), (double) size / photo.getHeight());
-            int width = (int) Math.round(photo.getWidth() * scale);
-            int height = (int) Math.round(photo.getHeight() * scale);
-            int cropX = (width - size) / 2;
-            int cropY = (height - size) / 2;
-
-            BufferedImage square = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D photoGraphics = square.createGraphics();
-            try {
-                photoGraphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                photoGraphics.drawImage(photo, -cropX, -cropY, width, height, null);
-            } finally {
-                photoGraphics.dispose();
-            }
-
-            graphics.setColor(Color.WHITE);
-            graphics.fillRoundRect(x - 6, y - 6, size + 12, size + 12, 6, 6);
-            graphics.setClip(new RoundRectangle2D.Float(x, y, size, size, 4, 4));
-            graphics.drawImage(square, x, y, null);
-            graphics.setClip(null);
-            return true;
-        } catch (IOException | RuntimeException exception) {
-            // Si la foto no está disponible, conservar la tarjeta con el nombre de la liga.
-            return false;
-        }
+        return imageRenderer.render(cacheKey, new InvitationImageRenderer.Card(name, competition, format),
+                () -> profileImageService.getLeagueImage(league.getId())
+                        .map(ProfileImageService.StoredImage::data).orElse(null));
     }
 
     private Optional<League> findLeague(String code) {
         return groupService.getGroupByJoinCode(code.trim().toUpperCase());
-    }
-
-    static Font loadFont(String path) {
-        try (var stream = new ClassPathResource(path).getInputStream()) {
-            return Font.createFont(Font.TRUETYPE_FONT, stream);
-        } catch (IOException | FontFormatException exception) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "No se pudo generar la imagen de invitación.", exception);
-        }
-    }
-
-    private void drawStamp(Graphics2D graphics, String text, int x, int y, int maxWidth) {
-        graphics.setFont(POSTER.deriveFont(28f));
-        int width = Math.min(graphics.getFontMetrics().stringWidth(text) + 32, maxWidth);
-        graphics.setColor(MARKER);
-        graphics.setStroke(new BasicStroke(3));
-        graphics.drawRoundRect(x, y, width, 52, 4, 4);
-        drawFittedText(graphics, text, x + 16, y + 36, width - 32, 28);
-    }
-
-    private void drawFittedText(Graphics2D graphics, String value, int x, int y, int maxWidth, int initialSize) {
-        int size = initialSize;
-        Font baseFont = graphics.getFont();
-        Font font = baseFont.deriveFont((float) size);
-        graphics.setFont(font);
-        while (graphics.getFontMetrics().stringWidth(value) > maxWidth && size > 30) {
-            size -= 2;
-            font = baseFont.deriveFont((float) size);
-            graphics.setFont(font);
-        }
-        String fitted = value;
-        while (graphics.getFontMetrics().stringWidth(fitted) > maxWidth && fitted.length() > 4) {
-            fitted = fitted.substring(0, fitted.length() - 2) + "…";
-        }
-        graphics.drawString(fitted, x, y);
     }
 
     private String encodePathSegment(String value) {

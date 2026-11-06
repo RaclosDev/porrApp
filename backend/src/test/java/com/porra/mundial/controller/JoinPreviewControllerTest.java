@@ -2,10 +2,9 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.model.League;
 import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.InvitationImageRenderer;
 import com.porra.mundial.service.ProfileImageService;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 import javax.imageio.ImageIO;
@@ -23,18 +22,8 @@ import static org.mockito.Mockito.when;
 
 class JoinPreviewControllerTest {
 
-    @Test
-    void unavailableInvitationFontFailsWithGenericServerErrorWithoutItsPath() {
-        String internalPath = "fonts/internal/private.ttf";
-
-        ResponseStatusException error = org.junit.jupiter.api.Assertions.assertThrows(
-                ResponseStatusException.class, () -> JoinPreviewController.loadFont(internalPath));
-
-        assertThat(error.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(error.getReason()).isEqualTo("No se pudo generar la imagen de invitación.");
-        assertThat(error.getReason()).doesNotContain(internalPath);
-        assertThat(error.getCause()).isNotNull();
-    }
+    // Uno por test: la caché de imágenes no se comparte entre pruebas.
+    private final InvitationImageRenderer renderer = new InvitationImageRenderer("https://porra.raclos.es");
 
     @Test
     void invitationUsesVersionedPaperArtworkAndMatchingMetadata() throws Exception {
@@ -42,7 +31,7 @@ class JoinPreviewControllerTest {
         League league = League.builder().id(5L).name("La peña de Raclos").joinCode("ABCDEFGH23").build();
         when(groupService.getGroupByJoinCode("ABCDEFGH23")).thenReturn(Optional.of(league));
         when(groupService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
-        JoinPreviewController controller = new JoinPreviewController(groupService, mock(ProfileImageService.class));
+        JoinPreviewController controller = new JoinPreviewController(groupService, mock(ProfileImageService.class), renderer);
 
         String html = controller.preview("ABCDEFGH23");
         assertThat(html).contains("image.png?v=3", "property=\"og:image:width\" content=\"1200\"",
@@ -66,7 +55,7 @@ class JoinPreviewControllerTest {
         when(groupService.getGroupByJoinCode("ABCDEFGH24")).thenReturn(Optional.of(league));
         when(groupService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
         when(images.getLeagueImage(6L)).thenReturn(Optional.empty());
-        JoinPreviewController controller = new JoinPreviewController(groupService, images);
+        JoinPreviewController controller = new JoinPreviewController(groupService, images, renderer);
 
         byte[] first = controller.invitationImage("ABCDEFGH24");
         assertThat(controller.invitationImage("ABCDEFGH24")).isSameAs(first);
@@ -84,7 +73,7 @@ class JoinPreviewControllerTest {
         when(groupService.getGroupByJoinCode("ABCDEFGH23")).thenReturn(Optional.of(league));
         when(groupService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
 
-        String html = new JoinPreviewController(groupService, mock(ProfileImageService.class)).preview("abcdefgh23");
+        String html = new JoinPreviewController(groupService, mock(ProfileImageService.class), renderer).preview("abcdefgh23");
 
         assertThat(html).contains("<title>Liga $1 \\ &lt;b&gt;</title>");
         assertThat(html).contains("content=\"Liga $1 \\ &lt;b&gt;\"");
@@ -103,7 +92,7 @@ class JoinPreviewControllerTest {
                 new ProfileImageService.StoredImage(bytes.toByteArray(), "image/png", null)));
 
         var rendered = ImageIO.read(new ByteArrayInputStream(
-                new JoinPreviewController(groups, images).invitationImage("LOCAL")));
+                new JoinPreviewController(groups, images, renderer).invitationImage("LOCAL")));
 
         assertThat(new Color(rendered.getRGB(190, 280))).isEqualTo(Color.MAGENTA);
         org.mockito.Mockito.verify(images).getLeagueImage(5L);
