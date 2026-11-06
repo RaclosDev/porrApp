@@ -30,13 +30,13 @@ class CompetitionImportListenerTest {
     @EnableTransactionManagement
     static class Config {
         @Bean
-        SyncService syncService() {
-            return mock(SyncService.class);
+        CompetitionImportService importService() {
+            return mock(CompetitionImportService.class);
         }
 
         @Bean
-        CompetitionImportListener competitionImportListener(SyncService syncService) {
-            return new CompetitionImportListener(syncService);
+        CompetitionImportListener competitionImportListener(CompetitionImportService importService) {
+            return new CompetitionImportListener(importService);
         }
 
         @Bean
@@ -69,14 +69,14 @@ class CompetitionImportListenerTest {
     private ApplicationEventPublisher publisher;
 
     @Autowired
-    private SyncService syncService;
+    private CompetitionImportService importService;
 
     @Autowired
     private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     void resetMock() {
-        reset(syncService);
+        reset(importService);
     }
 
     @Test
@@ -84,10 +84,10 @@ class CompetitionImportListenerTest {
     void importsAfterCommit() {
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             publisher.publishEvent(new CompetitionImportRequestedEvent(5L));
-            verify(syncService, never()).importCompetitionData(5L);
+            verify(importService, never()).importCompetitionData(5L);
         });
 
-        verify(syncService).importCompetitionData(5L);
+        verify(importService).importCompetitionData(5L);
     }
 
     @Test
@@ -98,16 +98,16 @@ class CompetitionImportListenerTest {
             status.setRollbackOnly();
         });
 
-        verify(syncService, never()).importCompetitionData(5L);
+        verify(importService, never()).importCompetitionData(5L);
     }
 
     @Test
     @DisplayName("Un fallo de ESPN al importar no llega a quien creó la liga")
     void swallowsImportFailures() {
-        when(syncService.importCompetitionData(5L)).thenThrow(new IllegalStateException("ESPN caído"));
+        when(importService.importCompetitionData(5L)).thenThrow(new IllegalStateException("ESPN caído"));
 
         assertDoesNotThrow(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                 publisher.publishEvent(new CompetitionImportRequestedEvent(5L))));
-        verify(syncService).importCompetitionData(5L);
+        verify(importService).importCompetitionData(5L);
     }
 }

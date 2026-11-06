@@ -1,6 +1,5 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.exception.BusinessException;
 import tools.jackson.databind.JsonNode;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
@@ -10,30 +9,21 @@ import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.SportsDataProvider;
 import com.porra.mundial.sports.SportsDataProviderRegistry;
-import com.porra.mundial.util.AppTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Sincroniza partidos y resultados con el proveedor deportivo de cada competición.
@@ -53,8 +43,6 @@ public class SyncService {
 
     private static final String WORLD_CUP_DATE_RANGE = "2026";
     private static final DateTimeFormatter ESPN_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
-    /** Lo que espera una importación a que termine la sincronización en curso. */
-    private static final long IMPORT_LOCK_TIMEOUT_MINUTES = 5;
 
     static final String STATUS_SUCCESS = "success";
     static final String STATUS_ERROR = "error";
@@ -67,13 +55,12 @@ public class SyncService {
     private final StandingsService standingsService;
     private final WebSocketService webSocketService;
     private final ScoreInvalidationService scoreInvalidationService;
-    private final PlatformTransactionManager transactionManager;
     private final TopScorerService topScorerService;
     private final LegacyFixtureRepairService legacyFixtureRepairService;
     private final CustomLockService customLockService;
     private final MatchRepository matchRepository;
+    private final SyncLock syncLock;
 
-    private final ReentrantLock syncLock = new ReentrantLock();
 
     /** Un partido cuenta como «en juego» desde 15 min antes del inicio hasta 4 h después si no ha terminado. */
     static final Duration LIVE_LOOKAHEAD = Duration.ofMinutes(15);
@@ -92,10 +79,6 @@ public class SyncService {
     private volatile String lastErrorMessage;
     /** El último recálculo de la clasificación y el cuadro del Mundial falló: se repite en la siguiente pasada. */
     private volatile boolean worldCupRefreshPending;
-
-    /** Resultado de importar el catálogo y calendario de una competición. */
-    public record ImportResult(String competition, int importedTeams, int importedMatches) {
-    }
 
     public Instant getLastSyncTime() { return lastSyncTime; }
     public String getLastSyncStatus() { return lastSyncStatus; }
@@ -235,7 +218,7 @@ public class SyncService {
             return CompetitionSync.failed(competition.getName(), STATUS_CIRCUIT_OPEN, "circuit breaker abierto");
         }
         MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition);
-        boolean worldCup = isWorldCup(competition);
+        boolean worldCup = WorldCupTables.isWorldCup(competition);
         try {
             Map<String, Team> teams = matchEventProcessor.teamCache();
 
@@ -311,157 +294,21 @@ public class SyncService {
     }
 
     /**
-     * Importa el catálogo de equipos (con escudos) y el calendario de la temporada de una competición.
-     * Se usa al crear la primera liga de una competición sin partidos.
-     * <p>
-     * Comparte el cerrojo de la sincronización programada, para que las dos no creen el mismo partido a
-     * la vez, y lo mantiene hasta confirmar la transacción.
-     */
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public ImportResult importCompetitionData(Long competitionId) {
-        try {
-            if (!syncLock.tryLock(IMPORT_LOCK_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
-                throw new IllegalStateException("Hay una sincronización en curso; no se ha podido importar la competición " + competitionId);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Importación interrumpida de la competición " + competitionId, e);
-        }
-        try {
-            ImportSnapshot snapshot = downloadImport(competitionId);
-            checkImportCancellation();
-            ImportCommit committed = new TransactionTemplate(transactionManager).execute(status -> applyImport(snapshot));
-            if (committed == null) throw new IllegalStateException("La importación no confirmó sus datos");
-            matchEventProcessor.invalidateTeamCache();
-            committed.batch().publishNotifications();
-            webSocketService.notifyResultsChanged();
-            if (isWorldCup(snapshot.competition()) && !Thread.currentThread().isInterrupted()) {
-                topScorerService.refresh();
-            }
-            return committed.result();
-        } finally {
-            syncLock.unlock();
-        }
-    }
-
-    private static final int MAX_IMPORT_TEAMS = 1000;
-    private static final int MAX_IMPORT_EVENTS = 2000;
-
-    private record ImportSnapshot(Competition competition, JsonNode teams, List<JsonNode> events) {}
-    private record ImportCommit(ImportResult result, MatchEventProcessor.Batch batch) {}
-
-    /** Descarga secuencial y acotada; no se abre la transacción de escritura hasta tener toda la respuesta. */
-    private ImportSnapshot downloadImport(Long competitionId) {
-        checkImportCancellation();
-        Competition competition = competitionRepository.findById(competitionId)
-                .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
-        String slug = competition.getExternalId();
-        if (slug == null || slug.isBlank()) {
-            throw new IllegalArgumentException("La competición no tiene proveedor externo configurado");
-        }
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
-        LocalDate today = LocalDate.now();
-        int startYear = today.getMonthValue() >= 7 ? today.getYear() : today.getYear() - 1;
-        Instant windowStart = AppTime.startOfDay(today.minusMonths(3));
-        Instant windowEnd = AppTime.startOfDay(today.plusMonths(12));
-        Set<String> seenEventIds = new HashSet<>();
-        List<JsonNode> selected = new ArrayList<>();
-        long deadline = System.nanoTime() + Duration.ofMinutes(2).toNanos();
-        try {
-            if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
-            JsonNode teams = provider.fetchTeams(slug);
-            if (teams == null || !teams.isArray() || teams.size() > MAX_IMPORT_TEAMS) {
-                throw new IllegalStateException("Catálogo de equipos ausente o demasiado grande");
-            }
-            for (int year = startYear; year <= today.getYear() + 1; year++) {
-                checkImportCancellation();
-                if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
-                if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
-                JsonNode events = provider.fetchScoreboardEvents(slug, String.valueOf(year));
-                if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
-                if (events == null || !events.isArray() || events.size() > MAX_IMPORT_EVENTS) {
-                    throw new IllegalStateException("Calendario ausente o demasiado grande");
-                }
-                for (JsonNode event : events) {
-                    checkImportCancellation();
-                    String eventId = event.path("id").asText(null);
-                    if (eventId == null || eventId.isBlank()) throw new IllegalStateException("Evento sin identificador");
-                    if (!seenEventIds.add(eventId)) continue;
-                    if (seenEventIds.size() > MAX_IMPORT_EVENTS) throw new IllegalStateException("Demasiados eventos en la importación");
-                    Instant date = matchEventProcessor.parseDate(event.path("date").asText(null));
-                    if (date != null && (date.isBefore(windowStart) || date.isAfter(windowEnd))) continue;
-                    selected.add(event);
-                }
-            }
-            checkImportCancellation();
-            if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
-            return new ImportSnapshot(competition, teams, List.copyOf(selected));
-        } catch (Exception error) {
-            if (error instanceof InterruptedException) Thread.currentThread().interrupt();
-            throw new IllegalStateException("No se pudo descargar la importación de " + competition.getName(), error);
-        }
-    }
-
-    private ImportCommit applyImport(ImportSnapshot snapshot) {
-        checkImportCancellation();
-        Competition competition = competitionRepository.findById(snapshot.competition().getId()).orElseThrow();
-        if (!Objects.equals(competition.getExternalId(), snapshot.competition().getExternalId())) {
-            throw new IllegalStateException("La competición cambió durante la descarga");
-        }
-        Map<String, Team> teams = matchEventProcessor.freshTeamCache();
-        int importedTeams = matchEventProcessor.importTeams(snapshot.teams(), teams);
-        MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition, true);
-        for (JsonNode event : snapshot.events()) {
-            checkImportCancellation();
-            matchEventProcessor.process(event, teams, batch);
-        }
-        if (batch.resultsChanged()) {
-            if (isWorldCup(competition)) updateWorldCupStandingsAndBracket();
-            scoreInvalidationService.invalidateCompetition(competition.getId());
-        }
-        if (batch.matchesUpdated() > 0) customLockService.refreshFirstMatchLocks(competition.getId());
-        checkImportCancellation();
-        log.info("Importados {} equipos y {} partidos de {}", importedTeams, batch.matchesUpdated(), competition.getName());
-        return new ImportCommit(new ImportResult(competition.getName(), importedTeams, batch.matchesUpdated()), batch);
-    }
-
-    private static void checkImportCancellation() {
-        if (Thread.currentThread().isInterrupted()) throw new IllegalStateException("Importación interrumpida");
-    }
-
-    private static boolean isWorldCup(Competition competition) {
-        return Competition.WORLD_CUP_EXTERNAL_ID.equalsIgnoreCase(competition.getExternalId());
-    }
-
-    /**
      * Recalcula la clasificación de grupos y el cuadro del Mundial al final de una pasada. Si falla, se
      * repite en la siguiente aunque esa no cambie ningún resultado.
      */
     private CompetitionSync refreshWorldCup(List<Competition> competitions) {
-        String name = competitions.stream().filter(SyncService::isWorldCup).map(Competition::getName)
+        String name = competitions.stream().filter(WorldCupTables::isWorldCup).map(Competition::getName)
                 .findFirst().orElse(Competition.WORLD_CUP_EXTERNAL_ID);
         worldCupRefreshPending = true;
         try {
-            int placed = updateWorldCupStandingsAndBracket();
+            int placed = WorldCupTables.refresh(knockoutBracketService, standingsService);
             worldCupRefreshPending = false;
             return new CompetitionSync(name, STATUS_SUCCESS, placed, 0, null, false, 0);
         } catch (Exception e) {
             log.error("Falló el recálculo de la clasificación y el cuadro de {}: {}", name, e.getMessage(), e);
             return CompetitionSync.failed(name, STATUS_ERROR, e.getMessage());
         }
-    }
-
-    /**
-     * Coloca a los ganadores de las eliminatorias y recalcula la clasificación de grupos con una sola
-     * lectura de los partidos del Mundial: solo el Mundial tiene grupos y cuadro oficiales.
-     *
-     * @return número de partidos de eliminatorias actualizados
-     */
-    private int updateWorldCupStandingsAndBracket() {
-        List<Match> worldCupMatches = knockoutBracketService.worldCupMatches();
-        int placed = knockoutBracketService.propagateKnockoutWinners(worldCupMatches);
-        standingsService.recalculateStandingsFromMatches(worldCupMatches);
-        return placed;
     }
 
     private void processEvents(JsonNode events, Map<String, Team> teams, MatchEventProcessor.Batch batch) {

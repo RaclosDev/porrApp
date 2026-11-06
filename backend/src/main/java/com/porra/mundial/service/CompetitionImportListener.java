@@ -18,13 +18,13 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 public class CompetitionImportListener {
 
-    private final SyncService syncService;
+    private final CompetitionImportService importService;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onImportRequested(CompetitionImportRequestedEvent event) {
         try {
-            syncService.importCompetitionData(event.competitionId());
+            importService.importCompetitionData(event.competitionId());
         } catch (Exception e) {
             // El arranque reintenta las competiciones con ligas activas y sin partidos.
             log.warn("No se pudo importar la competición {}: {}", event.competitionId(), e.getMessage());

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -61,8 +62,13 @@ class SyncServiceTest {
     @Mock private LegacyFixtureRepairService legacyFixtureRepairService;
     @Mock private com.porra.mundial.repository.MatchRepository matchRepository;
 
+    @Spy private SyncLock syncLock = new SyncLock();
+
     @InjectMocks
     private SyncService syncService;
+
+    /** Comparte el cerrojo con la sincronización, como en la aplicación. */
+    private CompetitionImportService importService;
 
     private final Competition worldCup = Competition.builder().id(2L).name("FIFA World Cup 2026")
             .externalId(Competition.WORLD_CUP_EXTERNAL_ID).formatType("TOURNAMENT").build();
@@ -71,6 +77,9 @@ class SyncServiceTest {
 
     @BeforeEach
     void setUp() {
+        importService = new CompetitionImportService(competitionRepository, sportsDataProviderRegistry,
+                matchEventProcessor, knockoutBracketService, standingsService, webSocketService,
+                scoreInvalidationService, transactionManager, topScorerService, customLockService, syncLock);
         when(competitionRepository.findAll()).thenReturn(List.of(worldCup));
         when(competitionRepository.findById(5L)).thenReturn(Optional.of(laLiga));
         when(sportsDataProviderRegistry.getProviderForCompetition(anyString())).thenReturn(provider);
@@ -134,7 +143,7 @@ class SyncServiceTest {
         when(provider.fetchTeams("esp.1")).thenReturn(oversized);
 
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
-                () -> syncService.importCompetitionData(5L));
+                () -> importService.importCompetitionData(5L));
 
         verifyNoInteractions(transactionManager);
         verify(matchEventProcessor, never()).importTeams(any(), any());
@@ -145,7 +154,7 @@ class SyncServiceTest {
         when(provider.fetchTeams("esp.1")).thenThrow(new InterruptedException("closing"));
         try {
             org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
-                    () -> syncService.importCompetitionData(5L));
+                    () -> importService.importCompetitionData(5L));
             assertTrue(Thread.currentThread().isInterrupted());
             verifyNoInteractions(transactionManager);
         } finally {
@@ -158,7 +167,7 @@ class SyncServiceTest {
         when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
 
-        syncService.importCompetitionData(5L);
+        importService.importCompetitionData(5L);
 
         var order = org.mockito.Mockito.inOrder(provider, transactionManager);
         order.verify(provider).fetchTeams("esp.1");
@@ -332,8 +341,8 @@ class SyncServiceTest {
 
         CompletableFuture<Void> sync = CompletableFuture.runAsync(syncService::syncAll);
         assertTrue(syncStarted.await(5, TimeUnit.SECONDS));
-        CompletableFuture<SyncService.ImportResult> importing =
-                CompletableFuture.supplyAsync(() -> syncService.importCompetitionData(5L));
+        CompletableFuture<CompetitionImportService.ImportResult> importing =
+                CompletableFuture.supplyAsync(() -> importService.importCompetitionData(5L));
 
         Thread.sleep(300);
         verify(provider, never()).fetchTeams(anyString());
@@ -350,7 +359,7 @@ class SyncServiceTest {
         when(provider.fetchTeams(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(JSON.createArrayNode());
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
 
-        syncService.importCompetitionData(2L);
+        importService.importCompetitionData(2L);
 
         var order = org.mockito.Mockito.inOrder(transactionManager, topScorerService);
         order.verify(transactionManager).commit(any());
@@ -364,7 +373,7 @@ class SyncServiceTest {
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.readTree("[{\"id\": \"liga\"}]"));
         givenTheEventChangesAResult("liga");
 
-        syncService.importCompetitionData(5L);
+        importService.importCompetitionData(5L);
 
         verify(scoreInvalidationService).invalidateCompetition(laLiga.getId());
         verify(knockoutBracketService, never()).propagateKnockoutWinners(anyList());

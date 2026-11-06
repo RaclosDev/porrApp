@@ -41,7 +41,7 @@ import static org.mockito.Mockito.*;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({SyncService.class, MatchEventProcessor.class, MatchPredictionService.class,
+@Import({CompetitionImportService.class, SyncLock.class, MatchEventProcessor.class, MatchPredictionService.class,
         MatchScoringCalculator.class, StandingsService.class, ScoreInvalidationService.class, CustomLockService.class,
         CompetitionImportTransactionTest.Caches.class})
 class CompetitionImportTransactionTest {
@@ -51,7 +51,7 @@ class CompetitionImportTransactionTest {
     }
     @Container @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
-    @Autowired SyncService sync;
+    @Autowired CompetitionImportService sync;
     @Autowired TeamRepository teams;
     @Autowired MatchRepository matches;
     @Autowired CompetitionRepository competitions;
