@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export interface ConfirmOptions {
+interface ConfirmOptions {
   title: string;
   message: string;
   /** Texto del botón que ejecuta la acción; nombra la acción, no un «Aceptar» genérico. */

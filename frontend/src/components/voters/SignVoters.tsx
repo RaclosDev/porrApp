@@ -2,7 +2,7 @@ import { UserAvatar } from '../Avatar';
 import type { MatchVoter, MatchVoters } from '../../types/api';
 
 /** Avatares que caben bajo cada signo antes de resumir el resto en «+N». */
-export const VISIBLE_VOTERS = 3;
+const VISIBLE_VOTERS = 3;
 
 const SIGNS = [
   { key: 'home', label: '1' },

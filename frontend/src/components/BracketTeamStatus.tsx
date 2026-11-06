@@ -1,6 +1,6 @@
 import InkStamp from './InkStamp';
 
-export type BracketOutcome = 'qualified' | 'eliminated';
+type BracketOutcome = 'qualified' | 'eliminated';
 
 /** Sello «Clas.» / «Elim.» de un equipo en el cuadro, como los de la fase de grupos. */
 export default function BracketTeamStatus({ outcome }: { outcome: BracketOutcome | null }) {

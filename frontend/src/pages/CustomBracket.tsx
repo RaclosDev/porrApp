@@ -1,31 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
-import { createPrediction, fetchCustomTeams, fetchCustomMatches } from '../services/api';
-import type { PredictionData } from '../types/api';
+import { createPrediction } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
 import {
-  pairWinners,
   computeCustomBracketRounds,
-  customMatchWinner,
   customRoundMatchIndex,
   splitCustomRounds,
   type CustomBracketMatchSlot,
-  type CustomPair,
 } from '../utils/customBracket';
+import {
+  bracketResults,
+  completeCustomPrediction,
+  firstRoundPairs,
+  teamsByGroup,
+} from '../utils/customBracketPrediction';
+import { useCustomBracketData } from '../hooks/useCustomBracketData';
+import CustomGroupsPicker from '../components/customBracket/CustomGroupsPicker';
 import { useCustomLock } from '../hooks/useCustomLock';
-import { officialBracketMatches } from '../utils/officialTournament';
 import PaperLoading from '../components/PaperLoading';
-import Flag from '../components/Flag';
-import CustomSelect from '../components/CustomSelect';
 import InkStamp from '../components/InkStamp';
 import BracketCanvas, { TeamSlot, type CanvasMatch } from '../components/BracketCanvas';
 import { BracketFinalMatch } from '../components/BracketFinale';
 import BracketTeamStatus from '../components/BracketTeamStatus';
-
-type Pair = CustomPair;
 
 /** Texto para el lector de pantalla del equipo elegido en cada cruce. */
 const PICK_LABELS = {
@@ -59,7 +58,6 @@ export default function CustomBracket() {
   // Un torneo oficial siempre tiene cierre (su fecha o sus partidos), aunque aún no se conozca la fecha.
   const lock = official ? { ...customLock, configured: true } : customLock;
   const queryClient = useQueryClient();
-  const groupId = activeGroupId ? Number(activeGroupId) : null;
   const [groups, setGroups] = useState<Record<string, string[]>>({});
   const [picks, setPicks] = useState<string[][]>([]);
   // Solo hay un pronóstico por persona: se guarda con el nombre que ya tuviera o el del participante.
@@ -72,38 +70,13 @@ export default function CustomBracket() {
   const failedRevision = useRef(-1);
   const [loadedKey, setLoadedKey] = useState('');
 
-  const teamsQuery = useQuery({
-    queryKey: queryKeys.customTeams(activeGroupId),
-    queryFn: () => fetchCustomTeams(groupId!),
-    enabled: groupId != null && !official,
-  });
-  const matchesQuery = useQuery({
-    queryKey: queryKeys.customMatches(activeGroupId),
-    queryFn: () => fetchCustomMatches(groupId!),
-    enabled: groupId != null && !official,
-  });
-  const teams = useMemo(
-    () =>
-      official
-        ? [...new Set(allGames.flatMap((match) => [match.home, match.away]))]
-            .filter(Boolean)
-            .map((name) => ({
-              name,
-              groupName: null,
-              logoUrl:
-                allGames.find((match) => match.home === name)?.homeLogo ||
-                allGames.find((match) => match.away === name)?.awayLogo ||
-                null,
-            }))
-        : (teamsQuery.data ?? []),
-    [official, allGames, teamsQuery.data],
-  );
-  const matches = useMemo(
-    () => (official ? officialBracketMatches(allGames) : (matchesQuery.data ?? [])),
-    [official, allGames, matchesQuery.data],
-  );
-  const loadingData = !official && (teamsQuery.isPending || matchesQuery.isPending);
-  const loadError = official ? null : (teamsQuery.error ?? matchesQuery.error);
+  const {
+    matches,
+    logos,
+    teams,
+    loading: loadingData,
+    error: loadError,
+  } = useCustomBracketData(activeGroupId, official, allGames);
 
   useEffect(() => {
     setGroups({});
@@ -126,63 +99,12 @@ export default function CustomBracket() {
     setPredictionName(saved.predictionName ?? '');
   }, [saved, loadedKey, revision]);
 
-  const logos = useMemo(
-    () => Object.fromEntries(teams.map((team) => [team.name, team.logoUrl] as const)),
-    [teams],
+  const groupTeams = useMemo(() => teamsByGroup(teams), [teams]);
+  const firstRound = useMemo(() => firstRoundPairs(matches, official), [matches, official]);
+  const { realWinners, eliminatedAt, decidedRounds } = useMemo(
+    () => bracketResults(matches),
+    [matches],
   );
-
-  const teamsByGroup = useMemo(() => {
-    const result: Record<string, string[]> = {};
-    for (const team of teams) {
-      if (team.groupName) (result[team.groupName] ??= []).push(team.name);
-    }
-    return Object.fromEntries(
-      Object.entries(result).sort(([left], [right]) => left.localeCompare(right, 'es')),
-    );
-  }, [teams]);
-
-  const firstRound = useMemo<Pair[]>(
-    () =>
-      matches
-        .filter((match) => match.round === 'bracket-1')
-        // Los cruces oficiales ya llegan en el orden en que se pintan.
-        .sort((left, right) => (official ? 0 : left.id - right.id))
-        .map((match) => [match.home, match.away_team_id ? match.away : null]),
-    [matches, official],
-  );
-
-  // Ganadores reales de cada ronda, para marcar aciertos y fallos en el pronóstico.
-  const realWinners = useMemo(() => {
-    const result: Set<string>[] = [];
-    for (const match of matches) {
-      const found = /^bracket-(\d+)$/.exec(match.round ?? '');
-      const winner = found && match.away_team_id ? customMatchWinner(match) : null;
-      if (found && winner) (result[Number(found[1]) - 1] ??= new Set()).add(winner);
-    }
-    return result;
-  }, [matches]);
-  // Ronda en la que cayó cada equipo, para marcarlo eliminado desde ahí en adelante.
-  const eliminatedAt = useMemo(() => {
-    const result = new Map<string, number>();
-    for (const match of matches) {
-      const found = /^bracket-(\d+)$/.exec(match.round ?? '');
-      const winner = found && match.away_team_id ? customMatchWinner(match) : null;
-      if (!found || !winner) continue;
-      const loser = winner === match.home ? match.away : match.home;
-      if (loser) result.set(loser, Number(found[1]) - 1);
-    }
-    return result;
-  }, [matches]);
-  const decidedRounds = useMemo(() => {
-    const result: boolean[] = [];
-    for (const match of matches) {
-      const found = /^bracket-(\d+)$/.exec(match.round ?? '');
-      if (!found) continue;
-      const index = Number(found[1]) - 1;
-      result[index] = (result[index] ?? true) && (!match.away_team_id || match.finished);
-    }
-    return result;
-  }, [matches]);
 
   const displayRounds = useMemo(
     () => computeCustomBracketRounds(firstRound, picks),
@@ -201,7 +123,7 @@ export default function CustomBracket() {
   }, [displayRounds, decidedRounds, layout.roundLabels.length]);
 
   const isFullBracket = activeGroupPoolFormat === 'FULL_BRACKET';
-  const hasGroups = isFullBracket && Object.keys(teamsByGroup).length > 0;
+  const hasGroups = isFullBracket && Object.keys(groupTeams).length > 0;
   // Quien no tiene pronóstico no puede entrar cuando la competición ya ha empezado a cerrarse.
   const lateEntry = lock.anyLocked && !saved;
   const editable = !activeGroupIsLocked && !lock.fullyLocked && !lateEntry;
@@ -233,7 +155,7 @@ export default function CustomBracket() {
     setSaveState('idle');
     setError('');
     setGroups((current) => {
-      const size = teamsByGroup[group]?.length ?? 0;
+      const size = groupTeams[group]?.length ?? 0;
       const order = Array.from({ length: size }, (_, index) => current[group]?.[index] ?? '');
       const previous = order.indexOf(name);
       if (name && previous !== -1) order[previous] = '';
@@ -290,50 +212,19 @@ export default function CustomBracket() {
     );
   };
 
-  const completeData = useMemo((): PredictionData | null => {
-    if (!firstRound.length) return null;
-    const orderedGroups: Record<string, string[]> = {};
-    if (isFullBracket) {
-      for (const [group, members] of Object.entries(teamsByGroup)) {
-        const order = groups[group] ?? [];
-        if (
-          order.length !== members.length ||
-          new Set(order).size !== members.length ||
-          order.some((name) => !members.includes(name))
-        ) {
-          return null;
-        }
-        orderedGroups[group] = order;
-      }
-    }
-    const completed: string[][] = [];
-    let current = firstRound;
-    while (current.length > 0) {
-      const winners = pairWinners(current, picks[completed.length] ?? []);
-      if (!winners) {
-        return null;
-      }
-      completed.push(winners);
-      if (winners.length === 1) break;
-      const next: Pair[] = [];
-      for (let slot = 0; slot < winners.length; slot += 2) {
-        next.push([winners[slot], winners[slot + 1] ?? null]);
-      }
-      current = next;
-    }
-    const championPick = completed[completed.length - 1]?.[0];
-    if (!championPick) {
-      return null;
-    }
-    return {
-      user: userName,
-      prediction: predictionName.trim() || userName || 'Mi predicción',
-      groups: orderedGroups,
-      customRounds: completed,
-      r16: [],
-      champion: championPick,
-    };
-  }, [firstRound, groups, isFullBracket, picks, predictionName, teamsByGroup, userName]);
+  const completeData = useMemo(
+    () =>
+      completeCustomPrediction({
+        firstRound,
+        picks,
+        groups,
+        teamsByGroup: groupTeams,
+        isFullBracket,
+        userName,
+        predictionName,
+      }),
+    [firstRound, groups, isFullBracket, picks, predictionName, groupTeams, userName],
+  );
 
   useEffect(() => {
     if (!revision || !editable || !lock.configured || !activeGroupId || !completeData || busy)
@@ -418,63 +309,13 @@ export default function CustomBracket() {
       {loadingData && <PaperLoading label="Cargando cuadro del torneo…" />}
 
       {!loadingData && hasGroups && (
-        <div className="w-full mb-7.5">
-          <div className="text-center mb-7.5">
-            <h2 className="poster-title text-accent-text m-0">Fase de grupos</h2>
-          </div>
-          <div className="groups-grid">
-            {Object.entries(teamsByGroup).map(([group, members], groupIndex) => (
-              <div
-                key={group}
-                className="group-card paper-panel album-sheet relative flex flex-col gap-2"
-                style={{ zIndex: 50 - groupIndex }}
-              >
-                <h3 className="mt-0 mb-[5px] mx-0 text-center border-b border-b-line pb-1.5 text-[1.1rem]">
-                  Grupo {group}
-                </h3>
-                <div className="grid grid-cols-[1fr_1fr] gap-1.5 mb-3">
-                  {members.map((name) => (
-                    <div
-                      className="flex items-center justify-center gap-1.5 text-[0.85rem] bg-panel bg-none p-1.5 rounded-[4px] overflow-hidden"
-                      key={name}
-                    >
-                      <Flag team={name} logo={logos[name]} style={{ width: 16, height: 16 }} />
-                      <span
-                        className="whitespace-nowrap overflow-hidden text-ellipsis font-medium"
-                        title={name}
-                      >
-                        {name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {members.map((_, position) => (
-                  <div className="flex flex-col gap-1" key={position}>
-                    <span className="text-[0.8rem] text-accent-text font-bold">
-                      {position + 1}.º clasificado
-                    </span>
-                    {editable && !lock.groupLocked(group) ? (
-                      <CustomSelect
-                        value={groups[group]?.[position] ?? ''}
-                        onChange={(value) => selectGroupPosition(group, position, value)}
-                        label={`Grupo ${group}, ${position + 1}.º clasificado`}
-                        placeholder="Elige equipo"
-                        options={[
-                          { value: '', label: 'Elige equipo' },
-                          ...members.map((name) => ({ value: name, label: name })),
-                        ]}
-                      />
-                    ) : (
-                      <span className="glass-input">
-                        {groups[group]?.[position] || 'Sin elegir'}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
+        <CustomGroupsPicker
+          teamsByGroup={groupTeams}
+          groups={groups}
+          logos={logos}
+          canEdit={(group) => editable && !lock.groupLocked(group)}
+          onSelect={selectGroupPosition}
+        />
       )}
 
       {!loadingData && !loadError && (

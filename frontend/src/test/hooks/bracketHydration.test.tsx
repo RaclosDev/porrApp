@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBracket } from '../../hooks/useBracket';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext, useBracketDraft } from '../../context/AppContext';
 import * as api from '../../services/api';
 import {
   defaultBracketState,
@@ -13,7 +13,7 @@ import {
 import type { PredictionSummary } from '../../types/api';
 import { readJsonDraft, writeDraft } from '../../utils/drafts';
 
-vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
+vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn(), useBracketDraft: vi.fn() }));
 vi.mock('../../services/api', () => ({
   createPrediction: vi.fn(),
   fetchMyPredictions: vi.fn(),
@@ -92,6 +92,10 @@ describe('useBracket: hidratación desde fetchMyPredictions', () => {
     };
     vi.mocked(useAppContext).mockImplementation(
       () => context as unknown as ReturnType<typeof useAppContext>,
+    );
+    // El borrador del cuadro lee del mismo objeto, para que los tests puedan cambiarlo.
+    vi.mocked(useBracketDraft).mockImplementation(
+      () => context as unknown as ReturnType<typeof useBracketDraft>,
     );
   });
 
