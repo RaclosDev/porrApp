@@ -43,6 +43,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
+    loadingGroup,
   } = useAppContext();
   // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
   const myPrediction = useMyLeaguePrediction();
@@ -201,7 +202,12 @@ function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {!isLanding && !isInviteAuthScreen && (
-          <MainNav isDemo={isDemo} isMatchDayLeague={isMatchDayLeague} isNavLocked={isNavLocked} />
+          <MainNav
+            isDemo={isDemo}
+            isMatchDayLeague={isMatchDayLeague}
+            isNavLocked={isNavLocked}
+            formatPending={loadingGroup}
+          />
         )}
 
         {!isInviteAuthScreen && (

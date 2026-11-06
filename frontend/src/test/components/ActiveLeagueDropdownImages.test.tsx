@@ -20,6 +20,7 @@ vi.mock('../../context/AppContext', () => ({
     ],
     changeGroup: vi.fn(),
     isAuthenticated: true,
+    userGroupsLoaded: true,
   }),
 }));
 

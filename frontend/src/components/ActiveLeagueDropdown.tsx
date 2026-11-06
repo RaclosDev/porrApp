@@ -30,6 +30,7 @@ export default function ActiveLeagueDropdown() {
     userGroups,
     changeGroup,
     isAuthenticated,
+    userGroupsLoaded,
   } = useAppContext();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -60,6 +61,11 @@ export default function ActiveLeagueDropdown() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  // Mientras llegan las ligas, «Crear o unirse» asomaría un instante antes del selector.
+  if (isAuthenticated && !userGroupsLoaded) {
+    return <span className="chrome-placeholder w-37 h-11" aria-hidden="true" />;
+  }
 
   if (isAuthenticated && (!userGroups || userGroups.length === 0)) {
     return (
