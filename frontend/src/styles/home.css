@@ -106,20 +106,21 @@
     text-decoration: underline;
   }
 
-  /* Cabecera con algo entre el título y «Ver todo»: cuántas caras caben depende de su anchura. */
-  .home-list-header.has-extra {
-    container-type: inline-size;
+  /* Cabecera con algo entre el título y «Ver todo»: el enlace no se encoge. */
+  .home-list-header.has-extra > .home-link-btn {
+    flex-shrink: 0;
   }
 
+  /* Ocupa todo el hueco libre; RoundParticipants mide su ancho para pintar las caras que caben. */
   .round-participants {
-    flex-shrink: 0;
+    flex: 1 1 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 44px;
     min-height: 44px;
-    margin-inline: auto;
-    padding: 0 2px;
+    padding: 0;
+    overflow: hidden;
     border: 0;
     border-radius: 999px;
     background: transparent;
@@ -139,33 +140,20 @@
 
   .round-participants-avatar {
     display: inline-flex;
+    flex-shrink: 0;
     border: 2px solid var(--paper, #fff);
     border-radius: 999px;
   }
 
   .round-participants-avatar + .round-participants-avatar {
-    margin-left: -10px;
+    margin-left: -8px;
   }
 
   .round-participants-more {
-    margin-left: 2px;
-    font-size: 0.75rem;
+    margin-left: 4px;
+    font-size: 0.78rem;
     font-weight: 800;
     white-space: nowrap;
-  }
-
-  .round-participants .is-wide-only {
-    display: none;
-  }
-
-  @container (min-width: 360px) {
-    .round-participants .is-wide-only {
-      display: inline-flex;
-    }
-
-    .round-participants .is-compact-only {
-      display: none;
-    }
   }
 
   .home-rules-btn {
