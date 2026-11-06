@@ -20,7 +20,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(TopScorerController.class)
 @Import({SecurityConfig.class, JwtAuthFilter.class, RateLimitingFilter.class, CsrfOriginFilter.class})
+@org.springframework.test.context.TestPropertySource(properties = "app.metrics.token=" + SecurityConfigTest.METRICS_TOKEN)
 class SecurityConfigTest {
+
+    static final String METRICS_TOKEN = "token-de-metricas";
 
     @Autowired
     private MockMvc mockMvc;
@@ -59,6 +62,19 @@ class SecurityConfigTest {
         int status = mockMvc.perform(get("/actuator/health/liveness")).andReturn().getResponse().getStatus();
         org.junit.jupiter.api.Assertions.assertNotEquals(401, status);
         org.junit.jupiter.api.Assertions.assertNotEquals(403, status);
+    }
+
+    @Test
+    void metricsNeedTheMetricsTokenAndOtherActuatorEndpointsAreClosed() throws Exception {
+        mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/prometheus").header("Authorization", "Bearer otro"))
+                .andExpect(status().isUnauthorized());
+        // Con el token pasa la seguridad y responde el endpoint de métricas.
+        mockMvc.perform(get("/actuator/prometheus").header("Authorization", "Bearer " + METRICS_TOKEN))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/actuator/env").header("Authorization", "Bearer " + METRICS_TOKEN))
+                .andExpect(status().isUnauthorized()); // el token solo vale para /actuator/prometheus
+        mockMvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
     }
 
     @Test

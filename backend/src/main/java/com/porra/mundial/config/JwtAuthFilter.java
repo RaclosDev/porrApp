@@ -6,6 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,12 +21,14 @@ import java.util.Optional;
 
 /**
  * Autentica la petición con el access token de la cabecera {@code Authorization: Bearer}.
- * Resuelve la cuenta por su id estable y expone el email actual a los servicios.
+ * Resuelve la cuenta por su id estable y expone el email actual a los servicios. El id de la cuenta (nunca el
+ * email) queda en el MDC como {@code userId} para que cada línea de log diga de quién era la petición.
  */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    static final String MDC_USER_ID = "userId";
 
     private final JwtUtil jwtUtil;
     private final UserAccountRepository users;
@@ -52,10 +55,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         user.getGoogleEmail(), null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                MDC.put(MDC_USER_ID, String.valueOf(user.getId()));
             });
         }
 
-        filterChain.doFilter(request, response);
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            MDC.remove(MDC_USER_ID);
+        }
     }
 
     private Optional<UserAccount> resolveAccount(JwtUtil.VerifiedToken token) {
