@@ -19,6 +19,7 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://porrapp.app" />
+    <link rel="canonical" href="https://porrapp.app/" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="PorrApp" />
@@ -78,6 +79,24 @@
     <!-- AdSense: solo la verificación del sitio. El script de anuncios no se carga
          hasta que haya una CMP certificada que recoja el consentimiento. -->
     <meta name="google-adsense-account" content="ca-pub-7312966368630315" />
+
+    <!-- Datos estructurados para Google. No es código ejecutable, así que no necesita hash en la CSP. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "PorrApp",
+        "alternateName": "La Porra",
+        "url": "https://porrapp.app/",
+        "description": "Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo.",
+        "applicationCategory": "SportsApplication",
+        "operatingSystem": "Web, Android, iOS",
+        "inLanguage": "es",
+        "image": "https://porrapp.app/og-paper.jpg",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "author": { "@type": "Person", "name": "Carlos Sanz Tomero", "url": "https://raclosdev.github.io/" }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -13,8 +13,11 @@ async function sha256(text: string): Promise<string> {
 
 describe('CSP de index.html', () => {
   it('permite por hash cada script inline y cada manejador on*', async () => {
+    // Los bloques de datos (JSON-LD) no se ejecutan y la CSP no se les aplica.
     const inlineScripts = [
-      ...indexHtml.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g),
+      ...indexHtml.matchAll(
+        /<script(?![^>]*\bsrc=)(?![^>]*type="application\/ld\+json")[^>]*>([\s\S]*?)<\/script>/g,
+      ),
     ].map((match) => match[1]);
     const handlers = [...indexHtml.matchAll(/\son[a-z]+="([^"]*)"/g)].map((match) => match[1]);
 

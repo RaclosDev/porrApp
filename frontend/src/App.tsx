@@ -4,6 +4,8 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { useLeaguePredictions } from './hooks/useLeaguePredictions';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
+import CookieConsent from './components/layout/CookieConsent';
+import CanonicalLink from './components/layout/CanonicalLink';
 import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
 import { Toaster } from 'react-hot-toast';
@@ -135,6 +137,8 @@ function App() {
       />
       <Router>
         <PwaUpdater />
+        <CanonicalLink />
+        <CookieConsent />
         <ConfirmDialog />
         <Layout>
           <Suspense fallback={<PageSkeleton />}>

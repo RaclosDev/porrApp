@@ -9,11 +9,13 @@ import { queryClient } from './services/queryClient';
 import { initSession } from './services/api';
 import { installErrorReporting } from './services/errorReporting';
 import { initInstallPrompt } from './services/installPrompt';
+import { initAnalytics } from './services/analytics';
 
 // Antes de pintar: las consultas del primer render esperan a tener el access token.
 initSession();
 installErrorReporting();
 initInstallPrompt();
+initAnalytics();
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
