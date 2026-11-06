@@ -1,0 +1,229 @@
+/** Ligas: creación, competición personalizada, ajustes, puntuación y miembros. */
+import type {
+  Group,
+  LeagueSummary,
+  GroupMember,
+  JoinCodeResponse,
+  LeagueScoring,
+  LeagueImageResponse,
+  LeagueStanding,
+  Match,
+  PaymentStatus,
+  PaymentStatusResponse,
+  PoolFormat,
+  ScoringRules,
+  StatusResponse,
+} from '../../types/api';
+import { request, imageForm } from '../http';
+
+export const fetchMyGroups = () => request<Group[]>('/groups/mine');
+
+export const fetchMyLeagueSummaries = () => request<LeagueSummary[]>('/groups/mine/summary');
+
+export const fetchGroup = (id: number | string) => request<Group>(`/groups/${id}`);
+
+/** Liga pública destacada (portada, demo y entrada de invitados). */
+export const fetchFeaturedGroup = () => request<Group>('/groups/featured');
+
+/** Metadatos públicos de una invitación, sin unirse a la liga. */
+export const fetchGroupInvitationPreview = (joinCode: string) =>
+  request<Group>(`/groups/preview/${encodeURIComponent(joinCode)}`);
+
+export const createGroup = (
+  name: string,
+  competitionId: number | string | null,
+  poolFormat: PoolFormat,
+  pichichi = true,
+  customCompetitionName?: string,
+  idempotencyKey?: string,
+) =>
+  request<Group>('/groups', {
+    method: 'POST',
+    json: { name, competitionId, poolFormat, pichichi, customCompetitionName },
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    fallbackError: 'Error al crear la liga',
+  });
+
+export interface CustomTeam {
+  id: number;
+  name: string;
+  groupName: string | null;
+  logoUrl: string | null;
+}
+export const fetchCustomTeams = (groupId: number) =>
+  request<CustomTeam[]>(`/groups/${groupId}/competition/teams`);
+export const fetchCustomMatches = (groupId: number) =>
+  request<Match[]>(`/groups/${groupId}/competition/matches`);
+export const fetchCustomStandings = (groupId: number) =>
+  request<LeagueStanding[]>(`/groups/${groupId}/competition/standings`);
+export const addCustomTeam = (
+  groupId: number,
+  name: string,
+  groupName?: string,
+  logoUrl?: string,
+) =>
+  request<CustomTeam>(`/groups/${groupId}/competition/teams`, {
+    method: 'POST',
+    json: { name, groupName, logoUrl },
+  });
+/** Cambia o quita (con null) el escudo de un equipo de la competición personalizada. */
+export const setCustomTeamLogo = (groupId: number, teamId: number, logoUrl: string | null) =>
+  request<CustomTeam>(`/groups/${groupId}/competition/teams/${teamId}/logo`, {
+    method: 'PUT',
+    json: { logoUrl },
+  });
+export const deleteCustomTeam = (groupId: number, teamId: number) =>
+  request<void>(`/groups/${groupId}/competition/teams/${teamId}`, { method: 'DELETE' });
+/** Cuándo se cierran los pronósticos de una competición personalizada. */
+export type CustomLockMode = 'FIXED_DATE' | 'FIRST_MATCH' | 'PER_ROUND' | 'PER_MATCH' | 'PER_DAY';
+
+/** Qué partes del pronóstico están ya cerradas (GET /groups/{id}/competition/lock-state). */
+export interface CustomLockState {
+  mode: CustomLockMode;
+  offsetMinutes: number;
+  lockDate: string | null;
+  lockedGroups: string[];
+  /** Por ronda del cuadro, qué ganadores están cerrados (índice = cruce). */
+  lockedPicks: boolean[][];
+  anyLocked: boolean;
+  fullyLocked: boolean;
+  nextLockAt: string | null;
+}
+
+export const fetchCustomLockState = (groupId: number) =>
+  request<CustomLockState>(`/groups/${groupId}/competition/lock-state`);
+export const setCustomLockConfig = (
+  groupId: number,
+  config: { mode: CustomLockMode; offsetMinutes: number; lockDate: string | null },
+) =>
+  request<CustomLockState>(`/groups/${groupId}/competition/lock`, {
+    method: 'PUT',
+    json: config,
+  });
+/** Pasa la liga de cuadro personalizado a una competición oficial con cuadro propio. */
+export const linkOfficialCompetition = (groupId: number, competitionId: number) =>
+  request<void>(`/groups/${groupId}/competition/link-official`, {
+    method: 'POST',
+    json: { competitionId },
+  });
+export const addCustomMatch = (
+  groupId: number,
+  homeTeamId: number,
+  awayTeamId: number | null,
+  matchDate: string | null,
+  round?: string,
+) =>
+  request<Match>(`/groups/${groupId}/competition/matches`, {
+    method: 'POST',
+    json: { homeTeamId, awayTeamId, matchDate, round },
+  });
+export const setCustomResult = (
+  groupId: number,
+  matchId: number,
+  homeScore: number,
+  awayScore: number,
+  winnerTeamId?: number,
+) =>
+  request<Match>(`/groups/${groupId}/competition/matches/${matchId}/result`, {
+    method: 'PUT',
+    json: { homeScore, awayScore, winnerTeamId },
+  });
+export const setCustomMatchDate = (groupId: number, matchId: number, matchDate: string | null) =>
+  request<Match>(`/groups/${groupId}/competition/matches/${matchId}/date`, {
+    method: 'PUT',
+    json: { matchDate },
+  });
+export const deleteCustomMatch = (groupId: number, matchId: number) =>
+  request<void>(`/groups/${groupId}/competition/matches/${matchId}`, { method: 'DELETE' });
+
+export const updateGroup = (
+  id: number | string,
+  name: string | undefined,
+  rules: string | undefined,
+) =>
+  request<Group>(`/groups/${id}`, {
+    method: 'PUT',
+    json: { name, rules },
+    fallbackError: 'Error al actualizar la liga',
+  });
+
+/** Activa o quita la cuota de inscripción de una liga privada. */
+export const updateGroupEntryFee = (id: number | string, entryFee: boolean) =>
+  request<Group>(`/groups/${id}`, {
+    method: 'PUT',
+    json: { entryFee },
+    fallbackError: 'No se pudo cambiar la cuota',
+  });
+
+export const deleteGroup = (id: number | string) =>
+  request<StatusResponse>(`/groups/${id}`, {
+    method: 'DELETE',
+    fallbackError: 'Error al borrar la liga',
+  });
+
+export const joinGroup = (joinCode: string) =>
+  request<Group>('/groups/join', {
+    method: 'POST',
+    json: { joinCode },
+    fallbackError: 'Grupo no encontrado o código inválido',
+  });
+
+export const leaveGroup = (id: number | string) =>
+  request<StatusResponse>(`/groups/${id}/leave`, {
+    method: 'DELETE',
+    fallbackError: 'Error al abandonar el grupo',
+  });
+
+/** Reglas de puntuación de la liga, las de por defecto y si quien consulta puede cambiarlas. */
+export const fetchLeagueScoring = (groupId: number | string) =>
+  request<LeagueScoring>(`/groups/${groupId}/scoring`);
+
+/** Cambia la puntuación de la liga; el servidor recalcula los puntos. Solo el administrador. */
+export const updateLeagueScoring = (groupId: number | string, rules: ScoringRules) =>
+  request<LeagueScoring>(`/groups/${groupId}/scoring`, {
+    method: 'PUT',
+    json: rules,
+    fallbackError: 'No se pudo guardar la puntuación',
+  });
+
+export const fetchGroupMembers = (groupId: number | string) =>
+  request<GroupMember[]>(`/groups/${groupId}/members`);
+
+export const toggleGroupMemberPayment = (
+  groupId: number | string,
+  userId: number,
+  status: PaymentStatus,
+) =>
+  request<PaymentStatusResponse>(`/groups/${groupId}/members/${userId}/payment`, {
+    method: 'PUT',
+    json: { status },
+    fallbackError: 'Error al actualizar estado de pago',
+  });
+
+export const kickGroupMember = (groupId: number | string, userId: number) =>
+  request<StatusResponse>(`/groups/${groupId}/members/${userId}`, {
+    method: 'DELETE',
+    fallbackError: 'Error al expulsar al miembro',
+  });
+
+export const regenerateGroupJoinCode = (groupId: number | string) =>
+  request<JoinCodeResponse>(`/groups/${groupId}/regenerate-code`, {
+    method: 'POST',
+    fallbackError: 'Error al regenerar código',
+  });
+
+export const uploadGroupImage = (groupId: number | string, blob: Blob) =>
+  request<LeagueImageResponse>(`/groups/${groupId}/image`, {
+    method: 'PUT',
+    form: imageForm(blob),
+  });
+
+export const deleteGroupImage = (groupId: number | string) =>
+  request<LeagueImageResponse>(`/groups/${groupId}/image`, { method: 'DELETE' });
+
+/** Cede la administración de la liga a otro miembro. */
+export const transferGroupAdmin = (groupId: number | string, userId: number) =>
+  request<StatusResponse>(`/groups/${groupId}/members/${userId}/admin`, {
+    method: 'PUT',
+    fallbackError: 'No se pudo ceder la administración',
+  });
