@@ -5,7 +5,7 @@
  * aceptación no hay cookies ni peticiones a Google. La elección se guarda en localStorage
  * y se puede cambiar desde la política de privacidad.
  */
-export const GA_MEASUREMENT_ID = 'G-9MJJ2EGSLD';
+const GA_MEASUREMENT_ID = 'G-9MJJ2EGSLD';
 
 const CONSENT_KEY = 'porrapp:analytics-consent';
 /** Solo se mide el dominio público; en local, previews o el dominio antiguo no se carga. */
