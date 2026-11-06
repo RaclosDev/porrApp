@@ -74,6 +74,8 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
+                // Entrar con una llave de acceso: la propia firma de la llave autentica.
+                .requestMatchers(HttpMethod.POST, "/api/auth/passkeys/login", "/api/auth/passkeys/login/options").permitAll()
                 // Refresco y logout: se autentican con la cookie del refresh token.
                 .requestMatchers(HttpMethod.POST, "/api/auth/session/**").permitAll()
                 // Errores del navegador, también de visitantes sin sesión; con límite por IP.

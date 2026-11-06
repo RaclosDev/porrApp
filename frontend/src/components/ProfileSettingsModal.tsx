@@ -14,6 +14,7 @@ import {
 import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
 import ReminderSettings from './ReminderSettings';
+import PasskeySettings from './PasskeySettings';
 import { UserAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -232,6 +233,7 @@ export default function ProfileSettingsModal({
             </span>
           </section>
           {!onboarding && <ReminderSettings />}
+          {!onboarding && <PasskeySettings />}
           {!onboarding && (
             <section className="flex flex-col gap-2 pt-4 border-t border-line">
               <span className="text-[0.8rem] font-bold text-muted">Tus datos</span>
