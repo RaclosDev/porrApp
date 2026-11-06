@@ -25,7 +25,8 @@ import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
  * series reales de la competición y la fase previa se muestra como balance de victorias y derrotas.
  */
 export default function OfficialTournamentHome() {
-  const { allGames, matchRadar, loading, activeCompetitionName, activeGroupName } = useAppContext();
+  const { allGames, matchRadar, loading, activeCompetitionName, activeGroupName, activeGroupId } =
+    useAppContext();
   const [activeTab, setActiveTab] = useState<'cuadro' | 'grupos'>('cuadro');
   const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
 
@@ -135,6 +136,7 @@ export default function OfficialTournamentHome() {
             <FeaturedMatchBanner
               featuredMatch={featuredMatch}
               roundTitle={featuredRound?.title}
+              groupId={activeGroupId}
               homeLogo={logos[featuredMatch.home]}
               awayLogo={logos[featuredMatch.away]}
             />

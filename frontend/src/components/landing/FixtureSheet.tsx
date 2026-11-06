@@ -51,7 +51,7 @@ export default function FixtureSheet({ fixtures, onPick }: FixtureSheetProps) {
               <span
                 className="flex gap-1.5"
                 role="group"
-                aria-label={`Pronóstico ${m.home} contra ${m.away}`}
+                aria-label={`Predicción ${m.home} contra ${m.away}`}
               >
                 {['1', 'X', '2'].map((sign) => (
                   <button
@@ -59,7 +59,7 @@ export default function FixtureSheet({ fixtures, onPick }: FixtureSheetProps) {
                     type="button"
                     onClick={onPick}
                     className="landing-pick"
-                    aria-label={`${sign}: inicia sesión para pronosticar`}
+                    aria-label={`${sign}: inicia sesión para hacer tu predicción`}
                   >
                     {sign}
                   </button>

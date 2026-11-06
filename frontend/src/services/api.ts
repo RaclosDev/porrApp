@@ -7,6 +7,7 @@ import type {
   Competition,
   FriendPrediction,
   Group,
+  LeagueSummary,
   GroupMember,
   GroupOdds,
   GroupStandings,
@@ -21,6 +22,7 @@ import type {
   MatchdayPoints,
   MatchdayPredictionInput,
   MatchdayStats,
+  MatchVoters,
   MatchdaySubmissionResult,
   Me,
   ParticipantScore,
@@ -419,6 +421,8 @@ export const fetchLeaderboardMatchdays = (groupId: number | string | null = null
 
 export const fetchMyGroups = () => request<Group[]>('/groups/mine');
 
+export const fetchMyLeagueSummaries = () => request<LeagueSummary[]>('/groups/mine/summary');
+
 export const fetchGroup = (id: number | string) => request<Group>(`/groups/${id}`);
 
 /** Liga pública destacada (portada, demo y entrada de invitados). */
@@ -637,7 +641,7 @@ export const submitMatchdayPredictions = (
   request<MatchdaySubmissionResult>('/predictions/matchday', {
     method: 'POST',
     json: { groupId: Number(groupId), predictions },
-    fallbackError: 'Error al guardar pronósticos de jornada',
+    fallbackError: 'Error al guardar las predicciones de la jornada',
   });
 
 export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId: number) =>
@@ -695,6 +699,12 @@ export const deleteMyAvatar = () =>
 /** Reparto 1X2 y marcadores más repetidos de los partidos ya empezados de una liga por jornadas. */
 export const fetchMatchdayStats = (groupId: number | string) =>
   request<MatchdayStats>(`/predictions/matchday/stats${query({ groupId })}`);
+
+/** Votantes de cada signo; el servidor solo devuelve los partidos ya cerrados. */
+export const fetchMatchVoters = (groupId: number | string, matchIds: number[]) =>
+  request<MatchVoters[]>(
+    `/predictions/matchday/stats/voters${query({ groupId, matchIds: matchIds.join(',') })}`,
+  );
 
 // --- Recordatorios push ---
 

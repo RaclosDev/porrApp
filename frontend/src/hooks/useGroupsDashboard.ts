@@ -15,8 +15,8 @@ import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
-import { myGroupsQuery } from '../services/queries';
-import type { Competition, Group, PoolFormat } from '../types/api';
+import { myGroupsQuery, myLeagueSummariesQuery } from '../services/queries';
+import type { Competition, Group, LeagueSummary, PoolFormat } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { isApiError } from '../services/apiError';
 import { useAppStore } from '../store/useAppStore';
@@ -80,6 +80,11 @@ export function useGroupsDashboard() {
     error: myGroupsError,
     refetch: refetchMyGroups,
   } = useQuery(myGroupsQuery(isAuthenticated));
+  const { data: summaryList } = useQuery(myLeagueSummariesQuery(isAuthenticated));
+  const summaries = useMemo(
+    () => new Map<number, LeagueSummary>((summaryList ?? []).map((s) => [s.groupId, s])),
+    [summaryList],
+  );
   const [extraGroups, setExtraGroups] = useState<Group[]>([]);
   const groups = useMemo(() => [...(myGroups ?? []), ...extraGroups], [myGroups, extraGroups]);
   const loading = Boolean(userName) && myGroupsPending;
@@ -249,7 +254,7 @@ export function useGroupsDashboard() {
     if (
       !skipConfirm &&
       !window.confirm(
-        `¿Eliminar la liga "${groupName}"? Se borrarán todos sus pronósticos y no se puede deshacer.`,
+        `¿Eliminar la liga "${groupName}"? Se borrarán todas sus predicciones y no se puede deshacer.`,
       )
     )
       return false;
@@ -355,6 +360,7 @@ export function useGroupsDashboard() {
   };
 
   return {
+    summaries,
     groups,
     competitions,
     loading,

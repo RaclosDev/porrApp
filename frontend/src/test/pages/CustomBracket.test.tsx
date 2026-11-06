@@ -177,7 +177,7 @@ describe('CustomBracket', () => {
     renderBracket();
 
     expect(
-      await screen.findByText('La competición ya ha empezado: no se admiten pronósticos nuevos.'),
+      await screen.findByText('La competición ya ha empezado: no se admiten predicciones nuevas.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Guardar pronóstico' })).toBeNull();
   });
@@ -210,7 +210,7 @@ describe('CustomBracket', () => {
     expect(left.getByText('Peña').closest('.team-slot')).toHaveTextContent('Clasificado');
     expect(left.getByText('Barrio').closest('.team-slot')).toHaveClass('is-out');
     expect(screen.getByRole('list', { name: 'Leyenda del cuadro' })).toHaveTextContent(
-      /Tu predicción.*Acertada.*Fallada/,
+      /^Acertada.*Fallada$/,
     );
     expect(right.getAllByText('Descanso').length).toBeGreaterThan(0);
     // El equipo que descansa no se elige: pasa solo a semifinales.

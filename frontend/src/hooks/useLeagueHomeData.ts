@@ -100,12 +100,12 @@ export function useLeagueHomeData(): LeagueHomeData {
     if (format === 'matchday') {
       const { round, matches } = currentRoundMatches(allGames);
       return {
-        subtitle: 'Pronósticos por jornada',
+        subtitle: 'Predicciones por jornada',
         matches: {
           title: `Partidos${round ? ` ${displayRoundLabel(round)}` : ''}`,
           items: matches,
           to: '/jornadas',
-          action: 'pronosticar',
+          action: 'hacer tu predicción',
           allTo: '/radar',
           empty: 'No hay partidos programados para esta jornada.',
         },
@@ -177,7 +177,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     }
 
     return {
-      subtitle: 'Pronósticos del cuadro',
+      subtitle: 'Predicciones del cuadro',
       matches: {
         title: finished ? 'Últimos resultados' : 'Próximos partidos',
         items: matches,

@@ -74,7 +74,7 @@ export default function CustomMatchesTab({
             ? 'Cada partido necesita fecha y hora; se agrupan por jornadas según la fecha.'
             : !knockout
               ? 'Cada partido de grupos enfrenta a dos equipos del mismo grupo y necesita fecha y hora.'
-              : 'Crea los cruces del cuadro en el orden en que deben aparecer. Elige «Descanso» como visitante si un equipo pasa directo. La primera ronda no se puede tocar tras el primer pronóstico; sus fechas sí.'}
+              : 'Crea los cruces del cuadro en el orden en que deben aparecer. Elige «Descanso» como visitante si un equipo pasa directo. La primera ronda no se puede tocar tras la primera predicción; sus fechas sí.'}
         </p>
         {teams.length < 2 ? (
           <div className="league-admin-empty">

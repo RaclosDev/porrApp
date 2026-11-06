@@ -65,7 +65,7 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
           {status}
         </span>
         {when ? ` · ${when}` : ''} · {match.predictions} de {members}{' '}
-        {members === 1 ? 'miembro' : 'miembros'} han pronosticado
+        {members === 1 ? 'miembro' : 'miembros'} han hecho su predicción
       </p>
 
       <div
@@ -100,7 +100,7 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
                 {isReal ? ' ✓' : ''}
               </span>
               <span className="sr-only">
-                {s.count} pronósticos{isReal ? ', es el resultado' : ''}
+                {s.count} predicciones{isReal ? ', es el resultado' : ''}
               </span>
             </li>
           );

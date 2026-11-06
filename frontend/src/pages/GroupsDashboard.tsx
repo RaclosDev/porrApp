@@ -27,6 +27,7 @@ export default function GroupsDashboard() {
 
   const {
     groups,
+    summaries,
     competitions,
     loading,
     error,
@@ -253,6 +254,7 @@ export default function GroupsDashboard() {
               <GroupCard
                 key={group.id}
                 group={group}
+                summary={summaries.get(group.id)}
                 isSelected={isSelected}
                 isCreator={isCreator}
                 handleEnterGroup={handleEnterGroup}

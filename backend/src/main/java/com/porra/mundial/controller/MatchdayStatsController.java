@@ -1,5 +1,6 @@
 package com.porra.mundial.controller;
 
+import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.service.MatchdayStatsService;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.List;
 
 /** Estadísticas de las ligas por jornadas. */
 @RestController
@@ -25,5 +27,15 @@ public class MatchdayStatsController {
     @GetMapping
     public MatchdayStatsDTO getMatchdayStats(@RequestParam Long groupId, Principal principal) {
         return matchdayStatsService.getStats(CurrentUser.email(principal), groupId);
+    }
+
+    /**
+     * Quién ha pronosticado cada signo en los partidos pedidos que ya están cerrados.
+     * Solo para miembros de la liga (o cualquiera en una liga pública).
+     */
+    @GetMapping("/voters")
+    public List<MatchVotersDTO> getMatchVoters(@RequestParam Long groupId, @RequestParam List<Long> matchIds,
+                                               Principal principal) {
+        return matchdayStatsService.getVoters(CurrentUser.email(principal), groupId, matchIds);
     }
 }

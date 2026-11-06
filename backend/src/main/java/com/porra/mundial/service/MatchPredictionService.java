@@ -127,7 +127,7 @@ public class MatchPredictionService {
                 lockReason = "El partido ya ha finalizado";
             } else if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
                 isLocked = true;
-                lockReason = "El estado del partido no admite pronósticos";
+                lockReason = "El estado del partido no admite predicciones";
             } else if (lockTimes.containsKey(match.getId()) && !lockTimes.get(match.getId()).isAfter(now)) {
                 isLocked = true;
                 lockReason = MatchdayLock.reason(edition, match, now);
@@ -209,7 +209,7 @@ public class MatchPredictionService {
                 .orElseThrow(() -> BusinessException.notFound("No se encontró una edición activa para esta liga"));
 
         if (edition.getPoolFormat() != PoolFormat.MATCH_DAY) {
-            throw BusinessException.badRequest("Esta liga no utiliza la modalidad de pronósticos por jornadas.");
+            throw BusinessException.badRequest("Esta liga no utiliza la modalidad de predicciones por jornadas.");
         }
 
         if (edition.isLocked()) {
@@ -275,12 +275,12 @@ public class MatchPredictionService {
                         match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante"));
             }
             if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
-                throw BusinessException.conflict("El estado del partido no admite pronósticos.");
+                throw BusinessException.conflict("El estado del partido no admite predicciones.");
             }
             Instant lockAt = MatchdayLock.lockTimes(edition, List.of(match),
                     calendar == null ? List.of(match) : calendar).get(match.getId());
             if (lockAt != null && !lockAt.isAfter(now)) {
-                throw BusinessException.conflict(String.format("%s: el pronóstico de %s vs %s está bloqueado.",
+                throw BusinessException.conflict(String.format("%s: la predicción de %s vs %s está bloqueada.",
                         MatchdayLock.reason(edition, match, now),
                         match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Local",
                         match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante"));
@@ -296,7 +296,7 @@ public class MatchPredictionService {
                 sign = cmp > 0 ? "1" : (cmp == 0 ? "X" : "2");
             }
             if (!Set.of("1", "X", "2").contains(sign == null ? "" : sign)) {
-                throw BusinessException.badRequest("El pronóstico debe incluir un marcador completo o un signo 1, X o 2.");
+                throw BusinessException.badRequest("La predicción debe incluir un marcador completo o un signo 1, X o 2.");
             }
 
             MatchPrediction matchPred = existingByMatchId.computeIfAbsent(match.getId(), id -> MatchPrediction.builder()
@@ -485,11 +485,11 @@ public class MatchPredictionService {
                             .isCorrectSign(mp.getIsCorrectSign())
                             .scoringDetails(mp.getScoringDetails());
                 } else {
-                    builder.scoringDetails("Pronóstico oculto hasta el pitido inicial");
+                    builder.scoringDetails("Predicción oculta hasta el pitido inicial");
                 }
             } else {
                 builder.hasPredicted(false)
-                        .scoringDetails(isMatchLocked ? "Sin pronóstico (0 pts)" : "Pendiente de pronosticar");
+                        .scoringDetails(isMatchLocked ? "Sin predicción (0 pts)" : "Predicción pendiente");
             }
 
             list.add(builder.build());

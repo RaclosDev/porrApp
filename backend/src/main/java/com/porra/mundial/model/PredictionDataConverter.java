@@ -30,7 +30,7 @@ public class PredictionDataConverter implements AttributeConverter<PredictionDat
         try {
             return objectMapper.writeValueAsString(attribute);
         } catch (JacksonException e) {
-            throw new PersistenceException("Error interno al persistir el pronóstico", e);
+            throw new PersistenceException("Error interno al guardar la predicción", e);
         }
     }
 

@@ -41,7 +41,7 @@ public class CustomBracketPredictionValidator {
         boolean custom = competition.getOwnerLeague() != null;
         if (custom && edition.getPoolFormat() == PoolFormat.FULL_BRACKET) {
             if (byGroup.isEmpty() || !selections.keySet().equals(byGroup.keySet())) {
-                throw invalid("Faltan grupos por pronosticar");
+                throw invalid("Faltan grupos por completar");
             }
             for (var entry : byGroup.entrySet()) {
                 List<String> ordered = selections.get(entry.getKey());
@@ -74,7 +74,7 @@ public class CustomBracketPredictionValidator {
         }
         if (entrants.size() < 2) throw invalid("El cuadro necesita al menos dos equipos");
         List<List<String>> rounds = data.getCustomRounds();
-        if (rounds == null) throw invalid("Faltan los pronósticos del cuadro");
+        if (rounds == null) throw invalid("Faltan las predicciones del cuadro");
         List<String> current = new ArrayList<>();
         for (Match match : firstRound) {
             current.add(match.getHomeTeam().getName());

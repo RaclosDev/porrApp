@@ -50,8 +50,8 @@ export default function CreatedLeagueModal({
             "{newlyCreatedGroup.name}"
           </p>
           <p className="text-muted text-[0.9rem] mb-5">
-            Comparte este código o enlace con tus amigos para que puedan unirse y empezar a
-            pronosticar.
+            Comparte este código o enlace con tus amigos para que puedan unirse y empezar a hacer
+            sus predicciones.
           </p>
 
           <div className="border border-dashed border-line rounded-[12px] p-4 mb-5">
@@ -106,7 +106,7 @@ export default function CreatedLeagueModal({
               {newlyCreatedGroup.customCompetition && newlyCreatedGroup.poolFormat !== 'MATCH_DAY'
                 ? 'Configurar competición'
                 : newlyCreatedGroup.poolFormat === 'MATCH_DAY'
-                  ? 'Pronosticar la jornada'
+                  ? 'Hacer predicciones de la jornada'
                   : 'Rellenar mi porra'}
             </button>
           </div>

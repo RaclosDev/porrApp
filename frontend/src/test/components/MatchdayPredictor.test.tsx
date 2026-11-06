@@ -32,8 +32,8 @@ const fixture = (matchId: number, round: string, homeTeam: string) =>
     predSign: null,
   });
 
-const signA = (sign: string) => `Pronosticar ${sign} en Equipo A - Visitante 101`;
-const signB = (sign: string) => `Pronosticar ${sign} en Equipo B - Visitante 201`;
+const signA = (sign: string) => `Predecir ${sign} en Equipo A - Visitante 101`;
+const signB = (sign: string) => `Predecir ${sign} en Equipo B - Visitante 201`;
 
 describe('matchday editing and navigation', () => {
   let context: AppContextValue;
@@ -100,7 +100,7 @@ describe('matchday editing and navigation', () => {
   it('only offers 1X2 picks, without score inputs', async () => {
     render(tree());
     expect(
-      await screen.findByRole('group', { name: 'Pronóstico de Equipo A - Visitante 101' }),
+      await screen.findByRole('group', { name: 'Predicción de Equipo A - Visitante 101' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
   });
@@ -241,7 +241,7 @@ describe('matchday editing and navigation', () => {
     expect(screen.getByRole('button', { name: 'Jornada anterior' })).toBeDisabled();
 
     // Counter scopes to the selected round (J1 has 1 match, 0 predicted -> 0/1, not 0/6)
-    expect(screen.getByText('0/1 pronosticados')).toBeInTheDocument();
+    expect(screen.getByText('0/1 predicciones')).toBeInTheDocument();
     // A fully played round shows its finished matches instead of an empty "Todos" tab
     expect(screen.getByRole('tab', { name: /Finalizados/ })).toHaveAttribute(
       'aria-selected',
@@ -425,7 +425,7 @@ describe('matchday screen with the league round summary', () => {
 
   it('keeps the draft of another round while browsing rounds', async () => {
     render(tree());
-    const pickJ2 = 'Pronosticar X en Local Jornada 2 - Visitante 2';
+    const pickJ2 = 'Predecir X en Local Jornada 2 - Visitante 2';
     fireEvent.click(await screen.findByRole('button', { name: pickJ2 }));
     fireEvent.click(screen.getByRole('button', { name: 'Jornada siguiente' }));
     await screen.findByText('Local Jornada 3');

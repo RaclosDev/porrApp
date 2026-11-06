@@ -90,7 +90,7 @@ export default function HeaderActions({
                 }}
                 className="glass-btn py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] font-bold w-full flex items-center justify-center gap-2"
               >
-                Ajustes de cuenta
+                Ajustes y avisos
               </button>
 
               <button

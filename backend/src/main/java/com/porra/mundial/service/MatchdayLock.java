@@ -66,9 +66,9 @@ public final class MatchdayLock {
     public static String reason(Edition edition, Match match, Instant now) {
         if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) return "El partido ya ha comenzado";
         return switch (mode(edition)) {
-            case PER_DAY -> "Los pronósticos de este día ya están cerrados";
-            case PER_ROUND -> "Los pronósticos de esta jornada ya están cerrados";
-            default -> "El plazo para pronosticar este partido ha terminado";
+            case PER_DAY -> "Las predicciones de este día ya están cerradas";
+            case PER_ROUND -> "Las predicciones de esta jornada ya están cerradas";
+            default -> "El plazo de predicción de este partido ha terminado";
         };
     }
 }
