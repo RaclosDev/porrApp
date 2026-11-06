@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { teamKey } from '../utils/teamKey';
 import { useAppContext } from '../context/AppContext';
 import type { TeamOdds, TeamStanding } from '../types/api';
 
@@ -18,7 +19,7 @@ export function useSortedGroups(): Record<string, TeamWithStats[]> {
     if (!groupOdds) return res;
     Object.entries(groupOdds).forEach(([groupName, teams]) => {
       const teamsWithStats = (teams || []).map((t) => {
-        const safeKey = t.name.replace(/[.#$[\]]/g, '');
+        const safeKey = teamKey(t.name);
         return { ...t, stats: officialPoints?.[groupName]?.[safeKey] || EMPTY_STANDING };
       });
 

@@ -3,6 +3,7 @@
  * Funciones puras: reciben el pronóstico, los puntos y los datos oficiales.
  */
 import { isMatchInRound, matchWinner } from './bracketBuilder';
+import { teamKey } from './teamKey';
 import type { ViewerPrediction } from './predictionData';
 import {
   flatTeams,
@@ -213,7 +214,7 @@ export function groupTeamData(
   if (!officialPoints || !officialPoints[groupName] || !groupOdds)
     return { color: 'inherit', mp: 0, status: 0 };
 
-  const officialData = officialPoints[groupName][teamName.replace(/[.#$[\]]/g, '')];
+  const officialData = officialPoints[groupName][teamKey(teamName)];
   const hasData = typeof officialData === 'object' && officialData !== null;
   const mp = hasData ? officialData.mp || 0 : 0;
   const status = hasData ? officialData.status || 0 : 0;

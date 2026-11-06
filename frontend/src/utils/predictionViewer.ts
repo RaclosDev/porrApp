@@ -3,6 +3,7 @@
  * ya no pueden sumar en una ronda.
  */
 import { matchWinner } from './bracketBuilder';
+import { teamKey } from './teamKey';
 import { buildR32FromGroups, hasValidGroupSelections, extractGroupsFromR32 } from './bracketDraft';
 import type { ViewerPrediction } from './predictionData';
 import type { CanvasMatch } from '../components/BracketCanvas';
@@ -160,8 +161,8 @@ export function isTeamEliminated(
   const resolvedName = teamAlias(teamName);
 
   if (officialPoints) {
-    const safeKey1 = teamName.replace(/[.#$[\]]/g, '');
-    const safeKey2 = resolvedName.replace(/[.#$[\]]/g, '');
+    const safeKey1 = teamKey(teamName);
+    const safeKey2 = teamKey(resolvedName);
     for (const group of Object.values(officialPoints)) {
       const entry = group[safeKey1] ?? group[safeKey2];
       if (entry && isMathematicallyEliminated(entry.status)) return true;
