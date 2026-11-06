@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { savePushSubscription } from '../../services/api';
-import { enablePush, syncPushSubscription, unsubscribeThisDevice } from '../../services/push';
+import {
+  enablePush,
+  PUSH_SERVICE_UNAVAILABLE,
+  syncPushSubscription,
+  unsubscribeThisDevice,
+} from '../../services/push';
 
 vi.mock('../../services/api', () => ({ savePushSubscription: vi.fn(() => Promise.resolve()) }));
 
@@ -87,6 +92,15 @@ it('reuses the subscription and replaces one made with another server key', asyn
   await syncPushSubscription(KEY);
   expect(stale.unsubscribe).toHaveBeenCalled();
   expect(pushManager.subscribe).toHaveBeenCalledTimes(1);
+});
+
+it('explains a browser push service failure instead of showing the raw error', async () => {
+  pushManager.subscribe.mockRejectedValueOnce(
+    new DOMException('Registration failed - push service error', 'AbortError'),
+  );
+
+  await expect(enablePush(KEY)).rejects.toThrow(PUSH_SERVICE_UNAVAILABLE);
+  expect(savePushSubscription).not.toHaveBeenCalled();
 });
 
 it('unsubscribes the device on logout', async () => {
