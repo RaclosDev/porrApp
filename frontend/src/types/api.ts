@@ -224,6 +224,8 @@ export interface Group {
   joinCode: string | null;
   /** Liga pública: cualquiera puede consultarla sin ser miembro. */
   publicLeague?: boolean;
+  /** Liga con cuota de inscripción: el ranking marca a quien no ha pagado. */
+  entryFee?: boolean;
   adminParticipantName: string | null;
   adminUserId: number | null;
   createdAt: string | null;

@@ -54,6 +54,10 @@ interface LeagueMembersTabProps {
   setPaymentFilter: (filter: PaymentFilter) => void;
   setSearch: (value: string) => void;
   visibleMembers: GroupMember[];
+  /** Cuota de inscripción; undefined si la liga no la admite (pública). */
+  entryFee?: boolean;
+  entryFeeSaving?: boolean;
+  onToggleEntryFee?: (value: boolean) => void;
 }
 
 /** Miembros de la liga, invitación y control de pagos. */
@@ -86,9 +90,12 @@ export default function LeagueMembersTab({
   setPaymentFilter,
   setSearch,
   visibleMembers,
+  entryFee,
+  entryFeeSaving = false,
+  onToggleEntryFee,
 }: LeagueMembersTabProps) {
-  // Las ligas públicas no tienen pagos: el backend no manda estado de pago.
-  const tracksPayments = members.length === 0 || members.some((m) => m.paymentStatus != null);
+  // Solo las ligas con cuota llevan control de pagos; el backend no manda estado de pago en las demás.
+  const tracksPayments = entryFee === true && members.some((m) => m.paymentStatus != null);
   const [adminTargetId, setAdminTargetId] = useState<number | null>(null);
 
   return (
@@ -98,6 +105,27 @@ export default function LeagueMembersTab({
       role={isAdmin ? 'tabpanel' : undefined}
       aria-labelledby={isAdmin ? 'league-admin-tab-members' : undefined}
     >
+      {isAdmin && entryFee !== undefined && onToggleEntryFee && (
+        <section className="league-admin-card">
+          <label className="league-admin-fee-toggle">
+            <span>
+              <strong>Cuota de inscripción</strong>
+              <small>
+                {entryFee
+                  ? 'El ranking marca a quien no ha pagado.'
+                  : 'Sin cuota: todos puntúan y nadie sale como «Sin pagar».'}
+              </small>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={entryFee}
+              disabled={entryFeeSaving}
+              onChange={(event) => onToggleEntryFee(event.target.checked)}
+            />
+          </label>
+        </section>
+      )}
       {tracksPayments && (
         <section className="league-admin-card">
           <div className="league-admin-card-head">

@@ -44,6 +44,7 @@ describe('GroupMembersModal: invalidación de la caché', () => {
         <GroupMembersModal
           groupId={1}
           groupName="Liga de prueba"
+          entryFee
           currentJoinCode="ABC123"
           isAdmin
           currentUserId={1}
