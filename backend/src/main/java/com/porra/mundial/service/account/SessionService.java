@@ -6,6 +6,7 @@ import com.porra.mundial.model.RefreshTokenFamily;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.RefreshTokenRepository;
+import com.porra.mundial.repository.SessionHandoffRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,7 +27,8 @@ import java.util.Optional;
 /**
  * Sesiones con refresh token opaco y rotatorio.
  * <ul>
- *   <li>Cada inicio de sesión abre una familia que caduca a los {@link #SESSION_TTL}, se rote o no.</li>
+ *   <li>Cada inicio de sesión abre una familia. Caduca tras {@link #SESSION_IDLE_TTL} sin usarse: cada
+ *       refresco vuelve a contar el plazo, hasta {@link #SESSION_MAX_LIFETIME} desde el inicio de sesión.</li>
  *   <li>Cada refresco gasta el token presentado y entrega otro de la misma familia.</li>
  *   <li>Si llega un token gastado hace menos de {@link #REUSE_GRACE}, es un reintento tras perder
  *       la respuesta (red móvil): se entrega otro token de la misma familia sin revocarla.</li>
@@ -40,8 +42,15 @@ import java.util.Optional;
 @Slf4j
 public class SessionService {
 
-    /** Duración máxima de una sesión, contada desde el inicio de sesión. */
-    public static final Duration SESSION_TTL = Duration.ofDays(30);
+    /** Una sesión que no se usa en este tiempo caduca. Cada refresco lo vuelve a contar. */
+    public static final Duration SESSION_IDLE_TTL = Duration.ofDays(90);
+    /** Tope de una sesión desde el inicio de sesión, por mucho que se use. */
+    public static final Duration SESSION_MAX_LIFETIME = Duration.ofDays(365);
+    /**
+     * Cuánto se guardan los tokens ya rotados de una sesión viva para detectar su reutilización.
+     * Pasado este tiempo, un token rotado es desconocido: no abre nada, pero tampoco revoca.
+     */
+    static final Duration REUSE_DETECTION_WINDOW = Duration.ofDays(30);
     /**
      * Margen en que un token recién rotado aún se acepta: cubre el reintento cuando se pierde la
      * respuesta del refresco. Un token robado y usado dentro de este margen no se detecta.
@@ -54,16 +63,24 @@ public class SessionService {
 
     private final RefreshTokenFamilyRepository familyRepository;
     private final RefreshTokenRepository tokenRepository;
+    private final SessionHandoffRepository handoffRepository;
     private final JwtUtil jwtUtil;
 
     /** Abre una sesión nueva para el usuario. */
     @Transactional
     public SessionTokens start(UserAccount user) {
-        return start(user, Instant.now().plus(SESSION_TTL));
+        Instant now = Instant.now();
+        RefreshTokenFamily family = familyRepository.save(RefreshTokenFamily.builder()
+                .user(user)
+                .createdAt(now)
+                .expiresAt(slidingExpiry(now, now))
+                .build());
+        return issue(family, user, now);
     }
 
     /**
-     * Gasta el refresh token y entrega el siguiente de la misma familia. Vacío si no vale:
+     * Gasta el refresh token, entrega el siguiente de la misma familia y alarga la sesión
+     * ({@link #SESSION_IDLE_TTL}, sin pasar de {@link #SESSION_MAX_LIFETIME}). Vacío si no vale:
      * desconocido, de una sesión cerrada o caducada, o gastado hace más de {@link #REUSE_GRACE}.
      * En el último caso se revoca la familia entera.
      */
@@ -88,7 +105,7 @@ public class SessionService {
         if (token.getRotatedAt() != null && now.isBefore(token.getRotatedAt().plus(REUSE_GRACE))) {
             log.info("Reintento de refresco dentro del margen (usuario {}, familia {}).",
                     family.getUser().getId(), family.getId());
-            return Optional.of(issue(family, family.getUser(), now));
+            return Optional.of(extendAndIssue(family, now));
         }
         if (token.getRotatedAt() != null) {
             family.setRevokedAt(now);
@@ -97,10 +114,13 @@ public class SessionService {
             return Optional.empty();
         }
         token.setRotatedAt(now);
-        return Optional.of(issue(family, family.getUser(), now));
+        return Optional.of(extendAndIssue(family, now));
     }
 
-    /** Logout: revoca la familia del token. Un token desconocido no hace nada. */
+    /**
+     * Logout: revoca la familia del token y anula el traspaso a la app instalada que estuviera
+     * pendiente. Un token desconocido no hace nada.
+     */
     @Transactional
     public void end(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -110,28 +130,38 @@ public class SessionService {
             if (family.getRevokedAt() == null) {
                 family.setRevokedAt(Instant.now());
             }
+            handoffRepository.deleteByUserId(family.getUser().getId());
         });
     }
 
-    /** Borra cada noche las sesiones caducadas, que ya no sirven ni para detectar reutilizaciones. */
+    /**
+     * Borra cada noche las sesiones caducadas, que ya no sirven ni para detectar reutilizaciones,
+     * los tokens rotados hace más de {@link #REUSE_DETECTION_WINDOW} y los traspasos caducados.
+     */
     @Scheduled(cron = "0 15 4 * * *")
     @SchedulerLock(name = "sessionCleanup", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
     @Transactional
     public void purgeExpiredSessions() {
-        int deleted = familyRepository.deleteExpired(Instant.now());
+        Instant now = Instant.now();
+        int deleted = familyRepository.deleteExpired(now);
         if (deleted > 0) {
             log.info("Borradas {} sesiones caducadas.", deleted);
         }
+        tokenRepository.deleteRotatedBefore(now.minus(REUSE_DETECTION_WINDOW));
+        handoffRepository.deleteExpired(now);
     }
 
-    private SessionTokens start(UserAccount user, Instant expiresAt) {
-        Instant now = Instant.now();
-        RefreshTokenFamily family = familyRepository.save(RefreshTokenFamily.builder()
-                .user(user)
-                .createdAt(now)
-                .expiresAt(expiresAt)
-                .build());
-        return issue(family, user, now);
+    /** Caducidad tras usar la sesión en {@code now}: el plazo de inactividad, sin pasar del tope. */
+    private static Instant slidingExpiry(Instant createdAt, Instant now) {
+        Instant idle = now.plus(SESSION_IDLE_TTL);
+        Instant max = createdAt.plus(SESSION_MAX_LIFETIME);
+        return idle.isBefore(max) ? idle : max;
+    }
+
+    /** La familia está bloqueada: nadie más la alarga ni la revoca a la vez. */
+    private SessionTokens extendAndIssue(RefreshTokenFamily family, Instant now) {
+        family.setExpiresAt(slidingExpiry(family.getCreatedAt(), now));
+        return issue(family, family.getUser(), now);
     }
 
     private SessionTokens issue(RefreshTokenFamily family, UserAccount user, Instant now) {

@@ -2,9 +2,11 @@ package com.porra.mundial.repository;
 
 import com.porra.mundial.model.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
@@ -14,4 +16,9 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     Optional<Long> findFamilyIdByTokenHash(@Param("hash") String tokenHash);
 
     Optional<RefreshToken> findByTokenHash(String tokenHash);
+
+    /** Olvida los tokens rotados hace tiempo de las sesiones que siguen vivas. */
+    @Modifying
+    @Query(value = "DELETE FROM refresh_tokens WHERE rotated_at < :cutoff", nativeQuery = true)
+    int deleteRotatedBefore(@Param("cutoff") Instant cutoff);
 }
