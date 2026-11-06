@@ -96,8 +96,8 @@ class GroupServiceTest {
         when(leagueRepository.findByAdminUserIdAndCreationKey(admin.getId(), "clave-1234"))
                 .thenReturn(Optional.of(league));
 
-        League result = groupService.createGroup("Liga Privada", "admin@test.com", 8L,
-                com.porra.mundial.model.PoolFormat.MATCH_DAY, false, null, "clave-1234");
+        League result = groupService.createGroup(NewLeague.of("Liga Privada", "admin@test.com", 8L,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(false).withCreationKey("clave-1234"));
 
         assertSame(league, result);
         verify(leagueRepository, never()).save(any());
@@ -111,8 +111,8 @@ class GroupServiceTest {
         when(leagueRepository.save(any(League.class))).thenReturn(league);
         when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        groupService.createGroup("Liga Privada", "admin@test.com", null,
-                com.porra.mundial.model.PoolFormat.MATCH_DAY, false, "Torneo local");
+        groupService.createGroup(NewLeague.custom("Liga Privada", "admin@test.com", "Torneo local",
+                com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(false));
 
         var competition = org.mockito.ArgumentCaptor.forClass(Competition.class);
         verify(competitionRepository).save(competition.capture());
@@ -129,8 +129,8 @@ class GroupServiceTest {
         when(leagueRepository.save(any(League.class))).thenReturn(league);
         when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        groupService.createGroup("Liga Privada", "admin@test.com", null,
-                com.porra.mundial.model.PoolFormat.FULL_BRACKET, false, "Copa local");
+        groupService.createGroup(NewLeague.custom("Liga Privada", "admin@test.com", "Copa local",
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET).withPichichi(false));
 
         verify(competitionRepository).save(argThat(competition -> "TOURNAMENT".equals(competition.getFormatType())
                 && competition.getOwnerLeague() == league));
@@ -145,8 +145,8 @@ class GroupServiceTest {
         when(competitionRepository.findById(8L)).thenReturn(Optional.of(Competition.builder()
                 .ownerLeague(league).build()));
 
-        assertThrows(BusinessException.class, () -> groupService.createGroup("Otra liga", "admin@test.com", 8L,
-                com.porra.mundial.model.PoolFormat.MATCH_DAY, false));
+        assertThrows(BusinessException.class, () -> groupService.createGroup(NewLeague.of("Otra liga", "admin@test.com", 8L,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(false)));
         verify(leagueRepository, never()).save(any());
     }
 
@@ -175,8 +175,8 @@ class GroupServiceTest {
             return saved;
         });
 
-        groupService.createGroup("Prueba Champions", "admin@test.com", 1L,
-                com.porra.mundial.model.PoolFormat.MATCH_DAY);
+        groupService.createGroup(NewLeague.of("Prueba Champions", "admin@test.com", 1L,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY));
 
         verify(editionRepository).save(argThat(edition ->
                 edition.getCompetition() != null && edition.getCompetition().getId().equals(5L)));
@@ -192,8 +192,8 @@ class GroupServiceTest {
         when(competitionRepository.findById(2L)).thenReturn(Optional.of(worldCup));
         when(leagueRepository.save(any(League.class))).thenReturn(league);
 
-        groupService.createGroup("Mundial", "admin@test.com", 2L,
-                com.porra.mundial.model.PoolFormat.FULL_BRACKET);
+        groupService.createGroup(NewLeague.of("Mundial", "admin@test.com", 2L,
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET));
 
         verify(editionRepository).save(argThat(edition ->
                 java.time.Instant.parse("2026-06-11T18:00:00Z").equals(edition.getLockDate())));

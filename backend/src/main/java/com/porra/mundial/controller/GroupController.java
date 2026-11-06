@@ -14,6 +14,7 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.LeagueMembershipService;
+import com.porra.mundial.service.NewLeague;
 import com.porra.mundial.service.LeagueSummaryService;
 import com.porra.mundial.service.WebSocketService;
 import jakarta.validation.Valid;
@@ -70,9 +71,9 @@ public class GroupController {
         }
         League group;
         try {
-            group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(),
-                    PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi(),
-                    payload.getCustomCompetitionName(), idempotencyKey);
+            group = groupService.createGroup(new NewLeague(payload.getName().trim(), principal.getName(),
+                    payload.getCompetitionId(), PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi(),
+                    payload.getCustomCompetitionName(), idempotencyKey));
         } catch (DataIntegrityViolationException e) {
             // Dos peticiones con la misma clave a la vez: la segunda choca con el índice único.
             if (idempotencyKey == null) {

@@ -45,24 +45,6 @@ public class GroupService {
     private final TeamRepository teamRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat) {
-        return createGroup(name, email, competitionId, poolFormat, true);
-    }
-
-    @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi) {
-        return createGroup(name, email, competitionId, poolFormat, pichichi, null);
-    }
-
-    @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi, String customCompetitionName) {
-        return createGroup(name, email, competitionId, poolFormat, pichichi, customCompetitionName, null);
-    }
-
     /** Liga ya creada por este usuario con esa clave de idempotencia, si existe. */
     @Transactional(readOnly = true)
     public Optional<League> findCreatedWithKey(String email, String creationKey) {
@@ -70,9 +52,17 @@ public class GroupService {
                 .flatMap(user -> leagueRepository.findByAdminUserIdAndCreationKey(user.getId(), creationKey));
     }
 
+    /** Crea una liga; quien la crea pasa a ser su administrador y su primer miembro. */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public League createGroup(String name, String email, Long competitionId, com.porra.mundial.model.PoolFormat poolFormat, boolean pichichi, String customCompetitionName, String creationKey) {
+    public League createGroup(NewLeague request) {
+        String name = request.name();
+        String email = request.adminEmail();
+        Long competitionId = request.competitionId();
+        com.porra.mundial.model.PoolFormat poolFormat = request.poolFormat();
+        boolean pichichi = request.countsScorers();
+        String customCompetitionName = request.customCompetitionName();
+        String creationKey = request.creationKey();
         boolean custom = customCompetitionName != null && !customCompetitionName.isBlank();
         if (custom == (competitionId != null)) {
             throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
