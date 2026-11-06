@@ -38,7 +38,7 @@ class LeagueSummaryServiceTest {
 
     private static final String EMAIL = "ana@test.com";
 
-    @Mock private GroupService groupService;
+    @Mock private LeagueService leagueService;
     @Mock private LeaderboardService leaderboardService;
     @Mock private EditionRepository editionRepository;
     @Mock private MatchRepository matchRepository;
@@ -68,7 +68,7 @@ class LeagueSummaryServiceTest {
         Prediction mine = Prediction.builder().id(21L).build();
         Instant soon = Instant.now().plus(Duration.ofDays(2));
 
-        when(groupService.getUserGroups(EMAIL)).thenReturn(List.of(league));
+        when(leagueService.getUserLeagues(EMAIL)).thenReturn(List.of(league));
         when(editionRepository.findByLeagueIdInAndStatus(List.of(7L), "ACTIVE")).thenReturn(List.of(edition));
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId(EMAIL, 7L)).thenReturn(Optional.of(mine));
         when(leaderboardService.getLeaderboard(7L)).thenReturn(List.of(row(20L, 50), row(22L, 30), row(21L, 30)));
@@ -89,7 +89,7 @@ class LeagueSummaryServiceTest {
         Edition edition = Edition.builder().league(league).competition(Competition.builder().id(4L).build())
                 .poolFormat(PoolFormat.FULL_BRACKET).status("ACTIVE").build();
 
-        when(groupService.getUserGroups(EMAIL)).thenReturn(List.of(league));
+        when(leagueService.getUserLeagues(EMAIL)).thenReturn(List.of(league));
         when(editionRepository.findByLeagueIdInAndStatus(anyList(), eq("ACTIVE"))).thenReturn(List.of(edition));
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId(EMAIL, 8L)).thenReturn(Optional.empty());
         when(leaderboardService.getLeaderboard(8L)).thenReturn(List.of(row(30L, 10)));

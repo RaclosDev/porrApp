@@ -1,6 +1,6 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.dto.GroupMemberDTO;
+import com.porra.mundial.dto.LeagueMemberDTO;
 import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
@@ -84,7 +84,7 @@ public class LeagueMembershipService {
      * Obtiene los miembros de una liga con su rol y estado de pago.
      */
     @Transactional(readOnly = true)
-    public List<GroupMemberDTO> members(Long groupId, String email) {
+    public List<LeagueMemberDTO> members(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
 
@@ -105,7 +105,7 @@ public class LeagueMembershipService {
         }
 
         List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
-        List<GroupMemberDTO> list = new ArrayList<>();
+        List<LeagueMemberDTO> list = new ArrayList<>();
 
         for (Membership m : memberships) {
             UserAccount u = m.getUser();
@@ -117,7 +117,7 @@ public class LeagueMembershipService {
             String paymentStatus = isPublic || !group.isEntryFee() ? null
                     : m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING";
 
-            list.add(GroupMemberDTO.builder()
+            list.add(LeagueMemberDTO.builder()
                     .userId(u.getId())
                     .participantName(u.getParticipantName())
                     .role(m.getRole())

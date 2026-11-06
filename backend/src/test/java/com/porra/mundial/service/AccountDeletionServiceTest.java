@@ -39,7 +39,7 @@ class AccountDeletionServiceTest {
     @Mock private LeagueRepository leagueRepository;
     @Mock private MembershipRepository membershipRepository;
     @Mock private PredictionRepository predictionRepository;
-    @Mock private GroupService groupService;
+    @Mock private LeagueService leagueService;
     @Mock private LeagueMembershipService membershipService;
 
     @InjectMocks private AccountDeletionService service;
@@ -67,7 +67,7 @@ class AccountDeletionServiceTest {
         order.verify(predictionRepository).deleteAll(List.of(prediction));
         order.verify(membershipRepository).deleteAll(List.of(membership));
         order.verify(userAccountRepository).delete(user);
-        verify(groupService, never()).deleteGroup(anyLong(), anyString());
+        verify(leagueService, never()).deleteLeague(anyLong(), anyString());
     }
 
     @Test
@@ -91,7 +91,7 @@ class AccountDeletionServiceTest {
 
         service.deleteAccount("yo@test.com");
 
-        verify(groupService).deleteGroup(2L, "yo@test.com");
+        verify(leagueService).deleteLeague(2L, "yo@test.com");
         verify(userAccountRepository).delete(user);
     }
 
@@ -117,8 +117,8 @@ class AccountDeletionServiceTest {
         service.deleteInactiveAccount(7L);
 
         verify(membershipService).transferAdmin(1L, 8L, "yo@test.com");
-        verify(groupService).deleteGroup(2L, "yo@test.com");
-        verify(groupService, never()).deleteGroup(eq(1L), anyString());
+        verify(leagueService).deleteLeague(2L, "yo@test.com");
+        verify(leagueService, never()).deleteLeague(eq(1L), anyString());
         verify(userAccountRepository).delete(user);
     }
 

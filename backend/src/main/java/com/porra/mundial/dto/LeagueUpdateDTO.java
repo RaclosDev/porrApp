@@ -5,7 +5,7 @@ import lombok.Data;
 
 /** Los campos nulos no se modifican. */
 @Data
-public class GroupUpdateDTO {
+public class LeagueUpdateDTO {
     /** Nuevo nombre del grupo. Si se omite, no se modifica. */
     @Size(max = 120, message = "El nombre de la liga es demasiado largo")
     private String name;

@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 /** La caché "groupByCode" guarda las ligas encontradas pero no los códigos que no existen. */
-class GroupServiceJoinCodeCacheTest {
+class LeagueServiceJoinCodeCacheTest {
 
     @Configuration
     @EnableCaching
@@ -40,24 +40,24 @@ class GroupServiceJoinCodeCacheTest {
         @Bean MembershipRepository membershipRepository() { return mock(MembershipRepository.class); }
         @Bean MatchRepository matchRepository() { return mock(MatchRepository.class); }
         @Bean ApplicationEventPublisher eventPublisher() { return mock(ApplicationEventPublisher.class); }
-        @Bean GroupService groupService(LeagueRepository leagues, PredictionRepository predictions,
+        @Bean LeagueService leagueService(LeagueRepository leagues, PredictionRepository predictions,
                                         UserAccountRepository users, CompetitionRepository competitions,
                                         EditionRepository editions, MembershipRepository memberships,
                                         MatchRepository matches,
                                         ApplicationEventPublisher events) {
-            return new GroupService(leagues, predictions, users, competitions, editions, memberships,
+            return new LeagueService(leagues, predictions, users, competitions, editions, memberships,
                     matches, mock(com.porra.mundial.repository.TeamRepository.class), events);
         }
     }
 
     private AnnotationConfigApplicationContext context;
-    private GroupService groupService;
+    private LeagueService leagueService;
     private LeagueRepository leagueRepository;
 
     @BeforeEach
     void setUp() {
         context = new AnnotationConfigApplicationContext(Config.class);
-        groupService = context.getBean(GroupService.class);
+        leagueService = context.getBean(LeagueService.class);
         leagueRepository = context.getBean(LeagueRepository.class);
         clearInvocations(leagueRepository);
     }
@@ -71,8 +71,8 @@ class GroupServiceJoinCodeCacheTest {
     void doesNotCacheUnknownCodes() {
         when(leagueRepository.findByJoinCode("NOPE234567")).thenReturn(Optional.empty());
 
-        assertFalse(groupService.getGroupByJoinCode("NOPE234567").isPresent());
-        assertFalse(groupService.getGroupByJoinCode("NOPE234567").isPresent());
+        assertFalse(leagueService.getLeagueByJoinCode("NOPE234567").isPresent());
+        assertFalse(leagueService.getLeagueByJoinCode("NOPE234567").isPresent());
 
         verify(leagueRepository, times(2)).findByJoinCode("NOPE234567");
     }
@@ -82,8 +82,8 @@ class GroupServiceJoinCodeCacheTest {
         League league = League.builder().id(7L).name("Amigos").joinCode("ABCDEFGH23").build();
         when(leagueRepository.findByJoinCode("ABCDEFGH23")).thenReturn(Optional.of(league));
 
-        assertTrue(groupService.getGroupByJoinCode("ABCDEFGH23").isPresent());
-        assertTrue(groupService.getGroupByJoinCode("ABCDEFGH23").isPresent());
+        assertTrue(leagueService.getLeagueByJoinCode("ABCDEFGH23").isPresent());
+        assertTrue(leagueService.getLeagueByJoinCode("ABCDEFGH23").isPresent());
 
         verify(leagueRepository, times(1)).findByJoinCode("ABCDEFGH23");
     }

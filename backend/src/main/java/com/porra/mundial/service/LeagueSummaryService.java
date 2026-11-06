@@ -32,7 +32,7 @@ public class LeagueSummaryService {
     /** Ventana de partidos que cuentan como pendientes: los de la próxima semana. */
     static final Duration PENDING_WINDOW = Duration.ofDays(7);
 
-    private final GroupService groupService;
+    private final LeagueService leagueService;
     private final LeaderboardService leaderboardService;
     private final EditionRepository editionRepository;
     private final MatchRepository matchRepository;
@@ -41,7 +41,7 @@ public class LeagueSummaryService {
 
     @Transactional(readOnly = true)
     public List<LeagueSummaryDTO> summaries(String email) {
-        List<League> leagues = groupService.getUserGroups(email);
+        List<League> leagues = leagueService.getUserLeagues(email);
         if (leagues.isEmpty()) return List.of();
         List<Long> ids = leagues.stream().map(League::getId).toList();
         Map<Long, Edition> editions = editionRepository.findByLeagueIdInAndStatus(ids, "ACTIVE").stream()

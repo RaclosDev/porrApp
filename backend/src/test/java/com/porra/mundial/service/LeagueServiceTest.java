@@ -1,7 +1,7 @@
 package com.porra.mundial.service;
 
 import com.porra.mundial.exception.BusinessException;
-import com.porra.mundial.dto.GroupMemberDTO;
+import com.porra.mundial.dto.LeagueMemberDTO;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.UserAccount;
@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class GroupServiceTest {
+class LeagueServiceTest {
 
     @Mock
     private LeagueRepository leagueRepository;
@@ -54,7 +54,7 @@ class GroupServiceTest {
     private LeaguePaymentService paymentService;
 
     @InjectMocks
-    private GroupService groupService;
+    private LeagueService leagueService;
 
     private UserAccount admin;
     private UserAccount member;
@@ -90,13 +90,13 @@ class GroupServiceTest {
     }
 
     @Test
-    @DisplayName("createGroup con una clave ya usada devuelve la liga existente sin crear otra")
+    @DisplayName("createLeague con una clave ya usada devuelve la liga existente sin crear otra")
     void createGroupWithRepeatedKeyReturnsExistingLeague() {
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
         when(leagueRepository.findByAdminUserIdAndCreationKey(admin.getId(), "clave-1234"))
                 .thenReturn(Optional.of(league));
 
-        League result = groupService.createGroup(NewLeague.of("Liga Privada", "admin@test.com", 8L,
+        League result = leagueService.createLeague(NewLeague.of("Liga Privada", "admin@test.com", 8L,
                 com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(false).withCreationKey("clave-1234"));
 
         assertSame(league, result);
@@ -111,7 +111,7 @@ class GroupServiceTest {
         when(leagueRepository.save(any(League.class))).thenReturn(league);
         when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        groupService.createGroup(NewLeague.custom("Liga Privada", "admin@test.com", "Torneo local",
+        leagueService.createLeague(NewLeague.custom("Liga Privada", "admin@test.com", "Torneo local",
                 com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(false));
 
         var competition = org.mockito.ArgumentCaptor.forClass(Competition.class);
@@ -129,7 +129,7 @@ class GroupServiceTest {
         when(leagueRepository.save(any(League.class))).thenReturn(league);
         when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        groupService.createGroup(NewLeague.custom("Liga Privada", "admin@test.com", "Copa local",
+        leagueService.createLeague(NewLeague.custom("Liga Privada", "admin@test.com", "Copa local",
                 com.porra.mundial.model.PoolFormat.FULL_BRACKET).withPichichi(false));
 
         verify(competitionRepository).save(argThat(competition -> "TOURNAMENT".equals(competition.getFormatType())
@@ -145,13 +145,13 @@ class GroupServiceTest {
         when(competitionRepository.findById(8L)).thenReturn(Optional.of(Competition.builder()
                 .ownerLeague(league).build()));
 
-        assertThrows(BusinessException.class, () -> groupService.createGroup(NewLeague.of("Otra liga", "admin@test.com", 8L,
+        assertThrows(BusinessException.class, () -> leagueService.createLeague(NewLeague.of("Otra liga", "admin@test.com", 8L,
                 com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(false)));
         verify(leagueRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("createGroup traduce competiciones legacy a la canónica con externalId")
+    @DisplayName("createLeague traduce competiciones legacy a la canónica con externalId")
     void createGroup_ResolvesLegacyCompetitionToCanonical() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
@@ -175,7 +175,7 @@ class GroupServiceTest {
             return saved;
         });
 
-        groupService.createGroup(NewLeague.of("Prueba Champions", "admin@test.com", 1L,
+        leagueService.createLeague(NewLeague.of("Prueba Champions", "admin@test.com", 1L,
                 com.porra.mundial.model.PoolFormat.MATCH_DAY));
 
         verify(editionRepository).save(argThat(edition ->
@@ -192,7 +192,7 @@ class GroupServiceTest {
         when(competitionRepository.findById(2L)).thenReturn(Optional.of(worldCup));
         when(leagueRepository.save(any(League.class))).thenReturn(league);
 
-        groupService.createGroup(NewLeague.of("Mundial", "admin@test.com", 2L,
+        leagueService.createLeague(NewLeague.of("Mundial", "admin@test.com", 2L,
                 com.porra.mundial.model.PoolFormat.FULL_BRACKET));
 
         verify(editionRepository).save(argThat(edition ->
@@ -200,54 +200,54 @@ class GroupServiceTest {
     }
 
     @Test
-    @DisplayName("updateGroup rechaza si el nombre está vacío")
+    @DisplayName("updateLeague rechaza si el nombre está vacío")
     void updateGroup_ThrowsIfEmpty() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(BusinessException.class, () ->
-                groupService.updateGroup(10L, "   ", null, null, "admin@test.com"));
+                leagueService.updateLeague(10L, "   ", null, null, "admin@test.com"));
     }
 
     @Test
-    @DisplayName("updateGroup activa la cuota de una liga privada")
+    @DisplayName("updateLeague activa la cuota de una liga privada")
     void updateGroup_EnablesEntryFee() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         when(leagueRepository.save(league)).thenReturn(league);
 
-        groupService.updateGroup(10L, null, null, true, "admin@test.com");
+        leagueService.updateLeague(10L, null, null, true, "admin@test.com");
 
         assertTrue(league.isEntryFee());
     }
 
     @Test
-    @DisplayName("updateGroup no deja poner cuota a una liga pública")
+    @DisplayName("updateLeague no deja poner cuota a una liga pública")
     void updateGroup_RejectsEntryFeeOnPublicLeague() {
         league.setPublicLeague(true);
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(BusinessException.class, () ->
-                groupService.updateGroup(10L, null, null, true, "admin@test.com"));
+                leagueService.updateLeague(10L, null, null, true, "admin@test.com"));
         verify(leagueRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("updateGroup rechaza si el solicitante no es el admin de la liga")
+    @DisplayName("updateLeague rechaza si el solicitante no es el admin de la liga")
     void updateGroup_ThrowsIfNotAdmin() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(BusinessException.class, () ->
-                groupService.updateGroup(10L, "Nuevo Nombre", null, null, "member@test.com"));
+                leagueService.updateLeague(10L, "Nuevo Nombre", null, null, "member@test.com"));
 
         verify(leagueRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("deleteGroup rechaza si un usuario cualquiera intenta borrar la liga")
+    @DisplayName("deleteLeague rechaza si un usuario cualquiera intenta borrar la liga")
     void deleteGroup_ThrowsIfNotAdmin() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(BusinessException.class, () ->
-                groupService.deleteGroup(10L, "stranger@test.com"));
+                leagueService.deleteLeague(10L, "stranger@test.com"));
 
         verify(leagueRepository, never()).deleteById(any());
     }
@@ -256,7 +256,7 @@ class GroupServiceTest {
     void assertCanView_PublicLeagueIsOpen() {
         when(leagueRepository.findById(50L)).thenReturn(Optional.of(
                 League.builder().id(50L).name("Abierta").joinCode("ABIERTA").publicLeague(true).build()));
-        assertDoesNotThrow(() -> groupService.assertCanView(50L, null));
+        assertDoesNotThrow(() -> leagueService.assertCanView(50L, null));
     }
 
     @Test
@@ -265,9 +265,9 @@ class GroupServiceTest {
         when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
         when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
 
-        BusinessException e = assertThrows(BusinessException.class, () -> groupService.assertCanView(10L, "stranger@test.com"));
+        BusinessException e = assertThrows(BusinessException.class, () -> leagueService.assertCanView(10L, "stranger@test.com"));
         assertEquals("No perteneces a esta liga privada", e.getMessage());
-        assertThrows(BusinessException.class, () -> groupService.assertCanView(10L, null));
+        assertThrows(BusinessException.class, () -> leagueService.assertCanView(10L, null));
     }
 
     @Test
@@ -276,7 +276,7 @@ class GroupServiceTest {
         when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
         when(membershipRepository.existsById(new Membership.MembershipId(8L, 10L))).thenReturn(true);
 
-        assertDoesNotThrow(() -> groupService.assertCanView(10L, "member@test.com"));
+        assertDoesNotThrow(() -> leagueService.assertCanView(10L, "member@test.com"));
     }
 
     @Test
@@ -285,7 +285,7 @@ class GroupServiceTest {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
 
-        String code = groupService.regenerateJoinCode(10L, "admin@test.com");
+        String code = leagueService.regenerateJoinCode(10L, "admin@test.com");
 
         assertTrue(code.matches("[A-HJ-NP-Z2-9]{10}"), code);
         assertEquals(code, league.getJoinCode());
@@ -299,8 +299,8 @@ class GroupServiceTest {
         when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
         when(membershipRepository.existsById(new Membership.MembershipId(3L, 10L))).thenReturn(false);
 
-        assertTrue(groupService.findGroupResponse(10L, "stranger@test.com").isEmpty());
-        assertTrue(groupService.findGroupResponse(10L, null).isEmpty());
+        assertTrue(leagueService.findLeagueResponse(10L, "stranger@test.com").isEmpty());
+        assertTrue(leagueService.findLeagueResponse(10L, null).isEmpty());
     }
 
     @Test
@@ -311,7 +311,7 @@ class GroupServiceTest {
         when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
         when(membershipRepository.existsById(new Membership.MembershipId(2L, 10L))).thenReturn(true);
 
-        var dto = groupService.findGroupResponse(10L, "member@test.com").orElseThrow();
+        var dto = leagueService.findLeagueResponse(10L, "member@test.com").orElseThrow();
 
         assertEquals("AMIGOS", dto.getJoinCode());
         assertEquals("Reglas internas", dto.getRules());

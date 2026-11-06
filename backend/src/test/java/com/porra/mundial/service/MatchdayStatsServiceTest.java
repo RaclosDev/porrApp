@@ -37,7 +37,7 @@ class MatchdayStatsServiceTest {
     private static final String EMAIL = "player@test.com";
 
     @Mock
-    private GroupService groupService;
+    private LeagueService leagueService;
 
     @Mock
     private EditionRepository editionRepository;
@@ -105,7 +105,7 @@ class MatchdayStatsServiceTest {
     @DisplayName("Sin ser miembro de la liga no se ve nada")
     void rejectsNonMembers() {
         doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
-                .when(groupService).assertCanView(GROUP_ID, "other@test.com");
+                .when(leagueService).assertCanView(GROUP_ID, "other@test.com");
 
         assertThrows(BusinessException.class, () -> service.getStats("other@test.com", GROUP_ID));
         verifyNoInteractions(matchPredictionRepository);
@@ -238,7 +238,7 @@ class MatchdayStatsServiceTest {
         UserAccount gone = UserAccount.builder().id(3L).participantName("Ex").build();
         Match future = match(2L, Instant.now().plus(2, ChronoUnit.HOURS), false, null, null);
         Match other = match(5L, Instant.now().plus(3, ChronoUnit.HOURS), false, null, null);
-        when(groupService.isUserMemberOrAdmin(GROUP_ID, EMAIL)).thenReturn(true);
+        when(leagueService.isUserMemberOrAdmin(GROUP_ID, EMAIL)).thenReturn(true);
         when(membershipRepository.findByLeagueId(GROUP_ID)).thenReturn(List.of(
                 Membership.builder().user(ana).build(), Membership.builder().user(bea).build(),
                 Membership.builder().user(carla).build()));
@@ -254,7 +254,7 @@ class MatchdayStatsServiceTest {
     @Test
     @DisplayName("Quien mira una liga pública sin ser miembro no recibe los participantes")
     void participantsHiddenFromNonMembers() {
-        when(groupService.isUserMemberOrAdmin(GROUP_ID, EMAIL)).thenReturn(false);
+        when(leagueService.isUserMemberOrAdmin(GROUP_ID, EMAIL)).thenReturn(false);
 
         assertTrue(service.getParticipants(EMAIL, GROUP_ID, List.of(2L)).isEmpty());
         verifyNoInteractions(matchPredictionRepository);
@@ -264,7 +264,7 @@ class MatchdayStatsServiceTest {
     @DisplayName("Una liga privada rechaza los participantes a quien no es miembro")
     void participantsRejectPrivateNonMembers() {
         doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
-                .when(groupService).assertCanView(GROUP_ID, EMAIL);
+                .when(leagueService).assertCanView(GROUP_ID, EMAIL);
 
         assertThrows(BusinessException.class, () -> service.getParticipants(EMAIL, GROUP_ID, List.of(2L)));
         verifyNoInteractions(matchPredictionRepository);
@@ -277,7 +277,7 @@ class MatchdayStatsServiceTest {
                 .boxed().toList();
 
         assertThrows(BusinessException.class, () -> service.getVoters(EMAIL, GROUP_ID, ids));
-        verifyNoInteractions(matchPredictionRepository, groupService);
+        verifyNoInteractions(matchPredictionRepository, leagueService);
     }
 
     @Test

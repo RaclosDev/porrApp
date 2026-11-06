@@ -51,7 +51,7 @@ public class MatchdayStatsService {
     /** Partidos por petición de votantes: los de una jornada larga caben de sobra. */
     static final int MAX_VOTER_MATCHES = 60;
 
-    private final GroupService groupService;
+    private final LeagueService leagueService;
     private final EditionRepository editionRepository;
     private final MatchPredictionRepository matchPredictionRepository;
     private final MembershipRepository membershipRepository;
@@ -64,7 +64,7 @@ public class MatchdayStatsService {
         if (groupId == null) {
             throw BusinessException.badRequest("El grupo es obligatorio");
         }
-        groupService.assertCanView(groupId, email);
+        leagueService.assertCanView(groupId, email);
 
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
         if (edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY) {
@@ -109,7 +109,7 @@ public class MatchdayStatsService {
         if (matchIds.size() > MAX_VOTER_MATCHES) {
             throw BusinessException.badRequest("Demasiados partidos a la vez");
         }
-        groupService.assertCanView(groupId, email);
+        leagueService.assertCanView(groupId, email);
 
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
         if (edition == null) return List.of();
@@ -165,8 +165,8 @@ public class MatchdayStatsService {
         if (matchIds.size() > MAX_VOTER_MATCHES) {
             throw BusinessException.badRequest("Demasiados partidos a la vez");
         }
-        groupService.assertCanView(groupId, email);
-        if (!groupService.isUserMemberOrAdmin(groupId, email)) return List.of();
+        leagueService.assertCanView(groupId, email);
+        if (!leagueService.isUserMemberOrAdmin(groupId, email)) return List.of();
 
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
         if (edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY) return List.of();

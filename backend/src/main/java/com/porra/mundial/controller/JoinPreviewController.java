@@ -2,7 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
-import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.LeagueService;
 import com.porra.mundial.service.InvitationImageRenderer;
 import com.porra.mundial.service.ProfileImageService;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class JoinPreviewController {
     private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
     private static final String IMAGE_VERSION = "3";
 
-    private final GroupService groupService;
+    private final LeagueService leagueService;
     private final ProfileImageService profileImageService;
     private final InvitationImageRenderer imageRenderer;
 
@@ -57,7 +57,7 @@ public class JoinPreviewController {
             imageAlt = leagueName;
             description = "Porra de fútbol";
 
-            Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
+            Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
             if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
                 String competitionName = activeEdition.get().getCompetition().getName();
                 String format = activeEdition.get().getPoolFormat() != null
@@ -107,7 +107,7 @@ public class JoinPreviewController {
         String name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
         String competition = "Fútbol";
         String format = "Cuadro completo";
-        Optional<Edition> activeEdition = groupService.findActiveEdition(league.getId());
+        Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
         if (activeEdition.isPresent()) {
             Edition edition = activeEdition.get();
             if (edition.getCompetition() != null && edition.getCompetition().getName() != null) {
@@ -125,7 +125,7 @@ public class JoinPreviewController {
     }
 
     private Optional<League> findLeague(String code) {
-        return groupService.getGroupByJoinCode(code.trim().toUpperCase());
+        return leagueService.getLeagueByJoinCode(code.trim().toUpperCase());
     }
 
     private String encodePathSegment(String value) {

@@ -1,7 +1,7 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.model.League;
-import com.porra.mundial.service.GroupService;
+import com.porra.mundial.service.LeagueService;
 import com.porra.mundial.service.InvitationImageRenderer;
 import com.porra.mundial.service.ProfileImageService;
 import org.junit.jupiter.api.Test;
@@ -27,11 +27,11 @@ class JoinPreviewControllerTest {
 
     @Test
     void invitationUsesVersionedPaperArtworkAndMatchingMetadata() throws Exception {
-        GroupService groupService = mock(GroupService.class);
+        LeagueService leagueService = mock(LeagueService.class);
         League league = League.builder().id(5L).name("La peña de Raclos").joinCode("ABCDEFGH23").build();
-        when(groupService.getGroupByJoinCode("ABCDEFGH23")).thenReturn(Optional.of(league));
-        when(groupService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
-        JoinPreviewController controller = new JoinPreviewController(groupService, mock(ProfileImageService.class), renderer);
+        when(leagueService.getLeagueByJoinCode("ABCDEFGH23")).thenReturn(Optional.of(league));
+        when(leagueService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
+        JoinPreviewController controller = new JoinPreviewController(leagueService, mock(ProfileImageService.class), renderer);
 
         String html = controller.preview("ABCDEFGH23");
         assertThat(html).contains("image.png?v=3", "property=\"og:image:width\" content=\"1200\"",
@@ -49,13 +49,13 @@ class JoinPreviewControllerTest {
 
     @Test
     void invitationImagesAreDrawnOnceUntilTheLeagueChanges() throws Exception {
-        GroupService groupService = mock(GroupService.class);
+        LeagueService leagueService = mock(LeagueService.class);
         ProfileImageService images = mock(ProfileImageService.class);
         League league = League.builder().id(6L).name("Amigos").joinCode("ABCDEFGH24").build();
-        when(groupService.getGroupByJoinCode("ABCDEFGH24")).thenReturn(Optional.of(league));
-        when(groupService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
+        when(leagueService.getLeagueByJoinCode("ABCDEFGH24")).thenReturn(Optional.of(league));
+        when(leagueService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
         when(images.getLeagueImage(6L)).thenReturn(Optional.empty());
-        JoinPreviewController controller = new JoinPreviewController(groupService, images, renderer);
+        JoinPreviewController controller = new JoinPreviewController(leagueService, images, renderer);
 
         byte[] first = controller.invitationImage("ABCDEFGH24");
         assertThat(controller.invitationImage("ABCDEFGH24")).isSameAs(first);
@@ -68,21 +68,21 @@ class JoinPreviewControllerTest {
 
     @Test
     void leagueNamesWithRegexReplacementCharactersAreWrittenLiterally() throws Exception {
-        GroupService groupService = mock(GroupService.class);
+        LeagueService leagueService = mock(LeagueService.class);
         League league = League.builder().id(5L).name("Liga $1 \\ <b>").joinCode("ABCDEFGH23").build();
-        when(groupService.getGroupByJoinCode("ABCDEFGH23")).thenReturn(Optional.of(league));
-        when(groupService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
+        when(leagueService.getLeagueByJoinCode("ABCDEFGH23")).thenReturn(Optional.of(league));
+        when(leagueService.findActiveEdition(anyLong())).thenReturn(Optional.empty());
 
-        String html = new JoinPreviewController(groupService, mock(ProfileImageService.class), renderer).preview("abcdefgh23");
+        String html = new JoinPreviewController(leagueService, mock(ProfileImageService.class), renderer).preview("abcdefgh23");
 
         assertThat(html).contains("<title>Liga $1 \\ &lt;b&gt;</title>");
         assertThat(html).contains("content=\"Liga $1 \\ &lt;b&gt;\"");
     }
     @Test
     void invitationRendersTheImageStoredInThisInstallation() throws Exception {
-        GroupService groups = mock(GroupService.class);
+        LeagueService groups = mock(LeagueService.class);
         ProfileImageService images = mock(ProfileImageService.class);
-        when(groups.getGroupByJoinCode("LOCAL")).thenReturn(Optional.of(
+        when(groups.getLeagueByJoinCode("LOCAL")).thenReturn(Optional.of(
                 League.builder().id(5L).name("Local").joinCode("LOCAL").build()));
         var photo = new java.awt.image.BufferedImage(8, 8, java.awt.image.BufferedImage.TYPE_INT_RGB);
         for (int x = 0; x < 8; x++) for (int y = 0; y < 8; y++) photo.setRGB(x, y, Color.MAGENTA.getRGB());

@@ -19,7 +19,7 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 
 ### Sincronización de resultados
 
-`SyncService` hace una pasada completa cada `app.sync.interval-ms` (15 min) y, mientras haya partidos en juego, otra solo de esas competiciones cada `app.sync.live-interval-ms` (1 min). Las dos van bajo un `ReentrantLock` para no solaparse:
+`SyncService` hace una pasada completa cada `app.sync.interval-ms` (15 min) y, mientras haya partidos en juego, otra solo de esas competiciones cada `app.sync.live-interval-ms` (1 min). Las dos van bajo un mismo cerrojo (`SyncLock`) para no solaparse:
 
 1. Pide los partidos de cada competición a su proveedor a través de `SportsDataProviderRegistry` (hoy, `EspnSportsDataProvider`).
 2. `MatchEventProcessor` aplica los cambios de marcador y estado a cada `Match`.
@@ -31,6 +31,8 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 `TopScorerService` refresca la tabla de goleadores cada 30 minutos de forma independiente y una vez por lote de resultados del Mundial. Las imágenes se buscan una vez por jugador; también se cachean temporalmente las búsquedas sin resultado.
 
 La sincronización inicial se lanza después de `ApplicationReadyEvent`, cuando los datos semilla ya están confirmados, mediante un ejecutor gestionado por Spring. Los fallos del proveedor se registran como sincronizaciones incompletas; una respuesta fallida no se interpreta como una jornada sin partidos.
+
+Importar el catálogo y el calendario de una competición recién elegida es cosa de `CompetitionImportService`, que comparte ese cerrojo para no crear el mismo partido a la vez que una pasada.
 
 Los partidos históricos que conservan equipos provisionales de la primera importación se reparan mediante su identificador externo, no deduciendo qué equipo corresponde a un id local. `LegacyFixtureRepairService` consulta y valida el resumen de ESPN fuera de la transacción; después actualiza el mismo partido en una transacción breve, conservando los pronósticos que lo referencian. Cada pasada tiene límites de peticiones y tiempo, comparte el cerrojo de sincronización y retrasa los reintentos fallidos.
 
@@ -54,7 +56,7 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 
 ### Ligas y pronósticos
 
-- `GroupService` gestiona las ligas (`League`), sus miembros (`Membership`), los códigos de invitación y los pagos. La Porra Global usa un id fijo (`League.GLOBAL_ID`).
+- `LeagueService` crea, cambia y borra las ligas (`League`), comprueba quién puede verlas y gestiona los códigos de invitación; `LeagueMembershipService`, sus miembros (`Membership`): altas, bajas, expulsiones, pagos y cesión de la administración. Las rutas siguen bajo `/api/groups`. La Porra Global usa un id fijo (`League.GLOBAL_ID`).
 - `LeaguePaymentService` actualiza la membresía y los pronósticos de sus ediciones en una misma transacción, tanto desde la gestión de miembros como desde la ruta de pago de un pronóstico. La autorización de administrador se comprueba antes de delegar.
 - `PredictionService` guarda los cuadros completos; `MatchPredictionService`, los pronósticos por partido, con cierre individual cuando empieza cada encuentro.
 - El formato de cada liga (`PoolFormat`) decide qué se pronostica: `FULL_BRACKET`, `KNOCKOUTS_ONLY` o `MATCH_DAY`.
