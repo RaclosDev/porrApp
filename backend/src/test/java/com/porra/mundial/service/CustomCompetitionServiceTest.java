@@ -23,7 +23,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -75,7 +77,7 @@ class CustomCompetitionServiceTest {
         Team foreign = Team.builder().name("Azules").competition(Competition.builder().build()).build();
         when(teams.findById(1L)).thenReturn(Optional.of(foreign));
         assertThrows(BusinessException.class, () -> service.addMatch(leagueId, "admin@example.com",
-                new CustomMatchRequest(1L, 2L, LocalDateTime.now().plusDays(1))));
+                new CustomMatchRequest(1L, 2L, java.time.LocalDateTime.now().plusDays(1))));
         verifyNoInteractions(matches);
     }
 
@@ -149,7 +151,7 @@ class CustomCompetitionServiceTest {
     @Test
     void firstMatchModeFollowsTheFirstMatchMinusTheMargin() {
         Edition edition = bracketEdition();
-        LocalDateTime lock = LocalDateTime.now().plusDays(3);
+        Instant lock = Instant.now().plus(3, ChronoUnit.DAYS);
         when(lockService.firstMatchLock(edition)).thenReturn(lock);
 
         service.setLockConfig(leagueId, "admin@example.com", com.porra.mundial.model.PredictionLockMode.FIRST_MATCH,
@@ -163,7 +165,7 @@ class CustomCompetitionServiceTest {
     @Test
     void progressiveModesHaveNoSingleLockDate() {
         Edition edition = bracketEdition();
-        edition.setLockDate(LocalDateTime.now().plusDays(1));
+        edition.setLockDate(Instant.now().plus(1, ChronoUnit.DAYS));
 
         service.setLockConfig(leagueId, "admin@example.com", com.porra.mundial.model.PredictionLockMode.PER_MATCH, 30, null);
 
@@ -184,7 +186,7 @@ class CustomCompetitionServiceTest {
     @Test
     void changesToPerMatchAfterPredictions() {
         Edition edition = bracketEdition();
-        edition.setLockDate(LocalDateTime.now().plusDays(2));
+        edition.setLockDate(Instant.now().plus(2, ChronoUnit.DAYS));
 
         service.setLockConfig(leagueId, "admin@example.com",
                 com.porra.mundial.model.PredictionLockMode.PER_MATCH, 0, null);
@@ -248,7 +250,7 @@ class CustomCompetitionServiceTest {
         Edition edition = Edition.builder().league(league).competition(competition)
                 .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
         when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
-        LocalDateTime deadline = LocalDateTime.now().plusDays(2);
+        Instant deadline = Instant.now().plus(2, ChronoUnit.DAYS);
 
         service.setLockDate(leagueId, "admin@example.com", deadline);
 
@@ -322,11 +324,11 @@ class CustomCompetitionServiceTest {
     void cannotDeleteTheFirstMatchIfItWouldReopenTheWholePrediction() {
         Edition edition = bracketEdition();
         edition.setLockMode(com.porra.mundial.model.PredictionLockMode.FIRST_MATCH);
-        edition.setLockDate(LocalDateTime.now().minusHours(1));
+        edition.setLockDate(Instant.now().minus(1, ChronoUnit.HOURS));
         Match first = Match.builder().id(12L).competition(competition).round("bracket-2").build();
         when(matches.findById(12L)).thenReturn(Optional.of(first));
         when(predictions.findByEditionLeagueId(leagueId)).thenReturn(java.util.List.of(new com.porra.mundial.model.Prediction()));
-        when(lockService.firstMatchLockWithoutMatch(edition, 12L)).thenReturn(LocalDateTime.now().plusDays(1));
+        when(lockService.firstMatchLockWithoutMatch(edition, 12L)).thenReturn(Instant.now().plus(1, ChronoUnit.DAYS));
 
         assertThrows(BusinessException.class, () -> service.deleteMatch(leagueId, 12L, "admin@example.com"));
 
@@ -340,7 +342,7 @@ class CustomCompetitionServiceTest {
         Match match = Match.builder().id(12L).competition(competition).round("bracket-1")
                 .awayTeam(Team.builder().build()).build();
         when(matches.findById(12L)).thenReturn(Optional.of(match));
-        LocalDateTime date = LocalDateTime.now().plusDays(2);
+        Instant date = Instant.now().plus(2, ChronoUnit.DAYS);
 
         service.setMatchDate(leagueId, 12L, "admin@example.com", date);
 
@@ -352,11 +354,11 @@ class CustomCompetitionServiceTest {
     void reschedulingMayReopenAnAlreadyClosedMatch() {
         Edition edition = bracketEdition();
         edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_MATCH);
-        LocalDateTime originalDate = LocalDateTime.now().minusHours(1);
+        Instant originalDate = Instant.now().minus(1, ChronoUnit.HOURS);
         Match match = Match.builder().id(12L).competition(competition).round("bracket-1")
                 .awayTeam(Team.builder().build()).matchDate(originalDate).build();
         when(matches.findById(12L)).thenReturn(Optional.of(match));
-        LocalDateTime newDate = LocalDateTime.now().plusDays(1);
+        Instant newDate = Instant.now().plus(1, ChronoUnit.DAYS);
 
         service.setMatchDate(leagueId, 12L, "admin@example.com", newDate);
 

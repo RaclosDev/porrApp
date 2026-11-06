@@ -19,7 +19,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -115,7 +115,7 @@ public class PredictionService {
                 .name(predictionName)
                 .bracketData(predictionData)
                 .paymentStatus(paymentStatus)
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .build();
 
         return predictionRepository.save(prediction);

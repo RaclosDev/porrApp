@@ -2,7 +2,8 @@ package com.porra.mundial.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 
 /** Torneo o liga deportiva. Ejemplos: "LaLiga EA Sports", "UEFA Champions League", "Mundial 2026". */
 @Entity
@@ -35,7 +36,7 @@ public class Competition {
     private String formatType = "LEAGUE";
 
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
     /**
      * Torneo oficial con cuadro propio (Worlds de LoL…): se pronostica sobre sus cruces reales, no sobre

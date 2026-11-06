@@ -5,7 +5,7 @@ import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PoolFormat;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -52,7 +52,7 @@ final class PredictableBracket {
         int first = 0;
         while (first < KNOCKOUT_ROUNDS.size() && !byRound.containsKey(KNOCKOUT_ROUNDS.get(first))) first++;
         Comparator<Match> byDate = Comparator.comparing(Match::getMatchDate,
-                Comparator.nullsLast(Comparator.<LocalDateTime>naturalOrder())).thenComparing(BY_ID);
+                Comparator.nullsLast(Comparator.<Instant>naturalOrder())).thenComparing(BY_ID);
         for (int index = first; index < KNOCKOUT_ROUNDS.size(); index++) {
             result.add(byRound.getOrDefault(KNOCKOUT_ROUNDS.get(index), List.of()).stream().sorted(byDate).toList());
         }

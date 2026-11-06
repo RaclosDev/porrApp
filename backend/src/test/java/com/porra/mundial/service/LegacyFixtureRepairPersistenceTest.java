@@ -13,6 +13,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -45,6 +46,7 @@ class LegacyFixtureRepairPersistenceTest {
     @MockitoBean WebSocketService updates;
 
     @Test
+    @Sql("/legacy-laliga-fixtures.sql")
     void repairsOfficialEventInPlaceWithoutHoldingATransactionDuringHttp() throws Exception {
         Match original = matches.findByExternalId("401882926").orElseThrow();
         Long originalId = original.getId();

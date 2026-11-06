@@ -3,7 +3,8 @@ package com.porra.mundial.dto;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.model.Match;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
 
 /**
  * Record DTO para enviar la información de los Partidos Reales (ESPN).
@@ -42,7 +43,7 @@ public record MatchResponseDTO(
     public static MatchResponseDTO fromEntity(Match m) {
         boolean isStartingSoon = false;
         if (m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())) {
-            long diffMs = java.time.Duration.between(LocalDateTime.now(MadridDateTimeSerializer.ZONE), m.getMatchDate()).toMillis();
+            long diffMs = java.time.Duration.between(Instant.now(), m.getMatchDate()).toMillis();
             isStartingSoon = diffMs > 0 && diffMs <= com.porra.mundial.service.MatchService.STARTING_SOON_MINUTES * 60_000L;
         }
 

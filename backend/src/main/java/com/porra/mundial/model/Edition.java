@@ -2,8 +2,8 @@ package com.porra.mundial.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.ZoneId;
 
 /** Une una liga con una competición; una liga puede tener varias ediciones. */
@@ -14,9 +14,9 @@ public class Edition {
 
     private static final ZoneId TOURNAMENT_ZONE = ZoneId.of("Europe/Madrid");
     // Fecha de cierre de cuadros ya establecida por V24, también para las nuevas ligas.
-    private static final LocalDateTime WORLD_CUP_DEADLINE = LocalDateTime.of(2026, 6, 11, 20, 0);
+    private static final Instant WORLD_CUP_DEADLINE = Instant.parse("2026-06-11T18:00:00Z"); // 20:00 en Madrid
 
-    public static LocalDateTime defaultLockDate(Competition competition, PoolFormat format) {
+    public static Instant defaultLockDate(Competition competition, PoolFormat format) {
         return competition != null
                 && Competition.WORLD_CUP_EXTERNAL_ID.equals(competition.getExternalId())
                 && format != PoolFormat.MATCH_DAY ? WORLD_CUP_DEADLINE : null;
@@ -47,7 +47,7 @@ public class Edition {
 
     /** Fecha en la que el grupo creó esta edición. */
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
     /** Flag indicando si en esta edición se otorgan puntos extra por adivinar al Pichichi. */
     @Builder.Default
@@ -56,7 +56,7 @@ public class Edition {
 
     /** Fecha y hora límite para enviar o editar pronósticos. */
     @Column(name = "lock_date")
-    private LocalDateTime lockDate;
+    private Instant lockDate;
 
     /** Cómo se cierran los pronósticos; las competiciones oficiales usan siempre una fecha fija. */
     @Enumerated(EnumType.STRING)
@@ -84,7 +84,7 @@ public class Edition {
         if (!"ACTIVE".equalsIgnoreCase(status)) {
             return true;
         }
-        return lockDate != null && !LocalDateTime.now(clock.withZone(TOURNAMENT_ZONE)).isBefore(lockDate);
+        return lockDate != null && !clock.instant().isBefore(lockDate);
     }
 
 }

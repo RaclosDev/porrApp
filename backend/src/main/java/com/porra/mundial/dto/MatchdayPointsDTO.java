@@ -3,7 +3,7 @@ package com.porra.mundial.dto;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 import tools.jackson.databind.annotation.JsonSerialize;
 
@@ -18,7 +18,7 @@ public class MatchdayPointsDTO {
     private String label;
     /** Fecha del primer partido de la jornada. */
     @JsonSerialize(using = MadridDateTimeSerializer.class)
-    private LocalDateTime date;
+    private Instant date;
     /** Indica si ya no queda ningún partido jugable pendiente. */
     private boolean finished;
     /** Marca la primera jornada con partidos pendientes o, si todo terminó, la última. */

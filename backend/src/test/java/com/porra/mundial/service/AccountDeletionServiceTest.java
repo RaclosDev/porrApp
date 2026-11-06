@@ -9,6 +9,7 @@ import com.porra.mundial.repository.LeagueRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +18,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,7 +94,7 @@ class AccountDeletionServiceTest {
         verify(userAccountRepository).delete(user);
     }
 
-    private Membership member(Long userId, Long leagueId, LocalDateTime joinedAt) {
+    private Membership member(Long userId, Long leagueId, Instant joinedAt) {
         return Membership.builder()
                 .id(new Membership.MembershipId(userId, leagueId))
                 .user(UserAccount.builder().id(userId).build())
@@ -103,11 +106,11 @@ class AccountDeletionServiceTest {
     void inactiveAccountHandsSharedLeaguesToTheOldestMemberAndDeletesTheRest() {
         League shared = League.builder().id(1L).name("Los del curro").adminUser(user).build();
         League solo = League.builder().id(2L).name("Solo yo").adminUser(user).build();
-        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 12, 0);
+        Instant start = AppTime.fromLocal(LocalDateTime.of(2026, 1, 1, 12, 0));
         when(userAccountRepository.findById(7L)).thenReturn(Optional.of(user));
         when(leagueRepository.findByAdminUserId(7L)).thenReturn(List.of(shared, solo));
         when(membershipRepository.findByLeagueId(1L)).thenReturn(List.of(
-                member(7L, 1L, start), member(9L, 1L, start.plusDays(5)), member(8L, 1L, start.plusDays(2))));
+                member(7L, 1L, start), member(9L, 1L, start.plus(5, ChronoUnit.DAYS)), member(8L, 1L, start.plus(2, ChronoUnit.DAYS))));
         when(membershipRepository.findByLeagueId(2L)).thenReturn(List.of(member(7L, 2L, start)));
 
         service.deleteInactiveAccount(7L);

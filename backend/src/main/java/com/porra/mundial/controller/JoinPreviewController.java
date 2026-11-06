@@ -29,7 +29,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -84,7 +83,7 @@ public class JoinPreviewController {
                 description = competitionName + (format != null ? " · " + format : "");
             }
             if (league.getImageUpdatedAt() != null) {
-                imageVersion += "-" + league.getImageUpdatedAt().toEpochSecond(ZoneOffset.UTC);
+                imageVersion += "-" + league.getImageUpdatedAt().getEpochSecond();
             }
         }
 

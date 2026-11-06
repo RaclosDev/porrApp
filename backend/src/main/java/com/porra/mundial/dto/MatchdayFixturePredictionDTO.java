@@ -5,8 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import tools.jackson.databind.annotation.JsonSerialize;
+
+import java.time.Instant;
 
 @Data
 @Builder
@@ -22,7 +23,7 @@ public class MatchdayFixturePredictionDTO {
     private String homeTeamLogo;
     private String awayTeamLogo;
     @JsonSerialize(using = MadridDateTimeSerializer.class)
-    private LocalDateTime matchDate;
+    private Instant matchDate;
     private String round;
     private String groupName;
     private Boolean finished;
@@ -41,7 +42,7 @@ public class MatchdayFixturePredictionDTO {
     private String lockReason;
     /** Cuándo deja de poder cambiarse el pronóstico (puede ser antes del partido). */
     @JsonSerialize(using = MadridDateTimeSerializer.class)
-    private LocalDateTime lockAt;
+    private Instant lockAt;
 
     // Puntuación calculada si el partido ha finalizado
     private Integer pointsAwarded;

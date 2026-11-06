@@ -12,9 +12,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -36,7 +36,6 @@ import java.util.function.Consumer;
 @Slf4j
 public class MatchEventProcessor {
 
-    private static final ZoneId SPAIN_ZONE = ZoneId.of("Europe/Madrid");
     private static final long TEAM_CACHE_TTL_MS = 3_600_000;
 
     private final TeamRepository teamRepository;
@@ -213,10 +212,10 @@ public class MatchEventProcessor {
     }
 
     /** Fecha del evento en hora peninsular española, o null si no se puede interpretar. */
-    public LocalDateTime parseDate(String isoDate) {
+    public Instant parseDate(String isoDate) {
         if (isoDate == null) return null;
         try {
-            return ZonedDateTime.parse(isoDate).withZoneSameInstant(SPAIN_ZONE).toLocalDateTime();
+            return ZonedDateTime.parse(isoDate).toInstant();
         } catch (Exception e) {
             log.debug("Fecha no interpretable '{}': {}", isoDate, e.getMessage());
             return null;
@@ -387,7 +386,7 @@ public class MatchEventProcessor {
      * va a la última jornada si aún le faltan partidos y está a pocos días; si no, a la siguiente.
      * Null si la competición no numera jornadas o el partido no encaja (aplazado antiguo, temporada nueva).
      */
-    String inferLeagueMatchday(Competition competition, LocalDateTime date) {
+    String inferLeagueMatchday(Competition competition, Instant date) {
         if (competition == null || competition.getId() == null || date == null
                 || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())) {
             return null;
@@ -398,24 +397,24 @@ public class MatchEventProcessor {
         if (latest == 0) return null;
 
         Set<Long> teams = new HashSet<>();
-        LocalDateTime latestStart = null;
-        LocalDateTime latestEnd = null;
+        Instant latestStart = null;
+        Instant latestEnd = null;
         int latestCount = 0;
         for (Match m : numbered) {
             if (m.getHomeTeam() != null && !Team.isPlaceholder(m.getHomeTeam())) teams.add(m.getHomeTeam().getId());
             if (m.getAwayTeam() != null && !Team.isPlaceholder(m.getAwayTeam())) teams.add(m.getAwayTeam().getId());
             if (matchdayNumber(m.getRound()) != latest) continue;
             latestCount++;
-            LocalDateTime d = m.getMatchDate();
+            Instant d = m.getMatchDate();
             if (d == null) continue;
             if (latestStart == null || d.isBefore(latestStart)) latestStart = d;
             if (latestEnd == null || d.isAfter(latestEnd)) latestEnd = d;
         }
-        if (latestEnd == null || date.isBefore(latestStart) || date.isAfter(latestEnd.plusDays(NEW_SEASON_GAP_DAYS))) {
+        if (latestEnd == null || date.isBefore(latestStart) || date.isAfter(latestEnd.plus(NEW_SEASON_GAP_DAYS, ChronoUnit.DAYS))) {
             return null;
         }
         int matchesPerMatchday = Math.max(1, teams.size() / 2);
-        boolean fitsLatest = latestCount < matchesPerMatchday && !date.isAfter(latestEnd.plusDays(SAME_MATCHDAY_DAYS));
+        boolean fitsLatest = latestCount < matchesPerMatchday && !date.isAfter(latestEnd.plus(SAME_MATCHDAY_DAYS, ChronoUnit.DAYS));
         return MATCHDAY_PREFIX + (fitsLatest ? latest : latest + 1);
     }
 
@@ -429,7 +428,7 @@ public class MatchEventProcessor {
     }
 
     private void upsertMatch(String eventId, Team home, Team away, Scores scores, int[] fairPlay,
-                             LocalDateTime date, MatchStatus status, MatchMetadata meta, Batch batch) {
+                             Instant date, MatchStatus status, MatchMetadata meta, Batch batch) {
         Match match = matchRepository.findByExternalId(eventId)
                 .orElseGet(() -> Match.builder().externalId(eventId).build());
 

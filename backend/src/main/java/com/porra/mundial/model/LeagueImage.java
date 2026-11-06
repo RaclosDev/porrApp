@@ -3,7 +3,8 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
 
 /**
  * Imagen (logo) de una liga. Se guarda aparte de {@link League} para no cargar los bytes
@@ -28,5 +29,5 @@ public class LeagueImage {
     private int sizeBytes;
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 }

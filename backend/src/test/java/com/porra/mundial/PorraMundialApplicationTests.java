@@ -16,6 +16,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -35,13 +36,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(
         locations = "file:src/main/resources/application.properties",
-        properties = "app.jwt.secret=context-test-secret-0123456789-abcdefghijklmnopqrstuvwxyz")
+        properties = {"app.jwt.secret=context-test-secret-0123456789-abcdefghijklmnopqrstuvwxyz",
+                "app.metrics.token=" + PorraMundialApplicationTests.METRICS_TOKEN})
 @Testcontainers(disabledWithoutDocker = true)
 class PorraMundialApplicationTests {
 
     @Container
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    static final String METRICS_TOKEN = "context-test-metrics-token";
 
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
@@ -78,11 +82,24 @@ class PorraMundialApplicationTests {
     }
 
     @Test
+    @Sql("/legacy-laliga-fixtures.sql")
     void servesPublicJsonWithIsoDates() throws Exception {
         HttpResponse<String> response = get("/api/matches?competitionId=2");
 
         assertThat(response.statusCode()).isEqualTo(200);
         // Las fechas salen como texto ISO con su desfase, no como números, arrays ni hora sin zona.
         assertThat(response.body()).containsPattern("\"date\":\"\\d{4}-\\d{2}-\\d{2}T[\\d:.]+[+-]\\d{2}:\\d{2}\"");
+    }
+
+    @Test
+    void exposesPrometheusMetricsOnlyWithTheToken() throws Exception {
+        assertThat(get("/actuator/prometheus").statusCode()).isEqualTo(401);
+
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/actuator/prometheus"))
+                .header("Authorization", "Bearer " + METRICS_TOKEN).GET().build();
+        HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("hikaricp_connections_active", "porra_websocket_sessions");
     }
 }

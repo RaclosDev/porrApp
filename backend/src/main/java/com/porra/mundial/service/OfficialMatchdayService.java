@@ -18,7 +18,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,7 +36,6 @@ import java.util.Set;
 @Slf4j
 public class OfficialMatchdayService {
 
-    private static final ZoneId MATCH_ZONE = ZoneId.of("Europe/Madrid");
     /** Margen alrededor del calendario oficial para no tocar partidos de otras temporadas. */
     private static final Duration SEASON_MARGIN = Duration.ofDays(30);
     /** Votos mínimos para relacionar un equipo oficial con uno propio. */
@@ -221,7 +219,7 @@ public class OfficialMatchdayService {
     }
 
     private static Instant kickoff(Match match) {
-        return match.getMatchDate().atZone(MATCH_ZONE).toInstant().truncatedTo(ChronoUnit.MINUTES);
+        return match.getMatchDate().truncatedTo(ChronoUnit.MINUTES);
     }
 
     private void clearCaches() {

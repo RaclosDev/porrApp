@@ -18,12 +18,14 @@ import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.util.AppTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -44,7 +46,7 @@ public class CustomCompetitionService {
 
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
-    public LocalDateTime setLockDate(Long leagueId, String email, LocalDateTime lockDate) {
+    public Instant setLockDate(Long leagueId, String email, Instant lockDate) {
         return setLockConfig(leagueId, email, PredictionLockMode.FIXED_DATE, 0, lockDate).getLockDate();
     }
 
@@ -52,7 +54,7 @@ public class CustomCompetitionService {
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
     public Edition setLockConfig(Long leagueId, String email, PredictionLockMode mode, Integer offsetMinutes,
-                                 LocalDateTime lockDate) {
+                                 Instant lockDate) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
         if (edition.getLeague().getAdminUser() == null
@@ -73,7 +75,7 @@ public class CustomCompetitionService {
         if (mode.progressive() && !PredictableBracket.applies(edition)) {
             throw BusinessException.badRequest("Esta competición solo admite cerrar en una fecha o en el primer partido");
         }
-        LocalDateTime now = LocalDateTime.now(CustomLockService.ZONE);
+        Instant now = Instant.now();
         edition.setLockMode(mode);
         if (mode == PredictionLockMode.FIXED_DATE) {
             if (lockDate == null || !lockDate.isAfter(now)) {
@@ -300,12 +302,12 @@ public class CustomCompetitionService {
         if (request.matchDate() == null && !bracket) {
             throw BusinessException.badRequest("Indica la fecha del partido");
         }
-        if (request.matchDate() != null && request.matchDate().isBefore(LocalDateTime.now().minusYears(1))) {
+        if (request.matchDate() != null && AppTime.fromLocal(request.matchDate()).isBefore(Instant.now().minus(365, ChronoUnit.DAYS))) {
             throw BusinessException.badRequest("La fecha del partido no es válida");
         }
         Match match = matchRepository.save(Match.builder()
                 .competition(competition).homeTeam(home).awayTeam(away)
-                .matchDate(request.matchDate()).round(round)
+                .matchDate(AppTime.fromLocal(request.matchDate())).round(round)
                 .groupName("group".equals(round) && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY
                         ? home.getGroupName() : null).build());
         refreshFirstMatchLock(leagueId);
@@ -353,7 +355,7 @@ public class CustomCompetitionService {
 
     @Transactional
     @CacheEvict(value = {"matches", "matchRadar", "matchdayStats", "userGroups", "groupById", "groupByCode"}, allEntries = true)
-    public MatchResponseDTO setMatchDate(Long leagueId, Long matchId, String email, LocalDateTime date) {
+    public MatchResponseDTO setMatchDate(Long leagueId, Long matchId, String email, Instant date) {
         Competition competition = ownedCompetition(leagueId, email);
         Match match = matchRepository.findById(matchId)
                 .filter(candidate -> candidate.getCompetition() != null
@@ -368,7 +370,7 @@ public class CustomCompetitionService {
         if (date == null && (match.getRound() == null || !match.getRound().startsWith("bracket-"))) {
             throw BusinessException.badRequest("Indica la fecha del partido");
         }
-        if (date != null && date.isBefore(LocalDateTime.now(CustomLockService.ZONE).minusYears(1))) {
+        if (date != null && date.isBefore(Instant.now().minus(365, ChronoUnit.DAYS))) {
             throw BusinessException.badRequest("La fecha del partido no es válida");
         }
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
@@ -401,8 +403,8 @@ public class CustomCompetitionService {
                     throw BusinessException.conflict("Ese partido mantiene cerrados pronósticos que ya no se pueden reabrir");
                 }
             } else if (mode == PredictionLockMode.FIRST_MATCH && edition.isLocked()) {
-                LocalDateTime nextLock = lockService.firstMatchLockWithoutMatch(edition, matchId);
-                if (nextLock == null || nextLock.isAfter(LocalDateTime.now(CustomLockService.ZONE))) {
+                Instant nextLock = lockService.firstMatchLockWithoutMatch(edition, matchId);
+                if (nextLock == null || nextLock.isAfter(Instant.now())) {
                     throw BusinessException.conflict("Ese partido mantiene cerrado el plazo de pronósticos");
                 }
             }

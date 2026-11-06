@@ -10,8 +10,11 @@ import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -75,11 +78,11 @@ class CustomBracketPredictionValidatorTest {
         Team b = Team.builder().name("B").competition(worlds).build();
         Team c = Team.builder().name("C").competition(worlds).build();
         Team d = Team.builder().name("D").competition(worlds).build();
-        java.time.LocalDateTime day = java.time.LocalDateTime.of(2026, 10, 30, 10, 0);
+        java.time.Instant day = com.porra.mundial.util.AppTime.fromLocal(java.time.LocalDateTime.of(2026, 10, 30, 10, 0));
         when(matches.findByCompetitionId(19L)).thenReturn(List.of(
                 Match.builder().id(5L).competition(worlds).round("qf").homeTeam(c).awayTeam(d).matchDate(day).build(),
-                Match.builder().id(9L).competition(worlds).round("qf").homeTeam(a).awayTeam(b).matchDate(day.minusDays(1)).build(),
-                Match.builder().id(2L).competition(worlds).round("group").homeTeam(a).awayTeam(c).matchDate(day.minusDays(9)).build()));
+                Match.builder().id(9L).competition(worlds).round("qf").homeTeam(a).awayTeam(b).matchDate(day.minus(1, ChronoUnit.DAYS)).build(),
+                Match.builder().id(2L).competition(worlds).round("group").homeTeam(a).awayTeam(c).matchDate(day.minus(9, ChronoUnit.DAYS)).build()));
         Edition edition = Edition.builder().competition(worlds).poolFormat(PoolFormat.FULL_BRACKET).build();
         PredictionDataDTO data = new PredictionDataDTO();
         data.setCustomRounds(List.of(List.of("B", "C"), List.of("C")));

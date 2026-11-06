@@ -1,5 +1,6 @@
 package com.porra.mundial.model;
 
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -13,7 +14,7 @@ class EditionDeadlineTest {
     @Test
     void bothBracketFormatsUseTheExistingTournamentDeadlineButMatchdayDoesNot() {
         Competition cup = Competition.builder().externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
-        LocalDateTime deadline = LocalDateTime.of(2026, 6, 11, 20, 0);
+        Instant deadline = AppTime.fromLocal(LocalDateTime.of(2026, 6, 11, 20, 0));
         assertEquals(deadline, Edition.defaultLockDate(cup, PoolFormat.FULL_BRACKET));
         assertEquals(deadline, Edition.defaultLockDate(cup, PoolFormat.KNOCKOUTS_ONLY));
         assertEquals(deadline, Edition.defaultLockDate(cup, null));
@@ -24,7 +25,7 @@ class EditionDeadlineTest {
 
     @Test
     void closesAtTheExactMadridDeadlineIndependentOfHostTimezone() {
-        Edition edition = Edition.builder().lockDate(LocalDateTime.of(2026, 6, 11, 20, 0)).build();
+        Edition edition = Edition.builder().lockDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 11, 20, 0))).build();
         assertFalse(edition.isLocked(at("2026-06-11T17:59:59Z")));
         assertTrue(edition.isLocked(at("2026-06-11T18:00:00Z")));
         assertTrue(edition.isLocked(at("2026-07-20T12:00:00Z")));

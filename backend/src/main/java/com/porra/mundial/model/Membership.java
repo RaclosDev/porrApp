@@ -3,7 +3,7 @@ package com.porra.mundial.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** Pertenencia de un usuario a una liga (relación muchos a muchos). */
 @Entity
@@ -36,7 +36,7 @@ public class Membership {
 
     /** Fecha en la que el usuario se unió al grupo mediante el código. */
     @Builder.Default
-    private LocalDateTime joinedAt = LocalDateTime.now();
+    private Instant joinedAt = Instant.now();
 
     @Embeddable
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @EqualsAndHashCode
