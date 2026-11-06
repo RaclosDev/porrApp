@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
+import DialogBackdrop from '../DialogBackdrop';
 
 interface ViewerModalProps {
   dialogRef: RefObject<HTMLDivElement | null>;
@@ -11,22 +12,22 @@ interface ViewerModalProps {
 /** Modal del visor: cierra al pulsar fuera del panel. */
 export function ViewerModal({ dialogRef, onClose, className, children }: ViewerModalProps) {
   return (
-    // El clic en el fondo es un atajo de ratón; con teclado, Escape cierra (useDialogFocus).
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
-    <div
+    <DialogBackdrop
       id="points-breakdown-modal"
       className="modal flex z-[999999]"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Visor de porra"
-      ref={dialogRef}
-      tabIndex={-1}
-      onClick={onClose}
+      onDismiss={onClose}
     >
-      <div className={className} role="presentation" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={className}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Visor de porra"
+        ref={dialogRef}
+        tabIndex={-1}
+      >
         {children}
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }
 

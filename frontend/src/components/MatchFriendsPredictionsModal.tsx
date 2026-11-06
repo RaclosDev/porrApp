@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import DialogBackdrop from './DialogBackdrop';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
@@ -95,13 +96,7 @@ export default function MatchFriendsPredictionsModal({
     match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
 
   return createPortal(
-    <div
-      className="friends-predictions-overlay"
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <DialogBackdrop className="friends-predictions-overlay" onDismiss={onClose}>
       <div
         className="friends-predictions-panel paper-panel landing-tape paper-dialog"
         role="dialog"
@@ -256,7 +251,7 @@ export default function MatchFriendsPredictionsModal({
           <span>Las predicciones se revelan al empezar el partido.</span>
         </div>
       </div>
-    </div>,
+    </DialogBackdrop>,
     document.body,
   );
 }

@@ -1,4 +1,5 @@
 import { LeagueAvatar } from './Avatar';
+import DialogBackdrop from './DialogBackdrop';
 import {
   Check,
   Loader2,
@@ -459,20 +460,13 @@ export default function GroupMembersModal({
   };
 
   return (
-    // El clic en el fondo es un atajo de ratón; con teclado, Escape cierra (useDialogFocus).
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="league-admin-title"
-      className="league-admin-overlay"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) requestClose();
-      }}
-    >
+    <DialogBackdrop className="league-admin-overlay" onDismiss={requestClose}>
       <div
         ref={panelRef}
         tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="league-admin-title"
         className="league-admin-panel paper-panel landing-tape paper-dialog"
       >
         <header className="league-admin-header">
@@ -637,7 +631,7 @@ export default function GroupMembersModal({
           <LeaveConfirmDialog onClose={onClose} setLeaveConfirmOpen={setLeaveConfirmOpen} />
         )}
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }
 

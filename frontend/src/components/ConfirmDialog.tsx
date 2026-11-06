@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import DialogBackdrop from './DialogBackdrop';
 import { createPortal } from 'react-dom';
 import { TriangleAlert } from 'lucide-react';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -14,13 +15,7 @@ export default function ConfirmDialog() {
   if (!request) return null;
 
   return createPortal(
-    <div
-      className="app-confirm-overlay"
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) answerConfirm(false);
-      }}
-    >
+    <DialogBackdrop className="app-confirm-overlay" onDismiss={() => answerConfirm(false)}>
       <div
         ref={dialogRef}
         tabIndex={-1}
@@ -52,7 +47,7 @@ export default function ConfirmDialog() {
           </button>
         </div>
       </div>
-    </div>,
+    </DialogBackdrop>,
     document.body,
   );
 }

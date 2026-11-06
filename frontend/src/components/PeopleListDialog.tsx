@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import DialogBackdrop from './DialogBackdrop';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { UserAvatar } from './Avatar';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -46,13 +47,7 @@ export default function PeopleListDialog({
   useDialogFocus(dialogRef, { onEscape: onClose });
 
   return createPortal(
-    <div
-      className="friends-predictions-overlay"
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <DialogBackdrop className="friends-predictions-overlay" onDismiss={onClose}>
       <div
         className="friends-predictions-panel paper-panel landing-tape paper-dialog"
         role="dialog"
@@ -102,7 +97,7 @@ export default function PeopleListDialog({
           )}
         </div>
       </div>
-    </div>,
+    </DialogBackdrop>,
     document.body,
   );
 }
