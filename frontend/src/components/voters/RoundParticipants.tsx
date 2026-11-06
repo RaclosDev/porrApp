@@ -4,9 +4,9 @@ import PeopleListDialog from '../PeopleListDialog';
 import type { MatchVoter } from '../../types/api';
 
 /** Fotos que caben en una cabecera estrecha; el resto se resume en «+N». */
-export const COMPACT_PARTICIPANTS = 2;
+const COMPACT_PARTICIPANTS = 2;
 /** Fotos que caben cuando la cabecera tiene sitio. */
-export const WIDE_PARTICIPANTS = 4;
+const WIDE_PARTICIPANTS = 4;
 
 /** «Ana», «Ana y Bea», «Ana, Bea y Carla». */
 function joinNames(names: string[]) {
@@ -14,7 +14,7 @@ function joinNames(names: string[]) {
   return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
 }
 
-export function participantsSummary(count: number) {
+function participantsSummary(count: number) {
   return count === 1
     ? '1 miembro ya ha hecho su predicción'
     : `${count} miembros ya han hecho su predicción`;

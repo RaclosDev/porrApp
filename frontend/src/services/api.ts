@@ -492,11 +492,6 @@ export const linkOfficialCompetition = (groupId: number, competitionId: number) 
     method: 'POST',
     json: { competitionId },
   });
-export const setCustomLockDate = (groupId: number, lockDate: string) =>
-  request<string>(`/groups/${groupId}/competition/lock-date`, {
-    method: 'PUT',
-    json: { lockDate },
-  });
 export const addCustomMatch = (
   groupId: number,
   homeTeamId: number,
