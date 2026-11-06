@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nos hemos mudado · porrapp.app</title>
+    <meta name="description" content="La Porra se ha mudado a porrapp.app." />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="canonical" href="https://porrapp.app/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&family=Permanent+Marker&display=swap"
+    />
+    <style>
+      :root {
+        --wall: #0f172a;
+        --paper: #f3ecdc;
+        --ink: #111827;
+        --muted: #4b5563;
+        --marker-ink: #0b5f74;
+        --stamp-red: #b91c1c;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 48px 20px;
+        background:
+          radial-gradient(circle at 20% 10%, rgba(47, 196, 196, 0.08), transparent 45%),
+          radial-gradient(circle at 85% 90%, rgba(255, 230, 140, 0.06), transparent 40%),
+          var(--wall);
+        color: var(--ink);
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+      .poster {
+        position: relative;
+        width: min(100%, 460px);
+        padding: 44px 32px 32px;
+        background: var(--paper);
+        border-radius: 4px;
+        transform: rotate(-1deg);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 2px 0 rgba(0, 0, 0, 0.15);
+        text-align: center;
+      }
+      .poster::before {
+        content: '';
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        width: 104px;
+        height: 28px;
+        transform: translateX(-50%) rotate(-5deg);
+        background: rgba(255, 230, 140, 0.8);
+        border-left: 1px dashed rgba(0, 0, 0, 0.15);
+        border-right: 1px dashed rgba(0, 0, 0, 0.15);
+      }
+      .kicker {
+        margin: 0 0 6px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      h1 {
+        margin: 0;
+        font-family: 'Anton', 'Inter', sans-serif;
+        font-weight: 400;
+        font-size: clamp(2.6rem, 11vw, 3.6rem);
+        line-height: 0.95;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+      }
+      .stamp {
+        display: inline-block;
+        margin: 22px 0 6px;
+        padding: 4px 12px;
+        border: 3px solid var(--stamp-red);
+        border-radius: 6px;
+        color: var(--stamp-red);
+        font-family: 'Anton', 'Inter', sans-serif;
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        transform: rotate(-4deg);
+        opacity: 0.9;
+      }
+      .address {
+        display: block;
+        margin: 4px 0 18px;
+        font-family: 'Permanent Marker', 'Inter', cursive;
+        font-size: clamp(2rem, 9vw, 2.6rem);
+        color: var(--marker-ink);
+        text-decoration: none;
+        word-break: break-word;
+      }
+      .address:hover, .address:focus-visible { text-decoration: underline; text-underline-offset: 6px; }
+      p { margin: 0 0 14px; line-height: 1.5; }
+      .note { font-size: 0.95rem; color: var(--muted); }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        margin-top: 8px;
+        padding: 10px 22px;
+        border: 2px solid var(--ink);
+        border-radius: 6px;
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 800;
+        text-decoration: none;
+      }
+      .btn:hover { background: #000; }
+      a:focus-visible { outline: 3px solid var(--marker-ink); outline-offset: 3px; }
+      .countdown { margin-top: 16px; font-size: 0.85rem; color: var(--muted); min-height: 1.3em; }
+      @media (prefers-reduced-motion: reduce) { .poster, .stamp, .poster::before { transform: none; } }
+    </style>
+  </head>
+  <body>
+    <main class="poster">
+      <p class="kicker">La Porra</p>
+      <h1>Nos hemos mudado</h1>
+      <span class="stamp">Nueva dirección</span>
+      <a class="address" id="new-address" href="https://porrapp.app/">porrapp.app</a>
+      <p>Tus ligas, predicciones y clasificaciones están intactas en la nueva casa.</p>
+      <p class="note">
+        Puede que tengas que volver a iniciar sesión y activar otra vez las notificaciones. Si
+        instalaste la app en el móvil, instálala de nuevo desde porrapp.app.
+      </p>
+      <a class="btn" id="go" href="https://porrapp.app/">Ir a porrapp.app</a>
+      <p class="countdown" id="countdown" aria-live="polite"></p>
+    </main>
+    <script>
+      (function () {
+        var target = 'https://porrapp.app' + location.pathname + location.search + location.hash;
+        document.getElementById('go').href = target;
+        document.getElementById('new-address').href = target;
+        var left = 8;
+        var out = document.getElementById('countdown');
+        function tick() {
+          if (left <= 0) {
+            location.replace(target);
+            return;
+          }
+          out.textContent = 'Te llevamos en ' + left + ' s…';
+          left -= 1;
+          setTimeout(tick, 1000);
+        }
+        tick();
+      })();
+    </script>
+  </body>
+</html>
