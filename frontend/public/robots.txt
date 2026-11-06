@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /api/
+Disallow: /join/
+
+Sitemap: https://porra.raclos.es/sitemap.xml
