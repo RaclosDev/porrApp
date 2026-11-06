@@ -45,6 +45,9 @@ class GroupControllerTest {
     private GroupService groupService;
 
     @MockitoBean
+    private com.porra.mundial.service.LeagueMembershipService membershipService;
+
+    @MockitoBean
     private WebSocketService webSocketService;
 
     @MockitoBean

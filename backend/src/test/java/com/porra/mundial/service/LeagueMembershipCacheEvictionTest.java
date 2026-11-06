@@ -1,12 +1,8 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.repository.CompetitionRepository;
-import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.LeagueRepository;
-import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.PredictionRepository;
-import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /** Las altas y bajas solo vacían el ranking de su liga y la lista de ligas de quien entra o sale. */
-class GroupServiceCacheEvictionTest {
+class LeagueMembershipCacheEvictionTest {
 
     @Configuration
     @EnableCaching
@@ -38,16 +34,15 @@ class GroupServiceCacheEvictionTest {
         }
         @Bean UserAccountRepository userAccountRepository() { return mock(UserAccountRepository.class); }
         @Bean LeagueRepository leagueRepository() { return mock(LeagueRepository.class); }
-        @Bean GroupService groupService(UserAccountRepository users, LeagueRepository leagues) {
-            return new GroupService(leagues, mock(PredictionRepository.class), users,
-                    mock(CompetitionRepository.class), mock(EditionRepository.class), mock(MembershipRepository.class),
-                    mock(MatchRepository.class), mock(TeamRepository.class), mock(ApplicationEventPublisher.class),
+        @Bean LeagueMembershipService membershipService(UserAccountRepository users, LeagueRepository leagues) {
+            return new LeagueMembershipService(leagues, users, mock(MembershipRepository.class),
+                    mock(PredictionRepository.class), mock(ApplicationEventPublisher.class),
                     mock(LeaguePaymentService.class));
         }
     }
 
     private AnnotationConfigApplicationContext context;
-    private GroupService groupService;
+    private LeagueMembershipService membershipService;
     private Cache leaderboard;
     private Cache userGroups;
     private Cache groupById;
@@ -55,7 +50,7 @@ class GroupServiceCacheEvictionTest {
     @BeforeEach
     void setUp() {
         context = new AnnotationConfigApplicationContext(Config.class);
-        groupService = context.getBean(GroupService.class);
+        membershipService = context.getBean(LeagueMembershipService.class);
         when(context.getBean(UserAccountRepository.class).findByGoogleEmail(any())).thenReturn(Optional.empty());
         when(context.getBean(LeagueRepository.class).findById(any())).thenReturn(Optional.empty());
         CacheManager caches = context.getBean(CacheManager.class);
@@ -76,7 +71,7 @@ class GroupServiceCacheEvictionTest {
 
     @Test
     void joiningEvictsOnlyThatLeagueAndThatUser() {
-        groupService.joinGroupMembership(7L, "ana@test.com");
+        membershipService.join(7L, "ana@test.com");
 
         assertThat(leaderboard.get(7L)).isNull();
         assertThat(leaderboard.get(8L)).isNotNull();

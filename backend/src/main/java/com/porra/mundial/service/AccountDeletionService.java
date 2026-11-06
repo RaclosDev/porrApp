@@ -36,6 +36,7 @@ public class AccountDeletionService {
     private final MembershipRepository membershipRepository;
     private final PredictionRepository predictionRepository;
     private final GroupService groupService;
+    private final LeagueMembershipService membershipService;
 
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
@@ -74,7 +75,7 @@ public class AccountDeletionService {
                     .min(Comparator.comparing(Membership::getJoinedAt,
                             Comparator.nullsLast(Comparator.<Instant>naturalOrder())));
             if (heir.isPresent()) {
-                groupService.transferAdmin(league.getId(), heir.get().getId().getUserId(), user.getGoogleEmail());
+                membershipService.transferAdmin(league.getId(), heir.get().getId().getUserId(), user.getGoogleEmail());
             } else {
                 alone.add(league);
             }

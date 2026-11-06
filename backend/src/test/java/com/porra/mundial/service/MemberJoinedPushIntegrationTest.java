@@ -50,6 +50,7 @@ class MemberJoinedPushIntegrationTest {
     @MockitoBean private WebPushSender sender;
 
     @Autowired private GroupService groupService;
+    @Autowired private LeagueMembershipService membershipService;
     @Autowired private UserAccountRepository userAccountRepository;
     @Autowired private LeagueRepository leagueRepository;
     @Autowired private MembershipRepository membershipRepository;
@@ -74,7 +75,7 @@ class MemberJoinedPushIntegrationTest {
         subscriptionRepository.save(PushSubscription.builder().user(newcomer)
                 .endpoint("https://fcm.googleapis.com/fcm/send/newcomer").p256dh("p").auth("a").build());
 
-        groupService.joinGroupMembership(league.getId(), newcomer.getGoogleEmail());
+        membershipService.join(league.getId(), newcomer.getGoogleEmail());
 
         assertThat(membershipRepository.existsById(new Membership.MembershipId(newcomer.getId(), league.getId())))
                 .isTrue();

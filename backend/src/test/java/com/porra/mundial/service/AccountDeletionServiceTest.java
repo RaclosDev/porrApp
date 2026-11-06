@@ -40,6 +40,7 @@ class AccountDeletionServiceTest {
     @Mock private MembershipRepository membershipRepository;
     @Mock private PredictionRepository predictionRepository;
     @Mock private GroupService groupService;
+    @Mock private LeagueMembershipService membershipService;
 
     @InjectMocks private AccountDeletionService service;
 
@@ -115,7 +116,7 @@ class AccountDeletionServiceTest {
 
         service.deleteInactiveAccount(7L);
 
-        verify(groupService).transferAdmin(1L, 8L, "yo@test.com");
+        verify(membershipService).transferAdmin(1L, 8L, "yo@test.com");
         verify(groupService).deleteGroup(2L, "yo@test.com");
         verify(groupService, never()).deleteGroup(eq(1L), anyString());
         verify(userAccountRepository).delete(user);
