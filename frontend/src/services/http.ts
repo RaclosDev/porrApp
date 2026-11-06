@@ -89,13 +89,59 @@ async function restoreSession(): Promise<SessionRestore> {
   const epoch = sessionEpoch;
   // El JWT de antes de la v5 ya no se acepta: no se deja en localStorage.
   localStorage.removeItem(LEGACY_TOKEN_KEY);
-  if (!hasStoredSession()) return 'none';
+  if (!hasStoredSession()) return redeemHandoff(epoch);
   try {
     const refreshed = await refreshSession();
     if (!currentSession(epoch)) return 'superseded';
     return refreshed ? 'restored' : 'none';
   } catch {
     return currentSession(epoch) ? 'unreachable' : 'superseded';
+  }
+}
+
+/** Ya se intentó canjear el traspaso de sesión en esta app instalada. */
+const HANDOFF_CHECKED_KEY = 'session_handoff_checked';
+
+/** App abierta desde la pantalla de inicio de un iPhone o iPad (`standalone` solo existe en iOS). */
+function isIosHomeScreenApp(): boolean {
+  return (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+/**
+ * Primera apertura de la app instalada en iPhone. iOS le copia las cookies de Safari pero no el
+ * localStorage, así que aquí no hay marca de sesión. Si Safari dejó un código de traspaso en su
+ * cookie ({@link prepareSessionHandoff}), se canjea por una sesión propia de la app. Un código
+ * gastado o caducado solo deja la app sin sesión, como antes. Se intenta una vez por instalación.
+ */
+async function redeemHandoff(epoch: number): Promise<SessionRestore> {
+  if (!isIosHomeScreenApp() || localStorage.getItem(HANDOFF_CHECKED_KEY)) return 'none';
+  try {
+    const token = await withSessionLock(async () => {
+      const res = await send(`${SESSION_PATH}/handoff`, { method: 'POST' }, null);
+      if (res.status !== 200 && res.status !== 401) throw new ApiError(res.status, 'handoff');
+      localStorage.setItem(HANDOFF_CHECKED_KEY, '1');
+      if (res.status === 401 || !currentSession(epoch)) return null;
+      const body = (await res.json()) as { token: string };
+      storeAuthToken(body.token);
+      return body.token;
+    });
+    if (!currentSession(epoch)) return 'superseded';
+    return token ? 'restored' : 'none';
+  } catch {
+    return currentSession(epoch) ? 'unreachable' : 'superseded';
+  }
+}
+
+/**
+ * En Safari de iPhone, con sesión iniciada: el servidor deja en una cookie HttpOnly un código de un
+ * solo uso que iOS copiará a la app al añadirla a la pantalla de inicio. Resuelve true si lo dejó.
+ */
+export async function prepareSessionHandoff(): Promise<boolean> {
+  try {
+    await request<unknown>('/auth/handoff', { method: 'POST' });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -260,11 +306,12 @@ export async function request<T>(
   let res = await send(path, options, sentToken);
   ensureCurrentSession();
 
-  // Access token caducado: se renueva una vez y se repite la petición. En /auth/ no, porque
-  // ahí un 401 (p. ej. una credencial de Google inválida) no es de la sesión.
+  // Access token caducado: se renueva una vez y se repite la petición. En el login y en las rutas
+  // de la cookie no, porque ahí un 401 (p. ej. una credencial de Google inválida) no es del token.
   if (
     res.status === 401 &&
-    !path.startsWith('/auth/') &&
+    !path.startsWith('/auth/google/') &&
+    !path.startsWith(`${SESSION_PATH}/`) &&
     (sentToken !== null || hasStoredSession())
   ) {
     const token = await tokenAfter401(sentToken, epoch);

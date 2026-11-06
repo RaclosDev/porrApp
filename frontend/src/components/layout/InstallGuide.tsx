@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowDown, ArrowUp, Ellipsis, Share, SquarePlus } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -10,6 +10,8 @@ import {
   type ShareButtonPlace,
 } from '../../services/installPrompt';
 import { isIos } from '../../services/push';
+import { prepareSessionHandoff } from '../../services/api';
+import { useAppStore } from '../../store/useAppStore';
 
 interface InstallGuideProps {
   onClose: () => void;
@@ -60,6 +62,26 @@ async function copyLink(browser: string) {
 }
 
 /**
+ * En iPhone la app instalada no comparte la sesión de Safari: con sesión iniciada, se deja en una
+ * cookie el código con el que la app abrirá la suya la primera vez. True cuando ya está listo.
+ */
+function useSessionHandoff(installingOnIos: boolean): boolean {
+  const signedIn = useAppStore((state) => state.isAuthenticated && !state.isDemoMode);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!installingOnIos || !signedIn) return;
+    let active = true;
+    void prepareSessionHandoff().then((ok) => {
+      if (active) setReady(ok);
+    });
+    return () => {
+      active = false;
+    };
+  }, [installingOnIos, signedIn]);
+  return ready;
+}
+
+/**
  * Guía para instalar la app donde el navegador no tiene un botón de instalar (iPhone, iPad) o no
  * deja instalar (navegador dentro de Instagram, Facebook…). Una flecha señala el botón que hay que
  * tocar, para que baste con seguirla.
@@ -73,6 +95,7 @@ export default function InstallGuide({ onClose, reason }: InstallGuideProps) {
   const place: ShareButtonPlace = inApp ? 'top-right' : shareButtonPlace();
   const arrowAtTop = place === 'top-right';
   const browser = isIos() ? 'Safari' : 'tu navegador';
+  const keepsSession = useSessionHandoff(!inApp && installState() === 'ios');
 
   const arrow =
     place === 'menu' ? null : (
@@ -122,6 +145,11 @@ export default function InstallGuide({ onClose, reason }: InstallGuideProps) {
               <strong>Añadir</strong>.
             </li>
           </ol>
+        )}
+        {keepsSession && (
+          <p className="m-0 mb-3 text-[0.85rem] text-muted">
+            Ábrela en los próximos 30 minutos y entrarás con tu cuenta sin volver a iniciar sesión.
+          </p>
         )}
 
         <div className="flex flex-col gap-2">
