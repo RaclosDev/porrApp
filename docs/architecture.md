@@ -11,7 +11,7 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 | `dto/` | Contratos de la API (records y clases de respuesta) |
 | `model/` | Entidades JPA: `Competition`, `Edition`, `League`, `Membership`, `Match`, `Prediction`, `MatchPrediction`, `GroupStanding`, `Team`, `UserAccount`… |
 | `repository/` | Spring Data JPA |
-| `service/` | Lógica de negocio |
+| `service/` | Lógica de negocio, por funcionalidad: `league` (ligas y miembros), `account` (sesión y cuenta), `prediction` (pronósticos, cierres y ranking), `tournament` (competiciones, clasificaciones y cuadro oficial), `sync` (sincronización e importación) y `notification` (WebSocket y avisos push) |
 | `scoring/` | Reglas y estrategias de puntuación |
 | `sports/` | Proveedores de datos deportivos |
 

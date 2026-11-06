@@ -1,6 +1,6 @@
 package com.porra.mundial.config;
 
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.notification.WebSocketService;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.binder.MeterBinder;
 import org.springframework.context.annotation.Bean;

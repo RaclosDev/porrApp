@@ -7,7 +7,7 @@ import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
-import com.porra.mundial.service.MatchdayStatsService;
+import com.porra.mundial.service.prediction.MatchdayStatsService;
 import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,6 +1,6 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.service.ProfileImageService.StoredImage;
+import com.porra.mundial.service.account.ProfileImageService.StoredImage;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

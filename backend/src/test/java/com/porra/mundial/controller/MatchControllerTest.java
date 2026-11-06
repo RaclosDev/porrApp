@@ -5,7 +5,7 @@ import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 
-import com.porra.mundial.service.MatchService;
+import com.porra.mundial.service.tournament.MatchService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;

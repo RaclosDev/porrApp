@@ -1,7 +1,7 @@
 package com.porra.mundial.config;
 
 import com.porra.mundial.controller.AppWebSocketHandler;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.notification.WebSocketService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.ServerHttpRequest;
