@@ -47,8 +47,9 @@ public class AppWebSocketHandler extends TextWebSocketHandler {
                         : null;
                 webSocketService.authenticate(session, userId);
             }
-        } catch (Exception e) {
-            // Ignorar payloads malformados
+        } catch (tools.jackson.core.JacksonException e) {
+            // Un mensaje que no es JSON se ignora: el cliente sigue conectado.
+            log.debug("Mensaje WebSocket no válido de {}: {}", session.getId(), e.getMessage());
         }
     }
 

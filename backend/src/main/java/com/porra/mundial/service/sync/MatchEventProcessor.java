@@ -218,7 +218,7 @@ public class MatchEventProcessor {
         if (isoDate == null) return null;
         try {
             return ZonedDateTime.parse(isoDate).toInstant();
-        } catch (Exception e) {
+        } catch (java.time.format.DateTimeParseException e) {
             log.debug("Fecha no interpretable '{}': {}", isoDate, e.getMessage());
             return null;
         }
