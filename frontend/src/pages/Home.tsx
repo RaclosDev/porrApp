@@ -34,6 +34,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
     activeGroupPichichi,
     loadingGroup,
     groupError,
+    choosingLeague,
   } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
   const [viewMode, setViewMode] = useState(defaultMode);
@@ -48,7 +49,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
   const sortedGroups = useSortedGroups();
   const format = useLeagueHomeFormat();
 
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
+  if (choosingLeague || loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (viewMode === 'home' || format === 'matchday') return <LeagueHomeDashboard />;
   // Solo el Mundial tiene fase de grupos oficial; los demás cuadros la muestran en su vista de resultados.
   if (format !== 'worldcup') return <OfficialBracket />;

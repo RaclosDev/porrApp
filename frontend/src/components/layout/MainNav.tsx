@@ -21,7 +21,7 @@ export default function MainNav({
       <div className="header-center">
         <div className="nav-links" aria-hidden="true">
           {[0, 1, 2, 3, 4].map((slot) => (
-            <span key={slot} className="chrome-placeholder w-22 h-9.5" />
+            <span key={slot} className="chrome-placeholder w-22 h-11.25" />
           ))}
         </div>
       </div>

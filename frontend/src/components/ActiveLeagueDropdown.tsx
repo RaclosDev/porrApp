@@ -31,6 +31,7 @@ export default function ActiveLeagueDropdown() {
     changeGroup,
     isAuthenticated,
     userGroupsLoaded,
+    choosingLeague,
   } = useAppContext();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -62,9 +63,10 @@ export default function ActiveLeagueDropdown() {
     };
   }, []);
 
-  // Mientras llegan las ligas, «Crear o unirse» asomaría un instante antes del selector.
-  if (isAuthenticated && !userGroupsLoaded) {
-    return <span className="chrome-placeholder w-37 h-11" aria-hidden="true" />;
+  // Mientras llegan las ligas o se elige cuál abrir, «Crear o unirse» o «Ninguna liga» asomarían
+  // un instante antes del selector.
+  if (isAuthenticated && (!userGroupsLoaded || choosingLeague)) {
+    return <span className="chrome-placeholder w-50 h-11" aria-hidden="true" />;
   }
 
   if (isAuthenticated && (!userGroups || userGroups.length === 0)) {

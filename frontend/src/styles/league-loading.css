@@ -104,20 +104,6 @@
     }
   }
 
-  /*
-   * Cada pantalla, y el esqueleto que la precede, entra con un fundido corto en vez de aparecer de
-   * golpe. Solo al montarse: los datos que se refrescan sobre una pantalla ya pintada no parpadean.
-   */
-  .app-container > * {
-    animation: screen-in 180ms ease-out;
-  }
-
-  @keyframes screen-in {
-    from {
-      opacity: 0;
-    }
-  }
-
   /* Hueco de un control de la cabecera o del menú que depende de datos que aún no han llegado. */
   .chrome-placeholder {
     display: block;
@@ -127,8 +113,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .skeleton::after,
-    .app-container > * {
+    .skeleton::after {
       animation: none;
     }
   }

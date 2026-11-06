@@ -39,6 +39,8 @@ interface LeagueHomeData {
     empty: string;
   };
   standings: { title: string; to: string; rows: MiniStandingRow[] } | null;
+  /** Aún falta la tabla de equipos (o los equipos de la competición personalizada). */
+  loading: boolean;
 }
 
 /** Formato de la liga activa, que decide de dónde salen los partidos y la tabla de la portada. */
@@ -79,7 +81,7 @@ export function useLeagueHomeData(): LeagueHomeData {
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const sortedGroups = useSortedGroups();
 
-  const { data: leagueStandings } = useQuery({
+  const { data: leagueStandings, isLoading: loadingLeagueStandings } = useQuery({
     queryKey: queryKeys.competitionStandings(activeCompetitionId),
     queryFn: () =>
       activeGroupCustomCompetition && groupId != null
@@ -88,13 +90,15 @@ export function useLeagueHomeData(): LeagueHomeData {
     enabled: format === 'matchday' && Boolean(activeCompetitionId),
     staleTime: 120_000,
   });
-  const { data: customTeams } = useQuery({
+  const { data: customTeams, isLoading: loadingCustomTeams } = useQuery({
     queryKey: queryKeys.customTeams(activeGroupId),
     queryFn: () => fetchCustomTeams(groupId!),
     enabled: format === 'custom' && groupId != null,
   });
 
-  return useMemo<LeagueHomeData>(() => {
+  const loading = loadingLeagueStandings || loadingCustomTeams;
+
+  const data = useMemo<Omit<LeagueHomeData, 'loading'>>(() => {
     const logos = logosOf(allGames);
 
     if (format === 'matchday') {
@@ -194,4 +198,6 @@ export function useLeagueHomeData(): LeagueHomeData {
       standings,
     };
   }, [format, allGames, leagueStandings, sortedGroups, customTeams]);
+
+  return useMemo(() => ({ ...data, loading }), [data, loading]);
 }
