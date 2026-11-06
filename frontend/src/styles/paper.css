@@ -377,7 +377,29 @@
     padding-inline: 0;
   }
 
+  /*
+   * Huecos con el alto del podio y del álbum ya pintados: mientras llega la clasificación el
+   * cartel y la página no crecen a saltos.
+   */
+  .landing-hero-podium {
+    min-height: 227px;
+  }
+
+  .landing-sticker-album-slot {
+    min-height: 232px;
+  }
+
+  @media (min-width: 768px) {
+    .landing-hero-podium {
+      min-height: 282px;
+    }
+  }
+
   @media (min-width: 1024px) {
+    .landing-sticker-album-slot {
+      min-height: 224px;
+    }
+
     .landing-sticker-album {
       justify-content: center;
       gap: 0;

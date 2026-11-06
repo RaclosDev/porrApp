@@ -14,10 +14,24 @@ export const SPLASH_FAILSAFE_MS = 6000;
 const FIRST_SCREEN_FONTS = ['1em "Permanent Marker"', '1em Outfit', '1em Inter'];
 
 let leaving = false;
+/** El fundido de salida ya ha empezado: la app se ve y sus animaciones de entrada pueden arrancar. */
+let fading = false;
+const listeners = new Set<() => void>();
 
 /** La pantalla de arranque sigue tapando la app. */
 export function isSplashVisible(): boolean {
   return !leaving && document.getElementById('app-splash') !== null;
+}
+
+/** Ya no hay pantalla de arranque delante, o se está yendo y la app ya se ve. */
+export function isSplashGone(): boolean {
+  return fading || document.getElementById('app-splash') === null;
+}
+
+/** Avisa cuando la pantalla de arranque empieza a irse (para useSyncExternalStore). */
+export function subscribeSplashGone(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
 /** La hoja de Google Fonts ya se ha aplicado (se carga sin bloquear, con media="print"). */
@@ -54,6 +68,8 @@ export function hideSplash(): void {
     // Un fotograma para que el navegador pinte la app debajo antes de empezar el fundido.
     requestAnimationFrame(() => {
       splash.classList.add('is-leaving');
+      fading = true;
+      listeners.forEach((listener) => listener());
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       setTimeout(() => splash.remove(), reduceMotion ? 0 : FADE_MS);
     });

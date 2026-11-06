@@ -22,6 +22,7 @@ export default function MobileBottomNav() {
     userGroupsLoaded,
     isDemoMode,
     loadingGroup,
+    choosingLeague,
   } = useAppContext();
 
   const isDemo = isDemoMode;
@@ -67,7 +68,7 @@ export default function MobileBottomNav() {
 
   // Hasta saber el formato de la liga activa no se sabe qué pestañas lleva: se reserva el hueco en
   // vez de enseñar las de otro formato y cambiarlas al momento.
-  if (loadingGroup && !isDemo) {
+  if ((loadingGroup || choosingLeague) && !isDemo) {
     return (
       <nav
         className="mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 flex items-center justify-around py-0 px-1.5 z-[1000]"
