@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -58,8 +60,13 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     /**
      * Guarda la puntuación calculada de una porra tocando solo las columnas de puntos, para que
      * leer la clasificación nunca pise una predicción guardada a la vez.
+     * <p>
+     * Va en su propia transacción: la clasificación se pide también desde transacciones de solo lectura
+     * («Mis ligas»), donde el UPDATE fallaría y dejaría abortada la transacción de quien llama. No la llames
+     * con la fila bloqueada en la transacción actual: esperaría a sí misma.
      */
     @Modifying
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Query("UPDATE Prediction p SET p.totalPoints = :total, p.r1Points = :r1, p.r32Points = :r32,"
             + " p.r16Points = :r16, p.qfPoints = :qf, p.sfPoints = :sf, p.finalsPoints = :finals,"
             + " p.scorerPoints = :scorer, p.matchPoints = :matchPoints, p.scoreCalculatedAt = :calculatedAt"
