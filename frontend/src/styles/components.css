@@ -199,6 +199,19 @@
     flex-shrink: 0;
   }
 
+  /* Iconos redondos junto al avatar: instalar la app y avisos. */
+  .header-icon-btn {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 9999px;
+    cursor: pointer;
+  }
+
   .nav-links {
     display: flex;
     flex-wrap: nowrap;

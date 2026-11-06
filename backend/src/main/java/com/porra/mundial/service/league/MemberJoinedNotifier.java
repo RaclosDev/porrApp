@@ -1,5 +1,7 @@
 package com.porra.mundial.service.league;
 
+import com.porra.mundial.service.notification.PushMessage;
+import com.porra.mundial.service.notification.PushNotificationLogService;
 import com.porra.mundial.service.notification.WebPushSender;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
@@ -19,6 +21,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +47,7 @@ public class MemberJoinedNotifier {
     private final PushSubscriptionRepository subscriptionRepository;
     private final WebPushSender sender;
     private final ObjectMapper objectMapper;
+    private final PushNotificationLogService notificationLog;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -74,7 +78,8 @@ public class MemberJoinedNotifier {
                 .collect(Collectors.toSet());
         if (recipients.isEmpty()) return 0;
 
-        String payload = payload(league, joined, memberships.size());
+        PushMessage message = message(league, joined, memberships.size());
+        String payload = message.toJson(objectMapper);
         Map<Long, Boolean> delivered = new LinkedHashMap<>();
         for (PushSubscription device : subscriptionRepository.findByUserIdIn(recipients)) {
             Long userId = device.getUser().getId();
@@ -84,18 +89,16 @@ public class MemberJoinedNotifier {
             if (result == WebPushSender.Result.SENT) delivered.put(userId, true);
             if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
         }
+        Instant now = Instant.now();
+        delivered.keySet().forEach(userId -> notificationLog.record(userId, message, now));
         return delivered.size();
     }
 
-    String payload(League league, UserAccount joined, int memberCount) {
+    private PushMessage message(League league, UserAccount joined, int memberCount) {
         String name = joined.getParticipantName() == null || joined.getParticipantName().isBlank()
                 ? "Un nuevo participante" : joined.getParticipantName().trim();
-        Map<String, Object> message = new LinkedHashMap<>();
-        message.put("title", name + " se ha unido a " + league.getName());
-        message.put("body", "Ya sois " + memberCount + " en la liga.");
         // /jornadas cambia a la liga de ?group= y, si no es por jornadas, lleva a su inicio.
-        message.put("url", "/jornadas?group=" + league.getId());
-        message.put("tag", "member-joined-" + league.getId());
-        return objectMapper.writeValueAsString(message);
+        return new PushMessage(name + " se ha unido a " + league.getName(), "Ya sois " + memberCount + " en la liga.",
+                "/jornadas?group=" + league.getId(), "member-joined-" + league.getId());
     }
 }

@@ -1,4 +1,6 @@
 import { UserAvatar } from '../Avatar';
+import InstallAppButton from './InstallAppButton';
+import NotificationBell from './NotificationBell';
 import type { NavigateFunction } from 'react-router-dom';
 
 interface HeaderActionsProps {
@@ -11,12 +13,14 @@ interface HeaderActionsProps {
   setShowProfileMenu: (show: boolean) => void;
   setShowProfileSettings: (show: boolean) => void;
   showProfileMenu: boolean;
+  /** Campana de avisos: solo con sesión real, no en la demo. */
+  showNotificationBell: boolean;
   userAvatarUrl: string;
   userId: string;
   userName: string;
 }
 
-/** Parte derecha de la cabecera: acceso, liga activa y menú de perfil. */
+/** Parte derecha de la cabecera: acceso, instalar la app, avisos y menú de perfil. */
 export default function HeaderActions({
   enterDemoMode,
   isLanding,
@@ -27,6 +31,7 @@ export default function HeaderActions({
   setShowProfileMenu,
   setShowProfileSettings,
   showProfileMenu,
+  showNotificationBell,
   userAvatarUrl,
   userId,
   userName,
@@ -62,6 +67,10 @@ export default function HeaderActions({
         </div>
       ) : (
         <>
+          <InstallAppButton />
+          {showNotificationBell && (
+            <NotificationBell onOpenSettings={() => setShowProfileSettings(true)} />
+          )}
           <button
             id="btn-profile-menu"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
