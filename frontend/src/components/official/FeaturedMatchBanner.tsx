@@ -40,10 +40,9 @@ export default function FeaturedMatchBanner({
   else if (started)
     status = manualResults ? 'Resultado pendiente' : featuredMatch.displayClock || 'En juego';
 
-  const heading =
-    manualResults && started && !featuredMatch.finished
-      ? 'Partido pendiente de resultado'
-      : 'Próximo partido del cuadro';
+  const live = started && !featuredMatch.finished;
+  let heading = 'Próximo partido del cuadro';
+  if (live) heading = manualResults ? 'Partido pendiente de resultado' : 'En directo en el cuadro';
 
   const renderTeam = (name: string, logo: string | null | undefined) => (
     <div className="flex flex-col items-center gap-1.5 min-w-0 text-center">

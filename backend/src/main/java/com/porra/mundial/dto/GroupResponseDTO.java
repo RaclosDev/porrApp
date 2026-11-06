@@ -54,6 +54,8 @@ public class GroupResponseDTO {
     private String imageUrl;
     /** Liga pública: se puede consultar sin ser miembro. */
     private boolean publicLeague;
+    /** Liga con cuota de inscripción. */
+    private boolean entryFee;
 
     /**
      * Vista completa de una liga con los datos de su edición activa.
@@ -72,6 +74,7 @@ public class GroupResponseDTO {
                 .rules(league.getRules())
                 .imageUrl(league.getImageUrl())
                 .publicLeague(league.isPublicLeague())
+                .entryFee(league.isEntryFee())
                 .isLocked(edition != null && edition.isLocked());
         if (edition != null) {
             withEdition(builder, edition)

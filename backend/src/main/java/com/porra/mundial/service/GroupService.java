@@ -202,7 +202,7 @@ public class GroupService {
 
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
-    public League updateGroup(Long groupId, String newName, String newRules, String email) {
+    public League updateGroup(Long groupId, String newName, String newRules, Boolean entryFee, String email) {
         verifyGroupAdmin(groupId, email);
         League group = leagueRepository.findById(groupId)
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
@@ -219,6 +219,14 @@ public class GroupService {
 
         if (newRules != null) {
             group.setRules(newRules.trim());
+            changed = true;
+        }
+
+        if (entryFee != null) {
+            if (entryFee && group.isPublicLeague()) {
+                throw BusinessException.badRequest("Una liga pública no puede tener cuota");
+            }
+            group.setEntryFee(entryFee);
             changed = true;
         }
 
@@ -448,8 +456,8 @@ public class GroupService {
             boolean isAdmin = "ADMIN".equalsIgnoreCase(m.getRole())
                     || (group.getAdminUser() != null && group.getAdminUser().getId().equals(u.getId()));
 
-            // Nunca se envía el email de nadie; una liga pública tampoco publica pagos.
-            String paymentStatus = isPublic ? null
+            // Nunca se envía el email de nadie; una liga pública o sin cuota no muestra pagos.
+            String paymentStatus = isPublic || !group.isEntryFee() ? null
                     : m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING";
 
             list.add(GroupMemberDTO.builder()

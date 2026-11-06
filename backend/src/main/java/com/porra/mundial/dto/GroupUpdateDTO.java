@@ -13,4 +13,7 @@ public class GroupUpdateDTO {
     /** Reglas personalizadas de la liga. Si se omite, no se modifican. */
     @Size(max = 8000, message = "Las reglas son demasiado largas")
     private String rules;
+
+    /** Activa o quita la cuota de inscripción. Si se omite, no se modifica. */
+    private Boolean entryFee;
 }

@@ -301,6 +301,16 @@ export default function GroupsDashboard() {
               prev?.id === selectedGroupForMembers.id ? { ...prev, joinCode: newCode } : prev,
             );
           }}
+          entryFee={
+            selectedGroupForMembers.publicLeague
+              ? undefined
+              : Boolean(selectedGroupForMembers.entryFee)
+          }
+          onEntryFeeChanged={(entryFee) => {
+            setSelectedGroupForMembers((prev) =>
+              prev?.id === selectedGroupForMembers.id ? { ...prev, entryFee } : prev,
+            );
+          }}
           onSaveSettings={async ({ name, rules }) => {
             const ok = await handleSaveGroupConfig(selectedGroupForMembers.id, name, rules);
             if (ok) {

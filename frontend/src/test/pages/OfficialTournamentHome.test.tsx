@@ -35,7 +35,7 @@ const games = [
     awayScore: 1,
     finished: false,
     round: 'qf',
-    date: '2026-11-02T10:00:00Z',
+    date: '2099-11-02T10:00:00Z',
   }),
 ];
 
