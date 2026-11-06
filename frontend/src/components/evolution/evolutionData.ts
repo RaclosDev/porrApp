@@ -85,7 +85,7 @@ const ROUNDS_CLOSED_AFTER_MATCH: Record<number, StagePointsKey[]> = {
   31: ['r1', 'r32', 'r16', 'qf', 'sf', 'finals'],
 };
 
-export interface EvolutionData {
+interface EvolutionData {
   users: ChartUser[];
   yMin: number;
   yMax: number;

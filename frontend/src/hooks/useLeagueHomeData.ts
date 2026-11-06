@@ -15,7 +15,7 @@ import type { Match } from '../types/api';
 const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
 const MINI_TABLE_SIZE = 5;
 
-export type LeagueHomeFormat = 'matchday' | 'custom' | 'worldcup' | 'official';
+type LeagueHomeFormat = 'matchday' | 'custom' | 'worldcup' | 'official';
 
 export interface MiniStandingRow {
   /** Nombre original del equipo: identifica la fila y su escudo. */
@@ -27,7 +27,7 @@ export interface MiniStandingRow {
   value: string;
 }
 
-export interface LeagueHomeData {
+interface LeagueHomeData {
   subtitle: string;
   matches: {
     title: string;

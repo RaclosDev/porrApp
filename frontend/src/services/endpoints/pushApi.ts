@@ -11,7 +11,7 @@ export interface PushConfig {
 
 export type PushPreferences = Pick<PushConfig, 'remindersEnabled' | 'memberJoinedEnabled'>;
 
-export interface PushSubscriptionPayload {
+interface PushSubscriptionPayload {
   endpoint: string;
   p256dh: string;
   auth: string;

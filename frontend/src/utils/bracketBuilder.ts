@@ -3,7 +3,7 @@ import { teamKey } from './teamKey';
 import { alignOfficialRound, nextPools } from './officialBracketLayout';
 
 /** Equipo clasificado según el marcador; provisional si el partido no ha terminado. */
-export type ProvisionalTeam = {
+type ProvisionalTeam = {
   name: string;
   isProvisional: boolean;
 };

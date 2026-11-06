@@ -3,7 +3,7 @@ import { teamKey } from '../utils/teamKey';
 import { useAppContext } from '../context/AppContext';
 import type { TeamOdds, TeamStanding } from '../types/api';
 
-export type TeamWithStats = TeamOdds & { stats: TeamStanding };
+type TeamWithStats = TeamOdds & { stats: TeamStanding };
 
 const EMPTY_STANDING: TeamStanding = { pts: 0, diff: 0, gls: 0, mp: 0, fp: 0, pos: 0, status: 0 };
 

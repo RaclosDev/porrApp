@@ -166,7 +166,7 @@ export function reachLabel(reach: PathStage | null, tense: 'predicted' | 'real')
   }
 }
 
-export interface PickCount {
+interface PickCount {
   team: string;
   count: number;
   percent: number;
@@ -185,7 +185,7 @@ export function rankPicks(entries: BracketEntry[], stage: StageId): PickCount[] 
     .sort((a, b) => b.count - a.count || a.team.localeCompare(b.team, 'es'));
 }
 
-export interface FinalPick {
+interface FinalPick {
   teams: [string, string];
   count: number;
   percent: number;
@@ -217,7 +217,7 @@ const normalizePlayer = (name: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-export interface ScorerPick {
+interface ScorerPick {
   /** La forma de escribirlo que más se repite. */
   name: string;
   count: number;
@@ -395,7 +395,7 @@ export const isRealScorer = (name: string, realScorers: string[]) => {
   return realScorers.some((s) => normalizePlayer(s) === key);
 };
 
-export interface StageAccuracy {
+interface StageAccuracy {
   /** Aciertos medios por cuadro. */
   average: number;
   /** Equipos que tiene la ronda. */
@@ -417,7 +417,7 @@ export function stageAccuracy(
   return { average: hits / entries.length, size: real.size };
 }
 
-export interface GroupWinnerPick {
+interface GroupWinnerPick {
   group: string;
   /** Primero más elegido del grupo. */
   top: PickCount | null;
