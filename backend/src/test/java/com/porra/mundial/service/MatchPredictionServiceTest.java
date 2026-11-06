@@ -430,6 +430,28 @@ class MatchPredictionServiceTest {
     }
 
     @Test
+    @DisplayName("getMatchdayFixtures enseña los partidos de una liga pública a quien no es miembro, como al guardar")
+    void getMatchdayFixtures_PublicLeagueIsOpenToNonMembers() {
+        league.setPublicLeague(true);
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("visita@test.com", 10L)).thenReturn(Optional.empty());
+
+        assertEquals(1, matchPredictionService.getMatchdayFixtures("visita@test.com", 10L, null).size());
+        verify(membershipRepository, never()).existsById(any());
+    }
+
+    @Test
+    @DisplayName("getMatchdayFixtures rechaza a quien no es miembro de una liga privada")
+    void getMatchdayFixtures_PrivateLeagueRejectsNonMembers() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
+
+        assertThrows(BusinessException.class,
+                () -> matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null));
+    }
+
+    @Test
     @DisplayName("getMatchdayFixtures retorna lista vacía cuando la liga no es modalidad MATCH_DAY")
     void getMatchdayFixtures_ReturnsEmptyList_WhenNotMatchDay() {
         Edition bracketEdition = Edition.builder()

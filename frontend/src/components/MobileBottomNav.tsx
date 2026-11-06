@@ -69,7 +69,6 @@ export default function MobileBottomNav() {
       className={`mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 flex items-center justify-around py-0 px-1.5 z-[1000]  ${isNavLocked ? 'opacity-[0.45]' : 'opacity-[1]'} ${isNavLocked ? 'pointer-events-none' : 'pointer-events-auto'}`}
       aria-label="Navegación principal móvil"
       inert={isNavLocked}
-      aria-disabled={isNavLocked || undefined}
       style={
         {
           '--nav-active': indicatorIndex,

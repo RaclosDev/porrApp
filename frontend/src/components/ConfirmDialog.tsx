@@ -16,6 +16,7 @@ export default function ConfirmDialog() {
   return createPortal(
     <div
       className="app-confirm-overlay"
+      role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) answerConfirm(false);
       }}

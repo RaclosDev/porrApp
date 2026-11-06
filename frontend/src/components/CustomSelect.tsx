@@ -165,6 +165,9 @@ export default function CustomSelect({
           className="absolute top-full left-0 right-0 bg-panel bg-none border border-line rounded-[8px] mt-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] z-[100] overflow-hidden"
         >
           {options.map((opt, idx) => (
+            // Patrón combobox de WAI-ARIA: el foco se queda en el combobox y el teclado mueve
+            // aria-activedescendant; el clic en la opción es solo para el ratón.
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/interactive-supports-focus
             <div
               className={`min-h-11 py-2 px-2.5 text-[0.85rem] cursor-pointer flex items-center justify-center gap-2 ${idx === activeIndex || idx === selectedIndex ? 'bg-[color-mix(in_srgb,var(--accent-cyan)_12%,transparent)] bg-none' : 'bg-transparent bg-none'} ${idx === activeIndex ? 'outline outline-1 -outline-offset-1 outline-cyan' : ''} ${idx < options.length - 1 ? 'border-b border-b-line' : 'border-b-0'}`}
               key={idx}
