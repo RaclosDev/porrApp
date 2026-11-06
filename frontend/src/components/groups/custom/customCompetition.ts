@@ -1,4 +1,5 @@
 import type { Match } from '../../../types/api';
+import { formatMatchDate as formatDate } from '../../../utils/matchday';
 
 export type CustomTab = 'summary' | 'teams' | 'matches' | 'results';
 
@@ -20,18 +21,7 @@ const phaseLabel = (match: Match) => {
 };
 
 /** Fecha corta para listas: «sáb 12 oct, 18:00». */
-export const formatMatchDate = (date: string | null) => {
-  if (!date) return 'Sin fecha';
-  const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) return date;
-  return parsed.toLocaleString('es-ES', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
+export const formatMatchDate = (date: string | null) => formatDate(date, 'Sin fecha');
 
 /** Agrupa partidos por fase en orden: grupos, luego rondas del cuadro, cada uno por fecha. */
 export const groupByPhase = (matches: Match[]) => {

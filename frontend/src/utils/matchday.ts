@@ -231,17 +231,19 @@ export function filterFixtures(
   ];
 }
 
-export function formatMatchDate(dateStr: string | null): string {
-  if (!dateStr) return 'Fecha por confirmar';
-  try {
-    return new Date(dateStr).toLocaleDateString('es-ES', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
+/** Fecha corta de un partido: «sáb 12 oct, 18:00». Sin fecha válida, devuelve `missing`. */
+export function formatMatchDate(
+  dateStr: string | null | undefined,
+  missing = 'Fecha por confirmar',
+): string {
+  if (!dateStr) return missing;
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return missing;
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

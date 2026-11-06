@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,7 +42,9 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class JoinPreviewController {
 
-    private static final String BASE_URL = "https://porra.raclos.es";
+    /** Dirección pública de la web; la fija {@code app.public-base-url}. */
+    @Value("${app.public-base-url:https://porra.raclos.es}")
+    private String baseUrl = "https://porra.raclos.es";
     private static final String DEFAULT_TITLE = "Invitación a una porra";
     private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
     private static final String IMAGE_VERSION = "3";
@@ -68,7 +71,7 @@ public class JoinPreviewController {
         String html = new ClassPathResource("static/index.html")
                 .getContentAsString(StandardCharsets.UTF_8);
 
-        String canonicalUrl = BASE_URL + "/join/" + encodePathSegment(code);
+        String canonicalUrl = baseUrl + "/join/" + encodePathSegment(code);
         String title = DEFAULT_TITLE;
         String description = DEFAULT_DESCRIPTION;
         String imageAlt = "Invitación a una porra de PorrApp";
@@ -100,7 +103,7 @@ public class JoinPreviewController {
 
         // Mismo PNG que se adjunta al compartir por WhatsApp, con versión para
         // evitar que WhatsApp reutilice una vista previa antigua en caché.
-        String imageUrl = BASE_URL + "/join/" + encodePathSegment(code) + "/image.png?v=" + imageVersion;
+        String imageUrl = baseUrl + "/join/" + encodePathSegment(code) + "/image.png?v=" + imageVersion;
 
         html = replaceTitle(html, title);
         html = replaceMeta(html, "property", "og:title", title);
@@ -210,7 +213,7 @@ public class JoinPreviewController {
             graphics.drawString("Te han invitado a jugar.", 72, 520);
             graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 22));
             graphics.setColor(INK);
-            graphics.drawString("porra.raclos.es", 944, 520);
+            graphics.drawString(java.net.URI.create(baseUrl).getHost(), 944, 520);
         } finally {
             graphics.dispose();
         }

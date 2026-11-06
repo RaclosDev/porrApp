@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
 import { isLiveMatch } from '../../utils/homeMatches';
+import { formatMatchDate } from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
@@ -23,19 +24,6 @@ function formatKickOff(date: string | null) {
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return 'VS';
   return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatMatchDate(date: string | null) {
-  if (!date) return 'Fecha por confirmar';
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return 'Fecha por confirmar';
-  return d.toLocaleDateString('es-ES', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function PanelHeader({

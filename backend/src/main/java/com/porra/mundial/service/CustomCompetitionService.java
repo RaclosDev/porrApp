@@ -44,12 +44,6 @@ public class CustomCompetitionService {
     /** Margen máximo antes del partido: 30 días. */
     static final int MAX_LOCK_OFFSET_MINUTES = 30 * 24 * 60;
 
-    @Transactional
-    @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)
-    public Instant setLockDate(Long leagueId, String email, Instant lockDate) {
-        return setLockConfig(leagueId, email, PredictionLockMode.FIXED_DATE, 0, lockDate).getLockDate();
-    }
-
     /** Cambia el cierre; si la nueva fecha es posterior, los pronósticos ya cerrados vuelven a abrirse. */
     @Transactional
     @CacheEvict(value = {"userGroups", "groupById", "groupByCode"}, allEntries = true)

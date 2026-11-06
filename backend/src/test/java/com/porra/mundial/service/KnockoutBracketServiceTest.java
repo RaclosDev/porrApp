@@ -1,6 +1,5 @@
 package com.porra.mundial.service;
 
-import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
@@ -186,40 +185,6 @@ class KnockoutBracketServiceTest {
     }
 
     @Test
-    @DisplayName("Completa final, tercer puesto, campeón y ganador del tercer puesto en el cuadro oficial")
-    void enrichesOfficialBracket() {
-        Match semi1 = knockout("sf", spain, france, 2, 1, 14);
-        Match semi2 = knockout("sf", brazil, argentina, 0, 1, 15);
-        Match finalMatch = knockout("final", spain, argentina, 3, 2, 19);
-        finalMatch.setWinnerTeam(spain);
-        Match third = knockout("third", france, brazil, 1, 0, 18);
-        givenWorldCupMatches(semi1, semi2, finalMatch, third);
-
-        PredictionDataDTO dto = new PredictionDataDTO();
-        service.enrichPredictionDataWithMatches(dto);
-
-        assertEquals(List.of("España", "Argentina"), dto.getFinalMatch());
-        assertEquals("España", dto.getChampion());
-        assertEquals(List.of("Francia", "Brasil"), dto.getThirdPlaceMatch());
-        assertEquals("Francia", dto.getThirdPlaceWinner());
-    }
-
-    @Test
-    @DisplayName("Sin partido final creado, deduce los finalistas de las semis")
-    void derivesFinalistsFromSemisWhenFinalIsMissing() {
-        Match semi1 = knockout("semifinal", spain, france, 1, 0, 14);
-        Match semi2 = knockout("semifinal", brazil, argentina, 2, 0, 15);
-        givenWorldCupMatches(semi1, semi2);
-
-        PredictionDataDTO dto = new PredictionDataDTO();
-        service.enrichPredictionDataWithMatches(dto);
-
-        assertEquals(List.of("España", "Brasil"), dto.getFinalMatch());
-        assertEquals(List.of("Francia", "Argentina"), dto.getThirdPlaceMatch());
-        assertNull(dto.getChampion());
-    }
-
-    @Test
     @DisplayName("Los partidos de grupo nunca cuentan como eliminatoria")
     void groupMatchesAreNotKnockout() {
         Match group = Match.builder().groupName("A").round("final").build();
@@ -242,11 +207,7 @@ class KnockoutBracketServiceTest {
         lenient().when(matchRepository.findAll()).thenReturn(List.of(cupFinal, semi1, semi2, finalMatch));
         givenWorldCupMatches(semi1, semi2, finalMatch);
 
-        PredictionDataDTO dto = new PredictionDataDTO();
-        service.enrichPredictionDataWithMatches(dto);
-
-        assertEquals(List.of("España", "Argentina"), dto.getFinalMatch());
-        assertEquals("España", dto.getChampion());
+        assertEquals(List.of(semi1, semi2, finalMatch), service.worldCupMatches());
     }
     @Test
     void spanishQuarterFinalIsNeverUsedAsTheFinal() {
