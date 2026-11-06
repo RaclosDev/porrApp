@@ -14,6 +14,10 @@ vi.mock('../../services/api', () => ({
   completeProfileSetup: vi.fn(),
   deleteMyAccount: vi.fn(),
   exportMyData: vi.fn(),
+  fetchPasskeys: vi.fn().mockResolvedValue([]),
+  startPasskeyRegistration: vi.fn(),
+  finishPasskeyRegistration: vi.fn(),
+  deletePasskey: vi.fn(),
   fetchPushConfig: vi
     .fn()
     .mockResolvedValue({ publicKey: null, remindersEnabled: true, memberJoinedEnabled: true }),

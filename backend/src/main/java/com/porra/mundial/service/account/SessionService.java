@@ -4,6 +4,7 @@ import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.model.RefreshToken;
 import com.porra.mundial.model.RefreshTokenFamily;
 import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.repository.PasskeyChallengeRepository;
 import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.RefreshTokenRepository;
 import com.porra.mundial.repository.SessionHandoffRepository;
@@ -64,6 +65,7 @@ public class SessionService {
     private final RefreshTokenFamilyRepository familyRepository;
     private final RefreshTokenRepository tokenRepository;
     private final SessionHandoffRepository handoffRepository;
+    private final PasskeyChallengeRepository passkeyChallengeRepository;
     private final JwtUtil jwtUtil;
 
     /** Abre una sesión nueva para el usuario. */
@@ -136,7 +138,8 @@ public class SessionService {
 
     /**
      * Borra cada noche las sesiones caducadas, que ya no sirven ni para detectar reutilizaciones,
-     * los tokens rotados hace más de {@link #REUSE_DETECTION_WINDOW} y los traspasos caducados.
+     * los tokens rotados hace más de {@link #REUSE_DETECTION_WINDOW}, los traspasos caducados y los
+     * retos de llaves de acceso que nadie completó.
      */
     @Scheduled(cron = "0 15 4 * * *")
     @SchedulerLock(name = "sessionCleanup", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
@@ -149,6 +152,7 @@ public class SessionService {
         }
         tokenRepository.deleteRotatedBefore(now.minus(REUSE_DETECTION_WINDOW));
         handoffRepository.deleteExpired(now);
+        passkeyChallengeRepository.deleteExpired(now);
     }
 
     /** Caducidad tras usar la sesión en {@code now}: el plazo de inactividad, sin pasar del tope. */

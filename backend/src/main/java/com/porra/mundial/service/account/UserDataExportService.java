@@ -7,6 +7,7 @@ import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.repository.PasskeyRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.repository.PushNotificationLogRepository;
 import com.porra.mundial.repository.PushSubscriptionRepository;
@@ -32,6 +33,7 @@ public class UserDataExportService {
     private final MatchPredictionRepository matchPredictionRepository;
     private final PushSubscriptionRepository pushSubscriptionRepository;
     private final PushNotificationLogRepository pushNotificationLogRepository;
+    private final PasskeyRepository passkeyRepository;
 
     @Transactional(readOnly = true)
     public UserDataExport export(String email) {
@@ -74,6 +76,10 @@ public class UserDataExportService {
                 .map(n -> new UserDataExport.SentNotification(n.getTitle(), n.getBody(), n.getSentAt()))
                 .toList();
 
-        return new UserDataExport(Instant.now(), profile, leagues, predictionExports, devices, notifications);
+        var passkeys = passkeyRepository.findByUserIdOrderByCreatedAtAsc(user.getId()).stream()
+                .map(p -> new UserDataExport.PasskeyExport(p.getName(), p.getCreatedAt(), p.getLastUsedAt()))
+                .toList();
+
+        return new UserDataExport(Instant.now(), profile, leagues, predictionExports, devices, notifications, passkeys);
     }
 }
