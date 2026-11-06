@@ -1,8 +1,5 @@
-import { createPortal } from 'react-dom';
-import DialogBackdrop from '../DialogBackdrop';
-import { useEffect, useRef } from 'react';
-import { UserAvatar } from '../Avatar';
-import { useDialogFocus } from '../../hooks/useDialogFocus';
+import SheetDialog from '../SheetDialog';
+import { PeopleList } from '../PeopleListDialog';
 import type { MatchVoters } from '../../types/api';
 
 interface MatchVotersModalProps {
@@ -22,20 +19,6 @@ export default function MatchVotersModal({
   onClose,
   twoWay = false,
 }: MatchVotersModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const open = voters != null;
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open]);
-
-  useDialogFocus(dialogRef, { active: open, onEscape: onClose });
-
   if (!voters) return null;
 
   const groups = [
@@ -44,60 +27,30 @@ export default function MatchVotersModal({
     { key: 'away', sign: '2', title: `Gana ${awayTeam}`, list: voters.away },
   ].filter(({ key }) => !twoWay || key !== 'draw');
 
-  return createPortal(
-    <DialogBackdrop className="friends-predictions-overlay" onDismiss={onClose}>
-      <div
-        className="friends-predictions-panel paper-panel landing-tape paper-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="match-voters-title"
-        ref={dialogRef}
-        tabIndex={-1}
-      >
-        <div className="friends-predictions-head">
-          <h2 id="match-voters-title" className="friends-predictions-title">
-            {homeTeam} - {awayTeam}
-          </h2>
-          <button
-            type="button"
-            className="friends-predictions-close"
-            onClick={onClose}
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="friends-predictions-list">
-          {groups.map(({ key, sign, title, list }) => (
-            <section key={key} className="match-voters-group" aria-label={`${sign} · ${title}`}>
-              <h3 className="match-voters-heading">
-                <span className="match-voters-sign">{sign}</span>
-                <span className="min-w-0 truncate">{title}</span>
-                <span className="match-voters-count">{list.length}</span>
-              </h3>
-              {list.length === 0 ? (
-                <p className="text-muted text-[0.85rem] m-0">Nadie</p>
-              ) : (
-                <ul className="match-voters-list">
-                  {list.map((voter) => (
-                    <li key={voter.userId}>
-                      <UserAvatar
-                        url={voter.avatarUrl}
-                        userId={voter.userId}
-                        name={voter.name}
-                        size={28}
-                      />
-                      <span className="min-w-0 truncate">{voter.name}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ))}
-        </div>
+  return (
+    <SheetDialog title={`${homeTeam} - ${awayTeam}`} onClose={onClose}>
+      <div className="sheet-dialog-body">
+        {groups.map(({ key, sign, title, list }) => (
+          <section key={key} className="match-voters-group" aria-label={`${sign} · ${title}`}>
+            <h3 className="match-voters-heading">
+              <span className="match-voters-sign">{sign}</span>
+              <span className="min-w-0 truncate">{title}</span>
+              <span className="match-voters-count">{list.length}</span>
+            </h3>
+            {list.length === 0 ? (
+              <p className="sheet-dialog-status">Nadie</p>
+            ) : (
+              <PeopleList
+                people={list.map((voter) => ({
+                  userId: voter.userId,
+                  name: voter.name,
+                  avatarUrl: voter.avatarUrl,
+                }))}
+              />
+            )}
+          </section>
+        ))}
       </div>
-    </DialogBackdrop>,
-    document.body,
+    </SheetDialog>
   );
 }
