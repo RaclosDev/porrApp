@@ -7,6 +7,7 @@ import { isLiveMatch } from '../../utils/homeMatches';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import LeagueRulesModal from '../LeagueRulesModal';
+import LeagueParticipantsDialog from '../league/LeagueParticipantsDialog';
 import InkStamp from '../InkStamp';
 import { VoterStack } from '../voters/SignVoters';
 import MatchVotersModal from '../voters/MatchVotersModal';
@@ -202,6 +203,7 @@ export default function LeagueHomeDashboard() {
   const { subtitle, matches, standings } = useLeagueHomeData();
   const navigate = useNavigate();
   const [showRules, setShowRules] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
   const [votersMatch, setVotersMatch] = useState<Match | null>(null);
   // El servidor solo devuelve los partidos ya cerrados: los abiertos siguen ocultos. En las ligas de
   // cuadro cada uno aparece bajo el equipo que pasa en su pronóstico, sin empate.
@@ -234,6 +236,13 @@ export default function LeagueHomeDashboard() {
         twoWay={twoWayVoters}
         onClose={() => setVotersMatch(null)}
       />
+      {showParticipants && activeGroupId && (
+        <LeagueParticipantsDialog
+          groupId={activeGroupId}
+          groupName={activeGroupName || 'Mi Porra'}
+          onClose={() => setShowParticipants(false)}
+        />
+      )}
       {showRules && (
         <LeagueRulesModal
           group={{ id: activeGroupId, name: activeGroupName, rules: activeGroupRules }}
@@ -246,11 +255,21 @@ export default function LeagueHomeDashboard() {
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
           <div className="home-hero-pills">
             {showCompetition && <span className="home-hero-pill">{activeCompetitionName}</span>}
-            <span className="home-hero-pill muted">
-              {participantCount > 0
-                ? `${participantCount} ${participantCount === 1 ? 'participante' : 'participantes'}`
-                : subtitle}
-            </span>
+            {participantCount > 0 && activeGroupId ? (
+              <button
+                type="button"
+                className="home-hero-pill-btn"
+                onClick={() => setShowParticipants(true)}
+                aria-haspopup="dialog"
+                aria-label={`${participantCount} ${participantCount === 1 ? 'participante' : 'participantes'}: ver la lista`}
+              >
+                <span className="home-hero-pill muted">
+                  {participantCount} {participantCount === 1 ? 'participante' : 'participantes'}
+                </span>
+              </button>
+            ) : (
+              <span className="home-hero-pill muted">{subtitle}</span>
+            )}
           </div>
         </div>
         <button type="button" className="home-rules-btn" onClick={() => setShowRules(true)}>
