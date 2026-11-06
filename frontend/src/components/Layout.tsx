@@ -17,6 +17,7 @@ import { useAnalyticsConsentPending } from './layout/CookieConsent';
 import LoginModal from './layout/LoginModal';
 import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
+import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -61,6 +62,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const showInstallBanner = !installBannerDismissed && installState === 'native' && !consentPending;
 
   const isUserLoggedIn = isAuthenticated && Boolean(userName);
+  const sessionPending = useSessionHandoffPending();
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
@@ -193,6 +195,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             enterDemoMode={enterDemoMode}
             isLanding={isLanding}
             isUserLoggedIn={isUserLoggedIn}
+            sessionPending={sessionPending}
             navigate={navigate}
             onLogout={() => {
               logout();

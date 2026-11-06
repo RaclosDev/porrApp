@@ -115,6 +115,7 @@ function isIosHomeScreenApp(): boolean {
  */
 async function redeemHandoff(epoch: number): Promise<SessionRestore> {
   if (!isIosHomeScreenApp() || localStorage.getItem(HANDOFF_CHECKED_KEY)) return 'none';
+  redeemingHandoff = true;
   try {
     const token = await withSessionLock(async () => {
       const res = await send(`${SESSION_PATH}/handoff`, { method: 'POST' }, null);
@@ -129,7 +130,19 @@ async function redeemHandoff(epoch: number): Promise<SessionRestore> {
     return token ? 'restored' : 'none';
   } catch {
     return currentSession(epoch) ? 'unreachable' : 'superseded';
+  } finally {
+    redeemingHandoff = false;
   }
+}
+
+let redeemingHandoff = false;
+
+/**
+ * La app instalada está canjeando el traspaso de sesión al arrancar: aún no se sabe si hay cuenta,
+ * así que no conviene enseñar la portada de visitante. Acaba cuando resuelve {@link initSession}.
+ */
+export function isRedeemingHandoff(): boolean {
+  return redeemingHandoff;
 }
 
 /**

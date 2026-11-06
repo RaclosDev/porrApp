@@ -8,6 +8,7 @@ export {
   setAuthToken,
   initSession,
   whenSessionRestored,
+  isRedeemingHandoff,
   endSession,
   prepareSessionHandoff,
   loginWithGoogle,
