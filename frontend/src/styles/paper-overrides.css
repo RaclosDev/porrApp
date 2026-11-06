@@ -29,6 +29,18 @@
     box-shadow: none;
   }
 
+  /* El botón principal de la cabecera es papel con tinta: sin este fondo, la tinta no se ve. */
+  .top-bar .glass-btn.primary-btn {
+    background: var(--paper);
+    border-color: var(--paper);
+    color: var(--ink);
+  }
+
+  .top-bar .glass-btn.primary-btn:hover:not(:disabled) {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
+
   .top-bar .nav-links a {
     border: 1px solid transparent;
     color: var(--paper);

@@ -588,7 +588,7 @@
     }
   }
 
-  /* Hasta escritorio ancho, la llamada a rellenar la porra se acorta a «Mi porra». */
+  /* Hasta escritorio ancho, la llamada a rellenar la porra se acorta a «Rellenar». */
   .header-porra-cta-short {
     display: none;
   }

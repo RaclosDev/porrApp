@@ -167,12 +167,12 @@ function Layout({ children }: { children: React.ReactNode }) {
                     className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
                     onClick={() => navigate('/prediction')}
                     disabled={isNavLocked}
-                    aria-label="Completar mi porra"
-                    title="Completar mi porra"
+                    aria-label="Rellenar mi porra"
+                    title="Rellenar mi porra"
                   >
-                    <span className="header-porra-cta-label">Completar mi porra</span>
+                    <span className="header-porra-cta-label">Rellenar mi porra</span>
                     <span className="header-porra-cta-short" aria-hidden="true">
-                      Mi porra
+                      Rellenar
                     </span>
                   </button>
                 )}
