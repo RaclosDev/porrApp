@@ -76,7 +76,7 @@ class MemberJoinedNotifierTest {
         verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt());
         verify(sender).send(eq("https://push.test/l"), anyString(), anyString(), anyString(), anyInt());
         verify(sender, never()).send(eq("https://push.test/n"), anyString(), anyString(), anyString(), anyInt());
-        verify(notificationLog).record(eq(1L), argThat(m -> m.title().equals("Pepe se ha unido a Los del barrio")), any());
+        verify(notificationLog).record(eq(1L), argThat(m -> m.body().startsWith("Pepe se ha unido a Los del barrio")), any());
         verify(notificationLog).record(eq(2L), any(), any());
         verify(notificationLog, never()).record(eq(4L), any(), any());
     }
@@ -131,8 +131,8 @@ class MemberJoinedNotifierTest {
         verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), payload.capture(), anyInt());
         @SuppressWarnings("unchecked")
         Map<String, Object> message = json.readValue(payload.getValue(), Map.class);
-        assertThat(message).containsEntry("title", "Pepe se ha unido a Los del barrio")
-                .containsEntry("body", "Ya sois 4 en la liga.")
+        assertThat(message).containsEntry("title", "Nuevo miembro en tu liga")
+                .containsEntry("body", "Pepe se ha unido a Los del barrio. Ya sois 4.")
                 .containsEntry("url", "/jornadas?group=5")
                 .containsEntry("tag", "member-joined-5");
     }
