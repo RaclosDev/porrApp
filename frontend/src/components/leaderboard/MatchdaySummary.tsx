@@ -11,19 +11,22 @@ interface MatchdaySummaryProps {
   matchdays: MatchdayPoints[];
   selectedLabel: string | null;
   myPoints: number;
+  /** Tu puesto en la jornada; null mientras nadie ha puntuado. */
+  myRank: number | null;
   canGoPrev: boolean;
   canGoNext: boolean;
   onSelect: (label: string) => void;
   onStep: (step: -1 | 1) => void;
 }
 
-/** Cabecera de la clasificación por jornadas: estado, selector y puntos propios. */
+/** Cabecera de la clasificación por jornadas: estado, tus puntos y puesto, y selector. */
 export default function MatchdaySummary({
   matchday,
   selected,
   matchdays,
   selectedLabel,
   myPoints,
+  myRank,
   canGoPrev,
   canGoNext,
   onSelect,
@@ -46,15 +49,32 @@ export default function MatchdaySummary({
             <CalendarDays size={14} aria-hidden="true" />
             {selected?.current ? 'Jornada actual' : 'Jornada seleccionada'}
           </span>
+          <strong className="lb-matchday-title">{displayRoundLabel(matchday.label)}</strong>
           <div className="lb-matchday-title-row">
-            <strong className="lb-matchday-title">{displayRoundLabel(matchday.label)}</strong>
             <span className={`lb-matchday-status is-${status.tone}`}>{status.text}</span>
+            {matchday.matchCount > 0 && (
+              <span className="lb-matchday-meta">
+                {matchday.matchCount} {matchday.matchCount === 1 ? 'partido' : 'partidos'}
+              </span>
+            )}
           </div>
-          {matchday.matchCount > 0 && (
-            <span className="lb-matchday-meta">
-              {matchday.matchCount} {matchday.matchCount === 1 ? 'partido' : 'partidos'}
-            </span>
-          )}
+        </div>
+        <div className="lb-matchday-aside">
+          <span
+            className="lb-matchday-me"
+            aria-label={`Tus puntos en esta jornada: ${myPoints}${myRank ? `, puesto ${myRank}` : ''}`}
+          >
+            <strong>{myPoints}</strong> pts
+            {myRank && <span className="lb-matchday-rank">{myRank}º</span>}
+          </span>
+          <Link
+            to="/stats"
+            className="lb-matchday-stats"
+            aria-label="Estadísticas por partido"
+            title="Estadísticas por partido"
+          >
+            <BarChart3 size={18} aria-hidden="true" />
+          </Link>
         </div>
       </div>
 
@@ -92,14 +112,6 @@ export default function MatchdaySummary({
         >
           <ChevronRight size={18} aria-hidden="true" />
         </button>
-      </div>
-      <div className="lb-matchday-footer">
-        <span>
-          Tus puntos en esta jornada <strong>{myPoints}</strong>
-        </span>
-        <Link to="/stats" aria-label="Estadísticas por partido">
-          <BarChart3 size={16} aria-hidden="true" /> Estadísticas
-        </Link>
       </div>
     </div>
   );

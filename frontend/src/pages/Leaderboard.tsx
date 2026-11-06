@@ -8,6 +8,7 @@ import MatchdaySummary from '../components/leaderboard/MatchdaySummary';
 import ShareImageTemplate from '../components/leaderboard/ShareImageTemplate';
 import { leaderboardColumns } from '../components/leaderboard/leaderboardColumns';
 import { useLeaderboard, type LeaderboardRow } from '../hooks/useLeaderboard';
+import { displayRoundLabel } from '../utils/matchday';
 
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 
@@ -61,6 +62,8 @@ function Leaderboard() {
     sharing,
     handleShare,
     validResults,
+    generalValidResults,
+    generalLowestPaidRank,
     sortColumn,
     sortDirection,
     handleSort,
@@ -72,6 +75,7 @@ function Leaderboard() {
     canGoPrevMatchday,
     canGoNextMatchday,
     handleSelectMatchday,
+    handleRankingView,
     handleStepMatchday,
   } = useLeaderboard();
 
@@ -93,6 +97,9 @@ function Leaderboard() {
     selectedMatchday,
   });
   const summaryMatchday = selectedMatchdayInfo || currentMatchday;
+  // Clasificación de la jornada elegida en vez de la general (se activa al cambiar de jornada).
+  const byMatchday = isMatchday && Boolean(summaryMatchday) && sortColumn === 'matchday';
+  const matchdayName = summaryMatchday ? displayRoundLabel(summaryMatchday.label) : '';
   const openRow = (row: LeaderboardRow) => {
     if (isMatchday) navigate('/jornadas');
     else state.setViewerPredictionId(row.id ?? null);
@@ -208,6 +215,7 @@ function Leaderboard() {
                 matchdays={matchdays}
                 selectedLabel={selectedMatchday}
                 myPoints={matchdayStats?.myPoints ?? 0}
+                myRank={matchdayStats?.myRank ?? null}
                 canGoPrev={canGoPrevMatchday}
                 canGoNext={canGoNextMatchday}
                 onSelect={handleSelectMatchday}
@@ -223,10 +231,35 @@ function Leaderboard() {
                 {isMatchday && (
                   <>
                     <div className="matchday-ranking-heading">
-                      <h2 className="poster-title">Clasificación general</h2>
+                      <h2 className="poster-title">
+                        {byMatchday ? `Clasificación · ${matchdayName}` : 'Clasificación general'}
+                      </h2>
                       {shareButton('matchday-ranking-share', 18)}
                     </div>
-                    <MatchdayPodium rows={results} />
+                    {summaryMatchday && (
+                      <div className="md-filters matchday-ranking-toggle">
+                        {(['general', 'matchday'] as const).map((view) => (
+                          <button
+                            key={view}
+                            type="button"
+                            aria-pressed={byMatchday === (view === 'matchday')}
+                            onClick={() => handleRankingView(view)}
+                            className={`md-filter${byMatchday === (view === 'matchday') ? ' is-active' : ''}`}
+                          >
+                            {view === 'general' ? 'General' : matchdayName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <MatchdayPodium
+                      rows={results}
+                      by={byMatchday ? 'matchday' : 'total'}
+                      label={
+                        byMatchday
+                          ? `Podio de la ${matchdayName}`
+                          : 'Podio de la clasificación general'
+                      }
+                    />
                     {!summaryMatchday && (
                       <Link className="ranking-secondary-link" to="/stats">
                         Estadísticas por partido
@@ -263,10 +296,10 @@ function Leaderboard() {
       </div>
 
       <ShareImageTemplate
-        rows={validResults}
+        rows={generalValidResults}
         competitionName={state.activeCompetitionName}
         leagueName={activeGroupName}
-        lowestPaidRank={lowestPaidRank}
+        lowestPaidRank={generalLowestPaidRank}
         userId={userId}
         userName={userName}
       />

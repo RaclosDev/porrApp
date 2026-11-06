@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import RoundParticipants from '../../../components/voters/RoundParticipants';
+import RoundParticipants, { avatarsThatFit } from '../../../components/voters/RoundParticipants';
 import type { MatchVoter } from '../../../types/api';
 
 const member = (userId: number, name = `Miembro ${userId}`): MatchVoter => ({
@@ -31,12 +31,15 @@ describe('RoundParticipants', () => {
       name: '6 miembros ya han hecho su predicción: Ana, Bea, Carla, Miembro 4, Miembro 5 y Miembro 6. Ver la lista',
     });
     expect(button.querySelectorAll('.round-participants-avatar')).toHaveLength(4);
-    expect(button.querySelectorAll('.round-participants-avatar.is-wide-only')).toHaveLength(2);
-    expect(button.querySelector('.round-participants-more.is-compact-only')).toHaveTextContent(
-      '+4',
-    );
-    expect(button.querySelector('.round-participants-more.is-wide-only')).toHaveTextContent('+2');
+    expect(button.querySelector('.round-participants-more')).toHaveTextContent('+2');
     expect(button.querySelector('[title="Ana"]')).not.toBeNull();
+  });
+
+  it('pinta tantas caras como caben a lo ancho y resume el resto', () => {
+    expect(avatarsThatFit(300, 9)).toBe(9);
+    expect(avatarsThatFit(120, 9)).toBe(3);
+    expect(avatarsThatFit(40, 9)).toBe(1);
+    expect(avatarsThatFit(30, 1)).toBe(1);
   });
 
   it('abre la lista con los nombres y la cierra con Escape', () => {
