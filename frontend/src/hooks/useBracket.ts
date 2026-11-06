@@ -1,4 +1,5 @@
 import toast from 'react-hot-toast';
+import { teamKey } from '../utils/teamKey';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { createPrediction, fetchMyPredictions, getAuthToken } from '../services/api';
@@ -116,15 +117,11 @@ export function useBracket() {
       });
     });
     Object.keys(firstPlace).forEach((g) => {
-      const orig = (groupOdds?.[g] || []).find(
-        (t) => t.name.replace(/[.#$[\]]/g, '') === firstPlace[g],
-      );
+      const orig = (groupOdds?.[g] || []).find((t) => teamKey(t.name) === firstPlace[g]);
       if (orig) firstPlace[g] = orig.name;
     });
     Object.keys(secondPlace).forEach((g) => {
-      const orig = (groupOdds?.[g] || []).find(
-        (t) => t.name.replace(/[.#$[\]]/g, '') === secondPlace[g],
-      );
+      const orig = (groupOdds?.[g] || []).find((t) => teamKey(t.name) === secondPlace[g]);
       if (orig) secondPlace[g] = orig.name;
     });
     if (!Object.keys(firstPlace).length && !Object.keys(secondPlace).length) return;
@@ -437,7 +434,7 @@ export function useBracket() {
       if (!groupOdds[groupName]) continue;
       const isInGroup = groupOdds[groupName].some((t) => t.name === teamName);
       if (!isInGroup) continue;
-      const safeKey = teamName.replace(/[.#$[\]]/g, '');
+      const safeKey = teamKey(teamName);
       const officialData = officialPoints[groupName][safeKey];
       if (typeof officialData === 'object' && officialData !== null) {
         return officialData.status || 0;
