@@ -268,7 +268,7 @@ export default function LeagueHomeDashboard() {
       {pending > 0 && (
         <button
           type="button"
-          className="paper-panel album-sheet w-full flex items-center justify-between gap-3 px-4 py-3 mb-4.5 text-left cursor-pointer text-inherit font-[inherit] border-0"
+          className="paper-panel album-sheet w-full flex items-center justify-between gap-3 px-4 py-3 mb-4.5 text-left cursor-pointer font-[inherit] border-0"
           onClick={() => navigate(matches.to)}
         >
           <span className="font-bold text-[var(--stamp-red)]">
