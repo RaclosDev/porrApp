@@ -106,17 +106,6 @@
     text-decoration: underline;
   }
 
-  .people-list-badge {
-    flex-shrink: 0;
-    margin-left: auto;
-    padding: 1px 6px;
-    border: 1px solid var(--ink, currentColor);
-    border-radius: 999px;
-    font-size: 0.68rem;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
   /* Cabecera con algo entre el título y «Ver todo»: cuántas caras caben depende de su anchura. */
   .home-list-header.has-extra {
     container-type: inline-size;

@@ -38,42 +38,6 @@
     animation: friends-predictions-in 0.22s ease-out;
   }
 
-  .friends-predictions-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid rgba(17, 24, 39, 0.07);
-  }
-
-  .friends-predictions-title {
-    margin: 4px 0 0;
-    color: var(--text-main);
-    font-family: 'Outfit', sans-serif;
-    font-size: 1.2rem;
-    line-height: 1.15;
-  }
-
-  .friends-predictions-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    flex: 0 0 44px;
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    background: rgba(17, 24, 39, 0.05);
-    color: var(--text-main);
-    font-size: 0.95rem;
-    cursor: pointer;
-  }
-
-  .friends-predictions-close:hover {
-    background: rgba(17, 24, 39, 0.12);
-  }
-
   .friends-predictions-match {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -356,14 +320,6 @@
       border-bottom: 0;
     }
 
-    .friends-predictions-head {
-      padding: 14px 16px 12px;
-    }
-
-    .friends-predictions-title {
-      font-size: 1.05rem;
-    }
-
     .friends-predictions-match {
       gap: 8px;
       padding: 14px 16px 8px;
@@ -499,22 +455,5 @@
   .match-voters-count {
     margin-left: auto;
     font-weight: 800;
-  }
-
-  .match-voters-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .match-voters-list li {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    font-size: 0.9rem;
   }
 }

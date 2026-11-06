@@ -167,7 +167,6 @@
   .album-sheet-title,
   .standings-title,
   .league-admin-title,
-  .friends-predictions-title,
   .home-hero-title,
   .md-page-header h1,
   .home-list-header h2 {
@@ -192,8 +191,7 @@
     min-height: 0;
   }
 
-  .paper-panel .league-admin-title,
-  .paper-panel .friends-predictions-title {
+  .paper-panel .league-admin-title {
     color: var(--ink);
   }
 
