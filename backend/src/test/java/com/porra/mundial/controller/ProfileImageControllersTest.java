@@ -5,8 +5,8 @@ import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.UserAccount;
-import com.porra.mundial.service.ProfileImageService;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.account.ProfileImageService;
+import com.porra.mundial.service.notification.WebSocketService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -28,7 +28,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest({GroupImageController.class, UserProfileController.class})
+@WebMvcTest({LeagueImageController.class, UserProfileController.class})
 @AutoConfigureMockMvc(addFilters = false)
 class ProfileImageControllersTest {
 

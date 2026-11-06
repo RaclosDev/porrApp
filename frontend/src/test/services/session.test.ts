@@ -5,7 +5,9 @@ import {
   fetchStandings,
   getAuthToken,
   initSession,
+  isRedeemingHandoff,
   loginWithGoogle,
+  prepareSessionHandoff,
   setAuthToken,
   updateMyProfile,
 } from '../../services/api';
@@ -300,78 +302,167 @@ describe('sesión con refresh token', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('cambia el JWT antiguo de localStorage por una sesión nueva y lo borra', async () => {
-    localStorage.setItem('token', 'jwt-de-7-dias');
-    const fetchMock = stubFetch((url) =>
-      url === '/api/auth/session/exchange' ? json(200, { token: 'access-nuevo' }) : json(404),
-    );
+  describe('primera apertura de la app instalada en iPhone', () => {
+    const asHomeScreenApp = (standalone: boolean) =>
+      Object.defineProperty(navigator, 'standalone', { configurable: true, value: standalone });
+    afterEach(() => {
+      delete (navigator as Navigator & { standalone?: boolean }).standalone;
+    });
 
-    await expect(initSession()).resolves.toBe('restored');
+    it('canjea el traspaso de Safari por una sesión propia, una sola vez', async () => {
+      asHomeScreenApp(true);
+      const fetchMock = stubFetch((url, init) => {
+        if (url === '/api/auth/session/handoff') return json(200, { token: 'de-la-app' });
+        return authHeader(init) === 'Bearer de-la-app' ? json(200, {}) : json(401);
+      });
 
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/auth/session/exchange');
-    expect(init?.method).toBe('POST');
-    expect(authHeader(init)).toBe('Bearer jwt-de-7-dias');
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(getAuthToken()).toBe('access-nuevo');
+      const restored = initSession();
+      // Mientras se canjea no se sabe si hay cuenta: la app no enseña la portada de visitante.
+      expect(isRedeemingHandoff()).toBe(true);
+      const standings = fetchStandings();
+
+      await expect(restored).resolves.toBe('restored');
+      expect(isRedeemingHandoff()).toBe(false);
+      await standings;
+      expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+        '/api/auth/session/handoff',
+        '/api/standings',
+      ]);
+      // El código va en su cookie: ni en la URL ni en una cabecera.
+      expect(authHeader(fetchMock.mock.calls[0][1])).toBeUndefined();
+      expect(fetchMock.mock.calls[0][1]?.method).toBe('POST');
+      expect(getAuthToken()).toBe('de-la-app');
+      expect(localStorage.getItem('has_session')).toBe('1');
+
+      // Las siguientes aperturas ya tienen sesión y solo la renuevan.
+      fetchMock.mockClear();
+      stubFetch((url) =>
+        url === '/api/auth/session/refresh' ? json(200, { token: 'renovado' }) : json(401),
+      );
+      await expect(initSession()).resolves.toBe('restored');
+    });
+
+    it('un código gastado o caducado deja la app sin sesión, sin error y sin reintentos', async () => {
+      asHomeScreenApp(true);
+      const fetchMock = stubFetch(() =>
+        json(401, { error: 'No hay ninguna sesión que traspasar.' }),
+      );
+
+      await expect(initSession()).resolves.toBe('none');
+      expect(getAuthToken()).toBeNull();
+
+      await expect(initSession()).resolves.toBe('none');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('sin conexión lo vuelve a intentar en la próxima apertura', async () => {
+      asHomeScreenApp(true);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))),
+      );
+      await expect(initSession()).resolves.toBe('unreachable');
+
+      const fetchMock = stubFetch(() => json(200, { token: 'de-la-app' }));
+      await expect(initSession()).resolves.toBe('restored');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('en el navegador no intenta ningún traspaso', async () => {
+      asHomeScreenApp(false);
+      const fetchMock = stubFetch(() => json(200, { token: 'x' }));
+
+      await expect(initSession()).resolves.toBe('none');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 
-  it('si el JWT antiguo ya no vale, lo borra y prueba con la cookie', async () => {
-    localStorage.setItem('token', 'caducado');
+  it('el traspaso se prepara con el access token y, si ha caducado, tras renovarlo', async () => {
+    setAuthToken('caducado');
+    const fetchMock = stubFetch((url, init) => {
+      if (url === '/api/auth/session/refresh') return json(200, { token: 'nuevo' });
+      return authHeader(init) === 'Bearer nuevo'
+        ? json(200, { expiresInSeconds: 1800 })
+        : json(401);
+    });
+
+    await expect(prepareSessionHandoff()).resolves.toBe(true);
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/auth/handoff',
+      '/api/auth/session/refresh',
+      '/api/auth/handoff',
+    ]);
+  });
+
+  it('si no se puede preparar el traspaso, no pasa nada', async () => {
+    stubFetch(() => json(401));
+    await expect(prepareSessionHandoff()).resolves.toBe(false);
+  });
+
+  it('borra el JWT antiguo de localStorage sin enviarlo al servidor', async () => {
+    localStorage.setItem('token', 'jwt-de-7-dias');
+    const fetchMock = stubFetch(() => json(200));
+
+    await expect(initSession()).resolves.toBe('none');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(localStorage.getItem('token')).toBeNull();
+  });
+
+  it('con un JWT antiguo y sesión con cookie, solo usa la cookie', async () => {
+    localStorage.setItem('token', 'jwt-de-7-dias');
+    localStorage.setItem('has_session', '1');
     const fetchMock = stubFetch((url) =>
-      url === '/api/auth/session/refresh' ? json(200, { token: 'de-la-cookie' }) : json(401),
+      url === '/api/auth/session/refresh' ? json(200, { token: 'de-la-cookie' }) : json(404),
     );
 
     await expect(initSession()).resolves.toBe('restored');
 
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      '/api/auth/session/exchange',
-      '/api/auth/session/refresh',
-    ]);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/api/auth/session/refresh']);
+    expect(authHeader(fetchMock.mock.calls[0][1])).toBeUndefined();
     expect(localStorage.getItem('token')).toBeNull();
     expect(getAuthToken()).toBe('de-la-cookie');
   });
 
   it.each([200, 401])(
-    'no restaura ni refresca tras logout durante exchange (%s)',
+    'no restaura tras logout durante el refresco de arranque (%s)',
     async (status) => {
-      localStorage.setItem('token', 'legacy');
+      localStorage.setItem('has_session', '1');
       const pending = deferredReply();
       const fetchMock = stubFetch((url) =>
-        url.endsWith('/exchange') ? pending.promise : json(200, { token: 'no-debe-usarse' }),
+        url.endsWith('/refresh') ? pending.promise : json(204),
       );
       const restoring = initSession();
       await vi.waitFor(() =>
-        expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/exchange'))).toBe(true),
+        expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/refresh'))).toBe(true),
       );
       const ended = endSession();
-      pending.resolve(json(status, { token: 'legacy-canjeado' }));
+      pending.resolve(json(status, { token: 'no-debe-usarse' }));
 
       await expect(restoring).resolves.toBe('superseded');
       await ended;
       expect(getAuthToken()).toBeNull();
       expect(localStorage.getItem('has_session')).toBeNull();
-      expect(localStorage.getItem('token')).toBeNull();
-      expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/refresh'))).toBe(false);
+      expect(fetchMock.mock.calls.filter(([url]) => url.endsWith('/refresh'))).toHaveLength(1);
     },
   );
 
-  it('descarta exchange y peticiones en espera si otra sesión empieza durante la restauración', async () => {
-    localStorage.setItem('token', 'legacy-A');
+  it('descarta el refresco y las peticiones en espera si otra sesión empieza durante la restauración', async () => {
+    localStorage.setItem('has_session', '1');
     const pending = deferredReply();
-    const fetchMock = stubFetch((url) => (url.endsWith('/exchange') ? pending.promise : json(200)));
+    const fetchMock = stubFetch((url) => (url.endsWith('/refresh') ? pending.promise : json(200)));
     const restoring = initSession();
     const saved = updateMyProfile('Nombre de A');
     const rejected = expect(saved).rejects.toThrow('La sesión ha cambiado');
     setAuthToken('cuenta-B');
-    pending.resolve(json(200, { token: 'legacy-A-canjeado' }));
+    pending.resolve(json(200, { token: 'refresco-de-A' }));
 
     await expect(restoring).resolves.toBe('superseded');
     await rejected;
     expect(getAuthToken()).toBe('cuenta-B');
     expect(localStorage.getItem('has_session')).toBe('1');
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/api/auth/session/exchange']);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/api/auth/session/refresh']);
   });
 
   it('el logout olvida el token y revoca la sesión en el servidor', async () => {

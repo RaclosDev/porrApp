@@ -86,7 +86,7 @@ export default function JoinRedirect() {
         {preview && (
           <>
             <div className="flex items-center gap-4 min-w-0">
-              <LeagueAvatar url={preview.imageUrl} size={64} />
+              <LeagueAvatar url={preview.imageUrl} name={preview.name} size={64} />
               <h1 className="poster-title text-2xl m-0 break-words min-w-0">{preview.name}</h1>
             </div>
             <p className="m-0 text-muted">

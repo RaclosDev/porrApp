@@ -85,16 +85,22 @@ export function UserAvatar({
   );
 }
 
-/** Imagen de liga con un emoji (insignia de la competición) como respaldo. */
+/**
+ * Imagen de liga. Sin imagen muestra la bandera de su competición si la tiene y, si no, la
+ * inicial de la liga como monograma en letra de cartel.
+ */
 export function LeagueAvatar({
   url,
-  badge = '🏆',
+  badge,
+  name,
   size = 32,
 }: {
   url: string | null | undefined;
-  badge?: string;
+  badge?: string | null;
+  name?: string | null;
   size?: number;
 }) {
+  const monogram = name?.trim().charAt(0).toLocaleUpperCase('es') || 'P';
   return (
     <Img
       src={url}
@@ -102,10 +108,11 @@ export function LeagueAvatar({
       radius={Math.round(size * 0.28)}
       fallback={
         <span
-          className="w-full h-full bg-[rgba(255,_255,_255,_0.06)] bg-none flex items-center justify-center leading-[1]"
-          style={{ fontSize: Math.round(size * 0.6) }}
+          className={`w-full h-full bg-[rgba(255,_255,_255,_0.06)] bg-none flex items-center justify-center leading-[1] ${badge ? '' : 'poster-title'}`}
+          style={{ fontSize: Math.round(size * (badge ? 0.6 : 0.5)) }}
+          aria-hidden="true"
         >
-          {badge}
+          {badge || monogram}
         </span>
       }
     />

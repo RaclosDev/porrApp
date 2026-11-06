@@ -6,9 +6,9 @@ import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.config.RateLimitingFilter;
 import com.porra.mundial.config.SecurityConfig;
 import com.porra.mundial.model.UserAccount;
-import com.porra.mundial.service.AuthService;
-import com.porra.mundial.service.SessionService;
-import com.porra.mundial.service.SessionService.SessionTokens;
+import com.porra.mundial.service.account.AuthService;
+import com.porra.mundial.service.account.SessionService;
+import com.porra.mundial.service.account.SessionService.SessionTokens;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -117,26 +118,12 @@ class AuthSessionControllerTest {
     }
 
     @Test
-    void exchangeTakesTheLegacyTokenFromTheAuthorizationHeader() throws Exception {
-        when(sessionService.exchangeLegacyToken("legacy-jwt")).thenReturn(Optional.of(tokens("access-3", "refresh-3")));
-
+    void theLegacyTokenExchangeNoLongerExists() throws Exception {
         mockMvc.perform(post("/api/auth/session/exchange").header(HttpHeaders.ORIGIN, APP_ORIGIN)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer legacy-jwt"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("access-3"))
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString(COOKIE + "=refresh-3")));
-    }
-
-    @Test
-    void aFailedExchangeKeepsTheCookieTheBrowserMayAlreadyHave() throws Exception {
-        when(sessionService.exchangeLegacyToken(any())).thenReturn(Optional.empty());
-
-        mockMvc.perform(post("/api/auth/session/exchange").header(HttpHeaders.ORIGIN, APP_ORIGIN)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer not-legacy"))
-                .andExpect(status().isUnauthorized())
+                .andExpect(status().isNotFound())
                 .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
-        mockMvc.perform(post("/api/auth/session/exchange").header(HttpHeaders.ORIGIN, APP_ORIGIN))
-                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(sessionService);
     }
 
     @Test

@@ -11,8 +11,11 @@ vi.mock('../../services/api', () => ({
     lastSelectedGroupId: null,
     avatarUrl: null,
   }),
-  fetchMyGroups: vi.fn().mockResolvedValue([]),
+  fetchMyGroups: vi
+    .fn()
+    .mockResolvedValue([{ id: 7, name: 'Liga de Ana', createdAt: '2026-01-01' }]),
   fetchGroup: vi.fn().mockResolvedValue({}),
+  fetchFeaturedGroup: vi.fn().mockResolvedValue(null),
   fetchMatches: vi.fn().mockResolvedValue([]),
   fetchMatchRadar: vi.fn().mockResolvedValue({ live: [], last: [], next: [] }),
   fetchPredictions: vi.fn().mockResolvedValue([]),
@@ -42,5 +45,19 @@ describe('usuario de /api/users/me', () => {
 
     await waitFor(() => expect(useAppStore.getState().userId).toBe('42'));
     expect(useAppStore.getState().userName).toBe('Ana');
+  });
+
+  it('sin liga guardada en el dispositivo espera a elegirla antes de pintar la portada', async () => {
+    useAppStore.setState({ activeGroupId: '', choosingLeague: true });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AppProvider>
+          <div />
+        </AppProvider>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(useAppStore.getState().choosingLeague).toBe(false));
+    expect(useAppStore.getState().activeGroupId).toBe('7');
   });
 });

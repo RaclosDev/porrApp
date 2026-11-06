@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import DialogBackdrop from '../DialogBackdrop';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -128,22 +129,22 @@ export default function CustomCompetitionEditor({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="custom-admin-title"
+    <DialogBackdrop
       className="league-admin-overlay"
-      onClick={(event) => {
-        if (event.target === event.currentTarget && !busy) onClose();
+      onDismiss={() => {
+        if (!busy) onClose();
       }}
     >
       <div
         ref={panelRef}
         tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="custom-admin-title"
         className="league-admin-panel paper-panel landing-tape paper-dialog"
       >
         <header className="league-admin-header">
-          <LeagueAvatar url={group.imageUrl} size={46} />
+          <LeagueAvatar url={group.imageUrl} name={group.name} size={46} />
           <div className="league-admin-heading">
             <span className="league-admin-eyebrow">
               <ClipboardList size={12} aria-hidden="true" />
@@ -257,6 +258,6 @@ export default function CustomCompetitionEditor({
           )}
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

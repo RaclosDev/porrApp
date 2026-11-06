@@ -11,7 +11,7 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 | `dto/` | Contratos de la API (records y clases de respuesta) |
 | `model/` | Entidades JPA: `Competition`, `Edition`, `League`, `Membership`, `Match`, `Prediction`, `MatchPrediction`, `GroupStanding`, `Team`, `UserAccount`… |
 | `repository/` | Spring Data JPA |
-| `service/` | Lógica de negocio |
+| `service/` | Lógica de negocio, por funcionalidad: `league` (ligas y miembros), `account` (sesión y cuenta), `prediction` (pronósticos, cierres y ranking), `tournament` (competiciones, clasificaciones y cuadro oficial), `sync` (sincronización e importación) y `notification` (WebSocket y avisos push) |
 | `scoring/` | Reglas y estrategias de puntuación |
 | `sports/` | Proveedores de datos deportivos |
 
@@ -19,7 +19,7 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 
 ### Sincronización de resultados
 
-`SyncService` hace una pasada completa cada `app.sync.interval-ms` (15 min) y, mientras haya partidos en juego, otra solo de esas competiciones cada `app.sync.live-interval-ms` (1 min). Las dos van bajo un `ReentrantLock` para no solaparse:
+`SyncService` hace una pasada completa cada `app.sync.interval-ms` (15 min) y, mientras haya partidos en juego, otra solo de esas competiciones cada `app.sync.live-interval-ms` (1 min). Las dos van bajo un mismo cerrojo (`SyncLock`) para no solaparse:
 
 1. Pide los partidos de cada competición a su proveedor a través de `SportsDataProviderRegistry` (hoy, `EspnSportsDataProvider`).
 2. `MatchEventProcessor` aplica los cambios de marcador y estado a cada `Match`.
@@ -31,6 +31,8 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 `TopScorerService` refresca la tabla de goleadores cada 30 minutos de forma independiente y una vez por lote de resultados del Mundial. Las imágenes se buscan una vez por jugador; también se cachean temporalmente las búsquedas sin resultado.
 
 La sincronización inicial se lanza después de `ApplicationReadyEvent`, cuando los datos semilla ya están confirmados, mediante un ejecutor gestionado por Spring. Los fallos del proveedor se registran como sincronizaciones incompletas; una respuesta fallida no se interpreta como una jornada sin partidos.
+
+Importar el catálogo y el calendario de una competición recién elegida es cosa de `CompetitionImportService`, que comparte ese cerrojo para no crear el mismo partido a la vez que una pasada.
 
 Los partidos históricos que conservan equipos provisionales de la primera importación se reparan mediante su identificador externo, no deduciendo qué equipo corresponde a un id local. `LegacyFixtureRepairService` consulta y valida el resumen de ESPN fuera de la transacción; después actualiza el mismo partido en una transacción breve, conservando los pronósticos que lo referencian. Cada pasada tiene límites de peticiones y tiempo, comparte el cerrojo de sincronización y retrasa los reintentos fallidos.
 
@@ -54,7 +56,7 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 
 ### Ligas y pronósticos
 
-- `GroupService` gestiona las ligas (`League`), sus miembros (`Membership`), los códigos de invitación y los pagos. La Porra Global usa un id fijo (`League.GLOBAL_ID`).
+- `LeagueService` crea, cambia y borra las ligas (`League`), comprueba quién puede verlas y gestiona los códigos de invitación; `LeagueMembershipService`, sus miembros (`Membership`): altas, bajas, expulsiones, pagos y cesión de la administración. Las rutas siguen bajo `/api/groups`. La Porra Global usa un id fijo (`League.GLOBAL_ID`).
 - `LeaguePaymentService` actualiza la membresía y los pronósticos de sus ediciones en una misma transacción, tanto desde la gestión de miembros como desde la ruta de pago de un pronóstico. La autorización de administrador se comprueba antes de delegar.
 - `PredictionService` guarda los cuadros completos; `MatchPredictionService`, los pronósticos por partido, con cierre individual cuando empieza cada encuentro.
 - El formato de cada liga (`PoolFormat`) decide qué se pronostica: `FULL_BRACKET`, `KNOCKOUTS_ONLY` o `MATCH_DAY`.
@@ -65,7 +67,9 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 
 - Inicio de sesión con Google: `AuthService` valida el ID token e identifica la cuenta por su `sub` (las cuentas antiguas se asocian por email la primera vez; si el email de la cuenta de Google cambia, se actualiza).
 - El filtro resuelve los access tokens por el id estable de la cuenta y entrega su correo actual a los servicios. Un correo antiguo dentro de un JWT no permite acceder a otra cuenta que lo haya recibido después. Los tokens heredados basados solo en correo se aceptan únicamente mientras la cuenta no esté vinculada a un `googleSub`.
-- Sesión (`SessionService`): access token JWT de 15 minutos, que el frontend guarda solo en memoria y `JwtAuthFilter` valida en cada petición, y refresh token opaco en una cookie `HttpOnly`, `Secure`, `SameSite=Strict` con `Path=/api/auth/session`. Cada refresco rota el refresh token; si llega uno ya rotado se revoca la sesión entera (su familia). La sesión caduca a los 30 días del inicio de sesión y el logout la revoca en el servidor. En la base solo se guarda el SHA-256 del refresh token.
+- Sesión (`SessionService`): access token JWT de 15 minutos, que el frontend guarda solo en memoria y `JwtAuthFilter` valida en cada petición, y refresh token opaco en una cookie `HttpOnly`, `Secure`, `SameSite=Strict` con `Path=/api/auth/session`. Cada refresco rota el refresh token; si llega uno ya rotado se revoca la sesión entera (su familia). La sesión caduca tras 90 días sin usarse (cada refresco vuelve a contar el plazo), con un tope de un año desde el inicio de sesión, y el logout la revoca en el servidor. Los tokens rotados se guardan 30 días para detectar su reutilización. En la base solo se guarda el SHA-256 del refresh token.
+- Traspaso a la app instalada en iPhone (`SessionHandoffService`): iOS 17.2+ copia las cookies de Safari a la app al añadirla a la pantalla de inicio, pero no el localStorage. Con la guía de instalación abierta y sesión iniciada, `POST /api/auth/handoff` deja un código de un solo uso (30 minutos, solo su SHA-256 en la base) en la cookie `HttpOnly` `__Secure-porra_handoff` con `Path=/api/auth/session/handoff`. La primera vez que se abre la app instalada, el frontend llama a `POST /api/auth/session/handoff`, que gasta el código y abre una sesión nueva de la misma cuenta, independiente de la de Safari (compartir el refresh token copiado haría saltar la detección de reutilización).
+- Llaves de acceso (`PasskeyService`, WebAuthn con `com.yubico:webauthn-server-core`): desde el perfil, con sesión, `POST /api/users/me/passkeys/options` y `POST /api/users/me/passkeys` registran una llave descubrible con verificación obligatoria (Face ID, huella o PIN). Para entrar, `POST /api/auth/passkeys/login/options` y `POST /api/auth/passkeys/login` comprueban la firma y abren una sesión como el login con Google. Solo se guarda la clave pública; los retos (5 minutos, un solo uso) viven en `passkey_challenges` y los borra la limpieza nocturna. La llave queda ligada a `app.webauthn.rp-id` (`porrapp.app`) y solo se acepta desde `app.webauthn.origins`.
 - El navegador serializa las operaciones que cambian la cookie (inicio, restauración, renovación y cierre de sesión) mediante Web Locks; cuando no están disponibles, mantiene una cola dentro de la pestaña. Un identificador local sin credenciales señala los cambios de cuenta o el cierre de sesión. Las otras pestañas recargan su estado y las peticiones de una sesión anterior se rechazan.
 - Las rutas de `/api/auth/` usan la cookie, así que `CsrfOriginFilter` exige además que la petición venga de la propia aplicación (cabecera `Origin` o `Sec-Fetch-Site`). El resto de la API se autentica con la cabecera `Authorization` y no necesita protección CSRF.
 - `SecurityConfig` deja públicas las lecturas GET (partidos, clasificación, goleadores, pronósticos, ligas, competiciones y avatares) y el login; el resto de la API requiere sesión. Los controladores y servicios filtran los datos de las ligas privadas (`assertCanView` y similares).
@@ -76,3 +80,5 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 Flyway valida los checksums en cada arranque y no ejecuta `repair()` automáticamente. Las migraciones V1–V10 son la consolidación por dominio de las 72 originales (V1–V71 y V33.1, en git hasta `e619cc2`) y montan el esquema de producción; las nuevas se numeran desde V11. Una base creada con las migraciones antiguas, incluida una copia local, no valida contra las nuevas: recréala (`docker compose down -v`). Si aparece una discrepancia, compara el script aplicado y el esquema con las migraciones del repositorio y realiza una copia de seguridad antes de una reparación administrativa. No edites migraciones aplicadas ni desactives la validación para arrancar.
 
 El `Dockerfile` compila el frontend con Vite y copia el resultado a los recursos estáticos de Spring Boot, de modo que la API y la aplicación se sirven desde el mismo servicio y puerto. En producción corre en Railway; el health check usa Spring Boot Actuator.
+
+El backend debe correr en **una sola instancia**. Varias piezas guardan su estado en la memoria del proceso: los contadores de `RateLimitingFilter`, las conexiones de `WebSocketService` y las cachés de Caffeine (ranking, ligas, partidos, imágenes de invitación). Con dos réplicas cada una tendría sus propios límites, los avisos en tiempo real solo llegarían a quien esté conectado a la réplica que hizo el cambio y una caché podría servir datos que la otra ya invalidó. Las tareas programadas sí están preparadas (ShedLock sobre PostgreSQL). Para escalar en horizontal habría que llevar ese estado a un almacén compartido, por ejemplo Redis con Bucket4j para los límites, pub/sub para los avisos y una caché distribuida o invalidaciones difundidas.

@@ -1,8 +1,9 @@
 import type { GroupOdds, GroupStandings, Match } from '../types/api';
+import { teamKey } from './teamKey';
 import { alignOfficialRound, nextPools } from './officialBracketLayout';
 
 /** Equipo clasificado según el marcador; provisional si el partido no ha terminado. */
-export type ProvisionalTeam = {
+type ProvisionalTeam = {
   name: string;
   isProvisional: boolean;
 };
@@ -107,7 +108,7 @@ export function buildBracketData(
       .flat()
       .forEach((t) => {
         if (t?.name) {
-          const safe = t.name.replace(/[.#$[\]]/g, '');
+          const safe = teamKey(t.name);
           sanitizedToReal[safe] = t.name;
         }
       });

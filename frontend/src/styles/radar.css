@@ -1,0 +1,223 @@
+@layer components {
+  /*
+   * Página de partidos (Radar): en directo arriba y, debajo, próximos y resultados agrupados por
+   * día en filas compactas. En el móvil, pestañas; en pantallas anchas, dos columnas.
+   */
+  .radar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .radar-tabs.md-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .radar-tabs .md-filter {
+    font-size: 0.85rem;
+  }
+
+  .radar-columns {
+    display: grid;
+    gap: 20px;
+  }
+
+  .radar-block:not(.radar-live) {
+    display: none;
+  }
+
+  .radar-block.is-active {
+    display: block;
+  }
+
+  .radar-block-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    color: var(--ink);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .radar-column-title {
+    display: none;
+  }
+
+  .radar-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--stamp-red);
+    animation: radar-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes radar-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  .radar-day + .radar-day {
+    margin-top: 16px;
+  }
+
+  .radar-day-title {
+    margin: 0 0 6px;
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  .radar-day-list {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+    border: 1px solid rgba(17, 24, 39, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  .radar-match {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px 10px 10px;
+  }
+
+  .radar-match + .radar-match {
+    border-top: 1px solid rgba(17, 24, 39, 0.08);
+  }
+
+  .radar-match-status {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .radar-match.is-live .radar-match-status {
+    color: var(--stamp-red);
+    font-weight: 800;
+  }
+
+  .radar-match-teams {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding-left: 12px;
+    border-left: 1px solid rgba(17, 24, 39, 0.08);
+  }
+
+  .radar-match-team {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    color: var(--ink);
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+
+  /* Hueco fijo: los nombres quedan alineados aunque falte un escudo. */
+  .radar-match-crest {
+    display: inline-flex;
+    flex: 0 0 20px;
+    justify-content: center;
+  }
+
+  .radar-match-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .radar-match-score {
+    min-width: 1.2em;
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .radar-match-team.is-winner {
+    font-weight: 800;
+  }
+
+  .radar-match-team.is-loser {
+    color: var(--text-muted);
+  }
+
+  .radar-empty {
+    margin: 0;
+    padding: 24px 12px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  .radar-stats-link {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .radar-stats-link:hover,
+  .radar-stats-link:focus-visible {
+    color: var(--ink);
+    text-decoration: underline;
+  }
+
+  @media (min-width: 1025px) {
+    .radar {
+      max-width: 960px;
+    }
+
+    .radar-tabs.md-filters {
+      display: none;
+    }
+
+    .radar-columns {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .radar-block:not(.radar-live) {
+      display: block;
+    }
+
+    .radar-column-title {
+      display: flex;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .radar-live-dot {
+      animation: none;
+    }
+  }
+}

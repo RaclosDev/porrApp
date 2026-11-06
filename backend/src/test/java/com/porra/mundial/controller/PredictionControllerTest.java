@@ -8,8 +8,8 @@ import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.PredictionResponseDTO;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.UserAccount;
-import com.porra.mundial.service.PredictionService;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.prediction.PredictionService;
+import com.porra.mundial.service.notification.WebSocketService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,13 +45,13 @@ class PredictionControllerTest {
     private PredictionService predictionService;
 
     @MockitoBean
-    private com.porra.mundial.service.GroupService groupService;
+    private com.porra.mundial.service.league.LeagueService leagueService;
 
     @MockitoBean
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
     @MockitoBean
-    private com.porra.mundial.service.LeaderboardService leaderboardService;
+    private com.porra.mundial.service.prediction.LeaderboardService leaderboardService;
 
     @MockitoBean
     private WebSocketService webSocketService;
@@ -70,7 +70,7 @@ class PredictionControllerTest {
         mockMvc.perform(get("/api/predictions").param("groupId", "7"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].participantName").value("Juan"));
-        Mockito.verify(groupService).assertCanView(7L, null);
+        Mockito.verify(leagueService).assertCanView(7L, null);
         Mockito.verify(predictionService).getPredictionsByGroupId(7L);
     }
 
@@ -109,7 +109,7 @@ class PredictionControllerTest {
     @Test
     void getAllPredictions_Forbidden_WhenNotMemberOfPrivateGroup() throws Exception {
         Mockito.doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
-                .when(groupService).assertCanView(Mockito.eq(6L), any());
+                .when(leagueService).assertCanView(Mockito.eq(6L), any());
 
         mockMvc.perform(get("/api/predictions?groupId=6"))
                 .andExpect(status().isForbidden())

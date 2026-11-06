@@ -58,6 +58,12 @@ interface AppState {
   setViewerPredictionId: (id: string | number | null) => void;
   isAuthenticated: boolean;
   setIsAuthenticated: (isAuthenticated: boolean) => void;
+  /**
+   * Con sesión pero sin liga guardada en este dispositivo (primera vez en él o datos borrados):
+   * aún se está eligiendo qué liga abrir, así que la portada y la navegación esperan.
+   */
+  choosingLeague: boolean;
+  setChoosingLeague: (choosingLeague: boolean) => void;
   isDemoMode: boolean;
   setIsDemoMode: (isDemoMode: boolean) => void;
   /** Entra en la demo; sin liga, AppContext abre la liga pública destacada. */
@@ -250,6 +256,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   isAuthenticated: hasStoredSession(),
   setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
 
+  choosingLeague:
+    hasStoredSession() && !initialGroupId && localStorage.getItem('isDemoMode') !== 'true',
+  setChoosingLeague: (choosingLeague) => set({ choosingLeague }),
+
   isDemoMode: localStorage.getItem('isDemoMode') === 'true',
   setIsDemoMode: (isDemoMode) => {
     if (isDemoMode) {
@@ -288,6 +298,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     queryClient.clear();
     set({
       isAuthenticated: false,
+      choosingLeague: false,
       isDemoMode: false,
       userName: '',
       userId: '',

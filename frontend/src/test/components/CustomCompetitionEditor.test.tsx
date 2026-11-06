@@ -3,6 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CustomCompetitionEditor from '../../components/groups/CustomCompetitionEditor';
 import type { Group, Match, PoolFormat } from '../../types/api';
+import { confirmAction } from '../../utils/confirmAction';
+
+vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
 
 const api = vi.hoisted(() => ({
   fetchCustomTeams: vi.fn(),
@@ -14,7 +17,6 @@ const api = vi.hoisted(() => ({
   setCustomResult: vi.fn(),
   setCustomMatchDate: vi.fn(),
   deleteCustomMatch: vi.fn(),
-  setCustomLockDate: vi.fn(),
   fetchCustomLockState: vi.fn(),
   setCustomLockConfig: vi.fn(),
   fetchCompetitions: vi.fn(),
@@ -383,7 +385,7 @@ describe('CustomCompetitionEditor', () => {
   });
 
   it('pasa la liga a una competición oficial tras confirmarlo', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirm = vi.mocked(confirmAction).mockResolvedValue(true);
     const { invalidate } = setup('KNOCKOUTS_ONLY');
 
     fireEvent.click(
@@ -393,6 +395,5 @@ describe('CustomCompetitionEditor', () => {
     await waitFor(() => expect(api.linkOfficialCompetition).toHaveBeenCalledWith(7, 19));
     expect(confirm).toHaveBeenCalled();
     await waitFor(() => expect(invalidate).toHaveBeenCalledWith());
-    confirm.mockRestore();
   });
 });

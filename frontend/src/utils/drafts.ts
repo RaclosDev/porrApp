@@ -7,7 +7,7 @@
  */
 import { hasValidGroupSelections, normalizeGroupsDraft, type GroupSelection } from './bracketDraft';
 
-export type DraftKind = 'matchday' | 'bracket' | 'groups' | 'advancing';
+type DraftKind = 'matchday' | 'bracket' | 'groups' | 'advancing';
 
 const DRAFT_PREFIX = 'draft_';
 const ANONYMOUS = 'anon';

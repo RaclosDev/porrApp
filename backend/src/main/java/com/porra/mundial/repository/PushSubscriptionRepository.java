@@ -17,6 +17,8 @@ public interface PushSubscriptionRepository extends JpaRepository<PushSubscripti
 
     Optional<PushSubscription> findByEndpoint(String endpoint);
 
+    List<PushSubscription> findByUserIdOrderByCreatedAtAsc(Long userId);
+
     @Query("SELECT s FROM PushSubscription s WHERE s.user.id IN :userIds")
     List<PushSubscription> findByUserIdIn(@Param("userIds") Collection<Long> userIds);
 

@@ -74,7 +74,9 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
-                // Refresco, logout y canje del JWT antiguo: se autentican con la cookie o el JWT.
+                // Entrar con una llave de acceso: la propia firma de la llave autentica.
+                .requestMatchers(HttpMethod.POST, "/api/auth/passkeys/login", "/api/auth/passkeys/login/options").permitAll()
+                // Refresco y logout: se autentican con la cookie del refresh token.
                 .requestMatchers(HttpMethod.POST, "/api/auth/session/**").permitAll()
                 // Errores del navegador, también de visitantes sin sesión; con límite por IP.
                 .requestMatchers(HttpMethod.POST, "/api/client-errors").permitAll()
@@ -109,13 +111,16 @@ public class SecurityConfig {
                             // precarga) y el onload de las fuentes, por su hash. Si cambian, hay que
                             // actualizar los hashes (lo comprueba cspHashes.test.ts en el frontend).
                             "script-src 'self' " + INDEX_SPECULATION_RULES_HASH + " 'unsafe-hashes' "
-                            + INDEX_FONT_ONLOAD_HASH + " https://accounts.google.com https://apis.google.com; " +
+                            + INDEX_FONT_ONLOAD_HASH + " https://accounts.google.com https://apis.google.com"
+                            // Google Analytics: solo se carga si el visitante acepta la analítica.
+                            + " https://www.googletagmanager.com; " +
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                             "font-src 'self' https://fonts.gstatic.com; " +
                             // blob: para la vista previa local de una foto antes de subirla.
                             "img-src 'self' data: blob: https:; " +
                             // 'self' ya incluye el WebSocket del mismo origen (ws/wss).
-                            "connect-src 'self' https://accounts.google.com https://site.api.espn.com https://a.espncdn.com; " +
+                            "connect-src 'self' https://accounts.google.com https://site.api.espn.com https://a.espncdn.com"
+                            + " https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; " +
                             "frame-src 'self' https://accounts.google.com; " +
                             "frame-ancestors 'none';")
                 )

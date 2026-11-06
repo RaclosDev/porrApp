@@ -4,8 +4,8 @@ import com.porra.mundial.dto.MatchdayPointsDTO;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import com.porra.mundial.dto.ParticipantScoreDTO;
-import com.porra.mundial.service.GroupService;
-import com.porra.mundial.service.LeaderboardService;
+import com.porra.mundial.service.league.LeagueService;
+import com.porra.mundial.service.prediction.LeaderboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +23,7 @@ import java.util.Map;
 public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
-    private final GroupService groupService;
+    private final LeagueService leagueService;
 
     /**
      * Clasificación de una liga, sin el desglose de cada pronóstico (se pide con
@@ -32,7 +32,7 @@ public class LeaderboardController {
      */
     @GetMapping
     public ResponseEntity<List<ParticipantScoreDTO>> getLeaderboard(@RequestParam Long groupId, Principal principal) {
-        groupService.assertCanView(groupId, CurrentUser.email(principal));
+        leagueService.assertCanView(groupId, CurrentUser.email(principal));
         List<ParticipantScoreDTO> rows = leaderboardService.getLeaderboard(groupId).stream()
                 .map(ParticipantScoreDTO::withoutBreakdown)
                 .toList();
@@ -46,7 +46,7 @@ public class LeaderboardController {
     @GetMapping("/logs")
     public ResponseEntity<Map<Long, List<ParticipantScoreDTO.LogEntry>>> getLeaderboardLogs(
             @RequestParam Long groupId, Principal principal) {
-        groupService.assertCanView(groupId, CurrentUser.email(principal));
+        leagueService.assertCanView(groupId, CurrentUser.email(principal));
         Map<Long, List<ParticipantScoreDTO.LogEntry>> logs = new LinkedHashMap<>();
         for (ParticipantScoreDTO row : leaderboardService.getLeaderboard(groupId)) {
             if (row.getId() != null) {
@@ -62,7 +62,7 @@ public class LeaderboardController {
      */
     @GetMapping("/matchdays")
     public ResponseEntity<List<MatchdayPointsDTO>> getMatchdayBreakdown(@RequestParam Long groupId, Principal principal) {
-        groupService.assertCanView(groupId, CurrentUser.email(principal));
+        leagueService.assertCanView(groupId, CurrentUser.email(principal));
         return revalidated(leaderboardService.getMatchdayBreakdown(groupId));
     }
 

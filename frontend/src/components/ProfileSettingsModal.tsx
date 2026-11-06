@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import DialogBackdrop from './DialogBackdrop';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -13,6 +14,7 @@ import {
 import { useAppStore } from '../store/useAppStore';
 import ImagePicker from './ImagePicker';
 import ReminderSettings from './ReminderSettings';
+import PasskeySettings from './PasskeySettings';
 import { UserAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -141,18 +143,15 @@ export default function ProfileSettingsModal({
   };
 
   return (
-    <div
-      className="paper-dialog-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="profile-settings-title"
-      ref={dialogRef}
-      tabIndex={-1}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) void dismiss();
-      }}
-    >
-      <div className="paper-panel landing-tape paper-dialog">
+    <DialogBackdrop className="paper-dialog-overlay" onDismiss={() => void dismiss()}>
+      <div
+        className="paper-panel landing-tape paper-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-settings-title"
+        ref={dialogRef}
+        tabIndex={-1}
+      >
         <div className="paper-dialog-body flex flex-col gap-4.5">
           <div className="flex justify-between items-center">
             <h3 className="m-0 poster-title text-main text-[1.2rem]" id="profile-settings-title">
@@ -234,6 +233,7 @@ export default function ProfileSettingsModal({
             </span>
           </section>
           {!onboarding && <ReminderSettings />}
+          {!onboarding && <PasskeySettings />}
           {!onboarding && (
             <section className="flex flex-col gap-2 pt-4 border-t border-line">
               <span className="text-[0.8rem] font-bold text-muted">Tus datos</span>
@@ -318,6 +318,6 @@ export default function ProfileSettingsModal({
           </div>
         )}
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

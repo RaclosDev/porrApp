@@ -10,7 +10,7 @@ export interface CustomBracketMatchSlot {
   isBye: boolean;
 }
 
-export interface CustomBracketDisplayRound {
+interface CustomBracketDisplayRound {
   roundIndex: number;
   title: string;
   matches: CustomBracketMatchSlot[];
@@ -127,7 +127,7 @@ export function computeCustomBracketRounds(
   return result;
 }
 
-export interface CustomGroupRow {
+interface CustomGroupRow {
   team: string;
   played: number;
   won: number;

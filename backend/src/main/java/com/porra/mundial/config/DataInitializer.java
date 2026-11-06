@@ -8,9 +8,10 @@ import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
-import com.porra.mundial.service.KnockoutBracketService;
-import com.porra.mundial.service.StandingsService;
-import com.porra.mundial.service.SyncService;
+import com.porra.mundial.service.tournament.KnockoutBracketService;
+import com.porra.mundial.service.tournament.StandingsService;
+import com.porra.mundial.service.sync.CompetitionImportService;
+import com.porra.mundial.service.sync.SyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -45,6 +46,7 @@ public class DataInitializer implements CommandLineRunner {
     private final EditionRepository editionRepository;
     private final MatchRepository matchRepository;
     private final SyncService syncService;
+    private final CompetitionImportService importService;
     private final StandingsService standingsService;
     private final KnockoutBracketService knockoutBracketService;
     private final ObjectMapper objectMapper;
@@ -130,7 +132,7 @@ public class DataInitializer implements CommandLineRunner {
                 .filter(competitionId -> matchRepository.countByCompetitionId(competitionId) == 0)
                 .forEach(competitionId -> competitionRepository.findById(competitionId).ifPresent(competition ->
                         runStep("importar el calendario de " + competition.getName(),
-                                () -> syncService.importCompetitionData(competition.getId()))));
+                                () -> importService.importCompetitionData(competition.getId()))));
     }
 
     private void runStep(String description, Runnable step) {

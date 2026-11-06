@@ -1,7 +1,12 @@
 package com.porra.mundial.config;
 
 import com.porra.mundial.repository.*;
-import com.porra.mundial.service.*;
+import com.porra.mundial.service.account.*;
+import com.porra.mundial.service.league.*;
+import com.porra.mundial.service.notification.*;
+import com.porra.mundial.service.prediction.*;
+import com.porra.mundial.service.sync.*;
+import com.porra.mundial.service.tournament.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

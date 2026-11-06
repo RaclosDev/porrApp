@@ -13,16 +13,15 @@ import MainNav from './layout/MainNav';
 import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
 import PushReminderPrompt from './layout/PushReminderPrompt';
+import PasskeyPrompt from './layout/PasskeyPrompt';
+import { usePasskeyPrompt } from '../hooks/usePasskeyPrompt';
+import { useAnalyticsConsentPending } from './layout/CookieConsent';
 import LoginModal from './layout/LoginModal';
-import { isIos, isStandalone } from '../services/push';
+import { promptInstall } from '../services/installPrompt';
+import { useInstallState } from '../hooks/useInstallState';
+import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
-
-/** Evento de instalación de la PWA (solo Chromium; no está en los tipos del DOM). */
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
 
 /**
  * Componente Layout principal que envuelve a todas las rutas.
@@ -44,6 +43,8 @@ function Layout({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
+    loadingGroup,
+    choosingLeague,
   } = useAppContext();
   // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
   const myPrediction = useMyLeaguePrediction();
@@ -56,10 +57,16 @@ function Layout({ children }: { children: React.ReactNode }) {
   const userId = useAppStore((state) => state.userId);
   const logout = useAppStore((state) => state.logout);
 
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const installState = useInstallState();
+  const [installBannerDismissed, setInstallBannerDismissed] = useState(
+    () => localStorage.getItem('pwa_banner_dismissed') === 'true',
+  );
+  // El aviso de cookies va primero; los demás avisos inferiores esperan a que se resuelva.
+  const consentPending = useAnalyticsConsentPending();
+  const showInstallBanner = !installBannerDismissed && installState === 'native' && !consentPending;
 
   const isUserLoggedIn = isAuthenticated && Boolean(userName);
+  const sessionPending = useSessionHandoffPending();
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
@@ -84,6 +91,18 @@ function Layout({ children }: { children: React.ReactNode }) {
     location.pathname === '/mis-ligas' ||
     location.pathname.startsWith('/join/') ||
     location.pathname.startsWith('/linkedin');
+
+  // Avisos inferiores, uno a la vez: el de cookies, el de instalar, el de la llave de acceso y
+  // por último el de los recordatorios.
+  const bottomPromptFree = !showInstallBanner && !isLanding && !consentPending;
+  const passkeyPrompt = usePasskeyPrompt(
+    userId,
+    isUserLoggedIn &&
+      !isDemo &&
+      bottomPromptFree &&
+      profileSetupCompleted !== false &&
+      !showProfileSettings,
+  );
 
   useEffect(() => {
     if (!isNavLocked || isNoLeagueAllowedPath) return;
@@ -117,39 +136,13 @@ function Layout({ children }: { children: React.ReactNode }) {
     }
   }, [location.state]);
 
-  useEffect(() => {
-    if (isIos() && !isStandalone() && localStorage.getItem('pwa_banner_dismissed') !== 'true') {
-      setShowInstallBanner(true);
-    }
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      if (localStorage.getItem('pwa_banner_dismissed') !== 'true') {
-        setShowInstallBanner(true);
-      }
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
   const handleInstallClick = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => {
-        setDeferredPrompt(null);
-        setShowInstallBanner(false);
-      });
-    }
+    void promptInstall();
   };
 
   const handleDismissBanner = () => {
     localStorage.setItem('pwa_banner_dismissed', 'true');
-    setShowInstallBanner(false);
+    setInstallBannerDismissed(true);
   };
 
   const signInWithGoogle = useGoogleSignIn();
@@ -189,17 +182,22 @@ function Layout({ children }: { children: React.ReactNode }) {
               <>
                 <ActiveLeagueDropdown />
 
-                {loading || isMatchDayLeague || (userName && myPrediction) ? null : (
+                {loading ||
+                choosingLeague ||
+                isMatchDayLeague ||
+                (userName && myPrediction) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
                     className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
                     onClick={() => navigate('/prediction')}
                     disabled={isNavLocked}
-                    aria-label="Completar mi porra"
-                    title="Completar mi porra"
+                    aria-label="Rellenar mi porra"
+                    title="Rellenar mi porra"
                   >
-                    <span aria-hidden="true">✍️</span>
-                    <span className="header-porra-cta-label"> Completar mi porra</span>
+                    <span className="header-porra-cta-label">Rellenar mi porra</span>
+                    <span className="header-porra-cta-short" aria-hidden="true">
+                      Rellenar
+                    </span>
                   </button>
                 )}
               </>
@@ -208,7 +206,12 @@ function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {!isLanding && !isInviteAuthScreen && (
-          <MainNav isDemo={isDemo} isMatchDayLeague={isMatchDayLeague} isNavLocked={isNavLocked} />
+          <MainNav
+            isDemo={isDemo}
+            isMatchDayLeague={isMatchDayLeague}
+            isNavLocked={isNavLocked}
+            formatPending={loadingGroup || choosingLeague}
+          />
         )}
 
         {!isInviteAuthScreen && (
@@ -216,6 +219,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             enterDemoMode={enterDemoMode}
             isLanding={isLanding}
             isUserLoggedIn={isUserLoggedIn}
+            sessionPending={sessionPending}
             navigate={navigate}
             onLogout={() => {
               logout();
@@ -225,6 +229,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             setShowProfileMenu={setShowProfileMenu}
             setShowProfileSettings={setShowProfileSettings}
             showProfileMenu={showProfileMenu}
+            showNotificationBell={isUserLoggedIn && !isDemo}
             userAvatarUrl={userAvatarUrl}
             userId={userId}
             userName={userName}
@@ -246,15 +251,15 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}
 
+      {passkeyPrompt.show && <PasskeyPrompt userId={userId} onDone={passkeyPrompt.done} />}
       {isUserLoggedIn && !isDemo && (
-        <PushReminderPrompt canPrompt={!showInstallBanner && !isLanding} />
+        <PushReminderPrompt canPrompt={bottomPromptFree && !passkeyPrompt.show} />
       )}
 
       {showInstallBanner && (
         <InstallBanner
           handleDismissBanner={handleDismissBanner}
           handleInstallClick={handleInstallClick}
-          isIos={isIos}
         />
       )}
 

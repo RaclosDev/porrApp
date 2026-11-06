@@ -86,6 +86,76 @@
     white-space: nowrap;
   }
 
+  /* La píldora de participantes abre la lista: 44 px de alto para el dedo sin mover la cabecera. */
+  .home-hero-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    max-width: 100%;
+    margin-block: -10px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .home-hero-pill-btn:hover .home-hero-pill,
+  .home-hero-pill-btn:focus-visible .home-hero-pill {
+    border-color: currentColor;
+    text-decoration: underline;
+  }
+
+  /* Cabecera con algo entre el título y «Ver todo»: el enlace no se encoge. */
+  .home-list-header.has-extra > .home-link-btn {
+    flex-shrink: 0;
+  }
+
+  /* Ocupa todo el hueco libre; RoundParticipants mide su ancho para pintar las caras que caben. */
+  .round-participants {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink, var(--text-main));
+    cursor: pointer;
+  }
+
+  .round-participants:hover,
+  .round-participants:focus-visible {
+    background: rgba(17, 24, 39, 0.06);
+  }
+
+  .round-participants-stack {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .round-participants-avatar {
+    display: inline-flex;
+    flex-shrink: 0;
+    border: 2px solid var(--paper, #fff);
+    border-radius: 999px;
+  }
+
+  .round-participants-avatar + .round-participants-avatar {
+    margin-left: -8px;
+  }
+
+  .round-participants-more {
+    margin-left: 4px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
   .home-rules-btn {
     flex-shrink: 0;
     padding: 8px 14px;

@@ -7,9 +7,9 @@ import { rankPicks, toBracketEntries } from '../utils/bracketStats';
 import type { Match } from '../types/api';
 import type { StickerLeader } from '../components/StickerCard';
 
-export type LandingLeader = StickerLeader;
+type LandingLeader = StickerLeader;
 
-export interface ChampionPick {
+interface ChampionPick {
   team: string;
   count: number;
   total: number;

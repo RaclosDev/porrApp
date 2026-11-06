@@ -71,7 +71,7 @@ export const hasPrediction = (prediction: DraftPrediction | undefined): boolean 
     prediction && ((prediction.homeScore !== '' && prediction.awayScore !== '') || prediction.sign),
   );
 
-export interface RoundList {
+interface RoundList {
   rounds: string[];
   /** Primera jornada con partidos sin terminar; si todo ha terminado, la última. */
   current: string | null;
@@ -129,7 +129,7 @@ export function parseDraft(raw: string | null): Draft | null {
 const scoreText = (score: number | null | undefined) =>
   score !== null && score !== undefined ? String(score) : '';
 
-export interface MergedDraft {
+interface MergedDraft {
   /** Lo que muestran los inputs de cada partido recibido. */
   predictions: Draft;
   /** Borrador que se conserva: el de los partidos abiertos y el de los que no han llegado. */
@@ -168,7 +168,7 @@ export const withSign = (sign: MatchSign): DraftPrediction => ({
   sign,
 });
 
-export type Submission =
+type Submission =
   { kind: 'incomplete' } | { kind: 'empty' } | { kind: 'ready'; items: MatchdayPredictionInput[] };
 
 /**
@@ -231,17 +231,19 @@ export function filterFixtures(
   ];
 }
 
-export function formatMatchDate(dateStr: string | null): string {
-  if (!dateStr) return 'Fecha por confirmar';
-  try {
-    return new Date(dateStr).toLocaleDateString('es-ES', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
+/** Fecha corta de un partido: «sáb 12 oct, 18:00». Sin fecha válida, devuelve `missing`. */
+export function formatMatchDate(
+  dateStr: string | null | undefined,
+  missing = 'Fecha por confirmar',
+): string {
+  if (!dateStr) return missing;
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return missing;
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

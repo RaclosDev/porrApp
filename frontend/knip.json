@@ -1,0 +1,5 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": ["public/sw-cleanup.js", "public/sw-push.js"],
+  "ignoreDependencies": ["prettier"]
+}

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Repositorio Spring Data JPA para pronósticos de partidos directos (MatchPrediction).
@@ -38,7 +37,6 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
     List<MatchPrediction> findWithUserByEditionIdAndMatchIds(@Param("editionId") Long editionId,
                                                              @Param("matchIds") Collection<Long> matchIds);
 
-    Optional<MatchPrediction> findByPredictionIdAndMatchId(Long predictionId, Long matchId);
 
     List<MatchPrediction> findByPredictionEditionLeagueId(Long leagueId);
 

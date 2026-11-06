@@ -21,6 +21,8 @@ export default function MobileBottomNav() {
     userGroups,
     userGroupsLoaded,
     isDemoMode,
+    loadingGroup,
+    choosingLeague,
   } = useAppContext();
 
   const isDemo = isDemoMode;
@@ -64,12 +66,34 @@ export default function MobileBottomNav() {
   }
   const indicatorIndex = activeIndex === -1 ? lastActiveIndex : activeIndex;
 
+  // Hasta saber el formato de la liga activa no se sabe qué pestañas lleva: se reserva el hueco en
+  // vez de enseñar las de otro formato y cambiarlas al momento.
+  if ((loadingGroup || choosingLeague) && !isDemo) {
+    return (
+      <nav
+        className="mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 flex items-center justify-around py-0 px-1.5 z-[1000]"
+        aria-label="Navegación principal móvil"
+        aria-busy="true"
+      >
+        {[0, 1, 2, 3, 4].map((slot) => (
+          <span
+            key={slot}
+            className="flex flex-1 flex-col items-center justify-center gap-1.5 h-12.5"
+            aria-hidden="true"
+          >
+            <span className="chrome-placeholder w-5 h-5 rounded-md" />
+            <span className="chrome-placeholder w-9 h-2 rounded-sm" />
+          </span>
+        ))}
+      </nav>
+    );
+  }
+
   return (
     <nav
       className={`mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 flex items-center justify-around py-0 px-1.5 z-[1000]  ${isNavLocked ? 'opacity-[0.45]' : 'opacity-[1]'} ${isNavLocked ? 'pointer-events-none' : 'pointer-events-auto'}`}
       aria-label="Navegación principal móvil"
       inert={isNavLocked}
-      aria-disabled={isNavLocked || undefined}
       style={
         {
           '--nav-active': indicatorIndex,

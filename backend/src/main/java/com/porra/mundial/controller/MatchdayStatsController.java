@@ -2,7 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO;
-import com.porra.mundial.service.MatchdayStatsService;
+import com.porra.mundial.service.prediction.MatchdayStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,5 +37,15 @@ public class MatchdayStatsController {
     public List<MatchVotersDTO> getMatchVoters(@RequestParam Long groupId, @RequestParam List<Long> matchIds,
                                                Principal principal) {
         return matchdayStatsService.getVoters(CurrentUser.email(principal), groupId, matchIds);
+    }
+
+    /**
+     * Miembros de la liga que ya han hecho su predicción en alguno de los partidos pedidos. Solo dice
+     * quién ha participado, no qué ha pronosticado.
+     */
+    @GetMapping("/participants")
+    public List<MatchVotersDTO.Voter> getParticipants(@RequestParam Long groupId, @RequestParam List<Long> matchIds,
+                                                      Principal principal) {
+        return matchdayStatsService.getParticipants(CurrentUser.email(principal), groupId, matchIds);
     }
 }

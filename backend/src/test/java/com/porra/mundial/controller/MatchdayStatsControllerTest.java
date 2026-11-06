@@ -7,7 +7,7 @@ import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
-import com.porra.mundial.service.MatchdayStatsService;
+import com.porra.mundial.service.prediction.MatchdayStatsService;
 import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -91,5 +91,19 @@ class MatchdayStatsControllerTest {
                 .andExpect(jsonPath("$[0].home[0].name").value("Ana"))
                 .andExpect(jsonPath("$[0].home[0].avatarUrl").value("ana.png"))
                 .andExpect(jsonPath("$[0].draw").isEmpty());
+    }
+
+    @Test
+    @DisplayName("GET /api/predictions/matchday/stats/participants devuelve quién ha participado")
+    void returnsParticipants() throws Exception {
+        Mockito.when(matchdayStatsService.getParticipants("user@test.com", 10L, List.of(7L, 8L)))
+                .thenReturn(List.of(new MatchVotersDTO.Voter(2L, "Ana", "ana.png")));
+
+        mockMvc.perform(get("/api/predictions/matchday/stats/participants?groupId=10&matchIds=7,8").principal(USER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].userId").value(2))
+                .andExpect(jsonPath("$[0].name").value("Ana"))
+                .andExpect(jsonPath("$[0].avatarUrl").value("ana.png"))
+                .andExpect(jsonPath("$[0].home").doesNotExist());
     }
 }

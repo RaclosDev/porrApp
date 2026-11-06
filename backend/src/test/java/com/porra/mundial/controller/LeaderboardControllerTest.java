@@ -2,8 +2,8 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.repository.UserAccountRepository;
-import com.porra.mundial.service.GroupService;
-import com.porra.mundial.service.LeaderboardService;
+import com.porra.mundial.service.league.LeagueService;
+import com.porra.mundial.service.prediction.LeaderboardService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ class LeaderboardControllerTest {
     private LeaderboardService leaderboardService;
 
     @MockitoBean
-    private GroupService groupService;
+    private LeagueService leagueService;
 
     @MockitoBean
     private com.porra.mundial.config.JwtUtil jwtUtil;

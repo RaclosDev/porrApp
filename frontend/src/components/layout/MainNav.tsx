@@ -5,17 +5,35 @@ interface MainNavProps {
   isDemo: boolean;
   isMatchDayLeague: boolean;
   isNavLocked: boolean;
+  /** Aún no se sabe el formato de la liga activa, así que tampoco qué secciones lleva. */
+  formatPending?: boolean;
 }
 
 /** Navegación principal de escritorio. */
-export default function MainNav({ isDemo, isMatchDayLeague, isNavLocked }: MainNavProps) {
+export default function MainNav({
+  isDemo,
+  isMatchDayLeague,
+  isNavLocked,
+  formatPending = false,
+}: MainNavProps) {
+  if (formatPending && !isDemo) {
+    return (
+      <div className="header-center">
+        <div className="nav-links" aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((slot) => (
+            <span key={slot} className="chrome-placeholder w-22 h-11.25" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="header-center">
       {/* Navegación */}
       <nav
         className="nav-links"
         inert={isNavLocked}
-        aria-disabled={isNavLocked || undefined}
         style={isNavLocked ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
       >
         {isDemo ? (

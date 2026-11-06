@@ -1,12 +1,11 @@
-import { createPortal } from 'react-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
 import { UserAvatar } from './Avatar';
 import type { MatchdayFixture } from '../types/api';
-import { useDialogFocus } from '../hooks/useDialogFocus';
+import SheetDialog from './SheetDialog';
 
-function TeamCrest({ logo }: { logo: string | null }) {
+function TeamCrest({ logo, name }: { logo: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => setFailed(false), [logo]);
@@ -29,7 +28,7 @@ function TeamCrest({ logo }: { logo: string | null }) {
       className="friends-predictions-crest friends-predictions-crest-fallback"
       aria-hidden="true"
     >
-      ⚽
+      {name.trim().charAt(0).toLocaleUpperCase('es')}
     </span>
   );
 }
@@ -59,7 +58,6 @@ export default function MatchFriendsPredictionsModal({
   match: MatchdayFixture | null;
   onClose: () => void;
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null);
   const matchId = match?.matchId;
   const {
     data: predictions = [],
@@ -71,19 +69,6 @@ export default function MatchFriendsPredictionsModal({
     enabled: Boolean(groupId && matchId),
   });
 
-  useEffect(() => {
-    if (!match) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [match]);
-
-  useDialogFocus(dialogRef, { active: Boolean(match), onEscape: onClose });
-
   if (!match) return null;
 
   const isMatchLocked = Boolean(match.finished || match.locked);
@@ -94,169 +79,137 @@ export default function MatchFriendsPredictionsModal({
   const hasFinalScore =
     match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
 
-  return createPortal(
-    <div
-      className="friends-predictions-overlay"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="friends-predictions-panel paper-panel landing-tape paper-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="friends-predictions-title"
-        ref={dialogRef}
-        tabIndex={-1}
-      >
-        <div className="friends-predictions-head">
-          <h2 id="friends-predictions-title" className="friends-predictions-title">
-            Predicciones del partido
-          </h2>
-          <button
-            type="button"
-            className="friends-predictions-close"
-            onClick={onClose}
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
+  return (
+    <SheetDialog title="Predicciones del partido" onClose={onClose}>
+      <div className="friends-predictions-match">
+        <div className="friends-predictions-team">
+          <TeamCrest logo={match.homeTeamLogo} name={match.homeTeam} />
+          <span>{match.homeTeam}</span>
         </div>
-
-        <div className="friends-predictions-match">
-          <div className="friends-predictions-team">
-            <TeamCrest logo={match.homeTeamLogo} />
-            <span>{match.homeTeam}</span>
-          </div>
-          <div className="friends-predictions-center">
-            <span className={`friends-predictions-vs${hasFinalScore ? ' is-finished' : ''}`}>
-              {hasFinalScore ? `${match.actualHomeScore} - ${match.actualAwayScore}` : 'vs'}
-            </span>
-            {roundLabel && <span className="friends-predictions-round">{roundLabel}</span>}
-          </div>
-          <div className="friends-predictions-team is-away">
-            <span>{match.awayTeam}</span>
-            <TeamCrest logo={match.awayTeamLogo} />
-          </div>
+        <div className="friends-predictions-center">
+          <span className={`friends-predictions-vs${hasFinalScore ? ' is-finished' : ''}`}>
+            {hasFinalScore ? `${match.actualHomeScore} - ${match.actualAwayScore}` : 'vs'}
+          </span>
+          {roundLabel && <span className="friends-predictions-round">{roundLabel}</span>}
         </div>
-
-        <div className="friends-predictions-meta">
-          {matchDate && <span>📅 {matchDate}</span>}
-          {!isLoading && !error && (
-            <span className="friends-predictions-count">
-              {predictedCount}/{predictions.length} con predicción
-            </span>
-          )}
-        </div>
-        <div className="friends-predictions-progress" aria-hidden="true">
-          <i style={{ width: `${progress}%` }} />
-        </div>
-
-        <div className="friends-predictions-list">
-          {isLoading && (
-            <div className="friends-predictions-skeletons" role="status">
-              <span className="sr-only">Cargando predicciones…</span>
-              {[0, 1, 2].map((row) => (
-                <div key={row} className="friends-predictions-skeleton skeleton" />
-              ))}
-            </div>
-          )}
-
-          {error && (
-            <p className="friends-predictions-message is-error">
-              No se pudieron cargar las predicciones de la liga.
-            </p>
-          )}
-
-          {!isLoading && !error && predictions.length === 0 && (
-            <p className="friends-predictions-message">
-              Todavía no hay miembros con predicciones en este partido.
-            </p>
-          )}
-
-          {!isLoading &&
-            !error &&
-            predictions.map((prediction) => {
-              const formattedTime = formatTimestamp(prediction.updatedAt);
-              const visible =
-                prediction.hasPredicted &&
-                prediction.homeScore !== null &&
-                prediction.homeScore !== undefined &&
-                prediction.awayScore !== null &&
-                prediction.awayScore !== undefined;
-              const hidden = prediction.hasPredicted && !visible;
-              const hasPoints =
-                prediction.pointsAwarded !== null && prediction.pointsAwarded !== undefined;
-
-              return (
-                <div
-                  key={prediction.userId}
-                  className={`friends-prediction${prediction.isCaller ? ' is-caller' : ''}`}
-                >
-                  <UserAvatar
-                    url={prediction.avatarUrl}
-                    userId={prediction.userId}
-                    name={prediction.participantName}
-                    size={40}
-                  />
-
-                  <div className="friends-prediction-main">
-                    <div className="friends-prediction-name">
-                      <span>{prediction.participantName}</span>
-                      {prediction.isCaller && <span className="friends-prediction-you">Tú</span>}
-                    </div>
-                    {formattedTime && (
-                      <div className="friends-prediction-time">{formattedTime}</div>
-                    )}
-                  </div>
-
-                  <div className="friends-prediction-result">
-                    {visible ? (
-                      <>
-                        <div className="friends-prediction-score-row">
-                          <span className="friends-prediction-score">
-                            {prediction.homeScore} - {prediction.awayScore}
-                          </span>
-                          {prediction.sign && (
-                            <span className="friends-prediction-sign">{prediction.sign}</span>
-                          )}
-                        </div>
-                        {hasPoints && (
-                          <span
-                            className={`friends-prediction-points${(prediction.pointsAwarded ?? 0) > 0 ? '' : ' is-zero'}`}
-                          >
-                            {prediction.isExactScore
-                              ? '🎯 '
-                              : prediction.isCorrectSign
-                                ? '✅ '
-                                : ''}
-                            {(prediction.pointsAwarded ?? 0) > 0
-                              ? `+${prediction.pointsAwarded} pts`
-                              : '0 pts'}
-                          </span>
-                        )}
-                      </>
-                    ) : hidden ? (
-                      <span className="friends-prediction-status is-hidden">🔒 Oculto</span>
-                    ) : (
-                      <span
-                        className={`friends-prediction-status ${isMatchLocked ? 'is-missed' : 'is-pending'}`}
-                      >
-                        {isMatchLocked ? 'Sin predicción' : 'Pendiente'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-
-        <div className="friends-predictions-foot">
-          <span aria-hidden="true">🔒</span>
-          <span>Las predicciones se revelan al empezar el partido.</span>
+        <div className="friends-predictions-team is-away">
+          <span>{match.awayTeam}</span>
+          <TeamCrest logo={match.awayTeamLogo} name={match.awayTeam} />
         </div>
       </div>
-    </div>,
-    document.body,
+
+      <div className="friends-predictions-meta">
+        {matchDate && <span>{matchDate}</span>}
+        {!isLoading && !error && (
+          <span className="friends-predictions-count">
+            {predictedCount}/{predictions.length} con predicción
+          </span>
+        )}
+      </div>
+      <div className="friends-predictions-progress" aria-hidden="true">
+        <i style={{ width: `${progress}%` }} />
+      </div>
+
+      <div className="friends-predictions-list sheet-dialog-body">
+        {isLoading && (
+          <div className="friends-predictions-skeletons" role="status">
+            <span className="sr-only">Cargando predicciones…</span>
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="friends-predictions-skeleton skeleton" />
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <p className="friends-predictions-message is-error">
+            No se pudieron cargar las predicciones de la liga.
+          </p>
+        )}
+
+        {!isLoading && !error && predictions.length === 0 && (
+          <p className="friends-predictions-message">
+            Todavía no hay miembros con predicciones en este partido.
+          </p>
+        )}
+
+        {!isLoading &&
+          !error &&
+          predictions.map((prediction) => {
+            const formattedTime = formatTimestamp(prediction.updatedAt);
+            const visible =
+              prediction.hasPredicted &&
+              prediction.homeScore !== null &&
+              prediction.homeScore !== undefined &&
+              prediction.awayScore !== null &&
+              prediction.awayScore !== undefined;
+            const hidden = prediction.hasPredicted && !visible;
+            const hasPoints =
+              prediction.pointsAwarded !== null && prediction.pointsAwarded !== undefined;
+
+            return (
+              <div
+                key={prediction.userId}
+                className={`friends-prediction${prediction.isCaller ? ' is-caller' : ''}`}
+              >
+                <UserAvatar
+                  url={prediction.avatarUrl}
+                  userId={prediction.userId}
+                  name={prediction.participantName}
+                  size={40}
+                />
+
+                <div className="friends-prediction-main">
+                  <div className="friends-prediction-name">
+                    <span>{prediction.participantName}</span>
+                    {prediction.isCaller && <span className="friends-prediction-you">Tú</span>}
+                  </div>
+                  {formattedTime && <div className="friends-prediction-time">{formattedTime}</div>}
+                </div>
+
+                <div className="friends-prediction-result">
+                  {visible ? (
+                    <>
+                      <div className="friends-prediction-score-row">
+                        <span className="friends-prediction-score">
+                          {prediction.homeScore} - {prediction.awayScore}
+                        </span>
+                        {prediction.sign && (
+                          <span className="friends-prediction-sign">{prediction.sign}</span>
+                        )}
+                      </div>
+                      {hasPoints && (
+                        <span
+                          className={`friends-prediction-points${(prediction.pointsAwarded ?? 0) > 0 ? '' : ' is-zero'}`}
+                        >
+                          {prediction.isExactScore
+                            ? 'Exacto '
+                            : prediction.isCorrectSign
+                              ? 'Signo '
+                              : ''}
+                          {(prediction.pointsAwarded ?? 0) > 0
+                            ? `+${prediction.pointsAwarded} pts`
+                            : '0 pts'}
+                        </span>
+                      )}
+                    </>
+                  ) : hidden ? (
+                    <span className="friends-prediction-status is-hidden">Oculto</span>
+                  ) : (
+                    <span
+                      className={`friends-prediction-status ${isMatchLocked ? 'is-missed' : 'is-pending'}`}
+                    >
+                      {isMatchLocked ? 'Sin predicción' : 'Pendiente'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+      </div>
+
+      <div className="friends-predictions-foot">
+        <span>Las predicciones se revelan al empezar el partido.</span>
+      </div>
+    </SheetDialog>
   );
 }

@@ -15,7 +15,7 @@ import type { Match } from '../types/api';
 const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
 const MINI_TABLE_SIZE = 5;
 
-export type LeagueHomeFormat = 'matchday' | 'custom' | 'worldcup' | 'official';
+type LeagueHomeFormat = 'matchday' | 'custom' | 'worldcup' | 'official';
 
 export interface MiniStandingRow {
   /** Nombre original del equipo: identifica la fila y su escudo. */
@@ -27,7 +27,7 @@ export interface MiniStandingRow {
   value: string;
 }
 
-export interface LeagueHomeData {
+interface LeagueHomeData {
   subtitle: string;
   matches: {
     title: string;
@@ -39,6 +39,8 @@ export interface LeagueHomeData {
     empty: string;
   };
   standings: { title: string; to: string; rows: MiniStandingRow[] } | null;
+  /** Aún falta la tabla de equipos (o los equipos de la competición personalizada). */
+  loading: boolean;
 }
 
 /** Formato de la liga activa, que decide de dónde salen los partidos y la tabla de la portada. */
@@ -79,7 +81,7 @@ export function useLeagueHomeData(): LeagueHomeData {
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const sortedGroups = useSortedGroups();
 
-  const { data: leagueStandings } = useQuery({
+  const { data: leagueStandings, isLoading: loadingLeagueStandings } = useQuery({
     queryKey: queryKeys.competitionStandings(activeCompetitionId),
     queryFn: () =>
       activeGroupCustomCompetition && groupId != null
@@ -88,13 +90,15 @@ export function useLeagueHomeData(): LeagueHomeData {
     enabled: format === 'matchday' && Boolean(activeCompetitionId),
     staleTime: 120_000,
   });
-  const { data: customTeams } = useQuery({
+  const { data: customTeams, isLoading: loadingCustomTeams } = useQuery({
     queryKey: queryKeys.customTeams(activeGroupId),
     queryFn: () => fetchCustomTeams(groupId!),
     enabled: format === 'custom' && groupId != null,
   });
 
-  return useMemo<LeagueHomeData>(() => {
+  const loading = loadingLeagueStandings || loadingCustomTeams;
+
+  const data = useMemo<Omit<LeagueHomeData, 'loading'>>(() => {
     const logos = logosOf(allGames);
 
     if (format === 'matchday') {
@@ -102,7 +106,12 @@ export function useLeagueHomeData(): LeagueHomeData {
       return {
         subtitle: 'Predicciones por jornada',
         matches: {
-          title: `Partidos${round ? ` ${displayRoundLabel(round)}` : ''}`,
+          // «Jornada 12» se explica sola; las jornadas por fecha siguen como «Partidos Sáb 7 nov».
+          title: !round
+            ? 'Partidos'
+            : displayRoundLabel(round) === round
+              ? round
+              : `Partidos ${displayRoundLabel(round)}`,
           items: matches,
           to: '/jornadas',
           action: 'hacer tu predicción',
@@ -189,4 +198,6 @@ export function useLeagueHomeData(): LeagueHomeData {
       standings,
     };
   }, [format, allGames, leagueStandings, sortedGroups, customTeams]);
+
+  return useMemo(() => ({ ...data, loading }), [data, loading]);
 }

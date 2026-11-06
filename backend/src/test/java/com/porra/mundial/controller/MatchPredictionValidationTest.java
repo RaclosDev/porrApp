@@ -5,8 +5,8 @@ import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdaySubmissionDTO;
-import com.porra.mundial.service.MatchPredictionService;
-import com.porra.mundial.service.WebSocketService;
+import com.porra.mundial.service.prediction.MatchPredictionService;
+import com.porra.mundial.service.notification.WebSocketService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,6 +98,29 @@ class MatchPredictionValidationTest {
                         .content(objectMapper.writeValueAsString(submission)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    @DisplayName("submitMatchdayPredictions rechaza con 400 Bad Request un marcador por encima de 99")
+    void submitMatchdayPredictions_RejectsScoresAbove99() throws Exception {
+        MatchPredictionItemDTO invalidItem = MatchPredictionItemDTO.builder()
+                .matchId(101L)
+                .homeScore(100)
+                .awayScore(2)
+                .sign("1")
+                .build();
+
+        MatchdaySubmissionDTO submission = MatchdaySubmissionDTO.builder()
+                .groupId(10L)
+                .predictions(List.of(invalidItem))
+                .build();
+
+        mockMvc.perform(post("/api/predictions/matchday")
+                        .principal(mockPrincipal)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submission)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Los goles no pueden pasar de 99"));
     }
 
     @Test

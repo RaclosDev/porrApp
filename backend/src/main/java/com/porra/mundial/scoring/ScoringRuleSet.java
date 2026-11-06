@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.Map;
 /**
  * Parametrizacion versionada de reglas de puntuacion para torneos y porras.
  */
+@Slf4j
 @Data
 @Builder
 @NoArgsConstructor
@@ -92,7 +94,9 @@ public class ScoringRuleSet {
         }
         try {
             return MAPPER.readValue(json, ScoringRuleSet.class);
-        } catch (Exception e) {
+        } catch (tools.jackson.core.JacksonException e) {
+            // Puntuar con otras reglas sin avisar escondería el fallo: queda en el log.
+            log.error("Reglas de puntuación ilegibles; se aplican las del Mundial 2026: {}", e.getMessage());
             return defaultWorldCup2026();
         }
     }
@@ -122,8 +126,9 @@ public class ScoringRuleSet {
     public String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
+        } catch (tools.jackson.core.JacksonException e) {
+            // Guardar "{}" borraría las reglas de la liga sin que nadie lo note.
+            throw new IllegalStateException("No se pudieron serializar las reglas de puntuación", e);
         }
     }
 

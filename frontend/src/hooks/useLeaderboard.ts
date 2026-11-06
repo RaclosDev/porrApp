@@ -27,6 +27,39 @@ export type SortColumn =
 
 const EMPTY_MATCHDAYS: MatchdayPoints[] = [];
 
+/**
+ * Copia de las filas ordenada de mayor a menor por `col`, con la posición de cada una: quien no ha
+ * pagado va al final sin posición y los empates comparten puesto. En empate de una columna que no
+ * es el total, desempata el total.
+ */
+function rankRows(list: LeaderboardRow[], col: SortColumn) {
+  const rows = list.map((row) => ({ ...row }));
+  rows.sort((a, b) => {
+    if (a.paid !== b.paid) return a.paid ? -1 : 1;
+    const valA = Number(a.points[col]) || 0;
+    const valB = Number(b.points[col]) || 0;
+    if (valB !== valA) return valB - valA;
+    if (col !== 'total') return b.points.total - a.points.total;
+    return 0;
+  });
+
+  let currentRank = 1;
+  let previousVal: number | null = null;
+  let lowestRank = 1;
+  rows.forEach((r) => {
+    if (!r.paid) {
+      r.rank = '-';
+      return;
+    }
+    const val = Number(r.points[col]) || 0;
+    if (previousVal !== null && val !== previousVal) currentRank++;
+    r.rank = currentRank;
+    previousVal = val;
+    lowestRank = Math.max(lowestRank, currentRank);
+  });
+  return { rows, lowestRank };
+}
+
 async function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
   if (!blob) throw new Error('No se pudo generar la imagen.');
@@ -87,105 +120,97 @@ export function useLeaderboard() {
     ? matchdays.findIndex((matchday) => matchday.label === selectedMatchdayInfo.label)
     : -1;
 
-  const { results, lowestPaidRank, matchdayStats } = useMemo(() => {
-    const getMatchdayPoints = (backendScore: ParticipantScore) => {
-      if (!selectedMatchdayInfo || backendScore.id == null) return 0;
-      const pointsByPrediction = selectedMatchdayInfo.pointsByPrediction;
-      if (!pointsByPrediction) return 0;
-      const value = pointsByPrediction[String(backendScore.id)];
-      return Number(value) || 0;
-    };
+  const { results, lowestPaidRank, generalResults, generalLowestPaidRank, matchdayStats } =
+    useMemo(() => {
+      const getMatchdayPoints = (backendScore: ParticipantScore) => {
+        if (!selectedMatchdayInfo || backendScore.id == null) return 0;
+        const pointsByPrediction = selectedMatchdayInfo.pointsByPrediction;
+        if (!pointsByPrediction) return 0;
+        const value = pointsByPrediction[String(backendScore.id)];
+        return Number(value) || 0;
+      };
 
-    const list: LeaderboardRow[] = (leaderboardData || []).map((backendScore: ParticipantScore) => {
-      const matchdayPoints = getMatchdayPoints(backendScore);
+      const list: LeaderboardRow[] = (leaderboardData || []).map(
+        (backendScore: ParticipantScore) => {
+          const matchdayPoints = getMatchdayPoints(backendScore);
+          return {
+            key: backendScore.id ?? `member-${backendScore.userId}`,
+            id: backendScore.id,
+            userId: backendScore.userId,
+            name: backendScore.name || 'Anónimo',
+            predictionName: backendScore.predictionName || '',
+            avatarUrl: backendScore.avatarUrl || '',
+            points: { ...backendScore, matchday: matchdayPoints },
+            matchdayPoints,
+            paid: !backendScore.pending,
+            thirdPlaceMatch: backendScore.thirdPlaceMatch,
+            thirdPlaceWinner: backendScore.thirdPlaceWinner,
+          };
+        },
+      );
+
+      const col = sortColumn || 'total';
+      const ranked = rankRows(list, col);
+      // La general siempre por el total: es la que sale en la imagen para compartir.
+      const general = col === 'total' ? ranked : rankRows(list, 'total');
+      const rows = ranked.rows;
+      const lowestRank = ranked.lowestRank;
+
+      // Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
+      if (sortDirection === 'asc') {
+        rows.sort((a, b) => {
+          if (a.paid !== b.paid) return a.paid ? -1 : 1;
+          const valA = Number(a.points[col]) || 0;
+          const valB = Number(b.points[col]) || 0;
+          if (valB !== valA) return valA - valB;
+          if (col !== 'total') return a.points.total - b.points.total;
+          return 0;
+        });
+      }
+
+      let stats: {
+        myPoints: number;
+        /** Puesto en la jornada (empates comparten puesto); null si nadie ha puntuado aún. */
+        myRank: number | null;
+        leader: LeaderboardRow | null;
+      } | null = null;
+      if (selectedMatchdayInfo) {
+        const paidList = rows.filter((r) => r.paid);
+        const namedRows = paidList.filter((r) => Boolean(userName) && r.name === userName);
+        const me = userId
+          ? paidList.find((r) => r.userId != null && String(r.userId) === String(userId))
+          : namedRows.length === 1
+            ? namedRows[0]
+            : undefined;
+        const leader =
+          [...paidList]
+            .filter((r) => Number(r.points.matchday) > 0)
+            .sort(
+              (a, b) =>
+                Number(b.points.matchday) - Number(a.points.matchday) ||
+                Number(b.points.total) - Number(a.points.total),
+            )[0] || null;
+
+        const myPoints = Number(me?.points.matchday) || 0;
+        // Mismo criterio que la columna de la tabla: puestos densos por puntos de la jornada.
+        const scores = [...new Set(paidList.map((r) => Number(r.points.matchday) || 0))].sort(
+          (a, b) => b - a,
+        );
+        stats = {
+          myPoints,
+          myRank: me && leader ? scores.indexOf(myPoints) + 1 : null,
+          leader,
+        };
+      }
+
       return {
-        key: backendScore.id ?? `member-${backendScore.userId}`,
-        id: backendScore.id,
-        userId: backendScore.userId,
-        name: backendScore.name || 'Anónimo',
-        predictionName: backendScore.predictionName || '',
-        avatarUrl: backendScore.avatarUrl || '',
-        points: { ...backendScore, matchday: matchdayPoints },
-        matchdayPoints,
-        paid: !backendScore.pending,
-        thirdPlaceMatch: backendScore.thirdPlaceMatch,
-        thirdPlaceWinner: backendScore.thirdPlaceWinner,
+        results: rows,
+        lowestPaidRank: lowestRank,
+        generalResults: general.rows,
+        generalLowestPaidRank: general.lowestRank,
+        matchdayStats: stats,
       };
-    });
-
-    const col = sortColumn || 'total';
-
-    // Siempre ordenamos primero de mayor a menor (descendente) para calcular rangos y medallas correctamente
-    list.sort((a, b) => {
-      if (a.paid !== b.paid) return a.paid ? -1 : 1;
-      const valA = Number(a.points[col]) || 0;
-      const valB = Number(b.points[col]) || 0;
-      if (valB !== valA) return valB - valA;
-      if (col !== 'total') return b.points.total - a.points.total;
-      return 0;
-    });
-
-    let currentRank = 1;
-    let previousVal: number | null = null;
-
-    list.forEach((r) => {
-      if (r.paid) {
-        const val = Number(r.points[col]) || 0;
-        if (previousVal !== null && val !== previousVal) {
-          currentRank++;
-        }
-        r.rank = currentRank;
-        previousVal = val;
-      } else {
-        r.rank = '-';
-      }
-    });
-
-    let lowestRank = 1;
-    list.forEach((r) => {
-      if (r.paid && typeof r.rank === 'number' && r.rank > lowestRank) {
-        lowestRank = r.rank;
-      }
-    });
-
-    // Si el usuario ha pedido orden ascendente (de menor a mayor), reordenamos el array manteniendo las posiciones/rangos reales
-    if (sortDirection === 'asc') {
-      list.sort((a, b) => {
-        if (a.paid !== b.paid) return a.paid ? -1 : 1;
-        const valA = Number(a.points[col]) || 0;
-        const valB = Number(b.points[col]) || 0;
-        if (valB !== valA) return valA - valB;
-        if (col !== 'total') return a.points.total - b.points.total;
-        return 0;
-      });
-    }
-
-    let stats: { myPoints: number; leader: LeaderboardRow | null } | null = null;
-    if (selectedMatchdayInfo) {
-      const paidList = list.filter((r) => r.paid);
-      const namedRows = paidList.filter((r) => Boolean(userName) && r.name === userName);
-      const me = userId
-        ? paidList.find((r) => r.userId != null && String(r.userId) === String(userId))
-        : namedRows.length === 1
-          ? namedRows[0]
-          : undefined;
-      const leader =
-        [...paidList]
-          .filter((r) => Number(r.points.matchday) > 0)
-          .sort(
-            (a, b) =>
-              Number(b.points.matchday) - Number(a.points.matchday) ||
-              Number(b.points.total) - Number(a.points.total),
-          )[0] || null;
-
-      stats = {
-        myPoints: Number(me?.points.matchday) || 0,
-        leader,
-      };
-    }
-
-    return { results: list, lowestPaidRank: lowestRank, matchdayStats: stats };
-  }, [leaderboardData, sortColumn, sortDirection, selectedMatchdayInfo, userId, userName]);
+    }, [leaderboardData, sortColumn, sortDirection, selectedMatchdayInfo, userId, userName]);
 
   const handleShare = async () => {
     setSharing(true);
@@ -231,14 +256,24 @@ export function useLeaderboard() {
     }
   };
 
+  /** Ordena la clasificación por el total («general») o por los puntos de la jornada elegida. */
+  const handleRankingView = (view: 'general' | 'matchday') => {
+    setSortColumn(view === 'matchday' ? 'matchday' : 'total');
+    setSortDirection('desc');
+  };
+
+  // Al moverse entre jornadas, la clasificación y el podio pasan a contar esa jornada.
   const handleSelectMatchday = (label: string) => {
-    if (label) setSelectedMatchdayState(label);
+    if (!label) return;
+    setSelectedMatchdayState(label);
+    handleRankingView('matchday');
   };
 
   const handleStepMatchday = (direction: 1 | -1) => {
     const nextIndex = matchdayIndex + direction;
     if (nextIndex >= 0 && nextIndex < matchdays.length) {
       setSelectedMatchdayState(matchdays[nextIndex].label);
+      handleRankingView('matchday');
     }
   };
 
@@ -257,6 +292,9 @@ export function useLeaderboard() {
     sharing,
     handleShare,
     validResults: results.filter((r) => r.paid),
+    /** Pagados por el total, sea cual sea el orden de la tabla. */
+    generalValidResults: generalResults.filter((r) => r.paid),
+    generalLowestPaidRank,
     sortColumn,
     sortDirection,
     handleSort,
@@ -270,6 +308,7 @@ export function useLeaderboard() {
     canGoNextMatchday:
       matchdays.length > 0 && (matchdayIndex === -1 || matchdayIndex < matchdays.length - 1),
     handleSelectMatchday,
+    handleRankingView,
     handleStepMatchday,
   };
 }

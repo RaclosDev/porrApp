@@ -7,10 +7,10 @@ import com.porra.mundial.dto.MatchResponseDTO;
 import com.porra.mundial.dto.LeagueStandingDTO;
 import com.porra.mundial.dto.MadridDateTimeSerializer;
 import com.porra.mundial.model.PredictionLockMode;
-import com.porra.mundial.service.CustomLockService;
+import com.porra.mundial.service.prediction.CustomLockService;
 import com.porra.mundial.model.Team;
-import com.porra.mundial.service.CustomCompetitionService;
-import com.porra.mundial.service.OfficialCompetitionLinkService;
+import com.porra.mundial.service.prediction.CustomCompetitionService;
+import com.porra.mundial.service.tournament.OfficialCompetitionLinkService;
 import com.porra.mundial.util.AppTime;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -77,14 +76,6 @@ public class CustomCompetitionController {
     public void deleteTeam(@PathVariable Long leagueId, @PathVariable Long teamId,
                            Principal principal) {
         service.deleteTeam(leagueId, teamId, principal.getName());
-    }
-
-    public record LockDateRequest(LocalDateTime lockDate) {}
-
-    @PutMapping("/lock-date")
-    public Instant setLockDate(@PathVariable Long leagueId,
-                                     @RequestBody LockDateRequest request, Principal principal) {
-        return service.setLockDate(leagueId, principal.getName(), AppTime.fromLocal(request.lockDate()));
     }
 
     public record LockConfigRequest(PredictionLockMode mode, Integer offsetMinutes, LocalDateTime lockDate) {}

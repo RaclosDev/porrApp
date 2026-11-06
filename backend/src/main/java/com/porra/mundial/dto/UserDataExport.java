@@ -13,7 +13,13 @@ public record UserDataExport(
         Profile profile,
         List<LeagueMembership> leagues,
         List<PredictionExport> predictions,
-        List<PushDevice> pushDevices) {
+        List<PushDevice> pushDevices,
+        List<SentNotification> pushNotifications,
+        List<PasskeyExport> passkeys) {
+
+    /** De cada llave de acceso, su nombre y fechas; la clave pública no es un dato personal útil. */
+    public record PasskeyExport(String name, Instant createdAt, Instant lastUsedAt) {
+    }
 
     public record Profile(String email, String participantName, Instant registeredAt,
                           java.time.Instant lastActiveAt, boolean hasAvatar, boolean matchRemindersEnabled, boolean memberJoinedAlertsEnabled) {
@@ -34,5 +40,9 @@ public record UserDataExport(
 
     /** Del dispositivo solo se indica cuándo se activaron los avisos; las claves de cifrado no se exportan. */
     public record PushDevice(Instant subscribedAt) {
+    }
+
+    /** Avisos push recibidos en los últimos 30 días. */
+    public record SentNotification(String title, String body, Instant sentAt) {
     }
 }

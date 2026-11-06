@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MatchdayFixture, MatchdayPoints } from '../../types/api';
 import {
+  formatMatchDate,
   buildSubmission,
   filterFixtures,
   mergeDraftWithServer,
@@ -231,5 +232,17 @@ describe('filterFixtures', () => {
     expect(filterFixtures(fixtures, 'FINISHED', predictions, false).map((f) => f.matchId)).toEqual([
       2,
     ]);
+  });
+});
+
+describe('formatMatchDate', () => {
+  it('shows the fallback when the date is missing or invalid', () => {
+    expect(formatMatchDate(null)).toBe('Fecha por confirmar');
+    expect(formatMatchDate('no es una fecha')).toBe('Fecha por confirmar');
+    expect(formatMatchDate(undefined, 'Sin fecha')).toBe('Sin fecha');
+  });
+
+  it('formats a valid date with weekday, day, month and time', () => {
+    expect(formatMatchDate('2026-06-13T18:00:00Z')).toMatch(/^sáb, 13 jun, \d{2}:00$/);
   });
 });

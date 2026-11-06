@@ -1,7 +1,8 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { GroupMember, PaymentStatus } from '../../types/api';
 import { UserAvatar } from '../Avatar';
-import type { CopyTarget, PaymentFilter } from '../GroupMembersModal';
+import type { CopyTarget } from './useInviteCode';
+import type { PaymentFilter } from './useLeagueMembersAdmin';
 import type { UseMutationResult } from '@tanstack/react-query';
 import {
   Check,

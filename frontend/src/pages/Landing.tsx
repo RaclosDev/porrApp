@@ -22,7 +22,7 @@ const FAN_ANGLES = [-8, -3, 0, 3, 8];
  * los primeros de la liga pública destacada y los dos formatos de liga.
  */
 export default function Landing() {
-  const { reduced } = useLandingMotion();
+  const { reduced, visible } = useLandingMotion();
   const { leaders, leagueName, participants, champion, nextFixtures, loading, error } =
     useLandingData();
   const leagueLabel = leagueName ?? 'la liga pública';
@@ -44,7 +44,7 @@ export default function Landing() {
           <motion.p
             variants={rise}
             initial={initial}
-            animate="show"
+            animate={visible ? 'show' : undefined}
             className="text-[#1f2937] text-lg max-w-130 leading-snug"
           >
             Rellena tu cuadro del Mundial o haz tus predicciones jornada a jornada, y compite con
@@ -53,7 +53,7 @@ export default function Landing() {
           <motion.div
             variants={rise}
             initial={initial}
-            animate="show"
+            animate={visible ? 'show' : undefined}
             className="flex flex-wrap gap-3"
           >
             <button
@@ -71,7 +71,7 @@ export default function Landing() {
         </div>
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 40, rotate: 0 }}
-          animate={{ opacity: 1, y: 0, rotate: 0 }}
+          animate={visible ? { opacity: 1, y: 0, rotate: 0 } : undefined}
           transition={{ duration: 0.7, delay: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
           className="landing-hero-podium min-w-0 w-full justify-self-center"
         >
@@ -119,11 +119,15 @@ export default function Landing() {
           text={`Los cromos de ${leagueLabel}`}
           className="text-[clamp(2rem,5vw,3.6rem)] text-white"
         />
+        {leaders.length === 0 && loading && !error ? (
+          // Mismo alto que el álbum: al llegar los cromos la página no crece de golpe.
+          <div className="landing-sticker-album-slot mt-10" aria-hidden="true" />
+        ) : null}
         {leaders.length > 0 ? (
           <motion.ul
             variants={fanContainer}
             initial={initial}
-            whileInView="show"
+            whileInView={visible ? 'show' : undefined}
             viewport={inViewOnce}
             className="landing-sticker-album mt-10 list-none"
             aria-label={`Cromos de ${leagueLabel}`}
@@ -143,7 +147,7 @@ export default function Landing() {
         <motion.div
           variants={rise}
           initial={initial}
-          whileInView="show"
+          whileInView={visible ? 'show' : undefined}
           viewport={inViewOnce}
           className="mt-10 flex flex-wrap items-center justify-center gap-6"
         >
@@ -169,7 +173,7 @@ export default function Landing() {
           <motion.article
             variants={rise}
             initial={initial}
-            whileInView="show"
+            whileInView={visible ? 'show' : undefined}
             viewport={inViewOnce}
             className="landing-poster landing-tape rotate-1 p-6 sm:p-8 flex flex-col gap-4"
           >
@@ -194,7 +198,7 @@ export default function Landing() {
           <motion.article
             variants={rise}
             initial={initial}
-            whileInView="show"
+            whileInView={visible ? 'show' : undefined}
             viewport={inViewOnce}
             className="landing-poster landing-tape p-6 sm:p-8 flex flex-col gap-4"
           >
@@ -228,11 +232,17 @@ export default function Landing() {
       <footer className="mt-10 pt-5 border-t border-t-[rgba(255,255,255,0.08)] flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-[#94a3b8] text-[0.85rem]">
         <strong className="text-white">PorrApp</strong>
         <span aria-hidden="true">·</span>
-        <Link to="/privacidad" className="underline hover:text-white">
+        <Link
+          to="/privacidad"
+          className="underline hover:text-white inline-flex items-center min-h-11"
+        >
           Privacidad
         </Link>
         <span aria-hidden="true">·</span>
-        <Link to="/aviso-legal" className="underline hover:text-white">
+        <Link
+          to="/aviso-legal"
+          className="underline hover:text-white inline-flex items-center min-h-11"
+        >
           Aviso legal
         </Link>
       </footer>

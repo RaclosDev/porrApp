@@ -6,7 +6,7 @@ interface ScoringField {
   hint: string;
 }
 
-export interface ScoringSection {
+interface ScoringSection {
   id: string;
   title: string;
   fields: ScoringField[];

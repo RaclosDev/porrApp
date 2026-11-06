@@ -1,25 +1,13 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { normalizeCountryName } from '../utils/constants';
+import { useEffect, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useShallow } from 'zustand/react/shallow';
 import {
-  fetchStandings,
-  fetchMatches,
-  fetchCustomMatches,
-  fetchMatchRadar,
-  fetchTeamOdds,
-  fetchLeaderboard,
-  fetchLeaderboardMatchdays,
-  fetchGroup,
-  fetchTopScorers,
   fetchMe,
   fetchMyGroups,
   updateUserPreferences,
   whenSessionRestored,
 } from '../services/api';
-import { isApiError } from '../services/apiError';
 import { SESSION_REVISION_KEY } from '../services/sessionHint';
-import { queryKeys } from '../services/queryKeys';
-import { featuredGroupQuery, leaguePredictionsQuery, myGroupsQuery } from '../services/queries';
 import { useWebSocket } from '../hooks/useWebSocket';
 import {
   useAppStore,
@@ -28,32 +16,30 @@ import {
   readGroupVisits,
 } from '../store/useAppStore';
 import { writeDraft } from '../utils/drafts';
-import type { Group, MatchRadar } from '../types/api';
+import {
+  useActiveLeague,
+  useLeagueDataEffects,
+  useLeagueRanking,
+  useOfficialData,
+} from './leagueData';
 
-// Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
-// se unan sin fricción con el tipo de cada consulta.
-const EMPTY_OBJECT = Object.freeze({}) as Record<string, never>;
-const EMPTY_ARRAY = Object.freeze([]) as never[];
-const EMPTY_RADAR = Object.freeze({ live: [], last: [], next: [] }) as MatchRadar;
+type StoreState = ReturnType<typeof useAppStore.getState>;
 
-const loadCachedJson = (key: string) => {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return undefined;
-    return JSON.parse(normalizeCountryName(raw));
-  } catch {
-    return undefined;
-  }
-};
+/** Borrador del cuadro: cambia con cada clic, así que solo lo lee quien lo edita. */
+const BRACKET_DRAFT_KEYS = [
+  'bracketState',
+  'setBracketState',
+  'topScorer',
+  'setTopScorer',
+] as const;
+type BracketDraftKey = (typeof BRACKET_DRAFT_KEYS)[number];
 
-const saveCachedJson = (key: string, data: unknown) => {
-  if (!data) return;
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch {
-    /* ignore */
-  }
-};
+const withoutBracketDraft = (state: StoreState) =>
+  Object.fromEntries(
+    Object.entries(state).filter(
+      ([key]) => !(BRACKET_DRAFT_KEYS as readonly string[]).includes(key),
+    ),
+  ) as Omit<StoreState, BracketDraftKey>;
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -73,6 +59,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const isUserAuthed = useAppStore((state) => state.isAuthenticated);
 
   useWebSocket(queryClient);
+  useLeagueDataEffects();
 
   // Otra pestaña ha cambiado la cuenta compartida por la cookie. Recargar vacía todo el estado
   // anterior y recupera la identidad nueva sin revocar la sesión de esa otra pestaña.
@@ -126,7 +113,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let isCancelled = false;
     const autoSelectGroup = async () => {
       const selectedAtStart = useAppStore.getState().activeGroupId;
-      if (isDemoMode || !isUserAuthed) return;
+      // Si se cancela, la siguiente ejecución del efecto termina la elección.
+      const doneChoosing = () => {
+        if (!isCancelled) useAppStore.getState().setChoosingLeague(false);
+      };
+      if (isDemoMode || !isUserAuthed) {
+        doneChoosing();
+        return;
+      }
       try {
         let dbGroupId = null;
         try {
@@ -203,6 +197,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         /* ignore */
+      } finally {
+        doneChoosing();
       }
     };
     autoSelectGroup();
@@ -214,297 +210,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return children;
 }
 
-export const useAppContext = () => {
-  const store = useAppStore();
-  const queryClient = useQueryClient();
-  const isUserAuthed = store.isAuthenticated;
-
-  const activeGroupId = store.activeGroupId;
-  const storeCompetitionId = store.activeCompetitionId;
-  const setActiveCompetitionId = store.setActiveCompetitionId;
-
-  const {
-    data: userGroups,
-    isFetched: userGroupsFetched,
-    isError: userGroupsError,
-  } = useQuery(myGroupsQuery(isUserAuthed));
-
-  const {
-    data: groupInfo,
-    isPending: groupPending,
-    error: groupError,
-  } = useQuery<Partial<Group>>({
-    queryKey: queryKeys.group(activeGroupId),
-    queryFn: () =>
-      activeGroupId
-        ? fetchGroup(activeGroupId)
-        : Promise.resolve({ name: 'Ninguna liga seleccionada' }),
-    placeholderData: () => {
-      if (!activeGroupId) return { name: 'Ninguna liga seleccionada' };
-      const fromList = Array.isArray(userGroups)
-        ? userGroups.find((g) => g.id.toString() === activeGroupId.toString())
-        : null;
-      if (fromList) {
-        return {
-          id: fromList.id,
-          name: fromList.name,
-          competitionId: fromList.competitionId,
-          competitionName: fromList.competitionName,
-          competitionExternalId: fromList.competitionExternalId,
-          customCompetition: fromList.customCompetition,
-          formatType: fromList.formatType,
-          poolFormat: fromList.poolFormat,
-          pichichi: fromList.pichichi,
-          isLocked: fromList.isLocked,
-          lockDate: fromList.lockDate,
-          adminParticipantName: fromList.adminParticipantName,
-          adminUserId: fromList.adminUserId,
-          rules: fromList.rules,
-        };
-      }
-      return undefined;
-    },
-  });
-
-  // A persisted competition belongs to the previous selection until this league resolves.
-  const activeCompetitionId = activeGroupId
-    ? (groupInfo?.competitionId ?? null)
-    : storeCompetitionId;
-  const competitionReady = !activeGroupId || activeCompetitionId != null;
-  const loadingGroup = Boolean(activeGroupId && groupPending);
-
-  useEffect(() => {
-    if (groupInfo?.competitionId != null && groupInfo.competitionId !== storeCompetitionId) {
-      setActiveCompetitionId(groupInfo.competitionId);
-    }
-  }, [groupInfo?.competitionId, storeCompetitionId, setActiveCompetitionId]);
-
-  const { data: standings, isLoading: loadingStandings } = useQuery({
-    queryKey: queryKeys.standings(),
-    queryFn: async () => {
-      const data = await fetchStandings();
-      saveCachedJson('cached_official_standings', data);
-      return data;
-    },
-    placeholderData: (previousData) => {
-      const cached = loadCachedJson('cached_official_standings');
-      return cached && typeof cached === 'object' && typeof cached !== 'function'
-        ? cached
-        : previousData;
-    },
-  });
-
-  const isCustomCompetition = Boolean(groupInfo?.customCompetition);
-
-  const { data: radar } = useQuery({
-    queryKey: queryKeys.radar(activeCompetitionId),
-    queryFn: () => (isCustomCompetition ? EMPTY_RADAR : fetchMatchRadar(activeCompetitionId)),
-    enabled: competitionReady && !isCustomCompetition,
-  });
-
-  // Los pronósticos de toda la liga son pesados: aquí solo se leen de la caché. Los piden las
-  // pantallas que los usan (useLeaguePredictions); el resto no los descarga.
-  const { data: predictions, error: predictionsError } = useQuery({
-    ...leaguePredictionsQuery(activeGroupId),
-    enabled: false,
-  });
-
-  const { data: odds } = useQuery({
-    queryKey: queryKeys.odds(),
-    queryFn: async () => {
-      const data = await fetchTeamOdds();
-      saveCachedJson('cached_official_odds', data);
-      return data;
-    },
-    placeholderData: (previousData) => {
-      const cached = loadCachedJson('cached_official_odds');
-      return cached && typeof cached === 'object' && typeof cached !== 'function'
-        ? cached
-        : previousData;
-    },
-  });
-
-  const {
-    data: leaderboard,
-    error: leaderboardError,
-    isPending: leaderboardPending,
-  } = useQuery({
-    queryKey: queryKeys.leaderboard(activeGroupId),
-    queryFn: () => fetchLeaderboard(activeGroupId),
-    enabled: Boolean(activeGroupId),
-  });
-
-  // Un 403 en la liga activa (p. ej. tras una expulsión) refresca la lista de ligas. El ranking se
-  // pide en todas las pantallas; los pronósticos, solo en las que los usan.
-  const forbiddenError = [predictionsError, leaderboardError].find((error) =>
-    isApiError(error, 403),
+/** Borrador del cuadro y goleador elegido, para el editor del cuadro (useBracket). */
+export const useBracketDraft = () =>
+  useAppStore(
+    useShallow((s) => ({
+      bracketState: s.bracketState,
+      setBracketState: s.setBracketState,
+      topScorer: s.topScorer,
+      setTopScorer: s.setTopScorer,
+    })),
   );
-  useEffect(() => {
-    if (!store.isDemoMode && forbiddenError && activeGroupId) {
-      // No cambiar silenciosamente a otra liga: parecería que la seleccionada se ha sustituido.
-      console.warn('No se pudieron cargar los datos de la liga activa', {
-        activeGroupId,
-        message: forbiddenError.message,
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
-    }
-  }, [forbiddenError, activeGroupId, queryClient, store.isDemoMode]);
 
-  // La demo sin liga elegida abre la liga pública destacada.
-  const needsFeaturedGroup = store.isDemoMode && !activeGroupId;
-  const { data: featuredGroup } = useQuery({
-    ...featuredGroupQuery(),
-    enabled: needsFeaturedGroup,
-  });
-  const changeGroup = store.changeGroup;
-  useEffect(() => {
-    if (needsFeaturedGroup && featuredGroup?.id != null) changeGroup(featuredGroup.id);
-  }, [needsFeaturedGroup, featuredGroup, changeGroup]);
-
-  const isMatchdayPool =
-    groupInfo?.poolFormat === 'MATCH_DAY' || groupInfo?.formatType === 'LEAGUE';
-
-  const { data: leaderboardMatchdays } = useQuery({
-    queryKey: queryKeys.leaderboardMatchdays(activeGroupId),
-    queryFn: () => fetchLeaderboardMatchdays(activeGroupId),
-    enabled: Boolean(activeGroupId && isMatchdayPool),
-    staleTime: 60_000,
-  });
-
-  const matchesQueryKey = isCustomCompetition
-    ? queryKeys.customMatches(activeGroupId)
-    : queryKeys.matches(activeCompetitionId);
-
-  const { data: matches, isLoading: loadingMatches } = useQuery({
-    queryKey: matchesQueryKey,
-    enabled: isCustomCompetition ? Boolean(activeGroupId) : competitionReady,
-    queryFn: async () => {
-      if (isCustomCompetition && activeGroupId) {
-        return fetchCustomMatches(Number(activeGroupId));
-      }
-      const data = await fetchMatches(activeCompetitionId);
-      saveCachedJson(`cached_matches_${activeCompetitionId || 'all'}`, data || []);
-      return data || [];
-    },
-    placeholderData: () => {
-      if (isCustomCompetition) return undefined;
-      if (!competitionReady) return undefined;
-      const cached = loadCachedJson(`cached_matches_${activeCompetitionId || 'all'}`);
-      if (Array.isArray(cached) && cached.length > 0) {
-        return cached;
-      }
-      return undefined;
-    },
-  });
-  const activeGroupPichichi =
-    groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : true;
-  const {
-    data: topScorers,
-    isLoading: topScorersLoading,
-    isError: topScorersError,
-    refetch: refreshTopScorers,
-  } = useQuery({
-    queryKey: queryKeys.topScorers(),
-    queryFn: fetchTopScorers,
-    enabled: activeGroupPichichi,
-    staleTime: 300_000,
-    retry: 1,
-    placeholderData: keepPreviousData,
-  });
-
-  const activeGroupName = groupInfo?.name || 'Ninguna liga seleccionada';
-  const activeGroupAdmin = groupInfo?.adminParticipantName || null;
-  const activeGroupAdminId = groupInfo?.adminUserId || null;
-  const activeGroupPoolFormat = groupInfo?.poolFormat || (activeGroupId ? null : 'FULL_BRACKET');
-  const activeGroupIsLocked = Boolean(groupInfo?.isLocked);
-  const activeGroupLockDate = groupInfo?.lockDate || null;
-
-  const nameToIdMap = useMemo(() => {
-    if (!Array.isArray(matches)) {
-      return EMPTY_OBJECT;
-    }
-    return matches.reduce<Record<string, number>>((acc, m) => {
-      if (m?.home && m?.home_team_id != null) acc[m.home] = m.home_team_id;
-      if (m?.away && m?.away_team_id != null) acc[m.away] = m.away_team_id;
-      return acc;
-    }, {});
-  }, [matches]);
-
-  const loading = loadingGroup || (loadingStandings && !standings) || (loadingMatches && !matches);
-
-  return {
-    ...store,
-    isAuthenticated: isUserAuthed,
-    officialPoints:
-      standings && typeof standings === 'object' && typeof standings !== 'function'
-        ? standings
-        : EMPTY_OBJECT,
-    matchRadar:
-      competitionReady && radar && typeof radar === 'object' && typeof radar !== 'function'
-        ? radar
-        : EMPTY_RADAR,
-    participantsHashes: Array.isArray(predictions) ? predictions : EMPTY_ARRAY,
-    allGames: competitionReady && Array.isArray(matches) ? matches : EMPTY_ARRAY,
-    groupOdds: odds && typeof odds === 'object' && typeof odds !== 'function' ? odds : EMPTY_OBJECT,
-    nameToIdMap,
-    leaderboardData: Array.isArray(leaderboard) ? leaderboard : EMPTY_ARRAY,
-    leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
-    loading,
-    loadingGroup,
-    /** Ranking aún sin datos: evita mostrar un podio a cero mientras carga. */
-    loadingLeaderboard: Boolean(activeGroupId) && leaderboardPending && !leaderboardError,
-    groupError:
-      groupInfo && (!isApiError(groupError) || groupError.status === 0 || groupError.status >= 500)
-        ? null
-        : groupError,
-    /** Recarga los datos de la liga activa (tras guardar, aceptar o borrar un pronóstico). */
-    fetchData: () =>
-      Promise.all(
-        [
-          queryKeys.group(activeGroupId),
-          queryKeys.groupMembers(activeGroupId),
-          queryKeys.customMatches(activeGroupId),
-          queryKeys.customTeams(activeGroupId),
-          queryKeys.predictions(activeGroupId),
-          queryKeys.myPredictions(),
-          queryKeys.leaderboard(activeGroupId),
-          queryKeys.leaderboardMatchdays(activeGroupId),
-          queryKeys.matchdayFixtures(activeGroupId),
-          queryKeys.predictionScore(),
-        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-      ),
-    activeGroupName,
-    activeGroupAdmin,
-    activeGroupAdminId,
-    activeGroupPoolFormat,
-    activeGroupCustomCompetition: Boolean(groupInfo?.customCompetition),
-    // Se pronostica sobre sus propios cruces: competición personalizada o torneo oficial que no es
-    // el Mundial (Worlds de LoL…). Las de jornadas no tienen cuadro.
-    activeGroupOwnBracket:
-      groupInfo?.poolFormat !== 'MATCH_DAY' &&
-      (Boolean(groupInfo?.customCompetition) ||
-        (groupInfo?.formatType === 'TOURNAMENT' &&
-          Boolean(groupInfo?.competitionExternalId) &&
-          groupInfo?.competitionExternalId !== 'fifa.world')),
-    activeGroupPichichi,
-    activeGroupIsLocked,
-    activeGroupLockDate,
-    activeGroupRules: groupInfo?.rules || '',
-    activeCompetitionId,
-    activeCompetitionName: groupInfo?.competitionName || null,
-    activeCompetitionExternalId: groupInfo?.competitionExternalId || null,
-    activeCompetitionFormatType:
-      groupInfo?.formatType ||
-      (activeGroupPoolFormat
-        ? activeGroupPoolFormat === 'MATCH_DAY'
-          ? 'LEAGUE'
-          : 'TOURNAMENT'
-        : null),
-    userGroups: Array.isArray(userGroups) ? userGroups : EMPTY_ARRAY,
-    userGroupsLoaded: !isUserAuthed || (userGroupsFetched && !userGroupsError),
-    topScorers: Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,
-    topScorersLoading: activeGroupPichichi && topScorersLoading,
-    topScorersError: activeGroupPichichi && topScorersError,
-    refreshTopScorers,
-  };
+/**
+ * Sesión, liga activa, datos oficiales y ranking en un solo objeto. Para lo que use una sola
+ * parte, mejor el hook de esa parte (`useActiveLeague`, `useOfficialData`, `useLeagueRanking`).
+ * No incluye el borrador del cuadro (`useBracketDraft`): cambiaría en cada clic del editor.
+ */
+export const useAppContext = () => {
+  const session = useAppStore(useShallow(withoutBracketDraft));
+  const league = useActiveLeague();
+  const official = useOfficialData();
+  const ranking = useLeagueRanking();
+  return { ...session, ...league, ...official, ...ranking };
 };

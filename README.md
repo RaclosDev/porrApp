@@ -1,160 +1,105 @@
+<div align="center">
+
+<img src="docs/screenshots/hero.jpg" alt="PorrApp, la porra de toda la vida, pero bien hecha: capturas móviles del inicio, la clasificación y el cuadro" width="100%">
+
 # PorrApp
 
-[![CI](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml)
+**Porras de fútbol con amigos: eliges el formato, los resultados llegan solos y la clasificación se mueve en directo.**
 
-Porras de fútbol con amigos: cada liga elige su formato, los resultados se sincronizan solos y la clasificación se actualiza en directo.
+[![Demo en vivo](https://img.shields.io/badge/Demo_en_vivo-porrapp.app-2fc4c4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://porrapp.app/demo)
+[![CI](https://img.shields.io/github/actions/workflow/status/RaclosDev/porrApp/ci.yml?branch=main&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml)
 
-**Demo:** [porra.raclos.es/demo](https://porra.raclos.es/demo) (modo de solo lectura, sin registro)
+![Java](https://img.shields.io/badge/Java_21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot_4.1-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![React](https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/licencia-MIT-lightgrey?style=flat-square)
 
-![Cuadro oficial del Mundial 2026](docs/screenshots/official-bracket.jpg)
+</div>
 
-| Portada | Pronóstico de un participante |
+> **Pruébala en 10 segundos:** abre la [demo](https://porrapp.app/demo) desde el móvil. Es una liga real de 21 personas del Mundial 2026 en modo de solo lectura, sin registro.
+
+## 📱 La app
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/landing.png" alt="Portada pública" width="240"><br><sub><b>Portada</b> · entrar con Google o ver la demo</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/home.png" alt="Inicio de la liga con los últimos resultados" width="240"><br><sub><b>Inicio</b> · últimos resultados sincronizados</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/ranking.png" alt="Podio y clasificación de la liga" width="240"><br><sub><b>Ranking</b> · podio y desglose por fase</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/prediction.png" alt="Cuadro pronosticado por un participante, con los puntos de cada acierto" width="240"><br><sub><b>Mi porra</b> · cuadro completo y puntos por acierto</sub></td>
+    <td align="center"><img src="docs/screenshots/bracket.png" alt="Cuadro oficial de semifinales y final" width="240"><br><sub><b>Resultados</b> · cuadro oficial en vivo</sub></td>
+    <td align="center"><img src="docs/screenshots/groups.png" alt="Clasificación de los grupos con criterios de desempate" width="240"><br><sub><b>Grupos</b> · tablas con desempates FIFA</sub></td>
+  </tr>
+</table>
+
+## ✨ Qué hace
+
+- **Ligas privadas** con código de invitación, control de pagos y normas propias.
+- **Tres formatos de porra:** cuadro completo (grupos y eliminatorias), solo eliminatorias, o jornada a jornada con 1X2 y marcador exacto.
+- **Resultados automáticos:** los partidos se sincronizan desde ESPN y la puntuación se recalcula sola en el backend. Las competiciones personalizadas admiten resultados manuales.
+- **En directo:** cada gol llega por WebSocket y actualiza clasificación, cuadro y jornadas sin recargar.
+- **Cuadro oficial calculado:** cruces resueltos con los mejores terceros y desempates según el artículo 13 del reglamento del Mundial 2026.
+- **Estadísticas:** favoritos de la liga, buscador por equipo, evolución de la clasificación y reparto de pronósticos por partido.
+- **PWA instalable**, con inicio de sesión de Google y sesiones seguras.
+
+## 🧠 Lo interesante por dentro
+
+| | |
 | --- | --- |
-| ![Portada](docs/screenshots/landing.jpg) | ![Pronóstico de cuadro completo](docs/screenshots/prediction.jpg) |
+| **Dominio extensible** | La puntuación sigue el patrón *Strategy* (`ScoringStrategy`). Un torneo nuevo no toca el resto del dominio, y cada liga ajusta sus propios valores. |
+| **Proveedores intercambiables** | `SportsDataProvider` aísla la fuente de datos; ESPN es solo una implementación. Un *circuit breaker* de Resilience4j protege la app cuando ESPN falla. |
+| **Tiempo real fiable** | WebSockets para los marcadores y ShedLock para que la sincronización programada corra una sola vez aunque haya varias instancias. |
+| **Seguridad** | Access token JWT de 15 minutos en memoria y refresh token rotatorio en cookie `HttpOnly`. Validación de OAuth de Google en el backend. |
+| **Contrato tipado** | Los controladores devuelven DTOs/records, y el frontend tiene un único cliente tipado (`services/api.ts`) con esos contratos. |
+| **Lógica testeable** | El cuadro oficial, la normalización de pronósticos y la evolución de la clasificación son funciones puras con tests propios. |
+| **Observabilidad** | Spring Boot Actuator con métricas Prometheus, caché Caffeine y documentación OpenAPI/Swagger. |
 
-## Qué hace
+```mermaid
+flowchart LR
+    PWA[React 19 PWA] -- REST + JWT --> API[Spring Boot 4.1]
+    PWA <-- WebSocket --> API
+    API --> DB[(PostgreSQL + Flyway)]
+    API -- sincronización programada --> ESPN[ESPN API]
+    API --> G[Google OAuth]
+```
 
-- **Ligas privadas** con código de invitación y control de pagos.
-- **Competiciones personalizadas**: cada liga puede crear su propio torneo, añadir equipos y partidos, e introducir resultados manualmente. Usa el formato por jornadas y no depende de un proveedor de datos.
-- **Tres formatos de porra**: cuadro completo (fase de grupos y eliminatorias), solo eliminatorias, o jornada a jornada con 1X2 y marcador exacto.
-- **Puntuación por liga**: el administrador fija cuántos puntos vale cada acierto; los miembros los ven en la pestaña Puntuación y las normas escritas en Normas. Al cambiarlos se recalcula la clasificación.
-- **Resultados**: las competiciones del catálogo se sincronizan desde ESPN; en las personalizadas los introduce el administrador. En ambos casos la puntuación se recalcula en el backend.
-- **Tiempo real**: los cambios de marcador llegan por WebSocket y refrescan clasificación, cuadro y jornadas.
-- **Cuadro oficial en vivo**, con los cruces resueltos según la clasificación de grupos y los mejores terceros. Los empates de grupo se deshacen con los criterios del artículo 13 del reglamento del Mundial 2026.
-- **Estadísticas de la liga**: Más elegidos (campeón, equipos por ronda, final, pichichi y ganadores de grupo comparados con lo que ha pasado) y Buscador (hasta qué ronda lleva cada participante a un equipo). En las ligas por jornadas, el reparto de predicciones de cada partido ya empezado.
-- **Inicio de sesión con Google**, con access token de 15 minutos y refresh token en una cookie `HttpOnly` que rota en cada uso.
-- **PWA** instalable en móvil.
+## ✅ Calidad
 
-## Stack
+- **Más de 1.000 tests automatizados:** unos 470 de frontend (Vitest y Testing Library) y unos 600 de backend (JUnit 5, Mockito y **Testcontainers** con PostgreSQL real).
+- **E2E con Playwright** sobre la build de producción, en escritorio y móvil.
+- **Cobertura mínima obligatoria en CI:** 80 % de líneas en backend (JaCoCo) y umbrales propios en frontend.
+- **TypeScript `strict`**, ESLint, Prettier y hooks de pre-commit.
+- **CI/CD en GitHub Actions** que solo ejecuta los jobs de la parte modificada. Railway despliega únicamente si la CI pasa.
+
+## 🛠️ Stack
 
 | Capa | Tecnologías |
 | --- | --- |
-| Frontend | React 19, TypeScript (`strict`), Vite, TanStack Query, Zustand, Tailwind CSS v4 |
-| Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA, WebSockets, Resilience4j |
-| Datos | PostgreSQL con migraciones Flyway |
-| Calidad | Vitest + Testing Library, JUnit 5 + Mockito + Testcontainers, JaCoCo, ESLint, Prettier, GitHub Actions |
-| Despliegue | Docker multi-etapa (el frontend se sirve desde Spring Boot) en Railway |
+| Frontend | React 19, TypeScript, Vite, TanStack Query, Zustand, Tailwind CSS 4, PWA |
+| Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA, WebSockets, Resilience4j, ShedLock |
+| Datos | PostgreSQL, migraciones Flyway, caché Caffeine |
+| Calidad | Vitest, Testing Library, Playwright, JUnit 5, Mockito, Testcontainers, JaCoCo |
+| Infraestructura | Docker multi-etapa, GitHub Actions, Railway |
 
-## Decisiones de diseño
-
-- **Puntuación como estrategia.** `scoring/` separa las reglas (`ScoringRuleSet`) del cálculo (`ScoringStrategy`, con `WorldCup2026ScoringStrategy` como implementación), así que un torneo nuevo no toca el resto del dominio. Cada liga guarda sus valores en su edición activa y la clasificación aplica la estrategia con ellos (`ScoringStrategy#withRules`).
-- **Resultados oficiales calculados, no introducidos.** `OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados y la clasificación que se calcula con ellos; no hay una cuenta que tenga que mantenerlo a mano.
-- **Proveedores de datos intercambiables.** `sports/` define `SportsDataProvider` y un registro; ESPN es la implementación actual y el resto del backend no sabe de dónde vienen los resultados.
-- **Contrato tipado entre capas.** Los controladores devuelven DTOs/records y el frontend tiene un cliente único (`services/api.ts`) con los tipos de esas respuestas (`types/api.ts`).
-- **Lógica fuera de los componentes.** Cálculos como el cuadro oficial, la normalización de pronósticos o la evolución de la clasificación son funciones puras en `utils/` y `components/*/…Data.ts`, con tests propios.
-- **Esquema versionado.** Toda la base de datos sale de las migraciones Flyway y la validación está activa en el arranque.
-
-Más detalle del backend en [docs/architecture.md](docs/architecture.md).
-
-## Ejecutar en local
-
-### Con Docker
+## 🚀 Ejecutarla en local
 
 ```bash
 cp .env.example .env   # rellena JWT_SECRET y GOOGLE_CLIENT_ID
 docker compose up --build -d
 ```
 
-La app queda en [http://localhost:8080](http://localhost:8080). `docker compose down -v` borra también la base de datos local.
+La app queda en [localhost:8080](http://localhost:8080). La guía completa (desarrollo sin Docker, variables de entorno, tests y CI) está en [docs/development.md](docs/development.md), y la arquitectura del backend en [docs/architecture.md](docs/architecture.md).
 
-En PowerShell, usa `Copy-Item .env.example .env`. Crea un cliente OAuth de tipo web en Google y autoriza `http://localhost:8080` y `http://localhost:5173` como orígenes JavaScript. Compose usa el mismo `GOOGLE_CLIENT_ID` para el backend y para compilar el frontend; si lo cambias, vuelve a construir la imagen. El identificador OAuth es público; no hace falta un secreto de cliente.
+## 👤 Autor
 
-### Por separado
+**Carlos Sanz Tomero**: desarrollador full-stack Java y React.
 
-Requisitos: Node.js 22, JDK 21 y PostgreSQL.
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-carlos--sanz--tomero-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/carlos-sanz-tomero/)
+[![Portfolio](https://img.shields.io/badge/Portfolio-raclosdev.github.io-181717?style=for-the-badge&logo=github&logoColor=white)](https://raclosdev.github.io)
 
-El archivo `.env` de la raíz lo lee Docker Compose; Maven y Vite no lo cargan automáticamente. Para levantar solo PostgreSQL, prepara ese archivo como arriba y ejecuta `docker compose up -d postgres` desde la raíz.
-
-Crea `frontend/.env.local` con `VITE_GOOGLE_CLIENT_ID=tu-identificador.apps.googleusercontent.com` (el mismo identificador del backend). Después, en una terminal:
-
-```bash
-cd frontend
-npm ci
-npm run dev        # http://localhost:5173, con /api redirigido a localhost:8080
-```
-
-En otra terminal, exporta la configuración del backend. Estos valores de PostgreSQL corresponden a la plantilla; ajústalos si has cambiado `.env`:
-
-```bash
-export DATABASE_URL=jdbc:postgresql://localhost:5432/porra_db
-export PGUSER=postgres
-export PGPASSWORD=mysecretpassword
-export JWT_SECRET="$(openssl rand -base64 32)"
-export GOOGLE_CLIENT_ID=tu-identificador.apps.googleusercontent.com
-cd backend
-./mvnw spring-boot:run
-```
-
-En PowerShell 7:
-
-```powershell
-$env:DATABASE_URL = 'jdbc:postgresql://localhost:5432/porra_db'
-$env:PGUSER = 'postgres'
-$env:PGPASSWORD = 'mysecretpassword'
-$env:JWT_SECRET = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-$env:GOOGLE_CLIENT_ID = 'tu-identificador.apps.googleusercontent.com'
-Set-Location backend
-.\mvnw.cmd spring-boot:run
-```
-
-El backend escucha en el puerto 8080. Mantén estable `JWT_SECRET` entre arranques si quieres conservar la validez de los tokens emitidos.
-
-## Variables de entorno
-
-| Variable | Uso |
-| --- | --- |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` | Base de datos |
-| `BACKEND_PORT` | Puerto de la aplicación |
-| `JWT_SECRET` | Firma de los tokens (obligatoria, 32 bytes o más) |
-| `GOOGLE_CLIENT_ID` | Google OAuth; Compose lo usa también en la build del frontend |
-| `VITE_GOOGLE_CLIENT_ID` | Google OAuth en `frontend/.env.local` al ejecutar Vite por separado |
-| `CORS_ALLOWED_ORIGINS` | Orígenes permitidos |
-
-La plantilla completa está en [`.env.example`](.env.example).
-
-## Tests y CI
-
-```bash
-(cd frontend && npm run lint && npm run test:coverage && npm run build)
-(cd backend && ./mvnw -B clean test)
-```
-
-En PowerShell, ejecuta los comandos de npm dentro de `frontend/` y `.\mvnw.cmd -B clean test` dentro de `backend/`.
-
-Las pruebas de navegador usan la build de producción, sin cuentas ni datos reales: en `frontend/`, ejecuta una vez `npx playwright install chromium` y después `npm run build && npm run test:e2e`. Incluyen la actualización de la PWA, el aislamiento de datos privados sin conexión y la navegación de portada, diálogo de acceso y demo en escritorio y móvil. Las pruebas de interfaz simulan la API; no sustituyen la comprobación del OAuth real.
-
-`npm run lint` incluye la comprobación de tipos (`tsc --noEmit` en modo `strict`). En el backend, los tests de migraciones y el de arranque completo levantan un PostgreSQL real con Testcontainers (se saltan si no hay Docker). La cobertura queda en `frontend/coverage/` y `backend/target/site/jacoco/`.
-
-La CI exige Docker para que las pruebas de integración no se salten. Los mínimos de cobertura son 52 % de líneas, 50 % de sentencias, 46 % de funciones y 42 % de ramas en frontend; 80 % de líneas y 58 % de ramas en backend. Son mínimos para detectar retrocesos respecto al estado medido, no una garantía de ausencia de errores. Consulta el [alcance de las verificaciones y limitaciones](docs/quality.md).
-
-El workflow de [GitHub Actions](.github/workflows/ci.yml) ejecuta lo mismo en cada PR y en cada push a `main`, pero solo los jobs de la parte que cambia (lo decide `.github/scripts/detect-changes.sh`): el frontend si cambia `frontend/`, el backend si cambia `backend/` y la imagen Docker si cambian el `Dockerfile` o los manifiestos de dependencias. Un cambio en la propia CI, la ejecución semanal y la manual lo pasan todo. La cobertura de las dos partes queda en el resumen de la ejecución. Railway solo despliega cuando la CI pasa.
-
-## Estructura
-
-```text
-backend/src/main/java/com/porra/mundial/
-  config/       seguridad y configuración
-  controller/   endpoints REST y WebSocket
-  dto/          contratos de la API
-  model/        entidades JPA
-  repository/   acceso a datos
-  scoring/      reglas y estrategias de puntuación
-  service/      lógica de negocio y sincronización
-  sports/       proveedores de datos deportivos
-backend/src/main/resources/db/migration/   migraciones Flyway
-
-frontend/src/
-  components/   UI, agrupada por área (groups, league, layout, prediction, evolution, official…)
-  context/      datos compartidos de la sesión (TanStack Query)
-  hooks/        lógica de cada pantalla
-  pages/        rutas
-  services/     cliente de la API
-  store/        estado local persistente (Zustand)
-  types/        tipos del contrato con el backend
-  styles/       CSS por área, con el orden de cascada definido en index.css
-  utils/        cálculos puros (cuadro, puntos, borradores)
-```
-
-## Licencia
-
-[MIT](LICENSE)
+Código publicado bajo [licencia MIT](LICENSE).

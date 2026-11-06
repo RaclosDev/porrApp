@@ -1,6 +1,6 @@
 package com.porra.mundial.controller;
 
-import com.porra.mundial.service.TeamService;
+import com.porra.mundial.service.tournament.TeamService;
 import com.porra.mundial.dto.TeamOddsDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

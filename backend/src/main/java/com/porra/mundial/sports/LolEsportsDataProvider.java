@@ -325,7 +325,7 @@ public class LolEsportsDataProvider implements SportsDataProvider {
     private static Instant startTime(JsonNode event) {
         try {
             return Instant.parse(event.path("startTime").asText(""));
-        } catch (Exception e) {
+        } catch (java.time.format.DateTimeParseException e) {
             return null;
         }
     }
