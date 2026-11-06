@@ -86,6 +86,68 @@
     white-space: nowrap;
   }
 
+  /* Cabecera con algo entre el título y «Ver todo»: cuántas caras caben depende de su anchura. */
+  .home-list-header.has-extra {
+    container-type: inline-size;
+  }
+
+  .round-participants {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin-inline: auto;
+    padding: 0 2px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink, var(--text-main));
+    cursor: pointer;
+  }
+
+  .round-participants:hover,
+  .round-participants:focus-visible {
+    background: rgba(17, 24, 39, 0.06);
+  }
+
+  .round-participants-stack {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .round-participants-avatar {
+    display: inline-flex;
+    border: 2px solid var(--paper, #fff);
+    border-radius: 999px;
+  }
+
+  .round-participants-avatar + .round-participants-avatar {
+    margin-left: -10px;
+  }
+
+  .round-participants-more {
+    margin-left: 2px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .round-participants .is-wide-only {
+    display: none;
+  }
+
+  @container (min-width: 360px) {
+    .round-participants .is-wide-only {
+      display: inline-flex;
+    }
+
+    .round-participants .is-compact-only {
+      display: none;
+    }
+  }
+
   .home-rules-btn {
     flex-shrink: 0;
     padding: 8px 14px;

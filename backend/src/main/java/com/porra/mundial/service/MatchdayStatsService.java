@@ -152,6 +152,42 @@ public class MatchdayStatsService {
     }
 
     /**
+     * Los miembros de la liga que ya han hecho alguna predicción en los partidos pedidos (una jornada).
+     * Solo dice quién ha participado, nunca qué ha pronosticado, así que vale también antes del cierre.
+     * Se limita a los miembros: quien mira una liga pública sin ser miembro no recibe la lista.
+     */
+    @Transactional(readOnly = true)
+    public List<Voter> getParticipants(String email, Long groupId, List<Long> matchIds) {
+        if (groupId == null) {
+            throw BusinessException.badRequest("El grupo es obligatorio");
+        }
+        if (matchIds == null || matchIds.isEmpty()) return List.of();
+        if (matchIds.size() > MAX_VOTER_MATCHES) {
+            throw BusinessException.badRequest("Demasiados partidos a la vez");
+        }
+        groupService.assertCanView(groupId, email);
+        if (!groupService.isUserMemberOrAdmin(groupId, email)) return List.of();
+
+        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
+        if (edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY) return List.of();
+
+        Set<Long> members = memberIds(groupId);
+        Map<Long, Voter> participants = new LinkedHashMap<>();
+        for (MatchPrediction mp : matchPredictionRepository
+                .findWithUserByEditionIdAndMatchIds(edition.getId(), new LinkedHashSet<>(matchIds))) {
+            UserAccount user = mp.getPrediction().getUser();
+            boolean predicted = (mp.getHomeScore() != null && mp.getAwayScore() != null)
+                    || normalizeSign(mp.getPredictionSign()) != null;
+            if (user != null && predicted && members.contains(user.getId())) {
+                participants.putIfAbsent(user.getId(), voter(user));
+            }
+        }
+        return participants.values().stream()
+                .sorted(Comparator.comparing(Voter::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    /**
      * En las ligas de cuadro cada miembro elige quién gana cada cruce: aparece bajo el equipo que pasa
      * en su cuadro. Solo se ven los cruces cuyo pronóstico ya está cerrado, como en el cuadro de los demás.
      */

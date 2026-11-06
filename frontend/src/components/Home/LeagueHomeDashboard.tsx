@@ -10,7 +10,9 @@ import LeagueRulesModal from '../LeagueRulesModal';
 import InkStamp from '../InkStamp';
 import { VoterStack } from '../voters/SignVoters';
 import MatchVotersModal from '../voters/MatchVotersModal';
+import RoundParticipants from '../voters/RoundParticipants';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
+import { useRoundParticipants } from '../../hooks/useRoundParticipants';
 import type { Match, MatchVoter, MatchVoters } from '../../types/api';
 
 const RANKING_SIZE = 5;
@@ -39,17 +41,21 @@ function PanelHeader({
   title,
   icon,
   onSeeAll,
+  children,
 }: {
   title: string;
   icon?: string;
   onSeeAll: () => void;
+  /** Lo que va entre el título y «Ver todo», como quién ya ha hecho su predicción. */
+  children?: ReactNode;
 }) {
   return (
-    <div className="home-list-header mb-2.5">
+    <div className={`home-list-header mb-2.5${children ? ' has-extra' : ''}`}>
       <h2>
         {icon && <span aria-hidden="true">{icon}</span>}
         <span>{title}</span>
       </h2>
+      {children}
       <button type="button" className="home-link-btn" onClick={onSeeAll}>
         Ver todo →
       </button>
@@ -204,6 +210,12 @@ export default function LeagueHomeDashboard() {
     matches.items.map((match) => match.id).filter(Boolean),
   );
   const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY';
+  // Quién ya ha hecho su predicción en la jornada: solo las ligas por jornadas y solo el quién.
+  const participants = useRoundParticipants(
+    activeGroupId,
+    matches.items.map((match) => match.id).filter(Boolean),
+    isAuthenticated && activeGroupPoolFormat === 'MATCH_DAY',
+  );
 
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
   const showCompetition =
@@ -262,7 +274,9 @@ export default function LeagueHomeDashboard() {
 
       <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
         <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
-          <PanelHeader title={matches.title} onSeeAll={() => navigate(matches.allTo)} />
+          <PanelHeader title={matches.title} onSeeAll={() => navigate(matches.allTo)}>
+            <RoundParticipants participants={participants} roundLabel={matches.title} />
+          </PanelHeader>
           {matches.items.length > 0 ? (
             matches.items.map((match) => (
               <MatchCard

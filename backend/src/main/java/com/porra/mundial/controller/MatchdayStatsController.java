@@ -38,4 +38,14 @@ public class MatchdayStatsController {
                                                Principal principal) {
         return matchdayStatsService.getVoters(CurrentUser.email(principal), groupId, matchIds);
     }
+
+    /**
+     * Miembros de la liga que ya han hecho su predicción en alguno de los partidos pedidos. Solo dice
+     * quién ha participado, no qué ha pronosticado.
+     */
+    @GetMapping("/participants")
+    public List<MatchVotersDTO.Voter> getParticipants(@RequestParam Long groupId, @RequestParam List<Long> matchIds,
+                                                      Principal principal) {
+        return matchdayStatsService.getParticipants(CurrentUser.email(principal), groupId, matchIds);
+    }
 }

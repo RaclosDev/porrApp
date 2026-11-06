@@ -230,6 +230,47 @@ class MatchdayStatsServiceTest {
     }
 
     @Test
+    @DisplayName("Los participantes de la jornada incluyen partidos abiertos, solo miembros actuales y sin repetir")
+    void participantsIncludeOpenMatchesAndOnlyCurrentMembers() {
+        UserAccount ana = UserAccount.builder().id(1L).participantName("Ana").build();
+        UserAccount bea = UserAccount.builder().id(2L).participantName("bea").build();
+        UserAccount carla = UserAccount.builder().id(4L).participantName("Carla").build();
+        UserAccount gone = UserAccount.builder().id(3L).participantName("Ex").build();
+        Match future = match(2L, Instant.now().plus(2, ChronoUnit.HOURS), false, null, null);
+        Match other = match(5L, Instant.now().plus(3, ChronoUnit.HOURS), false, null, null);
+        when(groupService.isUserMemberOrAdmin(GROUP_ID, EMAIL)).thenReturn(true);
+        when(membershipRepository.findByLeagueId(GROUP_ID)).thenReturn(List.of(
+                Membership.builder().user(ana).build(), Membership.builder().user(bea).build(),
+                Membership.builder().user(carla).build()));
+        when(matchPredictionRepository.findWithUserByEditionIdAndMatchIds(eq(100L), any())).thenReturn(List.of(
+                by(bea, score(future, 2, 0)), by(bea, signOnly(other, "X")), by(ana, signOnly(future, "1")),
+                by(gone, score(future, 0, 1)), by(carla, signOnly(future, null))));
+
+        List<MatchVotersDTO.Voter> participants = service.getParticipants(EMAIL, GROUP_ID, List.of(2L, 5L));
+
+        assertEquals(List.of("Ana", "bea"), participants.stream().map(MatchVotersDTO.Voter::name).toList());
+    }
+
+    @Test
+    @DisplayName("Quien mira una liga pública sin ser miembro no recibe los participantes")
+    void participantsHiddenFromNonMembers() {
+        when(groupService.isUserMemberOrAdmin(GROUP_ID, EMAIL)).thenReturn(false);
+
+        assertTrue(service.getParticipants(EMAIL, GROUP_ID, List.of(2L)).isEmpty());
+        verifyNoInteractions(matchPredictionRepository);
+    }
+
+    @Test
+    @DisplayName("Una liga privada rechaza los participantes a quien no es miembro")
+    void participantsRejectPrivateNonMembers() {
+        doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
+                .when(groupService).assertCanView(GROUP_ID, EMAIL);
+
+        assertThrows(BusinessException.class, () -> service.getParticipants(EMAIL, GROUP_ID, List.of(2L)));
+        verifyNoInteractions(matchPredictionRepository);
+    }
+
+    @Test
     @DisplayName("Pedir votantes de demasiados partidos a la vez es un error y no consulta nada")
     void votersRejectTooManyMatches() {
         List<Long> ids = java.util.stream.LongStream.rangeClosed(1, MatchdayStatsService.MAX_VOTER_MATCHES + 1)
