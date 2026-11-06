@@ -19,7 +19,7 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 
 ### Sincronización de resultados
 
-`SyncService` se ejecuta con `@Scheduled` (intervalo en `app.sync.interval-ms`) y bajo un `ReentrantLock` para no solaparse:
+`SyncService` hace una pasada completa cada `app.sync.interval-ms` (15 min) y, mientras haya partidos en juego, otra solo de esas competiciones cada `app.sync.live-interval-ms` (1 min). Las dos van bajo un `ReentrantLock` para no solaparse:
 
 1. Pide los partidos de cada competición a su proveedor a través de `SportsDataProviderRegistry` (hoy, `EspnSportsDataProvider`).
 2. `MatchEventProcessor` aplica los cambios de marcador y estado a cada `Match`.

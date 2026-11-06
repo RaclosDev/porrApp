@@ -1,7 +1,10 @@
 import { act, renderHook } from '@testing-library/react';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useWebSocket } from '../../hooks/useWebSocket';
+import { INVALIDATION_JITTER_MS, useWebSocket } from '../../hooks/useWebSocket';
+
+/** Tiempo tras el que se ha aplicado seguro cualquier invalidación diferida. */
+const FLUSH_MS = 100 + INVALIDATION_JITTER_MS;
 
 class FakeSocket {
   static last: FakeSocket | null = null;
@@ -43,7 +46,7 @@ describe('useWebSocket', () => {
     (type) => {
       renderHook(() => useWebSocket(client));
       send({ type, matchId: 1, homeScore: 1, awayScore: 0, status: 'IN_PLAY' });
-      act(() => vi.advanceTimersByTime(100));
+      act(() => vi.advanceTimersByTime(FLUSH_MS));
 
       expect(invalidated).toContainEqual(['radar']);
       expect(invalidated).toContainEqual(['officialBracket']);
@@ -56,8 +59,10 @@ describe('useWebSocket', () => {
   );
 
   it('LEAGUE_UPDATED invalida solo las consultas de esa liga', () => {
+    client.setQueryData(['myGroups', true], [{ id: 10 }]);
     renderHook(() => useWebSocket(client));
     send({ type: 'LEAGUE_UPDATED', leagueId: 10 });
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
 
     expect(invalidated).toContainEqual(['leaderboard', '10']);
     expect(invalidated).toContainEqual(['groupMembers', '10']);
@@ -69,6 +74,27 @@ describe('useWebSocket', () => {
     expect(invalidated).not.toContainEqual(['matches']);
     expect(invalidated).not.toContainEqual(['standings']);
     expect(invalidated).not.toContainEqual(['officialBracket']);
+  });
+
+  it('LEAGUE_UPDATED de una liga ajena no recarga Mis ligas ni mis predicciones', () => {
+    client.setQueryData(['myGroups', true], [{ id: 10 }]);
+    renderHook(() => useWebSocket(client));
+    send({ type: 'LEAGUE_UPDATED', leagueId: 99 });
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
+
+    expect(invalidated).toContainEqual(['leaderboard', '99']);
+    expect(invalidated).not.toContainEqual(['myGroups']);
+    expect(invalidated).not.toContainEqual(['myPredictions']);
+  });
+
+  it('CLOCK_UPDATED solo vuelve a pedir partidos y radar, y no al instante', () => {
+    renderHook(() => useWebSocket(client));
+    send({ type: 'CLOCK_UPDATED' });
+    expect(invalidated).toHaveLength(0);
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
+
+    expect(invalidated).toEqual(expect.arrayContaining([['matches'], ['radar']]));
+    expect(invalidated).toHaveLength(2);
   });
 
   it('actualiza el marcador en la caché de partidos', () => {
@@ -90,7 +116,7 @@ describe('useWebSocket', () => {
     const { unmount } = renderHook(() => useWebSocket(client));
     send({ type: 'MATCH_SCORE_UPDATED', matchId: 1 });
     send({ type: 'DATA_UPDATED' });
-    act(() => vi.advanceTimersByTime(100));
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
     expect(invalidated.filter((key) => key[0] === 'radar')).toHaveLength(1);
     expect(invalidated.filter((key) => key[0] === 'matches')).toHaveLength(1);
     const before = invalidated.length;
@@ -186,7 +212,7 @@ describe('WebSocket recovery with active queries', () => {
       expect.objectContaining({ homeScore: 49 }),
     ]);
     expect(requests).toBe(0);
-    await act(() => vi.advanceTimersByTimeAsync(150));
+    await act(() => vi.advanceTimersByTimeAsync(FLUSH_MS));
     expect(requests).toBe(3);
     expect(cancellations).toBe(0);
     unmount();

@@ -15,12 +15,14 @@ import com.porra.mundial.service.GroupService;
 import com.porra.mundial.service.WebSocketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Ligas privadas: creación, invitaciones, miembros y administración de pagos y pronósticos.
@@ -32,6 +34,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GroupController {
 
+    /** Formato admitido para la cabecera {@code Idempotency-Key} (p. ej. un UUID). */
+    private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("[A-Za-z0-9_-]{8,64}");
+
     private final GroupService groupService;
     private final WebSocketService webSocketService;
 
@@ -41,11 +46,29 @@ public class GroupController {
         return groupService.getUserGroupDTOs(principal.getName());
     }
 
-    /** Crea una liga; quien la crea pasa a ser su administrador. */
+    /**
+     * Crea una liga; quien la crea pasa a ser su administrador. Con la cabecera
+     * {@code Idempotency-Key}, repetir la petición devuelve la misma liga en vez de crear otra.
+     */
     @PostMapping
-    public GroupResponseDTO createGroup(@Valid @RequestBody GroupCreateDTO payload, Principal principal) {
-        League group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(),
-                PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi(), payload.getCustomCompetitionName());
+    public GroupResponseDTO createGroup(@Valid @RequestBody GroupCreateDTO payload,
+                                        @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+                                        Principal principal) {
+        if (idempotencyKey != null && !IDEMPOTENCY_KEY.matcher(idempotencyKey).matches()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Idempotency-Key no válida");
+        }
+        League group;
+        try {
+            group = groupService.createGroup(payload.getName().trim(), principal.getName(), payload.getCompetitionId(),
+                    PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi(),
+                    payload.getCustomCompetitionName(), idempotencyKey);
+        } catch (DataIntegrityViolationException e) {
+            // Dos peticiones con la misma clave a la vez: la segunda choca con el índice único.
+            if (idempotencyKey == null) {
+                throw e;
+            }
+            group = groupService.findCreatedWithKey(principal.getName(), idempotencyKey).orElseThrow(() -> e);
+        }
         return groupService.toResponse(group, true);
     }
 

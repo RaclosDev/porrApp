@@ -152,8 +152,7 @@ class MatchPredictionServiceTest {
 
         Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
-        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
-        when(matchPredictionRepository.findByPredictionIdAndMatchId(50L, 101L)).thenReturn(Optional.empty());
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
 
         MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
                 .matchId(101L)
@@ -176,7 +175,7 @@ class MatchPredictionServiceTest {
 
         Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
-        when(matchRepository.findById(102L)).thenReturn(Optional.of(pastMatch));
+        when(matchRepository.findAllById(List.of(102L))).thenReturn(List.of(pastMatch));
 
         MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
                 .matchId(102L)
@@ -199,7 +198,7 @@ class MatchPredictionServiceTest {
 
         Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
-        when(matchRepository.findById(103L)).thenReturn(Optional.of(finishedMatch));
+        when(matchRepository.findAllById(List.of(103L))).thenReturn(List.of(finishedMatch));
 
         MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
                 .matchId(103L)
@@ -324,7 +323,7 @@ class MatchPredictionServiceTest {
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L))
                 .thenReturn(Optional.of(Prediction.builder().id(50L).edition(edition).build()));
         futureMatch.setCompetition(Competition.builder().id(999L).build());
-        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
 
         var item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
         var error = assertThrows(BusinessException.class, () ->
@@ -365,7 +364,7 @@ class MatchPredictionServiceTest {
                 .thenReturn(Optional.of(Prediction.builder().id(50L).edition(edition).build()));
         futureMatch.setHomeScore(0);
         futureMatch.setAwayScore(0);
-        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
         var item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(0).awayScore(0).sign("1").build();
         matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item));
 

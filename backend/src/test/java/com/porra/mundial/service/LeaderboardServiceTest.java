@@ -133,8 +133,13 @@ class LeaderboardServiceTest {
         ParticipantScoreDTO first = leaderboard.get(0);
         assertEquals(4, first.getMatchPoints(), "matchPoints debe ser la suma de los puntos otorgados (3 + 1)");
         assertEquals(4, first.getTotal(), "total debe incluir los matchPoints (4)");
-        assertEquals(4, pred.getMatchPoints(), "La entidad Prediction debe recibir el valor calculado de matchPoints");
-        assertEquals(4, pred.getTotalPoints(), "La entidad Prediction debe recibir el valor calculado de totalPoints");
+        // Se guardan solo las columnas de puntos, sin tocar la entidad (no pisa predicciones guardadas a la vez).
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(100L),
+                org.mockito.ArgumentMatchers.eq(4), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(4),
+                org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(predictionRepository, org.mockito.Mockito.never()).saveAll(org.mockito.ArgumentMatchers.any());
         // Una sola consulta para todos los participantes, no una por participante.
         org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.times(1)).findWithMatchByPredictionIdIn(org.mockito.ArgumentMatchers.any());
         org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.never()).findByPredictionId(org.mockito.ArgumentMatchers.anyLong());
@@ -162,6 +167,40 @@ class LeaderboardServiceTest {
         assertEquals(6, leaderboard.get(0).getMatchPoints());
         assertEquals(6, leaderboard.get(0).getTotal());
         verifyNoInteractions(matchPredictionRepository);
+    }
+
+    @Test
+    @DisplayName("getLeaderboard solo recalcula las porras invalidadas y reutiliza los puntos guardados del resto")
+    void getLeaderboard_RecalculatesOnlyStalePredictions() {
+        UserAccount fresh = UserAccount.builder().id(10L).participantName("Guardada").build();
+        UserAccount changed = UserAccount.builder().id(11L).participantName("Cambiada").build();
+        Prediction materialized = Prediction.builder().id(100L).user(fresh).name("Guardada").paymentStatus("PAID")
+                .matchPoints(6).totalPoints(6).scoreCalculatedAt(LocalDateTime.now()).build();
+        Prediction stale = Prediction.builder().id(101L).user(changed).name("Cambiada").paymentStatus("PAID")
+                .scoreCalculatedAt(null).build();
+        MatchPrediction mp = MatchPrediction.builder().id(1L).prediction(stale).pointsAwarded(3).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(materialized, stale));
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(101L))).thenReturn(List.of(mp));
+        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+                new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of(), null));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertEquals(2, leaderboard.size());
+        assertEquals(6, leaderboard.get(0).getTotal());
+        assertEquals(3, leaderboard.get(1).getTotal());
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(101L),
+                org.mockito.ArgumentMatchers.eq(3), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(3),
+                org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(predictionRepository, org.mockito.Mockito.never()).saveCalculatedScore(
+                org.mockito.ArgumentMatchers.eq(100L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -343,8 +382,11 @@ class LeaderboardServiceTest {
         assertEquals(500, leaderboard.get(0).getFinals());
         assertEquals(200, leaderboard.get(1).getFinals());
         assertEquals(200, leaderboard.get(2).getFinals());
-        assertEquals(500, withCustom.getTotalPoints(), "se guarda la puntuación con las reglas de la liga");
-        assertEquals(200, withDefaults.getTotalPoints());
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(300L),
+                org.mockito.ArgumentMatchers.eq(500), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
     }
 
     @Test

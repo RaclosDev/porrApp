@@ -55,6 +55,8 @@ public class MatchEventProcessor {
         private final List<Runnable> notifications = new ArrayList<>();
         private int teamsUpdated;
         private int matchesUpdated;
+        /** Partidos en los que solo ha cambiado el reloj de juego. */
+        private int clockUpdated;
         private boolean resultsChanged;
         private final List<String> errors = new ArrayList<>();
 
@@ -87,6 +89,10 @@ public class MatchEventProcessor {
 
         public int matchesUpdated() {
             return matchesUpdated;
+        }
+
+        public int clockUpdated() {
+            return clockUpdated;
         }
 
         public String competitionName() {
@@ -444,7 +450,8 @@ public class MatchEventProcessor {
         updated |= setIfChanged(match.getMatchDate(), date, match::setMatchDate);
         boolean finishedChanged = setIfChanged(match.getFinished(), status.finished(), match::setFinished);
         updated |= finishedChanged;
-        updated |= setIfChanged(match.getDisplayClock(), status.displayClock(), match::setDisplayClock);
+        // El reloj cambia en cada pasada mientras se juega: no cuenta como cambio de datos.
+        boolean clockChanged = setIfChanged(match.getDisplayClock(), status.displayClock(), match::setDisplayClock);
         if (meta.groupName() != null) {
             updated |= setIfChanged(match.getGroupName(), meta.groupName(), match::setGroupName);
         }
@@ -478,6 +485,9 @@ public class MatchEventProcessor {
                 batch.notifyScore(() -> webSocketService.broadcastMatchScore(matchId, homeName, awayName,
                         scores.home(), scores.away(), normalized == MatchStatusNormalized.LIVE ? "IN_PLAY" : normalized.name()));
             }
+        } else if (clockChanged) {
+            matchRepository.save(match);
+            batch.clockUpdated++;
         }
 
         if (status.finished() || status.live()) {

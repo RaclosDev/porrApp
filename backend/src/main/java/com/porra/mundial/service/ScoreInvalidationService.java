@@ -80,6 +80,24 @@ public class ScoreInvalidationService {
         evictAfterCommit(LEADERBOARD_CACHE);
     }
 
+    /** Como {@link #evictLeaderboardAfterCommit()}, pero solo la clasificación de una liga. */
+    void evictLeaderboardAfterCommit(Long leagueId) {
+        Runnable evict = () -> {
+            Cache cache = cacheManager.getCache(LEADERBOARD_CACHE);
+            if (cache != null) cache.evict(leagueId);
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    evict.run();
+                }
+            });
+        } else {
+            evict.run();
+        }
+    }
+
     void evictStandingsAfterCommit() {
         evictAfterCommit("standings", "officialPoints", LEADERBOARD_CACHE);
     }

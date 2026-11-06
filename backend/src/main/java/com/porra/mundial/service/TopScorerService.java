@@ -7,6 +7,7 @@ import com.porra.mundial.dto.TopScorerDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.net.http.HttpClient;
@@ -63,6 +64,7 @@ public class TopScorerService {
     ));
 
     @Scheduled(initialDelay = 5_000, fixedDelay = 1_800_000)
+    @SchedulerLock(name = "topScorers", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void scheduledRefresh() {
         refresh();
     }

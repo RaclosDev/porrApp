@@ -82,7 +82,8 @@ public class PredictionService {
         return predictionRepository.findById(id);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
+    // Solo cambia la clasificación de esa liga; la lista de ligas no depende de las predicciones.
+    @CacheEvict(value = "leaderboard", key = "#groupId")
     public Prediction createPrediction(String email, String predictionName, PredictionDataDTO predictionData, Long groupId) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email)
                 .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
@@ -147,7 +148,7 @@ public class PredictionService {
         return predictionRepository.save(prediction);
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
+    @CacheEvict(value = "leaderboard", key = "#result.groupId")
     public Prediction updatePrediction(Long id, String requesterEmail, String predictionName, PredictionDataDTO predictionData) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
 
@@ -200,7 +201,7 @@ public class PredictionService {
         }
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
+    @CacheEvict(value = "leaderboard", key = "#result.groupId")
     public Prediction markAsPaid(Long id, String requesterEmail) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
 
@@ -212,13 +213,16 @@ public class PredictionService {
         return prediction;
     }
 
-    @CacheEvict(value = {"leaderboard", "userGroups"}, allEntries = true)
-    public void deletePrediction(Long id, String requesterEmail) {
+    /** Borra la predicción y devuelve el id de su liga. */
+    @CacheEvict(value = "leaderboard", key = "#result")
+    public Long deletePrediction(Long id, String requesterEmail) {
         Prediction prediction = predictionRepository.findById(id).orElseThrow(() -> BusinessException.notFound("Pronóstico no encontrado"));
 
         verifyPredictionOwnership(prediction, requesterEmail);
 
+        Long groupId = prediction.getGroupId();
         predictionRepository.delete(prediction);
+        return groupId;
     }
 
     @Transactional(readOnly = true)
