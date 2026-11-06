@@ -1,4 +1,5 @@
 import type { MatchRadar, TopScorer } from '../../types/api';
+import DialogBackdrop from '../DialogBackdrop';
 import LiveMatchesPanel from '../Home/LiveMatchesPanel';
 import TopScorersPanel from '../Home/TopScorersPanel';
 import { useRef, type Dispatch, type ReactNode, type SetStateAction } from 'react';
@@ -31,13 +32,7 @@ export default function BracketInfoPanel({
   useDialogFocus(dialogRef, { onEscape: () => setActivePanel(null) });
 
   return (
-    <div
-      className="paper-dialog-overlay"
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) setActivePanel(null);
-      }}
-    >
+    <DialogBackdrop className="paper-dialog-overlay" onDismiss={() => setActivePanel(null)}>
       <div
         className="paper-panel landing-tape paper-dialog"
         role="dialog"
@@ -80,6 +75,6 @@ export default function BracketInfoPanel({
           )}
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

@@ -1,4 +1,5 @@
 import { useRef, type KeyboardEvent } from 'react';
+import DialogBackdrop from './DialogBackdrop';
 import { createPortal } from 'react-dom';
 import Flag from './Flag';
 import { openStats } from '../utils/navigation';
@@ -39,13 +40,7 @@ const GroupMatchesModal = ({
   groupMatches.sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
 
   return createPortal(
-    <div
-      className="paper-dialog-overlay"
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <DialogBackdrop className="paper-dialog-overlay" onDismiss={onClose}>
       <div
         className="paper-panel landing-tape paper-dialog"
         role="dialog"
@@ -136,7 +131,7 @@ const GroupMatchesModal = ({
           )}
         </div>
       </div>
-    </div>,
+    </DialogBackdrop>,
     document.body,
   );
 };

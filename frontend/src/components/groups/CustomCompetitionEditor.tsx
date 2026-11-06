@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import DialogBackdrop from '../DialogBackdrop';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -128,20 +129,18 @@ export default function CustomCompetitionEditor({
   };
 
   return (
-    // El clic en el fondo es un atajo de ratón; con teclado, Escape cierra (useDialogFocus).
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="custom-admin-title"
+    <DialogBackdrop
       className="league-admin-overlay"
-      onClick={(event) => {
-        if (event.target === event.currentTarget && !busy) onClose();
+      onDismiss={() => {
+        if (!busy) onClose();
       }}
     >
       <div
         ref={panelRef}
         tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="custom-admin-title"
         className="league-admin-panel paper-panel landing-tape paper-dialog"
       >
         <header className="league-admin-header">
@@ -259,6 +258,6 @@ export default function CustomCompetitionEditor({
           )}
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }
