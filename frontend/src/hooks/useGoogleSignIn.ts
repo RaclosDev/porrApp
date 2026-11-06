@@ -11,6 +11,7 @@ import { useAppStore } from '../store/useAppStore';
 import type { LoginResponse } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { getPasskey, isPasskeyCancel } from '../utils/webauthn';
+import { markPasskeyPromptAnswered } from '../utils/passkeyPrompt';
 
 /**
  * Tras un inicio de sesión correcto (con Google o con llave de acceso): guarda el access token,
@@ -77,7 +78,10 @@ export function usePasskeySignIn({ navigateAfterLogin = true } = {}) {
     try {
       const { requestId, options } = await startPasskeyLogin();
       const credential = await getPasskey(options);
-      completeSignIn(await loginWithPasskey(requestId, credential), navigate, navigateAfterLogin);
+      const data = await loginWithPasskey(requestId, credential);
+      // Este dispositivo ya tiene llave: no hace falta ofrecer añadir otra.
+      markPasskeyPromptAnswered(data.userId);
+      completeSignIn(data, navigate, navigateAfterLogin);
       return true;
     } catch (err) {
       if (!isPasskeyCancel(err)) {

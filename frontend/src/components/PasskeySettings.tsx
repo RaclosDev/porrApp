@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { deletePasskey, fetchPasskeys, type PasskeySummary } from '../services/api';
+import { useAppStore } from '../store/useAppStore';
+import { isPasskeyCancel, passkeysSupported } from '../utils/webauthn';
 import {
-  deletePasskey,
-  fetchPasskeys,
-  finishPasskeyRegistration,
-  startPasskeyRegistration,
-  type PasskeySummary,
-} from '../services/api';
-import { createPasskey, deviceName, isPasskeyCancel, passkeysSupported } from '../utils/webauthn';
+  addPasskeyOnThisDevice,
+  isDuplicatePasskey,
+  markPasskeyPromptAnswered,
+} from '../utils/passkeyPrompt';
 import { errorMessage } from '../utils/errors';
 
 const PASSKEYS_QUERY_KEY = ['passkeys'] as const;
@@ -26,6 +26,7 @@ const dateFormat = new Intl.DateTimeFormat('es-ES', {
  */
 export default function PasskeySettings() {
   const queryClient = useQueryClient();
+  const userId = useAppStore((state) => state.userId);
   const supported = passkeysSupported();
   const { data: passkeys } = useQuery({
     queryKey: PASSKEYS_QUERY_KEY,
@@ -42,15 +43,13 @@ export default function PasskeySettings() {
   const add = async () => {
     setBusy(true);
     try {
-      const { requestId, options } = await startPasskeyRegistration();
-      const credential = await createPasskey(options);
-      const saved = await finishPasskeyRegistration(requestId, credential, deviceName());
+      const saved = await addPasskeyOnThisDevice();
       setPasskeys([...(passkeys ?? []), saved]);
+      markPasskeyPromptAnswered(userId);
       toast.success('Llave de acceso añadida. La próxima vez entra con ella.');
     } catch (err) {
       if (isPasskeyCancel(err)) return;
-      // El dispositivo ya tiene una llave de esta cuenta.
-      if (err instanceof DOMException && err.name === 'InvalidStateError') {
+      if (isDuplicatePasskey(err)) {
         toast('Este dispositivo ya tiene una llave de acceso de tu cuenta.');
         return;
       }
