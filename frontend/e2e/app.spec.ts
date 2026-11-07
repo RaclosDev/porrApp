@@ -54,7 +54,7 @@ for (const viewport of [
         'La porra de toda la vida',
       );
 
-      await page.getByRole('button', { name: 'Entrar con Google', exact: true }).click();
+      await page.getByRole('button', { name: 'Crear mi liga gratis', exact: true }).first().click();
       const dialog = page.getByRole('dialog', { name: 'Iniciar sesión' });
       await expect(dialog).toBeVisible();
       const panel = dialog.locator('.modal-content');
@@ -78,7 +78,10 @@ for (const viewport of [
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto('/');
-      await page.getByRole('link', { name: 'Ver la porra del Mundial', exact: true }).click();
+      await page
+        .getByRole('link', { name: 'Ver una porra de ejemplo', exact: true })
+        .first()
+        .click();
       await expect(page).toHaveURL('/demo');
       await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
       await expect(
@@ -92,6 +95,20 @@ for (const viewport of [
         'La porra de toda la vida',
       );
       expect(errors).toEqual([]);
+    });
+
+    test('shows the plain landing to a visitor who left the demo without exiting', async ({
+      page,
+    }) => {
+      await page.goto('/demo');
+      await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
+
+      await page.goto('/');
+      await expect(page.getByRole('heading', { level: 1 })).toContainText(
+        'La porra de toda la vida',
+      );
+      await expect(page.getByText('Modo demo:', { exact: true })).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'Resultados' })).toHaveCount(0);
     });
   });
 }
