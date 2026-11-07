@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Importa el catálogo de equipos y el calendario completo de la temporada de una competición: al crear
- * una liga sobre ella y, para las que tienen ligas activas, cada pocas horas ({@link SeasonCalendarRefresher}).
+ * una liga sobre ella y, para todas las oficiales, cada madrugada ({@link SeasonCalendarRefresher}).
  */
 @Service
 @RequiredArgsConstructor
