@@ -30,6 +30,7 @@ function PersonButton({
       >
         <UserAvatar
           url={entry.userId !== null ? avatarByUserId.get(entry.userId) : null}
+          userId={entry.userId}
           name={entry.name}
           size={28}
         />

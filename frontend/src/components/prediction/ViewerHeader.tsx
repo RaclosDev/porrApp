@@ -21,7 +21,7 @@ export default function ViewerHeader({
     <div className="flex justify-between items-center border-b border-b-line pb-2.5 mb-[15px] flex-wrap gap-2.5">
       <div className="flex items-center gap-2.5 min-w-0">
         <span className="sticker-frame shrink-0">
-          <UserAvatar url={points.avatarUrl} name={part.user} size={32} />
+          <UserAvatar url={points.avatarUrl} userId={points.userId} name={part.user} size={32} />
         </span>
         <h3 className="poster-title text-main text-[1.4rem] m-0 min-w-0 break-words">
           Porra de <span className="marker-ink">{part.user}</span>

@@ -74,7 +74,12 @@ function PredictionRow({
   const formattedTime = showTime ? formatTimestamp(prediction.updatedAt) : null;
   return (
     <div className={`friends-prediction${prediction.isCaller ? ' is-caller' : ''}`}>
-      <UserAvatar url={prediction.avatarUrl} name={prediction.participantName} size={40} />
+      <UserAvatar
+        url={prediction.avatarUrl}
+        userId={prediction.userId}
+        name={prediction.participantName}
+        size={40}
+      />
       <div className="friends-prediction-main">
         <div className="friends-prediction-name">
           <span>{prediction.participantName}</span>

@@ -16,7 +16,7 @@ export function PeopleList({ people }: { people: PersonItem[] }) {
     <ul className="sheet-people">
       {people.map((person) => (
         <li key={person.userId} className="sheet-person">
-          <UserAvatar url={person.avatarUrl} name={person.name} size={36} />
+          <UserAvatar url={person.avatarUrl} userId={person.userId} name={person.name} size={36} />
           <span className="sheet-person-name">{person.name}</span>
           {person.badge && <span className="sheet-person-badge">{person.badge}</span>}
         </li>
