@@ -8,7 +8,6 @@ import MatchdayHeader from '../components/matchday/MatchdayHeader';
 import RoundSelector from '../components/matchday/RoundSelector';
 import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
-import FloatingSaveButton from '../components/matchday/FloatingSaveButton';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
 
@@ -81,8 +80,9 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         isLoading={md.isLoading}
         predicted={md.counts.predicted}
         total={md.counts.total}
-        successMsg={md.saveSuccessMsg}
+        saveStatus={md.saveStatus}
         errorMsg={md.saveErrorMsg}
+        onRetry={md.retrySave}
       />
 
       {md.availableRounds.length > 0 && (
@@ -125,7 +125,6 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
             fixture={fixture}
             prediction={md.predictionFor(fixture.matchId)}
             locked={fixture.locked || activeGroupIsLocked}
-            disabled={md.isSaving}
             onQuickSign={md.handleQuickSign}
             onShowFriends={md.setSelectedMatchForFriends}
             voters={voters.get(fixture.matchId)}
@@ -133,16 +132,6 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
           />
         ))}
       </div>
-
-      {md.hasUnsavedChanges && (
-        <FloatingSaveButton
-          isSaving={md.isSaving}
-          isLocked={activeGroupIsLocked}
-          predicted={md.counts.predicted}
-          total={md.counts.total}
-          onSave={md.handleSaveAll}
-        />
-      )}
 
       <MatchFriendsPredictionsModal
         groupId={activeGroupId}

@@ -199,10 +199,21 @@ export function buildSubmission(fixtures: MatchdayFixture[], draft: Draft): Subm
   return items.length ? { kind: 'ready', items } : { kind: 'empty' };
 }
 
-/** Borrador sin los partidos ya guardados. */
-export function withoutSaved(draft: Draft, savedMatchIds: number[]): Draft {
+/**
+ * Borrador sin lo que ya se ha guardado. Un partido que se ha vuelto a cambiar mientras se
+ * guardaba conserva el cambio nuevo, para enviarlo en el siguiente guardado.
+ */
+export function withoutSaved(draft: Draft, saved: MatchdayPredictionInput[]): Draft {
   const rest = { ...draft };
-  savedMatchIds.forEach((id) => delete rest[id]);
+  saved.forEach((item) => {
+    const current = rest[item.matchId];
+    if (!current) return;
+    const same =
+      (current.sign || null) === item.sign &&
+      (current.homeScore === '' ? null : parseInt(current.homeScore, 10)) === item.homeScore &&
+      (current.awayScore === '' ? null : parseInt(current.awayScore, 10)) === item.awayScore;
+    if (same) delete rest[item.matchId];
+  });
   return rest;
 }
 

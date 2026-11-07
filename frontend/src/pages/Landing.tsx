@@ -18,12 +18,15 @@ import SiteFooter from '../components/landing/SiteFooter';
 import { LANDING_COPY } from '../seo/pages';
 
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
+
 /** Ancho real de las capturas: media columna en escritorio, casi toda la pantalla en el móvil. */
+/** El cuadro se recorta y se pinta al 180 % de su marco. */
+const BRACKET_CROP_SIZES = '(min-width: 1024px) 1000px, 160vw';
 const SCREENSHOT_SIZES = '(min-width: 1024px) 560px, calc(100vw - 80px)';
 
 /**
- * Portada para quien aún no ha entrado: un cartel con la porra real del Mundial, los cromos de
- * los primeros de la liga pública destacada y los dos formatos de liga.
+ * Portada para quien aún no ha entrado: qué es y cómo se juega, los dos formatos de liga, los
+ * cromos de los primeros de la liga pública destacada y una última llamada a crear la liga.
  */
 export default function Landing() {
   const { reduced, visible } = useLandingMotion();
@@ -33,6 +36,11 @@ export default function Landing() {
   const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
   const leader = leaders[0];
   const initial = reduced ? 'show' : 'hidden';
+  const inView = {
+    initial,
+    whileInView: visible ? 'show' : undefined,
+    viewport: inViewOnce,
+  } as const;
 
   return (
     <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
@@ -51,19 +59,22 @@ export default function Landing() {
             variants={rise}
             initial={initial}
             animate={visible ? 'show' : undefined}
-            className="flex flex-wrap gap-3"
+            className="flex flex-col gap-3"
           >
-            <button
-              id="btn-hero-login"
-              type="button"
-              onClick={openLogin}
-              className="landing-btn landing-btn-ink"
-            >
-              Entrar con Google
-            </button>
-            <Link to="/demo" className="landing-btn">
-              Ver la porra del Mundial
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <button
+                id="btn-hero-login"
+                type="button"
+                onClick={openLogin}
+                className="landing-btn landing-btn-ink"
+              >
+                Crear mi liga gratis
+              </button>
+              <Link to="/demo" className="landing-btn">
+                Ver una porra de ejemplo
+              </Link>
+            </div>
+            <p className="text-[#4b5563] text-sm">{LANDING_COPY.heroNote}</p>
           </motion.div>
         </div>
         <motion.div
@@ -111,91 +122,70 @@ export default function Landing() {
 
       <NetLine />
 
-      <GhostWord word="Álbum" className="py-10">
+      <GhostWord word="Cómo" className="py-10">
         <MarkerHeading
-          text={`Los cromos de ${leagueLabel}`}
+          text={LANDING_COPY.stepsTitle}
           className="text-[clamp(2rem,5vw,3.6rem)] text-white"
         />
-        {leaders.length === 0 && loading && !error ? (
-          // Mismo alto que el álbum: al llegar los cromos la página no crece de golpe.
-          <div className="landing-sticker-album-slot mt-10" aria-hidden="true" />
-        ) : null}
-        {leaders.length > 0 ? (
-          <motion.ul
-            variants={fanContainer}
-            initial={initial}
-            whileInView={visible ? 'show' : undefined}
-            viewport={inViewOnce}
-            className="landing-sticker-album mt-10 list-none"
-            aria-label={`Cromos de ${leagueLabel}`}
-            tabIndex={0}
-          >
-            {leaders.map((row, index) => (
-              <motion.li
-                key={row.userId ?? row.name}
-                variants={fanItem(FAN_ANGLES[index] ?? 0)}
-                className="lg:-ml-6 lg:first:ml-0"
-              >
-                <StickerCard leader={row} />
-              </motion.li>
-            ))}
-          </motion.ul>
-        ) : null}
-        <motion.div
-          variants={rise}
-          initial={initial}
-          whileInView={visible ? 'show' : undefined}
-          viewport={inViewOnce}
-          className="mt-10 flex flex-wrap items-center justify-center gap-6"
+        <motion.ol
+          variants={fanContainer}
+          {...inView}
+          className="grid gap-6 md:grid-cols-3 mt-10 list-none p-0"
+          aria-label="Pasos para jugar"
         >
-          {champion ? (
-            <span className="ink-stamp ink-stamp-paper">
-              {champion.team} campeona en {champion.count} de {champion.total} cuadros
-            </span>
-          ) : null}
-          <Link to="/demo" className="landing-link-light">
-            Ver la clasificación completa
-          </Link>
-        </motion.div>
+          {LANDING_COPY.steps.map((step, index) => (
+            <motion.li
+              key={step.title}
+              variants={rise}
+              className="landing-poster p-6 flex flex-col gap-3"
+            >
+              <span className="poster-title text-5xl text-[#0b5f74]" aria-hidden="true">
+                {index + 1}
+              </span>
+              <h3 className="poster-title text-3xl">{step.title}</h3>
+              <p className="text-[#1f2937] leading-snug">{step.text}</p>
+            </motion.li>
+          ))}
+        </motion.ol>
       </GhostWord>
 
       <NetLine />
 
       <GhostWord word="Formatos" className="py-10">
         <MarkerHeading
-          text="Dos formas de jugar"
+          text={LANDING_COPY.formatsTitle}
           className="text-[clamp(2rem,5vw,3.6rem)] text-white"
         />
         <div className="grid gap-8 lg:grid-cols-2 mt-10 items-start">
           <motion.article
             variants={rise}
-            initial={initial}
-            whileInView={visible ? 'show' : undefined}
-            viewport={inViewOnce}
+            {...inView}
             className="landing-poster landing-tape rotate-1 p-6 sm:p-8 flex flex-col gap-4"
           >
             <h3 className="poster-title text-4xl">{LANDING_COPY.bracketTitle}</h3>
             <p className="text-[#1f2937] leading-snug">{LANDING_COPY.bracketText}</p>
-            <img
-              src="/landing/cuadro-1200.webp"
-              srcSet="/landing/cuadro-640.webp 640w, /landing/cuadro-1200.webp 1200w"
-              sizes={SCREENSHOT_SIZES}
-              alt="El cuadro del Mundial 2026 en PorrApp: de dieciseisavos a la final, con España campeona."
-              loading="lazy"
-              width="1200"
-              height="812"
-              className="w-full h-auto rounded-md border border-[rgba(17,24,39,0.2)]"
-            />
+            {/* Solo la parte central del cuadro, para que los cruces y la final se lean. */}
+            <div className="relative aspect-[4/3] overflow-hidden rounded-md border border-[rgba(17,24,39,0.2)]">
+              <img
+                src="/landing/cuadro-1200.webp"
+                srcSet="/landing/cuadro-640.webp 640w, /landing/cuadro-1200.webp 1200w"
+                sizes={BRACKET_CROP_SIZES}
+                alt="Parte central de un cuadro de eliminatorias en PorrApp: cuartos, semifinales y la final, con España campeona."
+                loading="lazy"
+                width="1200"
+                height="812"
+                className="absolute max-w-none h-auto"
+                style={{ width: '180%', left: '-40%', top: '-39%' }}
+              />
+            </div>
             <Link to="/demo" className="landing-link self-start">
-              Abrir la porra del Mundial
+              Ver un cuadro de ejemplo
             </Link>
           </motion.article>
 
           <motion.article
             variants={rise}
-            initial={initial}
-            whileInView={visible ? 'show' : undefined}
-            viewport={inViewOnce}
+            {...inView}
             className="landing-poster landing-tape p-6 sm:p-8 flex flex-col gap-4"
           >
             <h3 className="poster-title text-4xl">{LANDING_COPY.matchdayTitle}</h3>
@@ -218,8 +208,77 @@ export default function Landing() {
             <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
           </motion.article>
         </div>
-        <p className="text-muted text-sm text-center mt-8">{LANDING_COPY.closing}</p>
       </GhostWord>
+
+      <NetLine />
+
+      <GhostWord word="Álbum" className="py-10">
+        <MarkerHeading
+          text={`Los cromos de ${leagueLabel}`}
+          className="text-[clamp(2rem,5vw,3.6rem)] text-white"
+        />
+        {leaders.length === 0 && loading && !error ? (
+          // Mismo alto que el álbum: al llegar los cromos la página no crece de golpe.
+          <div className="landing-sticker-album-slot mt-10" aria-hidden="true" />
+        ) : null}
+        {leaders.length > 0 ? (
+          <motion.ul
+            variants={fanContainer}
+            {...inView}
+            className="landing-sticker-album mt-10 list-none"
+            aria-label={`Cromos de ${leagueLabel}`}
+            tabIndex={0}
+          >
+            {leaders.map((row, index) => (
+              <motion.li
+                key={row.userId ?? row.name}
+                variants={fanItem(FAN_ANGLES[index] ?? 0)}
+                className="lg:-ml-6 lg:first:ml-0"
+              >
+                <StickerCard leader={row} />
+              </motion.li>
+            ))}
+          </motion.ul>
+        ) : null}
+        <motion.div
+          variants={rise}
+          {...inView}
+          className="mt-10 flex flex-wrap items-center justify-center gap-6"
+        >
+          {champion ? (
+            <span className="ink-stamp ink-stamp-paper">
+              {champion.team} campeona en {champion.count} de {champion.total} cuadros
+            </span>
+          ) : null}
+          <Link to="/demo" className="landing-link-light">
+            Ver la clasificación completa
+          </Link>
+        </motion.div>
+      </GhostWord>
+
+      <motion.section
+        variants={rise}
+        {...inView}
+        aria-labelledby="landing-final-cta"
+        className="landing-poster landing-tape mt-6 px-6 py-10 sm:px-10 sm:py-12 flex flex-col items-center gap-5 text-center"
+      >
+        <h2
+          id="landing-final-cta"
+          className="poster-title text-[clamp(2rem,5vw,3.4rem)] leading-[0.95]"
+        >
+          {LANDING_COPY.closingTitle}{' '}
+          <span className="marker-ink">{LANDING_COPY.closingMarked}</span>
+        </h2>
+        <p className="text-[#1f2937] text-lg max-w-130 leading-snug">{LANDING_COPY.closing}</p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
+            Crear mi liga gratis
+          </button>
+          <Link to="/demo" className="landing-btn">
+            Ver una porra de ejemplo
+          </Link>
+        </div>
+      </motion.section>
 
       <SiteFooter />
     </div>

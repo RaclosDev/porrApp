@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useEffectEvent, useMemo, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { useAppContext } from '../context/AppContext';
@@ -37,8 +37,10 @@ import {
 interface SaveVariables {
   groupId: string;
   items: MatchdayPredictionInput[];
-  savedMatchIds: number[];
 }
+
+/** Estado del guardado automático, para la cabecera de la jornada. */
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 const EMPTY_FIXTURES: MatchdayFixture[] = [];
 
@@ -71,11 +73,13 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const [selectedMatchForFriends, setSelectedMatchForFriends] = useState<MatchdayFixture | null>(
     null,
   );
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localPredictions, setLocalPredictions] = useState<Draft>({});
-  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const draftRef = useRef<Draft | null>(null);
+  // Un solo guardado a la vez: lo que se elija mientras tanto sale en cuanto termine.
+  const inFlightRef = useRef(false);
+  const queuedRef = useRef(false);
   // El borrador es de cada usuario: en un dispositivo compartido no se ve el de otro.
   const draftUser = userId || userName;
   const storageKey = draftKey('matchday', activeGroupId, draftUser);
@@ -145,7 +149,6 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     const merged = mergeDraftWithServer(fixtures, draft ?? {});
     setLocalPredictions(merged.predictions);
     persistDraft(merged.draft);
-    setHasUnsavedChanges(Object.keys(merged.draft).length > 0);
   }, [fixtures, storageKey, activeGroupId, draftUser, persistDraft]);
 
   const roundList = useMemo(
@@ -163,65 +166,74 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
 
   const saveMutation = useMutation<MatchdaySubmissionResult, Error, SaveVariables>({
     mutationFn: ({ groupId, items }) => submitMatchdayPredictions(groupId, items),
-    onSuccess: (data, { groupId, savedMatchIds }) => {
-      setSaveSuccessMsg(data.message || '¡Predicciones guardadas correctamente!');
-      const rest = withoutSaved(draftRef.current ?? {}, savedMatchIds);
-      persistDraft(rest);
-      setHasUnsavedChanges(Object.keys(rest).length > 0);
+    onSuccess: (_data, { groupId, items }) => {
+      persistDraft(withoutSaved(draftRef.current ?? {}, items));
       setSaveErrorMsg('');
+      setSaveStatus('saved');
       queryClient.invalidateQueries({ queryKey: queryKeys.matchdayFixtures(groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
     },
     onError: (err) => {
-      setSaveErrorMsg(errorMessage(err, 'Error al guardar las predicciones'));
-      setSaveSuccessMsg('');
+      setSaveErrorMsg(errorMessage(err, 'No se pudo guardar la predicción'));
+      setSaveStatus('error');
+    },
+    onSettled: () => {
+      inFlightRef.current = false;
+      if (queuedRef.current) {
+        queuedRef.current = false;
+        saveDraft();
+      }
     },
   });
 
-  // El aviso de guardado desaparece a los 4 s; el temporizador se limpia al desmontar o si
-  // llega otro aviso antes.
+  // «Guardado» se queda 3 s y vuelve a desaparecer.
   useEffect(() => {
-    if (!saveSuccessMsg) return;
-    const timer = setTimeout(() => setSaveSuccessMsg(''), 4000);
+    if (saveStatus !== 'saved') return;
+    const timer = setTimeout(() => setSaveStatus('idle'), 3000);
     return () => clearTimeout(timer);
-  }, [saveSuccessMsg]);
+  }, [saveStatus]);
 
   const updatePrediction = (matchId: number, prediction: DraftPrediction) => {
     persistDraft({ ...draftRef.current, [matchId]: prediction });
-    setHasUnsavedChanges(true);
     setLocalPredictions((previous) => ({ ...previous, [matchId]: prediction }));
   };
 
   const predictionFor = (matchId: number) => localPredictions[matchId] || EMPTY_PREDICTION;
-
-  const handleQuickSign = (matchId: number, sign: MatchSign) =>
-    updatePrediction(matchId, withSign(sign));
 
   const roundFixtures = useMemo(
     () => (activeRound ? fixtures.filter((f) => roundLabelFor(f) === activeRound) : fixtures),
     [fixtures, activeRound],
   );
 
-  const handleSaveAll = () => {
-    if (saveMutation.isPending || activeGroupIsLocked) return;
+  /** Envía el borrador de la jornada; si ya hay un guardado en curso, sale justo después. */
+  function saveDraft() {
+    if (activeGroupIsLocked || !isAuthenticated) return;
+    if (inFlightRef.current) {
+      queuedRef.current = true;
+      return;
+    }
+    const submission = buildSubmission(roundFixtures, draftRef.current || {});
+    if (submission.kind !== 'ready') return;
+    inFlightRef.current = true;
+    setSaveStatus('saving');
+    saveMutation.mutate({ groupId: activeGroupId, items: submission.items });
+  }
+
+  // Lo que quedó sin guardar (sin conexión, o se cerró la app a medias) se envía al llegar los
+  // partidos. Va después del efecto que mezcla el borrador, así que ya lo tiene al día.
+  const resumeSave = useEffectEvent(saveDraft);
+  useEffect(() => {
+    if (fixtures.length > 0 && Object.keys(draftRef.current ?? {}).length > 0) resumeSave();
+  }, [fixtures]);
+
+  /** Elegir un signo lo guarda al momento: no hay botón de guardar. */
+  const handleQuickSign = (matchId: number, sign: MatchSign) => {
     if (!isAuthenticated) {
       toast.error('Inicia sesión con Google para guardar tus predicciones.');
       return;
     }
-    const submission = buildSubmission(roundFixtures, draftRef.current || {});
-    if (submission.kind === 'incomplete') {
-      setSaveErrorMsg('Completa los dos marcadores de cada partido antes de guardar.');
-      return;
-    }
-    if (submission.kind === 'empty') {
-      toast('No hay predicciones nuevas o modificadas para guardar en esta jornada.');
-      return;
-    }
-    saveMutation.mutate({
-      groupId: activeGroupId,
-      items: submission.items,
-      savedMatchIds: submission.items.map((p) => p.matchId),
-    });
+    updatePrediction(matchId, withSign(sign));
+    saveDraft();
   };
 
   const counts = useMemo(
@@ -264,10 +276,8 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     displayedFixtures,
     predictionFor,
     handleQuickSign,
-    handleSaveAll,
-    isSaving: saveMutation.isPending,
-    hasUnsavedChanges,
-    saveSuccessMsg,
+    retrySave: saveDraft,
+    saveStatus,
     saveErrorMsg,
     selectedMatchForFriends,
     setSelectedMatchForFriends,

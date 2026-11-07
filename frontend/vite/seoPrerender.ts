@@ -90,11 +90,15 @@ const paragraphs = (texts: readonly string[]) =>
 
 const landingMarkup = () =>
   `<main><h1>${escapeHtml(`${LANDING_COPY.h1} ${LANDING_COPY.h1Marked}`)}</h1>` +
-  paragraphs([LANDING_COPY.lede]) +
-  `<p><a href="/demo">Ver la porra del Mundial</a></p>` +
-  `<h2>Dos formas de jugar</h2>` +
-  `<h3>${LANDING_COPY.bracketTitle}</h3>${paragraphs([LANDING_COPY.bracketText])}` +
-  `<h3>${LANDING_COPY.matchdayTitle}</h3>${paragraphs([LANDING_COPY.matchdayText])}` +
+  paragraphs([LANDING_COPY.lede, LANDING_COPY.heroNote]) +
+  `<p><a href="/demo">Ver una porra de ejemplo</a></p>` +
+  `<h2>${escapeHtml(LANDING_COPY.stepsTitle)}</h2><ol>${LANDING_COPY.steps
+    .map((step) => `<li><h3>${escapeHtml(step.title)}</h3>${paragraphs([step.text])}</li>`)
+    .join('')}</ol>` +
+  `<h2>${escapeHtml(LANDING_COPY.formatsTitle)}</h2>` +
+  `<h3>${escapeHtml(LANDING_COPY.bracketTitle)}</h3>${paragraphs([LANDING_COPY.bracketText])}` +
+  `<h3>${escapeHtml(LANDING_COPY.matchdayTitle)}</h3>${paragraphs([LANDING_COPY.matchdayText])}` +
+  `<h2>${escapeHtml(`${LANDING_COPY.closingTitle} ${LANDING_COPY.closingMarked}`)}</h2>` +
   paragraphs([LANDING_COPY.closing]) +
   `</main>${footerNav()}`;
 

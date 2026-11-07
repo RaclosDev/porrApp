@@ -586,11 +586,6 @@
       padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
-    /* Los botones flotantes de acción se elevan por encima de la barra */
-    .floating-bottom-action {
-      bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
-    }
-
     .mobile-bottom-nav .mobile-nav-item:active {
       transform: scale(0.92);
     }

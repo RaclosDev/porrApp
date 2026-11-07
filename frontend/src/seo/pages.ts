@@ -45,15 +45,34 @@ export const HOME_META: PageMeta = {
 export const LANDING_COPY = {
   h1: 'La porra de toda la vida,',
   h1Marked: 'pero bien hecha.',
-  lede: 'Rellena tu cuadro del Mundial o haz tus predicciones jornada a jornada, y compite con tus amigos. Los puntos se calculan solos con los resultados reales.',
+  lede: 'Porras de fútbol gratis con tus amigos. Rellena el cuadro de la Champions o haz tus predicciones de LaLiga, la Premier y más, jornada a jornada. Los puntos se calculan solos con los resultados reales.',
+  heroNote: 'Entras con tu cuenta de Google. Sin descargas ni anuncios.',
+  stepsTitle: 'Cómo se juega',
+  steps: [
+    {
+      title: 'Crea tu liga',
+      text: 'Elige el formato: el cuadro de unas eliminatorias, como la Champions, o las jornadas de LaLiga, la Premier y otras competiciones.',
+    },
+    {
+      title: 'Invita con un enlace',
+      text: 'Pásalo por el grupo. Tus amigos lo abren, entran con su cuenta de Google y ya están dentro.',
+    },
+    {
+      title: 'Predice y compite',
+      text: 'Cada predicción se cierra cuando empieza el partido. Los puntos y la clasificación se actualizan solos con los resultados reales.',
+    },
+  ],
+  formatsTitle: 'Dos formas de jugar',
   bracketTitle: 'Cuadro',
   bracketText:
-    'Para el Mundial. Ordenas los grupos, rellenas las eliminatorias hasta el campeón y eliges al pichichi. Los cruces se calculan solos y los puntos llegan con cada partido.',
+    'Para las eliminatorias, como la Champions o el Mundial. Rellenas los cruces hasta el campeón y los puntos llegan solos con cada partido.',
   matchdayTitle: 'Jornadas',
   matchdayText:
-    'Para LaLiga, la Premier, la Champions y más ligas de Europa y América. Eliges 1, X o 2 en cada partido, y cada uno se cierra solo cuando empieza.',
+    'Para LaLiga, la Premier, la Champions y otras ocho competiciones. Predices el signo (1X2) o el marcador exacto, según elija la liga, y cada partido se cierra solo cuando empieza.',
+  closingTitle: 'Tu grupo ya discute de fútbol.',
+  closingMarked: 'Que cuente para algo.',
   closing:
-    'Se instala en el móvil como una app. Las predicciones quedan a la vista de la liga en cuanto empieza cada partido.',
+    'Crea la liga, pasa el enlace y que hablen los resultados. Se instala en el móvil como una app.',
 } as const;
 
 const HOW_IT_WORKS_FAQ: FaqEntry[] = [
@@ -108,7 +127,7 @@ export const CONTENT_PAGES: ContentPage[] = [
       {
         heading: 'Crea la liga',
         paragraphs: [
-          'Entra con tu cuenta de Google y crea una liga privada. Eliges la competición (LaLiga, la Premier, la Champions y otras) y el formato: predicciones jornada a jornada o, en el Mundial, el cuadro completo.',
+          'Entra con tu cuenta de Google y crea una liga privada. Eliges la competición (LaLiga, la Premier, la Champions y otras) y el formato: predicciones jornada a jornada o el cuadro de unas eliminatorias.',
           'Quien crea la liga es su administrador: puede cambiar los puntos de cada acierto, gestionar a los miembros y apuntar quién ha pagado si jugáis con bote.',
         ],
       },
@@ -121,7 +140,7 @@ export const CONTENT_PAGES: ContentPage[] = [
       {
         heading: 'Haz tus predicciones',
         paragraphs: [
-          'En las ligas por jornadas eliges 1, X o 2 en cada partido. Puedes cambiarlo hasta que empieza: a esa hora se cierra solo y tu predicción queda a la vista del resto.',
+          'En las ligas por jornadas predices cada partido: el signo (1X2) o el marcador exacto, según elija la liga. Puedes cambiarlo hasta que empieza: a esa hora se cierra solo y tu predicción queda a la vista del resto.',
           'En el cuadro del Mundial ordenas los grupos, rellenas las eliminatorias hasta el campeón y eliges al pichichi antes de que empiece el torneo.',
         ],
       },
@@ -139,10 +158,10 @@ export const CONTENT_PAGES: ContentPage[] = [
     navLabel: 'Porra de LaLiga',
     title: 'Porra de LaLiga con amigos, gratis · PorrApp',
     description:
-      'Monta una porra de LaLiga con tus amigos: predicciones 1X2 de cada jornada, cierre automático al empezar cada partido y clasificación al día. Gratis.',
+      'Monta una porra de LaLiga con tus amigos: predicciones de cada jornada, cierre automático al empezar cada partido y clasificación al día. Gratis.',
     h1: 'Tu porra de LaLiga,',
     h1Marked: 'jornada a jornada.',
-    lede: 'Crea una liga privada para la temporada de LaLiga, invita a tus amigos y elige 1, X o 2 en cada partido. Los puntos se suman solos cuando termina.',
+    lede: 'Crea una liga privada para la temporada de LaLiga, invita a tus amigos y predice cada partido, a 1X2 o a marcador exacto. Los puntos se suman solos cuando termina.',
     sections: [
       {
         heading: 'Toda la temporada',
@@ -179,7 +198,7 @@ export const CONTENT_PAGES: ContentPage[] = [
       {
         heading: 'De la fase de liga a la final',
         paragraphs: [
-          'Los partidos de la Champions llegan a tu liga con sus horarios reales. Eliges 1, X o 2 en cada uno y la predicción se cierra sola cuando empieza.',
+          'Los partidos de la Champions llegan a tu liga con sus horarios reales. Predices cada uno, a 1X2 o a marcador exacto según la liga, y la predicción se cierra sola cuando empieza.',
           'La clasificación de la liga se actualiza con cada resultado, y también puedes ver quién ganó cada jornada.',
         ],
       },
@@ -202,10 +221,10 @@ export const CONTENT_PAGES: ContentPage[] = [
     navLabel: 'Porra de la Premier',
     title: 'Porra de la Premier League con amigos · PorrApp',
     description:
-      'Crea una porra de la Premier League con tus amigos: predicciones 1X2 de cada jornada, cierre automático al empezar cada partido y clasificación al día.',
+      'Crea una porra de la Premier League con tus amigos: predicciones de cada jornada, cierre automático al empezar cada partido y clasificación al día.',
     h1: 'Tu porra de la Premier,',
     h1Marked: 'sin hojas de cálculo.',
-    lede: 'Crea una liga privada para la Premier League, invita a tus amigos y elige 1, X o 2 en cada partido. PorrApp se encarga de los resultados y los puntos.',
+    lede: 'Crea una liga privada para la Premier League, invita a tus amigos y predice cada partido, a 1X2 o a marcador exacto. PorrApp se encarga de los resultados y los puntos.',
     sections: [
       {
         heading: 'Cada jornada, con su horario',
