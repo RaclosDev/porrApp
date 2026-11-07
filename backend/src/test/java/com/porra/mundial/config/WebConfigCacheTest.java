@@ -1,5 +1,6 @@
 package com.porra.mundial.config;
 
+import com.porra.mundial.controller.SpaPageController;
 import com.porra.mundial.controller.TopScorerController;
 import com.porra.mundial.service.tournament.TopScorerService;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Last-Modified, la revalidación del navegador recibiría 304 tras un despliegue y el
  * Service Worker se quedaría en la versión anterior.
  */
-@WebMvcTest(TopScorerController.class)
+@WebMvcTest({TopScorerController.class, SpaPageController.class})
 @Import({WebConfig.class, SecurityConfig.class, JwtAuthFilter.class, RateLimitingFilter.class, CsrfOriginFilter.class})
 class WebConfigCacheTest {
 
@@ -52,8 +53,8 @@ class WebConfigCacheTest {
     }
 
     @Test
-    void spaFallbackRevalidationAlwaysReturnsTheCurrentDocument() throws Exception {
-        mockMvc.perform(get("/ligas/1").header("If-Modified-Since", JAR_ENTRY_DATE))
+    void spaPageRevalidationAlwaysReturnsTheCurrentDocument() throws Exception {
+        mockMvc.perform(get("/ranking").header("If-Modified-Since", JAR_ENTRY_DATE))
                 .andExpect(status().isOk())
                 .andExpect(header().doesNotExist("Last-Modified"));
     }

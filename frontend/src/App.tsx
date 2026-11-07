@@ -5,7 +5,8 @@ import { useLeaguePredictions } from './hooks/useLeaguePredictions';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import CookieConsent from './components/layout/CookieConsent';
-import CanonicalLink from './components/layout/CanonicalLink';
+import RouteHead from './components/layout/RouteHead';
+import { CONTENT_PAGES } from './seo/pages';
 import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
 import { Toaster } from 'react-hot-toast';
@@ -28,6 +29,7 @@ const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
 const MatchdayPredictor = React.lazy(() => import('./pages/MatchdayPredictor'));
 const LeagueStandings = React.lazy(() => import('./pages/LeagueStandings'));
 const Legal = React.lazy(() => import('./pages/Legal'));
+const ContentPage = React.lazy(() => import('./pages/ContentPage'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
 const GUEST_ALLOWED_PATHS = [
@@ -152,7 +154,7 @@ function App() {
       />
       <Router>
         <PwaUpdater />
-        <CanonicalLink />
+        <RouteHead />
         <CookieConsent />
         <ConfirmDialog />
         <Layout>
@@ -165,6 +167,9 @@ function App() {
               <Route path="/linkedin" element={<LinkedInEntry />} />
               <Route path="/privacidad" element={<Legal kind="privacy" />} />
               <Route path="/aviso-legal" element={<Legal kind="legal" />} />
+              {CONTENT_PAGES.map((page) => (
+                <Route key={page.path} path={page.path} element={<ContentPage page={page} />} />
+              ))}
 
               {/* Rutas de lectura - accesibles en guest_mode */}
               <Route
