@@ -42,6 +42,7 @@ export default defineConfig({
       strategies: 'generateSW',
       registerType: 'autoUpdate',
       includeAssets: [
+        'favicon.ico',
         'favicon-paper.png',
         'apple-touch-icon-paper.png',
         'icon-paper-192.png',
