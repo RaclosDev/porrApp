@@ -32,6 +32,7 @@ export default function ProfileSettingsModal({
 }) {
   const queryClient = useQueryClient();
   const userName = useAppStore((s) => s.userName);
+  const userId = useAppStore((s) => s.userId);
   const avatarUrl = useAppStore((s) => s.userAvatarUrl);
   const setUserName = useAppStore((s) => s.setUserName);
   const setUserAvatarUrl = useAppStore((s) => s.setUserAvatarUrl);
@@ -179,7 +180,9 @@ export default function ProfileSettingsModal({
             <ImagePicker
               idPrefix="avatar-picker"
               currentUrl={avatarUrl}
-              renderPreview={(url) => <UserAvatar url={url} name={userName} size={72} />}
+              renderPreview={(url) => (
+                <UserAvatar url={url} userId={userId} name={userName} size={72} />
+              )}
               onUpload={async (blob) => {
                 const res = await uploadMyAvatar(blob);
                 setUserAvatarUrl(res.avatarUrl || '');

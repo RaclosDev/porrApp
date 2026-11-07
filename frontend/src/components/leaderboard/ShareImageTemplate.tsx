@@ -105,6 +105,7 @@ export default function ShareImageTemplate({
                         <UserAvatar
                           key={member.key}
                           url={member.avatarUrl}
+                          userId={member.userId}
                           name={member.name}
                           size={32}
                         />

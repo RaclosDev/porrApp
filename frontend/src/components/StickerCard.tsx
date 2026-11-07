@@ -97,7 +97,9 @@ export default function StickerCard({
       <span className="sticker-rank" aria-label={`Puesto ${leader.rank}`}>
         {leader.rank}
       </span>
-      {avatar ?? <UserAvatar url={leader.avatarUrl} name={leader.name} size={size} />}
+      {avatar ?? (
+        <UserAvatar url={leader.avatarUrl} name={leader.name} userId={leader.userId} size={size} />
+      )}
       <span
         title={leader.name}
         className={`poster-title max-w-full ${compact ? 'text-center break-words text-base' : `truncate ${featured ? 'text-3xl' : 'text-xl'}`}`}

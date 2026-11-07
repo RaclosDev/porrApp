@@ -54,7 +54,13 @@ export default function MatchdayPodium({
                   leaders.length > 1 ? (
                     <div className="matchday-podium-avatars" aria-hidden="true">
                       {leaders.slice(0, 3).map((row) => (
-                        <UserAvatar key={row.key} url={row.avatarUrl} name={row.name} size={36} />
+                        <UserAvatar
+                          key={row.key}
+                          url={row.avatarUrl}
+                          userId={row.userId}
+                          name={row.name}
+                          size={36}
+                        />
                       ))}
                     </div>
                   ) : undefined

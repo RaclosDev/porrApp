@@ -17,6 +17,43 @@
     color: var(--marker-ink);
   }
 
+  /* Avatar sin foto: letras a rotulador en una tinta por usuario (data-ink 0–4). */
+  .user-avatar-ink {
+    font-family: 'Permanent Marker', 'Outfit', cursive;
+    font-weight: 400;
+    color: var(--avatar-ink);
+    --avatar-ink: #00d2d3;
+  }
+  .user-avatar-ink[data-ink='1'] {
+    --avatar-ink: #f368e0;
+  }
+  .user-avatar-ink[data-ink='2'] {
+    --avatar-ink: #ff9f43;
+  }
+  .user-avatar-ink[data-ink='3'] {
+    --avatar-ink: #feca57;
+  }
+  .user-avatar-ink[data-ink='4'] {
+    --avatar-ink: #54a0ff;
+  }
+
+  /* Sobre papel claro, las mismas tintas en versión oscura para que se lean. */
+  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink {
+    --avatar-ink: #0b5f74;
+  }
+  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink[data-ink='1'] {
+    --avatar-ink: #a3177f;
+  }
+  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink[data-ink='2'] {
+    --avatar-ink: #a8470b;
+  }
+  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink[data-ink='3'] {
+    --avatar-ink: #6b5200;
+  }
+  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink[data-ink='4'] {
+    --avatar-ink: #1d4ed8;
+  }
+
   /* Cualquier superficie de papel: tinta oscura y sellos de tinta más oscuros. */
   .landing-poster,
   .paper-panel,

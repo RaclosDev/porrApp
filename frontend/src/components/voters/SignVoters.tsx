@@ -47,7 +47,7 @@ export function VoterStack({ list, label, matchName, onOpen, className = '' }: V
     >
       {list.slice(0, VISIBLE_VOTERS).map((voter) => (
         <span key={voter.userId} className="sign-voters-avatar" title={voter.name}>
-          <UserAvatar url={voter.avatarUrl} name={voter.name} size={22} />
+          <UserAvatar url={voter.avatarUrl} userId={voter.userId} name={voter.name} size={22} />
         </span>
       ))}
       {extra > 0 && <span className="sign-voters-more">+{extra}</span>}
