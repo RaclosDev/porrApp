@@ -53,7 +53,7 @@ export default function HeaderActions({
                   navigate('/demo');
                 }}
                 className="glass-btn h-11 py-0 px-3 text-[0.82rem] rounded-[10px] flex items-center gap-1.5 font-bold cursor-pointer whitespace-nowrap bg-[rgba(255,_255,_255,_0.06)] bg-none border border-[rgba(255,_255,_255,_0.15)] text-[#e2e8f0]"
-                title="Probar la demo del Mundial"
+                title="Probar la demo"
                 aria-label="Demo"
               >
                 <span className="header-demo-label">Demo</span>
