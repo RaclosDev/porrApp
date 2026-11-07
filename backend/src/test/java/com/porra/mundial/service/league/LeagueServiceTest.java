@@ -169,7 +169,6 @@ class LeagueServiceTest {
 
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(legacy));
         when(competitionRepository.findByExternalId("uefa.champions")).thenReturn(Optional.of(canonical));
-        when(matchRepository.countByCompetitionId(5L)).thenReturn(0L);
         when(leagueRepository.save(any(League.class))).thenAnswer(invocation -> {
             League saved = invocation.getArgument(0);
             saved.setId(99L);

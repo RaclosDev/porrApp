@@ -149,4 +149,25 @@ class OfficialMatchdayServiceTest {
 
         assertThat(result).isEmpty();
     }
+
+    @Test
+    void infersMatchdaysWhenThereIsNoOfficialCalendar() {
+        Instant weekend = AppTime.fromLocal(LocalDateTime.of(2026, 8, 22, 18, 0));
+        List<Match> season = new ArrayList<>();
+        // Jornada 1 repartida en sábado y domingo: sigue siendo una sola jornada.
+        Match saturday = match(0, 1, weekend);
+        Match sunday = match(2, 3, weekend.plus(1, ChronoUnit.DAYS));
+        // Jornada 2 entre semana: los mismos equipos vuelven a jugar.
+        Match midweekA = match(1, 2, weekend.plus(4, ChronoUnit.DAYS));
+        Match midweekB = match(3, 0, weekend.plus(4, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS));
+        // Un partido de la temporada anterior, antes de un parón largo, no se numera.
+        Match lastSeason = match(0, 2, weekend.minus(90, ChronoUnit.DAYS));
+        season.addAll(List.of(sunday, midweekB, saturday, lastSeason, midweekA));
+
+        Map<Match, Integer> rounds = OfficialMatchdayService.inferMatchdays(season);
+
+        assertThat(rounds).containsEntry(saturday, 1).containsEntry(sunday, 1)
+                .containsEntry(midweekA, 2).containsEntry(midweekB, 2)
+                .doesNotContainKey(lastSeason);
+    }
 }

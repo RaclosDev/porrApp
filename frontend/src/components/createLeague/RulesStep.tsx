@@ -16,13 +16,7 @@ const nowLocal = () => {
 
 function LockSection({ draft, update, errors, ctx }: StepProps) {
   const modes = lockModesFor(draft, ctx);
-  if (modes.length === 0) {
-    return (
-      <p className="create-league-hint">
-        Cada elección se cierra cuando empieza su partido. No hay nada que ajustar.
-      </p>
-    );
-  }
+  if (modes.length === 0) return null;
   return (
     <>
       <fieldset className="create-league-fieldset">

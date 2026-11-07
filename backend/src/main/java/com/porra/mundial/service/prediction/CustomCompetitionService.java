@@ -61,7 +61,8 @@ public class CustomCompetitionService {
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
         }
-        if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+        // Por jornadas y superviviente se pronostica partido a partido: se cierran igual.
+        if (com.porra.mundial.model.PoolFormat.isMatchBased(edition.getPoolFormat())) {
             return setMatchdayLock(edition, mode, offset);
         }
         if (mode == PredictionLockMode.PER_DAY) {
@@ -97,6 +98,8 @@ public class CustomCompetitionService {
         }
         edition.setLockMode(mode);
         edition.setLockOffsetMinutes(offset);
+        // Cada partido se cierra por su cuenta: una fecha de cierre de antes cerraría toda la liga.
+        edition.setLockDate(null);
         return edition;
     }
 

@@ -5,6 +5,7 @@ import { setCustomLockConfig, type CustomLockMode } from '../../../services/api'
 import { queryKeys } from '../../../services/queryKeys';
 import { useCustomLock } from '../../../hooks/useCustomLock';
 import type { Group } from '../../../types/api';
+import { isMatchBasedFormat } from '../../../utils/poolFormat';
 import { formatMatchDate, type SaveAction } from './customCompetition';
 import {
   BRACKET_LOCK_MODES,
@@ -41,7 +42,8 @@ export default function CustomLockCard({
   allowProgressive?: boolean;
 }) {
   const queryClient = useQueryClient();
-  const matchday = group.poolFormat === 'MATCH_DAY';
+  // Superviviente también se pronostica partido a partido.
+  const matchday = isMatchBasedFormat(group.poolFormat);
   const lock = useCustomLock(group.id.toString());
   const current = lock.state;
   const [mode, setMode] = useState<CustomLockMode>('FIXED_DATE');
