@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -78,8 +79,9 @@ public class MatchSelectionService {
     }
 
     /**
-     * Una liga de la UFC con todas las veladas cubre las que empiezan desde el día en que se creó: las
-     * anteriores ya no se pueden predecir y solo llenarían el selector de veladas. Null en el resto de ligas.
+     * Una liga de la UFC con todas las veladas cubre las que acaban desde el día en que se creó: las
+     * anteriores ya no se pueden predecir y solo llenarían el selector de veladas. Una velada entra o queda
+     * fuera entera (ver {@link #roundsEndingFrom}). Null en el resto de ligas.
      */
     public static Instant since(Edition edition) {
         if (edition == null || edition.getMatchSelection() != MatchSelectionMode.ALL || edition.getCreatedAt() == null
@@ -91,6 +93,27 @@ public class MatchSelectionService {
 
     private static boolean onOrAfter(Match match, Instant since) {
         return since == null || (match.getMatchDate() != null && !match.getMatchDate().isBefore(since));
+    }
+
+    /**
+     * Veladas (rondas) cuya última pelea empieza desde {@code since}. Se mira la velada entera y no cada
+     * pelea: una velada que cruza la medianoche no se parte en preliminares fuera y cartelera estelar dentro.
+     */
+    private Set<String> roundsEndingFrom(Edition edition, Collection<String> rounds, Instant since) {
+        if (rounds.isEmpty() || edition.getCompetition() == null) return Set.of();
+        Set<String> result = new HashSet<>();
+        for (Object[] row : matchRepository.lastMatchDateByRound(edition.getCompetition().getId(), rounds)) {
+            if (row[1] instanceof Instant last && !last.isBefore(since)) result.add((String) row[0]);
+        }
+        return result;
+    }
+
+    /** Si el partido cae en las veladas que cubre la liga (siempre, salvo en las de la UFC). */
+    private boolean inWindow(Edition edition, Match match) {
+        Instant since = since(edition);
+        if (since == null) return true;
+        if (match.getRound() == null) return onOrAfter(match, since);
+        return roundsEndingFrom(edition, List.of(match.getRound()), since).contains(match.getRound());
     }
 
     /**
@@ -136,7 +159,12 @@ public class MatchSelectionService {
     public List<Match> filter(Edition edition, List<Match> matches) {
         List<Match> selected = of(edition).filter(matches);
         Instant since = since(edition);
-        return since == null ? selected : selected.stream().filter(m -> onOrAfter(m, since)).toList();
+        if (since == null) return selected;
+        Set<String> rounds = roundsEndingFrom(edition, selected.stream().map(Match::getRound)
+                .filter(Objects::nonNull).collect(Collectors.toSet()), since);
+        return selected.stream()
+                .filter(m -> m.getRound() != null ? rounds.contains(m.getRound()) : onOrAfter(m, since))
+                .toList();
     }
 
     /**
@@ -205,7 +233,7 @@ public class MatchSelectionService {
     /** Si un partido entra en la liga. */
     @Transactional(readOnly = true)
     public boolean contains(Edition edition, Match match) {
-        return coversCompetition(edition, match) && of(edition).contains(match) && onOrAfter(match, since(edition));
+        return coversCompetition(edition, match) && of(edition).contains(match) && inWindow(edition, match);
     }
 
     /** Calendario de una competición oficial para elegir partidos al crear una liga: entran todos. */

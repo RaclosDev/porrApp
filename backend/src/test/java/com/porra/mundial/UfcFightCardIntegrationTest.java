@@ -32,6 +32,7 @@ import com.porra.mundial.service.prediction.MatchPredictionService;
 import com.porra.mundial.service.sync.MatchEventProcessor;
 import com.porra.mundial.service.sync.SyncService;
 import com.porra.mundial.service.tournament.TopScorerService;
+import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -211,6 +212,21 @@ class UfcFightCardIntegrationTest {
         Long addedId = matches.findByExternalId("ufc-s3").orElseThrow().getId();
         assertThat(fixtures(ana, league)).extracting(MatchdayFixturePredictionDTO::getMatchId)
                 .containsExactlyInAnyOrder(fightNight.get(0), fightNight.get(1), addedId);
+    }
+
+    @Test
+    @DisplayName("Una velada que cruza la medianoche del día en que se crea la liga entra entera")
+    void fightNightAcrossMidnight() {
+        // Estelar a la 1:00 de hoy (hora peninsular) y preliminares dos horas antes, aún ayer.
+        Instant mainCard = AppTime.startOfDay(AppTime.day(Instant.now())).plus(1, ChronoUnit.HOURS);
+        sync("e4", "UFC Fight Night: Medianoche", mainCard, List.of(
+                new Bout("n1", "Rojo Estelar", "Azul Estelar", "main", 1, 5),
+                new Bout("n2", "Rojo Previo", "Azul Previo", "prelims1", 2, 3)), Map.of());
+
+        UserAccount ana = user();
+        League league = create(ana, null);
+        assertThat(fixtures(ana, league)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
+                .containsExactlyInAnyOrder("Rojo Estelar", "Rojo Previo");
     }
 
     @Test

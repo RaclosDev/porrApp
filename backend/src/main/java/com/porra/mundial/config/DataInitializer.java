@@ -16,6 +16,7 @@ import com.porra.mundial.service.sync.SyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.cache.CacheManager;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +53,7 @@ public class DataInitializer implements CommandLineRunner {
     private final KnockoutBracketService knockoutBracketService;
     private final ObjectMapper objectMapper;
     private final InitialSyncExecutor initialSyncExecutor;
+    private final CacheManager cacheManager;
 
     /** Equipo del fichero de semilla con sus probabilidades iniciales. */
     record TeamSeed(String name, String group, double winOdds, double qualifyOdds, double outrightOdds) {
@@ -85,6 +87,10 @@ public class DataInitializer implements CommandLineRunner {
                     .externalId(externalId)
                     .formatType(formatType)
                     .build());
+            // El servidor ya atiende peticiones mientras se siembra: una lista de competiciones pedida
+            // antes quedaría en caché sin la nueva hasta la barrida diaria.
+            var cache = cacheManager.getCache("competitions");
+            if (cache != null) cache.clear();
         }
     }
 
