@@ -266,6 +266,8 @@ export interface Group {
   imageUrl: string | null;
   /** Liga por jornadas: entran todos los partidos de la competición o solo los elegidos. */
   matchSelection?: MatchSelectionMode | null;
+  /** Junta partidos de varias competiciones (la de `competitionId` es la principal); sus jornadas son semanas. */
+  multiCompetition?: boolean;
 }
 
 type MatchSelectionMode = 'ALL' | 'CUSTOM';
@@ -273,8 +275,10 @@ type MatchSelectionMode = 'ALL' | 'CUSTOM';
 /** Partido del calendario al elegir los de una liga. */
 export interface SelectableMatch {
   id: number;
-  /** Jornada como la agrupa la liga ("Jornada 12", "Grupo A"…). */
+  /** Jornada como la agrupa la liga ("Jornada 12", "Grupo A", "Semana 2026-11-02"…). */
   round: string;
+  /** Competición del partido. */
+  competitionId: number | null;
   date: string | null;
   homeTeamId: number | null;
   home: string;
@@ -301,8 +305,20 @@ export interface SelectableTeam {
 }
 
 /** Selección de partidos de una liga, o el calendario de una competición al crearla. */
+/** Competición de la que una liga toma partidos. */
+interface SelectableCompetition {
+  id: number;
+  name: string;
+  externalId: string | null;
+  /** Tiene partidos cerrados con predicciones en la liga: no se puede quitar. */
+  locked: boolean;
+}
+
 export interface MatchSelectionView {
   mode: MatchSelectionMode;
+  /** Competiciones de la liga, la principal primero; con más de una, sus jornadas son semanas. */
+  competitionIds: number[];
+  competitions: SelectableCompetition[];
   teamIds: number[];
   includedMatchIds: number[];
   excludedMatchIds: number[];
@@ -316,6 +332,8 @@ export interface MatchSelectionView {
 
 export interface MatchSelectionRequest {
   mode: MatchSelectionMode;
+  /** Competiciones de la liga, con la principal; sin ellas, las que ya tenía. */
+  competitionIds?: number[];
   teamIds?: number[];
   includedMatchIds?: number[];
   excludedMatchIds?: number[];
@@ -398,6 +416,8 @@ export interface MatchdayFixture {
   matchDate: string | null;
   round: string | null;
   groupName: string | null;
+  /** Competición del partido, solo en las ligas que juntan varias. */
+  competitionName?: string | null;
   finished: boolean | null;
   status: string | null;
   actualHomeScore: number | null;

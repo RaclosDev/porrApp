@@ -57,7 +57,9 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
      */
     @Modifying(flushAutomatically = true)
     @Query("UPDATE Prediction p SET p.scoreCalculatedAt = NULL WHERE p.scoreCalculatedAt IS NOT NULL"
-            + " AND p.edition.id IN (SELECT e.id FROM Edition e WHERE e.competition.id = :competitionId)")
+            + " AND (p.edition.id IN (SELECT e.id FROM Edition e WHERE e.competition.id = :competitionId)"
+            + " OR p.edition.id IN (SELECT c.id.editionId FROM EditionCompetition c"
+            + " WHERE c.id.competitionId = :competitionId))")
     int clearCalculatedScoresByCompetitionId(@Param("competitionId") Long competitionId);
 
     /**

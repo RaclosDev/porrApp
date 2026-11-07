@@ -78,6 +78,8 @@ class MatchReminderServiceTest {
         when(memberships.findByLeagueId(5L)).thenReturn(List.of(member(ana), member(luis), member(muted)));
         when(reminders.findKeysByMatchIdIn(any())).thenReturn(List.of());
         when(predictions.findPredictedUserMatchPairs(eq(50L), any())).thenReturn(List.of());
+        when(selection.competitionIds(any())).thenAnswer(call ->
+                List.of(call.<Edition>getArgument(0).getCompetition().getId()));
     }
 
     @Test

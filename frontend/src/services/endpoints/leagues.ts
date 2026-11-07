@@ -56,6 +56,14 @@ export interface CreateGroupRequest {
 export const fetchSelectableMatches = (competitionId: number) =>
   request<MatchSelectionView>(`/competitions/${competitionId}/selectable-matches`);
 
+/** Calendario de varias competiciones oficiales (la principal primero), agrupado por semanas. */
+export const fetchSelectableMatchesOf = (competitionIds: number[]) =>
+  competitionIds.length > 1
+    ? request<MatchSelectionView>(
+        `/competitions/selectable-matches?ids=${competitionIds.join(',')}`,
+      )
+    : fetchSelectableMatches(competitionIds[0]);
+
 /** Partidos que entran en la liga (solo su administrador). */
 export const fetchMatchSelection = (groupId: number) =>
   request<MatchSelectionView>(`/groups/${groupId}/competition/match-selection`);

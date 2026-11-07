@@ -148,6 +148,17 @@
     opacity: 0.88;
   }
 
+  /* Competición del partido en una liga que junta varias. */
+  .md-match-competition {
+    margin: 0 0 6px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+
   .md-match-top {
     display: flex;
     align-items: center;

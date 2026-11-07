@@ -5,18 +5,22 @@ import com.porra.mundial.dto.MatchSelectionRequest;
 import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
+import com.porra.mundial.model.EditionCompetition;
 import com.porra.mundial.model.EditionFollowedTeam;
 import com.porra.mundial.model.EditionMatchChoice;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchSelectionMode;
 import com.porra.mundial.model.PoolFormat;
+import com.porra.mundial.model.Sport;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.repository.EditionCompetitionRepository;
 import com.porra.mundial.repository.EditionFollowedTeamRepository;
 import com.porra.mundial.repository.EditionMatchChoiceRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.util.MatchRound;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -24,41 +28,75 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Qué partidos de su competición oficial entran en una liga por jornadas: todos, o los de unos equipos
- * (también los que ESPN cargue más tarde) más o menos los elegidos a mano.
+ * Qué partidos entran en una liga por jornadas sobre competiciones oficiales: todos los de su
+ * competición, o los de unos equipos (también los que ESPN cargue más tarde) más o menos los elegidos a
+ * mano. Una liga puede juntar partidos sueltos de varias competiciones (un Clásico, un derbi de la
+ * Premier, un partido de Champions); entonces sus jornadas son semanas de lunes a domingo, porque las
+ * de cada competición no coinciden.
  *
- * <p>Cambiar la selección nunca cambia la clasificación: un partido ya cerrado con predicciones no se
- * puede quitar (se queda en la liga), y al quitar un partido aún abierto se borran sus predicciones en
- * esta liga, que todavía no daban puntos. Añadir un partido ya jugado no cambia nada: nadie lo predijo.
- * Los cierres por día o por jornada siguen el calendario de la liga; un cambio que reabriría un partido
- * con predicciones o cerraría antes de tiempo uno abierto conserva o descarta el partido que lo causa.</p>
+ * <p>Cambiar la selección nunca cambia los puntos: un partido ya cerrado con predicciones no se puede
+ * quitar (se queda en la liga, y su competición con él), y al quitar un partido aún abierto se borran
+ * sus predicciones en esta liga, que todavía no daban puntos. Añadir un partido ya jugado no cambia
+ * nada: nadie lo predijo. Los cierres por día o por jornada siguen el calendario de la liga; un cambio
+ * que reabriría un partido con predicciones o cerraría antes de tiempo uno abierto conserva o descarta
+ * el partido que lo causa.</p>
  */
 @Service
 @RequiredArgsConstructor
 public class MatchSelectionService {
+    /** Competiciones que puede juntar una liga, contando la suya. */
+    public static final int MAX_COMPETITIONS = 8;
+
     private final EditionRepository editionRepository;
     private final CompetitionRepository competitionRepository;
     private final MatchRepository matchRepository;
     private final MatchPredictionRepository matchPredictionRepository;
     private final EditionFollowedTeamRepository followedTeamRepository;
     private final EditionMatchChoiceRepository choiceRepository;
+    private final EditionCompetitionRepository editionCompetitionRepository;
     private final ScoreInvalidationService scoreInvalidationService;
 
     /** Si la liga elige sus partidos; si no, entran todos y no hace falta consultar nada. */
     public static boolean selects(Edition edition) {
         return edition != null && edition.getMatchSelection() == MatchSelectionMode.CUSTOM;
+    }
+
+    /**
+     * Competiciones de la liga sin pasar por el servicio en las de una sola competición (casi todas).
+     * Estático para no consultar nada en ellas.
+     */
+    public static List<Long> competitionIds(MatchSelectionService service, Edition edition) {
+        if (edition == null || edition.getCompetition() == null) return List.of();
+        return edition.isMultiCompetition() ? service.competitionIds(edition)
+                : List.of(edition.getCompetition().getId());
+    }
+
+    /**
+     * Calendario de la liga ({@link #leagueCalendar(Edition, Function)}) sin pasar por el servicio en las
+     * ligas de una competición con todos sus partidos: el de la competición tal cual.
+     */
+    public static List<Match> leagueCalendar(MatchSelectionService service, Edition edition,
+                                             Function<Long, List<Match>> byCompetition) {
+        if (edition == null || edition.getCompetition() == null) return List.of();
+        if (!edition.isMultiCompetition() && !selects(edition)) {
+            return byCompetition.apply(edition.getCompetition().getId());
+        }
+        return service.leagueCalendar(edition, byCompetition);
     }
 
     /** Selección guardada de una edición; sin consultas cuando entran todos los partidos. */
@@ -83,39 +121,109 @@ public class MatchSelectionService {
     }
 
     /**
-     * Calendario con el que se calcula el cierre por día o por jornada: el de la liga. Sin selección,
-     * el de la competición tal cual. Estático para no consultar nada en las ligas que no eligen.
+     * Competiciones de las que la liga toma partidos, la principal primero. Sin consultas salvo en las
+     * ligas que juntan varias.
      */
-    public static List<Match> leagueCalendar(MatchSelectionService service, Edition edition, List<Match> competition) {
-        return selects(edition) ? service.filter(edition, competition) : competition;
+    @Transactional(readOnly = true)
+    public List<Long> competitionIds(Edition edition) {
+        if (edition == null || edition.getCompetition() == null) return List.of();
+        Long primary = edition.getCompetition().getId();
+        if (!edition.isMultiCompetition() || edition.getId() == null) return List.of(primary);
+        List<Long> ids = new ArrayList<>(List.of(primary));
+        editionCompetitionRepository.findCompetitionIds(edition.getId()).stream()
+                .filter(id -> !Objects.equals(id, primary))
+                .sorted()
+                .forEach(ids::add);
+        return ids;
+    }
+
+    /** Si el partido es de una de las competiciones de la liga (entre o no en su selección). */
+    @Transactional(readOnly = true)
+    public boolean coversCompetition(Edition edition, Match match) {
+        if (match == null || match.getCompetition() == null || edition == null || edition.getCompetition() == null) {
+            return false;
+        }
+        Long competitionId = match.getCompetition().getId();
+        return Objects.equals(edition.getCompetition().getId(), competitionId)
+                || (edition.isMultiCompetition() && competitionIds(edition).contains(competitionId));
+    }
+
+    /** Todos los partidos de las competiciones de la liga, entren o no en ella. */
+    @Transactional(readOnly = true)
+    public List<Match> sourceCalendar(Edition edition) {
+        return sourceCalendar(edition, matchRepository::findByCompetitionId);
+    }
+
+    /**
+     * Lo mismo, cargando cada competición con {@code byCompetition} (quien recorre muchas ligas puede
+     * cargar cada calendario una sola vez).
+     */
+    @Transactional(readOnly = true)
+    public List<Match> sourceCalendar(Edition edition, Function<Long, List<Match>> byCompetition) {
+        List<Long> ids = competitionIds(edition);
+        if (ids.isEmpty()) return List.of();
+        if (ids.size() == 1) return byCompetition.apply(ids.get(0));
+        List<Match> calendar = new ArrayList<>();
+        ids.forEach(id -> calendar.addAll(byCompetition.apply(id)));
+        return calendar;
+    }
+
+    /**
+     * Calendario de la liga: los partidos de sus competiciones que entran en ella. Es el que cuenta para
+     * las jornadas y los cierres por día o por jornada. Sin consultas de selección si entran todos.
+     */
+    @Transactional(readOnly = true)
+    public List<Match> leagueCalendar(Edition edition) {
+        return leagueCalendar(edition, matchRepository::findByCompetitionId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Match> leagueCalendar(Edition edition, Function<Long, List<Match>> byCompetition) {
+        List<Match> source = sourceCalendar(edition, byCompetition);
+        return selects(edition) ? filter(edition, source) : source;
     }
 
     /** Si un partido entra en la liga. */
     @Transactional(readOnly = true)
     public boolean contains(Edition edition, Match match) {
-        return of(edition).contains(match);
+        return coversCompetition(edition, match) && of(edition).contains(match);
     }
 
     /** Calendario de una competición oficial para elegir partidos al crear una liga: entran todos. */
     @Transactional(readOnly = true)
     public MatchSelectionDTO competitionCalendar(Long competitionId) {
-        Competition competition = competitionRepository.findById(competitionId)
-                .filter(item -> item.getOwnerLeague() == null)
-                .orElseThrow(() -> BusinessException.notFound("Competición no encontrada"));
-        List<Match> calendar = matchRepository.findByCompetitionId(competition.getId());
+        return competitionCalendar(List.of(competitionId));
+    }
+
+    /**
+     * Calendario de una o varias competiciones oficiales (la principal primero) para elegir partidos al
+     * crear una liga. Con varias, las jornadas son semanas, como en la liga que se creará.
+     */
+    @Transactional(readOnly = true)
+    public MatchSelectionDTO competitionCalendar(List<Long> competitionIds) {
+        List<Long> ids = competitionIds == null ? List.of()
+                : competitionIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) throw BusinessException.badRequest("Elige una competición");
+        List<Competition> competitions = officialCompetitions(ids);
+        boolean multi = ids.size() > 1;
+        List<Match> calendar = new ArrayList<>();
+        ids.forEach(id -> calendar.addAll(matchRepository.findByCompetitionId(id)));
         Instant now = Instant.now();
         List<MatchSelectionDTO.Item> items = sorted(calendar).stream()
-                .map(match -> MatchSelectionDTO.Item.of(match, true, startedOrClosed(match, null, now), 0))
+                .map(match -> MatchSelectionDTO.Item.of(match,
+                        multi ? MatchRound.weekLabel(match) : MatchRound.label(match), true,
+                        startedOrClosed(match, null, now), 0))
                 .toList();
         return new MatchSelectionDTO(MatchSelectionMode.ALL.name(), List.of(), List.of(), List.of(),
-                teams(calendar), items, 0, 0);
+                teams(calendar), items, 0, 0, ids,
+                competitions.stream().map(item -> MatchSelectionDTO.CompetitionItem.of(item, false)).toList());
     }
 
     /** Selección de la liga para su administrador. */
     @Transactional(readOnly = true)
     public MatchSelectionDTO view(Long leagueId, String email) {
         Edition edition = adminEdition(leagueId, email);
-        return view(edition, matchRepository.findByCompetitionId(edition.getCompetition().getId()), 0, 0);
+        return view(edition, sourceCalendar(edition), 0, 0);
     }
 
     @Transactional
@@ -127,41 +235,63 @@ public class MatchSelectionService {
     }
 
     /**
-     * Guarda la selección de una edición ya comprobada (también al crear la liga). Valida que los
-     * equipos y partidos sean de su competición y protege los partidos cerrados con predicciones.
+     * Guarda la selección de una edición ya comprobada (también al crear la liga). Valida que las
+     * competiciones sean oficiales y del mismo deporte, que los equipos y partidos sean de ellas, y
+     * protege los partidos cerrados con predicciones.
      */
     @Transactional
     public MatchSelectionDTO apply(Edition edition, MatchSelectionRequest request) {
         requireSelectable(edition);
-        List<Match> calendar = matchRepository.findByCompetitionId(edition.getCompetition().getId());
-        Set<Long> matchIds = calendar.stream().map(Match::getId).collect(Collectors.toSet());
-        Set<Long> teamIds = teams(calendar).stream().map(MatchSelectionDTO.TeamItem::id).collect(Collectors.toSet());
-
+        List<Long> beforeCompetitions = competitionIds(edition);
+        List<Long> requestedCompetitions = requestedCompetitions(edition, request, beforeCompetitions);
+        List<Competition> competitions = officialCompetitions(requestedCompetitions);
+        boolean multi = requestedCompetitions.size() > 1;
         MatchSelectionMode mode = request.mode();
+        if (multi && mode != MatchSelectionMode.CUSTOM) {
+            throw BusinessException.badRequest("Para juntar varias competiciones elige los equipos o los partidos");
+        }
+
+        // Calendario de las competiciones de antes y de después: lo que sale y lo que entra.
+        Set<Long> beforeSet = Set.copyOf(beforeCompetitions);
+        Set<Long> requestedSet = Set.copyOf(requestedCompetitions);
+        Set<Long> allCompetitions = new LinkedHashSet<>(beforeCompetitions);
+        allCompetitions.addAll(requestedCompetitions);
+        List<Match> calendar = new ArrayList<>();
+        allCompetitions.forEach(id -> calendar.addAll(matchRepository.findByCompetitionId(id)));
+        List<Match> requestedCalendar = calendar.stream().filter(match -> in(match, requestedSet)).toList();
+        Set<Long> matchIds = requestedCalendar.stream().map(Match::getId).collect(Collectors.toSet());
+        Set<Long> teamIds = teams(requestedCalendar).stream().map(MatchSelectionDTO.TeamItem::id)
+                .collect(Collectors.toSet());
+
         Set<Long> requestedTeams = new HashSet<>(request.teamIdsOrEmpty());
         if (!teamIds.containsAll(requestedTeams)) {
-            throw BusinessException.badRequest("Algún equipo no juega en la competición de la liga");
+            throw BusinessException.badRequest("Algún equipo no juega en las competiciones de la liga");
         }
         Set<Long> requestedMatches = new HashSet<>(request.includedOrEmpty());
         requestedMatches.addAll(request.excludedOrEmpty());
         if (!matchIds.containsAll(requestedMatches)) {
-            throw BusinessException.badRequest("Algún partido no es de la competición de la liga");
+            throw BusinessException.badRequest("Algún partido no es de las competiciones de la liga");
         }
-        MatchSelection requested = new MatchSelection(mode, requestedTeams,
+        MatchSelection requestedSelection = new MatchSelection(mode, requestedTeams,
                 new HashSet<>(request.includedOrEmpty()), new HashSet<>(request.excludedOrEmpty()));
+        Predicate<Match> requested = match -> in(match, requestedSet) && requestedSelection.contains(match);
 
-        MatchSelection before = of(edition);
+        MatchSelection beforeSelection = of(edition);
+        Predicate<Match> before = match -> in(match, beforeSet) && beforeSelection.contains(match);
         Map<Long, Integer> predictions = predictionCounts(edition);
         Instant now = Instant.now();
         // Cierre de cada partido con la selección actual (la jornada o el día son los de la liga).
-        Map<Long, Instant> beforeLocks = MatchdayLock.lockTimes(edition, calendar, before.filter(calendar));
+        Map<Long, Instant> beforeLocks = MatchdayLock.lockTimes(edition, calendar,
+                calendar.stream().filter(before).toList());
+        // Desde aquí, la jornada es la de la liga tal como queda (por semanas si junta varias competiciones).
+        edition.setMultiCompetition(multi);
         Function<Match, Object> group = MatchdayLock.groupKey(edition);
 
         Map<Long, Match> wanted = new LinkedHashMap<>();
         int kept = 0;
         for (Match match : calendar) {
-            boolean in = requested.contains(match);
-            if (!in && before.contains(match) && predictions.getOrDefault(match.getId(), 0) > 0
+            boolean in = requested.test(match);
+            if (!in && before.test(match) && predictions.getOrDefault(match.getId(), 0) > 0
                     && startedOrClosed(match, beforeLocks.get(match.getId()), now)) {
                 // Ya cerrado con predicciones: quitarlo cambiaría la clasificación.
                 in = true;
@@ -180,7 +310,7 @@ public class MatchSelectionService {
             Set<Object> reopened = new HashSet<>();
             Set<Object> closedEarly = new HashSet<>();
             for (Match match : wanted.values()) {
-                if (!before.contains(match)) continue;
+                if (!before.test(match)) continue;
                 boolean closedBefore = startedOrClosed(match, beforeLocks.get(match.getId()), now);
                 boolean closedAfter = startedOrClosed(match, afterLocks.get(match.getId()), now);
                 if (closedBefore && !closedAfter && predictions.getOrDefault(match.getId(), 0) > 0) {
@@ -191,16 +321,23 @@ public class MatchSelectionService {
             for (Match match : calendar) {
                 Object key = group.apply(match);
                 boolean in = wanted.containsKey(match.getId());
-                if (!in && before.contains(match) && reopened.contains(key)
+                if (!in && before.test(match) && reopened.contains(key)
                         && startedOrClosed(match, beforeLocks.get(match.getId()), now)) {
                     wanted.put(match.getId(), match);
                     kept++;
                     changed = true;
-                } else if (in && !before.contains(match) && closedEarly.contains(key)
+                } else if (in && !before.test(match) && closedEarly.contains(key)
                         && startedOrClosed(match, ownLock(edition, match), now)) {
                     wanted.remove(match.getId());
                     changed = true;
                 }
+            }
+        }
+        // Una competición con partidos que se quedan en la liga no se puede quitar.
+        for (Match match : wanted.values()) {
+            if (!in(match, requestedSet)) {
+                throw BusinessException.conflict("No puedes quitar " + match.getCompetition().getName()
+                        + ": tiene partidos cerrados con predicciones");
             }
         }
         if (mode == MatchSelectionMode.CUSTOM && wanted.isEmpty()) {
@@ -208,20 +345,78 @@ public class MatchSelectionService {
         }
         // Lo que sale de la liga con predicciones solo puede estar abierto: se borran, aún no daban puntos.
         Set<Long> removedWithPredictions = calendar.stream()
-                .filter(match -> before.contains(match) && !wanted.containsKey(match.getId())
+                .filter(match -> before.test(match) && !wanted.containsKey(match.getId())
                         && predictions.getOrDefault(match.getId(), 0) > 0)
                 .map(Match::getId)
                 .collect(Collectors.toSet());
 
-        persist(edition, MatchSelection.normalized(mode, requestedTeams, calendar, wanted.keySet()));
+        persistCompetitions(edition, multi ? competitions : List.of());
+        persist(edition, MatchSelection.normalized(mode, requestedTeams, requestedCalendar, wanted.keySet()));
 
         int removedPredictions = 0;
         if (!removedWithPredictions.isEmpty()) {
             removedPredictions = matchPredictionRepository.deleteByEditionIdAndMatchIdIn(edition.getId(),
                     removedWithPredictions);
             scoreInvalidationService.invalidateEdition(edition.getId());
+        } else {
+            // Las jornadas de la liga pueden haber cambiado (por semanas o por competición).
+            scoreInvalidationService.evictLeaderboardAfterCommit(edition.getLeague().getId());
         }
-        return view(edition, calendar, removedPredictions, kept);
+        return view(edition, requestedCalendar, removedPredictions, kept);
+    }
+
+    /** Competiciones pedidas, con la principal siempre la primera; sin pedir ninguna, las de ahora. */
+    private static List<Long> requestedCompetitions(Edition edition, MatchSelectionRequest request,
+                                                    List<Long> current) {
+        if (request.competitionIdsOrEmpty().isEmpty()) return current;
+        Long primary = edition.getCompetition().getId();
+        List<Long> ids = new ArrayList<>(List.of(primary));
+        request.competitionIdsOrEmpty().stream()
+                .filter(id -> id != null && !Objects.equals(id, primary))
+                .distinct()
+                .forEach(ids::add);
+        return ids;
+    }
+
+    /** Competiciones oficiales del mismo deporte que la primera, en el orden pedido. */
+    private List<Competition> officialCompetitions(List<Long> ids) {
+        if (ids.size() > MAX_COMPETITIONS) {
+            throw BusinessException.badRequest("Como mucho " + MAX_COMPETITIONS + " competiciones");
+        }
+        Map<Long, Competition> found = competitionRepository.findAllById(ids).stream()
+                .filter(item -> item.getOwnerLeague() == null)
+                .collect(Collectors.toMap(Competition::getId, item -> item));
+        List<Competition> competitions = new ArrayList<>();
+        for (Long id : ids) {
+            Competition competition = found.get(id);
+            if (competition == null) throw BusinessException.notFound("Competición no encontrada");
+            competitions.add(competition);
+        }
+        Sport sport = Sport.ofExternalId(competitions.get(0).getExternalId());
+        if (competitions.stream().anyMatch(item -> Sport.ofExternalId(item.getExternalId()) != sport)) {
+            throw BusinessException.badRequest("Las competiciones de una liga tienen que ser del mismo deporte");
+        }
+        return competitions;
+    }
+
+    private static boolean in(Match match, Set<Long> competitionIds) {
+        return match.getCompetition() != null && competitionIds.contains(match.getCompetition().getId());
+    }
+
+    /** Competiciones de una liga que junta varias; ninguna en una de una sola competición. */
+    private void persistCompetitions(Edition edition, List<Competition> competitions) {
+        Long editionId = edition.getId();
+        Set<Long> wanted = competitions.stream().map(Competition::getId).collect(Collectors.toSet());
+        List<EditionCompetition> current = editionCompetitionRepository.findByEditionId(editionId);
+        editionCompetitionRepository.deleteAll(current.stream()
+                .filter(item -> !wanted.contains(item.getId().getCompetitionId())).toList());
+        Set<Long> existing = current.stream().map(item -> item.getId().getCompetitionId())
+                .collect(Collectors.toSet());
+        editionCompetitionRepository.saveAll(wanted.stream()
+                .filter(id -> !existing.contains(id))
+                .map(id -> new EditionCompetition(new EditionCompetition.Key(editionId, id)))
+                .toList());
+        editionCompetitionRepository.flush();
     }
 
     private void persist(Edition edition, MatchSelection selection) {
@@ -265,13 +460,26 @@ public class MatchSelectionService {
         Map<Long, Instant> locks = MatchdayLock.lockTimes(edition, calendar, selection.filter(calendar));
         Instant now = Instant.now();
         List<MatchSelectionDTO.Item> items = sorted(calendar).stream()
-                .map(match -> MatchSelectionDTO.Item.of(match, selection.contains(match),
-                        startedOrClosed(match, locks.get(match.getId()), now),
+                .map(match -> MatchSelectionDTO.Item.of(match, MatchRound.label(edition, match),
+                        selection.contains(match), startedOrClosed(match, locks.get(match.getId()), now),
                         predictions.getOrDefault(match.getId(), 0)))
+                .toList();
+        // Una competición con partidos cerrados y con predicciones ya no se puede quitar.
+        Set<Long> lockedCompetitions = items.stream()
+                .filter(item -> item.selected() && item.locked())
+                .map(MatchSelectionDTO.Item::competitionId)
+                .collect(Collectors.toSet());
+        List<Long> competitionIds = competitionIds(edition);
+        Map<Long, Competition> byId = competitionRepository.findAllById(competitionIds).stream()
+                .collect(Collectors.toMap(Competition::getId, item -> item));
+        List<MatchSelectionDTO.CompetitionItem> competitions = competitionIds.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .map(item -> MatchSelectionDTO.CompetitionItem.of(item, lockedCompetitions.contains(item.getId())))
                 .toList();
         return new MatchSelectionDTO(selection.mode().name(), sortedIds(selection.teamIds()),
                 sortedIds(selection.included()), sortedIds(selection.excluded()), teams(calendar), items,
-                removedPredictions, kept);
+                removedPredictions, kept, competitionIds, competitions);
     }
 
     /** Cierre del partido por sí solo, sin contar el resto de su día o su jornada. */
@@ -296,7 +504,7 @@ public class MatchSelectionService {
         return counts;
     }
 
-    /** Equipos reales del calendario, por nombre. */
+    /** Equipos reales del calendario, por nombre (un mismo club, una vez aunque juegue varias competiciones). */
     private static List<MatchSelectionDTO.TeamItem> teams(List<Match> calendar) {
         Map<Long, Team> teams = new LinkedHashMap<>();
         for (Match match : calendar) {

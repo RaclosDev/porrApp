@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchSelectableMatches } from '../../services/api';
-import { queryKeys } from '../../services/queryKeys';
-import { describeSelection } from '../matchSelection/matchSelection';
+import {
+  describeCompetitions,
+  describeSelection,
+  isMultiCompetition,
+  leagueCompetitionIds,
+} from '../matchSelection/matchSelection';
+import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
 import { LeagueAvatar } from '../Avatar';
 import { describeLockOffset } from '../groups/custom/lockModes';
 import {
@@ -63,18 +66,22 @@ export default function SummaryStep({
   const competition = selectedCompetition(draft, ctx);
   const picksMatches = matchSelectionApplies(draft, ctx);
   // El calendario ya está en caché desde el paso del modo de juego.
-  const calendar = useQuery({
-    queryKey: queryKeys.selectableMatches(draft.competitionId),
-    queryFn: () => fetchSelectableMatches(draft.competitionId as number),
-    enabled: picksMatches && draft.matches.mode !== 'ALL',
-    staleTime: 5 * 60_000,
-  });
-  const matchesText =
+  const calendar = useSelectableCalendar(
+    leagueCompetitionIds(draft.matches, draft.competitionId),
+    picksMatches && draft.matches.mode !== 'ALL',
+  );
+  const selectionText =
     draft.matches.mode === 'ALL' || !calendar.data
       ? draft.matches.mode === 'ALL'
         ? 'Todos los partidos'
         : 'Elegidos por ti'
       : describeSelection(draft.matches, calendar.data.teams, calendar.data.matches);
+  const competitionNames = draft.matches.competitionIds.map(
+    (id) => ctx.competitions.find((item) => item.id === id)?.name ?? '',
+  );
+  const matchesText = isMultiCompetition(draft.matches)
+    ? `${selectionText} de ${describeCompetitions(competitionNames)}, por semanas`
+    : selectionText;
   // Visibilidad no tiene paso: toda liga nueva es privada.
   const rows: { label: string; value: ReactNode; step: LeagueStepId | null }[] = [
     { label: 'Deporte', value: draft.sport ? SPORT_LABELS[draft.sport] : '', step: 'sport' },

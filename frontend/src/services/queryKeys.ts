@@ -61,5 +61,7 @@ export const queryKeys = {
   customTeams: (groupId?: Id) => key('customTeams', asText(groupId)),
   customLockState: (groupId?: Id) => key('customLockState', asText(groupId)),
   matchSelection: (groupId?: Id) => key('matchSelection', asText(groupId)),
-  selectableMatches: (competitionId?: Id) => key('selectableMatches', competitionId),
+  /** Calendario de una o varias competiciones (la principal primero) para elegir partidos. */
+  selectableMatches: (competitionIds?: number[]) =>
+    key('selectableMatches', competitionIds?.join(',')),
 };

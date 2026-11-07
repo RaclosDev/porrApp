@@ -1,7 +1,9 @@
 package com.porra.mundial.util;
 
+import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -21,6 +23,7 @@ public final class MatchRound {
     private static final String GROUP_PREFIX = "grupo ";
     private static final String DATE_PREFIX = "fecha ";
     private static final String NO_ROUND = "sin jornada";
+    private static final String WEEK_PREFIX_LABEL = "Semana ";
     /** Rango vacío para las jornadas que no son de una fecha. */
     private static final Instant NO_DAY = Instant.EPOCH;
     private static final Pattern NUMBERED_MATCHDAY = Pattern.compile("(?i)jornada\\s+(\\d{1,4})");
@@ -41,6 +44,23 @@ public final class MatchRound {
             return match.getRound();
         }
         return match.getMatchDate() != null ? "Fecha " + AppTime.day(match.getMatchDate()) : "Sin jornada";
+    }
+
+    /**
+     * Jornada de un partido en una liga: la de su competición o, si la liga junta varias competiciones
+     * (cuyas jornadas no coinciden: la «Jornada 3» de LaLiga no es la de la Champions), su semana.
+     */
+    public static String label(Edition edition, Match match) {
+        return edition != null && edition.isMultiCompetition() ? weekLabel(match) : label(match);
+    }
+
+    /**
+     * Semana de lunes a domingo (hora peninsular) de un partido: «Semana 2026-11-02», con la fecha de su
+     * lunes. No depende de qué otros partidos haya en la liga, así que no cambia al elegir partidos.
+     */
+    public static String weekLabel(Match match) {
+        LocalDate day = AppTime.day(match.getMatchDate());
+        return day == null ? "Sin jornada" : WEEK_PREFIX_LABEL + day.with(DayOfWeek.MONDAY);
     }
 
     public static boolean matches(Match match, String round) {

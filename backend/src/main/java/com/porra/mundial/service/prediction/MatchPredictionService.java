@@ -70,7 +70,14 @@ public class MatchPredictionService {
         }
         Long competitionId = edition.getCompetition().getId();
         List<Match> matches;
-        if (round != null && !round.isBlank()) {
+        if (edition.isMultiCompetition()) {
+            // Varias competiciones: la jornada es la semana de la liga, que no se guarda en los partidos.
+            String cleanRound = round == null ? "" : round.trim();
+            matches = MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId).stream()
+                    .filter(m -> cleanRound.isEmpty() || cleanRound.equalsIgnoreCase(MatchRound.label(edition, m)))
+                    .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .collect(Collectors.toList());
+        } else if (round != null && !round.isBlank()) {
             // La jornada se filtra en SQL; el filtro en Java solo afina lo que la consulta deja pasar.
             final String cleanRound = round.trim();
             MatchRound.Lookup lookup = MatchRound.lookup(cleanRound);
@@ -118,8 +125,8 @@ public class MatchPredictionService {
 
         Instant now = Instant.now();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
-                MatchdayLock.needsWholeCalendar(edition) ? MatchSelectionService.leagueCalendar(matchSelectionService,
-                        edition, matchRepository.findByCompetitionId(competitionId)) : matches);
+                MatchdayLock.needsWholeCalendar(edition) ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : matches);
+        boolean multiCompetition = edition.isMultiCompetition();
         List<MatchdayFixturePredictionDTO> result = new ArrayList<>();
 
         for (Match match : matches) {
@@ -173,8 +180,11 @@ public class MatchPredictionService {
                     .homeTeamLogo(match.getHomeTeam() != null ? match.getHomeTeam().getLogoUrl() : null)
                     .awayTeamLogo(match.getAwayTeam() != null ? match.getAwayTeam().getLogoUrl() : null)
                     .matchDate(match.getMatchDate())
-                    .round(MatchRound.label(match))
-                    .groupName(match.getGroupName())
+                    .round(MatchRound.label(edition, match))
+                    // En una liga de varias competiciones la jornada es la semana, no el grupo.
+                    .groupName(multiCompetition ? null : match.getGroupName())
+                    .competitionName(multiCompetition && match.getCompetition() != null
+                            ? match.getCompetition().getName() : null)
                     .finished(match.getFinished())
                     .status(match.getStatus() != null ? match.getStatus().name() : null)
                     .actualHomeScore(match.getHomeScore())
@@ -290,8 +300,7 @@ public class MatchPredictionService {
 
         Instant now = Instant.now();
         List<Match> calendar = MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
-                ? MatchSelectionService.leagueCalendar(matchSelectionService, edition,
-                        matchRepository.findByCompetitionId(edition.getCompetition().getId())) : null;
+                ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : null;
         int savedCount = 0;
         boolean survivor = edition.getPoolFormat() == PoolFormat.SURVIVOR;
         List<MatchPrediction> survivorPicks = survivor ? survivorPicks(prediction) : List.of();
@@ -300,6 +309,7 @@ public class MatchPredictionService {
         }
         Set<String> survivorRounds = new HashSet<>();
         MatchSelection selection = MatchSelectionService.selects(edition) ? matchSelectionService.of(edition) : null;
+        Set<Long> leagueCompetitions = Set.copyOf(MatchSelectionService.competitionIds(matchSelectionService, edition));
 
         // Dos consultas para toda la jornada en vez de dos por partido.
         List<Long> matchIds = items.stream().map(MatchPredictionItemDTO::getMatchId)
@@ -317,8 +327,7 @@ public class MatchPredictionService {
             Match match = matchesById.get(item.getMatchId());
             if (match == null) throw BusinessException.notFound("Partido no encontrado");
 
-            if (edition.getCompetition() == null || match.getCompetition() == null
-                    || !Objects.equals(edition.getCompetition().getId(), match.getCompetition().getId())) {
+            if (match.getCompetition() == null || !leagueCompetitions.contains(match.getCompetition().getId())) {
                 throw BusinessException.badRequest("El partido no pertenece a la competición de esta liga.");
             }
             if (selection != null && !selection.contains(match)) {
@@ -579,8 +588,7 @@ public class MatchPredictionService {
                 ? match.getMatchDate()
                 : MatchdayLock.lockTimes(edition, List.of(match), MatchdayLock.needsWholeCalendar(edition)
                         && match.getCompetition() != null
-                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition,
-                                matchRepository.findByCompetitionId(match.getCompetition().getId())) : List.of(match))
+                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : List.of(match))
                         .get(match.getId());
         boolean isMatchLocked = Boolean.TRUE.equals(match.getFinished())
                 || (match.getStatus() != null && !match.getStatus().isOpenForPrediction())

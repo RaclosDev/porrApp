@@ -450,7 +450,13 @@ export function readStoredDraft(): LeagueDraft {
       isIds(storedMatches.teamIds) &&
       isIds(storedMatches.included) &&
       isIds(storedMatches.excluded)
-        ? (storedMatches as SelectionValue)
+        ? {
+            ...(storedMatches as SelectionValue),
+            // Un borrador de antes de poder juntar competiciones: solo la principal.
+            competitionIds: isIds(storedMatches.competitionIds)
+              ? (storedMatches.competitionIds as number[])
+              : [],
+          }
         : base.matches;
     const scoring =
       stored.scoring && typeof stored.scoring === 'object'

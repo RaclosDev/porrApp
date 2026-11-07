@@ -275,11 +275,9 @@ public class LeaderboardService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        List<Match> competitionMatches = matchRepository.findByCompetitionId(edition.getCompetition().getId());
-        // Las jornadas de una liga que elige sus partidos son solo las que tienen alguno de los suyos.
-        if (MatchSelectionService.selects(edition)) {
-            competitionMatches = matchSelectionService.filter(edition, competitionMatches);
-        }
+        // Las jornadas de una liga que elige sus partidos son solo las que tienen alguno de los suyos; en
+        // una que junta varias competiciones, sus semanas.
+        List<Match> competitionMatches = MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId);
 
         Map<String, MatchdayAccumulator> matchdays = new LinkedHashMap<>();
         competitionMatches.stream()
@@ -287,7 +285,7 @@ public class LeaderboardService {
                 .filter(m -> m.getMatchDate() != null)
                 .sorted(Comparator.comparing(Match::getMatchDate))
                 .forEach(match -> {
-                    String label = MatchRound.label(match);
+                    String label = MatchRound.label(edition, match);
                     if (isUsableMatchdayLabel(label)) {
                         matchdays.computeIfAbsent(label, key -> new MatchdayAccumulator(label, match.getMatchDate()))
                                 .addMatch(match);
@@ -313,7 +311,7 @@ public class LeaderboardService {
                 continue;
             }
 
-            String label = MatchRound.label(matchPrediction.getMatch());
+            String label = MatchRound.label(edition, matchPrediction.getMatch());
             if (!isUsableMatchdayLabel(label)) continue;
 
             matchdays.computeIfAbsent(label,

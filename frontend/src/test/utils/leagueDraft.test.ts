@@ -260,7 +260,13 @@ describe('borrador de liga', () => {
   });
 
   it('elige partidos solo por jornadas en una oficial y los olvida al cambiar de competición', () => {
-    const teams = { mode: 'TEAMS' as const, teamIds: [7], included: [], excluded: [31] };
+    const teams = {
+      mode: 'TEAMS' as const,
+      teamIds: [7],
+      included: [],
+      excluded: [31],
+      competitionIds: [],
+    };
     const draft = draftWith({ sport: 'FOOTBALL', competitionId: 1, poolFormat: 'MATCH_DAY' });
     const picked = normalizeDraft({ ...draft, matches: teams }, ctx);
     expect(picked.matches).toEqual(teams);
