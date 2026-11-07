@@ -128,7 +128,7 @@ describe('matchday editing and navigation', () => {
         'true',
       ),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/ }));
     await waitFor(() =>
       expect(api.submitMatchdayPredictions).toHaveBeenCalledWith('10', [
         { matchId: 101, homeScore: null, awayScore: null, sign: '2' },
@@ -159,7 +159,7 @@ describe('matchday editing and navigation', () => {
     );
     const view = render(tree());
     fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/ }));
     await waitFor(() => expect(api.submitMatchdayPredictions).toHaveBeenCalled());
     context = { ...context, activeGroupId: '20' };
     view.rerender(tree());
@@ -178,14 +178,14 @@ describe('matchday editing and navigation', () => {
     fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+      fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/ }));
       expect(await screen.findByText('Guardado')).toBeInTheDocument();
       const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
       act(() => vi.advanceTimersByTime(4000));
       expect(screen.queryByText('Guardado')).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: signA('2') }));
-      fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+      fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/ }));
       expect(await screen.findByText('Guardado')).toBeInTheDocument();
       clearSpy.mockClear();
       view.unmount();
@@ -242,7 +242,7 @@ describe('matchday editing and navigation', () => {
 
     // Counter scopes to the selected round (J1 has 1 match, 0 predicted -> 0/1, not 0/6)
     expect(screen.getByText('0/1 predicciones')).toBeInTheDocument();
-    // A fully played round shows its finished matches instead of an empty "Todos" tab
+    // A fully played round shows its finished matches instead of an empty "Por jugar" tab
     expect(screen.getByRole('tab', { name: /Finalizados/ })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -250,14 +250,14 @@ describe('matchday editing and navigation', () => {
     expect(screen.getByText('Equipo 1')).toBeInTheDocument();
   });
 
-  it('hides finished matches from "Todos" and lists unpredicted ones in "Pendientes"', async () => {
+  it('hides finished matches from "Por jugar" and lists unpredicted ones in "Pendientes"', async () => {
     vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
       { ...fixture(1, 'Jornada 1', 'Jugado'), finished: true, locked: true },
       { ...fixture(2, 'Jornada 1', 'Pronosticado'), predSign: '1' },
       fixture(3, 'Jornada 1', 'Sin pronóstico'),
     ]);
     render(tree());
-    expect(await screen.findByRole('tab', { name: 'Todos 2' })).toHaveAttribute(
+    expect(await screen.findByRole('tab', { name: 'Por jugar 2' })).toHaveAttribute(
       'aria-selected',
       'true',
     );

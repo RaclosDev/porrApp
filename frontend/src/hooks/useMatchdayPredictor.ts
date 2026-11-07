@@ -237,7 +237,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     [roundFixtures, localPredictions, activeGroupIsLocked],
   );
 
-  // En una jornada ya jugada, «Todos» estaría vacío: se muestran los finalizados.
+  // En una jornada ya jugada, «Por jugar» estaría vacío: se muestran los finalizados.
   const activeFilter: StatusFilter =
     statusFilter === 'UPCOMING' && counts.upcoming === 0 && counts.finished > 0
       ? 'FINISHED'
