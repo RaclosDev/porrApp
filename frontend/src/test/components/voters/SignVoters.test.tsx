@@ -62,4 +62,54 @@ describe('MatchVotersModal', () => {
     render(<MatchVotersModal voters={null} homeTeam="" awayTeam="" onClose={vi.fn()} />);
     expect(screen.queryByRole('dialog')).toBeNull();
   });
+
+  it('filtra por opción y muestra el porcentaje de cada una', () => {
+    render(
+      <MatchVotersModal voters={voters} homeTeam="Madrid" awayTeam="Barça" onClose={vi.fn()} />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: 'Madrid - Barça' });
+    expect(dialog).toHaveTextContent('6 predicciones');
+    expect(within(dialog).getByRole('region', { name: '1 · Gana Madrid' })).toHaveTextContent(
+      '5 · 83%',
+    );
+    // Pocos participantes: sin buscador.
+    expect(within(dialog).queryByRole('searchbox')).toBeNull();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Gana Barça (1)' }));
+    expect(within(dialog).queryByRole('region', { name: '1 · Gana Madrid' })).toBeNull();
+    expect(within(dialog).getByRole('region', { name: '2 · Gana Barça' })).toHaveTextContent('Ana');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Todos (6)' }));
+    expect(within(dialog).getAllByRole('region')).toHaveLength(3);
+  });
+
+  it('con mucha gente deja buscar por nombre sin tildes ni mayúsculas', () => {
+    const crowd: MatchVoters = {
+      matchId: 8,
+      home: [voter(1, 'José'), ...[2, 3, 4, 5].map((id) => voter(id))],
+      draw: [voter(6, 'Bea')],
+      away: [voter(7, 'Ana'), voter(8, 'Josefa')],
+    };
+    render(
+      <MatchVotersModal voters={crowd} homeTeam="Madrid" awayTeam="Barça" onClose={vi.fn()} />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: 'Madrid - Barça' });
+    fireEvent.change(within(dialog).getByRole('searchbox', { name: 'Buscar participante' }), {
+      target: { value: 'JOSE' },
+    });
+
+    expect(within(dialog).getAllByRole('region')).toHaveLength(2);
+    expect(within(dialog).getByRole('region', { name: '1 · Gana Madrid' })).toHaveTextContent(
+      'José',
+    );
+    expect(within(dialog).getByRole('region', { name: '2 · Gana Barça' })).toHaveTextContent(
+      'Josefa',
+    );
+    expect(within(dialog).queryByText('Bea')).toBeNull();
+
+    fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'zzz' } });
+    expect(within(dialog).getByText('Nadie se llama así.')).toBeInTheDocument();
+  });
 });

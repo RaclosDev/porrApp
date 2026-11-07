@@ -350,8 +350,14 @@ export default function LeagueHomeDashboard() {
                   <MatchCard
                     key={match.id || match.home + match.away}
                     match={match}
-                    action={matches.action}
-                    onOpen={() => navigate(matches.to)}
+                    // Empezado el partido, la tarjeta enseña quién eligió cada opción; antes, lleva a
+                    // hacer tu predicción (las de los demás siguen ocultas hasta el pitido inicial).
+                    action={
+                      voters.has(match.id) ? 'ver quién ha elegido cada opción' : matches.action
+                    }
+                    onOpen={() =>
+                      voters.has(match.id) ? setVotersMatch(match) : navigate(matches.to)
+                    }
                     voters={voters.get(match.id)}
                     onShowVoters={setVotersMatch}
                     twoWay={twoWayVoters}
