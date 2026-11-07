@@ -1,0 +1,79 @@
+import type { CustomLockMode } from '../../../services/api';
+
+export interface LockModeOption {
+  value: CustomLockMode;
+  label: string;
+  hint: string;
+}
+
+/** Ligas de cuadro. Por rondas y por partidos solo existen al pronosticar cruce a cruce. */
+export const BRACKET_LOCK_MODES: LockModeOption[] = [
+  {
+    value: 'FIXED_DATE',
+    label: 'En una fecha fija',
+    hint: 'Todas las predicciones se cierran a la vez en la fecha que elijas.',
+  },
+  {
+    value: 'FIRST_MATCH',
+    label: 'Al empezar el primer partido',
+    hint: 'Todo se cierra a la vez cuando empieza el primer partido, o antes si pones margen. Sigue al calendario aunque cambies partidos.',
+  },
+  {
+    value: 'PER_ROUND',
+    label: 'Por rondas',
+    hint: 'Cada grupo y cada ronda del cuadro se cierran al empezar su primer partido. El resto se puede cambiar hasta entonces.',
+  },
+  {
+    value: 'PER_MATCH',
+    label: 'Por partidos',
+    hint: 'Cada cruce se cierra al empezar ese partido; cada grupo, al empezar su primer partido.',
+  },
+];
+
+/** Ligas por jornadas: cada partido se pronostica por separado. */
+export const MATCHDAY_LOCK_MODES: LockModeOption[] = [
+  {
+    value: 'PER_MATCH',
+    label: 'Cada partido',
+    hint: 'Cada partido se cierra al empezar, o antes si pones margen.',
+  },
+  {
+    value: 'PER_DAY',
+    label: 'Por días',
+    hint: 'Todos los partidos de un mismo día se cierran al empezar el primero de ese día. Con 1 día de margen, se cierran la víspera.',
+  },
+  {
+    value: 'PER_ROUND',
+    label: 'Por jornadas',
+    hint: 'Toda la jornada se cierra al empezar su primer partido, o antes si pones margen.',
+  },
+];
+
+/** Los modos que solo aceptan cerrar todo a la vez, sin rondas ni partidos. */
+export const SINGLE_LOCK_MODES = BRACKET_LOCK_MODES.filter(
+  (item) => item.value === 'FIXED_DATE' || item.value === 'FIRST_MATCH',
+);
+
+export type LockUnit = 'minutes' | 'hours' | 'days';
+export const LOCK_UNIT_MINUTES: Record<LockUnit, number> = { minutes: 1, hours: 60, days: 1440 };
+
+/** Margen máximo antes del partido que admite el servidor: 30 días. */
+export const MAX_LOCK_OFFSET_MINUTES = 30 * 1440;
+
+export function splitLockOffset(minutes: number): { amount: number; unit: LockUnit } {
+  if (minutes > 0 && minutes % 1440 === 0) return { amount: minutes / 1440, unit: 'days' };
+  if (minutes > 0 && minutes % 60 === 0) return { amount: minutes / 60, unit: 'hours' };
+  return { amount: minutes, unit: 'minutes' };
+}
+
+/** «2 horas antes», «1 día antes» o vacío sin margen. */
+export function describeLockOffset(offsetMinutes: number): string {
+  if (!offsetMinutes) return '';
+  const { amount, unit } = splitLockOffset(offsetMinutes);
+  const unitLabel = {
+    minutes: 'min',
+    hours: amount === 1 ? 'hora' : 'horas',
+    days: amount === 1 ? 'día' : 'días',
+  }[unit];
+  return `${amount} ${unitLabel} antes`;
+}

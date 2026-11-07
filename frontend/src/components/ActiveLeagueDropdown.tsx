@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 import { LeagueAvatar } from './Avatar';
+import { poolFormatShortLabel } from '../utils/poolFormat';
 
 /** Bandera del país de la competición; sin país conocido, la liga muestra su monograma. */
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -74,7 +75,7 @@ export default function ActiveLeagueDropdown() {
       <button
         type="button"
         id="btn-active-league-dropdown"
-        onClick={() => navigate('/mis-ligas')}
+        onClick={() => navigate('/crear-liga')}
         className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-11 rounded-[10px] border-dashed cursor-pointer text-[0.82rem]"
         title="Crear o unirse a una liga"
       >
@@ -160,8 +161,7 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {g.competitionName || 'Mundial'} ·{' '}
-                          {g.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
+                          {g.competitionName || 'Mundial'} · {poolFormatShortLabel(g.poolFormat)}
                         </span>
                       </div>
                     </div>
@@ -184,7 +184,8 @@ export default function ActiveLeagueDropdown() {
               type="button"
               onClick={() => {
                 setIsOpen(false);
-                navigate('/mis-ligas');
+                // Sin sesión, Mis ligas pide iniciarla antes de crear o unirse.
+                navigate(isAuthenticated ? '/crear-liga' : '/mis-ligas');
               }}
             >
               <span>Crear o unirse a una liga</span>

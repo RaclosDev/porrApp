@@ -15,6 +15,7 @@ import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.service.league.LeagueService;
 import com.porra.mundial.service.league.LeagueMembershipService;
 import com.porra.mundial.service.league.NewLeague;
+import com.porra.mundial.service.league.LeagueSetupService;
 import com.porra.mundial.service.league.LeagueSummaryService;
 import com.porra.mundial.service.notification.WebSocketService;
 import jakarta.validation.Valid;
@@ -42,6 +43,7 @@ public class LeagueController {
     private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("[A-Za-z0-9_-]{8,64}");
 
     private final LeagueService leagueService;
+    private final LeagueSetupService leagueSetupService;
     private final LeagueMembershipService membershipService;
     private final WebSocketService webSocketService;
     private final LeagueSummaryService leagueSummaryService;
@@ -59,7 +61,8 @@ public class LeagueController {
     }
 
     /**
-     * Crea una liga; quien la crea pasa a ser su administrador. Con la cabecera
+     * Crea una liga; quien la crea pasa a ser su administrador. Puede llegar ya configurada (normas,
+     * cuota, puntuación y cierre); si algún ajuste no es válido no se crea. Con la cabecera
      * {@code Idempotency-Key}, repetir la petición devuelve la misma liga en vez de crear otra.
      */
     @PostMapping
@@ -71,9 +74,9 @@ public class LeagueController {
         }
         League group;
         try {
-            group = leagueService.createLeague(new NewLeague(payload.getName().trim(), principal.getName(),
+            group = leagueSetupService.create(new NewLeague(payload.getName().trim(), principal.getName(),
                     payload.getCompetitionId(), PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi(),
-                    payload.getCustomCompetitionName(), idempotencyKey));
+                    payload.getCustomCompetitionName(), idempotencyKey), payload.toSetup());
         } catch (DataIntegrityViolationException e) {
             // Dos peticiones con la misma clave a la vez: la segunda choca con el índice único.
             if (idempotencyKey == null) {
