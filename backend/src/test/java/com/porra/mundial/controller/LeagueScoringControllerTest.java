@@ -51,7 +51,7 @@ class LeagueScoringControllerTest {
 
     private static LeagueScoringDTO scoring(ScoringRuleSet rules, boolean editable) {
         return new LeagueScoringDTO("FULL_BRACKET", true, editable, ScoringRuleSet.MAX_POINTS, rules,
-                ScoringRuleSet.defaultWorldCup2026(), false, false);
+                ScoringRuleSet.defaultWorldCup2026(), false, false, "FOOTBALL");
     }
 
     private void putScoring(Principal principal, String body, int expectedStatus) throws Exception {
