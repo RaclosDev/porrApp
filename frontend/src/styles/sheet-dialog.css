@@ -173,6 +173,11 @@
     text-transform: uppercase;
   }
 
+  .sheet-dialog .match-voters-count {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
   .sheet-dialog .match-voters-sign {
     width: 22px;
     height: 22px;
@@ -181,6 +186,105 @@
     background: rgba(17, 24, 39, 0.08);
     color: var(--ink);
     font-size: 0.75rem;
+  }
+
+  /* Hoja de quién eligió cada opción: reparto, filtros por opción y buscador fijos arriba. */
+  .match-voters-tools {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: 10px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+  }
+
+  .match-voters-bar {
+    display: flex;
+    gap: 2px;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+  }
+
+  .match-voters-bar i {
+    flex-basis: 0;
+    min-width: 4px;
+  }
+
+  .match-voters-bar .is-home {
+    background: var(--stamp-ink);
+  }
+
+  .match-voters-bar .is-draw {
+    background: rgba(17, 24, 39, 0.35);
+  }
+
+  .match-voters-bar .is-away {
+    background: var(--champion-gold, #f59e0b);
+  }
+
+  .match-voters-filters {
+    display: flex;
+    gap: 6px;
+  }
+
+  .match-voters-filter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 8px;
+    border: 1px solid rgba(17, 24, 39, 0.16);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    flex: 1 1 0;
+  }
+
+  /* «Todos» lleva más texto que «1», «X» o «2». */
+  .match-voters-filter.is-all {
+    flex-grow: 1.6;
+  }
+
+  .match-voters-filter b {
+    color: var(--text-muted);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .match-voters-filter.is-active {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .match-voters-filter.is-active b {
+    color: inherit;
+    opacity: 0.75;
+  }
+
+  .match-voters-search {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid rgba(17, 24, 39, 0.16);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  .match-voters-search:focus-visible {
+    outline: 2px solid var(--marker-ink);
+    outline-offset: 1px;
   }
 
   @media (max-width: 560px) {
@@ -211,6 +315,10 @@
 
     .sheet-dialog-body {
       padding: 8px 16px 16px;
+    }
+
+    .match-voters-tools {
+      padding: 10px 16px;
     }
   }
 
