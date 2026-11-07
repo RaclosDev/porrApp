@@ -24,6 +24,7 @@ const Bracket = React.lazy(() => import('./pages/Bracket'));
 const Stats = React.lazy(() => import('./pages/Stats'));
 const Search = React.lazy(() => import('./pages/Search'));
 const GroupsDashboard = React.lazy(() => import('./pages/GroupsDashboard'));
+const CreateLeague = React.lazy(() => import('./pages/CreateLeague'));
 const JoinRedirect = React.lazy(() => import('./components/JoinRedirect'));
 const OfficialBracket = React.lazy(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
@@ -218,6 +219,14 @@ function App() {
                 element={
                   <ProtectedRoute guestAllowed>
                     <GroupsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/crear-liga"
+                element={
+                  <ProtectedRoute>
+                    <CreateLeague />
                   </ProtectedRoute>
                 }
               />

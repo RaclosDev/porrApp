@@ -6,68 +6,21 @@ import { queryKeys } from '../../../services/queryKeys';
 import { useCustomLock } from '../../../hooks/useCustomLock';
 import type { Group } from '../../../types/api';
 import { formatMatchDate, type SaveAction } from './customCompetition';
-
-const MODES: { value: CustomLockMode; label: string; hint: string }[] = [
-  {
-    value: 'FIXED_DATE',
-    label: 'En una fecha fija',
-    hint: 'Todas las predicciones se cierran a la vez en la fecha que elijas.',
-  },
-  {
-    value: 'FIRST_MATCH',
-    label: 'Al empezar el primer partido',
-    hint: 'Todo se cierra a la vez cuando empieza el primer partido, o antes si pones margen. Sigue al calendario aunque cambies partidos.',
-  },
-  {
-    value: 'PER_ROUND',
-    label: 'Por rondas',
-    hint: 'Cada grupo y cada ronda del cuadro se cierran al empezar su primer partido. El resto se puede cambiar hasta entonces.',
-  },
-  {
-    value: 'PER_MATCH',
-    label: 'Por partidos',
-    hint: 'Cada cruce se cierra al empezar ese partido; cada grupo, al empezar su primer partido.',
-  },
-];
-
-/** Ligas por jornadas: cada partido se pronostica por separado. */
-const MATCHDAY_MODES: { value: CustomLockMode; label: string; hint: string }[] = [
-  {
-    value: 'PER_MATCH',
-    label: 'Cada partido',
-    hint: 'Cada partido se cierra al empezar, o antes si pones margen.',
-  },
-  {
-    value: 'PER_DAY',
-    label: 'Por días',
-    hint: 'Todos los partidos de un mismo día se cierran al empezar el primero de ese día. Con 1 día de margen, se cierran la víspera.',
-  },
-  {
-    value: 'PER_ROUND',
-    label: 'Por jornadas',
-    hint: 'Toda la jornada se cierra al empezar su primer partido, o antes si pones margen.',
-  },
-];
-
-type Unit = 'minutes' | 'hours' | 'days';
-const UNIT_MINUTES: Record<Unit, number> = { minutes: 1, hours: 60, days: 1440 };
-
-function splitOffset(minutes: number): { amount: number; unit: Unit } {
-  if (minutes > 0 && minutes % 1440 === 0) return { amount: minutes / 1440, unit: 'days' };
-  if (minutes > 0 && minutes % 60 === 0) return { amount: minutes / 60, unit: 'hours' };
-  return { amount: minutes, unit: 'minutes' };
-}
+import {
+  BRACKET_LOCK_MODES,
+  LOCK_UNIT_MINUTES,
+  MATCHDAY_LOCK_MODES,
+  MAX_LOCK_OFFSET_MINUTES,
+  SINGLE_LOCK_MODES,
+  describeLockOffset,
+  splitLockOffset,
+  type LockUnit,
+} from './lockModes';
 
 function describe(mode: CustomLockMode, offsetMinutes: number, matchday: boolean): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
-  const { amount, unit } = splitOffset(offsetMinutes);
-  const unitLabel = {
-    minutes: 'min',
-    hours: amount === 1 ? 'hora' : 'horas',
-    days: amount === 1 ? 'día' : 'días',
-  }[unit];
-  const margin = offsetMinutes ? ` · ${amount} ${unitLabel} antes` : '';
-  const modes = matchday ? MATCHDAY_MODES : MODES;
+  const margin = offsetMinutes ? ` · ${describeLockOffset(offsetMinutes)}` : '';
+  const modes = matchday ? MATCHDAY_LOCK_MODES : BRACKET_LOCK_MODES;
   return `${modes.find((item) => item.value === mode)?.label ?? mode}${margin}`;
 }
 
@@ -94,7 +47,7 @@ export default function CustomLockCard({
   const [mode, setMode] = useState<CustomLockMode>('FIXED_DATE');
   const [date, setDate] = useState('');
   const [amount, setAmount] = useState(0);
-  const [unit, setUnit] = useState<Unit>('hours');
+  const [unit, setUnit] = useState<LockUnit>('hours');
 
   // Se rellena una sola vez: el estado se vuelve a pedir cada minuto y no debe pisar lo que se edita.
   const loaded = useRef(false);
@@ -103,16 +56,16 @@ export default function CustomLockCard({
     loaded.current = true;
     setMode(current.mode);
     setDate(current.mode === 'FIXED_DATE' ? (current.lockDate?.slice(0, 16) ?? '') : '');
-    const offset = splitOffset(current.offsetMinutes);
+    const offset = splitLockOffset(current.offsetMinutes);
     setAmount(offset.amount);
     setUnit(offset.amount ? offset.unit : 'hours');
   }, [current]);
 
-  const offsetMinutes = Math.max(0, Math.round(amount)) * UNIT_MINUTES[unit];
-  let modes = MODES;
-  if (matchday) modes = MATCHDAY_MODES;
+  const offsetMinutes = Math.max(0, Math.round(amount)) * LOCK_UNIT_MINUTES[unit];
+  let modes = BRACKET_LOCK_MODES;
+  if (matchday) modes = MATCHDAY_LOCK_MODES;
   else if (!allowProgressive) {
-    modes = MODES.filter((item) => item.value === 'FIXED_DATE' || item.value === 'FIRST_MATCH');
+    modes = SINGLE_LOCK_MODES;
   }
   const selected = modes.find((item) => item.value === mode) ?? modes[0];
 
@@ -216,7 +169,7 @@ export default function CustomLockCard({
                   className="glass-input"
                   aria-label="Unidad del margen"
                   value={unit}
-                  onChange={(event) => setUnit(event.target.value as Unit)}
+                  onChange={(event) => setUnit(event.target.value as LockUnit)}
                 >
                   <option value="minutes">minutos</option>
                   <option value="hours">horas</option>
@@ -230,7 +183,7 @@ export default function CustomLockCard({
           <button
             type="submit"
             className="league-admin-btn is-primary"
-            disabled={(mode === 'FIXED_DATE' && !date) || offsetMinutes > 30 * 1440}
+            disabled={(mode === 'FIXED_DATE' && !date) || offsetMinutes > MAX_LOCK_OFFSET_MINUTES}
           >
             Guardar cierre
           </button>

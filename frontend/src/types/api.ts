@@ -3,7 +3,7 @@
  * (paquete com.porra.mundial.dto); los nombres de campo coinciden con el JSON.
  */
 
-export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY';
+export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY' | 'SURVIVOR';
 type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
@@ -43,11 +43,16 @@ export interface UserPreferences {
 
 // --- Competiciones y partidos ---
 
+/** Deporte de una competición oficial (`Sport` en el servidor). */
+export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS';
+
 export interface Competition {
   id: number;
   name: string;
   externalId: string;
   formatType: CompetitionFormat;
+  /** Lo manda `GET /competitions`; falta en datos guardados antes de existir. */
+  sport?: Sport;
 }
 
 export interface Match {
@@ -204,6 +209,8 @@ export interface ParticipantScore {
   exactMatches?: Record<string, Record<string, boolean>> | null;
   passedTeams?: Record<string, boolean> | null;
   pending: boolean;
+  /** Liga superviviente: ya ha caído y sus jornadas superadas no suben más. */
+  eliminated?: boolean;
 }
 
 export interface MatchdayPoints {
@@ -343,6 +350,28 @@ export interface MatchdayPredictionInput {
   homeScore: number | null;
   awayScore: number | null;
   sign: '1' | 'X' | '2' | string | null;
+}
+
+/** Elección de una jornada en una liga superviviente. */
+interface SurvivorPick {
+  matchId: number;
+  round: string;
+  teamId: number | null;
+  teamName: string | null;
+  teamLogo: string | null;
+  /** WON: su equipo ganó; LOST: no ganó (eliminado); PENDING: por jugar o en juego. */
+  result: 'WON' | 'LOST' | 'PENDING';
+}
+
+/** Situación del usuario en una liga superviviente (`/predictions/matchday/survivor`). */
+export interface SurvivorStatus {
+  eliminated: boolean;
+  survived: number;
+  /** Jornada en que cayó, o null si sigue vivo. */
+  eliminatedRound: string | null;
+  /** Cayó por no elegir equipo en esa jornada. */
+  missed: boolean;
+  picks: SurvivorPick[];
 }
 
 export interface MatchdaySubmissionResult {
