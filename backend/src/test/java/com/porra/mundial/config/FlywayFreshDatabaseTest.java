@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -48,10 +49,16 @@ class FlywayFreshDatabaseTest {
     @Test
     void migratesAnEmptyDatabaseToTheLatestVersion() throws Exception {
         String url = createDatabase("fresh");
-        MigrateResult result = flyway(url).migrate();
+        Flyway flyway = flyway(url);
+        // Todas las migraciones del repositorio, sin fijar cuántas son: añadir una no rompe el test.
+        MigrationInfo[] all = flyway.info().pending();
+        MigrateResult result = flyway.migrate();
 
+        assertThat(all).isNotEmpty();
         assertThat(result.success).isTrue();
-        assertThat(result.migrationsExecuted).isEqualTo(17);
+        assertThat(result.migrationsExecuted).isEqualTo(all.length);
+        assertThat(result.targetSchemaVersion).isEqualTo(all[all.length - 1].getVersion().getVersion());
+        assertThat(flyway.info().pending()).isEmpty();
 
         try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
              Statement st = c.createStatement()) {
