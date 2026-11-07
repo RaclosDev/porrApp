@@ -29,13 +29,6 @@
     color: var(--text-muted);
   }
 
-  .md-save-btn {
-    min-height: 42px;
-    padding: 0 16px;
-    font-size: 0.88rem;
-    font-weight: 700;
-  }
-
   .md-round-bar {
     display: flex;
     align-items: center;
