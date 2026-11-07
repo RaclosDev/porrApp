@@ -198,9 +198,19 @@ describe('buildSubmission', () => {
   });
 
   it('removes the saved matches from the draft', () => {
-    expect(withoutSaved({ 1: pred('1', '0'), 3: pred('0', '0') }, [1])).toEqual({
-      3: pred('0', '0'),
-    });
+    expect(
+      withoutSaved({ 1: pred('1', '0'), 3: pred('0', '0') }, [
+        { matchId: 1, homeScore: 1, awayScore: 0, sign: null },
+      ]),
+    ).toEqual({ 3: pred('0', '0') });
+  });
+
+  it('keeps a match changed again while it was being saved', () => {
+    expect(
+      withoutSaved({ 1: pred('', '', 'X') }, [
+        { matchId: 1, homeScore: null, awayScore: null, sign: '1' },
+      ]),
+    ).toEqual({ 1: pred('', '', 'X') });
   });
 });
 
