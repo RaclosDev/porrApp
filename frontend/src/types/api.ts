@@ -278,6 +278,12 @@ export interface ScoringRules {
   exactScorePoints: number;
   correctSignPoints: number;
   goalDiffBonusPoints: number;
+  /** Superviviente: puntos por jornada superada. */
+  survivorRoundPoints: number;
+  /** Superviviente: fallos que aguanta cada participante (1: el primero lo elimina). */
+  survivorLives: number;
+  /** Superviviente: 1 si un empate también supera la jornada. */
+  survivorDrawSurvives: number;
 }
 
 export type ScoringRuleKey = keyof ScoringRules;
@@ -376,6 +382,12 @@ export interface SurvivorStatus {
   /** Cayó por no elegir equipo en esa jornada. */
   missed: boolean;
   picks: SurvivorPick[];
+  /** Vidas que le quedan. */
+  livesLeft?: number;
+  /** Vidas con las que empieza cada participante en esta liga. */
+  lives?: number;
+  /** En esta liga un empate también supera la jornada. */
+  drawSurvives?: boolean;
 }
 
 export interface MatchdaySubmissionResult {

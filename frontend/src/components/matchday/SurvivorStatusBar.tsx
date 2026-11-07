@@ -5,13 +5,19 @@ interface SurvivorStatusBarProps {
 }
 
 /**
- * Superviviente: si el usuario sigue vivo, cuántas jornadas lleva superadas y qué equipos ya ha
- * usado (no se pueden repetir).
+ * Superviviente: si el usuario sigue vivo, cuántas jornadas lleva superadas, cuántas vidas le quedan
+ * (si la liga da más de una) y qué equipos ya ha usado (no se pueden repetir).
  */
 export default function SurvivorStatusBar({ status }: SurvivorStatusBarProps) {
   const survived = status?.survived ?? 0;
   const used = (status?.picks ?? []).map((pick) => pick.teamName).filter(Boolean);
   const round = status?.eliminatedRound;
+  const lives = status?.lives ?? 1;
+  const livesLeft = status?.livesLeft ?? lives;
+  const failure = lives > 1 ? 'pierdes una vida' : 'quedas eliminado';
+  const howTo = `Elige un equipo que gane en cada jornada, sin repetirlo. ${
+    status?.drawSurvives ? 'El empate también te salva. ' : ''
+  }Si no eliges, ${failure}.`;
   return (
     <div
       className={`md-survivor-status${status?.eliminated ? ' is-out' : ''}`}
@@ -29,10 +35,13 @@ export default function SurvivorStatusBar({ status }: SurvivorStatusBarProps) {
       <span>
         {survived} {survived === 1 ? 'jornada superada' : 'jornadas superadas'}
       </span>
+      {lives > 1 && !status?.eliminated && (
+        <span>
+          {livesLeft} de {lives} vidas
+        </span>
+      )}
       <span className="text-muted">
-        {used.length > 0
-          ? `Equipos usados: ${used.join(', ')}`
-          : 'Elige un equipo que gane en cada jornada, sin repetirlo. Si no eliges, quedas eliminado.'}
+        {used.length > 0 ? `Equipos usados: ${used.join(', ')}` : howTo}
       </span>
     </div>
   );

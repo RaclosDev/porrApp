@@ -432,7 +432,7 @@ public class LeaderboardService {
         if (edition != null && edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.SURVIVOR) {
             SurvivorRules.Standing standing = survivors.standing(edition,
                     pred.getUser() != null ? pred.getUser().getId() : null, pred.getCreatedAt(), matchPreds);
-            matchPoints = standing.survived() * SurvivorRules.POINTS_PER_ROUND;
+            matchPoints = standing.survived() * SurvivorRules.Settings.of(edition).roundPoints();
             score.setEliminated(standing.eliminated());
             if (matchPoints > 0) {
                 score.getLog().add(ParticipantScoreDTO.LogEntry.builder()
@@ -482,7 +482,7 @@ public class LeaderboardService {
                         .map(Membership::getJoinedAt)
                         .orElse(fallbackStart);
             }
-            return SurvivorRules.standing(picks, calendar, startAt, now);
+            return SurvivorRules.standing(picks, calendar, startAt, now, SurvivorRules.Settings.of(edition));
         }
     }
 

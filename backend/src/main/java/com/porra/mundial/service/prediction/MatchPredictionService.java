@@ -203,6 +203,7 @@ public class MatchPredictionService {
         Prediction prediction = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId).orElse(null);
 
         List<MatchPrediction> picks = prediction != null ? survivorPicks(prediction) : List.of();
+        SurvivorRules.Settings settings = SurvivorRules.Settings.of(edition);
         SurvivorRules.Standing standing = survivorStanding(edition, user.getId(), prediction, picks);
         List<com.porra.mundial.dto.SurvivorStatusDTO.Pick> items = picks.stream()
                 .filter(pick -> pick.getMatch() != null)
@@ -211,7 +212,7 @@ public class MatchPredictionService {
                 .map(pick -> {
                     Team team = SurvivorRules.pickedTeam(pick);
                     String result = !SurvivorRules.isDecided(pick.getMatch()) ? "PENDING"
-                            : SurvivorRules.won(pick) ? "WON" : "LOST";
+                            : SurvivorRules.survives(pick, settings) ? "WON" : "LOST";
                     return new com.porra.mundial.dto.SurvivorStatusDTO.Pick(pick.getMatch().getId(),
                             MatchRound.label(pick.getMatch()),
                             team != null ? team.getId() : null,
@@ -221,7 +222,8 @@ public class MatchPredictionService {
                 })
                 .toList();
         return new com.porra.mundial.dto.SurvivorStatusDTO(standing.eliminated(), standing.survived(),
-                standing.eliminatedRound(), standing.missed(), items);
+                standing.eliminatedRound(), standing.missed(), items, standing.livesLeft(), settings.lives(),
+                settings.drawSurvives());
     }
 
     /**
@@ -468,7 +470,7 @@ public class MatchPredictionService {
                 : membershipRepository.findById(new Membership.MembershipId(userId, edition.getLeague().getId()))
                         .map(Membership::getJoinedAt)
                         .orElse(prediction != null ? prediction.getCreatedAt() : null);
-        return SurvivorRules.standing(picks, calendar, startAt, Instant.now());
+        return SurvivorRules.standing(picks, calendar, startAt, Instant.now(), SurvivorRules.Settings.of(edition));
     }
 
     /** Elecciones ya guardadas de una porra superviviente, con su partido. */
@@ -519,7 +521,8 @@ public class MatchPredictionService {
     private MatchScoreResult scorePrediction(MatchPrediction prediction, Match match, ScoringRuleSet rules) {
         if (isSurvivor(prediction)) {
             return SurvivorRules.score(prediction.getPredictionSign(), match.getHomeScore(), match.getAwayScore(),
-                    SurvivorRules.pickedTeam(prediction.getPredictionSign(), match));
+                    SurvivorRules.pickedTeam(prediction.getPredictionSign(), match),
+                    SurvivorRules.Settings.of(prediction.getPrediction().getEdition()));
         }
         if (prediction.getHomeScore() == null && prediction.getAwayScore() == null) {
             return matchScoringCalculator.calculateSign(prediction.getPredictionSign(), match.getHomeScore(), match.getAwayScore(), rules);

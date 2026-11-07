@@ -135,7 +135,7 @@ export const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = 
   },
   SURVIVOR: {
     title: 'Superviviente',
-    text: 'En cada jornada eliges un equipo que gane, sin repetir equipo. Si empata o pierde, o si no eliges, quedas fuera. Gana quien aguante más jornadas.',
+    text: 'En cada jornada eliges un equipo que gane, sin repetir equipo. Si no gana, o si no eliges, quedas fuera; la liga puede dar vidas extra o salvar el empate. Gana quien aguante más jornadas.',
   },
   FULL_BRACKET: {
     title: 'Cuadro completo',
@@ -204,9 +204,8 @@ export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   draft.poolFormat != null &&
   !isMatchBasedFormat(draft.poolFormat);
 
-/** Superviviente no tiene puntos que ajustar: cada jornada superada vale una. */
-export const scoringEditable = (draft: LeagueDraft) =>
-  draft.poolFormat != null && draft.poolFormat !== 'SURVIVOR';
+/** Con el formato elegido, la puntuación se puede personalizar (en superviviente: puntos, vidas y empate). */
+export const scoringEditable = (draft: LeagueDraft) => draft.poolFormat != null;
 
 /**
  * Deja coherente lo que depende de elecciones anteriores: al cambiar de deporte, de competición o de

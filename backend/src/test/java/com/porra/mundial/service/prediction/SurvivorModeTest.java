@@ -90,6 +90,46 @@ class SurvivorModeTest {
         }
 
         @Test
+        void leagueSettingsChangePointsLivesAndDraws() {
+            SurvivorRules.Settings settings = new SurvivorRules.Settings(3, 2, true);
+            assertEquals(3, SurvivorRules.score("1", 2, 0, MADRID, settings).totalPoints());
+            // El empate salva y cuenta como jornada superada.
+            assertEquals(3, SurvivorRules.score("1", 1, 1, MADRID, settings).totalPoints());
+
+            List<MatchPrediction> picks = List.of(
+                    pick(null, played(1, "Jornada 1", MADRID, BETIS, 1, 1, day), "1"),
+                    pick(null, played(2, "Jornada 2", BARCA, SEVILLA, 0, 1, day.plus(7, ChronoUnit.DAYS)), "1"),
+                    pick(null, played(3, "Jornada 3", BETIS, SEVILLA, 2, 0, day.plus(14, ChronoUnit.DAYS)), "1"),
+                    pick(null, played(4, "Jornada 4", SEVILLA, MADRID, 2, 0, day.plus(21, ChronoUnit.DAYS)), "2"));
+
+            // Con dos vidas, la derrota de la Jornada 2 solo resta una; la de la Jornada 4 elimina.
+            SurvivorRules.Standing standing = SurvivorRules.standing(picks, List.of(), null, null, settings);
+            assertEquals(2, standing.survived());
+            assertTrue(standing.eliminated());
+            assertEquals("Jornada 4", standing.eliminatedRound());
+            assertEquals(0, standing.livesLeft());
+
+            SurvivorRules.Standing afterThree = SurvivorRules.standing(picks.subList(0, 3), List.of(), null, null, settings);
+            assertFalse(afterThree.eliminated());
+            assertEquals(1, afterThree.livesLeft());
+        }
+
+        @Test
+        void livesAndDrawRuleAreValidated() {
+            tools.jackson.databind.ObjectMapper json = new tools.jackson.databind.ObjectMapper();
+            assertThrows(BusinessException.class, () -> ScoringRuleSet.fromRequest(json.readTree("{\"survivorLives\": 0}")));
+            assertThrows(BusinessException.class, () -> ScoringRuleSet.fromRequest(json.readTree("{\"survivorLives\": 11}")));
+            assertThrows(BusinessException.class, () -> ScoringRuleSet.fromRequest(json.readTree("{\"survivorDrawSurvives\": 2}")));
+            assertEquals(3, ScoringRuleSet.fromRequest(json.readTree("{\"survivorLives\": 3}")).getSurvivorLives());
+        }
+
+        @Test
+        void leaguesWithoutSurvivorSettingsKeepTheClassicRules() {
+            SurvivorRules.Settings settings = SurvivorRules.Settings.of(ScoringRuleSet.fromJson("{\"correctSignPoints\": 3}"));
+            assertEquals(SurvivorRules.Settings.DEFAULT, settings);
+        }
+
+        @Test
         void unfinishedPicksDoNotDecideAnything() {
             Match live = match(1, "Jornada 1", MADRID, BETIS, day);
             live.setHomeScore(0);
