@@ -22,9 +22,9 @@ import java.util.Optional;
  * En iOS la app añadida a la pantalla de inicio tiene su propio almacenamiento. Al añadirla, iOS
  * (17.2 o posterior) le copia las cookies de Safari, pero nada más. Reusar el refresh token copiado
  * no sirve: Safari y la app tendrían el mismo token, y el segundo que lo rotara parecería una
- * reutilización y cerraría la sesión de los dos. Por eso, con la guía de instalación abierta, Safari
- * pide un código de traspaso que viaja en su propia cookie; la app lo canjea la primera vez que se
- * abre por una sesión nueva e independiente de la misma cuenta.
+ * reutilización y cerraría la sesión de los dos. Por eso, con sesión iniciada en el navegador del
+ * iPhone, este pide un código de traspaso que viaja en su propia cookie; la app lo canjea la primera
+ * vez que se abre por una sesión nueva e independiente de la misma cuenta.
  * <ul>
  *   <li>Un solo uso: el canje borra el código, también si ha caducado.</li>
  *   <li>Vive {@link #HANDOFF_TTL} y cada cuenta tiene como mucho uno: pedir otro anula el anterior.</li>
