@@ -236,6 +236,14 @@
     white-space: nowrap;
   }
 
+  /* Superviviente: ya ha caído. Mismo distintivo que «Sin pagar», en gris. */
+  .lb-unpaid-badge.lb-out-badge,
+  .paper-panel .lb-unpaid-badge.lb-out-badge {
+    border-color: currentColor;
+    background: transparent;
+    color: var(--text-muted);
+  }
+
   @media (max-width: 700px) {
     .lb-matchday-panel {
       padding: 14px;
@@ -516,13 +524,13 @@
     margin-inline: 0;
   }
 
+  /* Las caras empatadas van una al lado de otra, sin taparse; si la tarjeta es estrecha, bajan de línea. */
   .matchday-podium-avatars {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
+    gap: 4px;
     max-width: 100%;
-  }
-  .matchday-podium-avatars > * + * {
-    margin-left: -18px;
   }
   .matchday-podium-ties {
     width: 100%;
