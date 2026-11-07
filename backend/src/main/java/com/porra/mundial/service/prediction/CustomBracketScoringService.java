@@ -29,6 +29,7 @@ public class CustomBracketScoringService {
                 .passedTeams(new java.util.HashMap<>()).build();
         PredictionDataDTO data = prediction.getBracketData();
         if (data == null || data.getCustomRounds() == null) return score;
+        if (DrawnKnockout.applies(prediction.getEdition())) return scoreDrawn(prediction, data, score);
         Long competitionId = prediction.getEdition().getCompetition().getId();
         List<Match> all = matches.findByCompetitionId(competitionId);
         ScoringRuleSet rules = ScoringRuleSet.effectiveForEdition(prediction.getEdition());
@@ -61,6 +62,33 @@ public class CustomBracketScoringService {
         int groupPoints = scoreGroups(data, all, competitionId, rules, score);
         score.setR1(groupPoints);
         score.setTotal(knockoutPoints + groupPoints);
+        return score;
+    }
+
+    /** Eliminatorias sorteadas ronda a ronda: suma cada cruce en el que pasa el equipo elegido. */
+    private ParticipantScoreDTO scoreDrawn(Prediction prediction, PredictionDataDTO data, ParticipantScoreDTO score) {
+        List<DrawnKnockout.Round> rounds = DrawnKnockout.rounds(prediction.getEdition(),
+                matches.findByCompetitionId(prediction.getEdition().getCompetition().getId()));
+        ScoringRuleSet rules = ScoringRuleSet.effectiveForEdition(prediction.getEdition());
+        int total = 0;
+        for (int index = 0; index < Math.min(rounds.size(), data.getCustomRounds().size()); index++) {
+            DrawnKnockout.Round round = rounds.get(index);
+            List<String> picks = data.getCustomRounds().get(index);
+            if (picks == null) continue;
+            for (int tie = 0; tie < Math.min(picks.size(), round.ties().size()); tie++) {
+                Team winner = round.ties().get(tie).winner();
+                String pick = picks.get(tie);
+                if (pick == null || winner == null || !pick.equals(winner.getName())) continue;
+                int points = DrawnKnockout.points(round.key(), rules);
+                total += points;
+                score.getLog().add(ParticipantScoreDTO.LogEntry.builder().stage("cuadro").amount(points)
+                        .msg("final".equals(round.key()) ? "Campeón acertado: " + pick
+                                : DrawnKnockout.title(round.key()) + ": acertado que pasa " + pick)
+                        .build());
+            }
+        }
+        score.setR32(total);
+        score.setTotal(total);
         return score;
     }
 

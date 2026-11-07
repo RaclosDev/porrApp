@@ -196,12 +196,29 @@ public class MatchdayStatsService {
      * en su cuadro. Solo se ven los cruces cuyo pronóstico ya está cerrado, como en el cuadro de los demás.
      */
     private List<MatchVotersDTO> bracketVoters(Edition edition, Long groupId, List<Long> matchIds) {
-        List<List<Match>> rounds = PredictableBracket.rounds(edition.getCompetition(),
-                matchRepository.findByCompetitionId(edition.getCompetition().getId()));
+        List<Match> all = matchRepository.findByCompetitionId(edition.getCompetition().getId());
         Map<Long, int[]> positions = new HashMap<>();
-        for (int round = 0; round < rounds.size(); round++) {
-            for (int index = 0; index < rounds.get(round).size(); index++) {
-                positions.put(rounds.get(round).get(index).getId(), new int[]{round, index});
+        Map<Long, Match> byId = new HashMap<>();
+        if (DrawnKnockout.applies(edition)) {
+            // Cada partido de un cruce (ida y vuelta) muestra quién eligió a cada equipo para pasar.
+            List<DrawnKnockout.Round> rounds = DrawnKnockout.rounds(edition, all);
+            for (int round = 0; round < rounds.size(); round++) {
+                List<DrawnKnockout.Tie> ties = rounds.get(round).ties();
+                for (int index = 0; index < ties.size(); index++) {
+                    for (Match leg : ties.get(index).legs()) {
+                        positions.put(leg.getId(), new int[]{round, index});
+                        byId.put(leg.getId(), leg);
+                    }
+                }
+            }
+        } else {
+            List<List<Match>> rounds = PredictableBracket.rounds(edition.getCompetition(), all);
+            for (int round = 0; round < rounds.size(); round++) {
+                for (int index = 0; index < rounds.get(round).size(); index++) {
+                    Match match = rounds.get(round).get(index);
+                    positions.put(match.getId(), new int[]{round, index});
+                    byId.put(match.getId(), match);
+                }
             }
         }
         CustomLockService.LockState lock = customLockService.state(edition);
@@ -210,7 +227,7 @@ public class MatchdayStatsService {
         for (Long matchId : new LinkedHashSet<>(matchIds)) {
             int[] at = positions.get(matchId);
             if (at == null) continue;
-            Match match = rounds.get(at[0]).get(at[1]);
+            Match match = byId.get(matchId);
             if (match.getHomeTeam() == null || match.getAwayTeam() == null) continue;
             if (lock.fullyLocked() || lock.pickLocked(at[0], at[1])
                     || isRevealed(match, null, edition.isLocked(), now)) {

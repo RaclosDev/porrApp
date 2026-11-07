@@ -6,7 +6,10 @@ import {
 } from './customBracket';
 
 /** Rondas eliminatorias de una competición oficial, de la primera a la final. */
-const KNOCKOUT_ROUNDS = ['r32', 'r16', 'qf', 'sf', 'final'];
+const BRACKET_ROUNDS = ['r32', 'r16', 'qf', 'sf', 'final'];
+
+/** Todas las rondas eliminatorias, también el playoff de la UEFA. */
+export const KNOCKOUT_ROUNDS = ['playoff', ...BRACKET_ROUNDS];
 
 const byDate = (left: Match, right: Match) =>
   (left.date ?? '￿').localeCompare(right.date ?? '￿') || left.id - right.id;
@@ -40,14 +43,14 @@ const slotWinner = (slot: CustomResultSlot | undefined): string | null =>
 export function computeOfficialResultRounds(matches: Match[]): CustomResultRound[] {
   const byRound = new Map<string, Match[]>();
   for (const match of matches) {
-    if (!KNOCKOUT_ROUNDS.includes(match.round)) continue;
+    if (!BRACKET_ROUNDS.includes(match.round)) continue;
     const list = byRound.get(match.round) ?? [];
     list.push(match);
     byRound.set(match.round, list);
   }
-  const first = KNOCKOUT_ROUNDS.findIndex((round) => byRound.has(round));
+  const first = BRACKET_ROUNDS.findIndex((round) => byRound.has(round));
   if (first < 0) return [];
-  const rounds = KNOCKOUT_ROUNDS.slice(first);
+  const rounds = BRACKET_ROUNDS.slice(first);
   const total = rounds.length;
 
   let previous = [...(byRound.get(rounds[0]) ?? [])].sort(byDate).map(matchSlot);
@@ -197,11 +200,9 @@ export function nextOfficialBracketMatch(matches: Match[]): Match | null {
  * ronda en el orden en que se pinta) para pronosticarlos con el mismo editor.
  */
 export function officialBracketMatches(matches: Match[]): Match[] {
-  const first = KNOCKOUT_ROUNDS.findIndex((round) =>
-    matches.some((match) => match.round === round),
-  );
+  const first = BRACKET_ROUNDS.findIndex((round) => matches.some((match) => match.round === round));
   if (first < 0) return [];
-  return KNOCKOUT_ROUNDS.slice(first).flatMap((round, index) =>
+  return BRACKET_ROUNDS.slice(first).flatMap((round, index) =>
     matches
       .filter((match) => match.round === round)
       .sort(byDate)

@@ -13,9 +13,11 @@ import com.porra.mundial.model.Sport;
  * @param sport      deporte, para agruparlas al crear una liga
  * @param finished   ya se han jugado todos sus partidos importados: no queda nada que pronosticar
  * @param groupStage si tiene fase de grupos; null mientras no haya partidos importados
+ * @param knockoutDraw sus eliminatorias se sortean ronda a ronda (Champions, Copa del Rey…): se pueden
+ *                     pronosticar como «Solo eliminatorias», ronda a ronda
  */
 public record CompetitionDTO(Long id, String name, String externalId, String formatType, Sport sport,
-                             boolean finished, Boolean groupStage) {
+                             boolean finished, Boolean groupStage, boolean knockoutDraw) {
 
     /** Partidos importados de una competición: todos, los que faltan por terminar y los de grupos. */
     public record CalendarStats(long matches, long unfinished, long groupMatches) {
@@ -29,6 +31,7 @@ public record CompetitionDTO(Long id, String name, String externalId, String for
                 competition.getExternalId(), competition.getFormatType(),
                 Sport.ofExternalId(competition.getExternalId()),
                 imported && calendar.unfinished() == 0,
-                imported ? calendar.groupMatches() > 0 : null);
+                imported ? calendar.groupMatches() > 0 : null,
+                competition.drawsKnockoutRounds());
     }
 }

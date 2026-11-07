@@ -170,4 +170,16 @@ class OfficialMatchdayServiceTest {
                 .containsEntry(midweekA, 2).containsEntry(midweekB, 2)
                 .doesNotContainKey(lastSeason);
     }
+
+    @Test
+    void knockoutRoundsOfALeagueAreNotNumbered() {
+        Instant weekend = AppTime.fromLocal(LocalDateTime.of(2026, 1, 21, 21, 0));
+        Match leaguePhase = match(0, 1, weekend);
+        Match playoff = match(2, 3, weekend.plus(27, ChronoUnit.DAYS));
+        playoff.setRound("playoff");
+
+        Map<Match, Integer> rounds = OfficialMatchdayService.inferMatchdays(List.of(leaguePhase, playoff));
+
+        assertThat(rounds).containsKey(leaguePhase).doesNotContainKey(playoff);
+    }
 }

@@ -317,4 +317,20 @@ class LeagueServiceTest {
         assertEquals("Reglas internas", dto.getRules());
         assertEquals(1L, dto.getAdminUserId());
     }
+
+    @Test
+    void championsKnockoutsCloseRoundByRoundAndRejectTheFullBracket() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition champions = Competition.builder().id(5L).externalId("uefa.champions").formatType("LEAGUE").build();
+        when(competitionRepository.findById(5L)).thenReturn(Optional.of(champions));
+        lenient().when(leagueRepository.save(any(League.class))).thenReturn(league);
+
+        assertThrows(BusinessException.class, () -> leagueService.createLeague(NewLeague.of("Champions", "admin@test.com", 5L,
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET)));
+
+        leagueService.createLeague(NewLeague.of("Champions", "admin@test.com", 5L,
+                com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY));
+        verify(editionRepository).save(argThat(edition ->
+                edition.getLockMode() == com.porra.mundial.model.PredictionLockMode.PER_ROUND));
+    }
 }

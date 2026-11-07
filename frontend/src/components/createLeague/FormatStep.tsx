@@ -4,9 +4,9 @@ import { queryKeys } from '../../services/queryKeys';
 import MatchSelectionPicker from '../matchSelection/MatchSelectionPicker';
 import {
   FIELD_IDS,
-  FORMAT_COPY,
   POOL_FORMAT_ORDER,
   errorId,
+  formatCopy,
   formatUnavailableReason,
   matchSelectionApplies,
 } from './leagueDraft';
@@ -68,8 +68,8 @@ export default function FormatStep(props: StepProps) {
               value={format}
               checked={draft.poolFormat === format}
               onChange={() => update({ poolFormat: format })}
-              title={FORMAT_COPY[format].title}
-              description={FORMAT_COPY[format].text}
+              title={formatCopy(format, draft, ctx).title}
+              description={formatCopy(format, draft, ctx).text}
               disabledReason={formatUnavailableReason(format, draft, ctx)}
             />
           ))}

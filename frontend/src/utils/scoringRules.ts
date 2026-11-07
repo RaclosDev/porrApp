@@ -121,13 +121,47 @@ const RANGES: Partial<Record<ScoringRuleKey, [number, number]>> = {
   survivorDrawSurvives: [0, 1],
 };
 
+const DRAWN_KNOCKOUTS: ScoringSection = {
+  id: 'knockouts',
+  title: 'Eliminatorias, por cruce acertado',
+  fields: [
+    {
+      key: 'roundOf32Points',
+      label: 'Playoff o dieciseisavos',
+      hint: 'Cada cruce de la primera ronda en el que aciertas quién pasa.',
+    },
+    {
+      key: 'roundOf16Points',
+      label: 'Octavos',
+      hint: 'Cada cruce de octavos en el que aciertas quién pasa.',
+    },
+    {
+      key: 'quarterFinalPoints',
+      label: 'Cuartos',
+      hint: 'Cada cruce de cuartos en el que aciertas quién pasa.',
+    },
+    {
+      key: 'semiFinalPoints',
+      label: 'Semifinales',
+      hint: 'Cada semifinal en la que aciertas quién pasa.',
+    },
+    { key: 'championPoints', label: 'Final', hint: 'Aciertas quién gana la final.' },
+  ],
+};
+
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
- * grupos, así que sus reglas de grupo no se muestran.
+ * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
+ * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi.
  */
-export function scoringSections(format: PoolFormat | null, pichichi: boolean): ScoringSection[] {
+export function scoringSections(
+  format: PoolFormat | null,
+  pichichi: boolean,
+  knockoutDraw = false,
+): ScoringSection[] {
   if (format === 'MATCH_DAY') return [MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
+  if (knockoutDraw) return [DRAWN_KNOCKOUTS];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
   return pichichi ? [...sections, TOP_SCORER] : sections;
 }

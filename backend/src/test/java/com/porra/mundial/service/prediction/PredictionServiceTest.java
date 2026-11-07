@@ -319,4 +319,23 @@ class PredictionServiceTest {
 
         assertNotNull(predictionService.getPredictionData(1L, null));
     }
+
+    @Test
+    void drawnKnockoutsAcceptLateEntriesForTheRoundsStillOpen() {
+        com.porra.mundial.model.Competition champions = com.porra.mundial.model.Competition.builder().id(5L)
+                .externalId("uefa.champions").formatType("LEAGUE").build();
+        Edition knockouts = Edition.builder().league(group).competition(champions)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY)
+                .lockMode(com.porra.mundial.model.PredictionLockMode.PER_ROUND).build();
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(knockouts));
+        when(membershipRepository.existsById(any())).thenReturn(true);
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("owner@test.com", 100L)).thenReturn(Optional.empty());
+        when(customLockService.state(knockouts)).thenReturn(lockState(true));
+
+        predictionService.createPrediction("owner@test.com", "Tarde", new PredictionDataDTO(), 100L);
+
+        verify(customBracketValidator).validate(eq(knockouts), any());
+        verify(predictionRepository).save(any());
+    }
 }
