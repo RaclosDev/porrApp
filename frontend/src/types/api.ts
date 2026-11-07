@@ -43,11 +43,16 @@ export interface UserPreferences {
 
 // --- Competiciones y partidos ---
 
+/** Deporte de una competición oficial (`Sport` en el servidor). */
+export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS';
+
 export interface Competition {
   id: number;
   name: string;
   externalId: string;
   formatType: CompetitionFormat;
+  /** Lo manda `GET /competitions`; falta en datos guardados antes de existir. */
+  sport?: Sport;
 }
 
 export interface Match {

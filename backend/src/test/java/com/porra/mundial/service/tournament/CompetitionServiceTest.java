@@ -44,6 +44,17 @@ class CompetitionServiceTest {
     }
 
     @Test
+    void syncableCompetitionsCarryTheirSport() {
+        when(competitions.findAll()).thenReturn(List.of(
+                Competition.builder().id(1L).name("LaLiga").externalId("esp.1").build(),
+                Competition.builder().id(2L).name("Worlds").externalId("LOL.Worlds").build()));
+
+        assertThat(service.findSyncableCompetitions()).extracting(CompetitionDTO::sport)
+                .containsExactly(com.porra.mundial.model.Sport.FOOTBALL,
+                        com.porra.mundial.model.Sport.LEAGUE_OF_LEGENDS);
+    }
+
+    @Test
     void privateCompetitionsHaveNoPublicStandings() {
         when(competitions.findById(4L)).thenReturn(Optional.of(
                 Competition.builder().id(4L).ownerLeague(League.builder().id(1L).build()).build()));

@@ -1,25 +1,59 @@
-import { CUSTOM_NAME_MAX, FIELD_IDS, errorId } from './leagueDraft';
+import { CUSTOM_NAME_MAX, FIELD_IDS, competitionsOfSport, errorId } from './leagueDraft';
 import { FieldError, OptionCard } from './parts';
 import type { StepProps } from './useLeagueDraft';
 
 const NAME = 'cl-competition';
 
-/** Paso 1: sobre qué se juega. Las oficiales se agrupan por tipo; la personalizada, aparte. */
+/**
+ * Paso 2: sobre qué se juega. Las oficiales del deporte elegido se agrupan por tipo; la personalizada,
+ * aparte. Con «otro deporte» solo hay personalizada: se pide su nombre.
+ */
 export default function CompetitionStep({ draft, update, errors, ctx }: StepProps) {
+  const official = competitionsOfSport(ctx, draft.sport);
   const groups = [
     {
       id: 'leagues',
       title: 'Por jornadas',
       hint: 'Se juegan jornada a jornada durante la temporada.',
-      items: ctx.competitions.filter((item) => item.formatType === 'LEAGUE'),
+      items: official.filter((item) => item.formatType === 'LEAGUE'),
     },
     {
       id: 'tournaments',
       title: 'Con cuadro',
       hint: 'Torneos con eliminatorias: también se pueden jugar por jornadas.',
-      items: ctx.competitions.filter((item) => item.formatType !== 'LEAGUE'),
+      items: official.filter((item) => item.formatType !== 'LEAGUE'),
     },
   ].filter((group) => group.items.length > 0);
+
+  const nameField = (
+    <div className="create-league-field">
+      <label htmlFor={FIELD_IDS.customName}>Nombre de la competición</label>
+      <input
+        id={FIELD_IDS.customName}
+        className="glass-input"
+        value={draft.customName}
+        maxLength={CUSTOM_NAME_MAX}
+        autoComplete="off"
+        placeholder="Ej.: Torneo de verano del barrio"
+        onChange={(event) => update({ customName: event.target.value })}
+        aria-invalid={Boolean(errors.customName)}
+        aria-describedby={errors.customName ? errorId(FIELD_IDS.customName) : undefined}
+      />
+      <FieldError fieldId={FIELD_IDS.customName} message={errors.customName} />
+    </div>
+  );
+
+  if (draft.sport === 'OTHER') {
+    return (
+      <>
+        <p className="create-league-hint">
+          Tu competición será personalizada: después de crear la liga añades tú los equipos, los
+          partidos y los resultados.
+        </p>
+        {nameField}
+      </>
+    );
+  }
 
   return (
     <>
@@ -63,23 +97,7 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
         <FieldError fieldId={FIELD_IDS.competition} message={errors.competition} />
       </fieldset>
 
-      {draft.custom && (
-        <div className="create-league-field">
-          <label htmlFor={FIELD_IDS.customName}>Nombre de la competición</label>
-          <input
-            id={FIELD_IDS.customName}
-            className="glass-input"
-            value={draft.customName}
-            maxLength={CUSTOM_NAME_MAX}
-            autoComplete="off"
-            placeholder="Ej.: Torneo de verano del barrio"
-            onChange={(event) => update({ customName: event.target.value })}
-            aria-invalid={Boolean(errors.customName)}
-            aria-describedby={errors.customName ? errorId(FIELD_IDS.customName) : undefined}
-          />
-          <FieldError fieldId={FIELD_IDS.customName} message={errors.customName} />
-        </div>
-      )}
+      {draft.custom && nameField}
     </>
   );
 }

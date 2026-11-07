@@ -4,6 +4,8 @@ import type { Competition } from '../../types/api';
 import { DEFAULT_SCORING_RULES, SCORING_MAX_POINTS } from '../../utils/scoringRules';
 import {
   buildCreateRequest,
+  competitionsOfSport,
+  sportChoices,
   emptyDraft,
   firstIncompleteStep,
   formatUnavailableReason,
@@ -33,6 +35,13 @@ const ctx = {
       formatType: 'TOURNAMENT',
     }),
     competition({ id: 3, name: 'Mundial', externalId: 'fifa.world', formatType: 'TOURNAMENT' }),
+    competition({
+      id: 4,
+      name: 'Worlds',
+      externalId: 'lol.worlds',
+      formatType: 'TOURNAMENT',
+      sport: 'LEAGUE_OF_LEGENDS',
+    }),
   ],
 };
 
@@ -44,7 +53,7 @@ const NOW = new Date('2026-11-07T12:00:00');
 describe('borrador de liga', () => {
   afterEach(() => localStorage.clear());
 
-  it('usa los mismos puntos por defecto y el mismo mÃ¡ximo que el servidor', () => {
+  it('usa los mismos puntos por defecto y el mismo máximo que el servidor', () => {
     const javaDefaults = Object.fromEntries(
       [...scoringRuleSet.matchAll(/private int (\w+) = (\d+);/g)].map(([, key, value]) => [
         key,
@@ -55,7 +64,27 @@ describe('borrador de liga', () => {
     expect(scoringRuleSet).toContain(`MAX_POINTS = ${SCORING_MAX_POINTS};`);
   });
 
-  it('no ofrece superviviente sin competiciÃ³n oficial ni cuadros en una liga regular', () => {
+  it('agrupa por deporte y deja coherente la competición al cambiarlo', () => {
+    expect(sportChoices(ctx)).toEqual(['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'OTHER']);
+    expect(competitionsOfSport(ctx, 'LEAGUE_OF_LEGENDS').map((item) => item.name)).toEqual([
+      'Worlds',
+    ]);
+    // Un borrador de antes de este paso toma el deporte de su competición.
+    expect(draftWith({ competitionId: 4 }).sport).toBe('LEAGUE_OF_LEGENDS');
+    expect(validateStep('sport', emptyDraft(), ctx)).toHaveProperty('sport');
+    const football = draftWith({ competitionId: 2, poolFormat: 'FULL_BRACKET', pichichi: true });
+    expect(
+      normalizeDraft({ ...football, sport: 'LEAGUE_OF_LEGENDS' }, ctx).competitionId,
+    ).toBeNull();
+    const other = normalizeDraft({ ...football, sport: 'OTHER' }, ctx);
+    expect(other.custom).toBe(true);
+    expect(other.competitionId).toBeNull();
+    // El pichichi es cosa del fútbol.
+    const worlds = draftWith({ competitionId: 4, poolFormat: 'FULL_BRACKET', pichichi: true });
+    expect(worlds.pichichi).toBe(false);
+  });
+
+  it('no ofrece superviviente sin competición oficial ni cuadros en una liga regular', () => {
     expect(formatUnavailableReason('SURVIVOR', draftWith({ custom: true }), ctx)).toMatch(
       /oficial/,
     );
@@ -67,7 +96,7 @@ describe('borrador de liga', () => {
     ).toBeNull();
   });
 
-  it('al cambiar de competiciÃ³n quita el formato y el pichichi que ya no encajan', () => {
+  it('al cambiar de competición quita el formato y el pichichi que ya no encajan', () => {
     const tournament = draftWith({
       competitionId: 2,
       poolFormat: 'KNOCKOUTS_ONLY',
@@ -122,11 +151,11 @@ describe('borrador de liga', () => {
         ctx,
       ),
     ).toHaveProperty('scoring');
-    expect(firstIncompleteStep(matchday, ctx)).toBe(3);
-    expect(firstIncompleteStep({ ...matchday, name: 'Amigos' }, ctx)).toBe(4);
+    expect(firstIncompleteStep(matchday, ctx)).toBe(4);
+    expect(firstIncompleteStep({ ...matchday, name: 'Amigos' }, ctx)).toBe(5);
   });
 
-  it('envÃ­a solo los ajustes que cambian algo', () => {
+  it('envía solo los ajustes que cambian algo', () => {
     const plain = draftWith({ competitionId: 1, poolFormat: 'MATCH_DAY', name: '  Amigos  ' });
     expect(buildCreateRequest(plain, ctx)).toEqual({
       name: 'Amigos',
@@ -147,7 +176,7 @@ describe('borrador de liga', () => {
       scoring: { ...plain.scoring, championPoints: '300' },
       entryFee: true,
       name: 'Barrio',
-      rules: ' 10 â‚¬ por Bizum ',
+      rules: ' 10 € por Bizum ',
     });
     expect(buildCreateRequest(configured, ctx)).toEqual({
       name: 'Barrio',
@@ -155,14 +184,14 @@ describe('borrador de liga', () => {
       customCompetitionName: 'Torneo del barrio',
       poolFormat: 'KNOCKOUTS_ONLY',
       pichichi: false,
-      rules: '10 â‚¬ por Bizum',
+      rules: '10 € por Bizum',
       entryFee: true,
       scoring: { ...DEFAULT_SCORING_RULES, championPoints: 300 },
       lockMode: 'FIXED_DATE',
       lockDate: '2026-12-01T20:00',
     });
 
-    // Personalizar sin cambiar ningÃºn valor no manda puntuaciÃ³n.
+    // Personalizar sin cambiar ningún valor no manda puntuación.
     expect(buildCreateRequest({ ...plain, customScoring: true }, ctx)).not.toHaveProperty(
       'scoring',
     );
