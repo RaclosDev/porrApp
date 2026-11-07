@@ -103,7 +103,7 @@ export function UserAvatar({
       radius="50%"
       fallback={
         <span
-          className="user-avatar-ink relative w-full h-full rounded-full bg-[rgba(255,_255,_255,_0.06)] flex items-center justify-center leading-[1]"
+          className="user-avatar-ink relative w-full h-full rounded-full flex items-center justify-center leading-[1]"
           style={{ fontSize: Math.round(size * (Array.from(letters).length > 1 ? 0.4 : 0.52)) }}
           data-ink={avatarInk(userId, name)}
           aria-hidden="true"

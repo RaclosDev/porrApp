@@ -529,6 +529,11 @@
     justify-content: center;
     max-width: 100%;
   }
+  /* Aro de papel para separar las caras que se solapan. */
+  .matchday-podium-avatars > * {
+    border-radius: 999px;
+    box-shadow: 0 0 0 2px var(--paper);
+  }
   .matchday-podium-avatars > * + * {
     margin-left: -18px;
   }
