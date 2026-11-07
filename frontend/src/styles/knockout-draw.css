@@ -1,0 +1,84 @@
+/*
+ * Eliminatorias sorteadas ronda a ronda (Champions, Copa del Rey): pestañas por ronda y una tarjeta
+ * por cruce, en papel como el resto del cuadro.
+ */
+.knockout-draw {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.knockout-round {
+  display: grid;
+  gap: 12px;
+}
+
+.knockout-round-status {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.knockout-ties {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+.knockout-tie {
+  background: #fffdf7;
+  color: var(--ink);
+  border: 1px solid rgba(17, 24, 39, 0.55);
+  border-radius: 8px;
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.08);
+  overflow: hidden;
+}
+
+.knockout-tie-legs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  color: #4b5563;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.12);
+}
+
+.knockout-tie-closed {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.knockout-tie-teams .team-slot {
+  min-height: 46px !important;
+  padding: 6px 10px !important;
+  gap: 6px;
+  font-size: 0.85rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent;
+  color: var(--ink);
+  width: 100%;
+}
+
+.knockout-tie-teams .team-slot + .team-slot {
+  border-top: 1px solid rgba(17, 24, 39, 0.12) !important;
+}
+
+.knockout-tie-teams .team-slot-name {
+  font-size: 0.85rem !important;
+}
+
+.knockout-tie-goals {
+  min-width: 1.5em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

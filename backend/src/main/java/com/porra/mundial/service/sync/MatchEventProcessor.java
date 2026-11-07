@@ -205,7 +205,7 @@ public class MatchEventProcessor {
         if (Team.isPlaceholder(homeTeam) && Team.isPlaceholder(awayTeam)) return;
 
         MatchStatus status = parseStatus(competition);
-        Scores scores = parseScores(home, away, homeTeam, awayTeam, status);
+        Scores scores = parseScores(competition, home, away, homeTeam, awayTeam, status);
         MatchMetadata metadata = parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fairPlayPoints(competition, home, away, homeTeam, awayTeam);
 
@@ -302,7 +302,15 @@ public class MatchEventProcessor {
         return placeholder;
     }
 
-    private Scores parseScores(Competitor home, Competitor away, Team homeTeam, Team awayTeam, MatchStatus status) {
+    /** El partido decide el cruce: es partido único o el último de la serie (la vuelta). */
+    static boolean decidesTie(JsonNode competition) {
+        int total = competition.path("series").path("totalCompetitions").asInt(1);
+        int leg = competition.path("leg").path("value").asInt(total);
+        return total <= 1 || leg >= total;
+    }
+
+    private Scores parseScores(JsonNode competition, Competitor home, Competitor away, Team homeTeam, Team awayTeam,
+                               MatchStatus status) {
         if (!status.live() && !status.finished() || home == null || away == null) {
             return new Scores(null, null, null);
         }
@@ -314,10 +322,23 @@ public class MatchEventProcessor {
         } catch (NumberFormatException ignored) {
             // Marcador aún no disponible.
         }
-        boolean homeWins = home.node().path("advance").asBoolean(home.node().path("winner").asBoolean(false));
-        boolean awayWins = away.node().path("advance").asBoolean(away.node().path("winner").asBoolean(false));
+        // En la ida de un cruce a doble partido "winner" es quien gana ese partido, no quien pasa: el
+        // ganador del cruce solo llega con "advance" en el partido que lo decide.
+        boolean decides = decidesTie(competition);
+        boolean advance = home.node().has("advance") || away.node().has("advance");
+        boolean homeWins = advance ? home.node().path("advance").asBoolean(false)
+                : decides && home.node().path("winner").asBoolean(false);
+        boolean awayWins = advance ? away.node().path("advance").asBoolean(false)
+                : decides && away.node().path("winner").asBoolean(false);
         Team winner = homeWins && !awayWins ? homeTeam : (awayWins && !homeWins ? awayTeam : null);
         return new Scores(homeScore, awayScore, winner);
+    }
+
+    /** Rondas eliminatorias, que una competición de liga (Champions…) también guarda. */
+    private static final java.util.Set<String> KNOCKOUT_ROUNDS = java.util.Set.of("playoff", "r32", "r16", "qf", "sf", "third", "final");
+
+    public static boolean isKnockoutRound(String round) {
+        return round != null && KNOCKOUT_ROUNDS.contains(round);
     }
 
     /** Ronda que ESPN indica en {@code season.slug}; null si el evento no la trae o no se reconoce. */
@@ -325,6 +346,11 @@ public class MatchEventProcessor {
         return switch (slug == null ? "" : slug.toLowerCase()) {
             case "play-in" -> "playin";
             case "group-stage" -> "group";
+            // Rondas previas de la Copa del Rey: no son fase de grupos ni entran en el cuadro.
+            case "qualifying-round", "preliminary-round" -> "qualifying";
+            case "first-round" -> "round1";
+            case "second-round" -> "round2";
+            case "knockout-round-playoffs" -> "playoff";
             case "round-of-32" -> "r32";
             case "round-of-16" -> "r16";
             case "quarterfinals" -> "qf";
@@ -349,11 +375,12 @@ public class MatchEventProcessor {
             if (group.length() > 2) group = group.substring(0, 1);
             group = group.toUpperCase();
         }
+        String round = roundFromSlug(seasonSlug);
         if (comp != null && "LEAGUE".equalsIgnoreCase(comp.getFormatType())) {
-            return new MatchMetadata(group, null);
+            // La fase de liga va por jornadas; las eliminatorias que la siguen (Champions…) guardan su ronda.
+            return new MatchMetadata(group, isKnockoutRound(round) ? round : null);
         }
 
-        String round = roundFromSlug(seasonSlug);
         if (round != null) {
             return new MatchMetadata(group, round);
         }

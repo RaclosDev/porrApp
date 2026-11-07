@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,10 +25,17 @@ public final class MatchRound {
     private static final Instant NO_DAY = Instant.EPOCH;
     private static final Pattern NUMBERED_MATCHDAY = Pattern.compile("(?i)jornada\\s+(\\d{1,4})");
 
+    /** Nombre visible de las rondas eliminatorias (las de la Champions también se juegan por jornadas). */
+    private static final Map<String, String> KNOCKOUT_LABELS = Map.of(
+            "playoff", "Playoff", "r32", "Dieciseisavos", "r16", "Octavos de final",
+            "qf", "Cuartos de final", "sf", "Semifinales", "third", "Tercer puesto", "final", "Final");
+
     public static String label(Match match) {
         if (match.getGroupName() != null && !match.getGroupName().isBlank()) {
             return "Grupo " + match.getGroupName();
         }
+        String knockout = match.getRound() == null ? null : KNOCKOUT_LABELS.get(match.getRound());
+        if (knockout != null) return knockout;
         if (match.getRound() != null && !match.getRound().isBlank()
                 && !"group".equalsIgnoreCase(match.getRound())) {
             return match.getRound();
@@ -53,9 +61,12 @@ public final class MatchRound {
 
     public static Lookup lookup(String round) {
         String name = round.trim().toLowerCase(Locale.ROOT);
-        List<String> names = name.startsWith(GROUP_PREFIX)
+        List<String> names = new ArrayList<>(name.startsWith(GROUP_PREFIX)
                 ? List.of(name, name.substring(GROUP_PREFIX.length()))
-                : List.of(name);
+                : List.of(name));
+        KNOCKOUT_LABELS.forEach((key, label) -> {
+            if (label.equalsIgnoreCase(name)) names.add(key);
+        });
         LocalDate day = null;
         if (name.startsWith(DATE_PREFIX)) {
             try {

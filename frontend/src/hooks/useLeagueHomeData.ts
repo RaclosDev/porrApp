@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings, fetchCustomStandings, fetchCustomTeams } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import { computeCustomGroupTables } from '../utils/customBracket';
-import { computeSwissStandings } from '../utils/officialTournament';
+import { KNOCKOUT_ROUNDS, computeSwissStandings } from '../utils/officialTournament';
 import { normalizeCountryName } from '../utils/constants';
 import { currentRoundMatches, nextGroupName, upcomingMatches } from '../utils/homeMatches';
 import { displayRoundLabel } from '../utils/matchday';
@@ -77,8 +77,21 @@ const logosOf = (matches: Match[]) => {
  */
 export function useLeagueHomeData(): LeagueHomeData {
   const format = useLeagueHomeFormat();
-  const { allGames, activeCompetitionId, activeGroupId, activeGroupCustomCompetition } =
-    useAppContext();
+  const {
+    allGames: competitionGames,
+    activeCompetitionId,
+    activeGroupId,
+    activeGroupCustomCompetition,
+    activeGroupKnockoutDraw,
+  } = useAppContext();
+  // En unas eliminatorias (Champions…) la fase de liga no se pronostica: la portada enseña los cruces.
+  const allGames = useMemo(
+    () =>
+      activeGroupKnockoutDraw
+        ? competitionGames.filter((match) => KNOCKOUT_ROUNDS.includes(match.round))
+        : competitionGames,
+    [competitionGames, activeGroupKnockoutDraw],
+  );
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const sortedGroups = useSortedGroups();
 
@@ -170,7 +183,7 @@ export function useLeagueHomeData(): LeagueHomeData {
             value: `${row.points} pts`,
           })),
         };
-    } else if (format === 'official') {
+    } else if (format === 'official' && !activeGroupKnockoutDraw) {
       const swiss = computeSwissStandings(allGames);
       if (swiss.length > 0)
         standings = {
@@ -198,7 +211,7 @@ export function useLeagueHomeData(): LeagueHomeData {
       },
       standings,
     };
-  }, [format, allGames, leagueStandings, sortedGroups, customTeams]);
+  }, [format, allGames, leagueStandings, sortedGroups, customTeams, activeGroupKnockoutDraw]);
 
   return useMemo(() => ({ ...data, loading }), [data, loading]);
 }

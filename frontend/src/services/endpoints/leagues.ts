@@ -100,6 +100,26 @@ interface CustomLockState {
   anyLocked: boolean;
   fullyLocked: boolean;
   nextLockAt: string | null;
+  /** Eliminatorias sorteadas ronda a ronda: sus rondas y cruces; null en el resto. */
+  knockoutRounds?: KnockoutRound[] | null;
+}
+
+/** Cruce de unas eliminatorias sorteadas: el local es el de la ida; `winner`, quién pasa. */
+export interface KnockoutTie {
+  home: string | null;
+  away: string | null;
+  winner: string | null;
+  /** Sus partidos (ida y vuelta, o uno solo), por fecha. */
+  matchIds: number[];
+}
+
+/** Ronda de unas eliminatorias sorteadas ronda a ronda («playoff», «r16», «qf», «sf», «final»…). */
+export interface KnockoutRound {
+  round: string;
+  /** Ya se conocen todos sus cruces: se puede pronosticar. */
+  drawn: boolean;
+  expectedTies: number;
+  ties: KnockoutTie[];
 }
 
 export const fetchCustomLockState = (groupId: number) =>

@@ -113,6 +113,7 @@ public class OfficialMatchdayService {
         Map<Instant, List<Match>> oursBySlot = new HashMap<>();
         List<Match> season = new ArrayList<>();
         for (Match match : matches) {
+            if (MatchEventProcessor.isKnockoutRound(match.getRound())) continue;
             if (match.getMatchDate() == null || match.getHomeTeam() == null || match.getAwayTeam() == null
                     || match.getHomeTeam().getId() == null || match.getAwayTeam().getId() == null) continue;
             Instant kickoff = kickoff(match);
@@ -275,6 +276,8 @@ public class OfficialMatchdayService {
      */
     static Map<Match, Integer> inferMatchdays(List<Match> matches) {
         List<Match> dated = matches.stream()
+                // Las eliminatorias de una competición de liga (Champions…) llevan su ronda, no una jornada.
+                .filter(m -> !MatchEventProcessor.isKnockoutRound(m.getRound()))
                 .filter(m -> m.getMatchDate() != null && m.getHomeTeam() != null && m.getAwayTeam() != null
                         && m.getHomeTeam().getId() != null && m.getAwayTeam().getId() != null
                         && !com.porra.mundial.model.Team.isPlaceholder(m.getHomeTeam())
