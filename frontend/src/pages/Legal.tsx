@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { resetAnalyticsConsent } from '../services/analytics';
 
@@ -12,10 +11,6 @@ interface LegalProps {
 /** Política de privacidad y aviso legal: páginas públicas, accesibles sin sesión. */
 export default function Legal({ kind }: LegalProps) {
   const title = kind === 'privacy' ? 'Política de privacidad' : 'Aviso legal';
-
-  useEffect(() => {
-    document.title = `${title} · PorrApp`;
-  }, [title]);
 
   return (
     <article className="paper-panel album-sheet max-w-3xl mx-auto my-6 px-6 py-8 text-left leading-[1.6] [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:font-bold [&_h2]:text-[1.15rem] [&_ul]:list-disc [&_ul]:pl-6 [&_p]:mb-3">

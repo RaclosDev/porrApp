@@ -69,9 +69,9 @@ class SecurityConfigTest {
         mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/actuator/prometheus").header("Authorization", "Bearer otro"))
                 .andExpect(status().isUnauthorized());
-        // Con el token pasa la seguridad y responde el endpoint de métricas.
+        // Con el token pasa la seguridad: sin actuator en este test llega al 404, no al 401.
         mockMvc.perform(get("/actuator/prometheus").header("Authorization", "Bearer " + METRICS_TOKEN))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/actuator/env").header("Authorization", "Bearer " + METRICS_TOKEN))
                 .andExpect(status().isUnauthorized()); // el token solo vale para /actuator/prometheus
         mockMvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
