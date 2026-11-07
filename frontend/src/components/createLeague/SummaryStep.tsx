@@ -4,6 +4,7 @@ import { describeLockOffset } from '../groups/custom/lockModes';
 import {
   FORMAT_COPY,
   LEAGUE_STEPS,
+  SPORT_LABELS,
   customScoringRules,
   lockModesFor,
   lockOffsetMinutes,
@@ -48,6 +49,7 @@ export default function SummaryStep({
   const competition = selectedCompetition(draft, ctx);
   // Visibilidad no tiene paso: toda liga nueva es privada.
   const rows: { label: string; value: ReactNode; step: LeagueStepId | null }[] = [
+    { label: 'Deporte', value: draft.sport ? SPORT_LABELS[draft.sport] : '', step: 'sport' },
     {
       label: 'Competición',
       value: draft.custom ? `${draft.customName.trim()} (personalizada)` : competition?.name,

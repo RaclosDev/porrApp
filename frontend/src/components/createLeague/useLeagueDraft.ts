@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   clearStoredDraft,
   emptyDraft,
@@ -24,10 +24,9 @@ export function useLeagueDraft(ctx: DraftContext | null) {
     else storeDraft(draft);
   }, [draft]);
 
-  // Lo guardado puede apuntar a una competición o un cierre que ya no existen.
-  useEffect(() => {
-    if (ctx) setDraft((prev) => normalizeDraft(prev, ctx));
-  }, [ctx]);
+  // Lo guardado puede apuntar a una competición o un cierre que ya no existen, o venir de antes del
+  // paso de deporte: se lee ya coherente, en el mismo render en que llegan las competiciones.
+  const view = useMemo(() => (ctx ? normalizeDraft(draft, ctx) : draft), [draft, ctx]);
 
   const update = useCallback(
     (patch: Partial<LeagueDraft>) =>
@@ -42,7 +41,7 @@ export function useLeagueDraft(ctx: DraftContext | null) {
     setDraft(emptyDraft());
   }, []);
 
-  return { draft, update, reset };
+  return { draft: view, update, reset };
 }
 
 type DraftUpdate = ReturnType<typeof useLeagueDraft>['update'];

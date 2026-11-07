@@ -23,6 +23,7 @@ import {
 } from '../components/createLeague/leagueDraft';
 import { useLeagueDraft } from '../components/createLeague/useLeagueDraft';
 import WizardSteps from '../components/createLeague/WizardSteps';
+import SportStep from '../components/createLeague/SportStep';
 import CompetitionStep from '../components/createLeague/CompetitionStep';
 import FormatStep from '../components/createLeague/FormatStep';
 import RulesStep from '../components/createLeague/RulesStep';
@@ -31,6 +32,7 @@ import SummaryStep from '../components/createLeague/SummaryStep';
 import LeagueInvitePanel from '../components/createLeague/LeagueInvitePanel';
 
 const STEP_TITLES: Record<LeagueStepId, string> = {
+  sport: '¿A qué deporte se juega?',
   competition: '¿Sobre qué competición se juega?',
   format: '¿Cómo se juega?',
   rules: 'Reglas de la liga',
@@ -58,8 +60,8 @@ function focusFirstError(errors: StepErrors) {
 }
 
 /**
- * Crear liga, paso a paso y en su propia pantalla: competición, modo de juego, reglas, identidad y
- * resumen. El paso va en la URL (?paso=) y lo elegido se guarda en el dispositivo hasta crearla.
+ * Crear liga, paso a paso y en su propia pantalla: deporte, competición, modo de juego, reglas,
+ * identidad y resumen. El paso va en la URL (?paso=) y lo elegido se guarda en el dispositivo hasta crearla.
  */
 export default function CreateLeague() {
   const queryClient = useQueryClient();
@@ -229,7 +231,7 @@ export default function CreateLeague() {
           <PaperLoading label="Cargando competiciones" embedded />
         ) : (
           <>
-            {competitions.isError && step.id === 'competition' && (
+            {competitions.isError && step.id === 'sport' && (
               <div className="create-league-error is-block" role="alert">
                 <span>No se han podido cargar las competiciones oficiales.</span>
                 <button
@@ -241,6 +243,7 @@ export default function CreateLeague() {
                 </button>
               </div>
             )}
+            {step.id === 'sport' && <SportStep {...stepProps} />}
             {step.id === 'competition' && <CompetitionStep {...stepProps} />}
             {step.id === 'format' && <FormatStep {...stepProps} />}
             {step.id === 'rules' && <RulesStep {...stepProps} />}

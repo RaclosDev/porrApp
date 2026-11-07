@@ -25,6 +25,13 @@ beforeEach(() => {
   vi.mocked(fetchCompetitions).mockResolvedValue([
     { id: 1, name: 'LaLiga', externalId: 'esp.1', formatType: 'LEAGUE' },
     { id: 2, name: 'Champions', externalId: 'uefa.champions', formatType: 'TOURNAMENT' },
+    {
+      id: 3,
+      name: 'Worlds',
+      externalId: 'lol.worlds',
+      formatType: 'TOURNAMENT',
+      sport: 'LEAGUE_OF_LEGENDS',
+    },
   ]);
 });
 
@@ -53,7 +60,11 @@ it('crea una liga por jornadas paso a paso y deja el código para invitar', asyn
   );
   renderAt();
 
-  fireEvent.click(await screen.findByRole('radio', { name: 'LaLiga' }));
+  fireEvent.click(await screen.findByRole('radio', { name: 'Fútbol' }));
+  next('Competición');
+  // Solo las del deporte elegido.
+  expect(screen.queryByRole('radio', { name: 'Worlds' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('radio', { name: 'LaLiga' }));
   next('Modo de juego');
 
   expect(screen.getByRole('heading', { level: 2, name: '¿Cómo se juega?' })).toHaveFocus();
@@ -95,14 +106,14 @@ it('crea una liga por jornadas paso a paso y deja el código para invitar', asyn
   expect(localStorage.getItem('createLeagueDraft')).toBeNull();
 });
 
-it('no avanza sin elegir competición y lleva el foco al campo', async () => {
+it('no avanza sin elegir deporte y lleva el foco al campo', async () => {
   renderAt();
-  await screen.findByRole('radio', { name: 'LaLiga' });
-  next('Modo de juego');
+  await screen.findByRole('radio', { name: 'Fútbol' });
+  next('Competición');
 
-  expect(screen.getByText('Elige una competición.')).toBeInTheDocument();
-  expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('¿Sobre qué competición');
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'LaLiga' })).toHaveFocus());
+  expect(screen.getByText('Elige un deporte.')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('¿A qué deporte');
+  await waitFor(() => expect(screen.getByRole('radio', { name: 'Fútbol' })).toHaveFocus());
 });
 
 it('recupera el borrador al recargar y no deja saltarse pasos pendientes', async () => {
@@ -112,13 +123,14 @@ it('recupera el borrador al recargar y no deja saltarse pasos pendientes', async
     poolFormat: 'FULL_BRACKET',
     lockMode: 'PER_ROUND',
   });
-  // Pide el resumen, pero falta el nombre: se queda en Identidad.
-  renderAt('/crear-liga?paso=5');
+  // Pide el resumen, pero falta el nombre: se queda en Identidad. El borrador es de antes del paso de
+  // deporte: lo toma de su competición.
+  renderAt('/crear-liga?paso=6');
 
   expect(
     await screen.findByRole('heading', { level: 2, name: 'Nombre, imagen y normas' }),
   ).toBeInTheDocument();
-  expect(screen.getByText('Paso 4 de 5')).toBeInTheDocument();
+  expect(screen.getByText('Paso 5 de 6')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Atrás' }));
   expect(screen.getByRole('radio', { name: 'Por rondas' })).toBeChecked();
   expect(screen.getByRole('checkbox', { name: /pichichi/ })).not.toBeChecked();
@@ -130,13 +142,14 @@ it('enseña el error del servidor y conserva el borrador para reintentar con la 
   );
   storeDraft({
     ...emptyDraft(),
+    sport: 'OTHER',
     custom: true,
     customName: 'Torneo',
     poolFormat: 'KNOCKOUTS_ONLY',
     lockMode: 'FIRST_MATCH',
     name: 'Barrio',
   });
-  renderAt('/crear-liga?paso=5');
+  renderAt('/crear-liga?paso=6');
 
   fireEvent.click(await screen.findByRole('button', { name: 'Crear liga' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('ya habría pasado');

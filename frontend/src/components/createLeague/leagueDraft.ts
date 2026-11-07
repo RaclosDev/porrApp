@@ -1,5 +1,5 @@
 import type { CreateGroupRequest, CustomLockMode } from '../../services/api';
-import type { Competition, PoolFormat } from '../../types/api';
+import type { Competition, PoolFormat, Sport } from '../../types/api';
 import {
   DEFAULT_SCORING_RULES,
   SCORING_MAX_POINTS,
@@ -20,6 +20,7 @@ import {
 } from '../groups/custom/lockModes';
 
 export const LEAGUE_STEPS = [
+  { id: 'sport', label: 'Deporte' },
   { id: 'competition', label: 'Competición' },
   { id: 'format', label: 'Modo de juego' },
   { id: 'rules', label: 'Reglas' },
@@ -33,8 +34,32 @@ export const NAME_MAX = 120;
 export const CUSTOM_NAME_MAX = 100;
 export const RULES_MAX = 8000;
 
+/** Deporte elegido: uno con competiciones oficiales u «otro», que solo admite una personalizada. */
+export type SportChoice = Sport | 'OTHER';
+
+export const SPORT_LABELS: Record<SportChoice, string> = {
+  FOOTBALL: 'Fútbol',
+  LEAGUE_OF_LEGENDS: 'League of Legends',
+  OTHER: 'Otro deporte',
+};
+
+/** Las competiciones guardadas antes de que el servidor mandara el deporte son de fútbol. */
+const competitionSport = (competition: Competition): Sport =>
+  competition.sport ??
+  (competition.externalId?.startsWith('lol.') ? 'LEAGUE_OF_LEGENDS' : 'FOOTBALL');
+
+/** Deportes con competiciones oficiales, en el orden en que llegan, y «otro» al final. */
+export function sportChoices(ctx: DraftContext): SportChoice[] {
+  const sports = [...new Set(ctx.competitions.map(competitionSport))];
+  return [...sports, 'OTHER'];
+}
+
+export const competitionsOfSport = (ctx: DraftContext, sport: SportChoice | null) =>
+  ctx.competitions.filter((item) => competitionSport(item) === sport);
+
 /** Lo que lleva elegido quien crea la liga. Se guarda tal cual en el dispositivo. */
 export interface LeagueDraft {
+  sport: SportChoice | null;
   /** Competición oficial elegida; null si no hay o si es personalizada. */
   competitionId: number | null;
   custom: boolean;
@@ -59,6 +84,7 @@ export interface LeagueDraft {
 }
 
 export const emptyDraft = (): LeagueDraft => ({
+  sport: null,
   competitionId: null,
   custom: false,
   customName: '',
@@ -159,9 +185,10 @@ function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode 
   return modes.some((item) => item.value === 'PER_ROUND') ? 'PER_ROUND' : 'FIRST_MATCH';
 }
 
-/** El pichichi solo se pronostica en el cuadro de un torneo oficial. */
+/** El pichichi solo se pronostica en el cuadro de un torneo oficial de fútbol. */
 export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   !draft.custom &&
+  draft.sport === 'FOOTBALL' &&
   selectedCompetition(draft, ctx)?.formatType === 'TOURNAMENT' &&
   draft.poolFormat != null &&
   !isMatchBasedFormat(draft.poolFormat);
@@ -171,11 +198,20 @@ export const scoringEditable = (draft: LeagueDraft) =>
   draft.poolFormat != null && draft.poolFormat !== 'SURVIVOR';
 
 /**
- * Deja coherente lo que depende de elecciones anteriores: al cambiar de competición o de formato se
- * quitan el formato, el cierre o el pichichi que ya no aplican.
+ * Deja coherente lo que depende de elecciones anteriores: al cambiar de deporte, de competición o de
+ * formato se quitan la competición, el formato, el cierre o el pichichi que ya no aplican.
  */
 export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDraft {
   const next = { ...draft };
+  const chosen =
+    next.competitionId == null
+      ? null
+      : ctx.competitions.find((item) => item.id === next.competitionId);
+  // Un borrador de antes de existir este paso: el deporte es el de su competición.
+  if (next.sport == null && chosen) next.sport = competitionSport(chosen);
+  // Sin competiciones oficiales del deporte, solo cabe una personalizada.
+  if (next.sport === 'OTHER') next.custom = true;
+  if (chosen && competitionSport(chosen) !== next.sport) next.competitionId = null;
   if (next.custom) next.competitionId = null;
   if (next.poolFormat && formatUnavailableReason(next.poolFormat, next, ctx))
     next.poolFormat = null;
@@ -193,6 +229,7 @@ export const lockOffsetMinutes = (draft: LeagueDraft) =>
 /** Errores del paso por campo; vacío si se puede seguir. */
 export type StepErrors = Partial<
   Record<
+    | 'sport'
     | 'competition'
     | 'customName'
     | 'poolFormat'
@@ -207,6 +244,7 @@ export type StepErrors = Partial<
 
 /** Control de cada campo: se enfoca cuando tiene un error y enlaza su mensaje. */
 export const FIELD_IDS: Record<keyof StepErrors, string> = {
+  sport: 'cl-field-sport',
   competition: 'cl-field-competition',
   customName: 'cl-custom-name',
   poolFormat: 'cl-field-format',
@@ -226,6 +264,7 @@ export function validateStep(
   now: Date = new Date(),
 ): StepErrors {
   const errors: StepErrors = {};
+  if (step === 'sport' && !draft.sport) errors.sport = 'Elige un deporte.';
   if (step === 'competition') {
     if (!hasCompetition(draft, ctx)) errors.competition = 'Elige una competición.';
     else if (draft.custom && !draft.customName.trim())
@@ -333,6 +372,9 @@ export function readStoredDraft(): LeagueDraft {
         ? { ...base.scoring, ...(stored.scoring as ScoringDraft) }
         : base.scoring;
     return {
+      sport: pick('sport', (value) =>
+        ['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'OTHER'].includes(value as string),
+      ),
       competitionId: pick('competitionId', (value) => typeof value === 'number'),
       custom: pick('custom', isBool),
       customName: pick('customName', isString),
