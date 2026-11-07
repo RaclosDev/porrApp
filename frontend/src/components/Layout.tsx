@@ -20,6 +20,7 @@ import LoginModal from './layout/LoginModal';
 import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
 import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
+import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -67,6 +68,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   const isUserLoggedIn = isAuthenticated && Boolean(userName);
   const sessionPending = useSessionHandoffPending();
+  useIosSessionHandoff();
   const isMatchDayLeague =
     activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
 
