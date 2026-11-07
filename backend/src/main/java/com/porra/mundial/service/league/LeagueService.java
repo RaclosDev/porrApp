@@ -103,6 +103,10 @@ public class LeagueService {
             if (comp.drawsKnockoutRounds() && poolFormat == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
                 throw BusinessException.badRequest("Los cruces de esta competición se sortean ronda a ronda: elige Solo eliminatorias");
             }
+            // De la NBA solo se pronostican los playoffs, serie a serie.
+            if (comp.playsSeries() && poolFormat != com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY) {
+                throw BusinessException.badRequest("De la NBA se pronostican los playoffs: elige el modo Playoffs");
+            }
         }
 
         League group = League.builder()
@@ -135,7 +139,9 @@ public class LeagueService {
                 .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
                 .lockDate(Edition.defaultLockDate(comp, poolFormat))
                 // Unas eliminatorias sorteadas ronda a ronda no pueden cerrarse de una vez.
-                .lockMode(comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
+                // En la NBA cada serie se cierra al empezar su primer partido.
+                .lockMode(comp.playsSeries() ? com.porra.mundial.model.PredictionLockMode.PER_MATCH
+                        : comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
                         ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
                         : com.porra.mundial.model.PredictionLockMode.FIXED_DATE)
                 .pichichi(!custom && pichichi)

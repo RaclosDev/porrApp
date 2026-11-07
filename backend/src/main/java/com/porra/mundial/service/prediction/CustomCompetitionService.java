@@ -126,6 +126,12 @@ public class CustomCompetitionService {
         return lockService.state(memberEdition(leagueId, email));
     }
 
+    /** La liga pronostica los playoffs de la NBA, serie a serie. */
+    @Transactional(readOnly = true)
+    public boolean playsSeries(Long leagueId, String email) {
+        return DrawnKnockout.playsSeries(memberEdition(leagueId, email));
+    }
+
     /** En el modo «primer partido» el cierre sigue al primer partido aunque cambie el calendario. */
     private void refreshFirstMatchLock(Long leagueId) {
         editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")

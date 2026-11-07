@@ -28,7 +28,12 @@ export default function ScoringRulesPanel({
 }) {
   const editing = Boolean(draft && onChange);
   const signOnly = scoring.matchSignOnly ?? true;
-  const sections = scoringSections(scoring.poolFormat, scoring.pichichi, scoring.knockoutDraw);
+  const sections = scoringSections(
+    scoring.poolFormat,
+    scoring.pichichi,
+    scoring.knockoutDraw,
+    scoring.nbaSeries,
+  );
   const current = (key: ScoringRuleKey) =>
     draft?.[key] ?? String(scoring.rules[key] ?? scoring.defaults[key]);
 

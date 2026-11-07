@@ -27,11 +27,23 @@ describe('scoringRules', () => {
     expect(keysOf(null, false)).toEqual(keysOf('FULL_BRACKET', false));
   });
 
-  it('las reglas del cuadro, las de jornadas y las de superviviente cubren todas las del backend', () => {
+  it('los playoffs de la NBA puntúan cada serie y el extra por acertar en cuántos partidos', () => {
+    const nba = scoringSections('KNOCKOUTS_ONLY', false, true, true).flatMap((section) =>
+      section.fields.map((field) => field.key),
+    );
+    expect(nba).toContain('nbaPlayInPoints');
+    expect(nba).toContain('nbaFinalsExactPoints');
+    expect(nba).not.toContain('roundOf16Points');
+  });
+
+  it('las reglas del cuadro, las de jornadas, las de superviviente y las de la NBA cubren todas las del backend', () => {
     const shown = new Set([
       ...keysOf('FULL_BRACKET', true),
       ...keysOf('MATCH_DAY', true),
       ...keysOf('SURVIVOR', false),
+      ...scoringSections('KNOCKOUTS_ONLY', false, true, true).flatMap((section) =>
+        section.fields.map((field) => field.key),
+      ),
     ]);
     expect([...shown].sort()).toEqual(Object.keys(DEFAULT_SCORING).sort());
   });

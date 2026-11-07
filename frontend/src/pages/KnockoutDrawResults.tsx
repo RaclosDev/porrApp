@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useCustomLock } from '../hooks/useCustomLock';
 import { logosOf } from '../utils/knockoutDraw';
+import { isNbaCompetition } from '../utils/nbaPlayoffs';
 import KnockoutDrawBoard from '../components/knockout/KnockoutDrawBoard';
 import PaperLoading from '../components/PaperLoading';
 
@@ -10,7 +11,9 @@ import PaperLoading from '../components/PaperLoading';
  * cada cruce con sus partidos, el global y quién pasa.
  */
 export default function KnockoutDrawResults() {
-  const { activeGroupId, activeCompetitionName, allGames } = useAppContext();
+  const { activeGroupId, activeCompetitionName, activeCompetitionExternalId, allGames } =
+    useAppContext();
+  const nba = isNbaCompetition(activeCompetitionExternalId);
   const lock = useCustomLock(activeGroupId);
   const rounds = lock.state?.knockoutRounds ?? [];
   const logos = useMemo(() => logosOf(allGames), [allGames]);
@@ -18,15 +21,17 @@ export default function KnockoutDrawResults() {
   return (
     <section
       className="view-section active block paper-panel album-sheet landing-tape"
-      aria-label={`Eliminatorias de ${activeCompetitionName ?? 'la competición'}`}
+      aria-label={`${nba ? 'Playoffs' : 'Eliminatorias'} de ${activeCompetitionName ?? 'la competición'}`}
     >
       <div className="section-header mb-5 text-center">
-        <h2 className="m-0 poster-title">Eliminatorias</h2>
+        <h2 className="m-0 poster-title">{nba ? 'Playoffs' : 'Eliminatorias'}</h2>
         {activeCompetitionName && <p className="text-muted mt-2">{activeCompetitionName}</p>}
       </div>
       {!lock.state && <PaperLoading label="Cargando cruces…" />}
       {lock.state && rounds.length === 0 && (
-        <p className="text-center">Aún no se han sorteado los cruces.</p>
+        <p className="text-center">
+          {nba ? 'Los playoffs aún no tienen cruces.' : 'Aún no se han sorteado los cruces.'}
+        </p>
       )}
       {rounds.length > 0 && <KnockoutDrawBoard rounds={rounds} matches={allGames} logos={logos} />}
     </section>
