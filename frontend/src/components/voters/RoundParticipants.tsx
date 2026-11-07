@@ -88,12 +88,7 @@ export default function RoundParticipants({
               className="round-participants-avatar"
               title={participant.name}
             >
-              <UserAvatar
-                url={participant.avatarUrl}
-                userId={participant.userId}
-                name={participant.name}
-                size={AVATAR_SIZE}
-              />
+              <UserAvatar url={participant.avatarUrl} name={participant.name} size={AVATAR_SIZE} />
             </span>
           ))}
           {hidden > 0 && <span className="round-participants-more">+{hidden}</span>}

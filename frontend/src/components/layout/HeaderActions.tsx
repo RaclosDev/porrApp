@@ -18,7 +18,6 @@ interface HeaderActionsProps {
   /** Campana de avisos: solo con sesión real, no en la demo. */
   showNotificationBell: boolean;
   userAvatarUrl: string;
-  userId: string;
   userName: string;
 }
 
@@ -36,7 +35,6 @@ export default function HeaderActions({
   showProfileMenu,
   showNotificationBell,
   userAvatarUrl,
-  userId,
   userName,
 }: HeaderActionsProps) {
   return (
@@ -84,13 +82,13 @@ export default function HeaderActions({
             aria-label="Menú de usuario"
             aria-expanded={showProfileMenu}
           >
-            <UserAvatar url={userAvatarUrl} userId={userId} name={userName} size={34} />
+            <UserAvatar url={userAvatarUrl} name={userName} size={34} />
           </button>
 
           {showProfileMenu && (
             <div className="paper-panel album-sheet absolute top-full right-0 p-3 mt-2.5 z-[100] min-w-50 flex flex-col gap-2.5">
               <div className="border-b border-b-line pb-2 flex items-center gap-2">
-                <UserAvatar url={userAvatarUrl} userId={userId} name={userName} size={32} />
+                <UserAvatar url={userAvatarUrl} name={userName} size={32} />
                 <div className="overflow-hidden font-bold text-main text-[0.9rem] text-ellipsis whitespace-nowrap">
                   {userName || 'Usuario'}
                 </div>
