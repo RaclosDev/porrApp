@@ -7,6 +7,7 @@ import MatchdayStatsView from '../components/insights/MatchdayStatsView';
 import { InsightsNotice } from '../components/insights/InsightCard';
 import type { OfficialState } from '../utils/bracketStats';
 import { Navigate } from 'react-router-dom';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 /** Resumen del torneo para la cabecera. */
 function tournamentSummary(official: OfficialState): string {
@@ -33,7 +34,7 @@ function Stats() {
     return <Navigate to="/" replace />;
   }
 
-  if (activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE') {
+  if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE') {
     return (
       <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
         <InsightsHeader leagueName={activeGroupName} summary="Por partido" withSearch={false} />

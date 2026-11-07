@@ -54,6 +54,9 @@ export const DEFAULT_SCORING: ScoringRules = {
   exactScorePoints: 5,
   correctSignPoints: 3,
   goalDiffBonusPoints: 1,
+  survivorRoundPoints: 1,
+  survivorLives: 1,
+  survivorDrawSurvives: 0,
 };
 
 /** Puntuación de una liga de cuadro completo con las reglas por defecto. */

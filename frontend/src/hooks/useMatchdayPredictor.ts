@@ -3,7 +3,11 @@ import { useState, useEffect, useEffectEvent, useMemo, useRef, useCallback } fro
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { useAppContext } from '../context/AppContext';
-import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
+import {
+  fetchMatchdayFixtures,
+  fetchSurvivorStatus,
+  submitMatchdayPredictions,
+} from '../services/api';
 import { leaderboardMatchdaysQuery } from '../services/queries';
 import { queryKeys } from '../services/queryKeys';
 import type {
@@ -15,6 +19,7 @@ import { errorMessage } from '../utils/errors';
 import { draftKey, readDraft } from '../utils/drafts';
 import {
   EMPTY_PREDICTION,
+  survivorUsedTeams,
   buildSubmission,
   filterFixtures,
   hasLiveMatch,
@@ -33,6 +38,7 @@ import {
   type MatchSign,
   type StatusFilter,
 } from '../utils/matchday';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 interface SaveVariables {
   groupId: string;
@@ -63,7 +69,9 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   } = context;
 
   const isMatchDay =
-    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
+
+  const isSurvivor = activeGroupPoolFormat === 'SURVIVOR';
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -135,6 +143,13 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   });
   const fixtures = fixturesQuery.data ?? EMPTY_FIXTURES;
 
+  // Superviviente: si sigue vivo y qué equipos ya ha gastado en otras jornadas.
+  const survivorQuery = useQuery({
+    queryKey: queryKeys.survivorStatus(activeGroupId, draftUser),
+    queryFn: () => fetchSurvivorStatus(activeGroupId),
+    enabled: enabled && isSurvivor && isAuthenticated,
+  });
+
   // Al llegar partidos, el borrador local manda en los abiertos y el servidor en los bloqueados.
   useEffect(() => {
     if (fixtures.length === 0) return;
@@ -167,7 +182,13 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const saveMutation = useMutation<MatchdaySubmissionResult, Error, SaveVariables>({
     mutationFn: ({ groupId, items }) => submitMatchdayPredictions(groupId, items),
     onSuccess: (_data, { groupId, items }) => {
-      persistDraft(withoutSaved(draftRef.current ?? {}, items));
+      const rest = withoutSaved(draftRef.current ?? {}, items);
+      // Superviviente: los huecos que dejó cambiar de partido ya están en el servidor.
+      persistDraft(
+        isSurvivor
+          ? Object.fromEntries(Object.entries(rest).filter(([, pred]) => hasPrediction(pred)))
+          : rest,
+      );
       setSaveErrorMsg('');
       setSaveStatus('saved');
       queryClient.invalidateQueries({ queryKey: queryKeys.matchdayFixtures(groupId) });
@@ -236,17 +257,50 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     saveDraft();
   };
 
+  /**
+   * Superviviente: elegir un equipo deja vacíos los demás partidos abiertos de la jornada, porque
+   * solo vale una elección; el servidor sustituye la anterior al guardar.
+   */
+  const handleSurvivorPick = (matchId: number, sign: '1' | '2') => {
+    if (!isAuthenticated) {
+      toast.error('Inicia sesión con Google para guardar tu elección.');
+      return;
+    }
+    const cleared: Draft = {};
+    roundFixtures
+      .filter(
+        (f) => f.matchId !== matchId && !f.locked && hasPrediction(localPredictions[f.matchId]),
+      )
+      .forEach((f) => {
+        cleared[f.matchId] = EMPTY_PREDICTION;
+      });
+    const picked = withSign(sign);
+    persistDraft({ ...draftRef.current, ...cleared, [matchId]: picked });
+    setLocalPredictions((previous) => ({ ...previous, ...cleared, [matchId]: picked }));
+    saveDraft();
+  };
+
+  const usedTeams = useMemo(
+    () => survivorUsedTeams(survivorQuery.data, activeRound),
+    [survivorQuery.data, activeRound],
+  );
+
+  // Superviviente: con un equipo elegido la jornada ya no tiene nada pendiente.
+  const survivorPicked =
+    isSurvivor && roundFixtures.some((f) => hasPrediction(localPredictions[f.matchId]));
+
   const counts = useMemo(
     () => ({
       predicted: roundFixtures.filter((f) => hasPrediction(localPredictions[f.matchId])).length,
-      pending: roundFixtures.filter((f) =>
-        isPendingFixture(f, localPredictions, activeGroupIsLocked),
-      ).length,
+      pending: survivorPicked
+        ? 0
+        : roundFixtures.filter((f) => isPendingFixture(f, localPredictions, activeGroupIsLocked))
+            .length,
       finished: roundFixtures.filter((f) => f.finished).length,
       upcoming: roundFixtures.filter((f) => !f.finished).length,
       total: roundFixtures.length,
     }),
-    [roundFixtures, localPredictions, activeGroupIsLocked],
+    [roundFixtures, localPredictions, activeGroupIsLocked, survivorPicked],
   );
 
   // En una jornada ya jugada, «Por jugar» estaría vacío: se muestran los finalizados.
@@ -256,12 +310,19 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
       : statusFilter;
 
   const displayedFixtures = useMemo(
-    () => filterFixtures(roundFixtures, activeFilter, localPredictions, activeGroupIsLocked),
-    [roundFixtures, activeFilter, localPredictions, activeGroupIsLocked],
+    () =>
+      survivorPicked && activeFilter === 'PENDING'
+        ? []
+        : filterFixtures(roundFixtures, activeFilter, localPredictions, activeGroupIsLocked),
+    [roundFixtures, activeFilter, localPredictions, activeGroupIsLocked, survivorPicked],
   );
 
   return {
     isMatchDay,
+    isSurvivor,
+    survivor: survivorQuery.data ?? null,
+    usedTeams,
+    handleSurvivorPick,
     fixtures,
     isLoading: matchdaysQuery.isLoading || fixturesQuery.isLoading,
     isError: fixturesQuery.isError,

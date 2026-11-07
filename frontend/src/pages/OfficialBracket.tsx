@@ -22,6 +22,7 @@ import BracketInfoPanel from '../components/official/BracketInfoPanel';
 import OfficialMobileCenter from '../components/official/OfficialMobileCenter';
 import CustomTournamentHome from './CustomTournamentHome';
 import OfficialTournamentHome from './OfficialTournamentHome';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 /** Cuadro oficial: los cruces reales del torneo, con los terceros resueltos en vivo. */
 function OfficialBracket() {
@@ -35,7 +36,7 @@ function OfficialBracket() {
   } = useAppContext();
 
   const isMatchDay =
-    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
 
   if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (activeGroupCustomCompetition && !isMatchDay) return <CustomTournamentHome />;

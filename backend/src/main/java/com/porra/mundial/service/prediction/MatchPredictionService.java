@@ -60,7 +60,7 @@ public class MatchPredictionService {
             }
         }
 
-        if (edition == null || edition.getPoolFormat() == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY) {
+        if (edition == null || !PoolFormat.isMatchBased(edition.getPoolFormat())) {
             return java.util.Collections.emptyList();
         }
 
@@ -190,6 +190,42 @@ public class MatchPredictionService {
         return result;
     }
 
+    /** Situación del usuario en una liga superviviente: vivo o eliminado y equipos ya elegidos. */
+    @Transactional(readOnly = true)
+    public com.porra.mundial.dto.SurvivorStatusDTO getSurvivorStatus(String email, Long groupId) {
+        if (groupId == null) throw BusinessException.badRequest("El identificador de grupo es obligatorio");
+        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
+        if (edition == null || edition.getPoolFormat() != PoolFormat.SURVIVOR || email == null || email.isBlank()) {
+            return com.porra.mundial.dto.SurvivorStatusDTO.empty();
+        }
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user == null) return com.porra.mundial.dto.SurvivorStatusDTO.empty();
+        Prediction prediction = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId).orElse(null);
+
+        List<MatchPrediction> picks = prediction != null ? survivorPicks(prediction) : List.of();
+        SurvivorRules.Settings settings = SurvivorRules.Settings.of(edition);
+        SurvivorRules.Standing standing = survivorStanding(edition, user.getId(), prediction, picks);
+        List<com.porra.mundial.dto.SurvivorStatusDTO.Pick> items = picks.stream()
+                .filter(pick -> pick.getMatch() != null)
+                .sorted(Comparator.comparing(pick -> pick.getMatch().getMatchDate(),
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(pick -> {
+                    Team team = SurvivorRules.pickedTeam(pick);
+                    String result = !SurvivorRules.isDecided(pick.getMatch()) ? "PENDING"
+                            : SurvivorRules.survives(pick, settings) ? "WON" : "LOST";
+                    return new com.porra.mundial.dto.SurvivorStatusDTO.Pick(pick.getMatch().getId(),
+                            MatchRound.label(pick.getMatch()),
+                            team != null ? team.getId() : null,
+                            team != null ? team.getName() : null,
+                            team != null ? team.getLogoUrl() : null,
+                            result);
+                })
+                .toList();
+        return new com.porra.mundial.dto.SurvivorStatusDTO(standing.eliminated(), standing.survived(),
+                standing.eliminatedRound(), standing.missed(), items, standing.livesLeft(), settings.lives(),
+                settings.drawSurvives());
+    }
+
     /**
      * Guarda o actualiza los pronósticos de una lista de partidos comprobando los plazos individuales.
      */
@@ -211,7 +247,7 @@ public class MatchPredictionService {
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("No se encontró una edición activa para esta liga"));
 
-        if (edition.getPoolFormat() != PoolFormat.MATCH_DAY) {
+        if (!PoolFormat.isMatchBased(edition.getPoolFormat())) {
             throw BusinessException.badRequest("Esta liga no utiliza la modalidad de predicciones por jornadas.");
         }
 
@@ -250,6 +286,12 @@ public class MatchPredictionService {
         List<Match> calendar = MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
                 ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : null;
         int savedCount = 0;
+        boolean survivor = edition.getPoolFormat() == PoolFormat.SURVIVOR;
+        List<MatchPrediction> survivorPicks = survivor ? survivorPicks(prediction) : List.of();
+        if (survivor && survivorStanding(edition, user.getId(), prediction, survivorPicks).eliminated()) {
+            throw BusinessException.conflict("Ya estás eliminado de esta liga superviviente.");
+        }
+        Set<String> survivorRounds = new HashSet<>();
 
         // Dos consultas para toda la jornada en vez de dos por partido.
         List<Long> matchIds = items.stream().map(MatchPredictionItemDTO::getMatchId)
@@ -301,6 +343,15 @@ public class MatchPredictionService {
             if (!Set.of("1", "X", "2").contains(sign == null ? "" : sign)) {
                 throw BusinessException.badRequest("La predicción debe incluir un marcador completo o un signo 1, X o 2.");
             }
+            if (survivor) {
+                if (item.getHomeScore() != null || "X".equals(sign)) {
+                    throw BusinessException.badRequest("En el modo superviviente se elige un equipo que gane, sin marcador ni empate.");
+                }
+                if (!survivorRounds.add(MatchRound.label(match))) {
+                    throw BusinessException.badRequest("Solo puedes elegir un equipo por jornada.");
+                }
+                checkSurvivorPick(edition, match, sign, survivorPicks, calendar, now);
+            }
 
             MatchPrediction matchPred = existingByMatchId.computeIfAbsent(match.getId(), id -> MatchPrediction.builder()
                     .prediction(prediction)
@@ -333,10 +384,9 @@ public class MatchPredictionService {
     /** Evalúa o actualiza los puntos provisionales mientras cambia el marcador en directo. */
     @Transactional
     public void evaluatePredictionsForMatch(Match match) {
-        if (match == null || !hasScorableResult(match) || match.getId() == null
-                || match.getHomeScore() == null || match.getAwayScore() == null) {
-            return;
-        }
+        if (match == null || !hasScorableResult(match) || match.getId() == null) return;
+        invalidateSurvivorEditions(match);
+        if (match.getHomeScore() == null || match.getAwayScore() == null) return;
 
         List<MatchPrediction> predictions = matchPredictionRepository.findByMatchId(match.getId());
         Set<Prediction> affectedPredictions = new HashSet<>();
@@ -354,6 +404,20 @@ public class MatchPredictionService {
         for (Prediction pred : affectedPredictions) {
             pred.setScoreCalculatedAt(null);
             predictionRepository.save(pred);
+        }
+    }
+
+    /**
+     * Superviviente: al empezar o terminar un partido también puede caer quien no eligió en su
+     * jornada, que no tiene pronóstico en este partido; se recalcula toda la edición.
+     */
+    private void invalidateSurvivorEditions(Match match) {
+        if (match.getCompetition() == null) return;
+        for (Edition edition : editionRepository.findActiveByPoolFormat(PoolFormat.SURVIVOR)) {
+            if (edition.getCompetition() != null
+                    && Objects.equals(edition.getCompetition().getId(), match.getCompetition().getId())) {
+                scoreInvalidationService.invalidateEdition(edition.getId());
+            }
         }
     }
 
@@ -394,7 +458,72 @@ public class MatchPredictionService {
         mp.setScoringDetails(result.explanation());
     }
 
+    /**
+     * Situación en una liga superviviente con todo el calendario: también cuenta como caída una
+     * jornada sin elegir que empezó después de que el usuario entrase en la liga.
+     */
+    private SurvivorRules.Standing survivorStanding(Edition edition, Long userId, Prediction prediction,
+                                                    List<MatchPrediction> picks) {
+        List<Match> calendar = edition.getCompetition() != null
+                ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : List.of();
+        Instant startAt = edition.getLeague() == null || userId == null ? null
+                : membershipRepository.findById(new Membership.MembershipId(userId, edition.getLeague().getId()))
+                        .map(Membership::getJoinedAt)
+                        .orElse(prediction != null ? prediction.getCreatedAt() : null);
+        return SurvivorRules.standing(picks, calendar, startAt, Instant.now(), SurvivorRules.Settings.of(edition));
+    }
+
+    /** Elecciones ya guardadas de una porra superviviente, con su partido. */
+    private List<MatchPrediction> survivorPicks(Prediction prediction) {
+        return prediction.getId() == null ? List.of()
+                : matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(prediction.getId()));
+    }
+
+    /**
+     * Una elección por jornada y sin repetir equipo. Elegir otro partido de la misma jornada sustituye
+     * la elección anterior, salvo que su partido ya esté cerrado.
+     */
+    private void checkSurvivorPick(Edition edition, Match match, String sign, List<MatchPrediction> picks,
+                                   List<Match> calendar, Instant now) {
+        Team team = SurvivorRules.pickedTeam(sign, match);
+        if (team == null || team.getId() == null || Team.isPlaceholder(team)) {
+            throw BusinessException.badRequest("Ese equipo aún no está definido.");
+        }
+        String round = MatchRound.label(match);
+        for (MatchPrediction other : picks) {
+            Match otherMatch = other.getMatch();
+            if (otherMatch == null || Objects.equals(otherMatch.getId(), match.getId())) continue;
+            if (round.equals(MatchRound.label(otherMatch))) {
+                Instant otherLock = MatchdayLock.lockTimes(edition, List.of(otherMatch),
+                        calendar == null ? List.of(otherMatch) : calendar).get(otherMatch.getId());
+                boolean otherLocked = Boolean.TRUE.equals(otherMatch.getFinished())
+                        || (otherMatch.getStatus() != null && !otherMatch.getStatus().isOpenForPrediction())
+                        || (otherLock != null && !otherLock.isAfter(now));
+                if (otherLocked) {
+                    throw BusinessException.conflict("Tu elección de esta jornada ya está cerrada.");
+                }
+                matchPredictionRepository.delete(other);
+                continue;
+            }
+            Team used = SurvivorRules.pickedTeam(other);
+            if (used != null && Objects.equals(used.getId(), team.getId())) {
+                throw BusinessException.conflict(String.format("Ya elegiste a %s en %s.", team.getName(),
+                        MatchRound.label(otherMatch)));
+            }
+        }
+    }
+
+    private static boolean isSurvivor(MatchPrediction prediction) {
+        return prediction.getPrediction() != null && prediction.getPrediction().getEdition() != null
+                && prediction.getPrediction().getEdition().getPoolFormat() == PoolFormat.SURVIVOR;
+    }
+
     private MatchScoreResult scorePrediction(MatchPrediction prediction, Match match, ScoringRuleSet rules) {
+        if (isSurvivor(prediction)) {
+            return SurvivorRules.score(prediction.getPredictionSign(), match.getHomeScore(), match.getAwayScore(),
+                    SurvivorRules.pickedTeam(prediction.getPredictionSign(), match),
+                    SurvivorRules.Settings.of(prediction.getPrediction().getEdition()));
+        }
         if (prediction.getHomeScore() == null && prediction.getAwayScore() == null) {
             return matchScoringCalculator.calculateSign(prediction.getPredictionSign(), match.getHomeScore(), match.getAwayScore(), rules);
         }
@@ -435,7 +564,7 @@ public class MatchPredictionService {
         }
 
         Instant now = Instant.now();
-        Instant lockAt = edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY
+        Instant lockAt = edition == null || !PoolFormat.isMatchBased(edition.getPoolFormat())
                 ? match.getMatchDate()
                 : MatchdayLock.lockTimes(edition, List.of(match), MatchdayLock.needsWholeCalendar(edition)
                         && match.getCompetition() != null

@@ -90,13 +90,14 @@ class ScoringRuleSetTest {
     }
 
     @Test
-    @DisplayName("asMap lista las catorce reglas con su nombre del JSON")
+    @DisplayName("asMap lista las diecisiete reglas con su nombre del JSON")
     void asMapListsEveryRule() {
         Map<String, Integer> rules = ScoringRuleSet.defaultWorldCup2026().asMap();
 
-        assertEquals(14, rules.size());
+        assertEquals(17, rules.size());
         assertEquals(200, rules.get("championPoints"));
         assertEquals(1, rules.get("goalDiffBonusPoints"));
+        assertEquals(1, rules.get("survivorLives"));
     }
 
     @Test

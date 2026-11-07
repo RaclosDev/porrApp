@@ -9,6 +9,7 @@ import ShareImageTemplate from '../components/leaderboard/ShareImageTemplate';
 import { leaderboardColumns } from '../components/leaderboard/leaderboardColumns';
 import { useLeaderboard, type LeaderboardRow } from '../hooks/useLeaderboard';
 import { displayRoundLabel } from '../utils/matchday';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 
@@ -88,7 +89,7 @@ function Leaderboard() {
   if (!activeGroupId) return <NoLeague signedIn={Boolean(userName)} />;
 
   const isMatchday =
-    activeGroupPoolFormat === 'MATCH_DAY' || state.activeCompetitionFormatType === 'LEAGUE';
+    isMatchBasedFormat(activeGroupPoolFormat) || state.activeCompetitionFormatType === 'LEAGUE';
   const columns = leaderboardColumns({
     isMatchday,
     ownBracket: state.activeGroupOwnBracket,

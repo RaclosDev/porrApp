@@ -6,6 +6,7 @@ import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings, fetchCustomStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 export default function LeagueStandings() {
   const [showComplete, setShowComplete] = useState(false);
@@ -22,7 +23,7 @@ export default function LeagueStandings() {
   } = useAppContext();
 
   const isMatchDay =
-    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
 
   const {
     data: standings,

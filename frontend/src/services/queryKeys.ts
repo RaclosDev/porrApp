@@ -37,6 +37,9 @@ export const queryKeys = {
   leaderboardMatchdays: (groupId?: Id) => key('leaderboardMatchdays', asText(groupId)),
   matchdayFixtures: (groupId?: Id, user?: Id, round?: string) =>
     key('matchdayFixtures', asText(groupId), user, round),
+  /** Cuelga de matchdayFixtures: lo que refresca los partidos de la liga refresca también esto. */
+  survivorStatus: (groupId: Id, user?: Id) =>
+    key('matchdayFixtures', asText(groupId), 'survivor', user),
   matchFriendPredictions: (groupId?: Id, matchId?: Id) =>
     key('matchFriendPredictions', asText(groupId), matchId),
   matchdayStats: (groupId?: Id) => key('matchdayStats', asText(groupId)),

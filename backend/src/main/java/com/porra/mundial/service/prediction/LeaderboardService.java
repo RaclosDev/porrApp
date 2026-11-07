@@ -47,9 +47,10 @@ public class LeaderboardService {
     private final EditionRepository editionRepository;
     private final CustomBracketScoringService customBracketScoringService;
 
-    /** Clasificación: más puntos, luego más puntos por partido, luego nombre. */
+    /** Clasificación: más puntos, quien sigue vivo en superviviente, más puntos por partido, nombre. */
     private static final Comparator<ParticipantScoreDTO> LEADERBOARD_ORDER = Comparator
             .comparingInt(ParticipantScoreDTO::getTotal).reversed()
+            .thenComparing(ParticipantScoreDTO::isEliminated)
             .thenComparing(Comparator.comparingInt(ParticipantScoreDTO::getMatchPoints).reversed())
             .thenComparing(score -> score.getName() != null ? score.getName() : "", String.CASE_INSENSITIVE_ORDER);
 
@@ -80,10 +81,13 @@ public class LeaderboardService {
             List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
 
             Map<Long, List<MatchPrediction>> matchPredsByPrediction = matchPredictionsByPrediction(stale);
+            SurvivorContext survivors = new SurvivorContext();
             // Una estrategia por juego de reglas: en la clasificación global conviven ediciones con reglas distintas.
             Map<String, ScoringStrategy> strategiesByRules = new HashMap<>();
 
             Map<Long, ParticipantScoreDTO> toUpdate = new HashMap<>();
+            // Porras supervivientes: además de los puntos se guarda si ya han caído.
+            Set<Long> survivorIds = new HashSet<>();
             for (Prediction pred : stale) {
                 List<MatchPrediction> matchPreds = matchPredsByPrediction.getOrDefault(pred.getId(), List.of());
                 if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
@@ -91,10 +95,16 @@ public class LeaderboardService {
                 ScoringRuleSet effectiveRules = ScoringRuleSet.effectiveForEdition(pred.getEdition());
                 ScoringStrategy strategy = strategiesByRules.computeIfAbsent(effectiveRules.toJson(),
                         json -> scoringStrategy.withRules(effectiveRules));
-                ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers, strategy);
+                ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers, strategy, survivors);
                 score.setPending(isPaymentPending(pred, membershipPayment));
                 leaderboard.add(score);
-                if (pred.getId() != null) toUpdate.put(pred.getId(), score);
+                if (pred.getId() != null) {
+                    toUpdate.put(pred.getId(), score);
+                    if (pred.getEdition() != null
+                            && pred.getEdition().getPoolFormat() == com.porra.mundial.model.PoolFormat.SURVIVOR) {
+                        survivorIds.add(pred.getId());
+                    }
+                }
             }
 
             if (!toUpdate.isEmpty()) {
@@ -104,6 +114,8 @@ public class LeaderboardService {
                     toUpdate.forEach((id, score) -> predictionRepository.saveCalculatedScore(id, score.getTotal(),
                             score.getR1(), score.getR32(), score.getR16(), score.getQf(), score.getSf(),
                             score.getFinals(), score.getScorer(), score.getMatchPoints(), now));
+                    survivorIds.forEach(id -> predictionRepository.saveSurvivorEliminated(id,
+                            toUpdate.get(id).isEliminated()));
                 } catch (Exception e) {
                     log.warn("Could not save materialized prediction scores: {}", e.getMessage());
                 }
@@ -113,6 +125,29 @@ public class LeaderboardService {
         addLeagueMembersWithoutPredictions(groupId, leaderboard);
         leaderboard.sort(LEADERBOARD_ORDER);
         return leaderboard;
+    }
+
+    /** Cuándo cayó cada porra superviviente eliminada (su partido o la jornada que no eligió). */
+    private Map<Long, java.time.Instant> survivorEliminations(Edition edition, List<MatchPrediction> picks) {
+        Map<Long, java.time.Instant> eliminatedAt = new HashMap<>();
+        SurvivorContext survivors = new SurvivorContext();
+        picks.stream()
+                .filter(pick -> pick != null && pick.getPrediction() != null && pick.getPrediction().getId() != null)
+                .collect(Collectors.groupingBy(MatchPrediction::getPrediction))
+                .forEach((prediction, own) -> {
+                    Long id = prediction.getId();
+                    SurvivorRules.Standing standing = survivors.standing(edition,
+                            prediction.getUser() != null ? prediction.getUser().getId() : null,
+                            prediction.getCreatedAt(), own);
+                    if (standing.eliminated() && standing.eliminatedAt() != null) eliminatedAt.put(id, standing.eliminatedAt());
+                });
+        return eliminatedAt;
+    }
+
+    /** Elección hecha de antemano para un partido posterior al que eliminó a su porra: ya no suma. */
+    private static boolean afterElimination(MatchPrediction pick, java.time.Instant eliminatedAt) {
+        return eliminatedAt != null && pick.getMatch() != null && pick.getMatch().getMatchDate() != null
+                && pick.getMatch().getMatchDate().isAfter(eliminatedAt);
     }
 
     /** Una sola consulta para los pronósticos por partido de todas las porras de la clasificación. */
@@ -134,6 +169,7 @@ public class LeaderboardService {
                 .finals(pred.getFinalsPoints() != null ? pred.getFinalsPoints() : 0)
                 .scorer(pred.getScorerPoints() != null ? pred.getScorerPoints() : 0)
                 .matchPoints(pred.getMatchPoints() != null ? pred.getMatchPoints() : 0)
+                .eliminated(pred.isSurvivorEliminated())
                 .log(new ArrayList<>())
                 .exactMatches(new HashMap<>())
                 .passedTeams(new HashMap<>())
@@ -172,6 +208,11 @@ public class LeaderboardService {
 
     private void addLeagueMembersWithoutPredictions(Long groupId, List<ParticipantScoreDTO> leaderboard) {
         if (groupId == null) return;
+        // Superviviente: quien no ha elegido nunca también cae en cuanto se le pasa una jornada.
+        Edition survivorEdition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE")
+                .filter(edition -> edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.SURVIVOR)
+                .orElse(null);
+        SurvivorContext survivors = new SurvivorContext();
 
         Set<Long> representedUserIds = new HashSet<>();
         for (ParticipantScoreDTO score : leaderboard) {
@@ -192,6 +233,8 @@ public class LeaderboardService {
                     .predictionName("")
                     .pending(false)
                     .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
+                    .eliminated(survivorEdition != null
+                            && survivors.standing(survivorEdition, user.getId(), null, List.of()).eliminated())
                     .log(new ArrayList<>())
                     .exactMatches(new HashMap<>())
                     .passedTeams(new HashMap<>())
@@ -247,8 +290,14 @@ public class LeaderboardService {
                 });
 
         List<MatchPrediction> matchPredictions = matchPredictionRepository.findByPredictionEditionLeagueId(groupId);
+        Map<Long, java.time.Instant> eliminatedAt = edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.SURVIVOR
+                ? survivorEliminations(edition, matchPredictions) : Map.of();
 
         for (MatchPrediction matchPrediction : matchPredictions) {
+            if (matchPrediction != null && matchPrediction.getPrediction() != null
+                    && afterElimination(matchPrediction, eliminatedAt.get(matchPrediction.getPrediction().getId()))) {
+                continue;
+            }
             if (matchPrediction == null
                     || matchPrediction.getPointsAwarded() == null
                     || matchPrediction.getPointsAwarded() <= 0
@@ -349,7 +398,7 @@ public class LeaderboardService {
         List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
                 officialResultsService.current(), scorers,
-                scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())));
+                scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())), new SurvivorContext());
         boolean entryFee = pred.getEdition() != null && pred.getEdition().getLeague() != null
                 && pred.getEdition().getLeague().isEntryFee();
         score.setPending(entryFee && !Boolean.TRUE.equals(pred.getPaid()));
@@ -359,7 +408,7 @@ public class LeaderboardService {
     /** Puntos del cuadro (si lo tiene, con las reglas de su edición) más los de los pronósticos por partido. */
     private ParticipantScoreDTO scorePrediction(Prediction pred, List<MatchPrediction> matchPreds,
                                                 OfficialResultsService.OfficialResults official, List<TopScorerDTO> scorers,
-                                                ScoringStrategy strategy) {
+                                                ScoringStrategy strategy, SurvivorContext survivors) {
         PredictionDataDTO participant = pred.getBracketData();
         ParticipantScoreDTO score;
         Edition edition = pred.getEdition();
@@ -380,6 +429,20 @@ public class LeaderboardService {
         }
 
         int matchPoints = 0;
+        if (edition != null && edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.SURVIVOR) {
+            SurvivorRules.Standing standing = survivors.standing(edition,
+                    pred.getUser() != null ? pred.getUser().getId() : null, pred.getCreatedAt(), matchPreds);
+            matchPoints = standing.survived() * SurvivorRules.Settings.of(edition).roundPoints();
+            score.setEliminated(standing.eliminated());
+            if (matchPoints > 0) {
+                score.getLog().add(ParticipantScoreDTO.LogEntry.builder()
+                        .stage("matchday")
+                        .amount(matchPoints)
+                        .msg("Jornadas superadas: " + standing.survived())
+                        .build());
+            }
+            matchPreds = List.of();
+        }
         for (MatchPrediction mp : matchPreds) {
             if (mp.getPointsAwarded() != null && mp.getPointsAwarded() > 0) {
                 matchPoints += mp.getPointsAwarded();
@@ -398,6 +461,29 @@ public class LeaderboardService {
         score.setPredictionName(pred.getPredictionName());
         score.setAvatarUrl(pred.getUser() != null ? pred.getUser().getAvatarUrl() : null);
         return score;
+    }
+
+    /**
+     * Situación de cada porra superviviente con todo el calendario de su competición, para contar
+     * también las jornadas sin elegir. Carga cada calendario y cada fecha de entrada una sola vez.
+     */
+    private final class SurvivorContext {
+        private final Map<Long, List<Match>> calendars = new HashMap<>();
+        private final java.time.Instant now = java.time.Instant.now();
+
+        SurvivorRules.Standing standing(Edition edition, Long userId, java.time.Instant fallbackStart,
+                                        List<MatchPrediction> picks) {
+            Long competitionId = edition.getCompetition() != null ? edition.getCompetition().getId() : null;
+            List<Match> calendar = competitionId == null ? List.of()
+                    : calendars.computeIfAbsent(competitionId, matchRepository::findByCompetitionId);
+            java.time.Instant startAt = fallbackStart;
+            if (userId != null && edition.getLeague() != null && edition.getLeague().getId() != null) {
+                startAt = membershipRepository.findById(new Membership.MembershipId(userId, edition.getLeague().getId()))
+                        .map(Membership::getJoinedAt)
+                        .orElse(fallbackStart);
+            }
+            return SurvivorRules.standing(picks, calendar, startAt, now, SurvivorRules.Settings.of(edition));
+        }
     }
 
     private static ParticipantScoreDTO emptyScore() {

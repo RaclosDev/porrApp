@@ -10,7 +10,22 @@ public enum PoolFormat {
     /** Pronóstico parcial: solo eliminatorias (Octavos/Dieciseisavos en adelante). */
     KNOCKOUTS_ONLY,
     /** Jornada a jornada: 1X2 y marcador de cada partido. */
-    MATCH_DAY;
+    MATCH_DAY,
+    /**
+     * Superviviente: en cada jornada se elige un equipo que gane, sin repetir equipo en toda la
+     * temporada; si no gana (empate o derrota), quien lo eligió queda eliminado.
+     */
+    SURVIVOR;
+
+    /** Se juega partido a partido sobre el calendario (jornadas), no sobre un cuadro. */
+    public boolean isMatchBased() {
+        return this == MATCH_DAY || this == SURVIVOR;
+    }
+
+    /** Si el formato de una edición se juega partido a partido; null cuenta como cuadro. */
+    public static boolean isMatchBased(PoolFormat format) {
+        return format != null && format.isMatchBased();
+    }
 
     /** null o desconocido → FULL_BRACKET. */
     public static PoolFormat fromString(String val) {
