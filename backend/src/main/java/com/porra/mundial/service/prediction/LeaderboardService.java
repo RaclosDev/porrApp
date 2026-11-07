@@ -46,6 +46,7 @@ public class LeaderboardService {
     private final MembershipRepository membershipRepository;
     private final EditionRepository editionRepository;
     private final CustomBracketScoringService customBracketScoringService;
+    private final MatchSelectionService matchSelectionService;
 
     /** Clasificación: más puntos, quien sigue vivo en superviviente, más puntos por partido, nombre. */
     private static final Comparator<ParticipantScoreDTO> LEADERBOARD_ORDER = Comparator
@@ -275,6 +276,10 @@ public class LeaderboardService {
                 .collect(Collectors.toSet());
 
         List<Match> competitionMatches = matchRepository.findByCompetitionId(edition.getCompetition().getId());
+        // Las jornadas de una liga que elige sus partidos son solo las que tienen alguno de los suyos.
+        if (MatchSelectionService.selects(edition)) {
+            competitionMatches = matchSelectionService.filter(edition, competitionMatches);
+        }
 
         Map<String, MatchdayAccumulator> matchdays = new LinkedHashMap<>();
         competitionMatches.stream()

@@ -33,6 +33,7 @@ public class MatchPredictionService {
     private final MembershipRepository membershipRepository;
     private final MatchScoringCalculator matchScoringCalculator;
     private final ScoreInvalidationService scoreInvalidationService;
+    private final MatchSelectionService matchSelectionService;
 
     /**
      * Devuelve los partidos del calendario junto con los pronósticos del usuario y su estado de bloqueo.
@@ -90,6 +91,10 @@ public class MatchPredictionService {
                     return !(h && a);
                 })
                 .collect(Collectors.toList());
+        // Una liga que elige sus partidos solo ve los suyos.
+        if (MatchSelectionService.selects(edition)) {
+            matches = matchSelectionService.filter(edition, matches);
+        }
 
         Prediction userPrediction = null;
         if (email != null && !email.isBlank() && groupId != null) {
@@ -113,7 +118,8 @@ public class MatchPredictionService {
 
         Instant now = Instant.now();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
-                MatchdayLock.needsWholeCalendar(edition) ? matchRepository.findByCompetitionId(competitionId) : matches);
+                MatchdayLock.needsWholeCalendar(edition) ? MatchSelectionService.leagueCalendar(matchSelectionService,
+                        edition, matchRepository.findByCompetitionId(competitionId)) : matches);
         List<MatchdayFixturePredictionDTO> result = new ArrayList<>();
 
         for (Match match : matches) {
@@ -284,7 +290,8 @@ public class MatchPredictionService {
 
         Instant now = Instant.now();
         List<Match> calendar = MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
-                ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : null;
+                ? MatchSelectionService.leagueCalendar(matchSelectionService, edition,
+                        matchRepository.findByCompetitionId(edition.getCompetition().getId())) : null;
         int savedCount = 0;
         boolean survivor = edition.getPoolFormat() == PoolFormat.SURVIVOR;
         List<MatchPrediction> survivorPicks = survivor ? survivorPicks(prediction) : List.of();
@@ -292,6 +299,7 @@ public class MatchPredictionService {
             throw BusinessException.conflict("Ya estás eliminado de esta liga superviviente.");
         }
         Set<String> survivorRounds = new HashSet<>();
+        MatchSelection selection = MatchSelectionService.selects(edition) ? matchSelectionService.of(edition) : null;
 
         // Dos consultas para toda la jornada en vez de dos por partido.
         List<Long> matchIds = items.stream().map(MatchPredictionItemDTO::getMatchId)
@@ -312,6 +320,9 @@ public class MatchPredictionService {
             if (edition.getCompetition() == null || match.getCompetition() == null
                     || !Objects.equals(edition.getCompetition().getId(), match.getCompetition().getId())) {
                 throw BusinessException.badRequest("El partido no pertenece a la competición de esta liga.");
+            }
+            if (selection != null && !selection.contains(match)) {
+                throw BusinessException.badRequest("Ese partido no entra en esta liga.");
             }
 
             if (Boolean.TRUE.equals(match.getFinished())) {
@@ -568,7 +579,8 @@ public class MatchPredictionService {
                 ? match.getMatchDate()
                 : MatchdayLock.lockTimes(edition, List.of(match), MatchdayLock.needsWholeCalendar(edition)
                         && match.getCompetition() != null
-                        ? matchRepository.findByCompetitionId(match.getCompetition().getId()) : List.of(match))
+                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition,
+                                matchRepository.findByCompetitionId(match.getCompetition().getId())) : List.of(match))
                         .get(match.getId());
         boolean isMatchLocked = Boolean.TRUE.equals(match.getFinished())
                 || (match.getStatus() != null && !match.getStatus().isOpenForPrediction())

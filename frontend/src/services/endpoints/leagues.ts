@@ -7,6 +7,8 @@ import type {
   LeagueScoring,
   LeagueImageResponse,
   LeagueStanding,
+  MatchSelectionRequest,
+  MatchSelectionView,
   Match,
   PaymentStatus,
   PaymentStatusResponse,
@@ -46,7 +48,24 @@ export interface CreateGroupRequest {
   lockOffsetMinutes?: number;
   /** Fecha y hora de Madrid (`YYYY-MM-DDTHH:mm`), solo con `lockMode = FIXED_DATE`. */
   lockDate?: string;
+  /** Partidos que entran en una liga por jornadas; sin él, todos. */
+  matchSelection?: MatchSelectionRequest;
 }
+
+/** Calendario de una competición oficial para elegir los partidos de una liga nueva. */
+export const fetchSelectableMatches = (competitionId: number) =>
+  request<MatchSelectionView>(`/competitions/${competitionId}/selectable-matches`);
+
+/** Partidos que entran en la liga (solo su administrador). */
+export const fetchMatchSelection = (groupId: number) =>
+  request<MatchSelectionView>(`/groups/${groupId}/competition/match-selection`);
+
+export const saveMatchSelection = (groupId: number, selection: MatchSelectionRequest) =>
+  request<MatchSelectionView>(`/groups/${groupId}/competition/match-selection`, {
+    method: 'PUT',
+    json: selection,
+    fallbackError: 'No se pudieron guardar los partidos',
+  });
 
 export const createGroup = (league: CreateGroupRequest, idempotencyKey?: string) =>
   request<Group>('/groups', {

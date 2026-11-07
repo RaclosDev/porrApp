@@ -59,6 +59,7 @@ public class MatchdayStatsService {
     private final MatchRepository matchRepository;
     private final PredictionRepository predictionRepository;
     private final CustomLockService customLockService;
+    private final MatchSelectionService matchSelectionService;
 
     @Transactional(readOnly = true)
     public MatchdayStatsDTO getStats(String email, Long groupId) {
@@ -79,7 +80,8 @@ public class MatchdayStatsService {
                 .filter(match -> match != null && match.getId() != null).distinct().toList();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, predicted,
                 MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
-                        ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : predicted);
+                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition,
+                                matchRepository.findByCompetitionId(edition.getCompetition().getId())) : predicted);
         Map<Long, List<MatchPrediction>> byMatch = new LinkedHashMap<>();
         for (MatchPrediction mp : all) {
             Match match = mp.getMatch();
@@ -124,7 +126,8 @@ public class MatchdayStatsService {
         List<Match> matches = all.stream().map(MatchPrediction::getMatch).distinct().toList();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
                 MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
-                        ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : matches);
+                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition,
+                                matchRepository.findByCompetitionId(edition.getCompetition().getId())) : matches);
 
         Instant now = Instant.now();
         Map<Long, Map<String, Map<Long, Voter>>> byMatch = new LinkedHashMap<>();

@@ -1,5 +1,6 @@
 package com.porra.mundial.service.league;
 
+import com.porra.mundial.service.prediction.MatchSelectionService;
 import com.porra.mundial.service.prediction.MatchdayLock;
 import com.porra.mundial.service.prediction.LeaderboardService;
 import com.porra.mundial.dto.LeagueSummaryDTO;
@@ -40,6 +41,7 @@ public class LeagueSummaryService {
     private final MatchRepository matchRepository;
     private final PredictionRepository predictionRepository;
     private final MatchPredictionRepository matchPredictionRepository;
+    private final MatchSelectionService matchSelectionService;
 
     @Transactional(readOnly = true)
     public List<LeagueSummaryDTO> summaries(String email) {
@@ -83,9 +85,11 @@ public class LeagueSummaryService {
                 .filter(m -> !(Team.isPlaceholder(m.getHomeTeam()) && Team.isPlaceholder(m.getAwayTeam())))
                 .filter(m -> m.getStatus() == null || m.getStatus().isOpenForPrediction())
                 .toList();
+        if (MatchSelectionService.selects(edition)) upcoming = matchSelectionService.filter(edition, upcoming);
         if (upcoming.isEmpty()) return 0;
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, upcoming,
-                MatchdayLock.needsWholeCalendar(edition) ? matchRepository.findByCompetitionId(competitionId) : upcoming);
+                MatchdayLock.needsWholeCalendar(edition) ? MatchSelectionService.leagueCalendar(matchSelectionService,
+                        edition, matchRepository.findByCompetitionId(competitionId)) : upcoming);
         List<Long> open = upcoming.stream()
                 .filter(m -> !lockTimes.containsKey(m.getId()) || lockTimes.get(m.getId()).isAfter(now))
                 .map(Match::getId)

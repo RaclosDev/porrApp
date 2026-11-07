@@ -46,6 +46,8 @@ public class LeagueResponseDTO {
     private String lockMode;
     /** Minutos antes del partido en que se cierra, en los modos que dependen de los partidos. */
     private Integer lockOffsetMinutes;
+    /** Qué partidos entran en una liga por jornadas: ALL o CUSTOM (elegidos por el administrador). */
+    private String matchSelection;
     /** Si la edición se encuentra cerrada para nuevos pronósticos o cambios. */
     private Boolean isLocked;
     /** Reglas personalizadas de la liga. */
@@ -107,6 +109,7 @@ public class LeagueResponseDTO {
                 .poolFormat(edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null)
                 .lockMode(edition.getLockMode() != null ? edition.getLockMode().name() : null)
                 .lockOffsetMinutes(edition.getLockOffsetMinutes())
+                .matchSelection(edition.getMatchSelection() != null ? edition.getMatchSelection().name() : null)
                 .pichichi(edition.isPichichi());
     }
 }

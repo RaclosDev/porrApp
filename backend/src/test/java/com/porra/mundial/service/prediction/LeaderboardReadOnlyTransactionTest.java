@@ -49,6 +49,7 @@ class LeaderboardReadOnlyTransactionTest {
     @MockitoBean OfficialResultsService officialResults;
     @MockitoBean ScoringStrategy scoringStrategy;
     @MockitoBean CustomBracketScoringService customBracketScoring;
+    @MockitoBean MatchSelectionService matchSelection;
 
     @Test
     void savesStaleScoresWhenCalledFromAReadOnlyTransaction() {

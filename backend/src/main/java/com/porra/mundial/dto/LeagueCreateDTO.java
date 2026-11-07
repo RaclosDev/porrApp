@@ -52,10 +52,14 @@ public class LeagueCreateDTO {
     /** Fecha de cierre en hora de Madrid, solo con {@code lockMode = FIXED_DATE}. */
     private LocalDateTime lockDate;
 
+    /** Partidos que entran en una liga por jornadas, como en {@code PUT .../competition/match-selection}. */
+    @jakarta.validation.Valid
+    private MatchSelectionRequest matchSelection;
+
     /** Ajustes que acompañan a la creación. */
     public LeagueSetup toSetup() {
         return new LeagueSetup(rules, entryFee,
                 scoring == null || scoring.isNull() ? null : ScoringRuleSet.fromRequest(scoring),
-                lockMode, lockOffsetMinutes, AppTime.fromLocal(lockDate));
+                lockMode, lockOffsetMinutes, AppTime.fromLocal(lockDate), matchSelection);
     }
 }

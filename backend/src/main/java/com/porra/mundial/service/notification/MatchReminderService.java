@@ -1,5 +1,6 @@
 package com.porra.mundial.service.notification;
 
+import com.porra.mundial.service.prediction.MatchSelectionService;
 import com.porra.mundial.service.prediction.MatchdayLock;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
@@ -60,6 +61,7 @@ public class MatchReminderService {
     private final WebPushSender sender;
     private final ObjectMapper objectMapper;
     private final PushNotificationLogService notificationLog;
+    private final MatchSelectionService matchSelectionService;
 
     /** Un partido que el usuario aún no ha predicho en una liga y que cierra pronto. */
     record Pending(Long userId, League league, Match match, Instant lockAt) {}
@@ -130,7 +132,8 @@ public class MatchReminderService {
             List<Match> calendar;
             if (MatchdayLock.needsWholeCalendar(edition)) {
                 // Con cierre por día o por jornada, un partido lejano puede cerrar con el primero de su grupo.
-                calendar = calendars.computeIfAbsent(competitionId, matchRepository::findByCompetitionId);
+                calendar = MatchSelectionService.leagueCalendar(matchSelectionService, edition,
+                        calendars.computeIfAbsent(competitionId, matchRepository::findByCompetitionId));
                 candidates = calendar.stream()
                         .filter(m -> m.getMatchDate() != null && m.getMatchDate().isAfter(now)
                                 && !Boolean.TRUE.equals(m.getFinished()))
@@ -146,6 +149,10 @@ public class MatchReminderService {
                     .filter(m -> isPredictable(m) && locks.containsKey(m.getId()))
                     .filter(m -> locks.get(m.getId()).isAfter(now) && !locks.get(m.getId()).isAfter(horizon))
                     .toList();
+            // Solo se avisa de los partidos que entran en la liga.
+            if (!due.isEmpty() && MatchSelectionService.selects(edition)) {
+                due = matchSelectionService.filter(edition, due);
+            }
             if (due.isEmpty()) continue;
 
             List<UserAccount> members = membershipRepository.findByLeagueId(league.getId()).stream()

@@ -1,4 +1,8 @@
 import type { ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchSelectableMatches } from '../../services/api';
+import { queryKeys } from '../../services/queryKeys';
+import { describeSelection } from '../matchSelection/matchSelection';
 import { LeagueAvatar } from '../Avatar';
 import { describeLockOffset } from '../groups/custom/lockModes';
 import {
@@ -8,6 +12,7 @@ import {
   customScoringRules,
   lockModesFor,
   lockOffsetMinutes,
+  matchSelectionApplies,
   pichichiApplies,
   selectedCompetition,
   type DraftContext,
@@ -56,6 +61,20 @@ export default function SummaryStep({
   goTo: (step: LeagueStepId) => void;
 }) {
   const competition = selectedCompetition(draft, ctx);
+  const picksMatches = matchSelectionApplies(draft, ctx);
+  // El calendario ya está en caché desde el paso del modo de juego.
+  const calendar = useQuery({
+    queryKey: queryKeys.selectableMatches(draft.competitionId),
+    queryFn: () => fetchSelectableMatches(draft.competitionId as number),
+    enabled: picksMatches && draft.matches.mode !== 'ALL',
+    staleTime: 5 * 60_000,
+  });
+  const matchesText =
+    draft.matches.mode === 'ALL' || !calendar.data
+      ? draft.matches.mode === 'ALL'
+        ? 'Todos los partidos'
+        : 'Elegidos por ti'
+      : describeSelection(draft.matches, calendar.data.teams, calendar.data.matches);
   // Visibilidad no tiene paso: toda liga nueva es privada.
   const rows: { label: string; value: ReactNode; step: LeagueStepId | null }[] = [
     { label: 'Deporte', value: draft.sport ? SPORT_LABELS[draft.sport] : '', step: 'sport' },
@@ -69,6 +88,9 @@ export default function SummaryStep({
       value: draft.poolFormat ? FORMAT_COPY[draft.poolFormat].title : '',
       step: 'format',
     },
+    ...(picksMatches
+      ? [{ label: 'Partidos', value: matchesText, step: 'format' as LeagueStepId }]
+      : []),
     { label: 'Cierre', value: describeLock(draft, ctx), step: 'rules' },
     { label: 'Puntuación', value: describeScoring(draft, ctx), step: 'rules' },
     { label: 'Cuota', value: draft.entryFee ? 'Sí' : 'Sin cuota', step: 'rules' },
