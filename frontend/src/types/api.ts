@@ -348,7 +348,7 @@ export interface MatchdayPredictionInput {
 }
 
 /** Elección de una jornada en una liga superviviente. */
-export interface SurvivorPick {
+interface SurvivorPick {
   matchId: number;
   round: string;
   teamId: number | null;
