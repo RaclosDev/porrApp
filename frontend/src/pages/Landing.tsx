@@ -14,8 +14,12 @@ import {
   useLandingMotion,
 } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
+import SiteFooter from '../components/landing/SiteFooter';
+import { LANDING_COPY } from '../seo/pages';
 
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
+/** Ancho real de las capturas: media columna en escritorio, casi toda la pantalla en el móvil. */
+const SCREENSHOT_SIZES = '(min-width: 1024px) 560px, calc(100vw - 80px)';
 
 /**
  * Portada para quien aún no ha entrado: un cartel con la porra real del Mundial, los cromos de
@@ -37,19 +41,12 @@ export default function Landing() {
           <MarkerHeading
             as="h1"
             onLoad
-            text="La porra de toda la vida,"
-            marked="pero bien hecha."
+            text={LANDING_COPY.h1}
+            marked={LANDING_COPY.h1Marked}
             className="text-[clamp(2.6rem,7vw,5.5rem)]"
           />
-          <motion.p
-            variants={rise}
-            initial={initial}
-            animate={visible ? 'show' : undefined}
-            className="text-[#1f2937] text-lg max-w-130 leading-snug"
-          >
-            Rellena tu cuadro del Mundial o haz tus predicciones jornada a jornada, y compite con
-            tus amigos. Los puntos se calculan solos con los resultados reales.
-          </motion.p>
+          {/* Sin fundido: es el elemento más grande de la primera pantalla (LCP) y debe pintarse ya. */}
+          <p className="text-[#1f2937] text-lg max-w-130 leading-snug">{LANDING_COPY.lede}</p>
           <motion.div
             variants={rise}
             initial={initial}
@@ -177,17 +174,16 @@ export default function Landing() {
             viewport={inViewOnce}
             className="landing-poster landing-tape rotate-1 p-6 sm:p-8 flex flex-col gap-4"
           >
-            <h3 className="poster-title text-4xl">Cuadro</h3>
-            <p className="text-[#1f2937] leading-snug">
-              Para el Mundial. Ordenas los grupos, rellenas las eliminatorias hasta el campeón y
-              eliges al pichichi. Los cruces se calculan solos y los puntos llegan con cada partido.
-            </p>
+            <h3 className="poster-title text-4xl">{LANDING_COPY.bracketTitle}</h3>
+            <p className="text-[#1f2937] leading-snug">{LANDING_COPY.bracketText}</p>
             <img
-              src="/landing/cuadro.jpg"
+              src="/landing/cuadro-1200.webp"
+              srcSet="/landing/cuadro-640.webp 640w, /landing/cuadro-1200.webp 1200w"
+              sizes={SCREENSHOT_SIZES}
               alt="El cuadro del Mundial 2026 en PorrApp: de dieciseisavos a la final, con España campeona."
               loading="lazy"
-              width="1600"
-              height="1082"
+              width="1200"
+              height="812"
               className="w-full h-auto rounded-md border border-[rgba(17,24,39,0.2)]"
             />
             <Link to="/demo" className="landing-link self-start">
@@ -202,14 +198,13 @@ export default function Landing() {
             viewport={inViewOnce}
             className="landing-poster landing-tape p-6 sm:p-8 flex flex-col gap-4"
           >
-            <h3 className="poster-title text-4xl">Jornadas</h3>
-            <p className="text-[#1f2937] leading-snug">
-              Para LaLiga, la Premier, la Champions y otras ocho competiciones. Predices el marcador
-              de cada partido, y cada uno se cierra solo cuando empieza.
-            </p>
+            <h3 className="poster-title text-4xl">{LANDING_COPY.matchdayTitle}</h3>
+            <p className="text-[#1f2937] leading-snug">{LANDING_COPY.matchdayText}</p>
             <figure className="m-0">
               <img
-                src="/landing/jornadas.jpg"
+                src="/landing/jornadas-1080.webp"
+                srcSet="/landing/jornadas-640.webp 640w, /landing/jornadas-1080.webp 1080w"
+                sizes={SCREENSHOT_SIZES}
                 alt="Inicio de una liga por jornadas: partidos, clasificación de participantes y tabla de LaLiga."
                 loading="lazy"
                 width="1080"
@@ -223,29 +218,10 @@ export default function Landing() {
             <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
           </motion.article>
         </div>
-        <p className="text-muted text-sm text-center mt-8">
-          Se instala en el móvil como una app. Las predicciones quedan a la vista de la liga en
-          cuanto empieza cada partido.
-        </p>
+        <p className="text-muted text-sm text-center mt-8">{LANDING_COPY.closing}</p>
       </GhostWord>
 
-      <footer className="mt-10 pt-5 border-t border-t-[rgba(255,255,255,0.08)] flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-[#94a3b8] text-[0.85rem]">
-        <strong className="text-white">PorrApp</strong>
-        <span aria-hidden="true">·</span>
-        <Link
-          to="/privacidad"
-          className="underline hover:text-white inline-flex items-center min-h-11"
-        >
-          Privacidad
-        </Link>
-        <span aria-hidden="true">·</span>
-        <Link
-          to="/aviso-legal"
-          className="underline hover:text-white inline-flex items-center min-h-11"
-        >
-          Aviso legal
-        </Link>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
