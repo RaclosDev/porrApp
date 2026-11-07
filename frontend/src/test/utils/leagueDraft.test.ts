@@ -10,6 +10,7 @@ import {
   emptyDraft,
   firstIncompleteStep,
   formatUnavailableReason,
+  formatCopy,
   lockModesFor,
   normalizeDraft,
   readStoredDraft,
@@ -63,6 +64,22 @@ describe('borrador de liga', () => {
     );
     expect(javaDefaults).toEqual(DEFAULT_SCORING_RULES);
     expect(scoringRuleSet).toContain(`MAX_POINTS = ${SCORING_MAX_POINTS};`);
+  });
+
+  it('la NFL es su propio deporte y se juega por semanas o superviviente', () => {
+    const nfl = competition({ id: 9, name: 'NFL', externalId: 'nfl' });
+    const nflCtx = { competitions: [...ctx.competitions, nfl] };
+    expect(sportChoices(nflCtx)).toEqual([
+      'FOOTBALL',
+      'LEAGUE_OF_LEGENDS',
+      'AMERICAN_FOOTBALL',
+      'OTHER',
+    ]);
+    const draft = normalizeDraft({ ...emptyDraft(), competitionId: 9 }, nflCtx);
+    expect(draft.sport).toBe('AMERICAN_FOOTBALL');
+    expect(formatCopy('MATCH_DAY', draft, nflCtx).title).toBe('Por semanas');
+    expect(formatUnavailableReason('SURVIVOR', draft, nflCtx)).toBeNull();
+    expect(formatUnavailableReason('FULL_BRACKET', draft, nflCtx)).not.toBeNull();
   });
 
   it('agrupa por deporte y deja coherente la competición al cambiarlo', () => {

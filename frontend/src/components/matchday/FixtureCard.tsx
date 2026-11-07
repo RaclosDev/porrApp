@@ -3,6 +3,7 @@ import { CalendarDays, Users } from 'lucide-react';
 import SignVoters from '../voters/SignVoters';
 import type { MatchdayFixture, MatchVoters } from '../../types/api';
 import {
+  allowsDraw,
   formatMatchDate,
   isLiveFixture,
   type DraftPrediction,
@@ -33,6 +34,8 @@ export interface SurvivorOptions {
 }
 
 const SIGNS: MatchSign[] = ['1', 'X', '2'];
+/** Sin empate (NFL): se elige quién gana. */
+const WINNER_SIGNS: MatchSign[] = ['1', '2'];
 const CREST_STYLE = { width: '24px', height: '24px' };
 
 /** Tarjeta de un partido: estado, signo 1X2 pronosticado y puntos obtenidos. */
@@ -64,6 +67,7 @@ export default function FixtureCard({
           : '2'
       : null;
   const inPlay = fixture.status === 'LIVE' || fixture.status === 'PAUSED';
+  const winnerOnly = !allowsDraw(fixture.sport);
   // Terminado sin predicción: también se dice que no suma, para que cada partido cerrado tenga su balance.
   // En superviviente solo se juega un partido por jornada: los demás no tienen balance que mostrar.
   const showPoints = survivor
@@ -127,28 +131,38 @@ export default function FixtureCard({
           options={survivor}
         />
       ) : (
-        <div className="md-signs" role="group" aria-label={`Predicción de ${matchName}`}>
-          {SIGNS.map((s) => {
+        <div
+          className={`md-signs${winnerOnly ? ' md-survivor' : ''}`}
+          role="group"
+          aria-label={`Predicción de ${matchName}`}
+        >
+          {(winnerOnly ? WINNER_SIGNS : SIGNS).map((s) => {
             const isSelected = prediction.sign === s;
             const isResult = resultSign === s;
+            const winner = s === '1' ? fixture.homeTeam : fixture.awayTeam;
             return (
               <button
                 key={s}
                 type="button"
                 disabled={inputDisabled}
                 onClick={() => onQuickSign(fixture.matchId, s)}
-                className={`md-sign-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
-                aria-label={`Predecir ${s} en ${matchName}${isResult ? ' (resultado final)' : ''}`}
+                className={`md-sign-btn${winnerOnly ? ' md-survivor-btn' : ''}${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
+                aria-label={`${winnerOnly ? `Predecir que gana ${winner}` : `Predecir ${s}`} en ${matchName}${isResult ? ' (resultado final)' : ''}`}
                 aria-pressed={isSelected}
               >
-                {s}
+                {winnerOnly ? <span className="md-survivor-team">Gana {winner}</span> : s}
               </button>
             );
           })}
         </div>
       )}
       {voters && onShowVoters && (
-        <SignVoters voters={voters} matchName={matchName} onOpen={() => onShowVoters(fixture)} />
+        <SignVoters
+          voters={voters}
+          matchName={matchName}
+          onOpen={() => onShowVoters(fixture)}
+          twoWay={winnerOnly}
+        />
       )}
 
       {/* Desglose de puntos si el partido ya ha finalizado */}

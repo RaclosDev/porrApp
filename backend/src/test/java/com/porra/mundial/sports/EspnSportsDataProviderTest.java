@@ -234,4 +234,31 @@ class EspnSportsDataProviderTest {
         assertTrue(sensitive.isAvailable());
         verify(httpClient, times(3)).send(any(HttpRequest.class), any());
     }
+
+    @Test
+    @DisplayName("La NFL se pide a la ruta de fútbol americano y sus ids de equipo llevan el prefijo nfl:")
+    void nflUsesItsOwnSportPathAndNamespacesTeamIds() throws Exception {
+        byte[] fixture;
+        try (var input = getClass().getResourceAsStream("/espn/nfl-scoreboard.json")) {
+            fixture = java.util.Objects.requireNonNull(input).readAllBytes();
+        }
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(fixture);
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertTrue(provider.supports("nfl"));
+        JsonNode events = provider.fetchScoreboardEvents("nfl", "2026");
+        SportsDataProvider.SeasonWindow window = provider.fetchSeasonWindow("nfl");
+
+        assertEquals("nfl:33", events.get(0).path("competitions").get(0).path("competitors").get(0)
+                .path("team").path("id").asText());
+        assertEquals("2026-08-06T07:00Z", window.start());
+        var request = org.mockito.ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient, times(2)).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&limit=1000",
+                request.getAllValues().get(0).uri().toString());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+                request.getAllValues().get(1).uri().toString());
+    }
 }

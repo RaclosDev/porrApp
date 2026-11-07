@@ -447,4 +447,34 @@ class MatchEventProcessorTest {
 
         assertNotEquals("r16", savedMatch().getRound());
     }
+
+    private JsonNode nflEvent(String name) throws Exception {
+        try (var input = getClass().getResourceAsStream("/espn/nfl-scoreboard.json")) {
+            for (JsonNode event : JSON.readTree(java.util.Objects.requireNonNull(input)).path("events")) {
+                if (event.path("name").asText().equals(name)) return event;
+            }
+        }
+        throw new IllegalArgumentException(name);
+    }
+
+    @Test
+    @DisplayName("Un partido de la NFL va a su semana de ESPN y la pretemporada no se guarda")
+    void nflGamesTakeTheirEspnWeekAndPreseasonIsSkipped() throws Exception {
+        Competition nfl = Competition.builder().id(30L).name("NFL").externalId("nfl").formatType("LEAGUE").build();
+        Team ravens = Team.builder().id(31L).name("Baltimore Ravens").externalId("33").build();
+        Team jaguars = Team.builder().id(32L).name("Jacksonville Jaguars").externalId("30").build();
+        Map<String, Team> nflTeams = new HashMap<>(Map.of("Baltimore Ravens", ravens, "Jacksonville Jaguars", jaguars));
+        when(matchRepository.findByExternalId("401873037")).thenReturn(Optional.empty());
+        when(matchRepository.save(any(Match.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        processor.process(nflEvent("Jacksonville Jaguars at Baltimore Ravens"), nflTeams, new MatchEventProcessor.Batch(nfl));
+        processor.process(nflEvent("Indianapolis Colts at Baltimore Ravens"), nflTeams, new MatchEventProcessor.Batch(nfl));
+
+        Match game = savedMatch();
+        assertEquals("Semana 9", game.getRound());
+        assertEquals(10, game.getHomeScore());
+        assertEquals(33, game.getAwayScore());
+        assertSame(jaguars, game.getWinnerTeam());
+        verify(matchRepository, never()).findByExternalId(nflEvent("Indianapolis Colts at Baltimore Ravens").path("id").asText());
+    }
 }
