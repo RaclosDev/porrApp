@@ -9,6 +9,7 @@ import { isMatchBasedFormat } from '../../../utils/poolFormat';
 import { formatMatchDate, type SaveAction } from './customCompetition';
 import {
   BRACKET_LOCK_MODES,
+  DRAWN_KNOCKOUT_LOCK_MODES,
   LOCK_UNIT_MINUTES,
   MATCHDAY_LOCK_MODES,
   MAX_LOCK_OFFSET_MINUTES,
@@ -18,10 +19,19 @@ import {
   type LockUnit,
 } from './lockModes';
 
-function describe(mode: CustomLockMode, offsetMinutes: number, matchday: boolean): string {
+function describe(
+  mode: CustomLockMode,
+  offsetMinutes: number,
+  matchday: boolean,
+  knockoutDraw = false,
+): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
   const margin = offsetMinutes ? ` · ${describeLockOffset(offsetMinutes)}` : '';
-  const modes = matchday ? MATCHDAY_LOCK_MODES : BRACKET_LOCK_MODES;
+  const modes = matchday
+    ? MATCHDAY_LOCK_MODES
+    : knockoutDraw
+      ? DRAWN_KNOCKOUT_LOCK_MODES
+      : BRACKET_LOCK_MODES;
   return `${modes.find((item) => item.value === mode)?.label ?? mode}${margin}`;
 }
 
@@ -66,6 +76,7 @@ export default function CustomLockCard({
   const offsetMinutes = Math.max(0, Math.round(amount)) * LOCK_UNIT_MINUTES[unit];
   let modes = BRACKET_LOCK_MODES;
   if (matchday) modes = MATCHDAY_LOCK_MODES;
+  else if (group.knockoutDraw) modes = DRAWN_KNOCKOUT_LOCK_MODES;
   else if (!allowProgressive) {
     modes = SINGLE_LOCK_MODES;
   }
@@ -75,7 +86,7 @@ export default function CustomLockCard({
   if (current && matchday) {
     status = describe(current.mode, current.offsetMinutes, true);
   } else if (current && lock.configured) {
-    status = describe(current.mode, current.offsetMinutes, false);
+    status = describe(current.mode, current.offsetMinutes, false, group.knockoutDraw);
     if (current.fullyLocked) status += ' · cerrado';
     else if (current.mode === 'FIXED_DATE' || current.mode === 'FIRST_MATCH') {
       status += current.lockDate ? ` · ${formatMatchDate(current.lockDate)}` : '';

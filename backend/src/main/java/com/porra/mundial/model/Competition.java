@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.Set;
 
 /** Torneo o liga deportiva. Ejemplos: "LaLiga EA Sports", "UEFA Champions League", "Mundial 2026". */
 @Entity
@@ -39,11 +40,25 @@ public class Competition {
     private Instant createdAt = Instant.now();
 
     /**
-     * Torneo oficial con cuadro propio (Worlds de LoL…): se pronostica sobre sus cruces reales, no sobre
-     * el cuadro del Mundial.
+     * Competiciones con fase de liga (jornadas) seguida de eliminatorias: además de por jornadas, se
+     * pueden pronosticar sus eliminatorias.
+     */
+    static final Set<String> LEAGUES_WITH_KNOCKOUTS = Set.of("uefa.champions", "uefa.europa", "uefa.europa.conf");
+
+    /**
+     * Torneo oficial con cuadro propio (Worlds de LoL, Copa del Rey, eliminatorias de la Champions…): se
+     * pronostica sobre sus cruces reales, no sobre el cuadro del Mundial.
      */
     public boolean hasOwnBracket() {
-        return ownerLeague == null && "TOURNAMENT".equals(formatType) && externalId != null
-                && !WORLD_CUP_EXTERNAL_ID.equals(externalId);
+        if (ownerLeague != null || externalId == null || WORLD_CUP_EXTERNAL_ID.equals(externalId)) return false;
+        return "TOURNAMENT".equals(formatType) || LEAGUES_WITH_KNOCKOUTS.contains(externalId);
+    }
+
+    /**
+     * En fútbol los cruces de cada ronda se sortean al acabar la anterior (y a veces a doble partido): no
+     * hay un cuadro fijo que rellenar de una vez, así que se pronostica quién pasa ronda a ronda.
+     */
+    public boolean drawsKnockoutRounds() {
+        return hasOwnBracket() && Sport.ofExternalId(externalId) == Sport.FOOTBALL;
     }
 }

@@ -54,10 +54,16 @@ public class CustomLockService {
      * @param anyLocked    ya se ha cerrado algo: no se admiten pronósticos nuevos
      * @param fullyLocked  todo cerrado: el pronóstico ya no se puede cambiar
      * @param nextLockAt   próximo cierre conocido, o null
+     * @param knockoutRounds en unas eliminatorias que se sortean ronda a ronda, sus rondas y cruces; null si no
      */
     public record LockState(PredictionLockMode mode, int offsetMinutes, Instant lockDate,
                             List<String> groups, List<List<Boolean>> picks, boolean anyLocked,
-                            boolean fullyLocked, Instant nextLockAt) {
+                            boolean fullyLocked, Instant nextLockAt, List<DrawnKnockout.Round> knockoutRounds) {
+        public LockState(PredictionLockMode mode, int offsetMinutes, Instant lockDate, List<String> groups,
+                         List<List<Boolean>> picks, boolean anyLocked, boolean fullyLocked, Instant nextLockAt) {
+            this(mode, offsetMinutes, lockDate, groups, picks, anyLocked, fullyLocked, nextLockAt, null);
+        }
+
         public boolean groupLocked(String group) {
             return groups.contains(group);
         }
@@ -86,6 +92,7 @@ public class CustomLockService {
             return new LockState(MatchdayLock.mode(edition), Math.max(0, edition.getLockOffsetMinutes()), null,
                     List.of(), List.of(), false, edition.isLocked(clock), null);
         }
+        if (DrawnKnockout.applies(edition)) return drawnState(edition, all);
         PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
         int offset = Math.max(0, edition.getLockOffsetMinutes());
         Instant now = clock.instant();
@@ -152,6 +159,42 @@ public class CustomLockService {
         Instant next = upcoming.stream().filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
         return new LockState(mode, offset, null, lockedGroups, picks, anyLocked, fullyLocked,
                 fullyLocked ? null : next);
+    }
+
+    /**
+     * Eliminatorias sorteadas ronda a ronda: cada ronda se cierra al empezar su primer partido o, por
+     * eliminatorias, cada cruce al empezar su ida (menos el margen). Lo que aún no se ha sorteado no se
+     * cierra, y entrar tarde está permitido: solo se pierden las rondas ya cerradas.
+     */
+    private LockState drawnState(Edition edition, List<Match> all) {
+        PredictionLockMode mode = edition.getLockMode() == PredictionLockMode.PER_MATCH
+                ? PredictionLockMode.PER_MATCH : PredictionLockMode.PER_ROUND;
+        int offset = Math.max(0, edition.getLockOffsetMinutes());
+        Instant now = clock.instant();
+        List<DrawnKnockout.Round> rounds = DrawnKnockout.rounds(edition, all);
+        List<Instant> upcoming = new ArrayList<>();
+        List<List<Boolean>> picks = new ArrayList<>();
+        boolean anyLocked = false;
+        for (DrawnKnockout.Round round : rounds) {
+            List<Match> firstLegs = round.ties().stream().map(tie -> tie.legs().get(0)).toList();
+            boolean drawn = round.drawn();
+            boolean roundLocked = drawn && mode == PredictionLockMode.PER_ROUND
+                    && anyStarted(firstLegs, offset, now, upcoming);
+            List<Boolean> row = new ArrayList<>();
+            for (Match firstLeg : firstLegs) {
+                boolean locked = drawn && (roundLocked || mode == PredictionLockMode.PER_MATCH
+                        && started(firstLeg, offset, now, upcoming));
+                row.add(locked);
+                anyLocked |= locked;
+            }
+            picks.add(row);
+        }
+        DrawnKnockout.Round last = rounds.isEmpty() ? null : rounds.get(rounds.size() - 1);
+        boolean fullyLocked = last != null && "final".equals(last.key()) && last.drawn()
+                && picks.get(picks.size() - 1).stream().allMatch(Boolean::booleanValue);
+        Instant next = upcoming.stream().filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
+        return new LockState(mode, offset, null, List.of(), picks, anyLocked, fullyLocked,
+                fullyLocked ? null : next, rounds);
     }
 
     /** Lo ya cerrado no se puede cambiar: grupos cerrados y ganadores cerrados deben coincidir con lo guardado. */

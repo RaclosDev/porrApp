@@ -27,4 +27,14 @@ class MatchRoundTest {
         assertThat(MatchRound.matchdayNumber("Fecha 2026-11-24")).isNull();
         assertThat(MatchRound.matchdayNumber(null)).isNull();
     }
+
+    @Test
+    void knockoutRoundsHaveSpanishLabelsAndCanBeLookedUpByThem() {
+        com.porra.mundial.model.Match octavos = com.porra.mundial.model.Match.builder().round("r16").build();
+
+        assertThat(MatchRound.label(octavos)).isEqualTo("Octavos de final");
+        assertThat(MatchRound.lookup("Octavos de final").names()).contains("r16");
+        assertThat(MatchRound.matches(octavos, "Octavos de final")).isTrue();
+        assertThat(MatchRound.matches(octavos, "r16")).isTrue();
+    }
 }
