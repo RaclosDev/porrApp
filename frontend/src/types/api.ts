@@ -362,6 +362,10 @@ interface SurvivorPick {
 export interface SurvivorStatus {
   eliminated: boolean;
   survived: number;
+  /** Jornada en que cayó, o null si sigue vivo. */
+  eliminatedRound: string | null;
+  /** Cayó por no elegir equipo en esa jornada. */
+  missed: boolean;
   picks: SurvivorPick[];
 }
 

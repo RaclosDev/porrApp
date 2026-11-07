@@ -24,8 +24,8 @@ export default function ScoringRulesPanel({
         <p className="scoring-row-hint">
           Superviviente: en cada jornada eliges un equipo que gane, y no puedes repetir equipo en
           toda la temporada. Si gana, sigues vivo y sumas 1 jornada superada; si empata o pierde,
-          quedas eliminado. Si no eliges en una jornada, no sumas pero sigues vivo. Gana quien
-          supere más jornadas.
+          quedas eliminado. Elegir es obligatorio: si empiezan todos los partidos de una jornada sin
+          que hayas elegido, también quedas eliminado. Gana quien supere más jornadas.
         </p>
       )}
       {scoring.poolFormat === 'MATCH_DAY' && signOnly && (

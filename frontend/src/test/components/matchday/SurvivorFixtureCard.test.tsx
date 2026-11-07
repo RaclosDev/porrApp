@@ -95,6 +95,8 @@ describe('SurvivorStatusBar', () => {
         status={{
           eliminated: false,
           survived: 2,
+          eliminatedRound: null,
+          missed: false,
           picks: [
             {
               matchId: 1,
@@ -128,6 +130,8 @@ describe('SurvivorStatusBar', () => {
         status={{
           eliminated: true,
           survived: 0,
+          eliminatedRound: 'Jornada 4',
+          missed: false,
           picks: [
             {
               matchId: 1,
@@ -143,5 +147,21 @@ describe('SurvivorStatusBar', () => {
     );
 
     expect(screen.getByText('Eliminado en Jornada 4')).toBeInTheDocument();
+  });
+
+  it('dice si cayó por no elegir equipo', () => {
+    render(
+      <SurvivorStatusBar
+        status={{
+          eliminated: true,
+          survived: 3,
+          eliminatedRound: 'Jornada 5',
+          missed: true,
+          picks: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/Eliminado en Jornada 5 por no elegir equipo/)).toBeInTheDocument();
   });
 });
