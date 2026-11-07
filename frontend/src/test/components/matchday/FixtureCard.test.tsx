@@ -49,28 +49,27 @@ describe('FixtureCard', () => {
 });
 
 describe('MatchdayHeader', () => {
-  const header = (canEdit: boolean) =>
+  const header = (isLoading: boolean) =>
     render(
       <MatchdayHeader
         title="Liga"
         isLocked={false}
-        canEdit={canEdit}
+        isLoading={isLoading}
         predicted={3}
         total={3}
-        isSaving={false}
-        onSave={vi.fn()}
         successMsg=""
         errorMsg=""
       />,
     );
 
-  it('oculta «Guardar» si no queda ningún partido abierto', () => {
-    header(false);
-    expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
+  it('no muestra un «0/0» falso mientras cargan los partidos', () => {
+    header(true);
+    expect(screen.queryByText(/predicciones/)).not.toBeInTheDocument();
   });
 
-  it('muestra «Guardar» con partidos abiertos', () => {
-    header(true);
-    expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled();
+  it('muestra el progreso y ningún botón de guardar fijo', () => {
+    header(false);
+    expect(screen.getByText('3/3 predicciones')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Guardar/ })).not.toBeInTheDocument();
   });
 });
