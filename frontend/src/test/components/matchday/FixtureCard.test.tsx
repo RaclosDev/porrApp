@@ -11,7 +11,6 @@ const renderCard = (fixture: Partial<MatchdayFixture>, sign = '') =>
       fixture={matchdayFixture({ homeTeam: 'Sevilla', awayTeam: 'Betis', ...fixture })}
       prediction={{ homeScore: '', awayScore: '', sign }}
       locked
-      disabled={false}
       onQuickSign={vi.fn()}
       onShowFriends={vi.fn()}
     />,
@@ -57,8 +56,9 @@ describe('MatchdayHeader', () => {
         isLoading={isLoading}
         predicted={3}
         total={3}
-        successMsg=""
+        saveStatus="idle"
         errorMsg=""
+        onRetry={vi.fn()}
       />,
     );
 
