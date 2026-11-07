@@ -4,22 +4,19 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
 import org.springframework.web.filter.ShallowEtagHeaderFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.resource.PathResourceResolver;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Configuración web de Spring MVC:
  * - CORS granular para la API REST y las vistas/imágenes públicas de invitación.
- * - Enrutamiento y fallback SPA para React.
+ * - Archivos estáticos del frontend (las páginas de la SPA van en SpaPageController).
  * - Cacheo HTTP inmutable de 1 año para assets estáticos hashed (/assets/**) y noCache para entrypoints dinámicos.
  */
 @Configuration
@@ -66,27 +63,12 @@ public class WebConfig implements WebMvcConfigurer {
                 .setCacheControl(CacheControl.noCache())
                 .setUseLastModified(false);
 
-        // SPA Fallback
+        // Resto de archivos públicos (iconos, imágenes, robots.txt...). Las páginas de la SPA las
+        // sirve SpaPageController; una dirección sin archivo ni página termina en un 404 real.
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
                 .setCacheControl(CacheControl.noCache())
-                .setUseLastModified(false)
-                .resourceChain(true)
-                .addResolver(new PathResourceResolver() {
-                    @Override
-                    protected Resource getResource(String resourcePath, Resource location) throws IOException {
-                        Resource requestedResource = location.createRelative(resourcePath);
-                        if (requestedResource.exists() && requestedResource.isReadable()) {
-                            return requestedResource;
-                        }
-
-                        if (resourcePath.startsWith("api") || resourcePath.startsWith("/api")) {
-                            return null;
-                        }
-
-                        return location.createRelative("index.html");
-                    }
-                });
+                .setUseLastModified(false);
     }
 
     /**

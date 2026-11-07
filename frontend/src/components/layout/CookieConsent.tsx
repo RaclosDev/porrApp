@@ -28,7 +28,7 @@ export default function CookieConsent() {
         ¿Nos dejas usar cookies de Google Analytics para saber cuánta gente usa PorrApp y qué
         mejorar? Sin publicidad ni perfiles.{' '}
         <Link to="/privacidad" className="underline">
-          Más información
+          Política de privacidad
         </Link>
       </p>
       <div className="mt-[5px] flex gap-2.5">

@@ -3,6 +3,7 @@ package com.porra.mundial.controller;
 import com.porra.mundial.config.RequestBodyLimitFilter;
 import com.porra.mundial.dto.ErrorResponse;
 import com.porra.mundial.exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Traduce las excepciones a respuestas {@code {"error": "..."}} con el código HTTP adecuado,
@@ -99,6 +101,15 @@ public class GlobalExceptionHandler {
             }
         }
         return error(HttpStatus.BAD_REQUEST, "La petición no tiene un formato válido.");
+    }
+
+    /** Una página inexistente responde 404 con el HTML de la app; un recurso o la API, con JSON. */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<?> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+        if (SpaPageController.isPageRequest(request)) {
+            return SpaPageController.notFound(request);
+        }
+        return error(HttpStatus.NOT_FOUND, "No se ha encontrado el recurso.");
     }
 
     @ExceptionHandler(Exception.class)
