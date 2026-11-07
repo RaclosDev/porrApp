@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
@@ -37,8 +38,11 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     private final ObjectMapper objectMapper;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
 
-    private static final String BASE_SOCCER_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer";
-    private static final String BASE_STANDINGS_URL = "https://site.api.espn.com/apis/v2/sports/soccer";
+    private static final String BASE_SITE_URL = "https://site.api.espn.com/apis/site/v2/sports/";
+    private static final String BASE_STANDINGS_URL = "https://site.api.espn.com/apis/v2/sports/";
+
+    /** Competiciones de ESPN que no son de fútbol, con su ruta en la API («deporte/liga»). */
+    private static final Map<String, String> OTHER_SPORT_PATHS = Map.of(NflSchedule.EXTERNAL_ID, NflSchedule.ESPN_PATH);
 
     private static final Set<String> KNOWN_SLUGS = Set.of(
             "esp.1", "esp.2", "esp.copa_del_rey", "uefa.champions", "uefa.europa",
@@ -55,7 +59,7 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     public boolean supports(String competitionCode) {
         if (competitionCode == null || competitionCode.isBlank()) return true;
         String lower = competitionCode.toLowerCase().trim();
-        if (KNOWN_SLUGS.contains(lower)) return true;
+        if (KNOWN_SLUGS.contains(lower) || OTHER_SPORT_PATHS.containsKey(lower)) return true;
         return lower.contains("laliga") || lower.contains("champions") || lower.contains("premier")
                 || lower.contains("world cup") || lower.contains("mundial") || lower.contains("serie a")
                 || lower.contains("bundesliga") || lower.contains("ligue 1") || lower.contains("copa")
@@ -70,7 +74,7 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     @Override
     public JsonNode fetchScoreboardEvents(String competitionSlug, String dateRange) throws Exception {
         String slug = resolveSlug(competitionSlug);
-        String url = BASE_SOCCER_URL + "/" + slug + "/scoreboard";
+        String url = siteUrl(slug) + "/scoreboard";
 
         if ("fifa.world".equalsIgnoreCase(slug)) {
             String dateParam = (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) ? dateRange : "2026";
@@ -85,16 +89,17 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         if (root == null) return objectMapper.createArrayNode();
         JsonNode events = root.path("events");
         if (!events.isArray()) throw new IOException("ESPN devolvió un marcador sin events");
+        if (NflSchedule.isNfl(slug)) NflSchedule.namespaceTeamIds(events);
         return events;
     }
 
     @Override
     public JsonNode fetchEvent(String competitionSlug, String eventId) throws Exception {
         String slug = resolveSlug(competitionSlug);
-        if (!KNOWN_SLUGS.contains(slug) || eventId == null || !eventId.matches("[0-9]{1,20}")) {
+        if (!(KNOWN_SLUGS.contains(slug) || OTHER_SPORT_PATHS.containsKey(slug)) || eventId == null || !eventId.matches("[0-9]{1,20}")) {
             throw new IllegalArgumentException("Competición o identificador de evento no válido");
         }
-        JsonNode header = executeGet(BASE_SOCCER_URL + "/" + slug + "/summary?event=" + eventId).path("header");
+        JsonNode header = executeGet(siteUrl(slug) + "/summary?event=" + eventId).path("header");
         JsonNode competitions = header.path("competitions");
         if (!eventId.equals(header.path("id").asText()) || !slug.equals(header.path("league").path("slug").asText())
                 || !competitions.isArray() || competitions.size() != 1
@@ -107,25 +112,29 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         event.set("competitions", competitions);
         event.set("season", header.path("season"));
         event.set("league", header.path("league"));
+        event.set("week", header.path("week"));
+        if (NflSchedule.isNfl(slug)) NflSchedule.namespaceTeamIds(event);
         return event;
     }
 
     @Override
     public JsonNode fetchTeams(String competitionSlug) throws Exception {
         String slug = resolveSlug(competitionSlug);
-        String url = BASE_SOCCER_URL + "/" + slug + "/teams";
+        String url = siteUrl(slug) + "/teams";
 
         JsonNode root = executeGet(url);
         if (root == null) return objectMapper.createArrayNode();
 
         JsonNode teamsArray = root.path("sports").path(0).path("leagues").path(0).path("teams");
-        return teamsArray.isArray() ? teamsArray : objectMapper.createArrayNode();
+        if (!teamsArray.isArray()) return objectMapper.createArrayNode();
+        if (NflSchedule.isNfl(slug)) NflSchedule.namespaceTeamIds(teamsArray);
+        return teamsArray;
     }
 
     @Override
     public JsonNode fetchStandings(String competitionSlug) throws Exception {
         String slug = resolveSlug(competitionSlug);
-        String url = BASE_STANDINGS_URL + "/" + slug + "/standings";
+        String url = BASE_STANDINGS_URL + sportPath(slug) + "/standings";
 
         return executeGet(url);
     }
@@ -133,7 +142,7 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     @Override
     public List<String> fetchSeasonCalendarDates(String competitionSlug) throws Exception {
         String slug = resolveSlug(competitionSlug);
-        String url = BASE_SOCCER_URL + "/" + slug + "/scoreboard";
+        String url = siteUrl(slug) + "/scoreboard";
 
         JsonNode root = executeGet(url);
         if (root == null) return Collections.emptyList();
@@ -159,7 +168,7 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     /** El marcador sin fecha trae el calendario de la temporada en curso ({@code calendarStartDate}/{@code EndDate}). */
     @Override
     public SeasonWindow fetchSeasonWindow(String competitionSlug) throws Exception {
-        JsonNode league = executeGet(BASE_SOCCER_URL + "/" + resolveSlug(competitionSlug) + "/scoreboard")
+        JsonNode league = executeGet(siteUrl(resolveSlug(competitionSlug)) + "/scoreboard")
                 .path("leagues").path(0);
         String start = league.path("calendarStartDate").asText(null);
         String end = league.path("calendarEndDate").asText(null);
@@ -242,6 +251,15 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         }
 
         return objectMapper.readTree(json);
+    }
+
+    /** Ruta de la competición en ESPN: «soccer/esp.1», «football/nfl»… */
+    private static String sportPath(String slug) {
+        return OTHER_SPORT_PATHS.getOrDefault(slug, "soccer/" + slug);
+    }
+
+    private static String siteUrl(String slug) {
+        return BASE_SITE_URL + sportPath(slug);
     }
 
     private String resolveSlug(String code) {

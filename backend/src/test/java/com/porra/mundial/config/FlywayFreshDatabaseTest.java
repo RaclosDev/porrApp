@@ -62,8 +62,9 @@ class FlywayFreshDatabaseTest {
 
         try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
              Statement st = c.createStatement()) {
-            // 13 de V10 y la Fórmula 1 de V21.
-            assertThat(queryLong(st, "SELECT count(*) FROM competitions")).isEqualTo(14);
+            // Cada deporte nuevo añade sus competiciones oficiales: aquí se comprueba que estén las de partida.
+            assertThat(queryLong(st, "SELECT count(*) FROM competitions")).isGreaterThanOrEqualTo(15);
+            assertThat(queryLong(st, "SELECT count(*) FROM competitions WHERE external_id = 'nfl' AND format_type = 'LEAGUE'")).isEqualTo(1);
             assertThat(queryLong(st, "SELECT count(*) FROM competitions WHERE external_id = 'f1' AND format_type = 'RACE'"))
                     .isEqualTo(1);
             assertThat(queryLong(st, "SELECT id FROM competitions WHERE external_id = 'fifa.world'")).isEqualTo(1);

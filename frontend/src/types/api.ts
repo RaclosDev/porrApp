@@ -46,7 +46,7 @@ export interface UserPreferences {
 // --- Competiciones y partidos ---
 
 /** Deporte de una competición oficial (`Sport` en el servidor). */
-export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS' | 'FORMULA_1';
+export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS' | 'FORMULA_1' | 'AMERICAN_FOOTBALL';
 
 export interface Competition {
   id: number;
@@ -435,6 +435,8 @@ export type ScoringRuleKey = keyof ScoringRules;
 /** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */
 export interface LeagueScoring {
   matchSignOnly?: boolean;
+  /** Deporte de la competición de la liga: en la NFL se puntúa el ganador, sin empate. */
+  sport?: Sport | null;
   /** Eliminatorias sorteadas ronda a ronda: se puntúa cada cruce acertado según su ronda. */
   knockoutDraw?: boolean;
   poolFormat: PoolFormat | null;
@@ -485,6 +487,8 @@ export interface MatchdayFixture {
   groupName: string | null;
   /** Competición del partido, solo en las ligas que juntan varias. */
   competitionName?: string | null;
+  /** Deporte del partido: en la NFL se predice quién gana, sin X. */
+  sport?: Sport | null;
   finished: boolean | null;
   status: string | null;
   actualHomeScore: number | null;

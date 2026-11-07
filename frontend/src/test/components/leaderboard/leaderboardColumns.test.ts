@@ -55,6 +55,9 @@ describe('leaderboard helpers', () => {
   it('shortens matchday labels', () => {
     expect(compactMatchdayLabel('Fecha 2026-03-14')).toBe('14/03');
     expect(compactMatchdayLabel('Octavos')).toBe('Octavos');
+    expect(compactMatchdayLabel('Semana 9')).toBe('S9');
+    expect(compactMatchdayLabel('Super Bowl')).toBe('SB');
+    expect(compactMatchdayLabel('Ronda de comodines')).toBe('WC');
     expect(compactMatchdayLabel(null)).toBe('');
   });
 

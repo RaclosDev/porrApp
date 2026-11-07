@@ -50,6 +50,7 @@ export const SPORT_LABELS: Record<SportChoice, string> = {
   FOOTBALL: 'Fútbol',
   LEAGUE_OF_LEGENDS: 'League of Legends',
   FORMULA_1: 'Fórmula 1',
+  AMERICAN_FOOTBALL: 'Fútbol americano',
   OTHER: 'Otro deporte',
 };
 
@@ -60,7 +61,9 @@ const competitionSport = (competition: Competition): Sport =>
     ? 'LEAGUE_OF_LEGENDS'
     : competition.externalId === 'f1'
       ? 'FORMULA_1'
-      : 'FOOTBALL');
+      : competition.externalId === 'nfl'
+        ? 'AMERICAN_FOOTBALL'
+        : 'FOOTBALL');
 
 /** Competiciones en las que aún se puede crear una liga: las terminadas no se ofrecen. */
 const openCompetitions = (ctx: DraftContext) => ctx.competitions.filter((item) => !item.finished);
@@ -158,7 +161,7 @@ export const formatsForSport = (sport: SportChoice | null): PoolFormat[] =>
     : POOL_FORMAT_ORDER.filter((format) => format !== 'GRAND_PRIX');
 
 /** Cómo se juega cada formato, contado a quien aún no lo conoce. */
-export const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
+const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
   MATCH_DAY: {
     title: 'Por jornadas',
     text: 'En cada jornada predices quién gana cada partido: 1, X o 2. Cada acierto suma y gana quien más puntos lleve al final.',
@@ -191,11 +194,22 @@ const KNOCKOUT_DRAW_COPY = {
 export const isKnockoutDraw = (draft: LeagueDraft, ctx: DraftContext) =>
   Boolean(selectedCompetition(draft, ctx)?.knockoutDraw);
 
+/** Por jornadas y superviviente en la NFL: semana a semana y sin empate. */
+const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string }>> = {
+  MATCH_DAY: {
+    title: 'Por semanas',
+    text: 'Cada semana, y en los playoffs hasta la Super Bowl, predices quién gana cada partido. Cada acierto suma y gana quien más puntos lleve al final.',
+  },
+  SURVIVOR: {
+    title: 'Superviviente',
+    text: 'Cada semana eliges un equipo que gane, sin repetir equipo. Si pierde, o si no eliges, quedas fuera; la liga puede dar vidas extra. Gana quien aguante más semanas.',
+  },
+};
+
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
-  return format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)
-    ? KNOCKOUT_DRAW_COPY
-    : FORMAT_COPY[format];
+  if (format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)) return KNOCKOUT_DRAW_COPY;
+  return (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) || FORMAT_COPY[format];
 }
 
 /** Por qué un formato no se puede elegir con esta competición, o null si se puede. */
@@ -499,7 +513,9 @@ export function readStoredDraft(): LeagueDraft {
         : base.scoring;
     return {
       sport: pick('sport', (value) =>
-        ['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'FORMULA_1', 'OTHER'].includes(value as string),
+        ['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'FORMULA_1', 'AMERICAN_FOOTBALL', 'OTHER'].includes(
+          value as string,
+        ),
       ),
       competitionId: pick('competitionId', (value) => typeof value === 'number'),
       custom: pick('custom', isBool),
