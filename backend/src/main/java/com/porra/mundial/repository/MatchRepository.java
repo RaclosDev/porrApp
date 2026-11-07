@@ -61,6 +61,15 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     long countByCompetitionId(Long competitionId);
 
     /**
+     * Por competición: partidos, partidos sin terminar y partidos de fase de grupos. Sirve para saber al
+     * crear una liga si la competición ya acabó y si tiene grupos que pronosticar.
+     */
+    @Query("SELECT m.competition.id, COUNT(m), SUM(CASE WHEN m.finished = true THEN 0 ELSE 1 END), "
+            + "SUM(CASE WHEN m.groupName IS NOT NULL AND m.groupName <> '' THEN 1 ELSE 0 END) "
+            + "FROM Match m WHERE m.competition IS NOT NULL GROUP BY m.competition.id")
+    List<Object[]> calendarStatsByCompetition();
+
+    /**
      * Partidos de una competición que pueden ser de una jornada ({@code MatchRound.lookup}): por ronda o
      * grupo, por día o sin fecha. Con sus equipos, en una sola consulta.
      */

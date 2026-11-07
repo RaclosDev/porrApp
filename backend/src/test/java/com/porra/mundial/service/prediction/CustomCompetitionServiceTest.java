@@ -197,6 +197,23 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
+    void survivorClosesLikeAMatchdayLeague() {
+        Edition edition = bracketEdition();
+        edition.setPoolFormat(com.porra.mundial.model.PoolFormat.SURVIVOR);
+        edition.setLockDate(Instant.now().plus(2, ChronoUnit.DAYS));
+
+        service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_DAY, 60, null);
+
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_DAY, edition.getLockMode());
+        assertEquals(60, edition.getLockOffsetMinutes());
+        // Una fecha única cerraría todas las elecciones a la vez.
+        assertNull(edition.getLockDate());
+        assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.FIXED_DATE, 0, Instant.now().plus(1, ChronoUnit.DAYS)));
+    }
+
+    @Test
     void changingTheCriterionMayReopenClosedPicks() {
         Edition edition = bracketEdition();
         edition.setLockMode(com.porra.mundial.model.PredictionLockMode.PER_ROUND);

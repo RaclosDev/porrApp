@@ -136,8 +136,8 @@ public class LeagueService {
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
 
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()
-                && matchRepository.countByCompetitionId(comp.getId()) == 0) {
+        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
+            // Siempre la temporada entera, aunque ya haya partidos sueltos de la sincronización diaria.
             // Se importa tras confirmar la liga: si ESPN falla, la liga ya está creada.
             eventPublisher.publishEvent(new CompetitionImportRequestedEvent(comp.getId()));
         }

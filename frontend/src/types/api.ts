@@ -53,6 +53,10 @@ export interface Competition {
   formatType: CompetitionFormat;
   /** Lo manda `GET /competitions`; falta en datos guardados antes de existir. */
   sport?: Sport;
+  /** Ya se han jugado todos sus partidos importados. */
+  finished?: boolean;
+  /** Si tiene fase de grupos; null mientras no haya partidos importados. */
+  groupStage?: boolean | null;
 }
 
 export interface Match {

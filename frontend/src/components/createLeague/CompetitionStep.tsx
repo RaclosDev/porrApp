@@ -1,4 +1,10 @@
-import { CUSTOM_NAME_MAX, FIELD_IDS, competitionsOfSport, errorId } from './leagueDraft';
+import {
+  CUSTOM_NAME_MAX,
+  FIELD_IDS,
+  competitionUnavailableReason,
+  competitionsOfSport,
+  errorId,
+} from './leagueDraft';
 import { FieldError, OptionCard } from './parts';
 import type { StepProps } from './useLeagueDraft';
 
@@ -76,6 +82,7 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
                   checked={!draft.custom && draft.competitionId === competition.id}
                   onChange={() => update({ custom: false, competitionId: competition.id })}
                   title={competition.name}
+                  disabledReason={competitionUnavailableReason(competition)}
                 />
               ))}
             </div>

@@ -81,8 +81,8 @@ public class CustomLockService {
     }
 
     private LockState state(Edition edition, List<Match> all) {
-        if (edition.getPoolFormat() == PoolFormat.MATCH_DAY) {
-            // Por jornadas cada partido se cierra por su cuenta: aquí solo interesa el criterio elegido.
+        if (PoolFormat.isMatchBased(edition.getPoolFormat())) {
+            // Por jornadas (y superviviente) cada partido se cierra por su cuenta: aquí solo interesa el criterio elegido.
             return new LockState(MatchdayLock.mode(edition), Math.max(0, edition.getLockOffsetMinutes()), null,
                     List.of(), List.of(), false, edition.isLocked(clock), null);
         }

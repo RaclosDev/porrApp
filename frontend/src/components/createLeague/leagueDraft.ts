@@ -54,6 +54,10 @@ export function sportChoices(ctx: DraftContext): SportChoice[] {
   return [...sports, 'OTHER'];
 }
 
+/** Por qué no se puede crear una liga sobre esta competición, o null si se puede. */
+export const competitionUnavailableReason = (competition: Competition) =>
+  competition.finished ? 'Ya ha terminado: no quedan partidos por jugar.' : null;
+
 export const competitionsOfSport = (ctx: DraftContext, sport: SportChoice | null) =>
   ctx.competitions.filter((item) => competitionSport(item) === sport);
 
@@ -154,6 +158,13 @@ export function formatUnavailableReason(
     return 'Necesita una competición oficial: los resultados llegan solos y así se sabe quién cae.';
   }
   const competition = selectedCompetition(draft, ctx);
+  if (
+    format === 'FULL_BRACKET' &&
+    competition?.formatType === 'TOURNAMENT' &&
+    competition.groupStage === false
+  ) {
+    return 'Este torneo no tiene fase de grupos: elige Solo eliminatorias.';
+  }
   if (!isMatchBasedFormat(format) && competition?.formatType === 'LEAGUE') {
     return 'En PorrApp esta competición se juega por jornadas: no tiene cuadro que rellenar.';
   }
@@ -167,10 +178,10 @@ const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
   return competition?.formatType === 'TOURNAMENT' && competition.externalId !== 'fifa.world';
 };
 
-/** Cierres que admite el formato elegido; vacío en superviviente, que cierra cada partido. */
+/** Cierres que admite el formato elegido. Superviviente se pronostica partido a partido: como jornadas. */
 export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOption[] {
-  if (draft.poolFormat === 'MATCH_DAY') return MATCHDAY_LOCK_MODES;
-  if (draft.poolFormat === 'SURVIVOR' || draft.poolFormat == null) return [];
+  if (draft.poolFormat == null) return [];
+  if (isMatchBasedFormat(draft.poolFormat)) return MATCHDAY_LOCK_MODES;
   return allowsProgressiveLock(draft, ctx) ? BRACKET_LOCK_MODES : SINGLE_LOCK_MODES;
 }
 
@@ -181,7 +192,7 @@ export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOpt
 function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode | null {
   const modes = lockModesFor(draft, ctx);
   if (modes.length === 0) return null;
-  if (draft.poolFormat === 'MATCH_DAY') return 'PER_MATCH';
+  if (isMatchBasedFormat(draft.poolFormat)) return 'PER_MATCH';
   return modes.some((item) => item.value === 'PER_ROUND') ? 'PER_ROUND' : 'FIRST_MATCH';
 }
 
@@ -211,7 +222,8 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   if (next.sport == null && chosen) next.sport = competitionSport(chosen);
   // Sin competiciones oficiales del deporte, solo cabe una personalizada.
   if (next.sport === 'OTHER') next.custom = true;
-  if (chosen && competitionSport(chosen) !== next.sport) next.competitionId = null;
+  if (chosen && (competitionSport(chosen) !== next.sport || chosen.finished))
+    next.competitionId = null;
   if (next.custom) next.competitionId = null;
   if (next.poolFormat && formatUnavailableReason(next.poolFormat, next, ctx))
     next.poolFormat = null;

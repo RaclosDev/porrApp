@@ -83,4 +83,16 @@ public interface SportsDataProvider {
     default List<String> fetchSeasonCalendarDates(String competitionSlug) throws Exception {
         return Collections.emptyList();
     }
+
+    /**
+     * Inicio y fin de la temporada en curso según el proveedor, en ISO (ej. "2026-06-05T04:00Z").
+     *
+     * @return null si el proveedor no lo sabe
+     */
+    default SeasonWindow fetchSeasonWindow(String competitionSlug) throws Exception {
+        return null;
+    }
+
+    /** Fechas de inicio y fin de una temporada tal como las da el proveedor. */
+    record SeasonWindow(String start, String end) {}
 }
