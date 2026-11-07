@@ -83,11 +83,43 @@ public class CustomCompetitionController {
     /** Estado del cierre; las fechas en hora de Madrid con su desfase, como el resto de la API. */
     public record LockStateResponse(String mode, int offsetMinutes, String lockDate, List<String> lockedGroups,
                                     List<List<Boolean>> lockedPicks, boolean anyLocked, boolean fullyLocked,
-                                    String nextLockAt) {
+                                    String nextLockAt, List<KnockoutRoundResponse> knockoutRounds) {
         static LockStateResponse of(CustomLockService.LockState state) {
             return new LockStateResponse(state.mode().name(), state.offsetMinutes(),
                     MadridDateTimeSerializer.format(state.lockDate()), state.groups(), state.picks(),
-                    state.anyLocked(), state.fullyLocked(), MadridDateTimeSerializer.format(state.nextLockAt()));
+                    state.anyLocked(), state.fullyLocked(), MadridDateTimeSerializer.format(state.nextLockAt()),
+                    state.knockoutRounds() == null ? null
+                            : state.knockoutRounds().stream().map(KnockoutRoundResponse::of).toList());
+        }
+    }
+
+    /**
+     * Ronda de unas eliminatorias sorteadas ronda a ronda.
+     *
+     * @param round        "playoff", "r32", "r16", "qf", "sf" o "final"
+     * @param drawn        ya se conocen todos sus cruces: se puede pronosticar
+     * @param expectedTies cruces que tiene la ronda, para pintar los que faltan por sortear
+     * @param ties         cruces en el orden en que se guardan las elecciones
+     */
+    public record KnockoutRoundResponse(String round, boolean drawn, int expectedTies, List<KnockoutTieResponse> ties) {
+        static KnockoutRoundResponse of(com.porra.mundial.service.prediction.DrawnKnockout.Round round) {
+            return new KnockoutRoundResponse(round.key(), round.drawn(), round.expectedTies(),
+                    round.ties().stream().map(KnockoutTieResponse::of).toList());
+        }
+    }
+
+    /**
+     * Cruce: el local es el de la ida; {@code matchIds} son sus partidos por fecha y {@code winner}, quién
+     * pasa cuando ya se ha decidido.
+     */
+    public record KnockoutTieResponse(String home, String away, String winner, List<Long> matchIds) {
+        static KnockoutTieResponse of(com.porra.mundial.service.prediction.DrawnKnockout.Tie tie) {
+            return new KnockoutTieResponse(name(tie.home()), name(tie.away()), name(tie.winner()),
+                    tie.legs().stream().map(com.porra.mundial.model.Match::getId).toList());
+        }
+
+        private static String name(com.porra.mundial.model.Team team) {
+            return team == null || com.porra.mundial.model.Team.isPlaceholder(team) ? null : team.getName();
         }
     }
 

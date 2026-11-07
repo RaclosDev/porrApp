@@ -61,11 +61,16 @@ public class CustomCompetitionService {
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
         }
-        if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+        // Por jornadas y superviviente se pronostica partido a partido: se cierran igual.
+        if (com.porra.mundial.model.PoolFormat.isMatchBased(edition.getPoolFormat())) {
             return setMatchdayLock(edition, mode, offset);
         }
         if (mode == PredictionLockMode.PER_DAY) {
             throw BusinessException.badRequest("El cierre por días es solo para ligas por jornadas");
+        }
+        if (DrawnKnockout.applies(edition) && !mode.progressive()) {
+            // Las rondas siguientes aún no tienen cruces: no puede cerrarse todo a la vez.
+            throw BusinessException.badRequest("Los cruces se sortean ronda a ronda: se cierra por rondas o por eliminatorias");
         }
         if (mode.progressive() && !PredictableBracket.applies(edition)) {
             throw BusinessException.badRequest("Esta competición solo admite cerrar en una fecha o en el primer partido");
@@ -97,6 +102,8 @@ public class CustomCompetitionService {
         }
         edition.setLockMode(mode);
         edition.setLockOffsetMinutes(offset);
+        // Cada partido se cierra por su cuenta: una fecha de cierre de antes cerraría toda la liga.
+        edition.setLockDate(null);
         return edition;
     }
 

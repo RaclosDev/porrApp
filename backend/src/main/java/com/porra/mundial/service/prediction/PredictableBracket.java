@@ -47,7 +47,7 @@ public final class PredictableBracket {
             return result;
         }
         Map<String, List<Match>> byRound = all.stream()
-                .filter(match -> KNOCKOUT_ROUNDS.contains(match.getRound()))
+                .filter(match -> match.getRound() != null && KNOCKOUT_ROUNDS.contains(match.getRound()))
                 .collect(Collectors.groupingBy(Match::getRound));
         int first = 0;
         while (first < KNOCKOUT_ROUNDS.size() && !byRound.containsKey(KNOCKOUT_ROUNDS.get(first))) first++;

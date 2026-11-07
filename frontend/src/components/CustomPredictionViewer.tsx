@@ -7,6 +7,8 @@ import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
 import { getCustomRoundTitle } from '../utils/customBracket';
 import { useDialogFocus } from '../hooks/useDialogFocus';
+import { useCustomLock } from '../hooks/useCustomLock';
+import { knockoutRoundTitle } from '../utils/knockoutDraw';
 import Flag from './Flag';
 import { ViewerModal } from './prediction/ViewerFrame';
 import '../styles/custom-prediction-viewer.css';
@@ -18,7 +20,11 @@ export default function CustomPredictionViewer({
   predictionId: string | number;
   onClose: () => void;
 }) {
-  const { activeGroupId, activeGroupCustomCompetition, allGames } = useAppContext();
+  const { activeGroupId, activeGroupCustomCompetition, activeGroupKnockoutDraw, allGames } =
+    useAppContext();
+  // En unas eliminatorias sorteadas ronda a ronda cada lista es una ronda real con sus cruces.
+  const lock = useCustomLock(activeGroupKnockoutDraw ? activeGroupId : null);
+  const knockoutRounds = activeGroupKnockoutDraw ? (lock.state?.knockoutRounds ?? []) : null;
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(dialogRef, { active: true, onEscape: onClose });
 
@@ -134,15 +140,28 @@ export default function CustomPredictionViewer({
                   {rounds.map((round, index) => (
                     <section key={index} className="custom-viewer-card">
                       <h4 className="album-sheet-title">
-                        {getCustomRoundTitle(index, rounds.length)}
+                        {knockoutRounds
+                          ? knockoutRoundTitle(knockoutRounds[index]?.round ?? '')
+                          : getCustomRoundTitle(index, rounds.length)}
                       </h4>
                       <ol className="custom-viewer-list">
-                        {round.map((winner, position) => (
-                          <li key={position}>
-                            <span className="custom-viewer-index">C{position + 1}</span>
-                            {teamName(winner)}
-                          </li>
-                        ))}
+                        {round.map((winner, position) => {
+                          const tie = knockoutRounds?.[index]?.ties[position];
+                          // En unas eliminatorias sorteadas se dice de qué cruce es cada elección.
+                          return tie ? (
+                            <li key={position} className="custom-viewer-tie">
+                              <span className="custom-viewer-tie-label">
+                                {tie.home ?? '?'} – {tie.away ?? '?'}
+                              </span>
+                              {teamName(winner, 'Sin elegir u oculto')}
+                            </li>
+                          ) : (
+                            <li key={position}>
+                              <span className="custom-viewer-index">C{position + 1}</span>
+                              {teamName(winner)}
+                            </li>
+                          );
+                        })}
                       </ol>
                     </section>
                   ))}

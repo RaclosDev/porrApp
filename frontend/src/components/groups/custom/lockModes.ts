@@ -50,6 +50,20 @@ export const MATCHDAY_LOCK_MODES: LockModeOption[] = [
 ];
 
 /** Los modos que solo aceptan cerrar todo a la vez, sin rondas ni partidos. */
+/** Eliminatorias sorteadas ronda a ronda: las rondas siguientes aún no tienen cruces, no se cierra todo a la vez. */
+export const DRAWN_KNOCKOUT_LOCK_MODES: LockModeOption[] = [
+  {
+    value: 'PER_ROUND',
+    label: 'Por rondas',
+    hint: 'Cada ronda se abre tras su sorteo y se cierra al empezar su primer partido.',
+  },
+  {
+    value: 'PER_MATCH',
+    label: 'Por eliminatorias',
+    hint: 'Cada eliminatoria se cierra al empezar su partido de ida.',
+  },
+];
+
 export const SINGLE_LOCK_MODES = BRACKET_LOCK_MODES.filter(
   (item) => item.value === 'FIXED_DATE' || item.value === 'FIRST_MATCH',
 );

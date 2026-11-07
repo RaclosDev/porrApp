@@ -12,11 +12,16 @@ import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
 import CustomBracket from './CustomBracket';
+import KnockoutDrawPredictor from './KnockoutDrawPredictor';
 
 function Bracket() {
   // Las competiciones personalizadas y los torneos oficiales con cuadro propio (Worlds de LoL…) se
   // pronostican sobre sus cruces; el editor de grupos y terceros es solo del Mundial.
-  const { activeGroupOwnBracket } = useAppContext();
+  const { activeGroupOwnBracket, activeGroupKnockoutDraw } = useAppContext();
+  // Champions, Copa del Rey…: los cruces se sortean ronda a ronda y se pronostican igual.
+  if (activeGroupKnockoutDraw) {
+    return <KnockoutDrawPredictor />;
+  }
   if (activeGroupOwnBracket) {
     return <CustomBracket />;
   }

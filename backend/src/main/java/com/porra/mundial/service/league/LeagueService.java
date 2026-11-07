@@ -100,6 +100,9 @@ public class LeagueService {
                 throw BusinessException.forbidden("Esta competición pertenece a otra liga");
             }
             comp = resolveCanonicalCompetition(comp);
+            if (comp.drawsKnockoutRounds() && poolFormat == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
+                throw BusinessException.badRequest("Los cruces de esta competición se sortean ronda a ronda: elige Solo eliminatorias");
+            }
         }
 
         League group = League.builder()
@@ -131,13 +134,17 @@ public class LeagueService {
                 .competition(comp)
                 .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
                 .lockDate(Edition.defaultLockDate(comp, poolFormat))
+                // Unas eliminatorias sorteadas ronda a ronda no pueden cerrarse de una vez.
+                .lockMode(comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
+                        ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
+                        : com.porra.mundial.model.PredictionLockMode.FIXED_DATE)
                 .pichichi(!custom && pichichi)
                 .status("ACTIVE")
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
 
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()
-                && matchRepository.countByCompetitionId(comp.getId()) == 0) {
+        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
+            // Siempre la temporada entera, aunque ya haya partidos sueltos de la sincronización diaria.
             // Se importa tras confirmar la liga: si ESPN falla, la liga ya está creada.
             eventPublisher.publishEvent(new CompetitionImportRequestedEvent(comp.getId()));
         }

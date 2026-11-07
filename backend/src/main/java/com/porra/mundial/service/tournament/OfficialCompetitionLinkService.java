@@ -64,7 +64,8 @@ public class OfficialCompetitionLinkService {
             throw BusinessException.badRequest("Solo se pueden pasar ligas de cuadro");
         }
         Competition official = competitionRepository.findById(competitionId)
-                .filter(Competition::hasOwnBracket)
+                // Un cuadro sorteado ronda a ronda no tiene árbol al que pasar las predicciones.
+                .filter(competition -> competition.hasOwnBracket() && !competition.drawsKnockoutRounds())
                 .orElseThrow(() -> BusinessException.badRequest("Esa competición no tiene un cuadro propio"));
 
         List<Match> customFirst = firstRound(custom);

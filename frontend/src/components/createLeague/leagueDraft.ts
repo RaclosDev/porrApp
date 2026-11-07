@@ -11,6 +11,7 @@ import {
 import { isMatchBasedFormat } from '../../utils/poolFormat';
 import {
   BRACKET_LOCK_MODES,
+  DRAWN_KNOCKOUT_LOCK_MODES,
   LOCK_UNIT_MINUTES,
   MATCHDAY_LOCK_MODES,
   MAX_LOCK_OFFSET_MINUTES,
@@ -147,6 +148,23 @@ export const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = 
   },
 };
 
+/** Solo eliminatorias en una competición que las sortea ronda a ronda (Champions, Copa del Rey…). */
+const KNOCKOUT_DRAW_COPY = {
+  title: 'Solo eliminatorias',
+  text: 'Tras cada sorteo eliges quién pasa cada eliminatoria, ronda a ronda hasta el campeón. En las de ida y vuelta cuenta quién pasa, no cada partido.',
+};
+
+/** Las eliminatorias de la competición elegida se sortean ronda a ronda. */
+export const isKnockoutDraw = (draft: LeagueDraft, ctx: DraftContext) =>
+  Boolean(selectedCompetition(draft, ctx)?.knockoutDraw);
+
+/** Cómo se juega un formato con la competición elegida. */
+export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
+  return format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)
+    ? KNOCKOUT_DRAW_COPY
+    : FORMAT_COPY[format];
+}
+
 /** Por qué un formato no se puede elegir con esta competición, o null si se puede. */
 export function formatUnavailableReason(
   format: PoolFormat,
@@ -158,6 +176,9 @@ export function formatUnavailableReason(
     return 'Necesita una competición oficial: los resultados llegan solos y así se sabe quién cae.';
   }
   const competition = selectedCompetition(draft, ctx);
+  if (format === 'FULL_BRACKET' && competition?.knockoutDraw) {
+    return 'Los cruces se sortean ronda a ronda: elige Solo eliminatorias.';
+  }
   if (
     format === 'FULL_BRACKET' &&
     competition?.formatType === 'TOURNAMENT' &&
@@ -165,7 +186,11 @@ export function formatUnavailableReason(
   ) {
     return 'Este torneo no tiene fase de grupos: elige Solo eliminatorias.';
   }
-  if (!isMatchBasedFormat(format) && competition?.formatType === 'LEAGUE') {
+  if (
+    !isMatchBasedFormat(format) &&
+    competition?.formatType === 'LEAGUE' &&
+    !competition.knockoutDraw
+  ) {
     return 'En PorrApp esta competición se juega por jornadas: no tiene cuadro que rellenar.';
   }
   return null;
@@ -182,6 +207,7 @@ const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
 export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOption[] {
   if (draft.poolFormat == null) return [];
   if (isMatchBasedFormat(draft.poolFormat)) return MATCHDAY_LOCK_MODES;
+  if (isKnockoutDraw(draft, ctx)) return DRAWN_KNOCKOUT_LOCK_MODES;
   return allowsProgressiveLock(draft, ctx) ? BRACKET_LOCK_MODES : SINGLE_LOCK_MODES;
 }
 
@@ -196,9 +222,13 @@ function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode 
   return modes.some((item) => item.value === 'PER_ROUND') ? 'PER_ROUND' : 'FIRST_MATCH';
 }
 
-/** El pichichi solo se pronostica en el cuadro de un torneo oficial de fútbol. */
+/**
+ * El pichichi solo se pronostica en el cuadro de un torneo oficial de fútbol con cuadro fijo (el
+ * Mundial): en unas eliminatorias sorteadas ronda a ronda no se puntúa.
+ */
 export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   !draft.custom &&
+  !isKnockoutDraw(draft, ctx) &&
   draft.sport === 'FOOTBALL' &&
   selectedCompetition(draft, ctx)?.formatType === 'TOURNAMENT' &&
   draft.poolFormat != null &&

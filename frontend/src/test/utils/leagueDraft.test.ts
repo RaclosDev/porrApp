@@ -4,6 +4,7 @@ import type { Competition } from '../../types/api';
 import { DEFAULT_SCORING_RULES, SCORING_MAX_POINTS } from '../../utils/scoringRules';
 import {
   buildCreateRequest,
+  competitionUnavailableReason,
   competitionsOfSport,
   sportChoices,
   emptyDraft,
@@ -119,7 +120,57 @@ describe('borrador de liga', () => {
       'FIXED_DATE',
       'FIRST_MATCH',
     ]);
-    expect(draftWith({ competitionId: 1, poolFormat: 'SURVIVOR' }).lockMode).toBeNull();
+    // Superviviente se pronostica partido a partido: se cierra como una liga por jornadas.
+    const survivor = draftWith({ competitionId: 1, poolFormat: 'SURVIVOR' });
+    expect(survivor.lockMode).toBe('PER_MATCH');
+    expect(lockModesFor(survivor, ctx).map((mode) => mode.value)).toEqual([
+      'PER_MATCH',
+      'PER_DAY',
+      'PER_ROUND',
+    ]);
+  });
+
+  it('no deja elegir una competición terminada ni un cuadro completo sin grupos', () => {
+    const withData = {
+      competitions: [
+        competition({
+          id: 5,
+          name: 'Mundial',
+          externalId: 'fifa.world',
+          formatType: 'TOURNAMENT',
+          finished: true,
+          groupStage: true,
+        }),
+        competition({
+          id: 6,
+          name: 'Copa',
+          externalId: 'esp.copa_del_rey',
+          formatType: 'TOURNAMENT',
+          groupStage: false,
+        }),
+        competition({
+          id: 7,
+          name: 'Libertadores',
+          externalId: 'conmebol.libertadores',
+          formatType: 'TOURNAMENT',
+          groupStage: null,
+        }),
+      ],
+    };
+    expect(competitionUnavailableReason(withData.competitions[0])).toMatch(/terminado/);
+    expect(
+      normalizeDraft({ ...emptyDraft(), sport: 'FOOTBALL', competitionId: 5 }, withData)
+        .competitionId,
+    ).toBeNull();
+    const copa = normalizeDraft({ ...emptyDraft(), sport: 'FOOTBALL', competitionId: 6 }, withData);
+    expect(formatUnavailableReason('FULL_BRACKET', copa, withData)).toMatch(/fase de grupos/);
+    expect(formatUnavailableReason('KNOCKOUTS_ONLY', copa, withData)).toBeNull();
+    // Sin partidos importados aún no se sabe: se deja elegir.
+    const libertadores = normalizeDraft(
+      { ...emptyDraft(), sport: 'FOOTBALL', competitionId: 7 },
+      withData,
+    );
+    expect(formatUnavailableReason('FULL_BRACKET', libertadores, withData)).toBeNull();
   });
 
   it('valida cada paso y no deja pasar de uno con algo pendiente', () => {

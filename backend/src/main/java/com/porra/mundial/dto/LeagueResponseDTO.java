@@ -35,6 +35,8 @@ public class LeagueResponseDTO {
     private String competitionName;
     /** Formato de competición física: "LEAGUE" o "TOURNAMENT". */
     private String formatType;
+    /** Eliminatorias que se sortean ronda a ronda (Champions, Copa del Rey…): se pronostica ronda a ronda. */
+    private boolean knockoutDraw;
     /** Formato de porra / modalidad (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY). */
     private String poolFormat;
     /** Si esta edición cuenta con un premio/ranking al pichichi. */
@@ -96,6 +98,18 @@ public class LeagueResponseDTO {
         return builder.build();
     }
 
+    /**
+     * Formato de la competición tal como la juega la liga: unas eliminatorias de la Champions se juegan
+     * como torneo aunque la competición sea de liga (su fase de liga va por jornadas).
+     */
+    private static String playedFormatType(Competition competition, Edition edition) {
+        if (competition == null) return null;
+        if (competition.hasOwnBracket() && !com.porra.mundial.model.PoolFormat.isMatchBased(edition.getPoolFormat())) {
+            return "TOURNAMENT";
+        }
+        return competition.getFormatType();
+    }
+
     private static LeagueResponseDTOBuilder withEdition(LeagueResponseDTOBuilder builder, Edition edition) {
         Competition competition = edition.getCompetition();
         return builder
@@ -103,7 +117,9 @@ public class LeagueResponseDTO {
                 .customCompetition(competition != null && competition.getOwnerLeague() != null)
                 .competitionExternalId(competition != null ? competition.getExternalId() : null)
                 .competitionName(competition != null ? competition.getName() : null)
-                .formatType(competition != null ? competition.getFormatType() : null)
+                .formatType(playedFormatType(competition, edition))
+                .knockoutDraw(competition != null && competition.drawsKnockoutRounds()
+                        && !com.porra.mundial.model.PoolFormat.isMatchBased(edition.getPoolFormat()))
                 .poolFormat(edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null)
                 .lockMode(edition.getLockMode() != null ? edition.getLockMode().name() : null)
                 .lockOffsetMinutes(edition.getLockOffsetMinutes())
