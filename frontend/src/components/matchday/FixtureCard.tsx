@@ -20,6 +20,16 @@ interface FixtureCardProps {
   /** Quién ha votado cada signo; solo llega cuando el partido está cerrado. */
   voters?: MatchVoters;
   onShowVoters?: (fixture: MatchdayFixture) => void;
+  /** Liga superviviente: se elige un equipo que gane en vez de un signo 1X2. */
+  survivor?: SurvivorOptions;
+}
+
+export interface SurvivorOptions {
+  /** Equipos ya usados en otras jornadas, con la jornada en que se eligieron. */
+  usedTeams: Map<number, string>;
+  /** Eliminado: ya no puede elegir. */
+  eliminated: boolean;
+  onPick: (matchId: number, sign: '1' | '2') => void;
 }
 
 const SIGNS: MatchSign[] = ['1', 'X', '2'];
@@ -34,6 +44,7 @@ export default function FixtureCard({
   onShowFriends,
   voters,
   onShowVoters,
+  survivor,
 }: FixtureCardProps) {
   const inputDisabled = locked;
   const teams = [
@@ -54,7 +65,10 @@ export default function FixtureCard({
       : null;
   const inPlay = fixture.status === 'LIVE' || fixture.status === 'PAUSED';
   // Terminado sin predicción: también se dice que no suma, para que cada partido cerrado tenga su balance.
-  const showPoints = (fixture.finished || inPlay) && (points != null || fixture.finished);
+  // En superviviente solo se juega un partido por jornada: los demás no tienen balance que mostrar.
+  const showPoints = survivor
+    ? (fixture.finished || inPlay) && points != null
+    : (fixture.finished || inPlay) && (points != null || fixture.finished);
 
   return (
     <div className={`md-match${locked ? ' is-locked' : ''}`}>
@@ -103,25 +117,35 @@ export default function FixtureCard({
         ))}
       </div>
 
-      <div className="md-signs" role="group" aria-label={`Predicción de ${matchName}`}>
-        {SIGNS.map((s) => {
-          const isSelected = prediction.sign === s;
-          const isResult = resultSign === s;
-          return (
-            <button
-              key={s}
-              type="button"
-              disabled={inputDisabled}
-              onClick={() => onQuickSign(fixture.matchId, s)}
-              className={`md-sign-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
-              aria-label={`Predecir ${s} en ${matchName}${isResult ? ' (resultado final)' : ''}`}
-              aria-pressed={isSelected}
-            >
-              {s}
-            </button>
-          );
-        })}
-      </div>
+      {survivor ? (
+        <SurvivorPick
+          fixture={fixture}
+          sign={prediction.sign}
+          resultSign={resultSign}
+          locked={inputDisabled}
+          options={survivor}
+        />
+      ) : (
+        <div className="md-signs" role="group" aria-label={`Predicción de ${matchName}`}>
+          {SIGNS.map((s) => {
+            const isSelected = prediction.sign === s;
+            const isResult = resultSign === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                disabled={inputDisabled}
+                onClick={() => onQuickSign(fixture.matchId, s)}
+                className={`md-sign-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
+                aria-label={`Predecir ${s} en ${matchName}${isResult ? ' (resultado final)' : ''}`}
+                aria-pressed={isSelected}
+              >
+                {s}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {voters && onShowVoters && (
         <SignVoters voters={voters} matchName={matchName} onOpen={() => onShowVoters(fixture)} />
       )}
@@ -137,13 +161,59 @@ export default function FixtureCard({
               ? 'Sin predicción'
               : fixture.scoringDetails || (scored ? 'Predicción acertada' : 'Fallada')}
           </span>
-          <span
-            className={`font-extrabold text-[0.95rem] shrink-0 ${scored ? 'text-[var(--hit)]' : 'text-muted'}`}
-          >
-            {scored ? `+${points}` : '0'} pts
-          </span>
+          {!survivor && (
+            <span
+              className={`font-extrabold text-[0.95rem] shrink-0 ${scored ? 'text-[var(--hit)]' : 'text-muted'}`}
+            >
+              {scored ? `+${points}` : '0'} pts
+            </span>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+interface SurvivorPickProps {
+  fixture: MatchdayFixture;
+  sign: string;
+  resultSign: MatchSign | null;
+  locked: boolean;
+  options: SurvivorOptions;
+}
+
+/** Superviviente: un botón por equipo para elegir quién gana. Sin empate. */
+function SurvivorPick({ fixture, sign, resultSign, locked, options }: SurvivorPickProps) {
+  const sides = [
+    { s: '1' as const, team: fixture.homeTeam, teamId: fixture.homeTeamId },
+    { s: '2' as const, team: fixture.awayTeam, teamId: fixture.awayTeamId },
+  ];
+  return (
+    <div
+      className="md-signs md-survivor"
+      role="group"
+      aria-label={`Elige quién gana: ${fixture.homeTeam} o ${fixture.awayTeam}`}
+    >
+      {sides.map(({ s, team, teamId }) => {
+        const isSelected = sign === s;
+        const usedIn = teamId != null ? options.usedTeams.get(teamId) : undefined;
+        const isResult = resultSign === s;
+        const disabled = locked || options.eliminated || (Boolean(usedIn) && !isSelected);
+        return (
+          <button
+            key={s}
+            type="button"
+            disabled={disabled}
+            onClick={() => options.onPick(fixture.matchId, s)}
+            className={`md-sign-btn md-survivor-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
+            aria-pressed={isSelected}
+            title={usedIn ? `Ya lo elegiste en ${usedIn}` : undefined}
+          >
+            <span className="md-survivor-team">Gana {team}</span>
+            {usedIn && !isSelected && <span className="md-survivor-used">Usado en {usedIn}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }

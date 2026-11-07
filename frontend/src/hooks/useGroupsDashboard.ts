@@ -21,6 +21,7 @@ import { errorMessage } from '../utils/errors';
 import { isApiError } from '../services/apiError';
 import { useAppStore } from '../store/useAppStore';
 import { confirmAction } from '../utils/confirmAction';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 /** Identificador aleatorio para la cabecera `Idempotency-Key`. */
 function newIdempotencyKey(): string {
@@ -34,6 +35,7 @@ type GroupId = number | string;
 
 export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
   { id: 'MATCH_DAY', label: 'Por jornadas (1X2 y marcador exacto)' },
+  { id: 'SURVIVOR', label: 'Superviviente (un equipo que gane por jornada)' },
   { id: 'FULL_BRACKET', label: 'Completa (fase de grupos y cruces)' },
   { id: 'KNOCKOUTS_ONLY', label: 'Solo eliminatorias' },
 ];
@@ -311,7 +313,7 @@ export function useGroupsDashboard() {
   const handleEnterGroup = (groupId: GroupId) => {
     changeGroup(groupId.toString());
     const g = groups.find((item) => item.id.toString() === groupId.toString());
-    if (g && g.poolFormat === 'MATCH_DAY') {
+    if (g && isMatchBasedFormat(g.poolFormat)) {
       navigate('/jornadas');
     } else {
       navigate('/');

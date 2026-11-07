@@ -10,6 +10,7 @@ import { currentRoundMatches, nextGroupName, upcomingMatches } from '../utils/ho
 import { displayRoundLabel } from '../utils/matchday';
 import { useSortedGroups } from './useSortedGroups';
 import type { Match } from '../types/api';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 /** Competición del cuadro oficial con grupos, terceros y cruces. */
 const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
@@ -51,7 +52,7 @@ export function useLeagueHomeFormat(): LeagueHomeFormat {
     activeGroupCustomCompetition,
     activeCompetitionExternalId,
   } = useAppContext();
-  if (activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE')
+  if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE')
     return 'matchday';
   if (activeGroupCustomCompetition) return 'custom';
   if (activeCompetitionExternalId && activeCompetitionExternalId !== WORLD_CUP_EXTERNAL_ID)

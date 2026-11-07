@@ -53,6 +53,9 @@ public class ParticipantScoreDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, Boolean> passedTeams;
     
+    /** En una liga superviviente, ya ha caído: sus puntos (jornadas superadas) no suben más. */
+    private boolean eliminated;
+
     /** Pago pendiente: no cuenta en la clasificación. */
     private boolean pending;
 

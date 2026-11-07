@@ -28,7 +28,7 @@ public final class PredictableBracket {
 
     /** La edición se pronostica sobre un cuadro propio (personalizado u oficial que no es el Mundial). */
     public static boolean applies(Edition edition) {
-        if (edition == null || edition.getPoolFormat() == PoolFormat.MATCH_DAY) return false;
+        if (edition == null || PoolFormat.isMatchBased(edition.getPoolFormat())) return false;
         Competition competition = edition.getCompetition();
         return competition != null && (competition.getOwnerLeague() != null || competition.hasOwnBracket());
     }

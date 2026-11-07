@@ -11,6 +11,7 @@ import type {
   PredictionData,
   PredictionSaved,
   PredictionSummary,
+  SurvivorStatus,
 } from '../../types/api';
 import { request, query } from '../http';
 
@@ -56,6 +57,10 @@ export const submitMatchdayPredictions = (
     json: { groupId: Number(groupId), predictions },
     fallbackError: 'Error al guardar las predicciones de la jornada',
   }).then(announceSaved);
+
+/** Situación del usuario en una liga superviviente: si sigue vivo y qué equipos ha usado. */
+export const fetchSurvivorStatus = (groupId: number | string) =>
+  request<SurvivorStatus>(`/predictions/matchday/survivor${query({ groupId })}`);
 
 export const fetchMatchdayFriendPredictions = (groupId: number | string, matchId: number) =>
   request<FriendPrediction[]>(

@@ -95,6 +95,8 @@ const TOP_SCORER: ScoringSection = {
  */
 export function scoringSections(format: PoolFormat | null, pichichi: boolean): ScoringSection[] {
   if (format === 'MATCH_DAY') return [MATCHDAY];
+  // Superviviente no tiene puntos que ajustar: cada jornada superada vale una.
+  if (format === 'SURVIVOR') return [];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
   return pichichi ? [...sections, TOP_SCORER] : sections;
 }

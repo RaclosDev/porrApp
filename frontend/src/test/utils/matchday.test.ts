@@ -12,6 +12,7 @@ import {
   roundsFromFixtures,
   roundsFromMatchdays,
   sortNumberedRounds,
+  survivorUsedTeams,
   withSign,
   withoutSaved,
   type Draft,
@@ -254,5 +255,29 @@ describe('formatMatchDate', () => {
 
   it('formats a valid date with weekday, day, month and time', () => {
     expect(formatMatchDate('2026-06-13T18:00:00Z')).toMatch(/^sáb, 13 jun, \d{2}:00$/);
+  });
+});
+
+describe('survivorUsedTeams', () => {
+  const pick = (round: string, teamId: number) => ({
+    matchId: teamId,
+    round,
+    teamId,
+    teamName: `Equipo ${teamId}`,
+    teamLogo: null,
+    result: 'PENDING' as const,
+  });
+
+  it('cuenta los equipos de otras jornadas, no el de la jornada abierta', () => {
+    const used = survivorUsedTeams(
+      { eliminated: false, survived: 1, picks: [pick('Jornada 1', 7), pick('Jornada 2', 8)] },
+      'Jornada 2',
+    );
+
+    expect([...used.entries()]).toEqual([[7, 'Jornada 1']]);
+  });
+
+  it('sin estado no hay equipos usados', () => {
+    expect(survivorUsedTeams(null, 'Jornada 1').size).toBe(0);
   });
 });

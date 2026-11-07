@@ -11,6 +11,7 @@ import {
   ListOrdered,
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 /** Navegación inferior en móvil (hasta 768 px); el resalte se desliza a la pestaña activa. */
 export default function MobileBottomNav() {
@@ -28,7 +29,7 @@ export default function MobileBottomNav() {
   const isDemo = isDemoMode;
   const isNavLocked = isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo;
   const isMatchDay =
-    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
 
   const navItems = isDemo
     ? [

@@ -21,6 +21,7 @@ import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
 import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
 import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -70,7 +71,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const sessionPending = useSessionHandoffPending();
   useIosSessionHandoff();
   const isMatchDayLeague =
-    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
 
   const location = useLocation();
   const isDemo = isDemoMode;

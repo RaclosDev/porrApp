@@ -18,6 +18,7 @@ import { queryKeys } from '../services/queryKeys';
 import { featuredGroupQuery, leaguePredictionsQuery, myGroupsQuery } from '../services/queries';
 import { useAppStore } from '../store/useAppStore';
 import type { Group, MatchRadar } from '../types/api';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
 // se unan sin fricción con el tipo de cada consulta.
@@ -131,7 +132,7 @@ function useLeagueState() {
     // Se pronostica sobre sus propios cruces: competición personalizada o torneo oficial que no es
     // el Mundial (Worlds de LoL…). Las de jornadas no tienen cuadro.
     activeGroupOwnBracket:
-      groupInfo?.poolFormat !== 'MATCH_DAY' &&
+      !isMatchBasedFormat(groupInfo?.poolFormat) &&
       (Boolean(groupInfo?.customCompetition) ||
         (groupInfo?.formatType === 'TOURNAMENT' &&
           Boolean(groupInfo?.competitionExternalId) &&
@@ -146,7 +147,7 @@ function useLeagueState() {
     activeCompetitionFormatType:
       groupInfo?.formatType ||
       (activeGroupPoolFormat
-        ? activeGroupPoolFormat === 'MATCH_DAY'
+        ? isMatchBasedFormat(activeGroupPoolFormat)
           ? 'LEAGUE'
           : 'TOURNAMENT'
         : null),
@@ -262,7 +263,7 @@ export function useLeagueRanking() {
   const activeGroupId = useAppStore((s) => s.activeGroupId);
   const { groupInfo } = useLeagueState();
   const isMatchdayPool =
-    groupInfo?.poolFormat === 'MATCH_DAY' || groupInfo?.formatType === 'LEAGUE';
+    isMatchBasedFormat(groupInfo?.poolFormat) || groupInfo?.formatType === 'LEAGUE';
 
   // Los pronósticos de toda la liga son pesados: aquí solo se leen de la caché. Los piden las
   // pantallas que los usan (useLeaguePredictions); el resto no los descarga.

@@ -4,6 +4,7 @@ import type { GroupsDashboardState } from '../../hooks/useGroupsDashboard';
 import type { Group, LeagueSummary } from '../../types/api';
 import { LeagueAvatar } from '../Avatar';
 import InkStamp from '../InkStamp';
+import { poolFormatShortLabel } from '../../utils/poolFormat';
 
 interface GroupCardProps {
   group: Group;
@@ -40,7 +41,7 @@ export default function GroupCard({
   const actionsId = `group-actions-${group.id}`;
   const meta = [
     group.competitionName,
-    group.poolFormat ? (group.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro') : null,
+    group.poolFormat ? poolFormatShortLabel(group.poolFormat) : null,
   ].filter(Boolean);
   const pending = summary?.pendingPredictions ?? 0;
 
