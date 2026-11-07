@@ -93,6 +93,7 @@ function useLeagueState() {
           name: fromList.name,
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
+          multiCompetition: fromList.multiCompetition,
           competitionExternalId: fromList.competitionExternalId,
           customCompetition: fromList.customCompetition,
           formatType: fromList.formatType,
@@ -144,7 +145,8 @@ function useLeagueState() {
     activeGroupLockDate: groupInfo?.lockDate || null,
     activeGroupRules: groupInfo?.rules || '',
     activeCompetitionId,
-    activeCompetitionName: groupInfo?.competitionName || null,
+    // Una liga de varias competiciones no es la porra de una sola (la imagen para compartir lo dice).
+    activeCompetitionName: groupInfo?.multiCompetition ? null : groupInfo?.competitionName || null,
     activeCompetitionExternalId: groupInfo?.competitionExternalId || null,
     activeCompetitionFormatType:
       groupInfo?.formatType ||

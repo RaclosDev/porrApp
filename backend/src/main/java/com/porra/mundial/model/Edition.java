@@ -75,6 +75,14 @@ public class Edition {
     @Builder.Default
     private MatchSelectionMode matchSelection = MatchSelectionMode.ALL;
 
+    /**
+     * Si la liga junta partidos de varias competiciones oficiales (las guarda {@code edition_competitions};
+     * {@link #competition} es la principal). Sus jornadas son semanas de lunes a domingo.
+     */
+    @Column(name = "multi_competition", nullable = false)
+    @Builder.Default
+    private boolean multiCompetition = false;
+
     /** Configuración serializada de reglas de puntuación para esta edición. */
     @Column(name = "scoring_rules_json", columnDefinition = "TEXT")
     private String scoringRulesJson;

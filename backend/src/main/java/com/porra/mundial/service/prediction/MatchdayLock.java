@@ -59,11 +59,14 @@ public final class MatchdayLock {
         return locks;
     }
 
-    /** Grupo de partidos que se cierran juntos: el mismo partido, el mismo día o la misma jornada. */
+    /**
+     * Grupo de partidos que se cierran juntos: el mismo partido, el mismo día o la misma jornada (la de
+     * la liga: en una que junta varias competiciones, la semana).
+     */
     public static Function<Match, Object> groupKey(Edition edition) {
         return switch (mode(edition)) {
             case PER_DAY -> match -> AppTime.day(match.getMatchDate());
-            case PER_ROUND -> MatchRound::label;
+            case PER_ROUND -> match -> MatchRound.label(edition, match);
             default -> Match::getId;
         };
     }

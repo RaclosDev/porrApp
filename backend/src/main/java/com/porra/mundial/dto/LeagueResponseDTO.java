@@ -50,6 +50,8 @@ public class LeagueResponseDTO {
     private Integer lockOffsetMinutes;
     /** Qué partidos entran en una liga por jornadas: ALL o CUSTOM (elegidos por el administrador). */
     private String matchSelection;
+    /** La liga junta partidos de varias competiciones oficiales (la de {@link #competitionId} es la principal). */
+    private boolean multiCompetition;
     /** Si la edición se encuentra cerrada para nuevos pronósticos o cambios. */
     private Boolean isLocked;
     /** Reglas personalizadas de la liga. */
@@ -126,6 +128,7 @@ public class LeagueResponseDTO {
                 .lockMode(edition.getLockMode() != null ? edition.getLockMode().name() : null)
                 .lockOffsetMinutes(edition.getLockOffsetMinutes())
                 .matchSelection(edition.getMatchSelection() != null ? edition.getMatchSelection().name() : null)
+                .multiCompetition(edition.isMultiCompetition())
                 .pichichi(edition.isPichichi());
     }
 }

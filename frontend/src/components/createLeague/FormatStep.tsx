@@ -1,7 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchSelectableMatches } from '../../services/api';
-import { queryKeys } from '../../services/queryKeys';
 import MatchSelectionPicker from '../matchSelection/MatchSelectionPicker';
+import { addableCompetitions, leagueCompetitionIds } from '../matchSelection/matchSelection';
+import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
 import {
   FIELD_IDS,
   POOL_FORMAT_ORDER,
@@ -13,15 +12,18 @@ import {
 import { FieldError, OptionCard, StepSection } from './parts';
 import type { StepProps } from './useLeagueDraft';
 
-/** Qué partidos de la competición entran: todos, los de un equipo o elegidos a mano. */
-function MatchesSection({ draft, update, errors }: StepProps) {
+/**
+ * Qué partidos entran: todos, los de un equipo o elegidos a mano, también de otras competiciones
+ * oficiales del mismo deporte.
+ */
+function MatchesSection({ draft, update, errors, ctx }: StepProps) {
   const competitionId = draft.competitionId;
-  const calendar = useQuery({
-    queryKey: queryKeys.selectableMatches(competitionId),
-    queryFn: () => fetchSelectableMatches(competitionId as number),
-    enabled: competitionId != null,
-    staleTime: 5 * 60_000,
-  });
+  const calendar = useSelectableCalendar(leagueCompetitionIds(draft.matches, competitionId));
+  const primary = ctx.competitions.find((item) => item.id === competitionId);
+  const others =
+    competitionId == null
+      ? []
+      : addableCompetitions(ctx.competitions, competitionId, draft.matches.competitionIds);
   return (
     <StepSection id="cl-matches" title="Partidos">
       {calendar.isPending ? (
@@ -37,6 +39,9 @@ function MatchesSection({ draft, update, errors }: StepProps) {
           matches={calendar.data.matches}
           value={draft.matches}
           onChange={(matches) => update({ matches })}
+          primaryCompetition={primary && { id: primary.id, name: primary.name }}
+          otherCompetitions={others.map((item) => ({ id: item.id, name: item.name }))}
+          loadingCalendar={calendar.isPlaceholderData}
           fieldId={FIELD_IDS.matches}
           errorId={errors.matches ? errorId(FIELD_IDS.matches) : undefined}
         />

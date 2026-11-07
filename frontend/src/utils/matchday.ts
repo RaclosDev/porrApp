@@ -37,6 +37,9 @@ export const roundLabelFor = (fixture: MatchdayFixture): string =>
         : 'Sin jornada';
 
 const DATE_ROUND = /^Fecha (\d{4})-(\d{2})-(\d{2})$/;
+/** Semana de una liga que junta varias competiciones, por la fecha de su lunes. */
+const WEEK_ROUND = /^Semana (\d{4})-(\d{2})-(\d{2})$/;
+const WEEK_DAY_FORMAT = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
 const ROUND_DAY_FORMAT = new Intl.DateTimeFormat('es-ES', {
   weekday: 'long',
   day: 'numeric',
@@ -57,6 +60,11 @@ const KNOCKOUT_LABELS: Record<string, string> = {
 
 export function displayRoundLabel(label: string): string {
   if (KNOCKOUT_LABELS[label]) return KNOCKOUT_LABELS[label];
+  const week = WEEK_ROUND.exec(label);
+  if (week) {
+    const monday = new Date(+week[1], +week[2] - 1, +week[3]);
+    return `Semana del ${WEEK_DAY_FORMAT.format(monday).replace('.', '')}`;
+  }
   const match = DATE_ROUND.exec(label);
   if (!match) return label;
   const text = ROUND_DAY_FORMAT.format(new Date(+match[1], +match[2] - 1, +match[3]))

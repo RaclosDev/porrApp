@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 import { LeagueAvatar } from './Avatar';
-import { poolFormatShortLabel } from '../utils/poolFormat';
+import { competitionLabel, poolFormatShortLabel } from '../utils/poolFormat';
 
 /** Bandera del país de la competición; sin país conocido, la liga muestra su monograma. */
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -140,7 +140,7 @@ export default function ActiveLeagueDropdown() {
             {sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
-                const gBadge = getCompetitionBadge(g.competitionName);
+                const gBadge = g.multiCompetition ? null : getCompetitionBadge(g.competitionName);
                 return (
                   <button
                     className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(17,_24,_39,_0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)]'} text-main`}
@@ -161,7 +161,7 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {g.competitionName || 'Mundial'} · {poolFormatShortLabel(g.poolFormat)}
+                          {competitionLabel(g) || 'Mundial'} · {poolFormatShortLabel(g.poolFormat)}
                         </span>
                       </div>
                     </div>

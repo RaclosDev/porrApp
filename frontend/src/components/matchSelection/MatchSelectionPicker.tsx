@@ -3,23 +3,42 @@ import { Lock, Search } from 'lucide-react';
 import type { SelectableMatch, SelectableTeam } from '../../types/api';
 import { displayRoundLabel, formatMatchDate } from '../../utils/matchday';
 import {
+  MAX_COMPETITIONS,
   PICK_MODES,
   groupByRound,
+  isMultiCompetition,
   isSelected,
   matchesQuery,
   switchMode,
   teamsQuery,
+  toggleCompetition,
   toggleMatch,
   toggleTeam,
   type PickMode,
   type SelectionValue,
 } from './matchSelection';
 
+/** Competición que se puede juntar en la liga. */
+interface CompetitionOption {
+  id: number;
+  name: string;
+  /** Tiene partidos cerrados con predicciones en la liga: no se puede quitar. */
+  locked?: boolean;
+}
+
 interface Props {
   teams: SelectableTeam[];
   matches: SelectableMatch[];
   value: SelectionValue;
   onChange: (value: SelectionValue) => void;
+  /**
+   * Competición de la liga y las demás que se pueden juntar con ella. Sin ellas no se ofrece juntar
+   * partidos de varias competiciones.
+   */
+  primaryCompetition?: CompetitionOption;
+  otherCompetitions?: CompetitionOption[];
+  /** El calendario de las competiciones elegidas aún se está cargando. */
+  loadingCalendar?: boolean;
   /** Id del mensaje de error, para enlazarlo desde el grupo de opciones. */
   errorId?: string;
   /** Id del primer control, para enfocarlo cuando hay un error. */
@@ -35,6 +54,9 @@ export default function MatchSelectionPicker({
   matches,
   value,
   onChange,
+  primaryCompetition,
+  otherCompetitions,
+  loadingCalendar = false,
   errorId,
   fieldId,
 }: Props) {
@@ -42,6 +64,23 @@ export default function MatchSelectionPicker({
   const [teamQuery, setTeamQuery] = useState('');
   const [matchQuery, setMatchQuery] = useState('');
   const [showPlayed, setShowPlayed] = useState(false);
+  const [competitionFilter, setCompetitionFilter] = useState<number | null>(null);
+  const multi = isMultiCompetition(value);
+
+  // Nombre de cada competición, para etiquetar los partidos cuando la liga junta varias.
+  const competitionNames = useMemo(() => {
+    const names = new Map<number, string>();
+    if (primaryCompetition) names.set(primaryCompetition.id, primaryCompetition.name);
+    otherCompetitions?.forEach((item) => names.set(item.id, item.name));
+    return names;
+  }, [primaryCompetition, otherCompetitions]);
+  const leagueCompetitions = multi
+    ? value.competitionIds.filter((id) => competitionNames.has(id))
+    : [];
+  const activeFilter =
+    competitionFilter != null && value.competitionIds.includes(competitionFilter)
+      ? competitionFilter
+      : null;
 
   const selectedCount = useMemo(
     () => matches.filter((match) => isSelected(value, match)).length,
@@ -60,8 +99,12 @@ export default function MatchSelectionPicker({
               value.included.includes(match.id),
           )
         : matches;
-    return base.filter((match) => matchesQuery(match, matchQuery));
-  }, [matches, value, matchQuery]);
+    return base.filter(
+      (match) =>
+        matchesQuery(match, matchQuery) &&
+        (activeFilter == null || match.competitionId === activeFilter),
+    );
+  }, [matches, value, matchQuery, activeFilter]);
   const rounds = useMemo(() => groupByRound(listed), [listed]);
   const played = rounds.filter((group) => group.closed);
   const upcoming = rounds.filter((group) => !group.closed);
@@ -81,11 +124,13 @@ export default function MatchSelectionPicker({
         <legend className="sr-only">Qué partidos entran en la liga</legend>
         {PICK_MODES.map((mode) => {
           const id = `${uid}-mode-${mode.value}`;
+          // Con varias competiciones no caben todos sus partidos: serían demasiados por semana.
+          const unavailable = mode.value === 'ALL' && multi;
           return (
             <label
               key={mode.value}
               htmlFor={id}
-              className={`match-picker-mode${value.mode === mode.value ? ' is-checked' : ''}`}
+              className={`match-picker-mode${value.mode === mode.value ? ' is-checked' : ''}${unavailable ? ' is-disabled' : ''}`}
             >
               <input
                 id={id}
@@ -93,19 +138,78 @@ export default function MatchSelectionPicker({
                 name={`${uid}-mode`}
                 value={mode.value}
                 checked={value.mode === mode.value}
+                disabled={unavailable}
                 onChange={() => changeMode(mode.value)}
                 aria-describedby={`${id}-text`}
               />
               <span>
                 <span className="match-picker-mode-title">{mode.title}</span>
                 <span id={`${id}-text`} className="match-picker-mode-text">
-                  {mode.text}
+                  {unavailable ? 'Solo con una competición.' : mode.text}
                 </span>
               </span>
             </label>
           );
         })}
       </fieldset>
+
+      {primaryCompetition && otherCompetitions && otherCompetitions.length > 0 && (
+        <details className="match-picker-competitions" open={multi || undefined}>
+          <summary>
+            <span>Juntar partidos de otras competiciones</span>
+            {multi && (
+              <span className="match-picker-count">
+                {value.competitionIds.length} competiciones
+              </span>
+            )}
+          </summary>
+          <fieldset>
+            <legend className="sr-only">Competiciones de la liga</legend>
+            <p className="match-picker-hint">
+              Un Clásico, un derbi de la Premier y un partido de Champions en la misma liga. Las
+              jornadas pasan a ser semanas, de lunes a domingo.
+            </p>
+            <div className="match-picker-team-list">
+              <label className="match-picker-team is-checked">
+                <input type="checkbox" checked disabled />
+                <span>{primaryCompetition.name}</span>
+              </label>
+              {otherCompetitions.map((competition) => {
+                const checked = value.competitionIds.includes(competition.id);
+                const full =
+                  !checked && Math.max(1, value.competitionIds.length) >= MAX_COMPETITIONS;
+                const locked = checked && Boolean(competition.locked);
+                return (
+                  <label
+                    key={competition.id}
+                    className={`match-picker-team${checked ? ' is-checked' : ''}`}
+                    title={locked ? 'Tiene partidos cerrados con predicciones' : undefined}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={locked || full}
+                      onChange={(event) =>
+                        onChange(
+                          toggleCompetition(
+                            value,
+                            primaryCompetition.id,
+                            competition.id,
+                            event.target.checked,
+                            matches,
+                          ),
+                        )
+                      }
+                    />
+                    {locked && <Lock size={12} aria-hidden="true" />}
+                    <span>{competition.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        </details>
+      )}
 
       {value.mode === 'TEAMS' && (
         <fieldset className="match-picker-teams">
@@ -163,6 +267,25 @@ export default function MatchSelectionPicker({
               onChange={setMatchQuery}
             />
           )}
+          {leagueCompetitions.length > 1 && (
+            <div className="match-picker-filter" role="group" aria-label="Ver partidos de">
+              {[null, ...leagueCompetitions].map((id) => (
+                <button
+                  key={id ?? 'all'}
+                  type="button"
+                  aria-pressed={activeFilter === id}
+                  onClick={() => setCompetitionFilter(id)}
+                >
+                  {id == null ? 'Todas' : competitionNames.get(id)}
+                </button>
+              ))}
+            </div>
+          )}
+          {loadingCalendar && (
+            <p className="match-picker-hint" aria-live="polite">
+              Cargando el calendario…
+            </p>
+          )}
           {value.mode === 'TEAMS' && value.teamIds.length === 0 ? (
             <p className="match-picker-empty">Elige un equipo para ver sus partidos.</p>
           ) : rounds.length === 0 ? (
@@ -210,6 +333,11 @@ export default function MatchSelectionPicker({
                         <MatchRow
                           key={match.id}
                           match={match}
+                          competition={
+                            multi && match.competitionId != null
+                              ? competitionNames.get(match.competitionId)
+                              : undefined
+                          }
                           checked={isSelected(value, match)}
                           onChange={(checked) => onChange(toggleMatch(value, match, checked))}
                         />
@@ -233,10 +361,13 @@ export default function MatchSelectionPicker({
 
 function MatchRow({
   match,
+  competition,
   checked,
   onChange,
 }: {
   match: SelectableMatch;
+  /** Competición del partido, si la liga junta varias. */
+  competition?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
 }) {
@@ -259,6 +390,7 @@ function MatchRow({
             {score && <span className="match-picker-match-score"> {score}</span>}
           </span>
           <span className="match-picker-match-meta">
+            {competition && `${competition} · `}
             {formatMatchDate(match.date)}
             {match.predictions > 0 &&
               ` · ${match.predictions} ${match.predictions === 1 ? 'predicción' : 'predicciones'}`}

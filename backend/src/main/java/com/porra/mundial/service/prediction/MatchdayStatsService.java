@@ -80,8 +80,7 @@ public class MatchdayStatsService {
                 .filter(match -> match != null && match.getId() != null).distinct().toList();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, predicted,
                 MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
-                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition,
-                                matchRepository.findByCompetitionId(edition.getCompetition().getId())) : predicted);
+                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : predicted);
         Map<Long, List<MatchPrediction>> byMatch = new LinkedHashMap<>();
         for (MatchPrediction mp : all) {
             Match match = mp.getMatch();
@@ -92,7 +91,7 @@ public class MatchdayStatsService {
         }
 
         List<MatchStats> matches = byMatch.values().stream()
-                .map(MatchdayStatsService::aggregate)
+                .map(predictions -> aggregate(edition, predictions))
                 .sorted(Comparator.comparing(MatchStats::matchDate, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(MatchStats::matchId))
                 .toList();
@@ -126,8 +125,7 @@ public class MatchdayStatsService {
         List<Match> matches = all.stream().map(MatchPrediction::getMatch).distinct().toList();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
                 MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
-                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition,
-                                matchRepository.findByCompetitionId(edition.getCompetition().getId())) : matches);
+                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : matches);
 
         Instant now = Instant.now();
         Map<Long, Map<String, Map<Long, Voter>>> byMatch = new LinkedHashMap<>();
@@ -305,7 +303,7 @@ public class MatchdayStatsService {
                 || (lockAt != null && !lockAt.isAfter(now));
     }
 
-    private static MatchStats aggregate(List<MatchPrediction> predictions) {
+    private static MatchStats aggregate(Edition edition, List<MatchPrediction> predictions) {
         Match match = predictions.get(0).getMatch();
         boolean finished = Boolean.TRUE.equals(match.getFinished())
                 && match.getHomeScore() != null && match.getAwayScore() != null;
@@ -345,7 +343,7 @@ public class MatchdayStatsService {
 
         return new MatchStats(
                 match.getId(),
-                MatchRound.label(match),
+                MatchRound.label(edition, match),
                 match.getMatchDate(),
                 teamName(match.getHomeTeam()),
                 teamName(match.getAwayTeam()),

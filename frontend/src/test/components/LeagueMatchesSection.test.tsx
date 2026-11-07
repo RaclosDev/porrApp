@@ -8,12 +8,18 @@ import { confirmAction } from '../../utils/confirmAction';
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
-const api = vi.hoisted(() => ({ fetchMatchSelection: vi.fn(), saveMatchSelection: vi.fn() }));
+const api = vi.hoisted(() => ({
+  fetchMatchSelection: vi.fn(),
+  saveMatchSelection: vi.fn(),
+  fetchCompetitions: vi.fn(),
+  fetchSelectableMatchesOf: vi.fn(),
+}));
 vi.mock('../../services/api', () => api);
 
 const match = (id: number, patch: Partial<SelectableMatch>): SelectableMatch => ({
   id,
   round: 'Jornada 12',
+  competitionId: 1,
   date: '2099-11-08T21:00:00+01:00',
   homeTeamId: id * 10,
   home: `Local ${id}`,
@@ -43,7 +49,20 @@ const VIEW: MatchSelectionView = {
   ],
   removedPredictions: 0,
   keptMatches: 0,
+  competitionIds: [1],
+  competitions: [{ id: 1, name: 'LaLiga', externalId: 'esp.1', locked: false }],
 };
+
+const COMPETITIONS = [
+  { id: 1, name: 'LaLiga', externalId: 'esp.1', formatType: 'LEAGUE', sport: 'FOOTBALL' },
+  {
+    id: 2,
+    name: 'Champions',
+    externalId: 'uefa.champions',
+    formatType: 'LEAGUE',
+    sport: 'FOOTBALL',
+  },
+];
 
 const group = { id: 9, poolFormat: 'MATCH_DAY', competitionId: 1 } as Group;
 
@@ -61,6 +80,7 @@ describe('LeagueMatchesSection', () => {
     vi.clearAllMocks();
     api.fetchMatchSelection.mockResolvedValue(VIEW);
     api.saveMatchSelection.mockResolvedValue(VIEW);
+    api.fetchCompetitions.mockResolvedValue(COMPETITIONS);
   });
 
   it('pide confirmación antes de borrar predicciones y guarda la nueva selección', async () => {
@@ -79,7 +99,39 @@ describe('LeagueMatchesSection', () => {
       mode: 'CUSTOM',
       teamIds: [],
       includedMatchIds: [1, 3],
+      competitionIds: [1],
     });
+  });
+
+  it('junta partidos de otra competición con el calendario de las dos', async () => {
+    api.fetchSelectableMatchesOf.mockResolvedValue({
+      ...VIEW,
+      competitionIds: [1, 2],
+      matches: [
+        match(1, { selected: true, round: 'Semana 2099-11-02' }),
+        match(2, { selected: true, round: 'Semana 2099-11-02' }),
+        match(3, { selected: true, round: 'Semana 2099-11-02' }),
+        match(7, { competitionId: 2, selected: true, round: 'Semana 2099-11-02' }),
+      ],
+    });
+    renderSection();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir partidos' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Champions' }));
+    await waitFor(() => expect(api.fetchSelectableMatchesOf).toHaveBeenCalledWith([1, 2]));
+    fireEvent.click(await screen.findByRole('checkbox', { name: /Local 7/ }));
+    expect(screen.getAllByText(/Semana del/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar partidos' }));
+
+    await waitFor(() =>
+      expect(api.saveMatchSelection).toHaveBeenCalledWith(9, {
+        mode: 'CUSTOM',
+        teamIds: [],
+        includedMatchIds: [1, 2, 7],
+        competitionIds: [1, 2],
+      }),
+    );
+    expect(confirmAction).not.toHaveBeenCalled();
   });
 
   it('no guarda si se cancela la confirmación', async () => {

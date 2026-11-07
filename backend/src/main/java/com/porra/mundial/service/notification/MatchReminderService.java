@@ -126,22 +126,23 @@ public class MatchReminderService {
             League league = edition.getLeague();
             if (league == null) continue;
             if (edition.getCompetition() == null || edition.isLocked()) continue;
-            Long competitionId = edition.getCompetition().getId();
 
             List<Match> candidates;
             List<Match> calendar;
             if (MatchdayLock.needsWholeCalendar(edition)) {
                 // Con cierre por día o por jornada, un partido lejano puede cerrar con el primero de su grupo.
                 calendar = MatchSelectionService.leagueCalendar(matchSelectionService, edition,
-                        calendars.computeIfAbsent(competitionId, matchRepository::findByCompetitionId));
+                        id -> calendars.computeIfAbsent(id, matchRepository::findByCompetitionId));
                 candidates = calendar.stream()
                         .filter(m -> m.getMatchDate() != null && m.getMatchDate().isAfter(now)
                                 && !Boolean.TRUE.equals(m.getFinished()))
                         .toList();
             } else {
                 int offset = Math.max(0, edition.getLockOffsetMinutes());
-                candidates = matchRepository.findUnfinishedStartingBetween(competitionId, now,
-                        horizon.plus(offset, ChronoUnit.MINUTES));
+                Instant until = horizon.plus(offset, ChronoUnit.MINUTES);
+                candidates = MatchSelectionService.competitionIds(matchSelectionService, edition).stream()
+                        .flatMap(id -> matchRepository.findUnfinishedStartingBetween(id, now, until).stream())
+                        .toList();
                 calendar = candidates;
             }
             Map<Long, Instant> locks = MatchdayLock.lockTimes(edition, candidates, calendar);

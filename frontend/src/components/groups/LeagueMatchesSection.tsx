@@ -2,26 +2,34 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { ListChecks, TriangleAlert, X } from 'lucide-react';
-import { fetchMatchSelection, saveMatchSelection } from '../../services/api';
+import { fetchCompetitions, fetchMatchSelection, saveMatchSelection } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import type { Group, MatchSelectionView } from '../../types/api';
 import { confirmAction } from '../../utils/confirmAction';
 import { errorMessage } from '../../utils/errors';
 import MatchSelectionPicker from '../matchSelection/MatchSelectionPicker';
 import {
+  addableCompetitions,
+  describeCompetitions,
   describeSelection,
   fromView,
+  leagueCompetitionIds,
+  mergeCalendar,
   removedPredictions,
   selectionError,
   toRequest,
   type SelectionValue,
 } from '../matchSelection/matchSelection';
+import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
 
 /** Solo una liga por jornadas sobre una competición oficial elige sus partidos. */
 export const hasMatchSelection = (group: Group) =>
   group.poolFormat === 'MATCH_DAY' && !group.customCompetition && group.competitionId != null;
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+const sameIds = (left: number[], right: number[]) =>
+  left.length === right.length && left.every((id) => right.includes(id));
 
 /**
  * Partidos que entran en la liga, en su administración. Quitar un partido aún abierto borra sus
@@ -37,6 +45,32 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
 
   const view = selection.data;
   const saved = view ? fromView(view) : null;
+  const primaryId = view?.competitionIds[0] ?? group.competitionId;
+  const editingIds = editing ? leagueCompetitionIds(editing, primaryId) : [];
+  // Con otras competiciones que las guardadas, su calendario (por semanas si junta varias).
+  const changedCompetitions =
+    view != null && editing != null && !sameIds(editingIds, view.competitionIds);
+  const calendar = useSelectableCalendar(editingIds, changedCompetitions);
+  const competitions = useQuery({
+    queryKey: queryKeys.competitions(),
+    queryFn: fetchCompetitions,
+    enabled: editing != null,
+    staleTime: 5 * 60_000,
+  });
+  const matches =
+    view && changedCompetitions
+      ? mergeCalendar(view.matches, calendar.data?.matches)
+      : view?.matches;
+  const teams = changedCompetitions && calendar.data ? calendar.data.teams : view?.teams;
+  const primary = view?.competitions[0];
+  const others =
+    view && primaryId != null && competitions.data
+      ? addableCompetitions(competitions.data, primaryId, view.competitionIds).map((item) => ({
+          id: item.id,
+          name: item.name,
+          locked: view.competitions.some((saved) => saved.id === item.id && saved.locked),
+        }))
+      : undefined;
 
   const save = async (value: SelectionValue, current: MatchSelectionView) => {
     const problem = selectionError(value);
@@ -58,7 +92,10 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
     setError('');
     setSaving(true);
     try {
-      const result = await saveMatchSelection(group.id, toRequest(value, current.matches));
+      const result = await saveMatchSelection(
+        group.id,
+        toRequest(value, matches ?? current.matches),
+      );
       queryClient.setQueryData(queryKey, result);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.group(group.id) }),
@@ -66,6 +103,7 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
         queryClient.invalidateQueries({ queryKey: queryKeys.leaderboardMatchdays(group.id) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.matchdayFixtures(group.id) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(group.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.matchdayStats(group.id) }),
       ]);
       setEditing(null);
       toast.success(
@@ -82,7 +120,11 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
 
   let status = 'Cargando…';
   if (selection.isError) status = 'No disponible';
-  else if (view && saved) status = describeSelection(saved, view.teams, view.matches);
+  else if (view && saved) {
+    status = describeSelection(saved, view.teams, view.matches);
+    if (view.competitions.length > 1)
+      status += ` · ${describeCompetitions(view.competitions.map((item) => item.name))}`;
+  }
 
   return (
     <section className="league-admin-card">
@@ -128,13 +170,18 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
           }}
         >
           <MatchSelectionPicker
-            teams={view.teams}
-            matches={view.matches}
+            teams={teams ?? view.teams}
+            matches={matches ?? view.matches}
             value={editing}
             onChange={(value) => {
               setError('');
               setEditing(value);
             }}
+            primaryCompetition={primary && { id: primary.id, name: primary.name }}
+            otherCompetitions={others}
+            loadingCalendar={
+              changedCompetitions && (calendar.isPending || calendar.isPlaceholderData)
+            }
           />
           <div className="flex flex-wrap gap-2">
             <button type="submit" className="league-admin-btn is-primary" disabled={saving}>
@@ -157,7 +204,8 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
       <p className="league-admin-muted">
         Los partidos futuros de los equipos elegidos entran solos. Si quitas un partido que aún no
         ha empezado se borran sus predicciones en esta liga; uno ya cerrado con predicciones se
-        queda, para no cambiar la clasificación.
+        queda, para no cambiar la clasificación. Si juntas varias competiciones, las jornadas pasan
+        a ser semanas de lunes a domingo.
       </p>
     </section>
   );
