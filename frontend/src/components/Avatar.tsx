@@ -65,11 +65,13 @@ export function UserAvatar({
       radius="50%"
       fallback={
         <span
-          className="marker-ink w-full h-full rounded-full bg-[rgba(255,_255,_255,_0.06)] flex items-center justify-center leading-[1] shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,currentColor_35%,transparent)]"
+          className="marker-ink relative w-full h-full rounded-full bg-[rgba(255,_255,_255,_0.06)] flex items-center justify-center leading-[1]"
           style={{ fontSize: Math.round(size * 0.52) }}
           aria-hidden="true"
           data-testid="avatar-generated"
         >
+          {/* Aro en el color de la tinta; sin color-mix(), que html2canvas no sabe leer. */}
+          <span className="absolute inset-0 rounded-full border-[1.5px] border-current opacity-35" />
           {initialOf(name)}
         </span>
       }
