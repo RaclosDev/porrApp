@@ -2,6 +2,9 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <!-- Google solo muestra en los resultados favicons cuadrados de 48 px o múltiplos de 48. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-paper-192.png" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-paper.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-paper.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -60,17 +63,17 @@
         }
       </style>
     </noscript>
-    <title>PorrApp · Porras de fútbol con tus amigos</title>
+    <title>PorrApp · Porras de fútbol gratis con tus amigos</title>
     <meta
       name="description"
-      content="Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo."
+      content="Crea gratis tu porra de fútbol con amigos en PorrApp: predicciones del Mundial, la Eurocopa, LaLiga, la Champions y más, con clasificación en directo."
     />
 
     <!-- Open Graph (WhatsApp, Twitter, Facebook previews) -->
-    <meta property="og:title" content="PorrApp · Porras de fútbol con tus amigos" />
+    <meta property="og:title" content="PorrApp · Porras de fútbol gratis con tus amigos" />
     <meta
       property="og:description"
-      content="Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo."
+      content="Crea gratis tu porra de fútbol con amigos en PorrApp: predicciones del Mundial, la Eurocopa, LaLiga, la Champions y más, con clasificación en directo."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://porrapp.app" />
@@ -85,10 +88,10 @@
     <meta property="og:site_name" content="PorrApp" />
     <meta property="og:locale" content="es_ES" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="PorrApp · Porras de fútbol con tus amigos" />
+    <meta name="twitter:title" content="PorrApp · Porras de fútbol gratis con tus amigos" />
     <meta
       name="twitter:description"
-      content="Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo."
+      content="Crea gratis tu porra de fútbol con amigos en PorrApp: predicciones del Mundial, la Eurocopa, LaLiga, la Champions y más, con clasificación en directo."
     />
     <meta name="twitter:image" content="https://porrapp.app/og-paper.jpg" />
     <meta name="twitter:image:alt" content="Cartel de papel de PorrApp: «La porra de toda la vida, pero bien hecha» y un podio de cromos" />
@@ -138,17 +141,29 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "PorrApp",
-        "alternateName": "La Porra",
-        "url": "https://porrapp.app/",
-        "description": "Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo.",
-        "applicationCategory": "SportsApplication",
-        "operatingSystem": "Web, Android, iOS",
-        "inLanguage": "es",
-        "image": "https://porrapp.app/og-paper.jpg",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-        "author": { "@type": "Person", "name": "Carlos Sanz Tomero", "url": "https://raclosdev.github.io/" }
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://porrapp.app/#website",
+            "name": "PorrApp",
+            "alternateName": ["Porrapp", "porrapp.app", "La Porra"],
+            "url": "https://porrapp.app/",
+            "inLanguage": "es"
+          },
+          {
+            "@type": "WebApplication",
+            "name": "PorrApp",
+            "url": "https://porrapp.app/",
+            "description": "Crea gratis tu porra de fútbol con amigos en PorrApp: predicciones del Mundial, la Eurocopa, LaLiga, la Champions y más, con clasificación en directo.",
+            "applicationCategory": "SportsApplication",
+            "operatingSystem": "Web, Android, iOS",
+            "inLanguage": "es",
+            "image": "https://porrapp.app/og-paper.jpg",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+            "author": { "@type": "Person", "name": "Carlos Sanz Tomero", "url": "https://raclosdev.github.io/" },
+            "isPartOf": { "@id": "https://porrapp.app/#website" }
+          }
+        ]
       }
     </script>
   </head>
