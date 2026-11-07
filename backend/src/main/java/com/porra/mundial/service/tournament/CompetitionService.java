@@ -31,16 +31,24 @@ public class CompetitionService {
     private final MatchRepository matchRepository;
     private final EspnSportsDataProvider espnSportsDataProvider;
 
+    private static long count(Object value) {
+        return value instanceof Number number ? number.longValue() : 0;
+    }
+
     /**
-     * Competiciones con proveedor externo, ordenadas por nombre. Las que no tienen id externo
-     * no se pueden sincronizar y dejarían a la liga sin equipos ni partidos.
+     * Competiciones con proveedor externo, ordenadas por nombre, con lo que se sabe de su calendario. Las
+     * que no tienen id externo no se pueden sincronizar y dejarían a la liga sin equipos ni partidos.
      */
     @Cacheable("competitions")
     public List<CompetitionDTO> findSyncableCompetitions() {
+        Map<Long, CompetitionDTO.CalendarStats> stats = new HashMap<>();
+        for (Object[] row : matchRepository.calendarStatsByCompetition()) {
+            stats.put((Long) row[0], new CompetitionDTO.CalendarStats(count(row[1]), count(row[2]), count(row[3])));
+        }
         return competitionRepository.findAll().stream()
                 .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
                 .sorted(Comparator.comparing(Competition::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(CompetitionDTO::of)
+                .map(c -> CompetitionDTO.of(c, stats.get(c.getId())))
                 .toList();
     }
 

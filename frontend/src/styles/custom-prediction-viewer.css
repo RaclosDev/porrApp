@@ -143,6 +143,18 @@
   border-bottom: 0;
 }
 
+/* Cruce de unas eliminatorias sorteadas: los dos rivales encima y el elegido debajo. */
+.custom-viewer-list li.custom-viewer-tie {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.custom-viewer-tie-label {
+  color: #365362;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .custom-viewer-index {
   flex: 0 0 27px;
   color: #365362;

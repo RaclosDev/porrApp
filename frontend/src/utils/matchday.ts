@@ -44,7 +44,19 @@ const ROUND_DAY_FORMAT = new Intl.DateTimeFormat('es-ES', {
 });
 
 /** Texto que se muestra para una jornada: «Fecha 2026-11-24» pasa a «Martes 24 nov»; el resto no cambia. */
+/** Rondas eliminatorias tal como llegan del proveedor. */
+const KNOCKOUT_LABELS: Record<string, string> = {
+  playoff: 'Playoff',
+  r32: 'Dieciseisavos',
+  r16: 'Octavos de final',
+  qf: 'Cuartos de final',
+  sf: 'Semifinales',
+  third: 'Tercer puesto',
+  final: 'Final',
+};
+
 export function displayRoundLabel(label: string): string {
+  if (KNOCKOUT_LABELS[label]) return KNOCKOUT_LABELS[label];
   const match = DATE_ROUND.exec(label);
   if (!match) return label;
   const text = ROUND_DAY_FORMAT.format(new Date(+match[1], +match[2] - 1, +match[3]))

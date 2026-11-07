@@ -184,7 +184,7 @@ describe('matchday editing and navigation', () => {
     ]);
     render(tree());
     const roundSelect = await screen.findByLabelText('Seleccionar jornada');
-    expect(await screen.findByRole('option', { name: 'final' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Final' })).toBeInTheDocument();
     fireEvent.change(roundSelect, { target: { value: 'Fecha 2099-01-01' } });
     expect(screen.getByText('Sin ronda')).toBeInTheDocument();
     expect(screen.queryByText('Finalista')).not.toBeInTheDocument();

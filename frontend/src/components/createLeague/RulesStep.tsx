@@ -3,7 +3,14 @@ import ScoringRulesPanel from '../league/ScoringRulesPanel';
 import type { LeagueScoring } from '../../types/api';
 import { DEFAULT_SCORING_RULES, SCORING_MAX_POINTS, toDraft } from '../../utils/scoringRules';
 import type { LockUnit } from '../groups/custom/lockModes';
-import { FIELD_IDS, errorId, lockModesFor, pichichiApplies, scoringEditable } from './leagueDraft';
+import {
+  FIELD_IDS,
+  errorId,
+  isKnockoutDraw,
+  lockModesFor,
+  pichichiApplies,
+  scoringEditable,
+} from './leagueDraft';
 import { FieldError, OptionCard, StepSection } from './parts';
 import type { StepProps } from './useLeagueDraft';
 
@@ -101,6 +108,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
   const scoring: LeagueScoring = {
     poolFormat: draft.poolFormat,
     pichichi: draft.pichichi,
+    knockoutDraw: isKnockoutDraw(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
     editable: draft.customScoring,
     maxPoints: SCORING_MAX_POINTS,
     rules: DEFAULT_SCORING_RULES,

@@ -57,6 +57,8 @@ export interface Competition {
   finished?: boolean;
   /** Si tiene fase de grupos; null mientras no haya partidos importados. */
   groupStage?: boolean | null;
+  /** Sus eliminatorias se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda. */
+  knockoutDraw?: boolean;
 }
 
 export interface Match {
@@ -254,6 +256,8 @@ export interface Group {
   competitionExternalId?: string | null;
   competitionName: string | null;
   formatType: CompetitionFormat | null;
+  /** Eliminatorias sorteadas ronda a ronda: en cada ronda se elige quién pasa cada cruce. */
+  knockoutDraw?: boolean;
   poolFormat: PoolFormat | null;
   pichichi: boolean | null;
   lockDate: string | null;
@@ -291,6 +295,8 @@ export type ScoringRuleKey = keyof ScoringRules;
 /** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */
 export interface LeagueScoring {
   matchSignOnly?: boolean;
+  /** Eliminatorias sorteadas ronda a ronda: se puntúa cada cruce acertado según su ronda. */
+  knockoutDraw?: boolean;
   poolFormat: PoolFormat | null;
   pichichi: boolean;
   editable: boolean;

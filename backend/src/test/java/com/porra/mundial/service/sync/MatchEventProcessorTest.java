@@ -178,6 +178,10 @@ class MatchEventProcessorTest {
         assertEquals("sf", MatchEventProcessor.roundFromSlug("semifinals"));
         assertEquals("third", MatchEventProcessor.roundFromSlug("3rd-place-match"));
         assertEquals("final", MatchEventProcessor.roundFromSlug("final"));
+        assertEquals("playoff", MatchEventProcessor.roundFromSlug("knockout-round-playoffs"));
+        assertEquals("round1", MatchEventProcessor.roundFromSlug("first-round"));
+        assertEquals("round2", MatchEventProcessor.roundFromSlug("second-round"));
+        assertEquals("qualifying", MatchEventProcessor.roundFromSlug("qualifying-round"));
         assertNull(MatchEventProcessor.roundFromSlug("league-phase"));
         assertNull(MatchEventProcessor.roundFromSlug(null));
     }
@@ -387,5 +391,60 @@ class MatchEventProcessorTest {
         when(matchRepository.findByCompetitionIdAndRoundStartingWith(4L, "Jornada "))
                 .thenReturn(new ArrayList<>(matchday(38, 10, AppTime.fromLocal(LocalDateTime.of(2026, 5, 23, 21, 0)))));
         assertNull(processor.inferLeagueMatchday(laLiga, AppTime.fromLocal(LocalDateTime.of(2026, 8, 15, 19, 0))));
+    }
+
+    private JsonNode legEvent(String slug, int leg, String homeExtra, String awayExtra) throws Exception {
+        return JSON.readTree("""
+                {"id": "401", "date": "2026-03-10T20:00Z", "season": {"slug": "%s"},
+                 "competitions": [{
+                   "altGameNote": "UEFA Champions League, Round of 16",
+                   "leg": {"value": %d}, "series": {"totalCompetitions": 2},
+                   "status": {"type": {"state": "post", "completed": true}},
+                   "competitors": [
+                     {"homeAway": "home", "score": "1", "team": {"displayName": "Spain", "id": "164"}%s},
+                     {"homeAway": "away", "score": "0", "team": {"displayName": "Uruguay", "id": "212"}%s}
+                   ]
+                 }]}
+                """.formatted(slug, leg, homeExtra, awayExtra));
+    }
+
+    @Test
+    @DisplayName("Las eliminatorias de una competición de liga guardan su ronda y la ida no decide quién pasa")
+    void leagueKnockoutKeepsRoundAndFirstLegHasNoQualifier() throws Exception {
+        Competition champions = Competition.builder().id(5L).externalId("uefa.champions").formatType("LEAGUE").build();
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(legEvent("round-of-16", 1, ", \"winner\": true", ", \"winner\": false"), cache,
+                new MatchEventProcessor.Batch(champions));
+
+        Match match = savedMatch();
+        assertEquals("r16", match.getRound());
+        assertNull(match.getWinnerTeam(), "ganar la ida no es pasar");
+    }
+
+    @Test
+    @DisplayName("La vuelta marca quién pasa con advance")
+    void secondLegMarksTheQualifier() throws Exception {
+        Competition champions = Competition.builder().id(5L).externalId("uefa.champions").formatType("LEAGUE").build();
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(legEvent("knockout-round-playoffs", 2, ", \"winner\": true",
+                ", \"winner\": false, \"advance\": true"), cache, new MatchEventProcessor.Batch(champions));
+
+        Match match = savedMatch();
+        assertEquals("playoff", match.getRound());
+        assertSame(uruguay, match.getWinnerTeam());
+    }
+
+    @Test
+    @DisplayName("La fase de liga de una competición de liga no guarda ronda")
+    void leaguePhaseHasNoRound() throws Exception {
+        Competition champions = Competition.builder().id(5L).externalId("uefa.champions").formatType("LEAGUE").build();
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        lenient().when(matchRepository.findByCompetitionIdAndRoundStartingWith(5L, "Jornada ")).thenReturn(List.of());
+
+        processor.process(legEvent("league-phase", 1, "", ""), cache, new MatchEventProcessor.Batch(champions));
+
+        assertNotEquals("r16", savedMatch().getRound());
     }
 }

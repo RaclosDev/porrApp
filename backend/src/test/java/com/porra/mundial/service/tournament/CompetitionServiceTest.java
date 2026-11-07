@@ -55,6 +55,28 @@ class CompetitionServiceTest {
     }
 
     @Test
+    void marksFinishedCompetitionsAndGroupStages() {
+        when(competitions.findAll()).thenReturn(List.of(
+                Competition.builder().id(1L).name("Mundial").externalId("fifa.world").build(),
+                Competition.builder().id(2L).name("Serie A").externalId("ita.1").build(),
+                Competition.builder().id(3L).name("MLS").externalId("usa.1").build()));
+        when(matches.calendarStatsByCompetition()).thenReturn(List.of(
+                new Object[]{1L, 104L, 0L, 72L},
+                new Object[]{2L, 380L, 250L, 0L}));
+
+        var byName = service.findSyncableCompetitions().stream()
+                .collect(java.util.stream.Collectors.toMap(CompetitionDTO::name, dto -> dto));
+
+        assertThat(byName.get("Mundial").finished()).isTrue();
+        assertThat(byName.get("Mundial").groupStage()).isTrue();
+        assertThat(byName.get("Serie A").finished()).isFalse();
+        assertThat(byName.get("Serie A").groupStage()).isFalse();
+        // Sin partidos importados no se sabe: no se da por terminada ni se descarta la fase de grupos.
+        assertThat(byName.get("MLS").finished()).isFalse();
+        assertThat(byName.get("MLS").groupStage()).isNull();
+    }
+
+    @Test
     void privateCompetitionsHaveNoPublicStandings() {
         when(competitions.findById(4L)).thenReturn(Optional.of(
                 Competition.builder().id(4L).ownerLeague(League.builder().id(1L).build()).build()));

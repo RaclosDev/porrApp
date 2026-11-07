@@ -156,6 +156,16 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         return dates;
     }
 
+    /** El marcador sin fecha trae el calendario de la temporada en curso ({@code calendarStartDate}/{@code EndDate}). */
+    @Override
+    public SeasonWindow fetchSeasonWindow(String competitionSlug) throws Exception {
+        JsonNode league = executeGet(BASE_SOCCER_URL + "/" + resolveSlug(competitionSlug) + "/scoreboard")
+                .path("leagues").path(0);
+        String start = league.path("calendarStartDate").asText(null);
+        String end = league.path("calendarEndDate").asText(null);
+        return start == null || end == null ? null : new SeasonWindow(start, end);
+    }
+
     /** Un fallo no equivale a una jornada vacía; el sincronizador registra el error. */
     private JsonNode executeGet(String url) throws Exception {
         CircuitBreaker breaker = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER);

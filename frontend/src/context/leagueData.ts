@@ -137,6 +137,8 @@ function useLeagueState() {
         (groupInfo?.formatType === 'TOURNAMENT' &&
           Boolean(groupInfo?.competitionExternalId) &&
           groupInfo?.competitionExternalId !== 'fifa.world')),
+    // Eliminatorias que se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda.
+    activeGroupKnockoutDraw: Boolean(groupInfo?.knockoutDraw),
     activeGroupPichichi: groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : true,
     activeGroupIsLocked: Boolean(groupInfo?.isLocked),
     activeGroupLockDate: groupInfo?.lockDate || null,
