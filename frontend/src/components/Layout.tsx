@@ -75,8 +75,9 @@ function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const isDemo = isDemoMode;
 
-  // /demo activates its mode in DemoPage; do not race that activation with a redirect.
-  const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
+  // La portada es la portada aunque quede guardado el modo demo de una visita anterior: sin
+  // sesión, «/» siempre muestra la landing, sin la barra ni el menú de la demo.
+  const isLanding = location.pathname === '/' && !isUserLoggedIn;
   // En la pantalla de acceso/invitación no mostrar la navegación global: la propia
   // pantalla ya contiene el acceso con Google y el contexto de la invitación.
   const isInviteAuthScreen =
@@ -154,7 +155,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {isDemo && !isUserLoggedIn && (
+      {isDemo && !isUserLoggedIn && !isLanding && (
         <DemoBanner
           exitDemoMode={exitDemoMode}
           navigate={navigate}
@@ -166,7 +167,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className="header-left">
           <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
             <NavLink
-              to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
+              to={isUserLoggedIn ? '/' : isDemo && !isLanding ? '/demo' : '/'}
               className="header-brand-link"
               onClick={(e) => {
                 if (isNavLocked) e.preventDefault();
