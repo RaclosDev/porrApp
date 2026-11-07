@@ -524,18 +524,13 @@
     margin-inline: 0;
   }
 
+  /* Las caras empatadas van una al lado de otra, sin taparse; si la tarjeta es estrecha, bajan de línea. */
   .matchday-podium-avatars {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
+    gap: 4px;
     max-width: 100%;
-  }
-  /* Aro de papel para separar las caras que se solapan. */
-  .matchday-podium-avatars > * {
-    border-radius: 999px;
-    box-shadow: 0 0 0 2px var(--paper);
-  }
-  .matchday-podium-avatars > * + * {
-    margin-left: -18px;
   }
   .matchday-podium-ties {
     width: 100%;
