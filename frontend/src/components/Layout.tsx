@@ -179,7 +179,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
             {isLanding || isInviteAuthScreen || (!isUserLoggedIn && !isDemo) ? null : isDemo ? (
               <span className="ink-stamp ink-stamp-sm ink-stamp-ink inline-block min-w-0 truncate">
-                Mundial 2026
+                Demo
               </span>
             ) : (
               <>
