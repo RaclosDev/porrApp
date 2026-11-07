@@ -245,7 +245,6 @@ export default function Landing() {
             {...inView}
             className="landing-sticker-album mt-10 list-none"
             aria-label={`Cromos de ${leagueLabel}`}
-            tabIndex={0}
           >
             {leaders.map((row, index) => (
               <motion.li
