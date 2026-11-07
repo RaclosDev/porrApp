@@ -188,6 +188,95 @@
     font-size: 0.75rem;
   }
 
+  /* Marcador de la hoja de votantes: escudos, nombres y resultado; la X va en la esquina. */
+  .match-voters-sheet .sheet-dialog-head {
+    position: relative;
+    display: block;
+    padding: 16px 48px 12px;
+  }
+
+  .match-voters-sheet .sheet-dialog-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    margin: 0;
+  }
+
+  .match-voters-scoreboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+  }
+
+  .match-voters-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .match-voters-crest {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Hasta dos líneas: «Racing Santander» cabe entero en el móvil. */
+  .match-voters-team-name {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .match-voters-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding-top: 2px;
+  }
+
+  .match-voters-score {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .match-voters-score.is-pending {
+    color: var(--text-muted);
+    font-size: 1rem;
+  }
+
+  .match-voters-status {
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .match-voters-status.is-live {
+    color: var(--stamp-red);
+  }
+
   /* Hoja de quién eligió cada opción: reparto, filtros por opción y buscador fijos arriba. */
   .match-voters-tools {
     display: flex;
@@ -319,6 +408,14 @@
 
     .match-voters-tools {
       padding: 10px 16px;
+    }
+
+    .match-voters-sheet .sheet-dialog-head {
+      padding: 10px 44px 12px;
+    }
+
+    .match-voters-sheet .sheet-dialog-close {
+      top: 18px;
     }
   }
 

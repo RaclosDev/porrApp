@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import SheetDialog from '../SheetDialog';
 import { PeopleList } from '../PeopleListDialog';
+import Flag from '../Flag';
 import type { MatchVoter, MatchVoters } from '../../types/api';
 
 interface MatchVotersModalProps {
@@ -10,6 +11,60 @@ interface MatchVotersModalProps {
   onClose: () => void;
   /** Cruce de cuadro: no hay empate que mostrar. */
   twoWay?: boolean;
+  homeLogo?: string | null;
+  awayLogo?: string | null;
+  /** Resultado, si ya lo hay. */
+  homeScore?: number | null;
+  awayScore?: number | null;
+  /** Debajo del resultado: «Final», «En directo», el minuto… */
+  status?: string;
+  /** El partido está en juego: el estado va en rojo. */
+  live?: boolean;
+}
+
+/** Cabecera de la hoja: escudo y nombre de cada equipo y el resultado en el centro. */
+function Scoreboard({
+  homeTeam,
+  awayTeam,
+  homeLogo,
+  awayLogo,
+  homeScore,
+  awayScore,
+  status,
+  live = false,
+}: Pick<
+  MatchVotersModalProps,
+  'homeTeam' | 'awayTeam' | 'homeLogo' | 'awayLogo' | 'homeScore' | 'awayScore' | 'status' | 'live'
+>) {
+  const hasScore = homeScore != null && awayScore != null;
+  const label = hasScore
+    ? `${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}`
+    : `${homeTeam} - ${awayTeam}`;
+  const team = (name: string, logo: string | null | undefined) => (
+    <span className="match-voters-team">
+      <span className="match-voters-crest">
+        <Flag team={name} logo={logo} style={{ width: '32px', height: '32px' }} />
+      </span>
+      <span className="match-voters-team-name">{name}</span>
+    </span>
+  );
+  return (
+    <>
+      <span className="sr-only">{label}</span>
+      <span className="match-voters-scoreboard" aria-hidden="true">
+        {team(homeTeam, homeLogo)}
+        <span className="match-voters-result">
+          <span className={`match-voters-score${hasScore ? '' : ' is-pending'}`}>
+            {hasScore ? `${homeScore} - ${awayScore}` : 'vs'}
+          </span>
+          {status && (
+            <span className={`match-voters-status${live ? ' is-live' : ''}`}>{status}</span>
+          )}
+        </span>
+        {team(awayTeam, awayLogo)}
+      </span>
+    </>
+  );
 }
 
 type Side = 'home' | 'draw' | 'away';
@@ -37,6 +92,7 @@ function MatchVotersSheet({
   awayTeam,
   onClose,
   twoWay = false,
+  ...match
 }: MatchVotersModalProps & { voters: MatchVoters }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
@@ -70,9 +126,9 @@ function MatchVotersSheet({
 
   return (
     <SheetDialog
-      title={`${homeTeam} - ${awayTeam}`}
-      subtitle={`${total} ${total === 1 ? 'predicción' : 'predicciones'}`}
+      title={<Scoreboard homeTeam={homeTeam} awayTeam={awayTeam} {...match} />}
       onClose={onClose}
+      className="match-voters-sheet"
     >
       <div className="match-voters-tools">
         {total > 0 && (

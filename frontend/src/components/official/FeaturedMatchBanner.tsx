@@ -114,6 +114,12 @@ export default function FeaturedMatchBanner({
           voters={showVoters ? voters : null}
           homeTeam={home}
           awayTeam={away}
+          homeLogo={resolvedHomeLogo}
+          awayLogo={resolvedAwayLogo}
+          homeScore={featuredMatch.homeScore}
+          awayScore={featuredMatch.awayScore}
+          live={live}
+          status={featuredMatch.finished ? 'Final' : live ? clock || 'En directo' : undefined}
           onClose={() => setShowVoters(false)}
         />
       )}

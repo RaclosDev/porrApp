@@ -274,6 +274,20 @@ export default function LeagueHomeDashboard() {
         voters={votersMatch ? (voters.get(votersMatch.id) ?? null) : null}
         homeTeam={votersMatch?.home || 'Local'}
         awayTeam={votersMatch?.away || 'Visitante'}
+        homeLogo={votersMatch?.homeLogo || votersMatch?.homeTeamLogo}
+        awayLogo={votersMatch?.awayLogo || votersMatch?.awayTeamLogo}
+        homeScore={votersMatch?.home_score}
+        awayScore={votersMatch?.away_score}
+        live={Boolean(votersMatch && isLiveMatch(votersMatch))}
+        status={
+          !votersMatch
+            ? undefined
+            : votersMatch.finished
+              ? 'Final'
+              : isLiveMatch(votersMatch)
+                ? votersMatch.displayClock || 'En directo'
+                : undefined
+        }
         twoWay={twoWayVoters}
         onClose={() => setVotersMatch(null)}
       />
