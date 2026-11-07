@@ -105,7 +105,9 @@ function Leaderboard() {
   const byMatchday = isMatchday && Boolean(summaryMatchday) && sortColumn === 'matchday';
   const matchdayName = summaryMatchday ? displayRoundLabel(summaryMatchday.label) : '';
   const openRow = (row: LeaderboardRow) => {
-    if (isMatchday) navigate('/jornadas');
+    // En una liga de Fórmula 1 las predicciones de cada Gran Premio están en el inicio.
+    if (isGrandPrixFormat(activeGroupPoolFormat)) navigate('/');
+    else if (isMatchday) navigate('/jornadas');
     else state.setViewerPredictionId(row.id ?? null);
   };
 
