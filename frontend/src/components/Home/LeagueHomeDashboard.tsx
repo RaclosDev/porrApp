@@ -274,6 +274,20 @@ export default function LeagueHomeDashboard() {
         voters={votersMatch ? (voters.get(votersMatch.id) ?? null) : null}
         homeTeam={votersMatch?.home || 'Local'}
         awayTeam={votersMatch?.away || 'Visitante'}
+        homeLogo={votersMatch?.homeLogo || votersMatch?.homeTeamLogo}
+        awayLogo={votersMatch?.awayLogo || votersMatch?.awayTeamLogo}
+        homeScore={votersMatch?.home_score}
+        awayScore={votersMatch?.away_score}
+        live={Boolean(votersMatch && isLiveMatch(votersMatch))}
+        status={
+          !votersMatch
+            ? undefined
+            : votersMatch.finished
+              ? 'Final'
+              : isLiveMatch(votersMatch)
+                ? votersMatch.displayClock || 'En directo'
+                : undefined
+        }
         twoWay={twoWayVoters}
         onClose={() => setVotersMatch(null)}
       />
@@ -350,8 +364,14 @@ export default function LeagueHomeDashboard() {
                   <MatchCard
                     key={match.id || match.home + match.away}
                     match={match}
-                    action={matches.action}
-                    onOpen={() => navigate(matches.to)}
+                    // Empezado el partido, la tarjeta enseña quién eligió cada opción; antes, lleva a
+                    // hacer tu predicción (las de los demás siguen ocultas hasta el pitido inicial).
+                    action={
+                      voters.has(match.id) ? 'ver quién ha elegido cada opción' : matches.action
+                    }
+                    onOpen={() =>
+                      voters.has(match.id) ? setVotersMatch(match) : navigate(matches.to)
+                    }
                     voters={voters.get(match.id)}
                     onShowVoters={setVotersMatch}
                     twoWay={twoWayVoters}

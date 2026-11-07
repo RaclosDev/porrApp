@@ -212,30 +212,23 @@
     flex-shrink: 0;
   }
 
-  .friends-prediction-score-row {
-    display: flex;
+  /* Signo elegido, solo, en la lista de un partido aún abierto. */
+  .friends-prediction-pick {
+    display: inline-flex;
     align-items: center;
-    gap: 5px;
-  }
-
-  .friends-prediction-score {
-    padding: 2px 8px;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--panel-bg);
     color: var(--text-main);
     font-size: 0.95rem;
     font-weight: 900;
-    white-space: nowrap;
   }
 
-  .friends-prediction-sign {
-    padding: 0 5px;
-    border-radius: 5px;
-    background: rgba(11, 95, 116, 0.12);
-    color: var(--accent-cyan);
-    font-size: 0.62rem;
-    font-weight: 800;
+  .friends-predictions-list .match-voters-group {
+    gap: 6px;
   }
 
   .friends-prediction-points {
@@ -267,12 +260,6 @@
     border: 1px solid rgba(251, 191, 36, 0.28);
     background: rgba(251, 191, 36, 0.12);
     color: #854d0e;
-  }
-
-  .friends-prediction-status.is-missed {
-    border: 1px solid rgba(185, 28, 28, 0.28);
-    background: rgba(185, 28, 28, 0.12);
-    color: var(--miss);
   }
 
   .friends-predictions-message {

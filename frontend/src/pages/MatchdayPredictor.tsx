@@ -1,6 +1,6 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
@@ -8,11 +8,8 @@ import MatchdayHeader from '../components/matchday/MatchdayHeader';
 import RoundSelector from '../components/matchday/RoundSelector';
 import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
-import FloatingSaveButton from '../components/matchday/FloatingSaveButton';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
-import MatchVotersModal from '../components/voters/MatchVotersModal';
-import type { MatchdayFixture } from '../types/api';
 
 function MatchdayPredictor() {
   const context = useAppContext();
@@ -64,7 +61,6 @@ function useRequestedGroup({
 function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext> }) {
   const { activeGroupId, activeGroupName, activeGroupIsLocked, activeGroupPoolFormat } = context;
   const md = useMatchdayPredictor(context);
-  const [votersFixture, setVotersFixture] = useState<MatchdayFixture | null>(null);
   const voters = useMatchVoters(
     md.isMatchDay ? activeGroupId : null,
     md.fixtures
@@ -81,13 +77,12 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       <MatchdayHeader
         title={activeGroupName || 'Jornadas'}
         isLocked={activeGroupIsLocked}
-        canEdit={md.fixtures.some((fixture) => !fixture.locked)}
+        isLoading={md.isLoading}
         predicted={md.counts.predicted}
         total={md.counts.total}
-        isSaving={md.isSaving}
-        onSave={md.handleSaveAll}
-        successMsg={md.saveSuccessMsg}
+        saveStatus={md.saveStatus}
         errorMsg={md.saveErrorMsg}
+        onRetry={md.retrySave}
       />
 
       {md.availableRounds.length > 0 && (
@@ -130,31 +125,14 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
             fixture={fixture}
             prediction={md.predictionFor(fixture.matchId)}
             locked={fixture.locked || activeGroupIsLocked}
-            disabled={md.isSaving}
             onQuickSign={md.handleQuickSign}
             onShowFriends={md.setSelectedMatchForFriends}
             voters={voters.get(fixture.matchId)}
-            onShowVoters={setVotersFixture}
+            onShowVoters={md.setSelectedMatchForFriends}
           />
         ))}
       </div>
 
-      {md.hasUnsavedChanges && (
-        <FloatingSaveButton
-          isSaving={md.isSaving}
-          isLocked={activeGroupIsLocked}
-          predicted={md.counts.predicted}
-          total={md.counts.total}
-          onSave={md.handleSaveAll}
-        />
-      )}
-
-      <MatchVotersModal
-        voters={votersFixture ? (voters.get(votersFixture.matchId) ?? null) : null}
-        homeTeam={votersFixture?.homeTeam ?? ''}
-        awayTeam={votersFixture?.awayTeam ?? ''}
-        onClose={() => setVotersFixture(null)}
-      />
       <MatchFriendsPredictionsModal
         groupId={activeGroupId}
         match={md.selectedMatchForFriends}

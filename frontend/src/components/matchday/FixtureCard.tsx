@@ -15,7 +15,6 @@ interface FixtureCardProps {
   /** El partido o la porra están cerrados. */
   locked: boolean;
   /** Mientras se guarda no se puede editar. */
-  disabled: boolean;
   onQuickSign: (matchId: number, sign: MatchSign) => void;
   onShowFriends: (fixture: MatchdayFixture) => void;
   /** Quién ha votado cada signo; solo llega cuando el partido está cerrado. */
@@ -31,13 +30,12 @@ export default function FixtureCard({
   fixture,
   prediction,
   locked,
-  disabled,
   onQuickSign,
   onShowFriends,
   voters,
   onShowVoters,
 }: FixtureCardProps) {
-  const inputDisabled = locked || disabled;
+  const inputDisabled = locked;
   const teams = [
     { side: 'home', team: fixture.homeTeam, logo: fixture.homeTeamLogo },
     { side: 'away', team: fixture.awayTeam, logo: fixture.awayTeamLogo },
