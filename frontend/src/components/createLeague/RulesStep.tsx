@@ -97,13 +97,7 @@ function LockSection({ draft, update, errors, ctx }: StepProps) {
 }
 
 function ScoringSection({ draft, update, errors, ctx }: StepProps) {
-  if (!scoringEditable(draft)) {
-    return (
-      <p className="create-league-hint">
-        Puntuación fija: cada jornada superada suma 1 y gana quien supere más jornadas.
-      </p>
-    );
-  }
+  if (!scoringEditable(draft)) return null;
   const scoring: LeagueScoring = {
     poolFormat: draft.poolFormat,
     pichichi: draft.pichichi,
@@ -147,7 +141,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
             value="custom"
             checked={draft.customScoring}
             onChange={() => update({ customScoring: true })}
-            title="Personalizar puntos"
+            title={draft.poolFormat === 'SURVIVOR' ? 'Personalizar reglas' : 'Personalizar puntos'}
           />
         </div>
       </fieldset>

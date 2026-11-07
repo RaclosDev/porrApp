@@ -1,9 +1,21 @@
 import type { LeagueScoring, ScoringRuleKey } from '../../types/api';
-import { scoringSections, scoringValueError, type ScoringDraft } from '../../utils/scoringRules';
+import { scoringFieldError, scoringSections, type ScoringDraft } from '../../utils/scoringRules';
+
+/** Cómo se juega superviviente con las vidas y la regla del empate de esta liga. */
+function survivorRules(lives: number, drawSurvives: boolean) {
+  const survive = drawSurvives
+    ? 'Si gana o empata, superas la jornada'
+    : 'Si gana, superas la jornada; si empata o pierde, fallas';
+  const fail =
+    lives > 1
+      ? `Cada fallo te quita una vida y con la última quedas eliminado: empiezas con ${lives}.`
+      : 'Al primer fallo quedas eliminado.';
+  return `Superviviente: en cada jornada eliges un equipo que gane, y no puedes repetir equipo en toda la temporada. ${survive}. ${fail} Elegir es obligatorio: si empiezan todos los partidos de una jornada sin que hayas elegido, cuenta como fallo. Gana quien supere más jornadas.`;
+}
 
 /**
  * Cuánto da cada acierto según el formato de la liga. Con `draft` y `onChange` cada valor es un
- * campo numérico que edita el administrador; sin ellos es una tabla de solo lectura.
+ * campo que edita el administrador; sin ellos es una tabla de solo lectura.
  */
 export default function ScoringRulesPanel({
   scoring,
@@ -17,15 +29,17 @@ export default function ScoringRulesPanel({
   const editing = Boolean(draft && onChange);
   const signOnly = scoring.matchSignOnly ?? true;
   const sections = scoringSections(scoring.poolFormat, scoring.pichichi);
+  const current = (key: ScoringRuleKey) =>
+    draft?.[key] ?? String(scoring.rules[key] ?? scoring.defaults[key]);
 
   return (
     <div className="scoring-panel">
       {scoring.poolFormat === 'SURVIVOR' && (
         <p className="scoring-row-hint">
-          Superviviente: en cada jornada eliges un equipo que gane, y no puedes repetir equipo en
-          toda la temporada. Si gana, sigues vivo y sumas 1 jornada superada; si empata o pierde,
-          quedas eliminado. Elegir es obligatorio: si empiezan todos los partidos de una jornada sin
-          que hayas elegido, también quedas eliminado. Gana quien supere más jornadas.
+          {survivorRules(
+            Number(current('survivorLives')) || 1,
+            current('survivorDrawSurvives') === '1',
+          )}
         </p>
       )}
       {scoring.poolFormat === 'MATCH_DAY' && signOnly && (
@@ -42,14 +56,16 @@ export default function ScoringRulesPanel({
         >
           <h4 id={`scoring-${section.id}`}>{section.title}</h4>
           <dl className="scoring-rows">
-            {section.fields.map(({ key, label, hint }) => {
+            {section.fields.map(({ key, label, hint, kind = 'points' }) => {
               const paused =
                 signOnly && (key === 'exactScorePoints' || key === 'goalDiffBonusPoints');
               const inputId = `scoring-input-${key}`;
-              const value = draft?.[key] ?? String(scoring.rules[key]);
-              const error = editing ? scoringValueError(value, scoring.maxPoints) : null;
+              const value = current(key);
+              const error = editing ? scoringFieldError(key, value, scoring.maxPoints) : null;
               const defaultValue = scoring.defaults[key];
               const changedFromDefault = editing && !error && Number(value) !== defaultValue;
+              const shown = (raw: number | string) =>
+                kind === 'toggle' ? (Number(raw) === 1 ? 'Sí' : 'No') : String(raw);
               return (
                 <div key={key} className="scoring-row">
                   <dt className="scoring-row-text">
@@ -60,7 +76,7 @@ export default function ScoringRulesPanel({
                     ) : (
                       <span className="scoring-row-label">{label}</span>
                     )}
-                    <span className="scoring-row-hint">
+                    <span className="scoring-row-hint" id={`${inputId}-hint`}>
                       {paused ? `Pausado temporalmente. ${hint}` : hint}
                     </span>
                     {error && (
@@ -69,11 +85,22 @@ export default function ScoringRulesPanel({
                       </span>
                     )}
                     {changedFromDefault && (
-                      <span className="scoring-row-default">Por defecto: {defaultValue}</span>
+                      <span className="scoring-row-default">
+                        Por defecto: {shown(defaultValue)}
+                      </span>
                     )}
                   </dt>
                   <dd className="scoring-row-value">
-                    {editing ? (
+                    {editing && kind === 'toggle' ? (
+                      <input
+                        id={inputId}
+                        className="scoring-toggle"
+                        type="checkbox"
+                        checked={value === '1'}
+                        aria-describedby={`${inputId}-hint`}
+                        onChange={(event) => onChange?.(key, event.target.checked ? '1' : '0')}
+                      />
+                    ) : editing ? (
                       <span className="scoring-input-wrap">
                         <input
                           id={inputId}
@@ -81,24 +108,26 @@ export default function ScoringRulesPanel({
                           type="number"
                           disabled={paused}
                           inputMode="numeric"
-                          min={0}
-                          max={scoring.maxPoints}
+                          min={kind === 'count' ? 1 : 0}
+                          max={kind === 'count' ? 10 : scoring.maxPoints}
                           step={1}
                           value={value}
                           aria-invalid={Boolean(error)}
                           aria-describedby={error ? `${inputId}-error` : undefined}
                           onChange={(event) => onChange?.(key, event.target.value)}
                         />
-                        <span aria-hidden="true">pts</span>
+                        {kind === 'points' && <span aria-hidden="true">pts</span>}
                       </span>
                     ) : (
                       <span className="scoring-points">
                         {paused ? (
                           'Pausado'
-                        ) : (
+                        ) : kind === 'points' ? (
                           <>
                             {scoring.rules[key]} <span>pts</span>
                           </>
+                        ) : (
+                          shown(scoring.rules[key] ?? scoring.defaults[key])
                         )}
                       </span>
                     )}

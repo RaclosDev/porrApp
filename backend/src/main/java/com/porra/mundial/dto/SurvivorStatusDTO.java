@@ -8,16 +8,19 @@ import java.util.List;
  *
  * @param eliminatedRound jornada en que cayó, o null si sigue vivo
  * @param missed          cayó por no elegir equipo en esa jornada
+ * @param livesLeft       vidas que le quedan
+ * @param lives           vidas con las que empieza cada participante en esta liga
+ * @param drawSurvives    en esta liga un empate de su equipo también supera la jornada
  */
 public record SurvivorStatusDTO(boolean eliminated, int survived, String eliminatedRound, boolean missed,
-                                List<Pick> picks) {
+                                List<Pick> picks, int livesLeft, int lives, boolean drawSurvives) {
 
     /**
-     * @param result WON (su equipo ganó), LOST (no ganó: eliminado) o PENDING (por jugar o en juego)
+     * @param result WON (superó la jornada), LOST (no la superó: vida perdida o eliminado) o PENDING
      */
     public record Pick(Long matchId, String round, Long teamId, String teamName, String teamLogo, String result) {}
 
     public static SurvivorStatusDTO empty() {
-        return new SurvivorStatusDTO(false, 0, null, false, List.of());
+        return new SurvivorStatusDTO(false, 0, null, false, List.of(), 1, 1, false);
     }
 }

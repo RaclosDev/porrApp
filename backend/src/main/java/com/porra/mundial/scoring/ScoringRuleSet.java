@@ -31,6 +31,9 @@ public class ScoringRuleSet {
     /** Puntos máximos que admite cada regla. */
     public static final int MAX_POINTS = 1000;
 
+    /** Vidas máximas en superviviente. */
+    public static final int MAX_SURVIVOR_LIVES = 10;
+
     /** Pausa temporal de los bonus de partido; los valores configurados se conservan. */
     public static final boolean MATCH_SIGN_ONLY = true;
 
@@ -71,6 +74,17 @@ public class ScoringRuleSet {
     private int correctSignPoints = 3;
     @Builder.Default
     private int goalDiffBonusPoints = 1;
+
+    // Superviviente
+    /** Puntos por cada jornada superada. */
+    @Builder.Default
+    private int survivorRoundPoints = 1;
+    /** Fallos que aguanta cada participante: con 1, el primero lo elimina. */
+    @Builder.Default
+    private int survivorLives = 1;
+    /** 1 si un empate de su equipo lo mantiene vivo (y cuenta como jornada superada); 0 si cuenta como fallo. */
+    @Builder.Default
+    private int survivorDrawSurvives = 0;
 
     public static ScoringRuleSet defaultWorldCup2026() {
         return ScoringRuleSet.builder().build();
@@ -149,5 +163,12 @@ public class ScoringRuleSet {
                         "La regla %s vale %d: tiene que estar entre 0 y %d puntos.", rule, points, MAX_POINTS));
             }
         });
+        if (survivorLives < 1 || survivorLives > MAX_SURVIVOR_LIVES) {
+            throw BusinessException.badRequest(String.format(
+                    "En superviviente cada participante tiene entre 1 y %d vidas.", MAX_SURVIVOR_LIVES));
+        }
+        if (survivorDrawSurvives != 0 && survivorDrawSurvives != 1) {
+            throw BusinessException.badRequest("La regla survivorDrawSurvives solo admite 0 o 1.");
+        }
     }
 }

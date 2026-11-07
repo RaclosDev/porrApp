@@ -782,6 +782,16 @@
     gap: 6px;
   }
 
+  /* Reglas de sí o no (el empate salva en superviviente): una casilla de 44 px de alto útil. */
+  .scoring-toggle {
+    width: 22px;
+    height: 22px;
+    margin: 11px 0;
+    /* Cian sobre el fondo oscuro de la administración y tinta azul sobre papel. */
+    accent-color: var(--marker-ink);
+    cursor: pointer;
+  }
+
   .scoring-input-wrap .scoring-input {
     width: 84px;
     min-height: 40px;

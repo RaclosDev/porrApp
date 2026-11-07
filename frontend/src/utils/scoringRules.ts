@@ -4,6 +4,8 @@ interface ScoringField {
   key: ScoringRuleKey;
   label: string;
   hint: string;
+  /** Puntos (por defecto), una cantidad (vidas) o un sí/no guardado como 1/0. */
+  kind?: 'points' | 'count' | 'toggle';
 }
 
 interface ScoringSection {
@@ -89,14 +91,43 @@ const TOP_SCORER: ScoringSection = {
   ],
 };
 
+const SURVIVOR: ScoringSection = {
+  id: 'survivor',
+  title: 'Superviviente',
+  fields: [
+    {
+      key: 'survivorRoundPoints',
+      label: 'Jornada superada',
+      hint: 'Puntos por cada jornada en que tu equipo gana.',
+    },
+    {
+      key: 'survivorLives',
+      label: 'Vidas',
+      hint: 'Fallos que aguanta cada uno antes de quedar eliminado. Con 1, el primero elimina.',
+      kind: 'count',
+    },
+    {
+      key: 'survivorDrawSurvives',
+      label: 'El empate salva',
+      hint: 'Si tu equipo empata, sigues vivo y la jornada cuenta como superada.',
+      kind: 'toggle',
+    },
+  ],
+};
+
+/** Límites de las reglas que no son puntos: vidas de 1 a 10 y el empate como 0 o 1. */
+const RANGES: Partial<Record<ScoringRuleKey, [number, number]>> = {
+  survivorLives: [1, 10],
+  survivorDrawSurvives: [0, 1],
+};
+
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
  * grupos, así que sus reglas de grupo no se muestran.
  */
 export function scoringSections(format: PoolFormat | null, pichichi: boolean): ScoringSection[] {
   if (format === 'MATCH_DAY') return [MATCHDAY];
-  // Superviviente no tiene puntos que ajustar: cada jornada superada vale una.
-  if (format === 'SURVIVOR') return [];
+  if (format === 'SURVIVOR') return [SURVIVOR];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
   return pichichi ? [...sections, TOP_SCORER] : sections;
 }
@@ -120,6 +151,9 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   exactScorePoints: 5,
   correctSignPoints: 3,
   goalDiffBonusPoints: 1,
+  survivorRoundPoints: 1,
+  survivorLives: 1,
+  survivorDrawSurvives: 0,
 };
 export const SCORING_MAX_POINTS = 1000;
 
@@ -139,10 +173,23 @@ export function scoringValueError(value: string, max: number): string | null {
   return null;
 }
 
+/** Error de una regla concreta: los puntos van de 0 a `max`; las vidas y el empate, en su rango. */
+export function scoringFieldError(key: ScoringRuleKey, value: string, max: number): string | null {
+  const range = RANGES[key];
+  if (!range) return scoringValueError(value, max);
+  const trimmed = value.trim();
+  const [min, top] = range;
+  if (!/^\d+$/.test(trimmed) || Number(trimmed) < min || Number(trimmed) > top) {
+    return `Entre ${min} y ${top}.`;
+  }
+  return null;
+}
+
 /** Reglas del borrador, o null si algún campo no es válido. */
 export function draftToRules(draft: ScoringDraft, max: number): ScoringRules | null {
   const entries = Object.entries(draft);
-  if (entries.some(([, value]) => scoringValueError(value, max))) return null;
+  if (entries.some(([key, value]) => scoringFieldError(key as ScoringRuleKey, value, max)))
+    return null;
   return Object.fromEntries(
     entries.map(([key, value]) => [key, Number(value.trim())]),
   ) as unknown as ScoringRules;
