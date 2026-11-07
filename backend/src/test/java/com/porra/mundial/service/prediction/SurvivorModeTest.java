@@ -101,6 +101,38 @@ class SurvivorModeTest {
             assertEquals(0, standing.survived());
             assertFalse(standing.eliminated());
         }
+
+        @Test
+        void aRoundWithoutAPickEliminatesOnceAllItsMatchesHaveStarted() {
+            Match j1a = played(1, "Jornada 1", MADRID, BETIS, 2, 0, day);
+            Match j2a = match(2, "Jornada 2", BARCA, SEVILLA, day.plus(7, ChronoUnit.DAYS));
+            Match j2b = match(3, "Jornada 2", BETIS, MADRID, day.plus(8, ChronoUnit.DAYS));
+            List<MatchPrediction> picks = List.of(pick(null, j1a, "1"));
+            List<Match> calendar = List.of(j1a, j2a, j2b);
+            Instant joined = day.minus(1, ChronoUnit.DAYS);
+
+            // Con un partido de la Jornada 2 aún por empezar, todavía puede elegir.
+            SurvivorRules.Standing open = SurvivorRules.standing(picks, calendar, joined, day.plus(7, ChronoUnit.DAYS).plusSeconds(60));
+            assertFalse(open.eliminated());
+            assertEquals(1, open.survived());
+
+            SurvivorRules.Standing closed = SurvivorRules.standing(picks, calendar, joined, day.plus(8, ChronoUnit.DAYS));
+            assertTrue(closed.eliminated());
+            assertTrue(closed.missed());
+            assertEquals("Jornada 2", closed.eliminatedRound());
+            assertEquals(1, closed.survived());
+        }
+
+        @Test
+        void roundsThatStartedBeforeJoiningDoNotCount() {
+            Match j1 = played(1, "Jornada 1", MADRID, BETIS, 2, 0, day);
+            Match j2 = match(2, "Jornada 2", BARCA, SEVILLA, day.plus(7, ChronoUnit.DAYS));
+
+            SurvivorRules.Standing standing = SurvivorRules.standing(List.of(), List.of(j1, j2),
+                    day.plus(1, ChronoUnit.DAYS), day.plus(3, ChronoUnit.DAYS));
+
+            assertFalse(standing.eliminated());
+        }
     }
 
     @Nested
@@ -226,6 +258,22 @@ class SurvivorModeTest {
             assertEquals(List.of("WON", "PENDING"), status.picks().stream().map(SurvivorStatusDTO.Pick::result).toList());
             assertEquals(List.of(1L, 1L), status.picks().stream().map(SurvivorStatusDTO.Pick::teamId).toList());
         }
+
+        @Test
+        void skippingAClosedRoundEliminatesAndBlocksNewPicks() {
+            Match missed = match(401, "Jornada 4", BETIS, MADRID, Instant.now().minus(5, ChronoUnit.DAYS));
+            when(matchRepository.findByCompetitionId(2L)).thenReturn(List.of(missed, round5, otherRound5));
+            when(membershipRepository.findById(any())).thenReturn(Optional.of(Membership.builder()
+                    .joinedAt(Instant.now().minus(30, ChronoUnit.DAYS)).build()));
+            existing();
+
+            SurvivorStatusDTO status = service.getSurvivorStatus("p@test.com", 10L);
+
+            assertTrue(status.eliminated());
+            assertTrue(status.missed());
+            assertEquals("Jornada 4", status.eliminatedRound());
+            assertThrows(BusinessException.class, () -> save(501, "1"));
+        }
     }
 
     @Nested
@@ -274,6 +322,26 @@ class SurvivorModeTest {
             verify(predictionRepository, times(2)).saveSurvivorEliminated(any(), anyBoolean());
             verify(predictionRepository).saveCalculatedScore(eq(2L), eq(1), any(), any(), any(), any(), any(),
                     any(), any(), eq(1), any());
+        }
+
+        @Test
+        void aMemberWhoNeverPickedFallsAfterAClosedRound() {
+            Edition edition = Edition.builder().poolFormat(PoolFormat.SURVIVOR).league(League.builder().id(10L).build())
+                    .competition(Competition.builder().id(2L).externalId("esp.1").build()).build();
+            UserAccount carla = UserAccount.builder().id(13L).participantName("Carla").build();
+            when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of());
+            when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+            when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(Membership.builder()
+                    .user(carla).joinedAt(Instant.now().minus(30, ChronoUnit.DAYS)).build()));
+            when(membershipRepository.findById(any())).thenReturn(Optional.of(Membership.builder()
+                    .joinedAt(Instant.now().minus(30, ChronoUnit.DAYS)).build()));
+            when(matchRepository.findByCompetitionId(2L)).thenReturn(List.of(
+                    played(1, "Jornada 1", MADRID, BETIS, 2, 0, Instant.now().minus(7, ChronoUnit.DAYS))));
+
+            List<ParticipantScoreDTO> board = leaderboardService.getLeaderboard(10L);
+
+            assertEquals("Carla", board.get(0).getName());
+            assertTrue(board.get(0).isEliminated());
         }
     }
 }

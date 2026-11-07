@@ -198,11 +198,12 @@ public class MatchPredictionService {
         if (edition == null || edition.getPoolFormat() != PoolFormat.SURVIVOR || email == null || email.isBlank()) {
             return com.porra.mundial.dto.SurvivorStatusDTO.empty();
         }
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user == null) return com.porra.mundial.dto.SurvivorStatusDTO.empty();
         Prediction prediction = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId).orElse(null);
-        if (prediction == null) return com.porra.mundial.dto.SurvivorStatusDTO.empty();
 
-        List<MatchPrediction> picks = survivorPicks(prediction);
-        SurvivorRules.Standing standing = SurvivorRules.standing(picks);
+        List<MatchPrediction> picks = prediction != null ? survivorPicks(prediction) : List.of();
+        SurvivorRules.Standing standing = survivorStanding(edition, user.getId(), prediction, picks);
         List<com.porra.mundial.dto.SurvivorStatusDTO.Pick> items = picks.stream()
                 .filter(pick -> pick.getMatch() != null)
                 .sorted(Comparator.comparing(pick -> pick.getMatch().getMatchDate(),
@@ -219,7 +220,8 @@ public class MatchPredictionService {
                             result);
                 })
                 .toList();
-        return new com.porra.mundial.dto.SurvivorStatusDTO(standing.eliminated(), standing.survived(), items);
+        return new com.porra.mundial.dto.SurvivorStatusDTO(standing.eliminated(), standing.survived(),
+                standing.eliminatedRound(), standing.missed(), items);
     }
 
     /**
@@ -284,7 +286,7 @@ public class MatchPredictionService {
         int savedCount = 0;
         boolean survivor = edition.getPoolFormat() == PoolFormat.SURVIVOR;
         List<MatchPrediction> survivorPicks = survivor ? survivorPicks(prediction) : List.of();
-        if (survivor && SurvivorRules.standing(survivorPicks).eliminated()) {
+        if (survivor && survivorStanding(edition, user.getId(), prediction, survivorPicks).eliminated()) {
             throw BusinessException.conflict("Ya estás eliminado de esta liga superviviente.");
         }
         Set<String> survivorRounds = new HashSet<>();
@@ -380,10 +382,9 @@ public class MatchPredictionService {
     /** Evalúa o actualiza los puntos provisionales mientras cambia el marcador en directo. */
     @Transactional
     public void evaluatePredictionsForMatch(Match match) {
-        if (match == null || !hasScorableResult(match) || match.getId() == null
-                || match.getHomeScore() == null || match.getAwayScore() == null) {
-            return;
-        }
+        if (match == null || !hasScorableResult(match) || match.getId() == null) return;
+        invalidateSurvivorEditions(match);
+        if (match.getHomeScore() == null || match.getAwayScore() == null) return;
 
         List<MatchPrediction> predictions = matchPredictionRepository.findByMatchId(match.getId());
         Set<Prediction> affectedPredictions = new HashSet<>();
@@ -401,6 +402,20 @@ public class MatchPredictionService {
         for (Prediction pred : affectedPredictions) {
             pred.setScoreCalculatedAt(null);
             predictionRepository.save(pred);
+        }
+    }
+
+    /**
+     * Superviviente: al empezar o terminar un partido también puede caer quien no eligió en su
+     * jornada, que no tiene pronóstico en este partido; se recalcula toda la edición.
+     */
+    private void invalidateSurvivorEditions(Match match) {
+        if (match.getCompetition() == null) return;
+        for (Edition edition : editionRepository.findActiveByPoolFormat(PoolFormat.SURVIVOR)) {
+            if (edition.getCompetition() != null
+                    && Objects.equals(edition.getCompetition().getId(), match.getCompetition().getId())) {
+                scoreInvalidationService.invalidateEdition(edition.getId());
+            }
         }
     }
 
@@ -439,6 +454,21 @@ public class MatchPredictionService {
         mp.setIsExactScore(result.exactScore());
         mp.setIsCorrectSign(result.correctSign());
         mp.setScoringDetails(result.explanation());
+    }
+
+    /**
+     * Situación en una liga superviviente con todo el calendario: también cuenta como caída una
+     * jornada sin elegir que empezó después de que el usuario entrase en la liga.
+     */
+    private SurvivorRules.Standing survivorStanding(Edition edition, Long userId, Prediction prediction,
+                                                    List<MatchPrediction> picks) {
+        List<Match> calendar = edition.getCompetition() != null
+                ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : List.of();
+        Instant startAt = edition.getLeague() == null || userId == null ? null
+                : membershipRepository.findById(new Membership.MembershipId(userId, edition.getLeague().getId()))
+                        .map(Membership::getJoinedAt)
+                        .orElse(prediction != null ? prediction.getCreatedAt() : null);
+        return SurvivorRules.standing(picks, calendar, startAt, Instant.now());
     }
 
     /** Elecciones ya guardadas de una porra superviviente, con su partido. */

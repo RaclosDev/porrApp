@@ -270,7 +270,13 @@ describe('survivorUsedTeams', () => {
 
   it('cuenta los equipos de otras jornadas, no el de la jornada abierta', () => {
     const used = survivorUsedTeams(
-      { eliminated: false, survived: 1, picks: [pick('Jornada 1', 7), pick('Jornada 2', 8)] },
+      {
+        eliminated: false,
+        survived: 1,
+        eliminatedRound: null,
+        missed: false,
+        picks: [pick('Jornada 1', 7), pick('Jornada 2', 8)],
+      },
       'Jornada 2',
     );
 

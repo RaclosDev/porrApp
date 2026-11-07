@@ -11,7 +11,7 @@ interface SurvivorStatusBarProps {
 export default function SurvivorStatusBar({ status }: SurvivorStatusBarProps) {
   const survived = status?.survived ?? 0;
   const used = (status?.picks ?? []).map((pick) => pick.teamName).filter(Boolean);
-  const lost = status?.picks.find((pick) => pick.result === 'LOST');
+  const round = status?.eliminatedRound;
   return (
     <div
       className={`md-survivor-status${status?.eliminated ? ' is-out' : ''}`}
@@ -19,7 +19,10 @@ export default function SurvivorStatusBar({ status }: SurvivorStatusBarProps) {
       aria-live="polite"
     >
       {status?.eliminated ? (
-        <strong>Eliminado{lost ? ` en ${lost.round}` : ''}</strong>
+        <strong>
+          Eliminado{round ? ` en ${round}` : ''}
+          {status.missed ? ' por no elegir equipo' : ''}
+        </strong>
       ) : (
         <strong>Sigues vivo</strong>
       )}
@@ -29,7 +32,7 @@ export default function SurvivorStatusBar({ status }: SurvivorStatusBarProps) {
       <span className="text-muted">
         {used.length > 0
           ? `Equipos usados: ${used.join(', ')}`
-          : 'Elige un equipo que gane en cada jornada; no puedes repetirlo.'}
+          : 'Elige un equipo que gane en cada jornada, sin repetirlo. Si no eliges, quedas eliminado.'}
       </span>
     </div>
   );

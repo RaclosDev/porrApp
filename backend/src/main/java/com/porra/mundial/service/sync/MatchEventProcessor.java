@@ -470,7 +470,8 @@ public class MatchEventProcessor {
         updated |= fairPlayChanged;
 
         MatchStatusNormalized normalized = status.normalized();
-        updated |= setIfChanged(match.getStatus(), normalized, match::setStatus);
+        boolean statusChanged = setIfChanged(match.getStatus(), normalized, match::setStatus);
+        updated |= statusChanged;
 
         if (updated) {
             matchRepository.save(match);
@@ -492,7 +493,9 @@ public class MatchEventProcessor {
         }
 
         if (status.finished() || status.live()) {
-            evaluateScoredMatch(match, scoreChanged || finishedChanged
+            // El cambio de estado (empieza el partido) también cuenta: en superviviente puede cerrar
+            // una jornada y eliminar a quien no eligió equipo.
+            evaluateScoredMatch(match, scoreChanged || finishedChanged || statusChanged
                     || matchPredictionService.hasUnscoredPredictions(match.getId()), batch.atomic);
         }
     }
