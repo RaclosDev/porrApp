@@ -94,8 +94,9 @@ test('a started match on the league home opens who picked each option, with filt
     .getByRole('button', { name: 'Deportivo contra Osasuna, ver quién ha elegido cada opción' })
     .click({ position: { x: 24, y: 12 } });
 
-  const sheet = page.getByRole('dialog', { name: 'Deportivo - Osasuna' });
-  await expect(sheet).toContainText('8 predicciones');
+  const sheet = page.getByRole('dialog', { name: 'Deportivo 2 - 1 Osasuna' });
+  await expect(sheet.locator('.match-voters-score')).toHaveText('2 - 1');
+  await expect(sheet.locator('.match-voters-status')).toHaveText('Final');
   await expect(sheet.getByRole('region', { name: '1 · Gana Deportivo' })).toContainText('5 · 63%');
 
   await sheet.getByRole('button', { name: 'Empate (1)' }).click();

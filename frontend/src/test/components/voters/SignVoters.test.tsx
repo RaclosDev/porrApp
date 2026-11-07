@@ -69,7 +69,7 @@ describe('MatchVotersModal', () => {
     );
 
     const dialog = screen.getByRole('dialog', { name: 'Madrid - Barça' });
-    expect(dialog).toHaveTextContent('6 predicciones');
+    expect(within(dialog).getByRole('button', { name: 'Todos (6)' })).toBeInTheDocument();
     expect(within(dialog).getByRole('region', { name: '1 · Gana Madrid' })).toHaveTextContent(
       '5 · 83%',
     );
@@ -111,5 +111,27 @@ describe('MatchVotersModal', () => {
 
     fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'zzz' } });
     expect(within(dialog).getByText('Nadie se llama así.')).toBeInTheDocument();
+  });
+
+  it('encabeza la hoja con los escudos, el resultado y el estado del partido', () => {
+    render(
+      <MatchVotersModal
+        voters={voters}
+        homeTeam="Málaga"
+        awayTeam="Racing Santander"
+        homeLogo="/malaga.png"
+        awayLogo="/racing.png"
+        homeScore={2}
+        awayScore={1}
+        status="Final"
+        onClose={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: 'Málaga 2 - 1 Racing Santander' });
+    expect(dialog.querySelector('.match-voters-score')).toHaveTextContent('2 - 1');
+    expect(dialog.querySelector('.match-voters-status')).toHaveTextContent('Final');
+    expect(dialog.querySelector('img[src="/malaga.png"]')).not.toBeNull();
+    expect(dialog.querySelector('img[src="/racing.png"]')).not.toBeNull();
   });
 });
