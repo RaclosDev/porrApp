@@ -1,5 +1,4 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import BoringAvatar from 'boring-avatars';
 
 interface ImgProps {
   src: string | null | undefined;
@@ -39,31 +38,24 @@ function Img({ src, size, radius, fallback, label = '' }: ImgProps) {
   return <span style={box}>{fallback}</span>;
 }
 
-/** Colores de la app para los avatares generados. */
-const GENERATED_AVATAR_COLORS = ['#00d2d3', '#f368e0', '#ff9f43', '#feca57', '#54a0ff'];
-
-/**
- * Semilla estable del avatar generado: el id si se conoce (no cambia al renombrarse),
- * si no el nombre.
- */
-function avatarSeed(userId?: number | string | null, name?: string | null): string {
-  if (userId !== null && userId !== undefined && String(userId) !== '') return `user-${userId}`;
-  return name?.trim() || 'anonimo';
+/** Inicial del nombre (primer carácter completo, para no partir tildes ni emojis). */
+function initialOf(name?: string | null): string {
+  const first = Array.from(name?.trim() ?? '')[0];
+  return first ? first.toLocaleUpperCase('es') : '?';
 }
 
 /**
- * Foto de perfil; sin foto (o si falla la carga) muestra un avatar generado en el cliente
- * a partir del id o del nombre. Es decorativa junto al nombre, así que no lleva texto alternativo.
+ * Foto de perfil; sin foto (o si falla la carga) muestra la inicial del nombre escrita a
+ * rotulador, como el resto de la app. Es decorativa junto al nombre, así que no lleva texto
+ * alternativo.
  */
 export function UserAvatar({
   url,
   name,
-  userId,
   size = 32,
 }: {
   url: string | null | undefined;
   name?: string | null;
-  userId?: number | string | null;
   size?: number;
 }) {
   return (
@@ -72,14 +64,14 @@ export function UserAvatar({
       size={size}
       radius="50%"
       fallback={
-        <BoringAvatar
-          name={avatarSeed(userId, name)}
-          variant="beam"
-          colors={GENERATED_AVATAR_COLORS}
-          size={size}
+        <span
+          className="marker-ink w-full h-full rounded-full bg-[rgba(255,_255,_255,_0.06)] flex items-center justify-center leading-[1] shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,currentColor_35%,transparent)]"
+          style={{ fontSize: Math.round(size * 0.52) }}
           aria-hidden="true"
           data-testid="avatar-generated"
-        />
+        >
+          {initialOf(name)}
+        </span>
       }
     />
   );

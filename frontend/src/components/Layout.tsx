@@ -234,7 +234,6 @@ function Layout({ children }: { children: React.ReactNode }) {
             showProfileMenu={showProfileMenu}
             showNotificationBell={isUserLoggedIn && !isDemo}
             userAvatarUrl={userAvatarUrl}
-            userId={userId}
             userName={userName}
           />
         )}
