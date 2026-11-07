@@ -62,7 +62,7 @@ class FlywayFreshDatabaseTest {
 
         try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
              Statement st = c.createStatement()) {
-            // 13 de V10 y la Fórmula 1 de V20.
+            // 13 de V10 y la Fórmula 1 de V21.
             assertThat(queryLong(st, "SELECT count(*) FROM competitions")).isEqualTo(14);
             assertThat(queryLong(st, "SELECT count(*) FROM competitions WHERE external_id = 'f1' AND format_type = 'RACE'"))
                     .isEqualTo(1);
