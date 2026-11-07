@@ -12,6 +12,7 @@ import { queryKeys } from '../services/queryKeys';
 import { LeagueAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
 import type { Group } from '../types/api';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 /** La invitación conserva su contexto durante el acceso y abre la liga al aceptar. */
 export default function JoinRedirect() {
@@ -44,7 +45,7 @@ export default function JoinRedirect() {
     if (!existing) return;
     localStorage.removeItem('pendingJoinCode');
     changeGroup(String(existing.id));
-    navigate((preview.poolFormat || existing.poolFormat) === 'MATCH_DAY' ? '/jornadas' : '/', {
+    navigate(isMatchBasedFormat(preview.poolFormat || existing.poolFormat) ? '/jornadas' : '/', {
       replace: true,
     });
   }, [signedIn, preview, membership.data, changeGroup, navigate]);
@@ -65,7 +66,7 @@ export default function JoinRedirect() {
       queryClient.setQueryData(queryKeys.group(String(group.id)), group);
       localStorage.removeItem('pendingJoinCode');
       changeGroup(String(group.id));
-      navigate((group.poolFormat || preview.poolFormat) === 'MATCH_DAY' ? '/jornadas' : '/', {
+      navigate(isMatchBasedFormat(group.poolFormat || preview.poolFormat) ? '/jornadas' : '/', {
         replace: true,
       });
     } catch (cause) {
@@ -91,7 +92,11 @@ export default function JoinRedirect() {
             </div>
             <p className="m-0 text-muted">
               {preview.competitionName || 'Fútbol'} ·{' '}
-              {preview.poolFormat === 'MATCH_DAY' ? 'Por jornadas' : 'Cuadro del torneo'}
+              {preview.poolFormat === 'SURVIVOR'
+                ? 'Superviviente'
+                : preview.poolFormat === 'MATCH_DAY'
+                  ? 'Por jornadas'
+                  : 'Cuadro del torneo'}
             </p>
             {busy ? (
               <p role="status">Preparando tu entrada en la liga…</p>

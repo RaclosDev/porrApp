@@ -60,7 +60,7 @@ public class OfficialCompetitionLinkService {
         if (custom.getOwnerLeague() == null || !leagueId.equals(custom.getOwnerLeague().getId())) {
             throw BusinessException.badRequest("Esta liga ya juega una competición oficial");
         }
-        if (edition.getPoolFormat() == PoolFormat.MATCH_DAY) {
+        if (PoolFormat.isMatchBased(edition.getPoolFormat())) {
             throw BusinessException.badRequest("Solo se pueden pasar ligas de cuadro");
         }
         Competition official = competitionRepository.findById(competitionId)

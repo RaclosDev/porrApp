@@ -236,6 +236,14 @@
     white-space: nowrap;
   }
 
+  /* Superviviente: ya ha caído. Mismo distintivo que «Sin pagar», en gris. */
+  .lb-unpaid-badge.lb-out-badge,
+  .paper-panel .lb-unpaid-badge.lb-out-badge {
+    border-color: currentColor;
+    background: transparent;
+    color: var(--text-muted);
+  }
+
   @media (max-width: 700px) {
     .lb-matchday-panel {
       padding: 14px;

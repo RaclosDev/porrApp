@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import type { GroupsDashboardState } from '../../hooks/useGroupsDashboard';
 import { useDialogFocus } from '../../hooks/useDialogFocus';
 import type { Group } from '../../types/api';
+import { isMatchBasedFormat } from '../../utils/poolFormat';
 
 interface CreatedLeagueModalProps {
   newlyCreatedGroup: Group;
@@ -95,7 +96,7 @@ export default function CreatedLeagueModal({
                 setNewlyCreatedGroup(null);
                 if (needsSetup) {
                   navigate('/mis-ligas');
-                } else if (format === 'MATCH_DAY') {
+                } else if (isMatchBasedFormat(format)) {
                   navigate('/jornadas');
                 } else {
                   navigate('/prediction');
@@ -105,9 +106,11 @@ export default function CreatedLeagueModal({
             >
               {newlyCreatedGroup.customCompetition && newlyCreatedGroup.poolFormat !== 'MATCH_DAY'
                 ? 'Configurar competición'
-                : newlyCreatedGroup.poolFormat === 'MATCH_DAY'
-                  ? 'Hacer predicciones de la jornada'
-                  : 'Rellenar mi porra'}
+                : newlyCreatedGroup.poolFormat === 'SURVIVOR'
+                  ? 'Elegir mi equipo de la jornada'
+                  : newlyCreatedGroup.poolFormat === 'MATCH_DAY'
+                    ? 'Hacer predicciones de la jornada'
+                    : 'Rellenar mi porra'}
             </button>
           </div>
         </div>

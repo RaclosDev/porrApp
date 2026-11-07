@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 import { LeagueAvatar } from './Avatar';
+import { poolFormatShortLabel } from '../utils/poolFormat';
 
 /** Bandera del país de la competición; sin país conocido, la liga muestra su monograma. */
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -160,8 +161,7 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {g.competitionName || 'Mundial'} ·{' '}
-                          {g.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
+                          {g.competitionName || 'Mundial'} · {poolFormatShortLabel(g.poolFormat)}
                         </span>
                       </div>
                     </div>

@@ -89,4 +89,10 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
                             @Param("sf") Integer sf, @Param("finals") Integer finals,
                             @Param("scorer") Integer scorer, @Param("matchPoints") Integer matchPoints,
                             @Param("calculatedAt") java.time.Instant calculatedAt);
+
+    /** Guarda si la porra ya está eliminada en una liga superviviente, junto a sus puntos. */
+    @Modifying
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Query("UPDATE Prediction p SET p.survivorEliminated = :eliminated WHERE p.id = :id")
+    int saveSurvivorEliminated(@Param("id") Long id, @Param("eliminated") boolean eliminated);
 }

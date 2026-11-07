@@ -125,7 +125,8 @@ export default function CreateLeagueWizard({
                 onChange={(e) => setSelectedPoolFormat(e.target.value as PoolFormat)}
                 className="glass-input w-full"
               >
-                {POOL_FORMATS.map((m) => (
+                {/* Sin resultados automáticos no se sabría quién cae: superviviente solo en competiciones oficiales. */}
+                {POOL_FORMATS.filter((m) => selectedCompetition || m.id !== 'SURVIVOR').map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.label}
                   </option>

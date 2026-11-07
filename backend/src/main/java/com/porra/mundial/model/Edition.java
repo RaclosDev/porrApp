@@ -19,7 +19,7 @@ public class Edition {
     public static Instant defaultLockDate(Competition competition, PoolFormat format) {
         return competition != null
                 && Competition.WORLD_CUP_EXTERNAL_ID.equals(competition.getExternalId())
-                && format != PoolFormat.MATCH_DAY ? WORLD_CUP_DEADLINE : null;
+                && !PoolFormat.isMatchBased(format) ? WORLD_CUP_DEADLINE : null;
     }
 
     @Id

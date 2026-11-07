@@ -3,7 +3,7 @@
  * (paquete com.porra.mundial.dto); los nombres de campo coinciden con el JSON.
  */
 
-export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY';
+export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY' | 'SURVIVOR';
 type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
@@ -204,6 +204,8 @@ export interface ParticipantScore {
   exactMatches?: Record<string, Record<string, boolean>> | null;
   passedTeams?: Record<string, boolean> | null;
   pending: boolean;
+  /** Liga superviviente: ya ha caído y sus jornadas superadas no suben más. */
+  eliminated?: boolean;
 }
 
 export interface MatchdayPoints {
@@ -343,6 +345,24 @@ export interface MatchdayPredictionInput {
   homeScore: number | null;
   awayScore: number | null;
   sign: '1' | 'X' | '2' | string | null;
+}
+
+/** Elección de una jornada en una liga superviviente. */
+export interface SurvivorPick {
+  matchId: number;
+  round: string;
+  teamId: number | null;
+  teamName: string | null;
+  teamLogo: string | null;
+  /** WON: su equipo ganó; LOST: no ganó (eliminado); PENDING: por jugar o en juego. */
+  result: 'WON' | 'LOST' | 'PENDING';
+}
+
+/** Situación del usuario en una liga superviviente (`/predictions/matchday/survivor`). */
+export interface SurvivorStatus {
+  eliminated: boolean;
+  survived: number;
+  picks: SurvivorPick[];
 }
 
 export interface MatchdaySubmissionResult {

@@ -41,7 +41,10 @@ public class LeagueScoringService {
     public LeagueScoringDTO getScoring(Long leagueId, String email) {
         League league = findLeague(leagueId);
         leagueService.assertCanView(leagueId, email);
-        return LeagueScoringDTO.of(activeEdition(leagueId), canEdit(league, email));
+        Edition edition = activeEdition(leagueId);
+        // Superviviente no tiene puntos que ajustar: cada jornada superada vale una.
+        boolean survivor = edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.SURVIVOR;
+        return LeagueScoringDTO.of(edition, !survivor && canEdit(league, email));
     }
 
     /**
@@ -62,6 +65,9 @@ public class LeagueScoringService {
         rules.validate();
 
         Edition edition = activeEdition(leagueId);
+        if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.SURVIVOR) {
+            throw BusinessException.badRequest("El modo superviviente no tiene puntuación que cambiar.");
+        }
         String newRules = rules.toJson();
         if (!newRules.equals(ScoringRuleSet.forEdition(edition).toJson())) {
             edition.setScoringRulesJson(newRules);

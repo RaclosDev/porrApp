@@ -17,6 +17,7 @@ import RoundParticipants from '../voters/RoundParticipants';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
 import { useRoundParticipants } from '../../hooks/useRoundParticipants';
 import type { Match, MatchVoter, MatchVoters } from '../../types/api';
+import { isMatchBasedFormat } from '../../utils/poolFormat';
 
 const RANKING_SIZE = 5;
 
@@ -257,7 +258,7 @@ export default function LeagueHomeDashboard() {
   const participants = useRoundParticipants(
     activeGroupId,
     matches.items.map((match) => match.id).filter(Boolean),
-    isAuthenticated && activeGroupPoolFormat === 'MATCH_DAY',
+    isAuthenticated && isMatchBasedFormat(activeGroupPoolFormat),
   );
 
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
@@ -341,7 +342,7 @@ export default function LeagueHomeDashboard() {
               <PanelHeader
                 title={matches.title}
                 onSeeAll={() => navigate(matches.allTo)}
-                reserveExtra={activeGroupPoolFormat === 'MATCH_DAY'}
+                reserveExtra={isMatchBasedFormat(activeGroupPoolFormat)}
               >
                 <RoundParticipants participants={participants} roundLabel={matches.title} />
               </PanelHeader>

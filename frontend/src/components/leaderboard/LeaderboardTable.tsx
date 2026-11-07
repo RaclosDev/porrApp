@@ -143,6 +143,14 @@ export default function LeaderboardTable({
                             Sin pagar
                           </span>
                         )}
+                        {r.points.eliminated && (
+                          <span
+                            className="lb-unpaid-badge lb-out-badge"
+                            title="Superviviente: su equipo no ganó. Sus jornadas superadas ya no suben."
+                          >
+                            Eliminado
+                          </span>
+                        )}
                       </div>
                     </div>
 

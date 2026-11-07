@@ -20,6 +20,14 @@ export default function ScoringRulesPanel({
 
   return (
     <div className="scoring-panel">
+      {scoring.poolFormat === 'SURVIVOR' && (
+        <p className="scoring-row-hint">
+          Superviviente: en cada jornada eliges un equipo que gane, y no puedes repetir equipo en
+          toda la temporada. Si gana, sigues vivo y sumas 1 jornada superada; si empata o pierde,
+          quedas eliminado. Si no eliges en una jornada, no sumas pero sigues vivo. Gana quien
+          supere más jornadas.
+        </p>
+      )}
       {scoring.poolFormat === 'MATCH_DAY' && signOnly && (
         <p className="scoring-row-hint">
           Provisionalmente solo puntúa el signo 1X2. El resultado exacto y la diferencia de goles
