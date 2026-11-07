@@ -66,7 +66,7 @@ describe('Landing', () => {
     ).toEqual(['Crea tu liga', 'Invita con un enlace', 'Predice y compite']);
   });
 
-  it('shows only the top three in the hero podium and keeps the album accessible', () => {
+  it('shows only the top three in the hero podium and every sticker in the album', () => {
     renderLanding();
     const podium = screen.getByRole('list', { name: 'Podio de Liga abierta' });
     expect(within(podium).getAllByRole('listitem')).toHaveLength(3);
@@ -76,7 +76,8 @@ describe('Landing', () => {
     expect(within(podium).queryByText('Ana')).not.toBeInTheDocument();
     const album = screen.getByRole('list', { name: 'Cromos de Liga abierta' });
     expect(within(album).getAllByRole('listitem')).toHaveLength(4);
-    expect(album).toHaveAttribute('tabindex', '0');
+    // Ya no se desplaza: todos los cromos caben en una fila, así que no hace falta enfocarlo.
+    expect(album).not.toHaveAttribute('tabindex');
   });
 
   it('tells the visitor when the ranking is not available', () => {

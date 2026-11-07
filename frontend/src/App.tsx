@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { useLeaguePredictions } from './hooks/useLeaguePredictions';
+import { leaderPredictionId } from './utils/demoPrediction';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import CookieConsent from './components/layout/CookieConsent';
@@ -69,10 +70,15 @@ const RootPage = () => {
 };
 
 const DemoPredictionPage = () => {
+  const { leaderboardData, loadingLeaderboard } = useAppContext();
   const participantsHashes = useLeaguePredictions();
 
-  // La demo muestra en solo lectura la porra de un participante de la liga pública.
-  const predictionId = participantsHashes[0]?.key;
+  // La demo muestra en solo lectura la porra del primero de la liga pública; sin clasificación,
+  // la primera que haya.
+  const predictionId = leaderPredictionId(leaderboardData) ?? participantsHashes[0]?.key;
+
+  // Mientras llega la clasificación no se enseña otra porra que luego cambie por la del líder.
+  if (loadingLeaderboard) return <PageSkeleton />;
 
   if (!predictionId) {
     return (
