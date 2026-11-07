@@ -41,6 +41,14 @@ public class MatchPrediction {
     @Column(name = "prediction_sign", length = 5)
     private String predictionSign; // "1", "X", "2"
 
+    /** Pelea de MMA: método elegido (KO_TKO, SUBMISSION o DECISION); null si solo se predice el ganador. */
+    @Column(name = "predicted_method", length = 20)
+    private String predictedMethod;
+
+    /** Pelea de MMA: asalto elegido, solo con un método que acaba antes del límite. */
+    @Column(name = "predicted_round")
+    private Integer predictedRound;
+
     private Integer pointsAwarded;
 
     private Boolean isExactScore;

@@ -3,6 +3,7 @@ package com.porra.mundial.config;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.sports.UfcDataProvider;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
@@ -64,6 +65,7 @@ public class DataInitializer implements CommandLineRunner {
         seedCompetitionIfMissing("UEFA Champions League", "uefa.champions", "LEAGUE");
         seedCompetitionIfMissing("Premier League", "eng.1", "LEAGUE");
         seedCompetitionIfMissing("Worlds de League of Legends", "lol.worlds", "TOURNAMENT");
+        seedCompetitionIfMissing("UFC", UfcDataProvider.COMPETITION_ID, Competition.EVENTS_FORMAT);
 
         seedWorldCupTeamsIfMissing();
 

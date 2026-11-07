@@ -15,6 +15,12 @@ public class Competition {
     /** Identificador del Mundial 2026 en ESPN. */
     public static final String WORLD_CUP_EXTERNAL_ID = "fifa.world";
 
+    /**
+     * Formato de las competiciones por veladas (la UFC): cada velada es una jornada con su nombre, sin
+     * numeración de jornadas ni cuadro.
+     */
+    public static final String EVENTS_FORMAT = "EVENTS";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

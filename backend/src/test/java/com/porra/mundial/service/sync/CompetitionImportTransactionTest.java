@@ -50,7 +50,7 @@ import static org.mockito.Mockito.*;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({CompetitionImportService.class, SyncLock.class, MatchEventProcessor.class, MatchPredictionService.class,
         MatchScoringCalculator.class, StandingsService.class, ScoreInvalidationService.class, CustomLockService.class,
-        CompetitionImportTransactionTest.Caches.class})
+        FightCardService.class, CompetitionImportTransactionTest.Caches.class})
 class CompetitionImportTransactionTest {
     @TestConfiguration @EnableCaching
     static class Caches {

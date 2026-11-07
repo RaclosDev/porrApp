@@ -86,6 +86,17 @@ public class ScoringRuleSet {
     @Builder.Default
     private int survivorDrawSurvives = 0;
 
+    // Peleas de MMA (UFC)
+    /** Aciertas quién gana la pelea. */
+    @Builder.Default
+    private int fightWinnerPoints = 3;
+    /** Se suma si además aciertas el método (KO/TKO, sumisión o decisión). */
+    @Builder.Default
+    private int fightMethodPoints = 2;
+    /** Se suma si además aciertas el asalto de un KO/TKO o una sumisión. */
+    @Builder.Default
+    private int fightRoundPoints = 2;
+
     public static ScoringRuleSet defaultWorldCup2026() {
         return ScoringRuleSet.builder().build();
     }

@@ -66,7 +66,8 @@ public class CompetitionService {
 
         List<LeagueStandingDTO> standings = new ArrayList<>();
         if (competition.getExternalId() != null && !competition.getExternalId().isBlank()
-                && !LolEsportsDataProvider.isLolCompetition(competition.getExternalId())) {
+                && !LolEsportsDataProvider.isLolCompetition(competition.getExternalId())
+                && !com.porra.mundial.sports.UfcDataProvider.isUfcCompetition(competition.getExternalId())) {
             try {
                 standings = parseEspnStandings(espnSportsDataProvider.fetchStandings(competition.getExternalId()));
             } catch (Exception e) {

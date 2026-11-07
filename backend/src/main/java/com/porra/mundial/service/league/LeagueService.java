@@ -100,6 +100,9 @@ public class LeagueService {
                 throw BusinessException.forbidden("Esta competición pertenece a otra liga");
             }
             comp = resolveCanonicalCompetition(comp);
+            if (com.porra.mundial.model.Sport.isMma(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+                throw BusinessException.badRequest("La UFC se juega velada a velada: elige Por veladas");
+            }
             if (comp.drawsKnockoutRounds() && poolFormat == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
                 throw BusinessException.badRequest("Los cruces de esta competición se sortean ronda a ronda: elige Solo eliminatorias");
             }

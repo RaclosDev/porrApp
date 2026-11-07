@@ -28,7 +28,12 @@ export default function ScoringRulesPanel({
 }) {
   const editing = Boolean(draft && onChange);
   const signOnly = scoring.matchSignOnly ?? true;
-  const sections = scoringSections(scoring.poolFormat, scoring.pichichi, scoring.knockoutDraw);
+  const sections = scoringSections(
+    scoring.poolFormat,
+    scoring.pichichi,
+    scoring.knockoutDraw,
+    scoring.fights,
+  );
   const current = (key: ScoringRuleKey) =>
     draft?.[key] ?? String(scoring.rules[key] ?? scoring.defaults[key]);
 
@@ -42,7 +47,13 @@ export default function ScoringRulesPanel({
           )}
         </p>
       )}
-      {scoring.poolFormat === 'MATCH_DAY' && signOnly && (
+      {scoring.poolFormat === 'MATCH_DAY' && scoring.fights && (
+        <p className="scoring-row-hint">
+          Un empate o una pelea sin resultado no dan puntos a nadie. Una pelea cancelada no cuenta
+          y, si cambia un rival, la predicción de esa pelea se anula y se avisa.
+        </p>
+      )}
+      {scoring.poolFormat === 'MATCH_DAY' && signOnly && !scoring.fights && (
         <p className="scoring-row-hint">
           Provisionalmente solo puntúa el signo 1X2. El resultado exacto y la diferencia de goles
           están pausados; sus valores se conservan para reactivarlos más adelante.

@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({LegacyFixtureRepairService.class, MatchEventProcessor.class})
+@Import({LegacyFixtureRepairService.class, MatchEventProcessor.class, FightCardService.class})
 class LegacyFixtureRepairPersistenceTest {
     @Container @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");

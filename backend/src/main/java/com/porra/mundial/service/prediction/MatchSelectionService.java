@@ -20,6 +20,7 @@ import com.porra.mundial.repository.EditionMatchChoiceRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.util.AppTime;
 import com.porra.mundial.util.MatchRound;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -73,7 +74,23 @@ public class MatchSelectionService {
 
     /** Si la liga elige sus partidos; si no, entran todos y no hace falta consultar nada. */
     public static boolean selects(Edition edition) {
-        return edition != null && edition.getMatchSelection() == MatchSelectionMode.CUSTOM;
+        return edition != null && (edition.getMatchSelection() == MatchSelectionMode.CUSTOM || since(edition) != null);
+    }
+
+    /**
+     * Una liga de la UFC con todas las veladas cubre las que empiezan desde el día en que se creó: las
+     * anteriores ya no se pueden predecir y solo llenarían el selector de veladas. Null en el resto de ligas.
+     */
+    public static Instant since(Edition edition) {
+        if (edition == null || edition.getMatchSelection() != MatchSelectionMode.ALL || edition.getCreatedAt() == null
+                || edition.isMultiCompetition() || !Sport.isMma(edition.getCompetition())) {
+            return null;
+        }
+        return AppTime.startOfDay(AppTime.day(edition.getCreatedAt()));
+    }
+
+    private static boolean onOrAfter(Match match, Instant since) {
+        return since == null || (match.getMatchDate() != null && !match.getMatchDate().isBefore(since));
     }
 
     /**
@@ -117,7 +134,9 @@ public class MatchSelectionService {
     /** Los partidos de la lista que entran en la liga. */
     @Transactional(readOnly = true)
     public List<Match> filter(Edition edition, List<Match> matches) {
-        return of(edition).filter(matches);
+        List<Match> selected = of(edition).filter(matches);
+        Instant since = since(edition);
+        return since == null ? selected : selected.stream().filter(m -> onOrAfter(m, since)).toList();
     }
 
     /**
@@ -186,7 +205,7 @@ public class MatchSelectionService {
     /** Si un partido entra en la liga. */
     @Transactional(readOnly = true)
     public boolean contains(Edition edition, Match match) {
-        return coversCompetition(edition, match) && of(edition).contains(match);
+        return coversCompetition(edition, match) && of(edition).contains(match) && onOrAfter(match, since(edition));
     }
 
     /** Calendario de una competición oficial para elegir partidos al crear una liga: entran todos. */

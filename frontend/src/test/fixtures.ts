@@ -57,6 +57,9 @@ export const DEFAULT_SCORING: ScoringRules = {
   survivorRoundPoints: 1,
   survivorLives: 1,
   survivorDrawSurvives: 0,
+  fightWinnerPoints: 3,
+  fightMethodPoints: 2,
+  fightRoundPoints: 2,
 };
 
 /** Puntuación de una liga de cuadro completo con las reglas por defecto. */

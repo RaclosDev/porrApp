@@ -54,6 +54,9 @@ class MatchPredictionServiceTest {
     @Mock
     private ScoreInvalidationService scoreInvalidationService;
 
+    @Mock
+    private com.porra.mundial.repository.FightRepository fightRepository;
+
     @InjectMocks
     private MatchPredictionService matchPredictionService;
 
@@ -396,7 +399,7 @@ class MatchPredictionServiceTest {
         // Calculador real: lo que se comprueba son los puntos que salen de las reglas de la liga.
         MatchPredictionService service = new MatchPredictionService(matchRepository, matchPredictionRepository,
                 predictionRepository, userAccountRepository, editionRepository, membershipRepository,
-                new MatchScoringCalculator(), scoreInvalidationService, null);
+                new MatchScoringCalculator(), scoreInvalidationService, null, null);
         edition.setScoringRulesJson(ScoringRuleSet.builder()
                 .exactScorePoints(10).correctSignPoints(2).goalDiffBonusPoints(0).build().toJson());
         Prediction prediction = Prediction.builder().id(50L).edition(edition).build();

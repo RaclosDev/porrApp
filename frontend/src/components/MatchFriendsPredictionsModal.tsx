@@ -4,6 +4,7 @@ import { fetchMatchdayFriendPredictions } from '../services/api';
 import { UserAvatar } from './Avatar';
 import type { FriendPrediction, MatchdayFixture } from '../types/api';
 import SheetDialog from './SheetDialog';
+import { methodRoundText } from '../utils/fights';
 
 function TeamCrest({ logo, name }: { logo: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -128,8 +129,10 @@ export default function MatchFriendsPredictionsModal({
   const progress = predictions.length ? Math.round((predictedCount / predictions.length) * 100) : 0;
   const matchDate = formatTimestamp(match.matchDate);
   const roundLabel = match.round && match.round !== 'group' ? match.round : '';
+  // En una pelea de la UFC el «marcador» solo dice quién ganó: no se muestra.
+  const isFight = Boolean(match.fight);
   const hasFinalScore =
-    match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
+    !isFight && match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
   const ready = !isLoading && !error && predictions.length > 0;
 
   // Cerrado: agrupado por signo, igual que la lista de votos del inicio. Abierto: quién ha
@@ -144,10 +147,13 @@ export default function MatchFriendsPredictionsModal({
       ...group,
       list: predictions.filter((prediction) => (signOf(prediction) ?? '–') === group.sign),
     }))
-    .filter(({ sign, list }) => sign !== '–' || list.length > 0);
+    .filter(({ sign, list }) => (sign !== '–' || list.length > 0) && !(isFight && sign === 'X'));
 
   return (
-    <SheetDialog title="Predicciones del partido" onClose={onClose}>
+    <SheetDialog
+      title={isFight ? 'Predicciones de la pelea' : 'Predicciones del partido'}
+      onClose={onClose}
+    >
       <div className="friends-predictions-match">
         <div className="friends-predictions-team">
           <TeamCrest logo={match.homeTeamLogo} name={match.homeTeam} />
@@ -213,6 +219,11 @@ export default function MatchFriendsPredictionsModal({
               ) : (
                 list.map((prediction) => (
                   <PredictionRow key={prediction.userId} prediction={prediction} showTime={false}>
+                    {isFight && prediction.method && (
+                      <span className="text-[0.75rem] text-muted shrink-0">
+                        {methodRoundText(prediction.method, prediction.round)}
+                      </span>
+                    )}
                     <Points points={prediction.pointsAwarded} />
                   </PredictionRow>
                 ))
@@ -240,7 +251,9 @@ export default function MatchFriendsPredictionsModal({
 
       {!isMatchLocked && (
         <div className="friends-predictions-foot">
-          <span>Las predicciones de los demás se ven al empezar el partido.</span>
+          <span>
+            Las predicciones de los demás se ven al empezar {isFight ? 'la pelea' : 'el partido'}.
+          </span>
         </div>
       )}
     </SheetDialog>

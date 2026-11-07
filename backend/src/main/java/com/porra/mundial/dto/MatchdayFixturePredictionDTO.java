@@ -38,6 +38,12 @@ public class MatchdayFixturePredictionDTO {
     private Integer predHomeScore;
     private Integer predAwayScore;
     private String predSign;
+    /** Pelea de la UFC: método y asalto elegidos. */
+    private String predMethod;
+    private Integer predRound;
+
+    /** Datos de pelea si el partido es de la UFC; null en el resto. */
+    private FightInfoDTO fight;
 
     // Estado del partido y cierre
     private boolean locked;

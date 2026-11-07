@@ -14,6 +14,7 @@ import com.porra.mundial.scoring.ScoringRuleSet;
  * @param rules      reglas con las que puntúa la edición
  * @param defaults   reglas por defecto
  * @param knockoutDraw eliminatorias sorteadas ronda a ronda: los puntos son por eliminatoria acertada en cada ronda
+ * @param fights     liga de la UFC: se puntúan el ganador, el método y el asalto de cada pelea
  */
 public record LeagueScoringDTO(
         String poolFormat,
@@ -22,7 +23,8 @@ public record LeagueScoringDTO(
         int maxPoints,
         ScoringRuleSet rules,
         ScoringRuleSet defaults,
-        boolean knockoutDraw) {
+        boolean knockoutDraw,
+        boolean fights) {
 
     @com.fasterxml.jackson.annotation.JsonProperty("matchSignOnly")
     public boolean matchSignOnly() {
@@ -37,6 +39,7 @@ public record LeagueScoringDTO(
                 ScoringRuleSet.MAX_POINTS,
                 ScoringRuleSet.forEdition(edition),
                 ScoringRuleSet.defaultWorldCup2026(),
-                com.porra.mundial.service.prediction.DrawnKnockout.applies(edition));
+                com.porra.mundial.service.prediction.DrawnKnockout.applies(edition),
+                com.porra.mundial.model.Sport.isMma(edition.getCompetition()));
     }
 }

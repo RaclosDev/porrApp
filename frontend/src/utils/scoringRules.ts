@@ -36,6 +36,25 @@ const MATCHDAY: ScoringSection = {
   ],
 };
 
+/** UFC: cada pelea suma por el ganador y, encima, por el método y el asalto. */
+const FIGHTS: ScoringSection = {
+  id: 'fights',
+  title: 'Cada pelea',
+  fields: [
+    { key: 'fightWinnerPoints', label: 'Ganador', hint: 'Aciertas quién gana la pelea.' },
+    {
+      key: 'fightMethodPoints',
+      label: 'Método',
+      hint: 'Se suma al ganador si aciertas cómo acaba: KO/TKO, sumisión o decisión.',
+    },
+    {
+      key: 'fightRoundPoints',
+      label: 'Asalto',
+      hint: 'Se suma si además aciertas el asalto de un KO/TKO o una sumisión.',
+    },
+  ],
+};
+
 const GROUPS: ScoringSection = {
   id: 'groups',
   title: 'Fase de grupos',
@@ -158,8 +177,9 @@ export function scoringSections(
   format: PoolFormat | null,
   pichichi: boolean,
   knockoutDraw = false,
+  fights = false,
 ): ScoringSection[] {
-  if (format === 'MATCH_DAY') return [MATCHDAY];
+  if (format === 'MATCH_DAY') return [fights ? FIGHTS : MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
@@ -188,6 +208,9 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   survivorRoundPoints: 1,
   survivorLives: 1,
   survivorDrawSurvives: 0,
+  fightWinnerPoints: 3,
+  fightMethodPoints: 2,
+  fightRoundPoints: 2,
 };
 export const SCORING_MAX_POINTS = 1000;
 

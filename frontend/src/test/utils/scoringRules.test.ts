@@ -27,10 +27,13 @@ describe('scoringRules', () => {
     expect(keysOf(null, false)).toEqual(keysOf('FULL_BRACKET', false));
   });
 
-  it('las reglas del cuadro, las de jornadas y las de superviviente cubren todas las del backend', () => {
+  it('las reglas del cuadro, las de jornadas, las de peleas y las de superviviente cubren todas las del backend', () => {
     const shown = new Set([
       ...keysOf('FULL_BRACKET', true),
       ...keysOf('MATCH_DAY', true),
+      ...scoringSections('MATCH_DAY', false, false, true).flatMap((section) =>
+        section.fields.map((field) => field.key),
+      ),
       ...keysOf('SURVIVOR', false),
     ]);
     expect([...shown].sort()).toEqual(Object.keys(DEFAULT_SCORING).sort());
