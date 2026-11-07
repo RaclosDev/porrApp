@@ -149,7 +149,7 @@ public class LeagueService {
                         : comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
                         ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
                         : com.porra.mundial.model.PredictionLockMode.FIXED_DATE)
-                .pichichi(!custom && pichichi)
+                .pichichi(!custom && pichichi && poolFormat != com.porra.mundial.model.PoolFormat.GRAND_PRIX)
                 .status("ACTIVE")
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());

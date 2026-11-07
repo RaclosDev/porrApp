@@ -131,6 +131,8 @@ class FormulaOneIntegrationTest {
                 PoolFormat.GRAND_PRIX), null);
         Edition edition = editions.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElseThrow();
         assertThat(edition.getLockMode()).isEqualTo(PredictionLockMode.PER_MATCH);
+        // Sin pichichi: en la Fórmula 1 no hay goleadores.
+        assertThat(edition.isPichichi()).isFalse();
 
         GrandPrixBoardDTO board = grandPrixService.board(admin.getGoogleEmail(), league.getId());
         GrandPrixBoardDTO.GrandPrix entry = find(board, gp);
