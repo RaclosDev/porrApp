@@ -136,6 +136,7 @@ public class JoinPreviewController {
     private String formatLabel(String format) {
         return switch (format) {
             case "MATCH_DAY" -> "Por jornadas";
+            case "SURVIVOR" -> "Superviviente";
             case "FULL_BRACKET" -> "Cuadro completo";
             case "KNOCKOUTS_ONLY" -> "Eliminatorias";
             default -> format.toLowerCase().replace('_', ' ');

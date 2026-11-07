@@ -8,6 +8,7 @@ import MatchdayHeader from '../components/matchday/MatchdayHeader';
 import RoundSelector from '../components/matchday/RoundSelector';
 import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
+import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
 
@@ -80,10 +81,13 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         isLoading={md.isLoading}
         predicted={md.counts.predicted}
         total={md.counts.total}
+        survivor={md.isSurvivor}
         saveStatus={md.saveStatus}
         errorMsg={md.saveErrorMsg}
         onRetry={md.retrySave}
       />
+
+      {md.isSurvivor && <SurvivorStatusBar status={md.survivor} />}
 
       {md.availableRounds.length > 0 && (
         <RoundSelector
@@ -129,6 +133,15 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
             onShowFriends={md.setSelectedMatchForFriends}
             voters={voters.get(fixture.matchId)}
             onShowVoters={md.setSelectedMatchForFriends}
+            survivor={
+              md.isSurvivor
+                ? {
+                    usedTeams: md.usedTeams,
+                    eliminated: Boolean(md.survivor?.eliminated),
+                    onPick: md.handleSurvivorPick,
+                  }
+                : undefined
+            }
           />
         ))}
       </div>

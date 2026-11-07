@@ -9,7 +9,6 @@ import {
   lockModesFor,
   lockOffsetMinutes,
   pichichiApplies,
-  scoringEditable,
   selectedCompetition,
   type DraftContext,
   type LeagueDraft,
@@ -28,8 +27,18 @@ function describeLock(draft: LeagueDraft, ctx: DraftContext) {
 }
 
 function describeScoring(draft: LeagueDraft, ctx: DraftContext) {
-  if (!scoringEditable(draft)) return 'Fija: 1 por jornada superada';
-  const base = customScoringRules(draft) ? 'Personalizada' : 'La de siempre';
+  const rules = customScoringRules(draft);
+  if (draft.poolFormat === 'SURVIVOR') {
+    // En superviviente lo que importa son las vidas y el empate, más que los puntos.
+    const points = rules?.survivorRoundPoints ?? 1;
+    const lives = rules?.survivorLives ?? 1;
+    return [
+      `${points} ${points === 1 ? 'punto' : 'puntos'} por jornada superada`,
+      lives === 1 ? 'eliminado al primer fallo' : `${lives} vidas`,
+      rules?.survivorDrawSurvives === 1 ? 'el empate salva' : 'el empate elimina',
+    ].join(', ');
+  }
+  const base = rules ? 'Personalizada' : 'La de siempre';
   return pichichiApplies(draft, ctx) && draft.pichichi ? `${base}, con pichichi` : base;
 }
 

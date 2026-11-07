@@ -9,6 +9,8 @@ interface MatchdayHeaderProps {
   isLoading: boolean;
   predicted: number;
   total: number;
+  /** Superviviente: se elige un equipo por jornada, no se predicen todos los partidos. */
+  survivor?: boolean;
   saveStatus: SaveStatus;
   errorMsg: string;
   onRetry: () => void;
@@ -24,6 +26,7 @@ export default function MatchdayHeader({
   isLoading,
   predicted,
   total,
+  survivor = false,
   saveStatus,
   errorMsg,
   onRetry,
@@ -40,7 +43,11 @@ export default function MatchdayHeader({
               <span className="skeleton inline-block h-[0.9em] w-24 rounded" aria-hidden="true" />
             ) : (
               <>
-                {predicted}/{total} predicciones
+                {survivor
+                  ? predicted > 0
+                    ? 'Equipo elegido'
+                    : 'Sin equipo elegido'
+                  : `${predicted}/${total} predicciones`}
                 <span className="md-save-status" role="status" aria-live="polite">
                   {saveStatus === 'saving' && ' · Guardando…'}
                   {saveStatus === 'saved' && (

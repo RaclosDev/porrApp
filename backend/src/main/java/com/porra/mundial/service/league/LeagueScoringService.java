@@ -41,7 +41,8 @@ public class LeagueScoringService {
     public LeagueScoringDTO getScoring(Long leagueId, String email) {
         League league = findLeague(leagueId);
         leagueService.assertCanView(leagueId, email);
-        return LeagueScoringDTO.of(activeEdition(leagueId), canEdit(league, email));
+        Edition edition = activeEdition(leagueId);
+        return LeagueScoringDTO.of(edition, canEdit(league, email));
     }
 
     /**

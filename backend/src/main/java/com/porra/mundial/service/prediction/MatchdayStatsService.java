@@ -115,7 +115,7 @@ public class MatchdayStatsService {
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
         if (edition == null) return List.of();
         if (PredictableBracket.applies(edition)) return bracketVoters(edition, groupId, matchIds);
-        if (edition.getPoolFormat() != PoolFormat.MATCH_DAY) return List.of();
+        if (!PoolFormat.isMatchBased(edition.getPoolFormat())) return List.of();
 
         List<MatchPrediction> all = matchPredictionRepository
                 .findWithUserByEditionIdAndMatchIds(edition.getId(), new LinkedHashSet<>(matchIds));
@@ -170,7 +170,7 @@ public class MatchdayStatsService {
         if (!leagueService.isUserMemberOrAdmin(groupId, email)) return List.of();
 
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
-        if (edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY) return List.of();
+        if (edition == null || !PoolFormat.isMatchBased(edition.getPoolFormat())) return List.of();
 
         Set<Long> members = memberIds(groupId);
         Map<Long, Voter> participants = new LinkedHashMap<>();

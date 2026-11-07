@@ -22,6 +22,7 @@ import {
   officialGroupStatus,
 } from '../utils/bracketEditor';
 import { useSavedBracketHydration } from './useSavedBracketHydration';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 type Side = 'left' | 'right';
 
@@ -67,7 +68,7 @@ export function useBracket() {
   const navigate = useNavigate();
 
   const isKnockoutsOnly = activeGroupPoolFormat === 'KNOCKOUTS_ONLY';
-  const isMatchDay = activeGroupPoolFormat === 'MATCH_DAY';
+  const isMatchDay = isMatchBasedFormat(activeGroupPoolFormat);
   const allTeams = groupOdds
     ? Object.values(groupOdds)
         .flat()

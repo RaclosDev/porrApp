@@ -21,6 +21,7 @@ import {
   type OfficialState,
   type StageId,
 } from '../utils/bracketStats';
+import { isMatchBasedFormat } from '../utils/poolFormat';
 
 const FULL_STAGES: StageId[] = [
   'groups',
@@ -101,7 +102,7 @@ function Search() {
   if (activeGroupOwnBracket) {
     return <Navigate to="/" replace />;
   }
-  if (activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE') {
+  if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE') {
     return <Navigate to="/stats" replace />;
   }
   return <BracketSearch />;

@@ -94,6 +94,11 @@ public class Prediction {
     @Builder.Default
     private Integer matchPoints = 0;
 
+    /** En una liga superviviente, si ya ha caído; se guarda con los puntos materializados. */
+    @Column(name = "survivor_eliminated", nullable = false)
+    @Builder.Default
+    private boolean survivorEliminated = false;
+
     @Column(name = "score_calculated_at")
     private Instant scoreCalculatedAt;
 

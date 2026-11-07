@@ -2,7 +2,12 @@
  * Lógica pura de la pantalla de jornadas: etiquetas de jornada, borradores locales y el envío
  * de pronósticos. Sin React ni red, para poder probarla aparte.
  */
-import type { MatchdayFixture, MatchdayPoints, MatchdayPredictionInput } from '../types/api';
+import type {
+  MatchdayFixture,
+  MatchdayPoints,
+  MatchdayPredictionInput,
+  SurvivorStatus,
+} from '../types/api';
 
 /** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
 export interface DraftPrediction {
@@ -257,4 +262,19 @@ export function formatMatchDate(
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+/**
+ * Superviviente: equipos ya elegidos en otras jornadas (no se pueden repetir), con la jornada en
+ * que se usaron. La elección de la jornada abierta se puede cambiar, así que no cuenta.
+ */
+export function survivorUsedTeams(
+  status: SurvivorStatus | null | undefined,
+  activeRound: string | null,
+): Map<number, string> {
+  const used = new Map<number, string>();
+  status?.picks.forEach((pick) => {
+    if (pick.teamId != null && pick.round !== activeRound) used.set(pick.teamId, pick.round);
+  });
+  return used;
 }

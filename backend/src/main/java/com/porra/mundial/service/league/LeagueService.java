@@ -71,6 +71,10 @@ public class LeagueService {
         if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
             throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
         }
+        if (custom && poolFormat == com.porra.mundial.model.PoolFormat.SURVIVOR) {
+            // Sin resultados automáticos nadie sabría cuándo queda eliminado cada uno.
+            throw BusinessException.badRequest("El modo superviviente necesita una competición oficial");
+        }
         UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
                 .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
 

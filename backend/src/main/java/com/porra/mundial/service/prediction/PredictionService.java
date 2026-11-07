@@ -129,7 +129,7 @@ public class PredictionService {
 
     private void validateBracket(Edition edition, PredictionDataDTO data) {
         if (edition.getCompetition() != null && edition.getCompetition().hasOwnBracket()
-                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+                && !com.porra.mundial.model.PoolFormat.isMatchBased(edition.getPoolFormat())) {
             customBracketValidator.validate(edition, data);
         } else if (edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null) {
             PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
