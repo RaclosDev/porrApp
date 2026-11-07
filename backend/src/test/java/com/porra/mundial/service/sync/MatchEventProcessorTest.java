@@ -182,8 +182,34 @@ class MatchEventProcessorTest {
         assertEquals("round1", MatchEventProcessor.roundFromSlug("first-round"));
         assertEquals("round2", MatchEventProcessor.roundFromSlug("second-round"));
         assertEquals("qualifying", MatchEventProcessor.roundFromSlug("qualifying-round"));
+        assertEquals("roundrobin", MatchEventProcessor.roundFromSlug("round-robin"));
         assertNull(MatchEventProcessor.roundFromSlug("league-phase"));
         assertNull(MatchEventProcessor.roundFromSlug(null));
+    }
+
+    @Test
+    @DisplayName("Un tenista que aún no estaba guardado se crea con el partido, con su bandera")
+    void createsATennisPlayerThatArrivesWithItsMatch() throws Exception {
+        Competition paris = Competition.builder().id(7L).name("Masters de París").externalId("tennis.atp.13")
+                .formatType("TOURNAMENT").build();
+        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
+        when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        JsonNode event = JSON.readTree("""
+                {"id": "tennis-186507", "date": "2026-11-08T14:00Z", "season": {"slug": "final"},
+                 "competitions": [{"altGameNote": "", "status": {"type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false}},
+                   "competitors": [
+                     {"homeAway": "home", "winner": false, "team": {"id": "tennis-1", "displayName": "Ben Shelton", "logo": "https://flags/usa.png"}},
+                     {"homeAway": "away", "winner": false, "team": {"id": "tennis-2", "displayName": "Carlos Alcaraz", "logo": "https://flags/esp.png"}}]}]}
+                """);
+
+        processor.process(event, cache, new MatchEventProcessor.Batch(paris));
+
+        Match saved = savedMatch();
+        assertEquals("Ben Shelton", saved.getHomeTeam().getName());
+        assertEquals("https://flags/esp.png", saved.getAwayTeam().getLogoUrl());
+        assertEquals("tennis-2", saved.getAwayTeam().getExternalId());
+        assertEquals("final", saved.getRound());
+        assertSame(saved.getAwayTeam(), cache.get("tennis-2"));
     }
 
     @Test

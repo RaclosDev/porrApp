@@ -1,4 +1,4 @@
-import type { PoolFormat, ScoringRuleKey, ScoringRules } from '../types/api';
+import type { PoolFormat, ScoringRuleKey, ScoringRules, Sport } from '../types/api';
 
 interface ScoringField {
   key: ScoringRuleKey;
@@ -149,6 +149,31 @@ const DRAWN_KNOCKOUTS: ScoringSection = {
   ],
 };
 
+/** Tenis: cada partido acertado vale más cuanto más avanza el torneo, y los sets suman aparte. */
+const TENNIS: ScoringSection = {
+  id: 'tennis',
+  title: 'Cada partido, por ganador acertado',
+  fields: [
+    {
+      key: 'roundOf16Points',
+      label: 'Octavos',
+      hint: 'Aciertas quién gana un partido de octavos (o de la fase de grupos de las ATP Finals).',
+    },
+    {
+      key: 'quarterFinalPoints',
+      label: 'Cuartos',
+      hint: 'Aciertas quién gana un partido de cuartos.',
+    },
+    { key: 'semiFinalPoints', label: 'Semifinales', hint: 'Aciertas quién gana una semifinal.' },
+    { key: 'championPoints', label: 'Final', hint: 'Aciertas quién gana la final: el campeón.' },
+    {
+      key: 'exactScorePoints',
+      label: 'Extra por los sets',
+      hint: 'Se suma si además aciertas el resultado en sets (3-1). No cuenta tras una retirada o un W.O.',
+    },
+  ],
+};
+
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
  * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
@@ -158,7 +183,9 @@ export function scoringSections(
   format: PoolFormat | null,
   pichichi: boolean,
   knockoutDraw = false,
+  sport: Sport | null = null,
 ): ScoringSection[] {
+  if (sport === 'TENNIS') return [TENNIS];
   if (format === 'MATCH_DAY') return [MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
@@ -190,6 +217,20 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   survivorDrawSurvives: 0,
 };
 export const SCORING_MAX_POINTS = 1000;
+
+/** Puntuación con la que nace una liga de tenis (`ScoringRuleSet.defaultTennis` en el servidor). */
+const TENNIS_SCORING_RULES: ScoringRules = {
+  ...DEFAULT_SCORING_RULES,
+  roundOf16Points: 10,
+  quarterFinalPoints: 15,
+  semiFinalPoints: 20,
+  championPoints: 30,
+  exactScorePoints: 5,
+};
+
+/** Puntuación por defecto de una liga del deporte. */
+export const defaultScoringRules = (sport: Sport | 'OTHER' | null): ScoringRules =>
+  sport === 'TENNIS' ? TENNIS_SCORING_RULES : DEFAULT_SCORING_RULES;
 
 /** Valores tal como se escriben en los campos del formulario. */
 export type ScoringDraft = Record<ScoringRuleKey, string>;

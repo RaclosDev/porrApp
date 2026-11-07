@@ -248,6 +248,16 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   }, [fixtures]);
 
   /** Elegir un signo lo guarda al momento: no hay botón de guardar. */
+  /** Tenis: ganador y, si se eligen, sets; se guarda al momento como un signo. */
+  const handleTennisPick = (matchId: number, prediction: DraftPrediction) => {
+    if (!isAuthenticated) {
+      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      return;
+    }
+    updatePrediction(matchId, prediction);
+    saveDraft();
+  };
+
   const handleQuickSign = (matchId: number, sign: MatchSign) => {
     if (!isAuthenticated) {
       toast.error('Inicia sesión con Google para guardar tus predicciones.');
@@ -337,6 +347,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     displayedFixtures,
     predictionFor,
     handleQuickSign,
+    handleTennisPick,
     retrySave: saveDraft,
     saveStatus,
     saveErrorMsg,

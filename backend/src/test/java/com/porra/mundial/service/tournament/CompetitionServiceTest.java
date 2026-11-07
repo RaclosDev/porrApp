@@ -10,6 +10,7 @@ import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.EspnSportsDataProvider;
+import com.porra.mundial.sports.TennisDataProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +31,7 @@ class CompetitionServiceTest {
     @Mock private CompetitionRepository competitions;
     @Mock private MatchRepository matches;
     @Mock private EspnSportsDataProvider espn;
+    @Mock private TennisDataProvider tennis;
     @InjectMocks private CompetitionService service;
 
     @Test
@@ -74,6 +76,35 @@ class CompetitionServiceTest {
         // Sin partidos importados no se sabe: no se da por terminada ni se descarta la fase de grupos.
         assertThat(byName.get("MLS").finished()).isFalse();
         assertThat(byName.get("MLS").groupStage()).isNull();
+    }
+
+    @Test
+    void aTennisTournamentIsFinishedWhenItsLastEditionIsOverEvenWithoutMatches() throws Exception {
+        java.time.Instant now = java.time.Instant.now();
+        when(competitions.findAll()).thenReturn(List.of(
+                Competition.builder().id(1L).name("Roland Garros · masculino").externalId("tennis.atp.172").build(),
+                Competition.builder().id(2L).name("Masters de París").externalId("tennis.atp.13").build(),
+                Competition.builder().id(3L).name("Open de Australia · femenino").externalId("tennis.wta.154").build()));
+        when(tennis.supports(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(tennis.currentEdition("tennis.atp.172")).thenReturn(new TennisDataProvider.Edition("172-2026",
+                now.minus(java.time.Duration.ofDays(40)), now.minus(java.time.Duration.ofDays(20))));
+        when(tennis.currentEdition("tennis.atp.13")).thenReturn(new TennisDataProvider.Edition("13-2027",
+                now.plus(java.time.Duration.ofDays(20)), now.plus(java.time.Duration.ofDays(30))));
+        when(tennis.currentEdition("tennis.wta.154")).thenThrow(new IllegalStateException("ESPN caído"));
+        when(matches.calendarStatsByCompetition()).thenReturn(List.<Object[]>of(new Object[]{2L, 15L, 0L, 0L}));
+
+        var byName = service.findSyncableCompetitions().stream()
+                .collect(java.util.stream.Collectors.toMap(CompetitionDTO::name, dto -> dto));
+
+        assertThat(byName.get("Roland Garros · masculino").finished()).isTrue();
+        assertThat(byName.get("Roland Garros · masculino").tennis().setsToWin()).isEqualTo(3);
+        // La próxima edición ya está publicada: se puede crear una liga aunque la de este año acabara.
+        assertThat(byName.get("Masters de París").finished()).isFalse();
+        assertThat(byName.get("Masters de París").tennis().level()).isEqualTo("MASTERS_1000");
+        assertThat(byName.get("Masters de París").tennis().startDate()).isNotNull();
+        assertThat(byName.get("Open de Australia · femenino").finished()).isFalse();
+        assertThat(byName.get("Open de Australia · femenino").tennis().draw()).isEqualTo("WOMEN");
+        assertThat(byName.get("Open de Australia · femenino").sport()).isEqualTo(com.porra.mundial.model.Sport.TENNIS);
     }
 
     @Test
