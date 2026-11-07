@@ -93,6 +93,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Un usuario autenticado sin ninguna liga solo puede crear o unirse a una.
   const isNoLeagueAllowedPath =
     location.pathname === '/mis-ligas' ||
+    location.pathname === '/crear-liga' ||
     location.pathname.startsWith('/join/') ||
     location.pathname.startsWith('/linkedin');
 

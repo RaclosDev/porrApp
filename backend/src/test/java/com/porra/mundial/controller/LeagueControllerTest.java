@@ -9,6 +9,8 @@ import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.service.league.LeagueService;
 import com.porra.mundial.service.league.NewLeague;
+import com.porra.mundial.service.league.LeagueSetup;
+import com.porra.mundial.service.league.LeagueSetupService;
 import com.porra.mundial.service.league.LeagueSummaryService;
 import com.porra.mundial.service.notification.WebSocketService;
 import org.junit.jupiter.api.DisplayName;
@@ -56,6 +58,9 @@ class LeagueControllerTest {
 
     @MockitoBean
     private LeagueSummaryService leagueSummaryService;
+
+    @MockitoBean
+    private LeagueSetupService leagueSetupService;
 
     private Principal userPrincipal(String email) {
         return () -> email;
@@ -105,7 +110,7 @@ class LeagueControllerTest {
                 .joinCode("NUEVA30")
                 .adminUser(UserAccount.builder().id(2L).participantName("User2").build())
                 .build();
-        Mockito.when(leagueService.createLeague(new NewLeague("Liga Nueva", "user@test.com", 1L, PoolFormat.FULL_BRACKET, true, null, null)))
+        Mockito.when(leagueSetupService.create(new NewLeague("Liga Nueva", "user@test.com", 1L, PoolFormat.FULL_BRACKET, true, null, null), LeagueSetup.NONE))
                 .thenReturn(createdGroup);
         Mockito.when(leagueService.toResponse(createdGroup, true))
                 .thenReturn(LeagueResponseDTO.builder().id(30L).name("Liga Nueva").joinCode("NUEVA30").poolFormat("FULL_BRACKET").build());
@@ -125,11 +130,49 @@ class LeagueControllerTest {
     }
 
     @Test
+    @DisplayName("Los ajustes que llegan al crear (normas, cuota, puntuación y cierre) pasan a la creación")
+    void createGroupPassesSetup() throws Exception {
+        League createdGroup = League.builder().id(32L).name("Liga Nueva").joinCode("NUEVA32").build();
+        LeagueSetup expected = new LeagueSetup("Bizum a Ana", true,
+                com.porra.mundial.scoring.ScoringRuleSet.builder().correctSignPoints(4).build(),
+                com.porra.mundial.model.PredictionLockMode.FIXED_DATE, null,
+                java.time.Instant.parse("2026-12-01T19:00:00Z"));
+        Mockito.when(leagueSetupService.create(new NewLeague("Liga Nueva", "user@test.com", 1L, PoolFormat.MATCH_DAY, false, null, null), expected))
+                .thenReturn(createdGroup);
+        Mockito.when(leagueService.toResponse(createdGroup, true))
+                .thenReturn(LeagueResponseDTO.builder().id(32L).name("Liga Nueva").joinCode("NUEVA32").build());
+
+        String json = """
+            {"name": "Liga Nueva", "competitionId": 1, "poolFormat": "MATCH_DAY", "pichichi": false,
+             "rules": "Bizum a Ana", "entryFee": true, "scoring": {"correctSignPoints": 4},
+             "lockMode": "FIXED_DATE", "lockDate": "2026-12-01T20:00:00"}
+            """;
+
+        mockMvc.perform(post("/api/groups")
+                        .principal(userPrincipal("user@test.com"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(32));
+    }
+
+    @Test
+    @DisplayName("Una puntuación no válida al crear se rechaza sin crear la liga")
+    void createGroupRejectsInvalidScoring() throws Exception {
+        mockMvc.perform(post("/api/groups")
+                        .principal(userPrincipal("user@test.com"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Liga\", \"competitionId\": 1, \"poolFormat\": \"MATCH_DAY\", \"scoring\": {\"correctSignPoints\": -1}}"))
+                .andExpect(status().isBadRequest());
+        Mockito.verifyNoInteractions(leagueSetupService);
+    }
+
+    @Test
     @DisplayName("Si la misma clave de idempotencia choca con el índice único se devuelve la liga ya creada")
     void createGroupWithConcurrentKeyReturnsExistingLeague() throws Exception {
         League existing = League.builder().id(31L).name("Liga Nueva").joinCode("NUEVA31").build();
         String key = "0b6f1c1e-6a3c-4d4e-9a55-7b1f2d3c4e5f";
-        Mockito.when(leagueService.createLeague(new NewLeague("Liga Nueva", "user@test.com", 1L, PoolFormat.FULL_BRACKET, true, null, key)))
+        Mockito.when(leagueSetupService.create(new NewLeague("Liga Nueva", "user@test.com", 1L, PoolFormat.FULL_BRACKET, true, null, key), LeagueSetup.NONE))
                 .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uq_leagues_admin_creation_key"));
         Mockito.when(leagueService.findCreatedWithKey("user@test.com", key)).thenReturn(java.util.Optional.of(existing));
         Mockito.when(leagueService.toResponse(existing, true))
