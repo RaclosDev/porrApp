@@ -354,23 +354,51 @@
     max-width: 640px;
   }
 
+  /*
+   * Los cromos van siempre en una sola fila, sin scroll: si no caben se encogen y se montan un
+   * poco unos sobre otros, como en el podio.
+   */
   .landing-sticker-album {
     display: flex;
-    gap: 16px;
-    overflow-x: auto;
-    padding: 20px 16px 28px;
-    scroll-snap-type: x proximity;
-    overflow-y: hidden;
+    justify-content: center;
+    padding: 20px 0 28px;
   }
 
-  .landing-sticker-album > li {
-    flex-shrink: 0;
-    scroll-snap-align: center;
+  @media (max-width: 1023px) {
+    .landing-sticker-album > li {
+      flex: 0 1 170px;
+      min-width: 0;
+    }
+
+    .landing-sticker-album > li + li {
+      margin-left: -12px;
+    }
+
+    .landing-sticker-album .sticker {
+      width: 100%;
+    }
   }
 
-  .landing-sticker-album:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
+  @media (max-width: 600px) {
+    /* El avatar trae su tamaño en línea: en el cromo estrecho se reduce para dejar sitio al nombre. */
+    .landing-sticker-album .sticker-rank + span {
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+    }
+
+    .landing-sticker-album .sticker {
+      padding: 20px 6px 12px;
+      gap: 5px;
+      border-width: 4px;
+      border-radius: 6px;
+    }
+
+    .landing-sticker-album .sticker-rank {
+      top: 2px;
+      left: 6px;
+      font-size: 0.85rem;
+    }
   }
 
   .landing-hero-podium .ranking-podium {
@@ -386,24 +414,18 @@
   }
 
   .landing-sticker-album-slot {
-    min-height: 232px;
+    min-height: 168px;
+  }
+
+  @media (min-width: 601px) {
+    .landing-sticker-album-slot {
+      min-height: 224px;
+    }
   }
 
   @media (min-width: 768px) {
     .landing-hero-podium {
       min-height: 282px;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .landing-sticker-album-slot {
-      min-height: 224px;
-    }
-
-    .landing-sticker-album {
-      justify-content: center;
-      gap: 0;
-      overflow: visible;
     }
   }
 
