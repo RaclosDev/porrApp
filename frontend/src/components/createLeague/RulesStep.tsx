@@ -109,6 +109,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
     poolFormat: draft.poolFormat,
     pichichi: draft.pichichi,
     knockoutDraw: isKnockoutDraw(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
+    sport: draft.sport === 'OTHER' ? null : draft.sport,
     editable: draft.customScoring,
     maxPoints: SCORING_MAX_POINTS,
     rules: DEFAULT_SCORING_RULES,

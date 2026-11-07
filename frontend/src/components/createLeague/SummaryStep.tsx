@@ -9,7 +9,7 @@ import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
 import { LeagueAvatar } from '../Avatar';
 import { describeLockOffset } from '../groups/custom/lockModes';
 import {
-  FORMAT_COPY,
+  formatCopy,
   LEAGUE_STEPS,
   SPORT_LABELS,
   customScoringRules,
@@ -92,7 +92,7 @@ export default function SummaryStep({
     },
     {
       label: 'Modo de juego',
-      value: draft.poolFormat ? FORMAT_COPY[draft.poolFormat].title : '',
+      value: draft.poolFormat ? formatCopy(draft.poolFormat, draft, ctx).title : '',
       step: 'format',
     },
     ...(picksMatches

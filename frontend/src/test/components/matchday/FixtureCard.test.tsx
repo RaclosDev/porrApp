@@ -39,6 +39,16 @@ describe('FixtureCard', () => {
     expect(screen.getByText('0 pts')).toBeInTheDocument();
   });
 
+  it('en la NFL se elige quién gana, sin X', () => {
+    renderCard({ homeTeam: 'Ravens', awayTeam: 'Jaguars', sport: 'AMERICAN_FOOTBALL' }, '2');
+
+    expect(screen.queryByRole('button', { name: /Predecir X/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Predecir que gana Jaguars en Ravens - Jaguars' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Gana Ravens')).toBeInTheDocument();
+  });
+
   it('dice que un partido terminado sin predicción no suma', () => {
     renderCard({ finished: true, actualHomeScore: 1, actualAwayScore: 2, pointsAwarded: null });
 

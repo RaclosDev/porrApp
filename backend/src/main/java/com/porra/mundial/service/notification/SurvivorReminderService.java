@@ -1,5 +1,6 @@
 package com.porra.mundial.service.notification;
 
+import com.porra.mundial.sports.NflSchedule;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
@@ -228,6 +229,7 @@ public class SurvivorReminderService {
 
     private static String roundPhrase(String round) {
         if (round.regionMatches(true, 0, "Jornada", 0, "Jornada".length())) return "de la " + round;
+        if (NflSchedule.isRoundLabel(round)) return "de la " + round;
         if (round.startsWith("Fecha ")) {
             try {
                 return "de la jornada del " + DAY.format(java.time.LocalDate.parse(round.substring(6))

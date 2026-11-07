@@ -12,6 +12,7 @@ import {
   roundsFromFixtures,
   roundsFromMatchdays,
   sortNumberedRounds,
+  allowsDraw,
   survivorUsedTeams,
   withSign,
   withoutSaved,
@@ -92,6 +93,15 @@ describe('round lists', () => {
       'Octavos',
       'Jornada 2',
     ]);
+  });
+
+  it('ordena las semanas de la NFL por número y deja los playoffs detrás', () => {
+    expect(
+      sortNumberedRounds(['Semana 9', 'Semana 10', 'Semana 18', 'Semana 2', 'Super Bowl']),
+    ).toEqual(['Semana 2', 'Semana 9', 'Semana 10', 'Semana 18', 'Super Bowl']);
+    expect(allowsDraw('AMERICAN_FOOTBALL')).toBe(false);
+    expect(allowsDraw('FOOTBALL')).toBe(true);
+    expect(allowsDraw(undefined)).toBe(true);
   });
 
   it('falls back to the last round when everything has finished', () => {
