@@ -144,7 +144,8 @@ public class LeagueService {
                         : comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
                         ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
                         : com.porra.mundial.model.PredictionLockMode.FIXED_DATE)
-                .pichichi(!custom && pichichi)
+                // El pichichi es del fútbol: ni la NBA ni el LoL tienen máximo goleador.
+                .pichichi(!custom && pichichi && com.porra.mundial.model.Sport.ofExternalId(comp.getExternalId()) == com.porra.mundial.model.Sport.FOOTBALL)
                 .status("ACTIVE")
                 .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
                 .build());
