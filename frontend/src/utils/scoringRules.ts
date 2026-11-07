@@ -115,6 +115,29 @@ const SURVIVOR: ScoringSection = {
   ],
 };
 
+const GRAND_PRIX: ScoringSection = {
+  id: 'grandPrix',
+  title: 'Cada Gran Premio',
+  fields: [
+    {
+      key: 'f1ExactPositionPoints',
+      label: 'Puesto exacto del podio',
+      hint: 'Por cada piloto que aciertas en su puesto: 1.º, 2.º o 3.º.',
+    },
+    {
+      key: 'f1PodiumPoints',
+      label: 'En el podio, otro puesto',
+      hint: 'Por cada piloto de tu podio que sube, pero en otro puesto.',
+    },
+    { key: 'f1PolePoints', label: 'Pole', hint: 'Aciertas quién sale primero.' },
+    {
+      key: 'f1FastestLapPoints',
+      label: 'Vuelta rápida',
+      hint: 'Aciertas quién hace la vuelta más rápida de la carrera.',
+    },
+  ],
+};
+
 /** Límites de las reglas que no son puntos: vidas de 1 a 10 y el empate como 0 o 1. */
 const RANGES: Partial<Record<ScoringRuleKey, [number, number]>> = {
   survivorLives: [1, 10],
@@ -161,6 +184,7 @@ export function scoringSections(
 ): ScoringSection[] {
   if (format === 'MATCH_DAY') return [MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
+  if (format === 'GRAND_PRIX') return [GRAND_PRIX];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
   return pichichi ? [...sections, TOP_SCORER] : sections;
@@ -188,6 +212,10 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   survivorRoundPoints: 1,
   survivorLives: 1,
   survivorDrawSurvives: 0,
+  f1ExactPositionPoints: 10,
+  f1PodiumPoints: 4,
+  f1PolePoints: 5,
+  f1FastestLapPoints: 3,
 };
 export const SCORING_MAX_POINTS = 1000;
 

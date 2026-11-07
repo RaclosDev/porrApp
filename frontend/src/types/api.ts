@@ -3,8 +3,10 @@
  * (paquete com.porra.mundial.dto); los nombres de campo coinciden con el JSON.
  */
 
-export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY' | 'SURVIVOR';
-type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
+export type PoolFormat =
+  'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY' | 'SURVIVOR' | 'GRAND_PRIX';
+/** RACE: Fórmula 1, Gran Premio a Gran Premio. */
+type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT' | 'RACE';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
 export interface StatusResponse {
@@ -44,7 +46,7 @@ export interface UserPreferences {
 // --- Competiciones y partidos ---
 
 /** Deporte de una competición oficial (`Sport` en el servidor). */
-export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS';
+export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS' | 'FORMULA_1';
 
 export interface Competition {
   id: number;
@@ -361,6 +363,71 @@ export interface ScoringRules {
   survivorLives: number;
   /** Superviviente: 1 si un empate también supera la jornada. */
   survivorDrawSurvives: number;
+  /** Fórmula 1: cada piloto del podio en su puesto exacto. */
+  f1ExactPositionPoints: number;
+  /** Fórmula 1: cada piloto que sube al podio en otro puesto. */
+  f1PodiumPoints: number;
+  f1PolePoints: number;
+  f1FastestLapPoints: number;
+}
+
+/** Podio, pole y vuelta rápida de un Gran Premio (ids de piloto); cualquiera puede faltar. */
+export interface GrandPrixPicks {
+  first: number | null;
+  second: number | null;
+  third: number | null;
+  pole: number | null;
+  fastestLap: number | null;
+}
+
+export interface RaceDriver {
+  id: number;
+  name: string;
+  shortName: string | null;
+  country: string | null;
+  flagUrl: string | null;
+  team: string | null;
+  /** Hexadecimal sin almohadilla. */
+  teamColor: string | null;
+  number: string | null;
+}
+
+type GrandPrixStatus = 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'CANCELLED' | 'POSTPONED';
+
+export interface GrandPrix {
+  id: number;
+  name: string;
+  circuit: string | null;
+  city: string | null;
+  country: string | null;
+  sprint: boolean;
+  /** Cierre: empieza la clasificación. */
+  lockAt: string | null;
+  raceAt: string | null;
+  status: GrandPrixStatus;
+  locked: boolean;
+  /** Pilotos que se pueden elegir. */
+  gridIds: number[];
+  result: GrandPrixPicks | null;
+  pick: GrandPrixPicks | null;
+  points: number | null;
+  details: string | null;
+}
+
+export interface GrandPrixBoard {
+  grandsPrix: GrandPrix[];
+  drivers: RaceDriver[];
+  rules: { exactPosition: number; podium: number; pole: number; fastestLap: number };
+}
+
+export interface GrandPrixMemberPick {
+  userId: number | null;
+  name: string;
+  avatarUrl: string | null;
+  mine: boolean;
+  pick: GrandPrixPicks;
+  points: number | null;
+  details: string | null;
 }
 
 export type ScoringRuleKey = keyof ScoringRules;

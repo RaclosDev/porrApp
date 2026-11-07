@@ -166,6 +166,17 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         return start == null || end == null ? null : new SeasonWindow(start, end);
     }
 
+    /**
+     * JSON de una URL de la API de ESPN (otros deportes, como la Fórmula 1), con el mismo circuit breaker.
+     * Solo admite los hosts de ESPN.
+     */
+    public JsonNode fetchEspnJson(String url) throws Exception {
+        if (url == null || !(url.startsWith("https://site.api.espn.com/") || url.startsWith("https://sports.core.api.espn.com/"))) {
+            throw new IllegalArgumentException("URL de ESPN no válida");
+        }
+        return executeGet(url);
+    }
+
     /** Un fallo no equivale a una jornada vacía; el sincronizador registra el error. */
     private JsonNode executeGet(String url) throws Exception {
         CircuitBreaker breaker = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER);

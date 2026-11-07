@@ -19,8 +19,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     // Missing teams remain visible; only two explicit placeholders hide a match.
     String RADAR_MATCHES = """
             SELECT m FROM Match m LEFT JOIN FETCH m.homeTeam h LEFT JOIN FETCH m.awayTeam a
-            LEFT JOIN FETCH m.competition LEFT JOIN FETCH m.winnerTeam
+            LEFT JOIN FETCH m.competition rc LEFT JOIN FETCH m.winnerTeam
             WHERE (:competitionId IS NULL OR m.competition.id = :competitionId)
+              AND (rc IS NULL OR rc.externalId IS NULL OR rc.externalId <> 'f1')
               AND (h IS NULL OR a IS NULL OR NOT (
                 (LOWER(h.name) IN ('por definir', 'tbd') OR LOWER(COALESCE(h.nameEn, '')) = 'tbd')
                 AND (LOWER(a.name) IN ('por definir', 'tbd') OR LOWER(COALESCE(a.nameEn, '')) = 'tbd')))
@@ -64,7 +65,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
      * Por competición: partidos, partidos sin terminar y partidos de fase de grupos. Sirve para saber al
      * crear una liga si la competición ya acabó y si tiene grupos que pronosticar.
      */
-    @Query("SELECT m.competition.id, COUNT(m), SUM(CASE WHEN m.finished = true THEN 0 ELSE 1 END), "
+    @Query("SELECT m.competition.id, COUNT(m), SUM(CASE WHEN m.finished = true OR m.status = "
+            + "com.porra.mundial.model.MatchStatusNormalized.CANCELLED THEN 0 ELSE 1 END), "
             + "SUM(CASE WHEN m.groupName IS NOT NULL AND m.groupName <> '' THEN 1 ELSE 0 END) "
             + "FROM Match m WHERE m.competition IS NOT NULL GROUP BY m.competition.id")
     List<Object[]> calendarStatsByCompetition();

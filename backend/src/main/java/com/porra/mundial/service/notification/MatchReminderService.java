@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 /**
  * Avisa por push, una hora antes de que cierre un partido, a quien aún no lo ha predicho en una liga
- * por jornadas. Agrupa en un solo aviso todos los partidos pendientes del usuario y no repite el aviso
+ * por jornadas (o un Gran Premio, que cierra al empezar la clasificación, en una liga de Fórmula 1). Agrupa en un solo aviso todos los partidos pendientes del usuario y no repite el aviso
  * de un mismo partido.
  */
 @Slf4j
@@ -64,7 +64,11 @@ public class MatchReminderService {
     private final MatchSelectionService matchSelectionService;
 
     /** Un partido que el usuario aún no ha predicho en una liga y que cierra pronto. */
-    record Pending(Long userId, League league, Match match, Instant lockAt) {}
+    record Pending(Long userId, League league, Match match, Instant lockAt, boolean grandPrix) {
+        Pending(Long userId, League league, Match match, Instant lockAt) {
+            this(userId, league, match, lockAt, false);
+        }
+    }
 
     @Scheduled(initialDelay = 90_000, fixedDelay = 300_000)
     @SchedulerLock(name = "matchReminders", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
@@ -122,7 +126,9 @@ public class MatchReminderService {
         Map<Long, List<Match>> calendars = new HashMap<>();
         List<Pending> pending = new ArrayList<>();
 
-        for (Edition edition : editionRepository.findActiveByPoolFormat(PoolFormat.MATCH_DAY)) {
+        List<Edition> editions = new ArrayList<>(editionRepository.findActiveByPoolFormat(PoolFormat.MATCH_DAY));
+        editions.addAll(editionRepository.findActiveByPoolFormat(PoolFormat.GRAND_PRIX));
+        for (Edition edition : editions) {
             League league = edition.getLeague();
             if (league == null) continue;
             if (edition.getCompetition() == null || edition.isLocked()) continue;
@@ -172,7 +178,8 @@ public class MatchReminderService {
                 for (Match match : due) {
                     if (predicted.contains(user.getId() + ":" + match.getId())) continue;
                     if (alreadySent.contains(new MatchReminderSent.Key(user.getId(), match.getId()))) continue;
-                    pending.add(new Pending(user.getId(), league, match, locks.get(match.getId())));
+                    pending.add(new Pending(user.getId(), league, match, locks.get(match.getId()),
+                            PoolFormat.isRaceBased(edition.getPoolFormat())));
                 }
             }
         }
@@ -198,7 +205,9 @@ public class MatchReminderService {
         String body;
         if (pending.size() == 1) {
             Match match = pending.get(0).match();
-            title = "Te falta predecir " + teamName(match.getHomeTeam()) + " – " + teamName(match.getAwayTeam());
+            title = pending.get(0).grandPrix() && match.getRound() != null
+                    ? "Te falta predecir el " + match.getRound()
+                    : "Te falta predecir " + teamName(match.getHomeTeam()) + " – " + teamName(match.getAwayTeam());
             body = first.getName() + " · cierra a las " + HOUR.format(firstLock);
         } else {
             title = "Te faltan " + pending.size() + " predicciones";

@@ -18,7 +18,7 @@ const allowsProgressiveLock = (group: Group) =>
  * por partidos, días o jornadas). Las personalizadas lo hacen al gestionar su competición.
  */
 export const hasLeagueLockSetting = (group: Group) =>
-  !group.customCompetition && Boolean(group.poolFormat);
+  !group.customCompetition && Boolean(group.poolFormat) && group.poolFormat !== 'GRAND_PRIX';
 
 /** Cierre de predicciones dentro de la administración de la liga. */
 export default function LeagueLockSection({ group }: { group: Group }) {

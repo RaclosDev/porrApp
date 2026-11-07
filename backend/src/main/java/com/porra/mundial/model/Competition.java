@@ -15,6 +15,9 @@ public class Competition {
     /** Identificador del Mundial 2026 en ESPN. */
     public static final String WORLD_CUP_EXTERNAL_ID = "fifa.world";
 
+    /** Identificador de la Fórmula 1 (ESPN {@code racing/f1}); su formato es "RACE". */
+    public static final String FORMULA_ONE_EXTERNAL_ID = "f1";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -52,6 +55,15 @@ public class Competition {
     public boolean hasOwnBracket() {
         if (ownerLeague != null || externalId == null || WORLD_CUP_EXTERNAL_ID.equals(externalId)) return false;
         return "TOURNAMENT".equals(formatType) || LEAGUES_WITH_KNOCKOUTS.contains(externalId);
+    }
+
+    /** Fórmula 1: se sincroniza y se predice Gran Premio a Gran Premio, no partido a partido. */
+    public boolean isFormulaOne() {
+        return ownerLeague == null && FORMULA_ONE_EXTERNAL_ID.equals(externalId);
+    }
+
+    public static boolean isFormulaOne(Competition competition) {
+        return competition != null && competition.isFormulaOne();
     }
 
     /**

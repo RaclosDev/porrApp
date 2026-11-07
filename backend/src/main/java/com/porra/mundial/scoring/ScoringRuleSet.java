@@ -86,6 +86,18 @@ public class ScoringRuleSet {
     @Builder.Default
     private int survivorDrawSurvives = 0;
 
+    // Fórmula 1, por Gran Premio
+    /** Por cada piloto del podio en el puesto exacto. */
+    @Builder.Default
+    private int f1ExactPositionPoints = 10;
+    /** Por cada piloto que sube al podio en otro puesto del podio. */
+    @Builder.Default
+    private int f1PodiumPoints = 4;
+    @Builder.Default
+    private int f1PolePoints = 5;
+    @Builder.Default
+    private int f1FastestLapPoints = 3;
+
     public static ScoringRuleSet defaultWorldCup2026() {
         return ScoringRuleSet.builder().build();
     }

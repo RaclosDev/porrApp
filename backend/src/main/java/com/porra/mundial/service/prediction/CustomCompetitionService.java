@@ -57,6 +57,9 @@ public class CustomCompetitionService {
             throw BusinessException.forbidden("Solo el administrador puede cambiar el cierre");
         }
         if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran las predicciones");
+        if (com.porra.mundial.model.PoolFormat.isRaceBased(edition.getPoolFormat())) {
+            throw BusinessException.badRequest("En Fórmula 1 cada Gran Premio se cierra al empezar la clasificación");
+        }
         int offset = offsetMinutes == null ? 0 : offsetMinutes;
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");

@@ -49,17 +49,25 @@ export type SportChoice = Sport | 'OTHER';
 export const SPORT_LABELS: Record<SportChoice, string> = {
   FOOTBALL: 'Fútbol',
   LEAGUE_OF_LEGENDS: 'League of Legends',
+  FORMULA_1: 'Fórmula 1',
   OTHER: 'Otro deporte',
 };
 
 /** Las competiciones guardadas antes de que el servidor mandara el deporte son de fútbol. */
 const competitionSport = (competition: Competition): Sport =>
   competition.sport ??
-  (competition.externalId?.startsWith('lol.') ? 'LEAGUE_OF_LEGENDS' : 'FOOTBALL');
+  (competition.externalId?.startsWith('lol.')
+    ? 'LEAGUE_OF_LEGENDS'
+    : competition.externalId === 'f1'
+      ? 'FORMULA_1'
+      : 'FOOTBALL');
 
-/** Deportes con competiciones oficiales, en el orden en que llegan, y «otro» al final. */
+/** Competiciones en las que aún se puede crear una liga: las terminadas no se ofrecen. */
+const openCompetitions = (ctx: DraftContext) => ctx.competitions.filter((item) => !item.finished);
+
+/** Deportes con competiciones oficiales abiertas, en el orden en que llegan, y «otro» al final. */
 export function sportChoices(ctx: DraftContext): SportChoice[] {
-  const sports = [...new Set(ctx.competitions.map(competitionSport))];
+  const sports = [...new Set(openCompetitions(ctx).map(competitionSport))];
   return [...sports, 'OTHER'];
 }
 
@@ -68,7 +76,7 @@ export const competitionUnavailableReason = (competition: Competition) =>
   competition.finished ? 'Ya ha terminado: no quedan partidos por jugar.' : null;
 
 export const competitionsOfSport = (ctx: DraftContext, sport: SportChoice | null) =>
-  ctx.competitions.filter((item) => competitionSport(item) === sport);
+  openCompetitions(ctx).filter((item) => competitionSport(item) === sport);
 
 /** Lo que lleva elegido quien crea la liga. Se guarda tal cual en el dispositivo. */
 export interface LeagueDraft {
@@ -135,12 +143,19 @@ export const selectedCompetition = (draft: LeagueDraft, ctx: DraftContext) =>
 const hasCompetition = (draft: LeagueDraft, ctx: DraftContext) =>
   draft.custom || selectedCompetition(draft, ctx) != null;
 
-export const POOL_FORMAT_ORDER: PoolFormat[] = [
+const POOL_FORMAT_ORDER: PoolFormat[] = [
   'MATCH_DAY',
   'SURVIVOR',
   'FULL_BRACKET',
   'KNOCKOUTS_ONLY',
+  'GRAND_PRIX',
 ];
+
+/** Modos que se ofrecen para el deporte elegido: la Fórmula 1 solo se juega por Grandes Premios. */
+export const formatsForSport = (sport: SportChoice | null): PoolFormat[] =>
+  sport === 'FORMULA_1'
+    ? ['GRAND_PRIX']
+    : POOL_FORMAT_ORDER.filter((format) => format !== 'GRAND_PRIX');
 
 /** Cómo se juega cada formato, contado a quien aún no lo conoce. */
 export const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
@@ -159,6 +174,10 @@ export const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = 
   KNOCKOUTS_ONLY: {
     title: 'Solo eliminatorias',
     text: 'Rellenas el cuadro desde la primera eliminatoria hasta la final, sin fase de grupos.',
+  },
+  GRAND_PRIX: {
+    title: 'Gran Premio a Gran Premio',
+    text: 'Antes de cada clasificación predices el podio, la pole y la vuelta rápida. Los resultados llegan solos al acabar la carrera y gana quien más puntos sume en la temporada.',
   },
 };
 
@@ -190,6 +209,11 @@ export function formatUnavailableReason(
     return 'Necesita una competición oficial: los resultados llegan solos y así se sabe quién cae.';
   }
   const competition = selectedCompetition(draft, ctx);
+  const formulaOne = competition?.formatType === 'RACE';
+  if (format === 'GRAND_PRIX' && !formulaOne) return 'Solo para la Fórmula 1.';
+  if (format !== 'GRAND_PRIX' && formulaOne) {
+    return 'La Fórmula 1 se juega Gran Premio a Gran Premio.';
+  }
   if (format === 'FULL_BRACKET' && competition?.knockoutDraw) {
     return 'Los cruces se sortean ronda a ronda: elige Solo eliminatorias.';
   }
@@ -219,7 +243,8 @@ const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
 
 /** Cierres que admite el formato elegido. Superviviente se pronostica partido a partido: como jornadas. */
 export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOption[] {
-  if (draft.poolFormat == null) return [];
+  // Cada Gran Premio se cierra al empezar su clasificación: no hay nada que elegir.
+  if (draft.poolFormat == null || draft.poolFormat === 'GRAND_PRIX') return [];
   if (isMatchBasedFormat(draft.poolFormat))
     return matchdayLockModes(isMultiCompetition(draft.matches));
   if (isKnockoutDraw(draft, ctx)) return DRAWN_KNOCKOUT_LOCK_MODES;
@@ -275,6 +300,14 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   if (next.custom) next.competitionId = null;
   if (next.poolFormat && formatUnavailableReason(next.poolFormat, next, ctx))
     next.poolFormat = null;
+  // Un solo modo posible (la Fórmula 1): queda elegido.
+  const formats = formatsForSport(next.sport);
+  if (
+    next.poolFormat == null &&
+    formats.length === 1 &&
+    !formatUnavailableReason(formats[0], next, ctx)
+  )
+    next.poolFormat = formats[0];
   const modes = lockModesFor(next, ctx);
   if (!modes.some((item) => item.value === next.lockMode))
     next.lockMode = defaultLockMode(next, ctx);
@@ -466,7 +499,7 @@ export function readStoredDraft(): LeagueDraft {
         : base.scoring;
     return {
       sport: pick('sport', (value) =>
-        ['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'OTHER'].includes(value as string),
+        ['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'FORMULA_1', 'OTHER'].includes(value as string),
       ),
       competitionId: pick('competitionId', (value) => typeof value === 'number'),
       custom: pick('custom', isBool),

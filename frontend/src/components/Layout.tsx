@@ -21,7 +21,7 @@ import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
 import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
 import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { isMatchBasedFormat, isGrandPrixFormat } from '../utils/poolFormat';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -72,6 +72,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   useIosSessionHandoff();
   const isMatchDayLeague =
     isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
+  const isGrandPrixLeague = isGrandPrixFormat(activeGroupPoolFormat);
 
   const location = useLocation();
   const isDemo = isDemoMode;
@@ -190,6 +191,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                 {loading ||
                 choosingLeague ||
                 isMatchDayLeague ||
+                isGrandPrixLeague ||
                 (userName && myPrediction) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
@@ -214,6 +216,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <MainNav
             isDemo={isDemo}
             isMatchDayLeague={isMatchDayLeague}
+            isGrandPrixLeague={isGrandPrixLeague}
             isNavLocked={isNavLocked}
             formatPending={loadingGroup || choosingLeague}
           />

@@ -57,6 +57,10 @@ export const DEFAULT_SCORING: ScoringRules = {
   survivorRoundPoints: 1,
   survivorLives: 1,
   survivorDrawSurvives: 0,
+  f1ExactPositionPoints: 10,
+  f1PodiumPoints: 4,
+  f1PolePoints: 5,
+  f1FastestLapPoints: 3,
 };
 
 /** Puntuación de una liga de cuadro completo con las reglas por defecto. */

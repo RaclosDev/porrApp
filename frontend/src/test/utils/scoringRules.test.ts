@@ -25,13 +25,20 @@ describe('scoringRules', () => {
     expect(keysOf('KNOCKOUTS_ONLY', true)).toContain('roundOf32Points');
     // Sin formato conocido se tratan como cuadro completo.
     expect(keysOf(null, false)).toEqual(keysOf('FULL_BRACKET', false));
+    expect(keysOf('GRAND_PRIX', true)).toEqual([
+      'f1ExactPositionPoints',
+      'f1PodiumPoints',
+      'f1PolePoints',
+      'f1FastestLapPoints',
+    ]);
   });
 
-  it('las reglas del cuadro, las de jornadas y las de superviviente cubren todas las del backend', () => {
+  it('las reglas del cuadro, las de jornadas, superviviente y Fórmula 1 cubren todas las del backend', () => {
     const shown = new Set([
       ...keysOf('FULL_BRACKET', true),
       ...keysOf('MATCH_DAY', true),
       ...keysOf('SURVIVOR', false),
+      ...keysOf('GRAND_PRIX', false),
     ]);
     expect([...shown].sort()).toEqual(Object.keys(DEFAULT_SCORING).sort());
   });

@@ -9,7 +9,7 @@ import ShareImageTemplate from '../components/leaderboard/ShareImageTemplate';
 import { leaderboardColumns } from '../components/leaderboard/leaderboardColumns';
 import { useLeaderboard, type LeaderboardRow } from '../hooks/useLeaderboard';
 import { displayRoundLabel } from '../utils/matchday';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
 
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 
@@ -88,8 +88,11 @@ function Leaderboard() {
   if (loading) return <PaperLoading label="Cargando clasificación" />;
   if (!activeGroupId) return <NoLeague signedIn={Boolean(userName)} />;
 
+  // Las ligas de Fórmula 1 suman por Gran Premio como las de jornadas: su desglose es por Gran Premio.
   const isMatchday =
-    isMatchBasedFormat(activeGroupPoolFormat) || state.activeCompetitionFormatType === 'LEAGUE';
+    isMatchBasedFormat(activeGroupPoolFormat) ||
+    isGrandPrixFormat(activeGroupPoolFormat) ||
+    state.activeCompetitionFormatType === 'LEAGUE';
   const columns = leaderboardColumns({
     isMatchday,
     ownBracket: state.activeGroupOwnBracket,

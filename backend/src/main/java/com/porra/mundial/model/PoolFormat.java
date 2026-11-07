@@ -15,11 +15,21 @@ public enum PoolFormat {
      * Superviviente: en cada jornada se elige un equipo que gane, sin repetir equipo en toda la
      * temporada; si no gana (empate o derrota), quien lo eligió queda eliminado.
      */
-    SURVIVOR;
+    SURVIVOR,
+    /**
+     * Fórmula 1, Gran Premio a Gran Premio: podio, pole y vuelta rápida. Cada Gran Premio se cierra al
+     * empezar la clasificación, que decide la pole.
+     */
+    GRAND_PRIX;
 
     /** Se juega partido a partido sobre el calendario (jornadas), no sobre un cuadro. */
     public boolean isMatchBased() {
         return this == MATCH_DAY || this == SURVIVOR;
+    }
+
+    /** Se juega carrera a carrera (Fórmula 1), con su propia predicción y puntuación. */
+    public static boolean isRaceBased(PoolFormat format) {
+        return format == GRAND_PRIX;
     }
 
     /** Si el formato de una edición se juega partido a partido; null cuenta como cuadro. */
