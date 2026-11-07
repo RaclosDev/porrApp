@@ -101,6 +101,28 @@ export function scoringSections(format: PoolFormat | null, pichichi: boolean): S
   return pichichi ? [...sections, TOP_SCORER] : sections;
 }
 
+/**
+ * Puntuación con la que nace una liga y máximo por regla: los mismos valores que
+ * `ScoringRuleSet` en el servidor. Sirven para configurarla antes de que la liga exista.
+ */
+export const DEFAULT_SCORING_RULES: ScoringRules = {
+  groupQualifierPoints: 10,
+  groupExactPositionPoints: 10,
+  roundOf32Points: 25,
+  roundOf16Points: 30,
+  quarterFinalPoints: 40,
+  semiFinalPoints: 60,
+  championPoints: 200,
+  runnerUpPoints: 150,
+  thirdPlacePoints: 100,
+  fourthPlacePoints: 75,
+  topScorerPoints: 200,
+  exactScorePoints: 5,
+  correctSignPoints: 3,
+  goalDiffBonusPoints: 1,
+};
+export const SCORING_MAX_POINTS = 1000;
+
 /** Valores tal como se escriben en los campos del formulario. */
 export type ScoringDraft = Record<ScoringRuleKey, string>;
 

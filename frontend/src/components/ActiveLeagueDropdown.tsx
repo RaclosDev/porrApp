@@ -75,7 +75,7 @@ export default function ActiveLeagueDropdown() {
       <button
         type="button"
         id="btn-active-league-dropdown"
-        onClick={() => navigate('/mis-ligas')}
+        onClick={() => navigate('/crear-liga')}
         className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-11 rounded-[10px] border-dashed cursor-pointer text-[0.82rem]"
         title="Crear o unirse a una liga"
       >
@@ -184,7 +184,8 @@ export default function ActiveLeagueDropdown() {
               type="button"
               onClick={() => {
                 setIsOpen(false);
-                navigate('/mis-ligas');
+                // Sin sesión, Mis ligas pide iniciarla antes de crear o unirse.
+                navigate(isAuthenticated ? '/crear-liga' : '/mis-ligas');
               }}
             >
               <span>Crear o unirse a una liga</span>

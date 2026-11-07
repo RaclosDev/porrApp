@@ -29,17 +29,29 @@ export const fetchFeaturedGroup = () => request<Group>('/groups/featured');
 export const fetchGroupInvitationPreview = (joinCode: string) =>
   request<Group>(`/groups/preview/${encodeURIComponent(joinCode)}`);
 
-export const createGroup = (
-  name: string,
-  competitionId: number | string | null,
-  poolFormat: PoolFormat,
-  pichichi = true,
-  customCompetitionName?: string,
-  idempotencyKey?: string,
-) =>
+/**
+ * Liga nueva (POST /groups): o `competitionId` o `customCompetitionName`. Los ajustes opcionales
+ * (normas, cuota, puntuación y cierre) dejan la liga configurada; si alguno no es válido, no se crea.
+ */
+export interface CreateGroupRequest {
+  name: string;
+  competitionId: number | null;
+  customCompetitionName?: string;
+  poolFormat: PoolFormat;
+  pichichi: boolean;
+  rules?: string;
+  entryFee?: boolean;
+  scoring?: ScoringRules;
+  lockMode?: CustomLockMode;
+  lockOffsetMinutes?: number;
+  /** Fecha y hora de Madrid (`YYYY-MM-DDTHH:mm`), solo con `lockMode = FIXED_DATE`. */
+  lockDate?: string;
+}
+
+export const createGroup = (league: CreateGroupRequest, idempotencyKey?: string) =>
   request<Group>('/groups', {
     method: 'POST',
-    json: { name, competitionId, poolFormat, pichichi, customCompetitionName },
+    json: league,
     headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     fallbackError: 'Error al crear la liga',
   });
