@@ -59,4 +59,18 @@ class MatchdayLockTest {
         assertEquals(saturday.minus(1, ChronoUnit.HOURS), locks.get(3L));
         assertEquals(nextRound.getMatchDate().minus(1, ChronoUnit.HOURS), locks.get(4L));
     }
+
+    @Test
+    void multiCompetitionLeaguesLockTheWholeWeekWithItsFirstMatch() {
+        Edition weekly = edition(PredictionLockMode.PER_ROUND, 0);
+        weekly.setMultiCompetition(true);
+        // Otra competición, otra jornada: en la misma semana se cierra con el primero; el lunes, aparte.
+        Match monday = match(5, "Jornada 13", saturday.plus(2, ChronoUnit.DAYS));
+        List<Match> league = List.of(first, nextRound, monday);
+        Map<Long, Instant> locks = MatchdayLock.lockTimes(weekly, league, league);
+        assertEquals(saturday, locks.get(4L));
+        assertEquals(monday.getMatchDate(), locks.get(5L));
+        assertEquals("Las predicciones de esta semana ya están cerradas",
+                MatchdayLock.reason(weekly, nextRound, saturday.plus(1, ChronoUnit.HOURS)));
+    }
 }

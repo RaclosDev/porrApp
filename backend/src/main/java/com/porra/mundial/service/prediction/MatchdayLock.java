@@ -76,7 +76,9 @@ public final class MatchdayLock {
         if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) return "El partido ya ha comenzado";
         return switch (mode(edition)) {
             case PER_DAY -> "Las predicciones de este día ya están cerradas";
-            case PER_ROUND -> "Las predicciones de esta jornada ya están cerradas";
+            case PER_ROUND -> edition != null && edition.isMultiCompetition()
+                    ? "Las predicciones de esta semana ya están cerradas"
+                    : "Las predicciones de esta jornada ya están cerradas";
             default -> "El plazo de predicción de este partido ha terminado";
         };
     }

@@ -128,6 +128,16 @@ describe('borrador de liga', () => {
       'PER_DAY',
       'PER_ROUND',
     ]);
+    // Con varias competiciones la jornada es la semana.
+    const multi = draftWith({ competitionId: 1, poolFormat: 'MATCH_DAY' });
+    const weekly = lockModesFor(
+      { ...multi, matches: { ...multi.matches, competitionIds: [1, 2] } },
+      ctx,
+    );
+    expect(weekly.find((mode) => mode.value === 'PER_ROUND')?.label).toBe('Por semanas');
+    expect(lockModesFor(multi, ctx).find((mode) => mode.value === 'PER_ROUND')?.label).toBe(
+      'Por jornadas',
+    );
   });
 
   it('no deja elegir una competición terminada ni un cuadro completo sin grupos', () => {

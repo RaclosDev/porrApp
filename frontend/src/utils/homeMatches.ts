@@ -1,4 +1,4 @@
-import type { Match } from '../types/api';
+import type { Match, MatchdayFixture } from '../types/api';
 
 const LIVE_STATUSES = new Set(['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS']);
 const VOID_STATUSES = new Set(['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED']);
@@ -24,6 +24,31 @@ function roundLabelFor(match: Match) {
  * Jornada actual de una liga: la primera ronda con partidos por jugar (o la última si ya acabó todo),
  * con todos sus partidos, también los ya finalizados.
  */
+/** Partido de la jornada de una liga (`/predictions/matchday`) con la forma de los de la competición. */
+export const fixtureAsMatch = (fixture: MatchdayFixture): Match => ({
+  id: fixture.matchId,
+  home: fixture.homeTeam,
+  away: fixture.awayTeam,
+  home_team_id: fixture.homeTeamId,
+  away_team_id: fixture.awayTeamId,
+  homeLogo: fixture.homeTeamLogo,
+  awayLogo: fixture.awayTeamLogo,
+  homeTeamLogo: fixture.homeTeamLogo,
+  awayTeamLogo: fixture.awayTeamLogo,
+  homeScore: fixture.actualHomeScore ?? null,
+  awayScore: fixture.actualAwayScore ?? null,
+  home_score: fixture.actualHomeScore ?? null,
+  away_score: fixture.actualAwayScore ?? null,
+  date: fixture.matchDate,
+  finished: Boolean(fixture.finished),
+  round: fixture.round ?? '',
+  groupName: fixture.groupName,
+  winner: null,
+  displayClock: fixture.displayClock ?? null,
+  isStartingSoon: false,
+  status: fixture.status ?? 'SCHEDULED',
+});
+
 export function currentRoundMatches(matches: Match[]): { round: string | null; matches: Match[] } {
   const rounds: string[] = [];
   const byRound = new Map<string, Match[]>();
