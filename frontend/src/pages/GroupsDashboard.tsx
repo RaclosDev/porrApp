@@ -12,6 +12,7 @@ import GroupCard from '../components/groups/GroupCard';
 import JoinGroupPanel from '../components/groups/JoinGroupPanel';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
 import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
+import LeagueMatchesSection, { hasMatchSelection } from '../components/groups/LeagueMatchesSection';
 import type { Group } from '../types/api';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 
@@ -238,9 +239,15 @@ export default function GroupsDashboard() {
           }}
           isAdmin={isGroupAdmin(selectedGroupForMembers)}
           lockSection={
-            hasLeagueLockSetting(selectedGroupForMembers) ? (
-              <LeagueLockSection group={selectedGroupForMembers} />
-            ) : null
+            <>
+              {hasLeagueLockSetting(selectedGroupForMembers) && (
+                <LeagueLockSection group={selectedGroupForMembers} />
+              )}
+              {isGroupAdmin(selectedGroupForMembers) &&
+                hasMatchSelection(selectedGroupForMembers) && (
+                  <LeagueMatchesSection group={selectedGroupForMembers} />
+                )}
+            </>
           }
           currentUserId={userId}
           onClose={() => setSelectedGroupForMembers(null)}

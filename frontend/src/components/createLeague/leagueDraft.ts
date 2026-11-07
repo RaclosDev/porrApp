@@ -19,6 +19,13 @@ import {
   type LockModeOption,
   type LockUnit,
 } from '../groups/custom/lockModes';
+import {
+  ALL_MATCHES,
+  selectionError,
+  toRequest,
+  type PickMode,
+  type SelectionValue,
+} from '../matchSelection/matchSelection';
 
 export const LEAGUE_STEPS = [
   { id: 'sport', label: 'Deporte' },
@@ -79,6 +86,10 @@ export interface LeagueDraft {
   customScoring: boolean;
   scoring: ScoringDraft;
   pichichi: boolean;
+  /** Partidos que entran (liga por jornadas sobre una competición oficial). */
+  matches: SelectionValue;
+  /** Competición a la que pertenecen los partidos elegidos: si cambia, se vuelve a todos. */
+  matchesCompetitionId: number | null;
   entryFee: boolean;
   name: string;
   rules: string;
@@ -101,6 +112,8 @@ export const emptyDraft = (): LeagueDraft => ({
   customScoring: false,
   scoring: toDraft(DEFAULT_SCORING_RULES),
   pichichi: false,
+  matches: ALL_MATCHES,
+  matchesCompetitionId: null,
   entryFee: false,
   name: '',
   rules: '',
@@ -234,6 +247,10 @@ export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   draft.poolFormat != null &&
   !isMatchBasedFormat(draft.poolFormat);
 
+/** Elegir partidos: solo en una liga por jornadas sobre una competición oficial. */
+export const matchSelectionApplies = (draft: LeagueDraft, ctx: DraftContext) =>
+  !draft.custom && draft.poolFormat === 'MATCH_DAY' && selectedCompetition(draft, ctx) != null;
+
 /** Con el formato elegido, la puntuación se puede personalizar (en superviviente: puntos, vidas y empate). */
 export const scoringEditable = (draft: LeagueDraft) => draft.poolFormat != null;
 
@@ -260,6 +277,14 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   if (!modes.some((item) => item.value === next.lockMode))
     next.lockMode = defaultLockMode(next, ctx);
   if (!pichichiApplies(next, ctx)) next.pichichi = false;
+  // Los partidos elegidos son de una competición: al cambiarla (o el formato) entran todos.
+  if (!matchSelectionApplies(next, ctx)) {
+    if (next.matches.mode !== 'ALL') next.matches = ALL_MATCHES;
+    next.matchesCompetitionId = null;
+  } else if (next.matchesCompetitionId !== next.competitionId) {
+    next.matches = ALL_MATCHES;
+    next.matchesCompetitionId = next.competitionId;
+  }
   if (!scoringEditable(next)) next.customScoring = false;
   return next;
 }
@@ -274,6 +299,7 @@ export type StepErrors = Partial<
     | 'competition'
     | 'customName'
     | 'poolFormat'
+    | 'matches'
     | 'lockDate'
     | 'lockAmount'
     | 'scoring'
@@ -289,6 +315,7 @@ export const FIELD_IDS: Record<keyof StepErrors, string> = {
   competition: 'cl-field-competition',
   customName: 'cl-custom-name',
   poolFormat: 'cl-field-format',
+  matches: 'cl-field-matches',
   lockDate: 'cl-lock-date',
   lockAmount: 'cl-lock-amount',
   scoring: 'cl-field-scoring',
@@ -315,6 +342,9 @@ export function validateStep(
   }
   if (step === 'format' && !draft.poolFormat) {
     errors.poolFormat = 'Elige cómo se juega la liga.';
+  } else if (step === 'format' && matchSelectionApplies(draft, ctx)) {
+    const problem = selectionError(draft.matches);
+    if (problem) errors.matches = problem;
   }
   if (step === 'rules') {
     if (draft.lockMode === 'FIXED_DATE') {
@@ -369,6 +399,9 @@ export function buildCreateRequest(draft: LeagueDraft, ctx: DraftContext): Creat
   if (draft.custom) request.customCompetitionName = draft.customName.trim();
   if (rules) request.rules = rules;
   if (draft.entryFee) request.entryFee = true;
+  if (matchSelectionApplies(draft, ctx) && draft.matches.mode !== 'ALL') {
+    request.matchSelection = toRequest(draft.matches);
+  }
   const scoring = customScoringRules(draft);
   if (scoring) request.scoring = scoring;
   if (draft.lockMode) {
@@ -408,6 +441,17 @@ export function readStoredDraft(): LeagueDraft {
       valid(stored[key]) ? (stored[key] as LeagueDraft[K]) : base[key];
     const isString = (value: unknown) => typeof value === 'string';
     const isBool = (value: unknown) => typeof value === 'boolean';
+    const isIds = (value: unknown) =>
+      Array.isArray(value) && value.every((item) => typeof item === 'number');
+    const storedMatches = stored.matches as Partial<SelectionValue> | undefined;
+    const matches: SelectionValue =
+      storedMatches &&
+      ['ALL', 'TEAMS', 'PICK'].includes(storedMatches.mode as PickMode) &&
+      isIds(storedMatches.teamIds) &&
+      isIds(storedMatches.included) &&
+      isIds(storedMatches.excluded)
+        ? (storedMatches as SelectionValue)
+        : base.matches;
     const scoring =
       stored.scoring && typeof stored.scoring === 'object'
         ? { ...base.scoring, ...(stored.scoring as ScoringDraft) }
@@ -430,6 +474,8 @@ export function readStoredDraft(): LeagueDraft {
       customScoring: pick('customScoring', isBool),
       scoring,
       pichichi: pick('pichichi', isBool),
+      matches,
+      matchesCompetitionId: pick('matchesCompetitionId', (value) => typeof value === 'number'),
       entryFee: pick('entryFee', isBool),
       name: pick('name', isString),
       rules: pick('rules', isString),

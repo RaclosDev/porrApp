@@ -75,6 +75,7 @@ class CompetitionImportTransactionTest {
     @MockitoBean KnockoutBracketService knockout;
     @MockitoBean WebSocketService updates;
     @MockitoBean TopScorerService scorers;
+    @MockitoBean com.porra.mundial.service.prediction.MatchSelectionService matchSelection;
     @MockitoBean LegacyFixtureRepairService repair;
     @MockitoBean com.porra.mundial.service.tournament.OfficialMatchdayService matchdays;
     private final ObjectMapper json = new ObjectMapper();

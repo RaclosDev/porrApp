@@ -69,6 +69,12 @@ public class Edition {
     @Builder.Default
     private int lockOffsetMinutes = 0;
 
+    /** Qué partidos de la competición entran en la liga (solo en ligas por jornadas). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "match_selection", nullable = false, length = 20)
+    @Builder.Default
+    private MatchSelectionMode matchSelection = MatchSelectionMode.ALL;
+
     /** Configuración serializada de reglas de puntuación para esta edición. */
     @Column(name = "scoring_rules_json", columnDefinition = "TEXT")
     private String scoringRulesJson;

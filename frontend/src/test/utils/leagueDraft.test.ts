@@ -258,4 +258,29 @@ describe('borrador de liga', () => {
     localStorage.setItem('createLeagueDraft', JSON.stringify({ poolFormat: 'OTRO', name: 7 }));
     expect(readStoredDraft()).toEqual(emptyDraft());
   });
+
+  it('elige partidos solo por jornadas en una oficial y los olvida al cambiar de competición', () => {
+    const teams = { mode: 'TEAMS' as const, teamIds: [7], included: [], excluded: [31] };
+    const draft = draftWith({ sport: 'FOOTBALL', competitionId: 1, poolFormat: 'MATCH_DAY' });
+    const picked = normalizeDraft({ ...draft, matches: teams }, ctx);
+    expect(picked.matches).toEqual(teams);
+    expect(buildCreateRequest({ ...picked, name: 'Peña' }, ctx).matchSelection).toEqual({
+      mode: 'CUSTOM',
+      teamIds: [7],
+      includedMatchIds: [],
+      excludedMatchIds: [31],
+    });
+
+    // Sin equipos no se puede seguir; con todos los partidos no se manda nada.
+    expect(
+      validateStep('format', { ...picked, matches: { ...teams, teamIds: [] } }, ctx),
+    ).toHaveProperty('matches', 'Elige al menos un equipo.');
+    expect(buildCreateRequest({ ...draft, name: 'Peña' }, ctx)).not.toHaveProperty(
+      'matchSelection',
+    );
+
+    // Otra competición o superviviente: vuelven a entrar todos.
+    expect(normalizeDraft({ ...picked, competitionId: 2 }, ctx).matches.mode).toBe('ALL');
+    expect(normalizeDraft({ ...picked, poolFormat: 'SURVIVOR' }, ctx).matches.mode).toBe('ALL');
+  });
 });

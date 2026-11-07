@@ -1,11 +1,14 @@
 package com.porra.mundial.service.notification;
 
+import com.porra.mundial.service.prediction.MatchSelectionService;
+
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchReminderSent;
 import com.porra.mundial.model.Membership;
+import com.porra.mundial.model.MatchSelectionMode;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.PushSubscription;
@@ -56,8 +59,9 @@ class MatchReminderServiceTest {
     private final WebPushSender sender = mock(WebPushSender.class);
     private final ObjectMapper json = JsonMapper.builder().build();
     private final PushNotificationLogService notificationLog = mock(PushNotificationLogService.class);
+    private final MatchSelectionService selection = mock(MatchSelectionService.class);
     private final MatchReminderService service = new MatchReminderService(editions, matches, memberships,
-            predictions, reminders, subscriptions, sender, json, notificationLog);
+            predictions, reminders, subscriptions, sender, json, notificationLog, selection);
 
     private final League league = League.builder().id(5L).name("Los del barrio").joinCode("BARRIO").build();
     private final Competition competition = Competition.builder().id(9L).build();
@@ -88,6 +92,17 @@ class MatchReminderServiceTest {
 
         assertThat(pending).extracting(MatchReminderService.Pending::userId).containsExactly(1L);
         assertThat(pending).extracting(p -> p.match().getId()).containsExactly(100L);
+    }
+
+    @Test
+    void leaguesThatPickTheirMatchesOnlyRemindAboutThoseMatches() {
+        edition.setMatchSelection(MatchSelectionMode.CUSTOM);
+        Match picked = match(100L, NOW.plus(30, ChronoUnit.MINUTES));
+        Match other = match(101L, NOW.plus(40, ChronoUnit.MINUTES));
+        when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), any())).thenReturn(List.of(picked, other));
+        when(selection.filter(eq(edition), any())).thenReturn(List.of(picked));
+
+        assertThat(service.findPending(NOW)).extracting(p -> p.match().getId()).containsOnly(100L);
     }
 
     @Test
