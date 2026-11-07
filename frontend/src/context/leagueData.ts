@@ -94,6 +94,7 @@ function useLeagueState() {
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
           multiCompetition: fromList.multiCompetition,
+          matchSelection: fromList.matchSelection,
           competitionExternalId: fromList.competitionExternalId,
           customCompetition: fromList.customCompetition,
           formatType: fromList.formatType,
@@ -140,6 +141,9 @@ function useLeagueState() {
           groupInfo?.competitionExternalId !== 'fifa.world')),
     // Eliminatorias que se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda.
     activeGroupKnockoutDraw: Boolean(groupInfo?.knockoutDraw),
+    // Liga por jornadas que elige sus partidos (de una o de varias competiciones).
+    activeGroupPicksMatches: groupInfo?.matchSelection === 'CUSTOM',
+    activeGroupMultiCompetition: Boolean(groupInfo?.multiCompetition),
     activeGroupPichichi: groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : true,
     activeGroupIsLocked: Boolean(groupInfo?.isLocked),
     activeGroupLockDate: groupInfo?.lockDate || null,

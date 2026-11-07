@@ -179,12 +179,14 @@
 
   .md-lock-at {
     font-weight: 600;
+    white-space: nowrap;
   }
 
+  /* La fecha y su cierre: si no caben en una línea, el cierre baja entero a la siguiente. */
   .md-match-top > span:first-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex-wrap: wrap;
+    row-gap: 2px;
+    min-width: 0;
   }
 
   .md-badge {

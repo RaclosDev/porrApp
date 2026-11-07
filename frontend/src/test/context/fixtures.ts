@@ -32,6 +32,8 @@ export const appContext = (fields: Partial<AppContextValue> = {}): AppContextVal
   activeGroupCustomCompetition: false,
   activeGroupOwnBracket: false,
   activeGroupKnockoutDraw: false,
+  activeGroupPicksMatches: false,
+  activeGroupMultiCompetition: false,
   activeGroupPichichi: false,
   activeGroupIsLocked: false,
   activeGroupLockDate: null,

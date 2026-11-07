@@ -13,7 +13,7 @@ import {
   BRACKET_LOCK_MODES,
   DRAWN_KNOCKOUT_LOCK_MODES,
   LOCK_UNIT_MINUTES,
-  MATCHDAY_LOCK_MODES,
+  matchdayLockModes,
   MAX_LOCK_OFFSET_MINUTES,
   SINGLE_LOCK_MODES,
   type LockModeOption,
@@ -21,6 +21,7 @@ import {
 } from '../groups/custom/lockModes';
 import {
   ALL_MATCHES,
+  isMultiCompetition,
   selectionError,
   toRequest,
   type PickMode,
@@ -219,7 +220,8 @@ const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
 /** Cierres que admite el formato elegido. Superviviente se pronostica partido a partido: como jornadas. */
 export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOption[] {
   if (draft.poolFormat == null) return [];
-  if (isMatchBasedFormat(draft.poolFormat)) return MATCHDAY_LOCK_MODES;
+  if (isMatchBasedFormat(draft.poolFormat))
+    return matchdayLockModes(isMultiCompetition(draft.matches));
   if (isKnockoutDraw(draft, ctx)) return DRAWN_KNOCKOUT_LOCK_MODES;
   return allowsProgressiveLock(draft, ctx) ? BRACKET_LOCK_MODES : SINGLE_LOCK_MODES;
 }
