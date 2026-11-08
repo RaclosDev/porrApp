@@ -338,6 +338,15 @@
     color: var(--accent-cyan);
   }
 
+  /* «Prórroga» o «4-2 en penaltis» bajo los equipos. */
+  .home-match-note {
+    margin: 6px 0 0;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
   .home-match-score.is-pending {
     background: transparent;
     font-size: 0.8rem;

@@ -200,4 +200,52 @@ describe('KnockoutDrawPredictor', () => {
 
     expect(await screen.findByText(/Aún no se han sorteado los cruces/)).toBeInTheDocument();
   });
+
+  it('antes del sorteo de la Champions explica quién pasa y enseña la tabla de la fase de liga', async () => {
+    vi.mocked(appContextModule.useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '10',
+        activeCompetitionId: 3,
+        activeCompetitionName: 'UEFA Champions League',
+        activeCompetitionExternalId: 'uefa.champions',
+        leagueKind: 'knockoutDraw',
+        allGames: [],
+      }),
+    );
+    vi.mocked(api.fetchCustomLockState).mockResolvedValue({ ...lockState(), knockoutRounds: [] });
+    vi.mocked(api.fetchCompetitionStandings).mockResolvedValue([
+      {
+        rank: 1,
+        teamName: 'Paris Saint-Germain',
+        teamLogo: null,
+        points: 12,
+        gamesPlayed: 4,
+        wins: 4,
+        ties: 0,
+        losses: 0,
+        goalDiff: 9,
+        goalsFor: 11,
+        goalsAgainst: 2,
+      },
+    ] as never);
+    renderPredictor();
+
+    expect(await screen.findByText(/los 8 primeros van a octavos/)).toBeInTheDocument();
+    expect(await screen.findByText('Paris Saint-Germain')).toBeInTheDocument();
+  });
+
+  it('en la Copa del Rey avisa de que se predice desde dieciseisavos', async () => {
+    vi.mocked(appContextModule.useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '10',
+        activeCompetitionExternalId: 'esp.copa_del_rey',
+        leagueKind: 'knockoutDraw',
+        allGames: [],
+      }),
+    );
+    vi.mocked(api.fetchCustomLockState).mockResolvedValue({ ...lockState(), knockoutRounds: [] });
+    renderPredictor();
+
+    expect(await screen.findByText(/Se predice desde dieciseisavos/)).toBeInTheDocument();
+  });
 });
