@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { isLiveMatch } from '../../utils/homeMatches';
 import Flag from '../Flag';
 import InkStamp from '../InkStamp';
-import { formatMatchDate } from '../../utils/matchday';
+import { finishedLabel, formatMatchDate } from '../../utils/matchday';
 import { VoterStack } from '../voters/SignVoters';
 import MatchVotersModal from '../voters/MatchVotersModal';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
@@ -122,7 +122,13 @@ export default function FeaturedMatchBanner({
           homeScore={featuredMatch.homeScore}
           awayScore={featuredMatch.awayScore}
           live={live}
-          status={featuredMatch.finished ? 'Final' : live ? clock || 'En directo' : undefined}
+          status={
+            featuredMatch.finished
+              ? finishedLabel(featuredMatch.displayClock)
+              : live
+                ? clock || 'En directo'
+                : undefined
+          }
           onClose={() => setShowVoters(false)}
         />
       )}

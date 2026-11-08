@@ -124,6 +124,24 @@ describe('SurvivorStatusBar', () => {
     expect(screen.getByText('Equipos usados: Sevilla, Betis')).toBeInTheDocument();
   });
 
+  it('en la NFL habla de semanas', () => {
+    render(
+      <SurvivorStatusBar
+        weeks
+        status={{
+          eliminated: true,
+          survived: 1,
+          eliminatedRound: 'Semana 9',
+          missed: false,
+          picks: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText('1 semana superada')).toBeInTheDocument();
+    expect(screen.getByText(/Eliminado en la Semana 9/)).toBeInTheDocument();
+  });
+
   it('dice en qué jornada cayó', () => {
     render(
       <SurvivorStatusBar
