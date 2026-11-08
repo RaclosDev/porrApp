@@ -11,6 +11,13 @@ import type { LeagueKind } from '../context/leagueKind';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
 import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
+import {
+  formatWinShare,
+  hasNflDivisions,
+  nflConferenceTables,
+  nflRecord,
+  NFL_PLAYOFF_SPOTS,
+} from '../utils/nflStandings';
 
 /** «Tabla»: la clasificación de la competición; en la UFC, la cartelera, y en el tenis, el cuadro. */
 export default function LeagueStandings() {
@@ -37,6 +44,8 @@ export default function LeagueStandings() {
 /** Clasificación de la competición de una liga por jornadas. */
 function CompetitionTable() {
   const [showComplete, setShowComplete] = useState(false);
+  // NFL: por divisiones (como la publica la liga) o por conferencias (la carrera a los playoffs).
+  const [byConference, setByConference] = useState(false);
   const {
     activeCompetitionId,
     activeGroupId,
@@ -51,11 +60,11 @@ function CompetitionTable() {
   // El LoL va por fases (play-in y suiza) con el balance de series: sin empates ni puntos de fútbol.
   const lol = isLolCompetition(activeCompetitionExternalId);
   const labels = winLoss
-    ? { points: 'V', diff: 'Dif', for: 'PF', against: 'PC' }
+    ? { points: 'V-D', diff: 'Dif', for: 'PF', against: 'PC' }
     : lol
       ? { points: 'V-D', diff: 'DG', for: 'GF', against: 'GC' }
       : { points: 'PTS', diff: 'DG', for: 'GF', against: 'GC' };
-  const completeColumns = winLoss ? 5 : 6;
+  const completeColumns = 6;
 
   const {
     data: standings,
@@ -72,7 +81,10 @@ function CompetitionTable() {
     staleTime: 120_000,
   });
 
-  const groups = Array.isArray(standings) ? groupStandings(standings) : [];
+  const rows = Array.isArray(standings) ? standings : [];
+  const nflDivisions = winLoss && hasNflDivisions(rows);
+  const conferences = nflDivisions && byConference;
+  const groups = conferences ? nflConferenceTables(rows) : groupStandings(rows);
 
   return (
     <section className="standings-page paper-panel album-sheet">
@@ -81,6 +93,27 @@ function CompetitionTable() {
           <span className="standings-eyebrow">Clasificación</span>
           <h1 className="standings-title">{activeCompetitionName || 'Tabla de equipos'}</h1>
         </div>
+
+        {nflDivisions && (
+          <div className="standings-toggle" role="group" aria-label="Agrupar la tabla">
+            <button
+              type="button"
+              className={byConference ? '' : 'is-active'}
+              aria-pressed={!byConference}
+              onClick={() => setByConference(false)}
+            >
+              Divisiones
+            </button>
+            <button
+              type="button"
+              className={byConference ? 'is-active' : ''}
+              aria-pressed={byConference}
+              onClick={() => setByConference(true)}
+            >
+              Conferencias
+            </button>
+          </div>
+        )}
 
         {!lol && (
           <div className="standings-toggle" role="group" aria-label="Nivel de detalle de la tabla">
@@ -157,12 +190,12 @@ function CompetitionTable() {
                       <th scope="col" className="standings-points-col">
                         {labels.points}
                       </th>
-                      <th scope="col">PJ</th>
+                      <th scope="col">{winLoss ? '%' : 'PJ'}</th>
                       {showComplete && (
                         <>
-                          {!winLoss && <th scope="col">V</th>}
-                          <th scope="col">E</th>
-                          <th scope="col">D</th>
+                          <th scope="col">V</th>
+                          <th scope="col">{winLoss ? 'D' : 'E'}</th>
+                          <th scope="col">{winLoss ? 'E' : 'D'}</th>
                           <th scope="col">{labels.diff}</th>
                           <th scope="col">{labels.for}</th>
                           <th scope="col">{labels.against}</th>
@@ -172,10 +205,28 @@ function CompetitionTable() {
                   </thead>
                   <tbody>
                     {group.rows.map((row) => {
-                      const podium = row.rank >= 1 && row.rank <= 3 ? ` is-podium-${row.rank}` : '';
+                      // En la NFL solo destaca el líder de cada división; por conferencias, ninguno: la
+                      // raya marca los 7 que entran en los playoffs.
+                      const podium =
+                        conferences || (winLoss && row.rank !== 1)
+                          ? ''
+                          : row.rank >= 1 && row.rank <= 3
+                            ? ` is-podium-${row.rank}`
+                            : '';
+                      const cutline = conferences && row.rank === NFL_PLAYOFF_SPOTS;
+                      const seed =
+                        winLoss &&
+                        !conferences &&
+                        row.playoffSeed != null &&
+                        row.playoffSeed <= NFL_PLAYOFF_SPOTS
+                          ? row.playoffSeed
+                          : null;
 
                       return (
-                        <tr key={`${row.rank}-${row.teamName}`} className="standings-row">
+                        <tr
+                          key={`${row.rank}-${row.teamName}`}
+                          className={`standings-row${cutline ? ' is-playoff-cutline' : ''}`}
+                        >
                           <td className="standings-rank-cell">
                             <span className={`standings-rank${podium}`}>{row.rank}</span>
                           </td>
@@ -214,20 +265,55 @@ function CompetitionTable() {
                                   {row.teamName.trim().charAt(0).toLocaleUpperCase('es')}
                                 </span>
                               )}
-                              <span className="standings-team-name">{row.teamName}</span>
+                              <span className="standings-team-name">
+                                {row.teamShortName ? (
+                                  <>
+                                    <span className="standings-team-full">{row.teamName}</span>
+                                    <span className="standings-team-short">
+                                      {row.teamShortName}
+                                    </span>
+                                  </>
+                                ) : (
+                                  row.teamName
+                                )}
+                              </span>
+                              {seed != null && (
+                                <span
+                                  className="standings-seed"
+                                  title={`Puesto ${seed} de su conferencia para los playoffs`}
+                                  aria-label={`Puesto ${seed} para los playoffs`}
+                                >
+                                  {seed}
+                                </span>
+                              )}
                             </div>
                           </td>
 
                           <td className="standings-points-cell">
-                            {lol ? `${row.wins}-${row.losses}` : row.points}
+                            {winLoss
+                              ? nflRecord(row)
+                              : lol
+                                ? `${row.wins}-${row.losses}`
+                                : row.points}
                           </td>
-                          <td className="standings-muted-cell">{row.gamesPlayed}</td>
+                          <td className="standings-muted-cell">
+                            {winLoss ? formatWinShare(row) : row.gamesPlayed}
+                          </td>
 
                           {showComplete && (
                             <>
-                              {!winLoss && <td className="standings-win-cell">{row.wins}</td>}
-                              <td className="standings-muted-cell">{row.ties}</td>
-                              <td className="standings-loss-cell">{row.losses}</td>
+                              <td className="standings-win-cell">{row.wins}</td>
+                              {winLoss ? (
+                                <>
+                                  <td className="standings-loss-cell">{row.losses}</td>
+                                  <td className="standings-muted-cell">{row.ties}</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="standings-muted-cell">{row.ties}</td>
+                                  <td className="standings-loss-cell">{row.losses}</td>
+                                </>
+                              )}
                               <td
                                 className={`standings-diff-cell${
                                   row.goalDiff > 0
@@ -259,11 +345,21 @@ function CompetitionTable() {
                 resultados están en <Link to="/jornadas">Jornadas</Link>.
               </span>
             </div>
+          ) : nflDivisions ? (
+            <div className="standings-legend">
+              <span className="standings-legend-note">
+                {conferences
+                  ? `Por puesto para los playoffs: entran los ${NFL_PLAYOFF_SPOTS} primeros de cada conferencia, los 4 campeones de división y 3 comodines.`
+                  : 'El número junto al equipo es su puesto para los playoffs en su conferencia.'}{' '}
+                V-D victorias y derrotas (y empates) · % de victorias, el empate vale media
+                {showComplete && ' · Dif diferencia de puntos · PF y PC puntos a favor y en contra'}
+              </span>
+            </div>
           ) : showComplete ? (
             <div className="standings-legend">
               <span className="standings-legend-note">
                 {winLoss
-                  ? `V victorias · E empates · D derrotas · Dif diferencia de puntos · PF y PC puntos a favor y en contra`
+                  ? `V victorias · D derrotas · E empates · Dif diferencia de puntos · PF y PC puntos a favor y en contra`
                   : 'V victorias · E empates · D derrotas · DG diferencia de marcador'}
               </span>
             </div>

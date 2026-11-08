@@ -123,7 +123,8 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     @Override
     public JsonNode fetchStandings(String competitionSlug) throws Exception {
         String slug = resolveSlug(competitionSlug);
-        String url = BASE_STANDINGS_URL + sportPath(slug) + "/standings";
+        // La NFL, por divisiones (level=3): sin él, ESPN la da solo por conferencias.
+        String url = BASE_STANDINGS_URL + sportPath(slug) + "/standings" + (NflSchedule.isNfl(slug) ? "?level=3" : "");
 
         return executeGet(url);
     }
