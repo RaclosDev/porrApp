@@ -147,6 +147,29 @@ const SURVIVOR: ScoringSection = {
   ],
 };
 
+const GRAND_PRIX: ScoringSection = {
+  id: 'grandPrix',
+  title: 'Cada Gran Premio',
+  fields: [
+    {
+      key: 'f1ExactPositionPoints',
+      label: 'Puesto exacto del podio',
+      hint: 'Por cada piloto que aciertas en su puesto: 1.º, 2.º o 3.º.',
+    },
+    {
+      key: 'f1PodiumPoints',
+      label: 'En el podio, otro puesto',
+      hint: 'Por cada piloto de tu podio que sube, pero en otro puesto.',
+    },
+    { key: 'f1PolePoints', label: 'Pole', hint: 'Aciertas quién sale primero.' },
+    {
+      key: 'f1FastestLapPoints',
+      label: 'Vuelta rápida',
+      hint: 'Aciertas quién hace la vuelta más rápida de la carrera.',
+    },
+  ],
+};
+
 /** Límites de las reglas que no son puntos: vidas de 1 a 10 y el empate como 0 o 1. */
 const RANGES: Partial<Record<ScoringRuleKey, [number, number]>> = {
   survivorLives: [1, 10],
@@ -279,6 +302,7 @@ export function scoringSections(
   if (sport === 'TENNIS') return [TENNIS];
   if (format === 'MATCH_DAY') return [fights ? FIGHTS : winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
+  if (format === 'GRAND_PRIX') return [GRAND_PRIX];
   if (nbaSeries) return [NBA_SERIES, NBA_EXACT];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
@@ -310,6 +334,10 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   fightWinnerPoints: 3,
   fightMethodPoints: 2,
   fightRoundPoints: 2,
+  f1ExactPositionPoints: 10,
+  f1PodiumPoints: 4,
+  f1PolePoints: 5,
+  f1FastestLapPoints: 3,
   nbaPlayInPoints: 5,
   nbaFirstRoundPoints: 10,
   nbaConferenceSemifinalPoints: 20,

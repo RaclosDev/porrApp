@@ -6,13 +6,14 @@ import java.util.Locale;
 
 /**
  * Deporte de una competición oficial. Sale de su id en el proveedor de datos: los de League of
- * Legends empiezan por {@code lol.} (LoL Esports), los de artes marciales mixtas por {@code mma.}
- * (la UFC, de ESPN), la NBA es {@code nba} y la NFL {@code nfl} (ESPN), los de tenis empiezan por
- * {@code tennis.} (ESPN) y el resto son de fútbol (ESPN).
+ * Legends empiezan por {@code lol.} (LoL Esports); la Fórmula 1 es {@code f1}, la NBA {@code nba} y la NFL
+ * {@code nfl} (ESPN); los de tenis empiezan por {@code tennis.} y los de artes marciales mixtas por {@code mma.}
+ * (la UFC, de ESPN), y el resto son de fútbol (ESPN).
  */
 public enum Sport {
     FOOTBALL,
     LEAGUE_OF_LEGENDS,
+    FORMULA_1,
     BASKETBALL,
     AMERICAN_FOOTBALL,
     TENNIS,
@@ -22,6 +23,7 @@ public enum Sport {
         String id = externalId == null ? "" : externalId.trim().toLowerCase(Locale.ROOT);
         if (id.startsWith("lol.")) return LEAGUE_OF_LEGENDS;
         if (id.startsWith("mma.")) return MMA;
+        if (Competition.FORMULA_ONE_EXTERNAL_ID.equals(id)) return FORMULA_1;
         if (id.startsWith("tennis.")) return TENNIS;
         if (Competition.NBA_EXTERNAL_ID.equals(id)) return BASKETBALL;
         if (NflSchedule.EXTERNAL_ID.equals(id)) return AMERICAN_FOOTBALL;

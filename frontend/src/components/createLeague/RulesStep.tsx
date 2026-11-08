@@ -25,6 +25,14 @@ const nowLocal = () => {
 
 function LockSection({ draft, update, errors, ctx }: StepProps) {
   const modes = lockModesFor(draft, ctx);
+  if (draft.poolFormat === 'GRAND_PRIX') {
+    return (
+      <p className="create-league-hint">
+        Cada Gran Premio se cierra al empezar la clasificación, que decide la pole. Hasta entonces
+        puedes cambiar tu predicción.
+      </p>
+    );
+  }
   if (modes.length === 0) return null;
   return (
     <>

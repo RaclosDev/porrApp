@@ -15,6 +15,8 @@ import LeagueHomeDashboard from '../components/Home/LeagueHomeDashboard';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
 import { useLeagueHomeFormat } from '../hooks/useLeagueHomeData';
+import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
+import { isGrandPrixFormat } from '../utils/poolFormat';
 
 /**
  * Página principal. La portada es la misma para todos los formatos de liga (LeagueHomeDashboard);
@@ -35,6 +37,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
     loadingGroup,
     groupError,
     choosingLeague,
+    activeGroupPoolFormat,
   } = useAppContext();
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
   const [viewMode, setViewMode] = useState(defaultMode);
@@ -50,6 +53,8 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
   const format = useLeagueHomeFormat();
 
   if (choosingLeague || loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
+  // Fórmula 1: el inicio son los Grandes Premios.
+  if (isGrandPrixFormat(activeGroupPoolFormat)) return <GrandPrixPage />;
   if (viewMode === 'home' || format === 'matchday') return <LeagueHomeDashboard />;
   // Solo el Mundial tiene fase de grupos oficial; los demás cuadros la muestran en su vista de resultados.
   if (format !== 'worldcup') return <OfficialBracket />;

@@ -9,9 +9,10 @@ import {
   Swords,
   LayoutGrid,
   ListOrdered,
+  Flag,
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
 
 /** Navegación inferior en móvil (hasta 768 px); el resalte se desliza a la pestaña activa. */
 export default function MobileBottomNav() {
@@ -39,21 +40,27 @@ export default function MobileBottomNav() {
         { to: '/grupos', label: 'Grupos', icon: LayoutGrid },
         { to: '/ranking', label: 'Ranking', icon: Trophy },
       ]
-    : isMatchDay
+    : isGrandPrixFormat(activeGroupPoolFormat)
       ? [
-          { to: '/', label: 'Inicio', icon: Home, end: true },
-          { to: '/jornadas', label: 'Jornadas', icon: Calendar },
+          { to: '/', label: 'Carreras', icon: Flag, end: true },
           { to: '/ranking', label: 'Ranking', icon: Trophy },
-          { to: '/tabla', label: 'Tabla', icon: ListOrdered },
           { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
         ]
-      : [
-          { to: '/', label: 'Inicio', icon: Home, end: true },
-          { to: '/prediction', label: 'Mi Porra', icon: Pencil },
-          { to: '/bracket', label: 'Resultados', icon: Swords },
-          { to: '/ranking', label: 'Ranking', icon: Trophy },
-          { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
-        ];
+      : isMatchDay
+        ? [
+            { to: '/', label: 'Inicio', icon: Home, end: true },
+            { to: '/jornadas', label: 'Jornadas', icon: Calendar },
+            { to: '/ranking', label: 'Ranking', icon: Trophy },
+            { to: '/tabla', label: 'Tabla', icon: ListOrdered },
+            { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
+          ]
+        : [
+            { to: '/', label: 'Inicio', icon: Home, end: true },
+            { to: '/prediction', label: 'Mi Porra', icon: Pencil },
+            { to: '/bracket', label: 'Resultados', icon: Swords },
+            { to: '/ranking', label: 'Ranking', icon: Trophy },
+            { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
+          ];
 
   const { pathname } = useLocation();
   const activeIndex = navItems.findIndex((item) =>

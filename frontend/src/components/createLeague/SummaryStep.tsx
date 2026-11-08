@@ -26,6 +26,7 @@ import {
 } from './leagueDraft';
 
 function describeLock(draft: LeagueDraft, ctx: DraftContext) {
+  if (draft.poolFormat === 'GRAND_PRIX') return 'Cada Gran Premio, al empezar la clasificación';
   const mode = lockModesFor(draft, ctx).find((item) => item.value === draft.lockMode);
   if (!mode) return 'Cada elección, al empezar su partido';
   if (mode.value === 'FIXED_DATE') {

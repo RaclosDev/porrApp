@@ -94,8 +94,9 @@ class ScoringRuleSetTest {
     void asMapListsEveryRule() {
         Map<String, Integer> rules = ScoringRuleSet.defaultWorldCup2026().asMap();
 
-        assertEquals(29, rules.size());
+        assertEquals(33, rules.size());
         assertEquals(3, rules.get("fightWinnerPoints"));
+        assertEquals(10, rules.get("f1ExactPositionPoints"));
         assertEquals(200, rules.get("championPoints"));
         assertEquals(1, rules.get("goalDiffBonusPoints"));
         assertEquals(1, rules.get("survivorLives"));

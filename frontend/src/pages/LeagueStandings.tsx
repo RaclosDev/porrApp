@@ -6,7 +6,7 @@ import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings, fetchCustomStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
 
 export default function LeagueStandings() {
   const [showComplete, setShowComplete] = useState(false);
@@ -41,6 +41,7 @@ export default function LeagueStandings() {
   });
 
   if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
+  if (isGrandPrixFormat(activeGroupPoolFormat)) return <Navigate to="/" replace />;
   if (activeCompetitionFormatType && !isMatchDay) {
     return <Navigate to="/bracket" replace />;
   }

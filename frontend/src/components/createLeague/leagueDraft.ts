@@ -52,6 +52,7 @@ export type SportChoice = Sport | 'OTHER';
 export const SPORT_LABELS: Record<SportChoice, string> = {
   FOOTBALL: 'Fútbol',
   LEAGUE_OF_LEGENDS: 'League of Legends',
+  FORMULA_1: 'Fórmula 1',
   BASKETBALL: 'Baloncesto',
   AMERICAN_FOOTBALL: 'Fútbol americano',
   TENNIS: 'Tenis',
@@ -66,13 +67,15 @@ const competitionSport = (competition: Competition): Sport =>
     ? 'LEAGUE_OF_LEGENDS'
     : competition.externalId?.startsWith('mma.')
       ? 'MMA'
-      : isNbaCompetition(competition.externalId)
-        ? 'BASKETBALL'
-        : competition.externalId === 'nfl'
-          ? 'AMERICAN_FOOTBALL'
-          : competition.externalId?.startsWith('tennis.')
-            ? 'TENNIS'
-            : 'FOOTBALL');
+      : competition.externalId === 'f1'
+        ? 'FORMULA_1'
+        : isNbaCompetition(competition.externalId)
+          ? 'BASKETBALL'
+          : competition.externalId === 'nfl'
+            ? 'AMERICAN_FOOTBALL'
+            : competition.externalId?.startsWith('tennis.')
+              ? 'TENNIS'
+              : 'FOOTBALL');
 
 /** Cuadro de un torneo de tenis que entra en la liga. */
 export type TennisDraw = 'MEN' | 'WOMEN' | 'BOTH';
@@ -102,9 +105,12 @@ export function tennisDrawChoices(ctx: DraftContext, tournamentId: number): Tenn
   return women ? ['WOMEN'] : ['MEN'];
 }
 
-/** Deportes con competiciones oficiales, en el orden en que llegan, y «otro» al final. */
+/** Competiciones en las que aún se puede crear una liga: las terminadas no se ofrecen. */
+const openCompetitions = (ctx: DraftContext) => ctx.competitions.filter((item) => !item.finished);
+
+/** Deportes con competiciones oficiales abiertas, en el orden en que llegan, y «otro» al final. */
 export function sportChoices(ctx: DraftContext): SportChoice[] {
-  const sports = [...new Set(ctx.competitions.map(competitionSport))];
+  const sports = [...new Set(openCompetitions(ctx).map(competitionSport))];
   return [...sports, 'OTHER'];
 }
 
@@ -113,7 +119,7 @@ export const competitionUnavailableReason = (competition: Competition) =>
   competition.finished ? 'Ya ha terminado: no quedan partidos por jugar.' : null;
 
 export const competitionsOfSport = (ctx: DraftContext, sport: SportChoice | null) =>
-  ctx.competitions.filter((item) => competitionSport(item) === sport);
+  openCompetitions(ctx).filter((item) => competitionSport(item) === sport);
 
 /** Lo que lleva elegido quien crea la liga. Se guarda tal cual en el dispositivo. */
 export interface LeagueDraft {
@@ -183,12 +189,19 @@ export const selectedCompetition = (draft: LeagueDraft, ctx: DraftContext) =>
 const hasCompetition = (draft: LeagueDraft, ctx: DraftContext) =>
   draft.custom || selectedCompetition(draft, ctx) != null;
 
-export const POOL_FORMAT_ORDER: PoolFormat[] = [
+const POOL_FORMAT_ORDER: PoolFormat[] = [
   'MATCH_DAY',
   'SURVIVOR',
   'FULL_BRACKET',
   'KNOCKOUTS_ONLY',
+  'GRAND_PRIX',
 ];
+
+/** Modos que se ofrecen para el deporte elegido: la Fórmula 1 solo se juega por Grandes Premios. */
+export const formatsForSport = (sport: SportChoice | null): PoolFormat[] =>
+  sport === 'FORMULA_1'
+    ? ['GRAND_PRIX']
+    : POOL_FORMAT_ORDER.filter((format) => format !== 'GRAND_PRIX');
 
 /** Cómo se juega cada formato, contado a quien aún no lo conoce. */
 const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
@@ -207,6 +220,10 @@ const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
   KNOCKOUTS_ONLY: {
     title: 'Solo eliminatorias',
     text: 'Rellenas el cuadro desde la primera eliminatoria hasta la final, sin fase de grupos.',
+  },
+  GRAND_PRIX: {
+    title: 'Gran Premio a Gran Premio',
+    text: 'Antes de cada clasificación predices el podio, la pole y la vuelta rápida. Los resultados llegan solos al acabar la carrera y gana quien más puntos sume en la temporada.',
   },
 };
 
@@ -284,6 +301,11 @@ export function formatUnavailableReason(
   if (competition?.formatType === 'EVENTS' && format !== 'MATCH_DAY') {
     return 'La UFC se juega velada a velada: elige Por veladas.';
   }
+  const formulaOne = competition?.formatType === 'RACE';
+  if (format === 'GRAND_PRIX' && !formulaOne) return 'Solo para la Fórmula 1.';
+  if (format !== 'GRAND_PRIX' && formulaOne) {
+    return 'La Fórmula 1 se juega Gran Premio a Gran Premio.';
+  }
   if (format !== 'KNOCKOUTS_ONLY' && isNbaCompetition(competition?.externalId)) {
     return 'De la NBA se pronostican los playoffs, serie a serie.';
   }
@@ -316,7 +338,8 @@ const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
 
 /** Cierres que admite el formato elegido. Superviviente se pronostica partido a partido: como jornadas. */
 export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOption[] {
-  if (draft.poolFormat == null) return [];
+  // Cada Gran Premio se cierra al empezar su clasificación: no hay nada que elegir.
+  if (draft.poolFormat == null || draft.poolFormat === 'GRAND_PRIX') return [];
   if (draft.poolFormat === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHT_LOCK_MODES;
   if (isMatchBasedFormat(draft.poolFormat))
     return matchdayLockModes(isMultiCompetition(draft.matches));
@@ -398,6 +421,14 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   if (next.sport === 'TENNIS') normalizeTennis(next, ctx);
   if (next.poolFormat && formatUnavailableReason(next.poolFormat, next, ctx))
     next.poolFormat = null;
+  // Un solo modo posible (la Fórmula 1): queda elegido.
+  const formats = formatsForSport(next.sport);
+  if (
+    next.poolFormat == null &&
+    formats.length === 1 &&
+    !formatUnavailableReason(formats[0], next, ctx)
+  )
+    next.poolFormat = formats[0];
   const modes = lockModesFor(next, ctx);
   if (!modes.some((item) => item.value === next.lockMode))
     next.lockMode = defaultLockMode(next, ctx);
@@ -607,6 +638,7 @@ export function readStoredDraft(): LeagueDraft {
         [
           'FOOTBALL',
           'LEAGUE_OF_LEGENDS',
+          'FORMULA_1',
           'BASKETBALL',
           'AMERICAN_FOOTBALL',
           'TENNIS',
