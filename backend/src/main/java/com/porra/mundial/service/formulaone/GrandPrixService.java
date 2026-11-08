@@ -98,8 +98,8 @@ public class GrandPrixService {
             Stream.of(result, picked).filter(Objects::nonNull).forEach(p -> driverIds.addAll(ids(p)));
             grandsPrix.add(new GrandPrixBoardDTO.GrandPrix(match.getId(), match.getRound(),
                     weekend == null ? null : weekend.getCircuit(),
-                    weekend == null ? null : weekend.getCity(),
-                    weekend == null ? null : weekend.getCountry(),
+                    weekend == null ? null : RacePlaces.city(weekend.getCity()),
+                    weekend == null ? null : RacePlaces.country(weekend.getCountry()),
                     weekend != null && weekend.isSprint(),
                     match.getMatchDate(), weekend == null ? null : weekend.getRaceAt(),
                     match.getStatus() == null ? MatchStatusNormalized.SCHEDULED.name() : match.getStatus().name(),
@@ -271,7 +271,8 @@ public class GrandPrixService {
         Map<Long, RaceDriver> byId = raceDriverRepository.findAllById(ids).stream()
                 .collect(Collectors.toMap(RaceDriver::getId, Function.identity()));
         return ids.stream().map(byId::get).filter(Objects::nonNull)
-                .map(d -> new GrandPrixBoardDTO.Driver(d.getId(), d.getName(), d.getShortName(), d.getCountry(),
+                .map(d -> new GrandPrixBoardDTO.Driver(d.getId(), d.getName(), d.getShortName(),
+                        RacePlaces.country(d.getCountry()),
                         d.getFlagUrl(), d.getTeamName(), d.getTeamColor(), d.getCarNumber()))
                 .toList();
     }

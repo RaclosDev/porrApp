@@ -18,15 +18,24 @@ export const PICK_SLOTS: { key: keyof GrandPrixPicks; label: string; optional?: 
 ];
 
 /**
- * Reparte los Grandes Premios: el próximo que se puede predecir (o el que está en marcha), los
- * siguientes y los ya disputados o cancelados, del más reciente al más antiguo.
+ * Reparte los Grandes Premios: el que está en juego (cerrado, con la clasificación hecha y la carrera
+ * por disputar), el próximo que aún se puede predecir, los siguientes y los ya disputados o cancelados,
+ * del más reciente al más antiguo.
  */
 export function splitGrandsPrix(list: GrandPrix[]) {
   const pending = list.filter((gp) => gp.status !== 'FINISHED' && gp.status !== 'CANCELLED');
+  const live = pending.filter((gp) => gp.locked);
+  const open = pending.filter((gp) => !gp.locked);
   const done = list
     .filter((gp) => gp.status === 'FINISHED' || gp.status === 'CANCELLED')
     .sort((a, b) => (b.raceAt ?? '').localeCompare(a.raceAt ?? ''));
-  return { next: pending[0] ?? null, upcoming: pending.slice(1), done };
+  return { live, next: open[0] ?? null, upcoming: open.slice(1), done };
+}
+
+/** «Sao Paulo, Brasil» sin repetir cuando la ciudad y el país coinciden («Singapur»). */
+export function placeLabel(gp: Pick<GrandPrix, 'city' | 'country'>): string {
+  const parts = [gp.city, gp.country].filter((part): part is string => Boolean(part));
+  return [...new Set(parts)].join(', ');
 }
 
 /** Por qué no se puede guardar la predicción, o null si está lista. */
