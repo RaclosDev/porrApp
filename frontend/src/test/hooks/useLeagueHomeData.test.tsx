@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLeagueHomeData } from '../../hooks/useLeagueHomeData';
 import { useAppContext } from '../../context/AppContext';
 import * as api from '../../services/api';
-import type { Match } from '../../types/api';
+import type { CardSegment, Match } from '../../types/api';
 import { appContext, matchdayFixture } from '../context/fixtures';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
@@ -92,6 +92,52 @@ describe('useLeagueHomeData', () => {
     expect(result.current.matches.allTo).toBe('/jornadas');
     expect(result.current.standings).toBeNull();
     expect(api.fetchCompetitionStandings).not.toHaveBeenCalled();
+  });
+
+  it('en la UFC enseña la velada en el orden de la cartelera, con la estelar arriba', async () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '7',
+        activeCompetitionId: 17,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'fightCard',
+        activeGroupPicksMatches: true,
+        allGames: [],
+      }),
+    );
+    const bout = (matchId: number, segment: CardSegment, order: number, matchDate: string) =>
+      matchdayFixture({
+        matchId,
+        round: 'UFC 334: Gane vs. Hokit',
+        matchDate,
+        fight: {
+          eventId: '600061400',
+          eventName: 'UFC 334: Gane vs. Hokit',
+          segment,
+          order,
+          weightClass: null,
+          scheduledRounds: 3,
+          homeRecord: null,
+          awayRecord: null,
+          resultMethod: null,
+          resultDetail: null,
+          resultRound: null,
+          resultClock: null,
+          winner: null,
+        },
+      });
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
+      bout(1, 'PRELIMS', 7, '2099-11-15T01:00:00+01:00'),
+      bout(2, 'MAIN', 3, '2099-11-15T03:00:00+01:00'),
+      bout(3, 'MAIN', 1, '2099-11-15T03:00:00+01:00'),
+      bout(4, 'EARLY_PRELIMS', 10, '2099-11-14T23:00:00+01:00'),
+      bout(5, 'MAIN', 2, '2099-11-15T03:00:00+01:00'),
+    ]);
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    await waitFor(() => expect(result.current.matches.items).toHaveLength(5));
+    expect(result.current.matches.items.map((match) => match.id)).toEqual([3, 5, 2, 1, 4]);
   });
 
   it('una liga con todos los partidos sigue con la jornada y la tabla de su competición', async () => {

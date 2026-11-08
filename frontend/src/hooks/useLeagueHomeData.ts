@@ -18,7 +18,7 @@ import {
   nextGroupName,
   upcomingMatches,
 } from '../utils/homeMatches';
-import { displayRoundLabel } from '../utils/matchday';
+import { displayRoundLabel, sortFightCard } from '../utils/matchday';
 import { useSortedGroups } from './useSortedGroups';
 import { nflOverall, nflRecord } from '../utils/nflStandings';
 import type { Match } from '../types/api';
@@ -182,7 +182,10 @@ export function useLeagueHomeData(): LeagueHomeData {
     const miniTable = lol ? tables[tables.length - 1] : tables[0];
 
     if (format === 'matchday') {
-      const { round, matches } = currentRoundMatches(ownMatches ? (leagueGames ?? []) : allGames);
+      const current = currentRoundMatches(ownMatches ? (leagueGames ?? []) : allGames);
+      const round = current.round;
+      // UFC: la velada en el orden de su cartelera, con la pelea estelar arriba, no por hora.
+      const matches = ufc ? sortFightCard(current.matches) : current.matches;
       const label = round ? displayRoundLabel(round) : null;
       return {
         subtitle: 'Predicciones por jornada',
@@ -306,6 +309,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     lol,
     tennis,
     activeCompetitionName,
+    ufc,
   ]);
 
   return useMemo(() => ({ ...data, loading }), [data, loading]);
