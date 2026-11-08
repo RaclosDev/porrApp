@@ -74,10 +74,11 @@ function PrivacyContent() {
           añadiste y la usaste por última vez. Tu Face ID, huella o PIN nunca salen del dispositivo.
         </li>
         <li>
-          Datos técnicos imprescindibles: la sesión (una cookie que caduca a los 30 días), el día de
-          tu última entrada (para el plazo de conservación) y la dirección IP, que se usa de forma
-          temporal para limitar abusos. Si la aplicación falla en tu navegador, se envía el error
-          técnico (mensaje, traza y página, sin datos de tu cuenta) para poder corregirlo.
+          Datos técnicos imprescindibles: la sesión (una cookie que caduca tras 90 días sin entrar
+          y, como máximo, al año), el día de tu última entrada (para el plazo de conservación) y la
+          dirección IP, que se usa de forma temporal para limitar abusos. Si la aplicación falla en
+          tu navegador, se envía el error técnico (mensaje, traza y página, sin datos de tu cuenta)
+          para poder corregirlo.
         </li>
         <li>
           Solo si aceptas la analítica: datos de uso que recoge Google Analytics (páginas que ves,
@@ -114,11 +115,12 @@ function PrivacyContent() {
         <li>
           Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos),
           Google (inicio de sesión; su código solo se carga cuando abres el botón de «Continuar con
-          Google»), Resend (solo manda el correo para cambiar la contraseña cuando lo pides), Sentry
-          (recibe los errores técnicos de la app, sin tu email, tu IP ni tu cuenta) y, solo si
-          aceptas la analítica, Google Analytics, sin compartir los datos con otros servicios de
-          Google ni usarlos para publicidad. Los servicios de avisos push del navegador (Google,
-          Apple o Mozilla) solo reciben el aviso cifrado.
+          Google»), Resend (manda el código para crear la cuenta, el enlace para cambiar la
+          contraseña y avisos sobre tu cuenta), Sentry (recibe los errores técnicos de la app, sin
+          tu email, tu IP ni tu cuenta) y, solo si aceptas la analítica, Google Analytics, sin
+          compartir los datos con otros servicios de Google ni usarlos para publicidad. Los
+          servicios de avisos push del navegador (Google, Apple o Mozilla) solo reciben el aviso
+          cifrado.
         </li>
         <li>
           Algunos de estos proveedores están en EE. UU. Las transferencias se amparan en el Marco de
