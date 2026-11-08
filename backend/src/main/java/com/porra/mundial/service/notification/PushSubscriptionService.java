@@ -32,7 +32,7 @@ public class PushSubscriptionService {
     public PushConfigResponse config(String email) {
         UserAccount user = findUser(email);
         return new PushConfigResponse(sender.publicKey(), user.isMatchRemindersEnabled(),
-                user.isMemberJoinedAlertsEnabled());
+                user.isMemberJoinedAlertsEnabled(), user.isMatchdayFinishedAlertsEnabled());
     }
 
     /**
@@ -82,10 +82,12 @@ public class PushSubscriptionService {
     }
 
     @Transactional
-    public void setPreferences(String email, Boolean remindersEnabled, Boolean memberJoinedEnabled) {
+    public void setPreferences(String email, Boolean remindersEnabled, Boolean memberJoinedEnabled,
+                               Boolean matchdayFinishedEnabled) {
         UserAccount user = findUser(email);
         if (remindersEnabled != null) user.setMatchRemindersEnabled(remindersEnabled);
         if (memberJoinedEnabled != null) user.setMemberJoinedAlertsEnabled(memberJoinedEnabled);
+        if (matchdayFinishedEnabled != null) user.setMatchdayFinishedAlertsEnabled(matchdayFinishedEnabled);
         userAccountRepository.save(user);
     }
 

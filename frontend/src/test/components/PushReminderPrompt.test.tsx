@@ -29,6 +29,7 @@ beforeEach(() => {
     publicKey: 'KEY',
     remindersEnabled: true,
     memberJoinedEnabled: true,
+    matchdayFinishedEnabled: true,
   });
   vi.mocked(push.notificationPermission).mockReturnValue('default');
   vi.mocked(push.needsIosInstall).mockReturnValue(false);
@@ -58,25 +59,45 @@ it('remembers "Ahora no" for a while', async () => {
 it.each([
   [
     'without server keys',
-    { publicKey: null, remindersEnabled: true, memberJoinedEnabled: true },
+    {
+      publicKey: null,
+      remindersEnabled: true,
+      memberJoinedEnabled: true,
+      matchdayFinishedEnabled: true,
+    },
     false,
     true,
   ],
   [
     'with every alert off',
-    { publicKey: 'KEY', remindersEnabled: false, memberJoinedEnabled: false },
+    {
+      publicKey: 'KEY',
+      remindersEnabled: false,
+      memberJoinedEnabled: false,
+      matchdayFinishedEnabled: false,
+    },
     false,
     true,
   ],
   [
     'on iOS outside the installed app',
-    { publicKey: 'KEY', remindersEnabled: true, memberJoinedEnabled: true },
+    {
+      publicKey: 'KEY',
+      remindersEnabled: true,
+      memberJoinedEnabled: true,
+      matchdayFinishedEnabled: true,
+    },
     true,
     true,
   ],
   [
     'while another banner is shown',
-    { publicKey: 'KEY', remindersEnabled: true, memberJoinedEnabled: true },
+    {
+      publicKey: 'KEY',
+      remindersEnabled: true,
+      memberJoinedEnabled: true,
+      matchdayFinishedEnabled: true,
+    },
     false,
     false,
   ],

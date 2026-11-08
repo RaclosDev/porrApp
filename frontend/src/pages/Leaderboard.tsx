@@ -1,5 +1,5 @@
-import React, { useState, Suspense } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, Suspense } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { NoLeagueState } from '../components/NoLeagueState';
 import { BarChart3, Search, Share2 } from 'lucide-react';
 import MatchdayPodium from '../components/MatchdayPodium';
@@ -9,6 +9,8 @@ import MatchdaySummary from '../components/leaderboard/MatchdaySummary';
 import ShareImageTemplate from '../components/leaderboard/ShareImageTemplate';
 import { leaderboardColumns } from '../components/leaderboard/leaderboardColumns';
 import { useLeaderboard, type LeaderboardRow } from '../hooks/useLeaderboard';
+import { useRequestedGroup } from '../hooks/useRequestedGroup';
+import type { MatchdayPoints } from '../types/api';
 import { displayRoundLabel } from '../utils/matchday';
 import type { LeagueKind } from '../context/leagueKind';
 
@@ -75,6 +77,33 @@ const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
   unknown: NO_RANKING,
 };
 
+/**
+ * Abre la jornada de `?jornada=` (desde el aviso de fin de jornada) en cuanto la liga la tiene.
+ * Espera mientras se cambia a la liga del aviso, para no buscarla entre las de la anterior.
+ */
+function useRequestedMatchday(
+  waiting: boolean,
+  matchdays: MatchdayPoints[],
+  select: (label: string) => void,
+) {
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('jornada');
+  useEffect(() => {
+    if (!requested || waiting || !matchdays.some((matchday) => matchday.label === requested)) {
+      return;
+    }
+    select(requested);
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('jornada');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requested, waiting, matchdays, select, setParams]);
+}
+
 /** Clasificación de la liga activa (tabla y gráfica). */
 function Leaderboard() {
   const {
@@ -111,8 +140,10 @@ function Leaderboard() {
   const [activeTab, setActiveTab] = useState<RankingTab>('table');
   // En móvil el desglose por fase va oculto hasta que se pide.
   const [showDetail, setShowDetail] = useState(false);
+  const switchingGroup = useRequestedGroup(state);
+  useRequestedMatchday(switchingGroup || loading, matchdays, handleSelectMatchday);
 
-  if (loading) return <PaperLoading label="Cargando clasificación" />;
+  if (loading || switchingGroup) return <PaperLoading label="Cargando clasificación" />;
   if (!activeGroupId) return <NoLeagueState title="Clasificación" what="la clasificación" />;
 
   const layout = RANKING_LAYOUT[state.leagueKind];
