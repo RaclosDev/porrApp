@@ -37,6 +37,8 @@ export const queryKeys = {
   leaderboardMatchdays: (groupId?: Id) => key('leaderboardMatchdays', asText(groupId)),
   matchdayFixtures: (groupId?: Id, user?: Id, round?: string) =>
     key('matchdayFixtures', asText(groupId), user, round),
+  /** Todos los partidos de una liga que elige los suyos, para su portada; cuelga de matchdayFixtures. */
+  leagueMatches: (groupId?: Id) => key('matchdayFixtures', asText(groupId), 'league'),
   /** Cuelga de matchdayFixtures: lo que refresca los partidos de la liga refresca también esto. */
   survivorStatus: (groupId: Id, user?: Id) =>
     key('matchdayFixtures', asText(groupId), 'survivor', user),
@@ -60,4 +62,8 @@ export const queryKeys = {
   customMatches: (groupId?: Id) => key('customMatches', asText(groupId)),
   customTeams: (groupId?: Id) => key('customTeams', asText(groupId)),
   customLockState: (groupId?: Id) => key('customLockState', asText(groupId)),
+  matchSelection: (groupId?: Id) => key('matchSelection', asText(groupId)),
+  /** Calendario de una o varias competiciones (la principal primero) para elegir partidos. */
+  selectableMatches: (competitionIds?: number[]) =>
+    key('selectableMatches', competitionIds?.join(',')),
 };

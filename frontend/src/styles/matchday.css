@@ -148,6 +148,17 @@
     opacity: 0.88;
   }
 
+  /* Competición del partido en una liga que junta varias. */
+  .md-match-competition {
+    margin: 0 0 6px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+
   .md-match-top {
     display: flex;
     align-items: center;
@@ -168,12 +179,14 @@
 
   .md-lock-at {
     font-weight: 600;
+    white-space: nowrap;
   }
 
+  /* La fecha y su cierre: si no caben en una línea, el cierre baja entero a la siguiente. */
   .md-match-top > span:first-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex-wrap: wrap;
+    row-gap: 2px;
+    min-width: 0;
   }
 
   .md-badge {

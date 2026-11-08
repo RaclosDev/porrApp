@@ -1,12 +1,22 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
-import { fetchCompetitionStandings, fetchCustomStandings, fetchCustomTeams } from '../services/api';
+import {
+  fetchCompetitionStandings,
+  fetchCustomStandings,
+  fetchCustomTeams,
+  fetchMatchdayFixtures,
+} from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import { computeCustomGroupTables } from '../utils/customBracket';
 import { KNOCKOUT_ROUNDS, computeSwissStandings } from '../utils/officialTournament';
 import { normalizeCountryName } from '../utils/constants';
-import { currentRoundMatches, nextGroupName, upcomingMatches } from '../utils/homeMatches';
+import {
+  currentRoundMatches,
+  fixtureAsMatch,
+  nextGroupName,
+  upcomingMatches,
+} from '../utils/homeMatches';
 import { displayRoundLabel } from '../utils/matchday';
 import { useSortedGroups } from './useSortedGroups';
 import type { Match } from '../types/api';
@@ -83,6 +93,8 @@ export function useLeagueHomeData(): LeagueHomeData {
     activeGroupId,
     activeGroupCustomCompetition,
     activeGroupKnockoutDraw,
+    activeGroupPicksMatches,
+    activeGroupMultiCompetition,
   } = useAppContext();
   // En unas eliminatorias (Champions…) la fase de liga no se pronostica: la portada enseña los cruces.
   const allGames = useMemo(
@@ -94,6 +106,19 @@ export function useLeagueHomeData(): LeagueHomeData {
   );
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const sortedGroups = useSortedGroups();
+  // Una liga que elige sus partidos (o los junta de varias competiciones) enseña los suyos, no la
+  // jornada oficial de la competición.
+  const ownMatches = format === 'matchday' && activeGroupPicksMatches && groupId != null;
+  const { data: leagueFixtures, isLoading: loadingLeagueFixtures } = useQuery({
+    queryKey: queryKeys.leagueMatches(groupId),
+    queryFn: () => fetchMatchdayFixtures(groupId!),
+    enabled: ownMatches,
+    staleTime: 60_000,
+  });
+  const leagueGames = useMemo(
+    () => (leagueFixtures ? leagueFixtures.map(fixtureAsMatch) : null),
+    [leagueFixtures],
+  );
 
   const { data: leagueStandings, isLoading: loadingLeagueStandings } = useQuery({
     queryKey: queryKeys.competitionStandings(activeCompetitionId),
@@ -101,7 +126,8 @@ export function useLeagueHomeData(): LeagueHomeData {
       activeGroupCustomCompetition && groupId != null
         ? fetchCustomStandings(groupId)
         : fetchCompetitionStandings(activeCompetitionId),
-    enabled: format === 'matchday' && Boolean(activeCompetitionId),
+    // Con partidos de varias competiciones, la tabla de una sola no dice nada de la liga.
+    enabled: format === 'matchday' && Boolean(activeCompetitionId) && !activeGroupMultiCompetition,
     staleTime: 120_000,
   });
   const { data: customTeams, isLoading: loadingCustomTeams } = useQuery({
@@ -110,42 +136,49 @@ export function useLeagueHomeData(): LeagueHomeData {
     enabled: format === 'custom' && groupId != null,
   });
 
-  const loading = loadingLeagueStandings || loadingCustomTeams;
+  const loading =
+    loadingLeagueStandings || loadingCustomTeams || (ownMatches && loadingLeagueFixtures);
 
   const data = useMemo<Omit<LeagueHomeData, 'loading'>>(() => {
     const logos = logosOf(allGames);
 
     if (format === 'matchday') {
-      const { round, matches } = currentRoundMatches(allGames);
+      const { round, matches } = currentRoundMatches(ownMatches ? (leagueGames ?? []) : allGames);
+      const label = round ? displayRoundLabel(round) : null;
       return {
         subtitle: 'Predicciones por jornada',
         matches: {
-          // «Jornada 12» se explica sola; las jornadas por fecha siguen como «Partidos Sáb 7 nov».
-          title: !round
-            ? 'Partidos'
-            : displayRoundLabel(round) === round
-              ? round
-              : `Partidos ${displayRoundLabel(round)}`,
+          // «Jornada 12» y «Semana del 9 nov» se explican solas; las jornadas por fecha siguen como
+          // «Partidos Sáb 7 nov».
+          title:
+            !round || !label
+              ? 'Partidos'
+              : label === round || label.startsWith('Semana')
+                ? label
+                : `Partidos ${label}`,
           items: matches,
           to: '/jornadas',
           action: 'hacer tu predicción',
-          allTo: '/radar',
-          empty: 'No hay partidos programados para esta jornada.',
+          allTo: ownMatches ? '/jornadas' : '/radar',
+          empty: ownMatches
+            ? 'Esta liga aún no tiene partidos por jugar.'
+            : 'No hay partidos programados para esta jornada.',
         },
-        standings: leagueStandings?.length
-          ? {
-              title: 'Tabla',
-              to: '/tabla',
-              rows: leagueStandings.slice(0, MINI_TABLE_SIZE).map((team) => ({
-                team: team.teamName,
-                rank: team.rank,
-                name: team.teamName,
-                logo: team.teamLogo,
-                detail: `${team.gamesPlayed} PJ`,
-                value: `${team.points} pts`,
-              })),
-            }
-          : null,
+        standings:
+          !activeGroupMultiCompetition && leagueStandings?.length
+            ? {
+                title: 'Tabla',
+                to: '/tabla',
+                rows: leagueStandings.slice(0, MINI_TABLE_SIZE).map((team) => ({
+                  team: team.teamName,
+                  rank: team.rank,
+                  name: team.teamName,
+                  logo: team.teamLogo,
+                  detail: `${team.gamesPlayed} PJ`,
+                  value: `${team.points} pts`,
+                })),
+              }
+            : null,
       };
     }
 
@@ -211,7 +244,17 @@ export function useLeagueHomeData(): LeagueHomeData {
       },
       standings,
     };
-  }, [format, allGames, leagueStandings, sortedGroups, customTeams, activeGroupKnockoutDraw]);
+  }, [
+    format,
+    allGames,
+    leagueGames,
+    ownMatches,
+    leagueStandings,
+    sortedGroups,
+    customTeams,
+    activeGroupKnockoutDraw,
+    activeGroupMultiCompetition,
+  ]);
 
   return useMemo(() => ({ ...data, loading }), [data, loading]);
 }

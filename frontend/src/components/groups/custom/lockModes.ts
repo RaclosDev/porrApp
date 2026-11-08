@@ -31,7 +31,7 @@ export const BRACKET_LOCK_MODES: LockModeOption[] = [
 ];
 
 /** Ligas por jornadas: cada partido se pronostica por separado. */
-export const MATCHDAY_LOCK_MODES: LockModeOption[] = [
+const MATCHDAY_LOCK_MODES: LockModeOption[] = [
   {
     value: 'PER_MATCH',
     label: 'Cada partido',
@@ -48,6 +48,24 @@ export const MATCHDAY_LOCK_MODES: LockModeOption[] = [
     hint: 'Toda la jornada se cierra al empezar su primer partido, o antes si pones margen.',
   },
 ];
+
+/**
+ * Ligas que juntan partidos de varias competiciones: su jornada es la semana, de lunes a domingo, y se
+ * cierra con su primer partido sea de la competición que sea.
+ */
+const MULTI_COMPETITION_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((item) =>
+  item.value === 'PER_ROUND'
+    ? {
+        ...item,
+        label: 'Por semanas',
+        hint: 'Toda la semana, de lunes a domingo, se cierra al empezar su primer partido, sea de la competición que sea, o antes si pones margen.',
+      }
+    : item,
+);
+
+/** Cierres de una liga por jornadas: con varias competiciones, la jornada es la semana. */
+export const matchdayLockModes = (multiCompetition: boolean) =>
+  multiCompetition ? MULTI_COMPETITION_LOCK_MODES : MATCHDAY_LOCK_MODES;
 
 /** Los modos que solo aceptan cerrar todo a la vez, sin rondas ni partidos. */
 /** Eliminatorias sorteadas ronda a ronda: las rondas siguientes aún no tienen cruces, no se cierra todo a la vez. */

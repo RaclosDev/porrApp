@@ -1,5 +1,8 @@
 package com.porra.mundial.service.league;
 
+import com.porra.mundial.dto.MatchSelectionRequest;
+import com.porra.mundial.model.MatchSelectionMode;
+
 import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.scoring.ScoringRuleSet;
 
@@ -15,15 +18,23 @@ import java.time.Instant;
  * @param lockMode          cómo se cierran las predicciones; null para el cierre por defecto
  * @param lockOffsetMinutes margen antes del partido en los cierres que dependen de los partidos
  * @param lockDate          fecha de cierre cuando el modo es {@link PredictionLockMode#FIXED_DATE}
+ * @param matchSelection    partidos que entran en una liga por jornadas; null para todos
  */
 public record LeagueSetup(String rules, Boolean entryFee, ScoringRuleSet scoring,
-                          PredictionLockMode lockMode, Integer lockOffsetMinutes, Instant lockDate) {
+                          PredictionLockMode lockMode, Integer lockOffsetMinutes, Instant lockDate,
+                          MatchSelectionRequest matchSelection) {
 
     /** Sin ajustes: la liga se crea como hasta ahora. */
-    public static final LeagueSetup NONE = new LeagueSetup(null, null, null, null, null, null);
+    public static final LeagueSetup NONE = new LeagueSetup(null, null, null, null, null, null, null);
+
+    public LeagueSetup(String rules, Boolean entryFee, ScoringRuleSet scoring, PredictionLockMode lockMode,
+                       Integer lockOffsetMinutes, Instant lockDate) {
+        this(rules, entryFee, scoring, lockMode, lockOffsetMinutes, lockDate, null);
+    }
 
     public LeagueSetup {
         rules = rules == null || rules.isBlank() ? null : rules.trim();
+        if (matchSelection != null && matchSelection.mode() == MatchSelectionMode.ALL) matchSelection = null;
     }
 
     boolean hasLeagueFields() {
@@ -31,6 +42,6 @@ public record LeagueSetup(String rules, Boolean entryFee, ScoringRuleSet scoring
     }
 
     boolean isEmpty() {
-        return !hasLeagueFields() && scoring == null && lockMode == null;
+        return !hasLeagueFields() && scoring == null && lockMode == null && matchSelection == null;
     }
 }
