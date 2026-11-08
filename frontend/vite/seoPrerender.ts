@@ -1,13 +1,17 @@
 import type { Plugin, Rolldown } from 'vite';
 import {
+  AFFILIATION_NOTICE,
   CONTENT_PAGES,
+  HOME_FAQ,
   HOME_META,
   INDEXABLE_PATHS,
   LANDING_COPY,
   ROUTE_META,
   SITE_ORIGIN,
   type ContentPage,
+  type FaqEntry,
   type PageMeta,
+  type PageScreens,
 } from '../src/seo/pages.ts';
 
 /**
@@ -82,11 +86,35 @@ const footerNav = () => {
   ];
   return `<nav aria-label="Porras de PorrApp"><ul>${links
     .map(([href, label]) => `<li><a href="${href}">${escapeHtml(label)}</a></li>`)
-    .join('')}</ul></nav>`;
+    .join('')}</ul></nav><p>${escapeHtml(AFFILIATION_NOTICE)}</p>`;
 };
+
+/** Mismos srcset y sizes que AppScreens: el navegador pide la misma imagen antes y después de montar. */
+const screensMarkup = (screens: PageScreens) =>
+  `<h2>${escapeHtml(screens.title)}</h2><ul>${screens.shots
+    .map(
+      (shot) =>
+        `<li><img src="${shot.src}-600.webp" srcset="${shot.src}-300.webp 300w, ${shot.src}-600.webp 600w" sizes="(min-width: 1024px) 260px, 64vw" width="600" height="1298" alt="${escapeHtml(shot.alt)}" loading="lazy" decoding="async"></li>`,
+    )
+    .join('')}</ul>`;
 
 const paragraphs = (texts: readonly string[]) =>
   texts.map((text) => `<p>${escapeHtml(text)}</p>`).join('');
+
+const faqMarkup = (faq: readonly FaqEntry[]) =>
+  `<h2>Preguntas frecuentes</h2><dl>${faq
+    .map((entry) => `<dt>${escapeHtml(entry.question)}</dt><dd>${escapeHtml(entry.answer)}</dd>`)
+    .join('')}</dl>`;
+
+const faqStructuredData = (faq: readonly FaqEntry[], url: string) => ({
+  '@type': 'FAQPage',
+  url,
+  mainEntity: faq.map((entry) => ({
+    '@type': 'Question',
+    name: entry.question,
+    acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+  })),
+});
 
 const landingMarkup = () =>
   `<main><h1>${escapeHtml(`${LANDING_COPY.h1} ${LANDING_COPY.h1Marked}`)}</h1>` +
@@ -100,22 +128,20 @@ const landingMarkup = () =>
   `<h3>${escapeHtml(LANDING_COPY.matchdayTitle)}</h3>${paragraphs([LANDING_COPY.matchdayText])}` +
   `<h2>${escapeHtml(`${LANDING_COPY.closingTitle} ${LANDING_COPY.closingMarked}`)}</h2>` +
   paragraphs([LANDING_COPY.closing]) +
+  faqMarkup(HOME_FAQ) +
   `</main>${footerNav()}`;
 
 const contentMarkup = (page: ContentPage) =>
   `<main><h1>${escapeHtml(`${page.h1} ${page.h1Marked}`)}</h1>` +
   paragraphs([page.lede]) +
-  `<p><a href="/demo">Ver una porra de ejemplo</a></p>` +
+  (page.download
+    ? `<p><a href="${page.download.href}" download>${escapeHtml(page.download.label)}</a></p>`
+    : `<p><a href="/demo">Ver una porra de ejemplo</a></p>`) +
+  (page.screens ? screensMarkup(page.screens) : '') +
   page.sections
     .map((section) => `<h2>${escapeHtml(section.heading)}</h2>${paragraphs(section.paragraphs)}`)
     .join('') +
-  (page.faq
-    ? `<h2>Preguntas frecuentes</h2><dl>${page.faq
-        .map(
-          (entry) => `<dt>${escapeHtml(entry.question)}</dt><dd>${escapeHtml(entry.answer)}</dd>`,
-        )
-        .join('')}</dl>`
-    : '') +
+  (page.faq ? faqMarkup(page.faq) : '') +
   `</main>${footerNav()}`;
 
 const contentStructuredData = (page: ContentPage) => {
@@ -130,15 +156,7 @@ const contentStructuredData = (page: ContentPage) => {
     },
   ];
   if (page.faq) {
-    graph.push({
-      '@type': 'FAQPage',
-      url,
-      mainEntity: page.faq.map((entry) => ({
-        '@type': 'Question',
-        name: entry.question,
-        acceptedAnswer: { '@type': 'Answer', text: entry.answer },
-      })),
-    });
+    graph.push(faqStructuredData(page.faq, url));
   }
   return jsonLd({ '@context': 'https://schema.org', '@graph': graph });
 };
@@ -190,7 +208,16 @@ export default function seoPrerender(): Plugin {
       // La portada: sin canonical, porque este mismo HTML es el que reciben las pantallas de la
       // app sin HTML propio (ver RouteHead).
       index.source = withRoot(
-        withHead(shell, HOME_META, null, modulePreloads(bundle, shell, '/src/pages/Landing.tsx')),
+        withHead(
+          shell,
+          HOME_META,
+          null,
+          modulePreloads(bundle, shell, '/src/pages/Landing.tsx') +
+            jsonLd({
+              '@context': 'https://schema.org',
+              ...faqStructuredData(HOME_FAQ, `${SITE_ORIGIN}/`),
+            }),
+        ),
         landingMarkup(),
       );
 

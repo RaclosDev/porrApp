@@ -77,7 +77,8 @@ export default defineConfig({
       },
       workbox: {
         importScripts: ['/sw-cleanup.js', '/sw-push.js'],
-        navigateFallbackDenylist: [/^\/api(?:\/|$)/],
+        // Las plantillas se descargan: abrir su dirección no debe devolver la app.
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/plantillas\//],
         globPatterns: ['**/*.{js,css,html,ico,svg}'],
         // html2canvas solo se carga con import() al compartir la clasificación: se baja al usarlo.
         // Las banderas y logos (≈650 KB) se guardan al verlos, no todos en la primera visita.

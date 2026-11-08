@@ -31,6 +31,8 @@ public class SpaPageController {
     public static final Set<String> INDEXABLE = Set.of(
             "/", "/como-funciona", "/porra-laliga", "/porra-champions", "/porra-premier-league",
             "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
+            "/plantilla-porra-excel", "/alternativa-laporra", "/mejores-apps-porra",
+            "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey",
             "/privacidad", "/aviso-legal");
 
     /** Pantallas de la app: existen, pero no tienen sentido en un buscador. */
@@ -45,6 +47,8 @@ public class SpaPageController {
     @GetMapping({
             "/", "/como-funciona", "/porra-laliga", "/porra-champions", "/porra-premier-league",
             "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
+            "/plantilla-porra-excel", "/alternativa-laporra", "/mejores-apps-porra",
+            "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey",
             "/privacidad", "/aviso-legal",
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/bracket", "/tabla", "/prediction", "/jornadas", "/restablecer-contrasena"})
