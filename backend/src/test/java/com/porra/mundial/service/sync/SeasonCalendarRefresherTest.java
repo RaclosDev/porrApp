@@ -3,6 +3,7 @@ package com.porra.mundial.service.sync;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.service.prediction.MatchSelectionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
@@ -21,7 +22,9 @@ class SeasonCalendarRefresherTest {
     private final CompetitionRepository competitions = mock(CompetitionRepository.class);
     private final CompetitionImportService imports = mock(CompetitionImportService.class);
     private final ConcurrentMapCacheManager caches = new ConcurrentMapCacheManager("competitions", "matches");
-    private final SeasonCalendarRefresher refresher = new SeasonCalendarRefresher(competitions, imports, caches);
+    private final MatchSelectionService selections = mock(MatchSelectionService.class);
+    private final SeasonCalendarRefresher refresher = new SeasonCalendarRefresher(competitions, imports, caches,
+            selections);
 
     @Test
     @DisplayName("Carga todas las competiciones oficiales, aunque una falle, y no las personalizadas")

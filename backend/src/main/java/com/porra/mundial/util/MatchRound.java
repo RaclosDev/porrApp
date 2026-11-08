@@ -3,6 +3,7 @@ package com.porra.mundial.util;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Sport;
+import com.porra.mundial.sports.TennisTournaments;
 
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -54,6 +55,7 @@ public final class MatchRound {
      * (cuyas jornadas no coinciden: la «Jornada 3» de LaLiga no es la de la Champions), su semana.
      */
     public static String label(Edition edition, Match match) {
+        if (edition != null && edition.getTennisScope() != null) return tennisTournamentLabel(match);
         return edition != null && edition.isMultiCompetition() && !sharedRounds(match) ? weekLabel(match) : label(match);
     }
 
@@ -63,6 +65,19 @@ public final class MatchRound {
      */
     public static String multiCompetitionLabel(Match match) {
         return sharedRounds(match) ? label(match) : weekLabel(match);
+    }
+
+    /**
+     * Jornada de un partido en una liga de tenis de varios torneos: el torneo, su año y la ronda
+     * («Roland Garros 2027 · Octavos de final»). Los dos cuadros de un torneo comparten jornada, y la
+     * misma ronda de dos torneos (o de dos años del mismo) no se mezcla.
+     */
+    public static String tennisTournamentLabel(Match match) {
+        String round = label(match);
+        if (match.getCompetition() == null || match.getMatchDate() == null) return round;
+        return TennisTournaments.parse(match.getCompetition().getExternalId())
+                .map(ref -> ref.tournament().name() + " " + AppTime.day(match.getMatchDate()).getYear() + " · " + round)
+                .orElse(round);
     }
 
     private static boolean sharedRounds(Match match) {

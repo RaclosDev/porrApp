@@ -301,6 +301,10 @@ export interface Group {
   matchSelection?: MatchSelectionMode | null;
   /** Junta partidos de varias competiciones (la de `competitionId` es la principal); sus jornadas son semanas. */
   multiCompetition?: boolean;
+  /** Tenis de varios torneos: cuáles sigue; null en una liga de un solo torneo. */
+  tennisScope?: TennisScope | null;
+  /** Tenis de varios torneos: cuadros que sigue. */
+  tennisTour?: TennisTour | null;
 }
 
 type MatchSelectionMode = 'ALL' | 'CUSTOM';
@@ -366,6 +370,12 @@ export interface MatchSelectionView {
 /** UFC: veladas numeradas («UFC 334») o el resto (Fight Night y demás sin número). */
 export type EventSeries = 'NUMBERED' | 'FIGHT_NIGHT';
 
+/** Tenis: torneos de una liga de varios (todos, Grand Slams o Masters 1000 con las ATP Finals). */
+export type TennisScope = 'ALL' | 'GRAND_SLAMS' | 'MASTERS_1000';
+
+/** Tenis de varios torneos: cuadros masculinos (ATP), femeninos (WTA) o los dos. */
+export type TennisTour = 'ATP' | 'WTA' | 'BOTH';
+
 /** UFC: partes de la cartelera de una velada (estelar, preliminares y preliminares tempranos). */
 export type CardSegment = 'EARLY_PRELIMS' | 'PRELIMS' | 'MAIN';
 
@@ -375,6 +385,10 @@ export interface MatchSelectionRequest {
   eventSeries?: EventSeries;
   /** UFC: partes de la cartelera que entran; sin ellas, las que ya tenía (al crear, la velada completa). */
   cardSegments?: CardSegment[];
+  /** Tenis: la liga sigue varios torneos y suma los nuevos; sin él, el que ya tenía (al crear, uno). */
+  tennisScope?: TennisScope;
+  /** Tenis con `tennisScope`: cuadros que sigue; sin él, los que ya tenía (al crear, los dos). */
+  tennisTour?: TennisTour;
   /** Competiciones de la liga, con la principal; sin ellas, las que ya tenía. */
   competitionIds?: number[];
   teamIds?: number[];
