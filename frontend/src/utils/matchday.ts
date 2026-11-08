@@ -128,6 +128,9 @@ const KNOCKOUT_LABELS: Record<string, string> = {
   sf: 'Semifinales',
   third: 'Tercer puesto',
   final: 'Final',
+  // Fase de grupos de las ATP Finals y las WTA Finals, y el play-in de la NBA y el LoL.
+  roundrobin: 'Fase de grupos',
+  playin: 'Play-in',
   // Rondas de la Copa del Rey antes de dieciseisavos.
   qualifying: 'Ronda previa',
   round1: 'Primera ronda',

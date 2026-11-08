@@ -3,6 +3,8 @@ package com.porra.mundial.dto;
 import com.porra.mundial.model.CardSegment;
 import com.porra.mundial.model.EventSeries;
 import com.porra.mundial.model.MatchSelectionMode;
+import com.porra.mundial.model.TennisScope;
+import com.porra.mundial.model.TennisTour;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -20,6 +22,11 @@ import java.util.List;
  * @param cardSegments   UFC: partes de la cartelera de cada velada que entran (estelar, preliminares,
  *                       preliminares tempranas). Nulo: las que ya tenía (al crear la liga, la velada
  *                       completa); vacío no vale
+ * @param tennisScope    tenis con {@code ALL}: la liga sigue varios torneos (todos, Grand Slams o Masters
+ *                       1000) y va sumando los que publique ESPN. Nulo: el que ya tenía (al crear la liga,
+ *                       un solo torneo)
+ * @param tennisTour     tenis con {@code tennisScope}: cuadros que sigue. Nulo: los que ya tenía (al crear
+ *                       la liga, los dos)
  */
 public record MatchSelectionRequest(
         @NotNull(message = "Elige qué partidos entran en la liga") MatchSelectionMode mode,
@@ -28,7 +35,15 @@ public record MatchSelectionRequest(
         @Size(max = 2000, message = "Demasiados partidos") List<Long> excludedMatchIds,
         @Size(max = 8, message = "Como mucho 8 competiciones") List<Long> competitionIds,
         EventSeries eventSeries,
-        @Size(max = 3, message = "Elige como mucho las tres partes de la cartelera") List<CardSegment> cardSegments) {
+        @Size(max = 3, message = "Elige como mucho las tres partes de la cartelera") List<CardSegment> cardSegments,
+        TennisScope tennisScope,
+        TennisTour tennisTour) {
+
+    public MatchSelectionRequest(MatchSelectionMode mode, List<Long> teamIds, List<Long> includedMatchIds,
+                                 List<Long> excludedMatchIds, List<Long> competitionIds, EventSeries eventSeries,
+                                 List<CardSegment> cardSegments) {
+        this(mode, teamIds, includedMatchIds, excludedMatchIds, competitionIds, eventSeries, cardSegments, null, null);
+    }
 
     public MatchSelectionRequest(MatchSelectionMode mode, List<Long> teamIds, List<Long> includedMatchIds,
                                  List<Long> excludedMatchIds, List<Long> competitionIds, EventSeries eventSeries) {

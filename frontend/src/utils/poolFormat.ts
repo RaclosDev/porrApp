@@ -9,7 +9,7 @@ export function isMatchBasedFormat(format: PoolFormat | string | null | undefine
 const TENNIS_SCOPE_NAMES: Record<TennisScope, string> = {
   ALL: 'Tenis: todos los torneos',
   GRAND_SLAMS: 'Tenis: Grand Slams',
-  MASTERS_1000: 'Tenis: Masters 1000 y ATP Finals',
+  MASTERS_1000: 'Tenis: Masters 1000, WTA 1000 y Finals',
 };
 
 /**

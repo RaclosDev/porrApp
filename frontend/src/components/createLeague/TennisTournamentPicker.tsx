@@ -11,7 +11,7 @@ import type { StepProps } from './useLeagueDraft';
 
 const LEVELS: { level: TennisInfo['level']; title: string }[] = [
   { level: 'GRAND_SLAM', title: 'Grand Slam' },
-  { level: 'MASTERS_1000', title: 'Masters 1000' },
+  { level: 'MASTERS_1000', title: 'Masters 1000 y WTA 1000' },
   { level: 'FINALS', title: 'Finales de temporada' },
 ];
 
@@ -46,19 +46,21 @@ function tournaments(competitions: Competition[]) {
 }
 
 /**
- * Paso 2 con el tenis: el torneo (Grand Slams, Masters 1000, ATP Finals) y después el cuadro
- * (masculino, femenino o los dos). Solo salen los torneos que aún no han terminado.
+ * Paso 2 con el tenis: toda la temporada (qué torneos y qué circuito se eligen en el paso siguiente, como
+ * las veladas de UFC) o un torneo (Grand Slams, Masters 1000, WTA 1000, ATP Finals, WTA Finals) y su cuadro. Solo salen los
+ * torneos que aún no han terminado.
  */
 export default function TennisTournamentPicker({ draft, update, errors, ctx }: StepProps) {
   const available = tournaments(competitionsOfSport(ctx, 'TENNIS'));
   const selected = ctx.competitions.find((item) => item.id === draft.competitionId)?.tennis;
-  const choices = selected ? tennisDrawChoices(ctx, selected.tournamentId) : [];
+  const season = draft.tennisScope != null;
+  const choices = selected && !season ? tennisDrawChoices(ctx, selected.tournamentId) : [];
 
   const choose = (tournamentId: number) => {
     const first = ctx.competitions.find(
       (item) => item.tennis?.tournamentId === tournamentId && !item.finished,
     );
-    if (first) update({ custom: false, competitionId: first.id });
+    if (first) update({ tennisScope: null, competitionId: first.id });
   };
 
   return (
@@ -69,6 +71,21 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
         aria-describedby={errors.competition ? errorId(FIELD_IDS.competition) : undefined}
       >
         <legend className="sr-only">Torneo</legend>
+        {available.length > 0 && (
+          <div className="create-league-group">
+            <h3 className="create-league-section-title">Varios torneos</h3>
+            <div className="create-league-options">
+              <OptionCard
+                name="cl-tennis-tournament"
+                value="season"
+                checked={season}
+                onChange={() => update({ tennisScope: draft.tennisScope ?? 'ALL' })}
+                title="Toda la temporada"
+                description="Desde hoy, varios torneos en orden y con una sola clasificación. En el paso siguiente eliges cuáles y el circuito: ATP, WTA o los dos."
+              />
+            </div>
+          </div>
+        )}
         {available.length === 0 && (
           <p className="create-league-hint">
             Ahora mismo no hay ningún torneo por jugar. Aparecerán en cuanto ESPN publique la
@@ -87,12 +104,16 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
                     key={info.tournamentId}
                     name="cl-tennis-tournament"
                     value={String(info.tournamentId)}
-                    checked={!draft.custom && selected?.tournamentId === info.tournamentId}
+                    checked={!season && selected?.tournamentId === info.tournamentId}
                     onChange={() => choose(info.tournamentId)}
                     title={info.tournament}
                     description={[
                       tennisDates(info),
-                      draws.size > 1 ? 'Cuadro masculino y femenino' : 'Cuadro masculino',
+                      draws.size > 1
+                        ? 'Cuadro masculino y femenino'
+                        : draws.has('WOMEN')
+                          ? 'Cuadro femenino'
+                          : 'Cuadro masculino',
                     ]
                       .filter(Boolean)
                       .join(' · ')}
@@ -104,21 +125,16 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
         })}
         <div className="create-league-group">
           <h3 className="create-league-section-title">Tu propia competición</h3>
-          <div className="create-league-options">
-            <OptionCard
-              name="cl-tennis-tournament"
-              value="custom"
-              checked={draft.custom}
-              onChange={() => update({ custom: true })}
-              title="Competición personalizada"
-              description="El torneo del club o de los amigos. Después de crear la liga añades tú los partidos y los resultados."
-            />
-          </div>
+          {/* Una competición propia no tiene rondas ni sets de tenis: se predeciría con 1X2 y empate. */}
+          <p className="create-league-hint">
+            ¿El torneo del club o de los amigos? Vuelve a «Deporte» y elige «Otro deporte»: añades
+            tú los jugadores, los partidos y los resultados.
+          </p>
         </div>
         <FieldError fieldId={FIELD_IDS.competition} message={errors.competition} />
       </fieldset>
 
-      {selected && !draft.custom && choices.length > 1 && (
+      {selected && !season && choices.length > 1 && (
         <fieldset className="create-league-fieldset">
           <legend className="create-league-section-title">Cuadro</legend>
           <div className="create-league-options is-row">
