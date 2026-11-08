@@ -103,6 +103,7 @@ class LolEsportsDataProviderTest {
         JsonNode away = competition.path("competitors").get(1);
         assertEquals("1", away.path("score").asText());
         assertFalse(away.path("winner").asBoolean());
+        assertEquals(3, competition.path("bestOf").asInt(), "la serie es al mejor de tres");
 
         var request = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(request.capture(), any());

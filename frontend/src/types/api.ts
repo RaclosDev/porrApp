@@ -140,7 +140,11 @@ export interface LeagueStanding {
   group?: string | null;
   rank: number;
   teamName: string;
+  /** Nombre corto para pantallas estrechas («Bills»); solo la NFL lo trae. */
+  teamShortName?: string | null;
   teamLogo: string | null;
+  /** NFL: puesto en su conferencia para los playoffs (entran los 7 primeros). */
+  playoffSeed?: number | null;
   points: number;
   gamesPlayed: number;
   wins: number;
@@ -499,6 +503,24 @@ export interface GrandPrixBoard {
   rules: { exactPosition: number; podium: number; pole: number; fastestLap: number };
 }
 
+/** Mundial de Fórmula 1 según ESPN. */
+export interface FormulaOneStandings {
+  season: string | null;
+  drivers: {
+    rank: number;
+    name: string;
+    shortName: string | null;
+    abbreviation: string | null;
+    country: string | null;
+    flagUrl: string | null;
+    team: string | null;
+    /** Hexadecimal sin almohadilla. */
+    teamColor: string | null;
+    points: number;
+  }[];
+  constructors: { rank: number; name: string; color: string | null; points: number }[];
+}
+
 export interface GrandPrixMemberPick {
   userId: number | null;
   name: string;
@@ -580,8 +602,13 @@ export interface MatchdayFixture {
   actualHomeScore: number | null;
   actualAwayScore: number | null;
   displayClock: string | null;
-  /** Tenis: sets que hay que ganar (2 o 3). Falta en el resto de deportes. */
+  /**
+   * Tenis: sets que hay que ganar (2 o 3). LoL: partidas que hay que ganar en una serie al mejor de tres
+   * o de cinco, para predecir su resultado. Falta en el resto.
+   */
   setsToWin?: number | null;
+  /** LoL: la serie es al mejor de 1, 3 o 5 partidas. Falta si no se sabe o no es LoL. */
+  bestOf?: number | null;
   /** Tenis: quién ha ganado, también tras una retirada o un W.O., que no tienen marcador. */
   winnerSign?: '1' | '2' | null;
   predHomeScore: number | null;
