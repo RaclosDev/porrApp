@@ -1,5 +1,7 @@
 package com.porra.mundial.controller;
 
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +24,21 @@ class ClientErrorControllerTest {
 
         assertThat(cleaned).isEqualTo("fallo de [email]  INFO falso");
         assertThat(cleaned).doesNotContain("\n", "\r", "@");
+    }
+
+    @Test
+    void sentryEventGroupsByKindAndMessageWithoutPersonalData() {
+        var report = new ClientErrorController.ClientErrorReport(
+                "render", "TypeError: x de ana@example.com", "at a\nat b", "/ligas/3?code=SECRET");
+
+        SentryEvent event = ClientErrorController.toSentryEvent(report, "/ligas/3");
+
+        assertThat(event.getLevel()).isEqualTo(SentryLevel.ERROR);
+        assertThat(event.getMessage().getMessage()).isEqualTo("TypeError: x de [email]");
+        assertThat(event.getFingerprints()).containsExactly("frontend", "render", "TypeError: x de [email]");
+        assertThat(event.getTransaction()).isEqualTo("/ligas/3");
+        assertThat(event.getTag("source")).isEqualTo("frontend");
+        assertThat(event.getExtra("stack")).isEqualTo("at a\nat b");
     }
 
     @Test
