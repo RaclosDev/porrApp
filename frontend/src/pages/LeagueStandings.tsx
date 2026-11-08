@@ -2,7 +2,7 @@ import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings, fetchCustomStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
@@ -11,6 +11,7 @@ import { isUfcCompetition } from '../utils/fightCard';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
 import { isTennisCompetition } from '../utils/tennisDraw';
+import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
 
 export default function LeagueStandings() {
   const [showComplete, setShowComplete] = useState(false);
@@ -34,9 +35,13 @@ export default function LeagueStandings() {
   const isUfc = isUfcCompetition(activeCompetitionExternalId);
   // La NFL no da puntos: se ordena por victorias y se cuentan puntos anotados, no goles.
   const winLoss = activeCompetitionExternalId === 'nfl';
+  // El LoL va por fases (play-in y suiza) con el balance de series: sin empates ni puntos de fútbol.
+  const lol = isLolCompetition(activeCompetitionExternalId);
   const labels = winLoss
     ? { points: 'V', diff: 'Dif', for: 'PF', against: 'PC' }
-    : { points: 'PTS', diff: 'DG', for: 'GF', against: 'GC' };
+    : lol
+      ? { points: 'V-D', diff: 'DG', for: 'GF', against: 'GC' }
+      : { points: 'PTS', diff: 'DG', for: 'GF', against: 'GC' };
   const completeColumns = winLoss ? 5 : 6;
   // En el tenis tampoco: los «equipos» son jugadores y la tabla es el cuadro del torneo.
   const isTennis = isTennisCompetition(activeCompetitionExternalId);
@@ -65,6 +70,7 @@ export default function LeagueStandings() {
   }
 
   // Una copa por eliminatorias (Copa del Rey…) no tiene tabla: el servidor no devuelve ninguna.
+  const groups = Array.isArray(standings) ? groupStandings(standings) : [];
   const knockoutCup =
     activeCompetitionFormatType === 'TOURNAMENT' &&
     activeGroupKnockoutDraw &&
@@ -78,24 +84,26 @@ export default function LeagueStandings() {
           <h1 className="standings-title">{activeCompetitionName || 'Tabla de equipos'}</h1>
         </div>
 
-        <div className="standings-toggle" role="group" aria-label="Nivel de detalle de la tabla">
-          <button
-            type="button"
-            className={showComplete ? '' : 'is-active'}
-            aria-pressed={!showComplete}
-            onClick={() => setShowComplete(false)}
-          >
-            Básica
-          </button>
-          <button
-            type="button"
-            className={showComplete ? 'is-active' : ''}
-            aria-pressed={showComplete}
-            onClick={() => setShowComplete(true)}
-          >
-            Completa
-          </button>
-        </div>
+        {!lol && (
+          <div className="standings-toggle" role="group" aria-label="Nivel de detalle de la tabla">
+            <button
+              type="button"
+              className={showComplete ? '' : 'is-active'}
+              aria-pressed={!showComplete}
+              onClick={() => setShowComplete(false)}
+            >
+              Básica
+            </button>
+            <button
+              type="button"
+              className={showComplete ? 'is-active' : ''}
+              aria-pressed={showComplete}
+              onClick={() => setShowComplete(true)}
+            >
+              Completa
+            </button>
+          </div>
+        )}
       </header>
 
       {isLoading ? (
@@ -107,7 +115,7 @@ export default function LeagueStandings() {
             Reintentar
           </button>
         </div>
-      ) : !standings || !Array.isArray(standings) || standings.length === 0 ? (
+      ) : groups.length === 0 ? (
         <div className="paper-panel album-sheet landing-tape standings-empty">
           <p className="standings-empty-title">
             {knockoutCup
@@ -122,119 +130,138 @@ export default function LeagueStandings() {
         </div>
       ) : (
         <div className="standings-card">
-          <div className="standings-table-wrap">
-            <table className={`standings-table${showComplete ? ' is-complete' : ''}`}>
-              <caption className="sr-only">
-                Clasificación de {activeCompetitionName || 'la competición'}
-              </caption>
-              <colgroup>
-                <col className="standings-position-column" />
-                <col className="standings-team-column" />
-                <col className="standings-stat-column" />
-                <col className="standings-stat-column" />
-                {showComplete &&
-                  Array.from({ length: completeColumns }, (_, i) => (
-                    <col key={i} className="standings-stat-column" />
-                  ))}
-              </colgroup>
-              <thead>
-                <tr>
-                  <th scope="col" className="standings-pos-col">
-                    #
-                  </th>
-                  <th scope="col">Equipo</th>
-                  <th scope="col" className="standings-points-col">
-                    {labels.points}
-                  </th>
-                  <th scope="col">PJ</th>
-                  {showComplete && (
-                    <>
-                      {!winLoss && <th scope="col">V</th>}
-                      <th scope="col">E</th>
-                      <th scope="col">D</th>
-                      <th scope="col">{labels.diff}</th>
-                      <th scope="col">{labels.for}</th>
-                      <th scope="col">{labels.against}</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {standings.map((row) => {
-                  const podium = row.rank >= 1 && row.rank <= 3 ? ` is-podium-${row.rank}` : '';
-
-                  return (
-                    <tr key={`${row.rank}-${row.teamName}`} className="standings-row">
-                      <td className="standings-rank-cell">
-                        <span className={`standings-rank${podium}`}>{row.rank}</span>
-                      </td>
-
-                      <td className="standings-team-cell" aria-label={`Equipo: ${row.teamName}`}>
-                        <div className="standings-team">
-                          {row.teamLogo ? (
-                            <>
-                              <img
-                                src={row.teamLogo}
-                                alt=""
-                                width={28}
-                                height={28}
-                                className="standings-team-logo"
-                                loading="lazy"
-                                onError={(event) => {
-                                  event.currentTarget.style.display = 'none';
-                                  const fallback = event.currentTarget
-                                    .nextElementSibling as HTMLElement | null;
-                                  if (fallback) fallback.hidden = false;
-                                }}
-                              />
-                              <span
-                                className="standings-team-placeholder"
-                                hidden
-                                aria-hidden="true"
-                              >
-                                {row.teamName.trim().charAt(0).toLocaleUpperCase('es')}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="standings-team-placeholder" aria-hidden="true">
-                              {row.teamName.trim().charAt(0).toLocaleUpperCase('es')}
-                            </span>
-                          )}
-                          <span className="standings-team-name">{row.teamName}</span>
-                        </div>
-                      </td>
-
-                      <td className="standings-points-cell">{row.points}</td>
-                      <td className="standings-muted-cell">{row.gamesPlayed}</td>
-
+          {groups.map((group) => (
+            <div key={group.title ?? 'tabla'} className="standings-group">
+              {group.title && <h2 className="standings-group-title">{group.title}</h2>}
+              <div className="standings-table-wrap">
+                <table className={`standings-table${showComplete ? ' is-complete' : ''}`}>
+                  <caption className="sr-only">
+                    {group.title
+                      ? `${group.title} de ${activeCompetitionName || 'la competición'}`
+                      : `Clasificación de ${activeCompetitionName || 'la competición'}`}
+                  </caption>
+                  <colgroup>
+                    <col className="standings-position-column" />
+                    <col className="standings-team-column" />
+                    <col className="standings-stat-column" />
+                    <col className="standings-stat-column" />
+                    {showComplete &&
+                      Array.from({ length: completeColumns }, (_, i) => (
+                        <col key={i} className="standings-stat-column" />
+                      ))}
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col" className="standings-pos-col">
+                        #
+                      </th>
+                      <th scope="col">Equipo</th>
+                      <th scope="col" className="standings-points-col">
+                        {labels.points}
+                      </th>
+                      <th scope="col">PJ</th>
                       {showComplete && (
                         <>
-                          {!winLoss && <td className="standings-win-cell">{row.wins}</td>}
-                          <td className="standings-muted-cell">{row.ties}</td>
-                          <td className="standings-loss-cell">{row.losses}</td>
-                          <td
-                            className={`standings-diff-cell${
-                              row.goalDiff > 0
-                                ? ' is-positive'
-                                : row.goalDiff < 0
-                                  ? ' is-negative'
-                                  : ''
-                            }`}
-                          >
-                            {row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}
-                          </td>
-                          <td className="standings-muted-cell">{row.goalsFor}</td>
-                          <td className="standings-muted-cell">{row.goalsAgainst}</td>
+                          {!winLoss && <th scope="col">V</th>}
+                          <th scope="col">E</th>
+                          <th scope="col">D</th>
+                          <th scope="col">{labels.diff}</th>
+                          <th scope="col">{labels.for}</th>
+                          <th scope="col">{labels.against}</th>
                         </>
                       )}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {group.rows.map((row) => {
+                      const podium = row.rank >= 1 && row.rank <= 3 ? ` is-podium-${row.rank}` : '';
 
-          {showComplete ? (
+                      return (
+                        <tr key={`${row.rank}-${row.teamName}`} className="standings-row">
+                          <td className="standings-rank-cell">
+                            <span className={`standings-rank${podium}`}>{row.rank}</span>
+                          </td>
+
+                          <td
+                            className="standings-team-cell"
+                            aria-label={`Equipo: ${row.teamName}`}
+                          >
+                            <div className="standings-team">
+                              {row.teamLogo ? (
+                                <>
+                                  <img
+                                    src={row.teamLogo}
+                                    alt=""
+                                    width={28}
+                                    height={28}
+                                    className="standings-team-logo"
+                                    loading="lazy"
+                                    onError={(event) => {
+                                      event.currentTarget.style.display = 'none';
+                                      const fallback = event.currentTarget
+                                        .nextElementSibling as HTMLElement | null;
+                                      if (fallback) fallback.hidden = false;
+                                    }}
+                                  />
+                                  <span
+                                    className="standings-team-placeholder"
+                                    hidden
+                                    aria-hidden="true"
+                                  >
+                                    {row.teamName.trim().charAt(0).toLocaleUpperCase('es')}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="standings-team-placeholder" aria-hidden="true">
+                                  {row.teamName.trim().charAt(0).toLocaleUpperCase('es')}
+                                </span>
+                              )}
+                              <span className="standings-team-name">{row.teamName}</span>
+                            </div>
+                          </td>
+
+                          <td className="standings-points-cell">
+                            {lol ? `${row.wins}-${row.losses}` : row.points}
+                          </td>
+                          <td className="standings-muted-cell">{row.gamesPlayed}</td>
+
+                          {showComplete && (
+                            <>
+                              {!winLoss && <td className="standings-win-cell">{row.wins}</td>}
+                              <td className="standings-muted-cell">{row.ties}</td>
+                              <td className="standings-loss-cell">{row.losses}</td>
+                              <td
+                                className={`standings-diff-cell${
+                                  row.goalDiff > 0
+                                    ? ' is-positive'
+                                    : row.goalDiff < 0
+                                      ? ' is-negative'
+                                      : ''
+                                }`}
+                              >
+                                {row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}
+                              </td>
+                              <td className="standings-muted-cell">{row.goalsFor}</td>
+                              <td className="standings-muted-cell">{row.goalsAgainst}</td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+
+          {lol ? (
+            <div className="standings-legend">
+              <span className="standings-legend-note">
+                V-D series ganadas y perdidas. Las eliminatorias no tienen tabla: sus cruces y
+                resultados están en <Link to="/jornadas">Jornadas</Link>.
+              </span>
+            </div>
+          ) : showComplete ? (
             <div className="standings-legend">
               <span className="standings-legend-note">
                 {winLoss

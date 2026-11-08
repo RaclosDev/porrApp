@@ -136,6 +136,8 @@ export interface TeamStanding {
 export type GroupStandings = Record<string, Record<string, TeamStanding>>;
 
 export interface LeagueStanding {
+  /** Grupo, conferencia o fase («Grupo A», «Fase suiza»…) si la competición tiene varias tablas. */
+  group?: string | null;
   rank: number;
   teamName: string;
   teamLogo: string | null;

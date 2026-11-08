@@ -10,6 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LeagueStandingDTO {
+    /**
+     * Grupo, conferencia o fase de la fila («Grupo A», «Fase suiza»…) cuando la competición tiene varias
+     * tablas; null si tiene una sola. Las filas de un mismo grupo van juntas y el puesto es dentro del grupo.
+     */
+    private String group;
     private int rank;
     private String teamName;
     private String teamLogo;

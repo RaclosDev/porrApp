@@ -74,3 +74,40 @@ it('shows the empty-season message only for an empty response', async () => {
   ).toBeVisible();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
+it('shows every group of a group-stage competition under its own title', async () => {
+  vi.mocked(fetchCompetitionStandings).mockResolvedValue([
+    { ...row, group: 'Grupo A', teamName: 'Estudiantes' },
+    { ...row, group: 'Grupo A', rank: 2, teamName: 'Flamengo' },
+    { ...row, group: 'Grupo B', teamName: 'River Plate' },
+    { ...row, group: 'Grupo B', rank: 2, teamName: 'Universitario' },
+  ]);
+  setup();
+  expect(await screen.findByRole('heading', { name: 'Grupo A' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Grupo B' })).toBeVisible();
+  const tables = screen.getAllByRole('table');
+  expect(tables).toHaveLength(2);
+  expect(tables[1]).toHaveTextContent('River Plate');
+  expect(tables[1]).not.toHaveTextContent('Flamengo');
+});
+it('shows the LoL phases with their win-loss record and points to Jornadas for the knockouts', async () => {
+  vi.mocked(useAppContext).mockReturnValue(
+    appContext({
+      activeCompetitionId: 5,
+      activeCompetitionName: 'Worlds',
+      activeCompetitionExternalId: 'lol.worlds',
+      activeGroupPoolFormat: 'MATCH_DAY',
+    }),
+  );
+  vi.mocked(fetchCompetitionStandings).mockResolvedValue([
+    { ...row, group: 'Play-in', teamName: 'Karmine Corp', points: 2, wins: 2, losses: 0, ties: 0 },
+    { ...row, group: 'Fase suiza', teamName: 'Gen.G', points: 3, wins: 3, losses: 1, ties: 0 },
+  ]);
+  setup();
+  expect(await screen.findByRole('heading', { name: 'Fase suiza' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Play-in' })).toBeVisible();
+  expect(screen.getByText('3-1')).toBeVisible();
+  expect(screen.getAllByRole('columnheader', { name: 'V-D' })).toHaveLength(2);
+  expect(screen.queryByRole('columnheader', { name: 'PTS' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Completa' })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Jornadas' })).toHaveAttribute('href', '/jornadas');
+});

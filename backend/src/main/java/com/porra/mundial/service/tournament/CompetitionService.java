@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /** Competiciones disponibles y su clasificación oficial. */
@@ -89,9 +90,11 @@ public class CompetitionService {
             throw BusinessException.notFound("Competición no encontrada");
         }
 
+        if (LolEsportsDataProvider.isLolCompetition(competition.getExternalId())) {
+            return lolStandings(matchRepository.findByCompetitionId(competitionId));
+        }
         List<LeagueStandingDTO> standings = new ArrayList<>();
         if (competition.getExternalId() != null && !competition.getExternalId().isBlank()
-                && !LolEsportsDataProvider.isLolCompetition(competition.getExternalId())
                 && !tennisDataProvider.supports(competition.getExternalId())
                 && !com.porra.mundial.sports.UfcDataProvider.isUfcCompetition(competition.getExternalId())) {
             try {
@@ -105,7 +108,6 @@ public class CompetitionService {
         if (standings.isEmpty() && !isKnockoutCup(competition)) {
             standings = standingsFromMatches(competitionId);
         }
-        standings.sort(Comparator.comparingInt(LeagueStandingDTO::getRank));
         return standings;
     }
 
@@ -122,36 +124,115 @@ public class CompetitionService {
         return standingsFromMatches(competitionId);
     }
 
-    private List<LeagueStandingDTO> parseEspnStandings(JsonNode root) {
+    /**
+     * Tabla de ESPN con todos sus grupos o conferencias (Libertadores, MLS…), en el orden de ESPN y cada uno
+     * con su título y sus puestos. Con un solo grupo (la fase liga de la Champions, LaLiga…) no lleva título.
+     */
+    static List<LeagueStandingDTO> parseEspnStandings(JsonNode root) {
         List<LeagueStandingDTO> standings = new ArrayList<>();
         if (root == null) return standings;
 
-        JsonNode entries = root.path("children").size() > 0
-                ? root.path("children").path(0).path("standings").path("entries")
-                : root.path("standings").path("entries");
-        if (!entries.isArray()) return standings;
+        List<JsonNode> groups = new ArrayList<>();
+        if (root.path("children").size() > 0) root.path("children").forEach(groups::add);
+        else groups.add(root);
+        boolean titled = groups.size() > 1;
 
-        for (JsonNode entry : entries) {
-            Map<String, Integer> stats = new HashMap<>();
-            for (JsonNode stat : entry.path("stats")) {
-                stats.put(stat.path("name").asText(""), stat.path("value").asInt(0));
+        for (JsonNode group : groups) {
+            JsonNode entries = group.path("standings").path("entries");
+            if (!entries.isArray()) continue;
+            String title = titled ? groupTitle(group.path("name").asText("")) : null;
+            List<LeagueStandingDTO> rows = new ArrayList<>();
+            for (JsonNode entry : entries) {
+                Map<String, Integer> stats = new HashMap<>();
+                for (JsonNode stat : entry.path("stats")) {
+                    stats.put(stat.path("name").asText(""), stat.path("value").asInt(0));
+                }
+                int rank = stats.getOrDefault("rank", 0);
+                rows.add(LeagueStandingDTO.builder()
+                        .group(title)
+                        .rank(rank > 0 ? rank : rows.size() + 1)
+                        .teamName(entry.path("team").path("displayName").asText(entry.path("team").path("name").asText("Equipo")))
+                        .teamLogo(entry.path("team").path("logos").path(0).path("href").asText(null))
+                        .points(stats.getOrDefault("points", 0))
+                        .gamesPlayed(stats.getOrDefault("gamesPlayed", 0))
+                        .wins(stats.getOrDefault("wins", 0))
+                        .ties(stats.getOrDefault("ties", 0))
+                        .losses(stats.getOrDefault("losses", 0))
+                        .goalDiff(stats.getOrDefault("pointDifferential", 0))
+                        .goalsFor(stats.getOrDefault("pointsFor", 0))
+                        .goalsAgainst(stats.getOrDefault("pointsAgainst", 0))
+                        .build());
             }
-            int rank = stats.getOrDefault("rank", 0);
-            standings.add(LeagueStandingDTO.builder()
-                    .rank(rank > 0 ? rank : standings.size() + 1)
-                    .teamName(entry.path("team").path("displayName").asText(entry.path("team").path("name").asText("Equipo")))
-                    .teamLogo(entry.path("team").path("logos").path(0).path("href").asText(null))
-                    .points(stats.getOrDefault("points", 0))
-                    .gamesPlayed(stats.getOrDefault("gamesPlayed", 0))
-                    .wins(stats.getOrDefault("wins", 0))
-                    .ties(stats.getOrDefault("ties", 0))
-                    .losses(stats.getOrDefault("losses", 0))
-                    .goalDiff(stats.getOrDefault("pointDifferential", 0))
-                    .goalsFor(stats.getOrDefault("pointsFor", 0))
-                    .goalsAgainst(stats.getOrDefault("pointsAgainst", 0))
-                    .build());
+            rows.sort(Comparator.comparingInt(LeagueStandingDTO::getRank));
+            standings.addAll(rows);
         }
         return standings;
+    }
+
+    /** Nombre de un grupo de ESPN en español: «Group A» → «Grupo A», «Eastern Conference» → «Conferencia Este». */
+    static String groupTitle(String name) {
+        String trimmed = name == null ? "" : name.trim();
+        if (trimmed.regionMatches(true, 0, "Group ", 0, 6)) return "Grupo " + trimmed.substring(6).trim();
+        return switch (trimmed.toLowerCase(Locale.ROOT)) {
+            case "eastern conference" -> "Conferencia Este";
+            case "western conference" -> "Conferencia Oeste";
+            case "league phase" -> "Fase liga";
+            case "" -> "Grupo";
+            default -> trimmed;
+        };
+    }
+
+    /** Fases del LoL con tabla, en el orden en que se juegan. Las eliminatorias no tienen: son cruces. */
+    private static final List<Map.Entry<String, String>> LOL_TABLE_PHASES =
+            List.of(Map.entry("playin", "Play-in"), Map.entry("group", "Fase suiza"));
+
+    /**
+     * Tabla del LoL por fase: el play-in y la fase suiza, cada una con su balance de series ganadas y perdidas
+     * (no hay empates ni puntos de fútbol). Los puntos son las victorias y los «goles», las partidas. Las
+     * eliminatorias no entran.
+     */
+    static List<LeagueStandingDTO> lolStandings(List<Match> matches) {
+        Map<String, Map<String, LeagueStandingDTO>> phases = new HashMap<>();
+        for (Match m : matches) {
+            if (!Boolean.TRUE.equals(m.getFinished()) || m.getHomeScore() == null || m.getAwayScore() == null
+                    || m.getHomeTeam() == null || m.getAwayTeam() == null
+                    || m.getHomeScore().equals(m.getAwayScore())) continue;
+            Map<String, LeagueStandingDTO> table = phases.computeIfAbsent(m.getRound(), key -> new HashMap<>());
+            LeagueStandingDTO home = row(table, m.getHomeTeam().getName(), m.getHomeTeam().getLogoUrl());
+            LeagueStandingDTO away = row(table, m.getAwayTeam().getName(), m.getAwayTeam().getLogoUrl());
+            addSeries(home, m.getHomeScore(), m.getAwayScore());
+            addSeries(away, m.getAwayScore(), m.getHomeScore());
+        }
+
+        List<LeagueStandingDTO> standings = new ArrayList<>();
+        for (Map.Entry<String, String> phase : LOL_TABLE_PHASES) {
+            Map<String, LeagueStandingDTO> table = phases.get(phase.getKey());
+            if (table == null) continue;
+            List<LeagueStandingDTO> rows = new ArrayList<>(table.values());
+            rows.sort(Comparator.comparingInt(LeagueStandingDTO::getWins).reversed()
+                    .thenComparingInt(LeagueStandingDTO::getLosses)
+                    .thenComparing(Comparator.comparingInt(LeagueStandingDTO::getGoalDiff).reversed())
+                    .thenComparing(LeagueStandingDTO::getTeamName, String.CASE_INSENSITIVE_ORDER));
+            for (int i = 0; i < rows.size(); i++) {
+                rows.get(i).setRank(i + 1);
+                rows.get(i).setGroup(phase.getValue());
+            }
+            standings.addAll(rows);
+        }
+        return standings;
+    }
+
+    private static void addSeries(LeagueStandingDTO row, int gamesWon, int gamesLost) {
+        row.setGamesPlayed(row.getGamesPlayed() + 1);
+        row.setGoalsFor(row.getGoalsFor() + gamesWon);
+        row.setGoalsAgainst(row.getGoalsAgainst() + gamesLost);
+        row.setGoalDiff(row.getGoalDiff() + gamesWon - gamesLost);
+        if (gamesWon > gamesLost) {
+            row.setWins(row.getWins() + 1);
+            row.setPoints(row.getPoints() + 1);
+        } else {
+            row.setLosses(row.getLosses() + 1);
+        }
     }
 
     /**
