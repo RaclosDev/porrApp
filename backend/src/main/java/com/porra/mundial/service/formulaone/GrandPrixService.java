@@ -2,6 +2,7 @@ package com.porra.mundial.service.formulaone;
 
 import com.porra.mundial.dto.GrandPrixBoardDTO;
 import com.porra.mundial.dto.GrandPrixPickRequest;
+import com.porra.mundial.dto.RaceClassificationDTO;
 import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
@@ -64,6 +65,7 @@ public class GrandPrixService {
     private final UserAccountRepository userAccountRepository;
     private final LeagueService leagueService;
     private final ScoreInvalidationService scoreInvalidationService;
+    private final RaceClassificationService classificationService;
     private final Clock clock = Clock.systemUTC();
 
     /** Grandes Premios de la temporada en curso con la predicción del usuario. */
@@ -187,6 +189,13 @@ public class GrandPrixService {
         picks.sort(Comparator.comparing((GrandPrixBoardDTO.MemberPick p) -> p.points() == null ? 0 : p.points()).reversed()
                 .thenComparing(p -> p.name() == null ? "" : p.name(), String.CASE_INSENSITIVE_ORDER));
         return picks;
+    }
+
+    /** Clasificación completa de un Gran Premio de la liga; vacía hasta que acaba la carrera. */
+    public RaceClassificationDTO classification(String email, Long groupId, Long matchId) {
+        Edition edition = grandPrixEdition(groupId);
+        leagueService.assertCanView(groupId, email);
+        return classificationService.classification(grandPrixOf(edition, matchId));
     }
 
     /** Comprueba que la liga es de Fórmula 1 y que el usuario puede verla. */

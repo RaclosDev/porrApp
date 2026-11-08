@@ -3,6 +3,7 @@
  * de pronósticos. Sin React ni red, para poder probarla aparte.
  */
 import type {
+  FightInfo,
   FightMethod,
   MatchdayFixture,
   MatchdayPoints,
@@ -289,10 +290,15 @@ export const withFightPick = (
 /** Bloques de la cartelera, de la estelar a los preliminares tempranos. */
 const SEGMENT_RANK: Record<string, number> = { MAIN: 0, PRELIMS: 1, EARLY_PRELIMS: 2 };
 
-/** Peleas en el orden de la cartelera: la estelar arriba; las canceladas, al final. */
-export function sortFightCard(fixtures: MatchdayFixture[]): MatchdayFixture[] {
+/**
+ * Peleas en el orden de la cartelera: la estelar arriba; las canceladas, al final. Vale para las de la
+ * jornada y para los partidos de la portada; sin peleas, la lista queda igual.
+ */
+export function sortFightCard<T extends { status?: string | null; fight?: FightInfo | null }>(
+  fixtures: T[],
+): T[] {
   if (!fixtures.some((f) => f.fight)) return fixtures;
-  const rank = (f: MatchdayFixture) => [
+  const rank = (f: T) => [
     f.status === 'CANCELLED' ? 1 : 0,
     SEGMENT_RANK[f.fight?.segment ?? ''] ?? 3,
     f.fight?.order ?? 99,

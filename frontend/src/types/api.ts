@@ -86,6 +86,11 @@ export interface Competition {
   knockoutDraw?: boolean;
   /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
   tennis?: TennisInfo | null;
+  /**
+   * Por formato de cuadro, cuándo empieza lo que pronostica (ISO): desde entonces nadie podría enviar su
+   * predicción y la liga no se puede crear. Falta si se puede crear en cualquier momento.
+   */
+  bracketClosesAt?: Partial<Record<PoolFormat, string>>;
 }
 
 export interface Match {
@@ -530,6 +535,36 @@ export interface FormulaOneStandings {
   constructors: { rank: number; name: string; color: string | null; points: number }[];
 }
 
+/** Clasificación completa de una carrera de Fórmula 1. */
+export interface RaceClassification {
+  /** false si la carrera no ha acabado o ESPN aún no la ha publicado. */
+  available: boolean;
+  rows: RaceClassificationRow[];
+}
+
+export interface RaceClassificationRow {
+  position: number;
+  driverId: number | null;
+  name: string;
+  team: string | null;
+  /** Hexadecimal sin almohadilla. */
+  teamColor: string | null;
+  number: string | null;
+  /** Puesto de salida. */
+  grid: number | null;
+  laps: number | null;
+  /** Tiempo total del ganador. */
+  time: string | null;
+  /** Diferencia con el ganador de quien acaba en su misma vuelta («+0.799»). */
+  gap: string | null;
+  /** Vueltas perdidas de quien acaba doblado. */
+  lapsBehind: number | null;
+  status: 'FINISHED' | 'RETIRED' | 'DISQUALIFIED' | 'DID_NOT_START' | 'OTHER';
+  /** Puntos del Mundial en la carrera. */
+  points: number | null;
+  fastestLap: boolean;
+}
+
 export interface GrandPrixMemberPick {
   userId: number | null;
   name: string;
@@ -662,6 +697,8 @@ export interface FightInfo {
   /** 1 es la pelea estelar. */
   order: number | null;
   weightClass: string | null;
+  /** Título en juego como lo da ESPN («UFC Heavyweight Title»); null o ausente si no hay título. */
+  title?: string | null;
   scheduledRounds: number | null;
   homeRecord: string | null;
   awayRecord: string | null;
@@ -670,6 +707,8 @@ export interface FightInfo {
   resultDetail: string | null;
   resultRound: number | null;
   resultClock: string | null;
+  /** Tarjetas de los jueces de una decisión: «30-27 | 29-28 | 30-27». */
+  judgesScores?: string | null;
   /** '1' ganó la esquina roja (local), '2' la azul; null sin ganador. */
   winner: '1' | '2' | null;
 }

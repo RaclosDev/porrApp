@@ -409,6 +409,12 @@ export function formatUnavailableReason(
   if (format !== 'KNOCKOUTS_ONLY' && isNbaCompetition(competition?.externalId)) {
     return 'De la NBA se pronostican los playoffs, serie a serie.';
   }
+  const closesAt = competition?.bracketClosesAt?.[format];
+  if (closesAt && Date.parse(closesAt) <= Date.now()) {
+    return format === 'KNOCKOUTS_ONLY'
+      ? 'Las eliminatorias ya han empezado y nadie podría enviar su predicción: elige Por jornadas.'
+      : 'La competición ya ha empezado y nadie podría enviar su predicción: elige Por jornadas.';
+  }
   if (format === 'FULL_BRACKET' && competition?.knockoutDraw) {
     return 'Los cruces se sortean ronda a ronda: elige Solo eliminatorias.';
   }

@@ -428,4 +428,24 @@ class LeagueServiceTest {
         verify(editionRepository).save(argThat(edition -> com.porra.mundial.scoring.ScoringRuleSet.defaultTennis().toJson()
                 .equals(edition.getScoringRulesJson())));
     }
+
+    @Test
+    void aBracketLeagueCannotBeCreatedOnceTheKnockoutsHaveStarted() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition worlds = Competition.builder().id(19L).externalId("lol.worlds").formatType("TOURNAMENT").build();
+        when(competitionRepository.findById(19L)).thenReturn(Optional.of(worlds));
+        lenient().when(leagueRepository.save(any(League.class))).thenReturn(league);
+        com.porra.mundial.model.Match quarter = com.porra.mundial.model.Match.builder().id(1L).competition(worlds)
+                .round("qf").homeTeam(com.porra.mundial.model.Team.builder().id(1L).name("T1").build())
+                .awayTeam(com.porra.mundial.model.Team.builder().id(2L).name("GEN").build())
+                .matchDate(java.time.Instant.now().minusSeconds(3600)).build();
+        when(matchRepository.findByCompetitionId(19L)).thenReturn(List.of(quarter));
+
+        BusinessException error = assertThrows(BusinessException.class, () -> leagueService.createLeague(
+                NewLeague.of("Worlds", "admin@test.com", 19L, com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY)));
+        assertTrue(error.getMessage().contains("ya han empezado"));
+
+        leagueService.createLeague(NewLeague.of("Worlds", "admin@test.com", 19L, com.porra.mundial.model.PoolFormat.MATCH_DAY));
+        verify(editionRepository).save(any());
+    }
 }

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLeagueHomeData } from '../../hooks/useLeagueHomeData';
 import { useAppContext } from '../../context/AppContext';
 import * as api from '../../services/api';
-import type { Match } from '../../types/api';
+import type { CardSegment, Match } from '../../types/api';
 import { appContext, matchdayFixture } from '../context/fixtures';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
@@ -94,6 +94,52 @@ describe('useLeagueHomeData', () => {
     expect(api.fetchCompetitionStandings).not.toHaveBeenCalled();
   });
 
+  it('en la UFC enseña la velada en el orden de la cartelera, con la estelar arriba', async () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '7',
+        activeCompetitionId: 17,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'fightCard',
+        activeGroupPicksMatches: true,
+        allGames: [],
+      }),
+    );
+    const bout = (matchId: number, segment: CardSegment, order: number, matchDate: string) =>
+      matchdayFixture({
+        matchId,
+        round: 'UFC 334: Gane vs. Hokit',
+        matchDate,
+        fight: {
+          eventId: '600061400',
+          eventName: 'UFC 334: Gane vs. Hokit',
+          segment,
+          order,
+          weightClass: null,
+          scheduledRounds: 3,
+          homeRecord: null,
+          awayRecord: null,
+          resultMethod: null,
+          resultDetail: null,
+          resultRound: null,
+          resultClock: null,
+          winner: null,
+        },
+      });
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
+      bout(1, 'PRELIMS', 7, '2099-11-15T01:00:00+01:00'),
+      bout(2, 'MAIN', 3, '2099-11-15T03:00:00+01:00'),
+      bout(3, 'MAIN', 1, '2099-11-15T03:00:00+01:00'),
+      bout(4, 'EARLY_PRELIMS', 10, '2099-11-14T23:00:00+01:00'),
+      bout(5, 'MAIN', 2, '2099-11-15T03:00:00+01:00'),
+    ]);
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    await waitFor(() => expect(result.current.matches.items).toHaveLength(5));
+    expect(result.current.matches.items.map((match) => match.id)).toEqual([3, 5, 2, 1, 4]);
+  });
+
   it('una liga con todos los partidos sigue con la jornada y la tabla de su competición', async () => {
     vi.mocked(useAppContext).mockReturnValue(
       appContext({
@@ -136,5 +182,48 @@ describe('useLeagueHomeData', () => {
     await waitFor(() => expect(result.current.standings?.rows).toHaveLength(2));
     expect(result.current.standings?.title).toBe('Tabla · Fase suiza');
     expect(result.current.standings?.rows.map((r) => r.value)).toEqual(['3-1', '3-2']);
+  });
+
+  it('en el tenis la ronda de la portada lleva el torneo delante', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '5',
+        activeCompetitionId: 41,
+        activeCompetitionName: 'Masters de París',
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'tennisDraw',
+        allGames: [competitionMatch(92, 'final', '2099-11-08T15:00:00+01:00')],
+      }),
+    );
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    expect(result.current.matches.title).toBe('Masters de París · Final');
+  });
+
+  it('en una liga de varios torneos de tenis la ronda ya trae el torneo', async () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '6',
+        activeCompetitionId: 41,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'tennisDraw',
+        activeGroupPicksMatches: true,
+        activeGroupMultiCompetition: true,
+      }),
+    );
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
+      matchdayFixture({
+        matchId: 180,
+        round: 'Masters de París 2026 · Final',
+        matchDate: '2099-11-08T15:00:00+01:00',
+        competitionName: 'Masters de París',
+      }),
+    ]);
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    await waitFor(() => expect(result.current.matches.items[0]?.id).toBe(180));
+    expect(result.current.matches.title).toBe('Masters de París 2026 · Final');
   });
 });

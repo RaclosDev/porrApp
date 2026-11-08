@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
 import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
-import { finishedLabel, formatMatchDate } from '../../utils/matchday';
+import { finishedLabel, formatMatchDate, resultNote } from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import { Skeleton } from '../SkeletonBlock';
@@ -18,8 +18,8 @@ import { useMatchVoters } from '../../hooks/useMatchVoters';
 import { useRoundParticipants } from '../../hooks/useRoundParticipants';
 import type { Match, MatchVoter, MatchVoters } from '../../types/api';
 import { MATCH_KINDS } from '../../context/leagueKind';
-import { fightOutcomes, fightResultText } from '../../utils/fights';
-import { FightBadge, FightResultLine } from '../fight/FightResult';
+import { boutBilling, fightOutcomes, fightResultText, weightClassLabel } from '../../utils/fights';
+import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult';
 
 const RANKING_SIZE = 5;
 
@@ -120,6 +120,13 @@ function MatchCard({
     ? fightResultText({ homeTeam: home, awayTeam: away, fight: match.fight })
     : '';
   const matchName = `${home} - ${away}`;
+  // UFC: junto a la hora, si es la estelar o la coestelar y, si no, la categoría.
+  const fightTag = match.fight
+    ? (boutBilling(match.fight) ??
+      (match.fight.weightClass ? weightClassLabel(match.fight.weightClass) : null))
+    : null;
+  // Un empate de Copa decidido en los penaltis, o un partido que fue a la prórroga, lo dice bajo el marcador.
+  const note = hasScore && match.finished ? resultNote(match.displayClock) : null;
   // Las fotos van dentro de la tarjeta: bajo cada equipo y, en las jornadas, el empate bajo el marcador.
   const voterStack = (list: MatchVoter[], label: string) =>
     voters && onShowVoters ? (
@@ -136,10 +143,14 @@ function MatchCard({
         type="button"
         className="home-match-open"
         onClick={onOpen}
-        aria-label={`${home} contra ${away}${result ? ` (${result})` : ''}, ${action}`}
+        aria-label={`${home} contra ${away}${result ? ` (${result})` : ''}${note ? ` (${note})` : ''}, ${action}`}
       />
       <div className="home-match-meta">
-        <span>{formatMatchDate(match.date)}</span>
+        <span>
+          {formatMatchDate(match.date)}
+          {fightTag && ` · ${fightTag}`}
+        </span>
+        <FightTitleTag fight={match.fight} />
         {isLive && <InkStamp size="sm">En directo</InkStamp>}
       </div>
       <div className="home-match-teams">
@@ -188,6 +199,7 @@ function MatchCard({
         </div>
       </div>
       {outcomes && <FightResultLine fight={match.fight} className="home-match-fight" />}
+      {note && <p className="home-match-note">{note.charAt(0).toUpperCase() + note.slice(1)}</p>}
     </div>
   );
 }

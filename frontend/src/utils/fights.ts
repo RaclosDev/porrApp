@@ -57,6 +57,38 @@ export function weightClassLabel(weightClass: string): string {
   return women ? `${label} femenino` : label;
 }
 
+/** «Por el título», o «Por el título interino»; null si no hay título en juego. */
+export function titleLabel(fight: Pick<FightInfo, 'title'> | null | undefined): string | null {
+  const title = fight?.title?.trim();
+  if (!title) return null;
+  return /interim/i.test(title) ? 'Por el título interino' : 'Por el título';
+}
+
+/**
+ * Cartel de la pelea en su velada: «Pelea estelar» la primera y «Coestelar» la segunda de la cartelera
+ * estelar; null el resto.
+ */
+export function boutBilling(fight: Pick<FightInfo, 'order' | 'segment'> | null | undefined) {
+  if (!fight) return null;
+  if (fight.order === 1) return 'Pelea estelar';
+  if (fight.order === 2 && fight.segment === 'MAIN') return 'Coestelar';
+  return null;
+}
+
+/**
+ * Tarjetas de los jueces de una decisión con la puntuación del ganador delante, como se leen siempre:
+ * «30-27, 29-28, 30-27». ESPN las da desde la esquina roja. Null si no las hay.
+ */
+export function judgesScoresText(fight: FightInfo | null | undefined): string | null {
+  if (!fight || (fight.resultMethod !== 'DECISION' && fight.resultMethod !== 'DRAW')) return null;
+  const cards = (fight.judgesScores ?? '')
+    .split('|')
+    .map((card) => /^(\d{1,2})-(\d{1,2})$/.exec(card.trim()))
+    .filter((card) => card !== null)
+    .map(([, red, blue]) => (fight.winner === '2' ? `${blue}-${red}` : `${red}-${blue}`));
+  return cards.length ? cards.join(', ') : null;
+}
+
 /** Insignia de cada luchador al acabar: W gana, L pierde, D empate y NC sin resultado. */
 export type FightOutcome = 'W' | 'L' | 'D' | 'NC';
 

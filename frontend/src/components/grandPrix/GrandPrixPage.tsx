@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Check, ChevronDown, Flag, Lock, Users } from 'lucide-react';
+import { Check, ChevronDown, Flag, ListOrdered, Lock, Users } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import {
   fetchGrandPrixBoard,
@@ -13,6 +13,7 @@ import type { GrandPrix, GrandPrixBoard, GrandPrixPicks, RaceDriver } from '../.
 import { errorMessage } from '../../utils/errors';
 import PaperLoading from '../PaperLoading';
 import SheetDialog from '../SheetDialog';
+import RaceClassificationSheet from './RaceClassificationSheet';
 import { UserAvatar } from '../Avatar';
 import {
   EMPTY_PICK,
@@ -41,6 +42,7 @@ export default function GrandPrixPage() {
     staleTime: 60_000,
   });
   const [picksOf, setPicksOf] = useState<GrandPrix | null>(null);
+  const [classificationOf, setClassificationOf] = useState<GrandPrix | null>(null);
 
   const drivers: Drivers = useMemo(
     () => new Map((board.data?.drivers ?? []).map((driver) => [driver.id, driver])),
@@ -112,6 +114,7 @@ export default function GrandPrixPage() {
               userId={userId}
               defaultOpen
               onShowPicks={setPicksOf}
+              onShowClassification={setClassificationOf}
             />
           ))}
         </>
@@ -129,6 +132,7 @@ export default function GrandPrixPage() {
             userId={userId}
             defaultOpen
             onShowPicks={setPicksOf}
+            onShowClassification={setClassificationOf}
           />
         </>
       )}
@@ -144,6 +148,7 @@ export default function GrandPrixPage() {
               groupId={activeGroupId}
               userId={userId}
               onShowPicks={setPicksOf}
+              onShowClassification={setClassificationOf}
             />
           ))}
         </>
@@ -160,6 +165,7 @@ export default function GrandPrixPage() {
               groupId={activeGroupId}
               userId={userId}
               onShowPicks={setPicksOf}
+              onShowClassification={setClassificationOf}
             />
           ))}
         </>
@@ -171,6 +177,14 @@ export default function GrandPrixPage() {
           groupId={activeGroupId}
           drivers={drivers}
           onClose={() => setPicksOf(null)}
+        />
+      )}
+
+      {classificationOf && activeGroupId && (
+        <RaceClassificationSheet
+          gp={classificationOf}
+          groupId={activeGroupId}
+          onClose={() => setClassificationOf(null)}
         />
       )}
     </section>
@@ -195,6 +209,7 @@ function GrandPrixCard({
   userId,
   defaultOpen = false,
   onShowPicks,
+  onShowClassification,
 }: {
   gp: GrandPrix;
   drivers: Drivers;
@@ -202,6 +217,7 @@ function GrandPrixCard({
   userId: string | number | null;
   defaultOpen?: boolean;
   onShowPicks: (gp: GrandPrix) => void;
+  onShowClassification: (gp: GrandPrix) => void;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = `gp-body-${gp.id}`;
@@ -246,7 +262,12 @@ function GrandPrixCard({
           {gp.status === 'CANCELLED' ? (
             <p className="gp-note">Este Gran Premio se ha cancelado: no cuenta para la liga.</p>
           ) : gp.locked ? (
-            <LockedView gp={gp} drivers={drivers} onShowPicks={onShowPicks} />
+            <LockedView
+              gp={gp}
+              drivers={drivers}
+              onShowPicks={onShowPicks}
+              onShowClassification={onShowClassification}
+            />
           ) : (
             <PickForm gp={gp} drivers={drivers} groupId={groupId} userId={userId} />
           )}
@@ -369,10 +390,12 @@ function LockedView({
   gp,
   drivers,
   onShowPicks,
+  onShowClassification,
 }: {
   gp: GrandPrix;
   drivers: Drivers;
   onShowPicks: (gp: GrandPrix) => void;
+  onShowClassification: (gp: GrandPrix) => void;
 }) {
   return (
     <>
@@ -408,9 +431,20 @@ function LockedView({
       </table>
       {gp.details && <p className="gp-note">{gp.details.replace(`${gp.name}: `, '')}</p>}
       {!gp.result && <p className="gp-note">Los resultados llegan solos al acabar cada sesión.</p>}
-      <button type="button" className="glass-btn gp-picks-btn" onClick={() => onShowPicks(gp)}>
-        <Users size={15} aria-hidden="true" /> Predicciones de la liga
-      </button>
+      <div className="gp-actions">
+        {gp.status === 'FINISHED' && (
+          <button
+            type="button"
+            className="glass-btn gp-picks-btn"
+            onClick={() => onShowClassification(gp)}
+          >
+            <ListOrdered size={15} aria-hidden="true" /> Clasificación completa
+          </button>
+        )}
+        <button type="button" className="glass-btn gp-picks-btn" onClick={() => onShowPicks(gp)}>
+          <Users size={15} aria-hidden="true" /> Predicciones de la liga
+        </button>
+      </div>
     </>
   );
 }
