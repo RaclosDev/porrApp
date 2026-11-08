@@ -1,5 +1,8 @@
 package com.porra.mundial.sports;
 
+import com.porra.mundial.model.TennisScope;
+import com.porra.mundial.model.TennisTour;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -97,6 +100,19 @@ public final class TennisTournaments {
                 .filter(tournament -> tournament.espnId() == id && tournament.draws().contains(draw))
                 .findFirst()
                 .map(tournament -> new Ref(tournament, draw));
+    }
+
+    /**
+     * Ids externos de los cuadros que sigue una liga de varios torneos: los de las categorías del alcance y
+     * de los circuitos elegidos, en el orden del catálogo.
+     */
+    public static List<String> externalIds(TennisScope scope, TennisTour tour) {
+        return ALL.stream()
+                .filter(tournament -> scope.includes(tournament.level()))
+                .flatMap(tournament -> tournament.draws().stream()
+                        .filter(tour::includes)
+                        .map(tournament::externalId))
+                .toList();
     }
 
     /** Sets para ganar un partido de la competición; 2 si no es de tenis o no se conoce. */
