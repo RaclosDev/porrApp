@@ -10,7 +10,6 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Prediction;
-import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
@@ -81,7 +80,7 @@ public class LeagueSummaryService {
         }
         List<Match> upcoming = MatchSelectionService.competitionIds(matchSelectionService, edition).stream()
                 .flatMap(id -> matchRepository.findUnfinishedStartingBetween(id, now, now.plus(PENDING_WINDOW)).stream())
-                .filter(m -> !(Team.isPlaceholder(m.getHomeTeam()) && Team.isPlaceholder(m.getAwayTeam())))
+                .filter(m -> !MatchdayLock.awaitingTeams(m))
                 .filter(m -> m.getStatus() == null || m.getStatus().isOpenForPrediction())
                 .toList();
         if (MatchSelectionService.selects(edition)) upcoming = matchSelectionService.filter(edition, upcoming);

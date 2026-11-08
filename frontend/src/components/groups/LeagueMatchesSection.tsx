@@ -21,10 +21,15 @@ import {
   type SelectionValue,
 } from '../matchSelection/matchSelection';
 import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
+import CalendarImportNotice from '../matchSelection/CalendarImportNotice';
 
 /** Solo una liga por jornadas sobre una competición oficial elige sus partidos. */
 export const hasMatchSelection = (group: Group) =>
-  group.poolFormat === 'MATCH_DAY' && !group.customCompetition && group.competitionId != null;
+  group.poolFormat === 'MATCH_DAY' &&
+  !group.customCompetition &&
+  group.competitionId != null &&
+  // Las ligas de la UFC cubren sus veladas desde que se crean o una sola: se elige al crearlas.
+  group.formatType !== 'EVENTS';
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
@@ -169,6 +174,7 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
             void save(editing, view);
           }}
         >
+          {changedCompetitions && <CalendarImportNotice calendar={calendar.data} />}
           <MatchSelectionPicker
             teams={teams ?? view.teams}
             matches={matches ?? view.matches}

@@ -127,7 +127,7 @@ class OfficialResultsServiceTest {
     void thirdPlaceComesFromItsMatch() {
         knockout("third", "Francia", "Inglaterra", "Inglaterra");
 
-        PredictionDataDTO bracket = service.officialBracket();
+        PredictionDataDTO bracket = service.worldCupBracket();
 
         // Sin semifinales no se inventa a qué rama pertenece cada participante.
         assertThat(bracket.getThirdPlaceMatch()).containsExactly(null, null);
@@ -141,7 +141,7 @@ class OfficialResultsServiceTest {
                 new TopScorerDTO("Harry Kane", "H. Kane", 8, "FW", null, null, null),
                 new TopScorerDTO("Lamine Yamal", "L. Yamal", 6, "FW", null, null, null)));
 
-        assertThat(service.officialBracket().getScorer()).isEqualTo("Kylian Mbappé, Harry Kane");
+        assertThat(service.worldCupBracket().getScorer()).isEqualTo("Kylian Mbappé, Harry Kane");
     }
 
     @Test
@@ -184,7 +184,7 @@ class OfficialResultsServiceTest {
         java.util.Collections.reverse(matches);
         for (int i = 0; i < matches.size(); i++) matches.get(i).setMatchDate(AppTime.fromLocal(LocalDateTime.of(2026, 7, 1, 20, 0)).plus(i, ChronoUnit.DAYS));
 
-        PredictionDataDTO bracket = service.officialBracket();
+        PredictionDataDTO bracket = service.worldCupBracket();
 
         assertThat(bracket.getR32()).isEqualTo(expected);
         assertThat(bracket.getR16()).hasSize(8);

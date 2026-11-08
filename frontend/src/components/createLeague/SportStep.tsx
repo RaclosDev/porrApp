@@ -14,6 +14,18 @@ function sportDescription(sport: SportChoice, ctx: StepProps['ctx']) {
   if (sport === 'OTHER') {
     return 'Cualquier deporte o juego. Creas tú la competición y añades sus equipos, partidos y resultados.';
   }
+  if (sport === 'TENNIS') {
+    const open = [
+      ...new Set(
+        competitionsOfSport(ctx, sport)
+          .filter((item) => !item.finished)
+          .map((item) => item.tennis?.tournament ?? item.name),
+      ),
+    ];
+    return open.length > 0
+      ? `Grand Slams, Masters 1000 y ATP Finals. Ahora: ${open.slice(0, 3).join(', ')}.`
+      : 'Grand Slams, Masters 1000 y ATP Finals, en cuanto haya uno por jugar.';
+  }
   const names = competitionsOfSport(ctx, sport).map((item) => item.name);
   const shown = names.slice(0, 3).join(', ');
   return names.length > 3 ? `${shown} y ${names.length - 3} más.` : `${shown}.`;

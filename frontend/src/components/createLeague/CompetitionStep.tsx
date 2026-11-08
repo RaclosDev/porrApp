@@ -6,6 +6,7 @@ import {
   errorId,
 } from './leagueDraft';
 import { FieldError, OptionCard } from './parts';
+import TennisTournamentPicker from './TennisTournamentPicker';
 import type { StepProps } from './useLeagueDraft';
 
 const NAME = 'cl-competition';
@@ -48,6 +49,15 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
       <FieldError fieldId={FIELD_IDS.customName} message={errors.customName} />
     </div>
   );
+
+  if (draft.sport === 'TENNIS') {
+    return (
+      <>
+        <TennisTournamentPicker draft={draft} update={update} errors={errors} ctx={ctx} />
+        {draft.custom && nameField}
+      </>
+    );
+  }
 
   if (draft.sport === 'OTHER') {
     return (

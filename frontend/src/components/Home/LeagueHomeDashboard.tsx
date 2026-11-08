@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
-import { isLiveMatch } from '../../utils/homeMatches';
-import { formatMatchDate } from '../../utils/matchday';
+import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
+import { finishedLabel, formatMatchDate } from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import { Skeleton } from '../SkeletonBlock';
@@ -17,7 +17,9 @@ import RoundParticipants from '../voters/RoundParticipants';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
 import { useRoundParticipants } from '../../hooks/useRoundParticipants';
 import type { Match, MatchVoter, MatchVoters } from '../../types/api';
-import { isMatchBasedFormat } from '../../utils/poolFormat';
+import { MATCH_KINDS } from '../../context/leagueKind';
+import { fightOutcomes, fightResultText } from '../../utils/fights';
+import { FightBadge, FightResultLine } from '../fight/FightResult';
 
 const RANKING_SIZE = 5;
 
@@ -109,9 +111,14 @@ function MatchCard({
   twoWay?: boolean;
 }) {
   const isLive = isLiveMatch(match);
-  const hasScore = match.home_score != null && match.away_score != null;
   const home = match.home || 'Local';
   const away = match.away || 'Visitante';
+  // Una pelea de la UFC no tiene marcador: cada luchador lleva su W o L y debajo va cómo acabó.
+  const outcomes = fightOutcomes(match.fight, match.finished);
+  const hasScore = !match.fight && hasShownScore(match);
+  const result = outcomes
+    ? fightResultText({ homeTeam: home, awayTeam: away, fight: match.fight })
+    : '';
   const matchName = `${home} - ${away}`;
   // Las fotos van dentro de la tarjeta: bajo cada equipo y, en las jornadas, el empate bajo el marcador.
   const voterStack = (list: MatchVoter[], label: string) =>
@@ -129,7 +136,7 @@ function MatchCard({
         type="button"
         className="home-match-open"
         onClick={onOpen}
-        aria-label={`${home} contra ${away}, ${action}`}
+        aria-label={`${home} contra ${away}${result ? ` (${result})` : ''}, ${action}`}
       />
       <div className="home-match-meta">
         <span>{formatMatchDate(match.date)}</span>
@@ -150,10 +157,19 @@ function MatchCard({
           {voterStack(voters?.home ?? [], twoWay ? home : '1')}
         </div>
         <div className="home-match-side">
-          <div
-            className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
-          >
-            {hasScore ? `${match.home_score} - ${match.away_score}` : formatKickOff(match.date)}
+          {/* UFC: la W y la L junto a «Final», siempre en el mismo sitio sea cual sea el nombre. */}
+          <div className="home-match-result">
+            {outcomes && <FightBadge outcome={outcomes.home} size="sm" />}
+            <div
+              className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
+            >
+              {hasScore
+                ? `${match.home_score} - ${match.away_score}`
+                : outcomes
+                  ? 'Final'
+                  : formatKickOff(match.date)}
+            </div>
+            {outcomes && <FightBadge outcome={outcomes.away} size="sm" />}
           </div>
           {voterStack(twoWay ? [] : (voters?.draw ?? []), 'X')}
         </div>
@@ -171,6 +187,7 @@ function MatchCard({
           {voterStack(voters?.away ?? [], twoWay ? away : '2')}
         </div>
       </div>
+      {outcomes && <FightResultLine fight={match.fight} className="home-match-fight" />}
     </div>
   );
 }
@@ -232,6 +249,8 @@ export default function LeagueHomeDashboard() {
     userId,
     isAuthenticated,
     activeGroupPoolFormat,
+    leagueKind,
+    activeGroupWinnerOnly,
     loading: loadingOfficialData,
     loadingLeaderboard,
   } = useAppContext();
@@ -253,12 +272,12 @@ export default function LeagueHomeDashboard() {
     activeGroupId,
     matches.items.map((match) => match.id).filter(Boolean),
   );
-  const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY';
+  const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY' || activeGroupWinnerOnly;
   // Quién ya ha hecho su predicción en la jornada: solo las ligas por jornadas y solo el quién.
   const participants = useRoundParticipants(
     activeGroupId,
     matches.items.map((match) => match.id).filter(Boolean),
-    isAuthenticated && isMatchBasedFormat(activeGroupPoolFormat),
+    isAuthenticated && MATCH_KINDS[leagueKind],
   );
 
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
@@ -284,7 +303,7 @@ export default function LeagueHomeDashboard() {
           !votersMatch
             ? undefined
             : votersMatch.finished
-              ? 'Final'
+              ? finishedLabel(votersMatch.displayClock)
               : isLiveMatch(votersMatch)
                 ? votersMatch.displayClock || 'En directo'
                 : undefined
@@ -356,7 +375,7 @@ export default function LeagueHomeDashboard() {
               <PanelHeader
                 title={matches.title}
                 onSeeAll={() => navigate(matches.allTo)}
-                reserveExtra={isMatchBasedFormat(activeGroupPoolFormat)}
+                reserveExtra={MATCH_KINDS[leagueKind]}
               >
                 <RoundParticipants participants={participants} roundLabel={matches.title} />
               </PanelHeader>

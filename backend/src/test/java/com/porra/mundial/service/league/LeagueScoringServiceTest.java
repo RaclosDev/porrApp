@@ -56,7 +56,7 @@ class LeagueScoringServiceTest {
         league = League.builder().id(10L).name("Liga de amigos").joinCode("AMIGOS")
                 .adminUser(UserAccount.builder().id(1L).googleEmail(ADMIN).build()).build();
         edition = Edition.builder().id(100L).league(league).poolFormat(PoolFormat.MATCH_DAY).pichichi(false)
-                .scoringRulesJson(ScoringRuleSet.defaultWorldCup2026().toJson()).build();
+                .scoringRulesJson(ScoringRuleSet.defaults().toJson()).build();
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
         when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
     }
@@ -79,8 +79,8 @@ class LeagueScoringServiceTest {
         assertEquals("MATCH_DAY", scoring.poolFormat());
         assertFalse(scoring.pichichi());
         assertEquals(ScoringRuleSet.MAX_POINTS, scoring.maxPoints());
-        assertEquals(ScoringRuleSet.defaultWorldCup2026(), scoring.rules());
-        assertEquals(ScoringRuleSet.defaultWorldCup2026(), scoring.defaults());
+        assertEquals(ScoringRuleSet.defaults(), scoring.rules());
+        assertEquals(ScoringRuleSet.defaults(), scoring.defaults());
     }
 
     @Test
@@ -118,7 +118,7 @@ class LeagueScoringServiceTest {
 
         assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(10L, rules, MEMBER));
         assertThrows(BusinessException.class, () -> leagueScoringService.updateScoring(10L, rules, null));
-        assertEquals(ScoringRuleSet.defaultWorldCup2026(), ScoringRuleSet.forEdition(edition));
+        assertEquals(ScoringRuleSet.defaults(), ScoringRuleSet.forEdition(edition));
         verify(editionRepository, never()).save(any());
         verifyNoInteractions(matchPredictionService, scoreInvalidationService);
     }
@@ -155,9 +155,9 @@ class LeagueScoringServiceTest {
     @Test
     @DisplayName("Guardar las mismas reglas no recalcula nada")
     void savingTheSameRulesChangesNothing() {
-        LeagueScoringDTO scoring = leagueScoringService.updateScoring(10L, ScoringRuleSet.defaultWorldCup2026(), ADMIN);
+        LeagueScoringDTO scoring = leagueScoringService.updateScoring(10L, ScoringRuleSet.defaults(), ADMIN);
 
-        assertEquals(ScoringRuleSet.defaultWorldCup2026(), scoring.rules());
+        assertEquals(ScoringRuleSet.defaults(), scoring.rules());
         verify(editionRepository, never()).save(any());
         verifyNoInteractions(matchPredictionService, scoreInvalidationService);
     }
@@ -167,7 +167,7 @@ class LeagueScoringServiceTest {
     void editionWithoutStoredRulesAndDefaultsIsUnchanged() {
         edition.setScoringRulesJson(null);
 
-        leagueScoringService.updateScoring(10L, ScoringRuleSet.defaultWorldCup2026(), ADMIN);
+        leagueScoringService.updateScoring(10L, ScoringRuleSet.defaults(), ADMIN);
 
         verifyNoInteractions(matchPredictionService, scoreInvalidationService);
     }

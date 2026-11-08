@@ -1,8 +1,6 @@
 package com.porra.mundial.config;
 
 import com.porra.mundial.controller.SpaPageController;
-import com.porra.mundial.controller.TopScorerController;
-import com.porra.mundial.service.tournament.TopScorerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -19,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Last-Modified, la revalidación del navegador recibiría 304 tras un despliegue y el
  * Service Worker se quedaría en la versión anterior.
  */
-@WebMvcTest({TopScorerController.class, SpaPageController.class})
+@WebMvcTest(SpaPageController.class)
 @Import({WebConfig.class, SecurityConfig.class, JwtAuthFilter.class, RateLimitingFilter.class, CsrfOriginFilter.class})
 class WebConfigCacheTest {
 
@@ -27,9 +25,6 @@ class WebConfigCacheTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @MockitoBean
-    private TopScorerService topScorerService;
 
     @MockitoBean
     private JwtUtil jwtUtil;

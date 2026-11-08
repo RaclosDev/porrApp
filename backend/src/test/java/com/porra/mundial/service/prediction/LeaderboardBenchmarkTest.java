@@ -9,7 +9,7 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
-import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
+import com.porra.mundial.scoring.DefaultScoringStrategy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +44,7 @@ class LeaderboardBenchmarkTest {
     private MatchPredictionRepository matchPredictionRepository;
 
     @Spy
-    private WorldCup2026ScoringStrategy scoringStrategy = new WorldCup2026ScoringStrategy();
+    private DefaultScoringStrategy scoringStrategy = new DefaultScoringStrategy();
 
     @InjectMocks
     private LeaderboardService leaderboardService;

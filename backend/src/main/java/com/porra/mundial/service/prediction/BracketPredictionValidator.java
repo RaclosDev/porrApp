@@ -16,18 +16,14 @@ public class BracketPredictionValidator {
     private final TeamRepository teams;
 
     public void validate(Edition edition, PredictionDataDTO data) {
-        if (edition == null || edition.getCompetition() == null
-                || !Competition.WORLD_CUP_EXTERNAL_ID.equals(edition.getCompetition().getExternalId())
-                || (edition.getPoolFormat() != PoolFormat.FULL_BRACKET
-                    && edition.getPoolFormat() != PoolFormat.KNOCKOUTS_ONLY)) {
+        if (edition == null || !edition.isWorldCupBracket()) {
             throw invalid("Esta edición no admite predicciones de cuadro del Mundial");
         }
         if (data == null) throw invalid("Falta el cuadro");
         if (data.getTopologyVersion() != null && data.getTopologyVersion() != 1 && data.getTopologyVersion() != 2)
             throw invalid("Versión de cuadro desconocida");
         Map<String, Set<String>> catalog = teams.findAllByOrderByGroupNameAscNameAsc().stream()
-                .filter(team -> team.getCompetition() == null)
-                .filter(t -> t.getGroupName() != null && t.getGroupName().matches("[A-L]") && !Team.isPlaceholder(t))
+                .filter(Team::isWorldCupGroupTeam)
                 .collect(Collectors.groupingBy(Team::getGroupName, Collectors.mapping(Team::getName, Collectors.toSet())));
         Set<String> allowed = catalog.values().stream().flatMap(Set::stream).collect(Collectors.toSet());
         Map<String, List<String>> groups = data.getGroups() == null ? Map.of() : data.getGroups();

@@ -21,9 +21,9 @@ vi.mock('../../services/api', () => ({
   fetchPredictions: vi.fn().mockResolvedValue([]),
   fetchLeaderboard: vi.fn().mockResolvedValue([]),
   fetchLeaderboardMatchdays: vi.fn().mockResolvedValue([]),
-  fetchStandings: vi.fn().mockResolvedValue({}),
-  fetchTeamOdds: vi.fn().mockResolvedValue({}),
-  fetchTopScorers: vi.fn().mockResolvedValue([]),
+  fetchWorldCupStandings: vi.fn().mockResolvedValue({}),
+  fetchWorldCupGroupOdds: vi.fn().mockResolvedValue({}),
+  fetchWorldCupTopScorers: vi.fn().mockResolvedValue([]),
   updateUserPreferences: vi.fn().mockResolvedValue({}),
   whenSessionRestored: () => null,
 }));

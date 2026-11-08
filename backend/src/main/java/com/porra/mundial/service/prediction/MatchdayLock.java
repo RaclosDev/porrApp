@@ -3,6 +3,8 @@ package com.porra.mundial.service.prediction;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PredictionLockMode;
+import com.porra.mundial.model.Sport;
+import com.porra.mundial.model.Team;
 import com.porra.mundial.util.AppTime;
 import com.porra.mundial.util.MatchRound;
 
@@ -71,12 +73,28 @@ public final class MatchdayLock {
         };
     }
 
+    /**
+     * Al partido aún le falta un rival («Por definir»): no se puede predecir hasta que la sincronización
+     * rellene los dos equipos (o jugadores), y entonces se abre solo.
+     */
+    public static boolean awaitingTeams(Match match) {
+        return Team.isPlaceholder(match.getHomeTeam()) || Team.isPlaceholder(match.getAwayTeam());
+    }
+
+    /** Motivo del cierre de un partido al que aún le falta un rival. */
+    public static String awaitingTeamsReason(Match match) {
+        String who = Sport.isMma(match.getCompetition()) ? "los dos luchadores"
+                : Sport.isTennis(match.getCompetition()) ? "los dos jugadores" : "los dos equipos";
+        return "Se abre cuando se conozcan " + who;
+    }
+
     /** Motivo del cierre de un partido cuyo plazo ya ha pasado. */
     public static String reason(Edition edition, Match match, Instant now) {
         if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) return "El partido ya ha comenzado";
         return switch (mode(edition)) {
             case PER_DAY -> "Las predicciones de este día ya están cerradas";
             case PER_ROUND -> edition != null && edition.isMultiCompetition()
+                    && !com.porra.mundial.model.Sport.isTennis(edition.getCompetition())
                     ? "Las predicciones de esta semana ya están cerradas"
                     : "Las predicciones de esta jornada ya están cerradas";
             default -> "El plazo de predicción de este partido ha terminado";

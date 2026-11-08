@@ -1,5 +1,6 @@
 import React, { useState, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { NoLeagueState } from '../components/NoLeagueState';
 import { BarChart3, Search, Share2 } from 'lucide-react';
 import MatchdayPodium from '../components/MatchdayPodium';
 import PaperLoading from '../components/PaperLoading';
@@ -9,43 +10,58 @@ import ShareImageTemplate from '../components/leaderboard/ShareImageTemplate';
 import { leaderboardColumns } from '../components/leaderboard/leaderboardColumns';
 import { useLeaderboard, type LeaderboardRow } from '../hooks/useLeaderboard';
 import { displayRoundLabel } from '../utils/matchday';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import type { LeagueKind } from '../context/leagueKind';
 
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 
 type RankingTab = 'table' | 'evolution';
 
-/** Sin liga activa: qué hacer para tener una clasificación. */
-function NoLeague({ signedIn }: { signedIn: boolean }) {
-  return (
-    <section className="view-section active">
-      <div className="paper-panel album-sheet text-center py-10 px-6 max-w-140 mx-auto my-5">
-        <h2 className="poster-title mt-0 mb-2 text-[1.5rem]">Clasificación</h2>
-        <p className="text-muted text-[0.92rem] mt-0 mb-5">
-          {signedIn
-            ? 'Únete a una liga o crea la tuya para ver su clasificación.'
-            : 'Inicia sesión para ver la clasificación de tus ligas.'}
-        </p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          {signedIn ? (
-            <Link to="/mis-ligas" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
-              Ir a Mis ligas
-            </Link>
-          ) : (
-            <>
-              <Link to="/" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
-                Iniciar sesión
-              </Link>
-              <Link to="/demo" className="glass-btn py-2.5 px-5 font-bold">
-                Ver la demo
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-    </section>
-  );
+/** Cómo es la clasificación de cada clase de liga. */
+interface RankingLayout {
+  /** Suma por jornada (o por Gran Premio): desglose por jornada, sin gráfica ni podio general. */
+  byRound: boolean;
+  /** Cuadro propio: sus columnas de rondas. */
+  ownBracket: boolean;
+  /** Adónde lleva tocar una fila: sus predicciones o el visor de su cuadro. */
+  openRow: '/' | '/jornadas' | 'viewer' | null;
+  /** Enlaces a Más elegidos y Buscador, que comparan los cuadros con el oficial del Mundial. */
+  worldCupInsights: boolean;
 }
+
+const NO_RANKING: RankingLayout = {
+  byRound: false,
+  ownBracket: false,
+  openRow: null,
+  worldCupInsights: false,
+};
+const OWN_BRACKET_RANKING: RankingLayout = {
+  byRound: false,
+  ownBracket: true,
+  openRow: 'viewer',
+  worldCupInsights: false,
+};
+const MATCHDAY_RANKING: RankingLayout = {
+  byRound: true,
+  ownBracket: false,
+  openRow: '/jornadas',
+  worldCupInsights: false,
+};
+
+const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
+  worldCup: { byRound: false, ownBracket: false, openRow: 'viewer', worldCupInsights: true },
+  customBracket: OWN_BRACKET_RANKING,
+  ownBracket: OWN_BRACKET_RANKING,
+  knockoutDraw: OWN_BRACKET_RANKING,
+  matchday: MATCHDAY_RANKING,
+  fightCard: MATCHDAY_RANKING,
+  tennisDraw: MATCHDAY_RANKING,
+  // En una liga de Fórmula 1 las predicciones de cada Gran Premio están en el inicio.
+  grandPrix: { ...MATCHDAY_RANKING, openRow: '/' },
+  loading: NO_RANKING,
+  error: NO_RANKING,
+  none: NO_RANKING,
+  unknown: NO_RANKING,
+};
 
 /** Clasificación de la liga activa (tabla y gráfica). */
 function Leaderboard() {
@@ -56,7 +72,6 @@ function Leaderboard() {
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
-    activeGroupPoolFormat,
     userId,
     userName,
     lowestPaidRank,
@@ -86,13 +101,13 @@ function Leaderboard() {
   const [showDetail, setShowDetail] = useState(false);
 
   if (loading) return <PaperLoading label="Cargando clasificación" />;
-  if (!activeGroupId) return <NoLeague signedIn={Boolean(userName)} />;
+  if (!activeGroupId) return <NoLeagueState title="Clasificación" what="la clasificación" />;
 
-  const isMatchday =
-    isMatchBasedFormat(activeGroupPoolFormat) || state.activeCompetitionFormatType === 'LEAGUE';
+  const layout = RANKING_LAYOUT[state.leagueKind];
+  const isMatchday = layout.byRound;
   const columns = leaderboardColumns({
     isMatchday,
-    ownBracket: state.activeGroupOwnBracket,
+    ownBracket: layout.ownBracket,
     pichichi: activeGroupPichichi,
     ownBracketHasGroupPoints: validResults.some((row) => (row.points.r1 ?? 0) !== 0),
     selectedMatchday,
@@ -102,8 +117,8 @@ function Leaderboard() {
   const byMatchday = isMatchday && Boolean(summaryMatchday) && sortColumn === 'matchday';
   const matchdayName = summaryMatchday ? displayRoundLabel(summaryMatchday.label) : '';
   const openRow = (row: LeaderboardRow) => {
-    if (isMatchday) navigate('/jornadas');
-    else state.setViewerPredictionId(row.id ?? null);
+    if (layout.openRow === 'viewer') state.setViewerPredictionId(row.id ?? null);
+    else if (layout.openRow) navigate(layout.openRow);
   };
 
   const shareButton = (className: string, iconSize: number) => (
@@ -161,8 +176,7 @@ function Leaderboard() {
               </button>
             ))}
           </div>
-          {/* Más elegidos y Buscador comparan con el Mundial: no aplican a los cuadros propios. */}
-          {!state.activeGroupOwnBracket && (
+          {layout.worldCupInsights && (
             <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
               <Link to="/stats" className="ranking-secondary-link">
                 <BarChart3 size={16} aria-hidden="true" />

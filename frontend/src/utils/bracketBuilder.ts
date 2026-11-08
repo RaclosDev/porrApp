@@ -1,3 +1,4 @@
+/** Cuadro oficial del Mundial (grupos, mejores terceros y cruces) a partir de su clasificación y sus partidos. */
 import type { GroupOdds, GroupStandings, Match } from '../types/api';
 import { teamKey } from './teamKey';
 import { alignOfficialRound, nextPools } from './officialBracketLayout';
@@ -60,8 +61,8 @@ export const isMatchInRound = (match: Match, roundIndex: number | string | undef
   return true;
 };
 
-/** Próximo partido de eliminatorias sin jugar (el que se destaca en el cuadro). */
-export const nextKnockoutMatch = (games: Match[] | null | undefined): Match | null => {
+/** Próximo partido de eliminatorias del Mundial sin jugar (el que se destaca en su cuadro). */
+export const nextWorldCupKnockoutMatch = (games: Match[] | null | undefined): Match | null => {
   if (!games || games.length === 0) return null;
   const pending = games
     .filter((g) => g && isKnockoutMatch(g) && !g.finished && !g.winner && g.home_score == null)

@@ -14,7 +14,7 @@ final class WorldCupTables {
     }
 
     static boolean isWorldCup(Competition competition) {
-        return Competition.WORLD_CUP_EXTERNAL_ID.equalsIgnoreCase(competition.getExternalId());
+        return competition.isWorldCup();
     }
 
     /**

@@ -1,14 +1,30 @@
+import { useMemo } from 'react';
+import type { TennisScope } from '../../types/api';
 import MatchSelectionPicker from '../matchSelection/MatchSelectionPicker';
-import { addableCompetitions, leagueCompetitionIds } from '../matchSelection/matchSelection';
+import {
+  ALL_MATCHES,
+  addableCompetitions,
+  groupByRound,
+  isImporting,
+  leagueCompetitionIds,
+} from '../matchSelection/matchSelection';
+import { formatMatchDate } from '../../utils/matchday';
 import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
+import CalendarImportNotice from '../matchSelection/CalendarImportNotice';
 import {
   FIELD_IDS,
-  POOL_FORMAT_ORDER,
   errorId,
+  formatsForSport,
   formatCopy,
   formatUnavailableReason,
+  EVENT_SERIES_LABELS,
+  TENNIS_SCOPE_LABELS,
+  TENNIS_TOUR_LABELS,
+  isFightNights,
+  tennisScopeDrawChoices,
   matchSelectionApplies,
 } from './leagueDraft';
+import CardSegmentsField from './CardSegmentsField';
 import { FieldError, OptionCard, StepSection } from './parts';
 import type { StepProps } from './useLeagueDraft';
 
@@ -34,19 +50,191 @@ function MatchesSection({ draft, update, errors, ctx }: StepProps) {
           después en Administrar.
         </p>
       ) : (
-        <MatchSelectionPicker
-          teams={calendar.data.teams}
-          matches={calendar.data.matches}
-          value={draft.matches}
-          onChange={(matches) => update({ matches })}
-          primaryCompetition={primary && { id: primary.id, name: primary.name }}
-          otherCompetitions={others.map((item) => ({ id: item.id, name: item.name }))}
-          loadingCalendar={calendar.isPlaceholderData}
-          fieldId={FIELD_IDS.matches}
-          errorId={errors.matches ? errorId(FIELD_IDS.matches) : undefined}
-        />
+        <>
+          <CalendarImportNotice calendar={calendar.data} />
+          <MatchSelectionPicker
+            teams={calendar.data.teams}
+            matches={calendar.data.matches}
+            value={draft.matches}
+            onChange={(matches) => update({ matches })}
+            primaryCompetition={primary && { id: primary.id, name: primary.name }}
+            otherCompetitions={others.map((item) => ({ id: item.id, name: item.name }))}
+            loadingCalendar={calendar.isPlaceholderData}
+            fieldId={FIELD_IDS.matches}
+            errorId={errors.matches ? errorId(FIELD_IDS.matches) : undefined}
+          />
+        </>
       )}
       <FieldError fieldId={FIELD_IDS.matches} message={errors.matches} />
+    </StepSection>
+  );
+}
+
+/**
+ * UFC: la liga cubre todas las veladas desde hoy (o solo las numeradas, o solo las Fight Night) o una
+ * sola. Una velada se guarda como sus peleas elegidas a mano; las que se añadan después a su cartelera
+ * entran solas.
+ */
+function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
+  const competitionId = draft.competitionId;
+  const calendar = useSelectableCalendar(competitionId == null ? [] : [competitionId]);
+  const nights = useMemo(
+    () =>
+      groupByRound(calendar.data?.matches ?? [])
+        .filter((group) => !group.closed)
+        .map((group) => ({
+          round: group.round,
+          date: group.matches.map((match) => match.date).find(Boolean) ?? null,
+          ids: group.matches.map((match) => match.id),
+        })),
+    [calendar.data],
+  );
+  const single = draft.matches.mode !== 'ALL';
+  const chosen =
+    calendar.data?.matches.find((match) => draft.matches.included.includes(match.id))?.round ?? '';
+  const choose = (round: string) =>
+    update({
+      matches: {
+        ...ALL_MATCHES,
+        mode: 'PICK',
+        included: nights.find((night) => night.round === round)?.ids ?? [],
+      },
+    });
+  return (
+    <StepSection id="cl-matches" title="Veladas">
+      <fieldset
+        id={FIELD_IDS.matches}
+        className="create-league-fieldset"
+        aria-describedby={errors.matches ? errorId(FIELD_IDS.matches) : undefined}
+      >
+        <legend className="sr-only">Qué veladas cubre la liga</legend>
+        <div className="create-league-options">
+          <OptionCard
+            name="cl-nights"
+            value="all"
+            checked={!single && !draft.eventSeries}
+            onChange={() => update({ matches: ALL_MATCHES, eventSeries: null })}
+            title="Todas las veladas"
+            description="Desde hoy, todas las que vengan: las numeradas y las Fight Night."
+          />
+          <OptionCard
+            name="cl-nights"
+            value="numbered"
+            checked={!single && draft.eventSeries === 'NUMBERED'}
+            onChange={() => update({ matches: ALL_MATCHES, eventSeries: 'NUMBERED' })}
+            title={EVENT_SERIES_LABELS.NUMBERED}
+            description="Desde hoy, solo las veladas con número, como UFC 334."
+          />
+          <OptionCard
+            name="cl-nights"
+            value="fight-night"
+            checked={!single && draft.eventSeries === 'FIGHT_NIGHT'}
+            onChange={() => update({ matches: ALL_MATCHES, eventSeries: 'FIGHT_NIGHT' })}
+            title={EVENT_SERIES_LABELS.FIGHT_NIGHT}
+            description="Desde hoy, solo las UFC Fight Night y demás veladas sin número."
+          />
+          <OptionCard
+            name="cl-nights"
+            value="one"
+            checked={single}
+            onChange={() => nights[0] && choose(nights[0].round)}
+            title="Una sola velada"
+            description="La liga dura una velada. Si cambia la cartelera, las peleas nuevas entran solas."
+            disabledReason={
+              calendar.isPending || isImporting(calendar.data)
+                ? 'Cargando el calendario…'
+                : nights.length === 0
+                  ? 'No hay veladas anunciadas.'
+                  : null
+            }
+          />
+        </div>
+      </fieldset>
+      <CalendarImportNotice calendar={calendar.data} />
+      {single && nights.length > 0 && (
+        <div className="create-league-field">
+          <label htmlFor="cl-night">Velada</label>
+          <select
+            id="cl-night"
+            className="glass-input"
+            value={chosen}
+            onChange={(event) => choose(event.target.value)}
+          >
+            {!chosen && <option value="">Elige una velada</option>}
+            {nights.map((night) => (
+              <option key={night.round} value={night.round}>
+                {night.round}
+                {night.date ? ` · ${formatMatchDate(night.date)}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      <FieldError fieldId={FIELD_IDS.matches} message={errors.matches} />
+      <CardSegmentsField draft={draft} update={update} errors={errors} ctx={ctx} />
+    </StepSection>
+  );
+}
+
+const TENNIS_SCOPES: { scope: TennisScope; description: string }[] = [
+  {
+    scope: 'ALL',
+    description: 'Los Grand Slams, los Masters 1000 y las ATP Finals.',
+  },
+  {
+    scope: 'GRAND_SLAMS',
+    description: 'Open de Australia, Roland Garros, Wimbledon y el US Open.',
+  },
+  {
+    scope: 'MASTERS_1000',
+    description: 'Los nueve Masters 1000, los WTA 1000 que se juegan con ellos y las ATP Finals.',
+  },
+];
+
+/**
+ * Tenis con toda la temporada: qué torneos y qué circuito sigue la liga, como las veladas de UFC. Los
+ * torneos que entran desde hoy se suman solos a medida que ESPN los publica.
+ */
+function TennisSeasonSection({ draft, update, ctx }: StepProps) {
+  const scope = draft.tennisScope ?? 'ALL';
+  const tours = tennisScopeDrawChoices(ctx, scope);
+  return (
+    <StepSection id="cl-matches" title="Torneos">
+      <fieldset className="create-league-fieldset">
+        <legend className="sr-only">Qué torneos sigue la liga</legend>
+        <div className="create-league-options">
+          {TENNIS_SCOPES.map((item) => (
+            <OptionCard
+              key={item.scope}
+              name="cl-tennis-scope"
+              value={item.scope}
+              checked={scope === item.scope}
+              onChange={() => update({ tennisScope: item.scope })}
+              title={TENNIS_SCOPE_LABELS[item.scope]}
+              description={`Desde hoy. ${item.description}`}
+            />
+          ))}
+        </div>
+      </fieldset>
+      {tours.length > 1 && (
+        <fieldset className="create-league-fieldset">
+          <legend className="create-league-section-title">Circuito</legend>
+          <div className="create-league-options is-row">
+            {(['BOTH', 'MEN', 'WOMEN'] as const)
+              .filter((tour) => tours.includes(tour))
+              .map((tour) => (
+                <OptionCard
+                  key={tour}
+                  name="cl-tennis-tour"
+                  value={tour}
+                  checked={draft.tennisDraw === tour}
+                  onChange={() => update({ tennisDraw: tour })}
+                  title={TENNIS_TOUR_LABELS[tour]}
+                />
+              ))}
+          </div>
+        </fieldset>
+      )}
     </StepSection>
   );
 }
@@ -66,7 +254,7 @@ export default function FormatStep(props: StepProps) {
       >
         <legend className="sr-only">Modo de juego</legend>
         <div className="create-league-options">
-          {POOL_FORMAT_ORDER.map((format) => (
+          {formatsForSport(draft.sport).map((format) => (
             <OptionCard
               key={format}
               name="cl-format"
@@ -88,7 +276,15 @@ export default function FormatStep(props: StepProps) {
             : 'Después de crear la liga añades los equipos y los cruces de tu competición.'}
         </p>
       )}
-      {matchSelectionApplies(draft, ctx) && <MatchesSection {...props} />}
+      {draft.sport === 'TENNIS' && draft.tennisScope && !draft.custom && (
+        <TennisSeasonSection {...props} />
+      )}
+      {matchSelectionApplies(draft, ctx) &&
+        (isFightNights(draft, ctx) ? (
+          <FightNightsSection {...props} />
+        ) : (
+          <MatchesSection {...props} />
+        ))}
     </>
   );
 }

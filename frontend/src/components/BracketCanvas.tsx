@@ -21,8 +21,10 @@ function matchTop(r: number, i: number): number {
 }
 
 const GAP = 20; // px between adjacent columns (fixed)
-/** Rondas del Mundial: 16avos, octavos y cuartos en los laterales; semis en la hoja central. */
-export const ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
+/** Rondas del cuadro del Mundial: 16avos, octavos y cuartos en los laterales; semis en la hoja central. */
+export const WORLD_CUP_ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
+/** Rondas laterales que caben sin ensanchar la hoja. */
+const FITTING_SIDE_ROUNDS = 3;
 
 interface ConnectorsProps {
   /** Top del partido de la ronda actual. */
@@ -266,9 +268,9 @@ interface BracketCanvasProps<T extends SlotTeam> {
   rightRounds: CanvasMatch<T>[][];
   /**
    * Nombre corto de cada ronda antes de la final; la última son las semifinales, que van en la hoja
-   * central. Por defecto, las del Mundial.
+   * central.
    */
-  roundLabels?: string[];
+  roundLabels: string[];
   /** Nombre accesible de la hoja central. */
   centerLabel?: string;
   /** Pinta un hueco del cuadro (inyecta la lógica de clics o coloreado). */
@@ -288,7 +290,7 @@ export default function BracketCanvas<T extends SlotTeam>({
   leftRounds,
   rightRounds,
   renderSlot,
-  roundLabels = ROUND_LABELS,
+  roundLabels,
   centerLabel = 'Semifinales, final y tercer puesto',
   hiddenRounds = {},
   renderRoundFooter,
@@ -377,7 +379,7 @@ export default function BracketCanvas<T extends SlotTeam>({
         <div
           className={`bracket-paper-board${sideRounds.length ? '' : ' bracket-paper-board-final'}`}
           style={
-            sideRounds.length && sideRounds.length !== ROUND_LABELS.length - 1
+            sideRounds.length && sideRounds.length !== FITTING_SIDE_ROUNDS
               ? { minWidth: 388 + 2 * (170 * sideRounds.length + 32) }
               : undefined
           }

@@ -1,6 +1,6 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
@@ -8,21 +8,40 @@ import MatchdayHeader from '../components/matchday/MatchdayHeader';
 import RoundSelector from '../components/matchday/RoundSelector';
 import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
+import FightCard from '../components/matchday/FightCard';
 import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import type { LeagueKind } from '../context/leagueKind';
 
+/** «Jornadas»: solo las ligas que se predicen partido a partido; el resto tiene su propia porra. */
 function MatchdayPredictor() {
   const context = useAppContext();
   const switchingGroup = useRequestedGroup(context);
-  if (switchingGroup || context.loadingGroup || context.groupError)
-    return <LeagueLoadState error={context.groupError} />;
-  return (
+  if (switchingGroup) return <LeagueLoadState />;
+  const league = (
     <MatchdayLeague
       key={`${context.userId || context.userName}:${context.activeGroupId}`}
       context={context}
     />
   );
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={context.groupError} />,
+    none: <NoLeagueState title="Mi porra" what="las predicciones" />,
+    unknown: <UnsupportedLeagueState />,
+    matchday: league,
+    fightCard: league,
+    tennisDraw: league,
+    worldCup: <Navigate to="/prediction" replace />,
+    customBracket: <Navigate to="/prediction" replace />,
+    ownBracket: <Navigate to="/prediction" replace />,
+    knockoutDraw: <Navigate to="/prediction" replace />,
+    // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[context.leagueKind];
 }
 
 /**
@@ -60,18 +79,14 @@ function useRequestedGroup({
  * empezar y muestra los puntos obtenidos.
  */
 function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext> }) {
-  const { activeGroupId, activeGroupName, activeGroupIsLocked, activeGroupPoolFormat } = context;
+  const { activeGroupId, activeGroupName, activeGroupIsLocked } = context;
   const md = useMatchdayPredictor(context);
   const voters = useMatchVoters(
-    md.isMatchDay ? activeGroupId : null,
+    activeGroupId,
     md.fixtures
       .filter((fixture) => fixture.locked || activeGroupIsLocked)
       .map((fixture) => fixture.matchId),
   );
-
-  if (activeGroupPoolFormat && !md.isMatchDay) {
-    return <Navigate to="/" replace />;
-  }
 
   return (
     <div className="md-page paper-panel album-sheet">
@@ -118,32 +133,46 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       )}
       {!md.isLoading && !md.isError && md.fixtures.length === 0 && (
         <div className="paper-panel album-sheet landing-tape text-center p-10 text-muted rounded-[12px]">
-          No hay partidos programados para esta competición o jornada.
+          {context.leagueKind === 'tennisDraw' && md.availableRounds.length === 0
+            ? 'El cuadro aún no está publicado: los partidos aparecerán aquí en cuanto ESPN lo publique.'
+            : 'No hay partidos programados para esta competición o jornada.'}
         </div>
       )}
 
       <div className="flex flex-col gap-3.5">
-        {md.displayedFixtures.map((fixture) => (
-          <FixtureCard
-            key={fixture.matchId}
-            fixture={fixture}
-            prediction={md.predictionFor(fixture.matchId)}
-            locked={fixture.locked || activeGroupIsLocked}
-            onQuickSign={md.handleQuickSign}
-            onShowFriends={md.setSelectedMatchForFriends}
-            voters={voters.get(fixture.matchId)}
-            onShowVoters={md.setSelectedMatchForFriends}
-            survivor={
-              md.isSurvivor
-                ? {
-                    usedTeams: md.usedTeams,
-                    eliminated: Boolean(md.survivor?.eliminated),
-                    onPick: md.handleSurvivorPick,
-                  }
-                : undefined
-            }
-          />
-        ))}
+        {md.displayedFixtures.map((fixture) =>
+          fixture.fight ? (
+            <FightCard
+              key={fixture.matchId}
+              fixture={fixture}
+              prediction={md.predictionFor(fixture.matchId)}
+              locked={fixture.locked || activeGroupIsLocked}
+              onPick={md.handleFightPick}
+              onShowFriends={md.setSelectedMatchForFriends}
+            />
+          ) : (
+            <FixtureCard
+              key={fixture.matchId}
+              fixture={fixture}
+              prediction={md.predictionFor(fixture.matchId)}
+              locked={fixture.locked || activeGroupIsLocked}
+              onQuickSign={md.handleQuickSign}
+              onTennisPick={md.handleTennisPick}
+              onShowFriends={md.setSelectedMatchForFriends}
+              voters={voters.get(fixture.matchId)}
+              onShowVoters={md.setSelectedMatchForFriends}
+              survivor={
+                md.isSurvivor
+                  ? {
+                      usedTeams: md.usedTeams,
+                      eliminated: Boolean(md.survivor?.eliminated),
+                      onPick: md.handleSurvivorPick,
+                    }
+                  : undefined
+              }
+            />
+          ),
+        )}
       </div>
 
       <MatchFriendsPredictionsModal

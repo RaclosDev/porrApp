@@ -1,6 +1,7 @@
 import toast from 'react-hot-toast';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWorldCupData } from '../context/leagueData';
 import { useAppContext, useBracketDraft } from '../context/AppContext';
 import { createPrediction } from '../services/api';
 import { advanceBracketWinner, replaceR32Team } from '../utils/bracketTransitions';
@@ -22,7 +23,6 @@ import {
   officialGroupStatus,
 } from '../utils/bracketEditor';
 import { useSavedBracketHydration } from './useSavedBracketHydration';
-import { isMatchBasedFormat } from '../utils/poolFormat';
 
 type Side = 'left' | 'right';
 
@@ -36,16 +36,13 @@ export function useBracket() {
     isAuthenticated,
     activeGroupId,
     fetchData,
-    groupOdds,
     activeGroupPoolFormat,
-    officialPoints,
     activeGroupPichichi,
     activeGroupIsLocked,
     activeGroupLockDate,
-    loadingGroup,
-    groupError,
     participantsHashes,
   } = useAppContext();
+  const { groupOdds, groupStandings: officialPoints } = useWorldCupData();
 
   const [predictionName, setPredictionName] = useState('');
   const [savedPredictionId, setSavedPredictionId] = useState<string | null>(null);
@@ -68,7 +65,6 @@ export function useBracket() {
   const navigate = useNavigate();
 
   const isKnockoutsOnly = activeGroupPoolFormat === 'KNOCKOUTS_ONLY';
-  const isMatchDay = isMatchBasedFormat(activeGroupPoolFormat);
   const allTeams = groupOdds
     ? Object.values(groupOdds)
         .flat()
@@ -214,7 +210,6 @@ export function useBracket() {
     predictionName,
     setPredictionName,
     isKnockoutsOnly,
-    isMatchDay,
     allTeams,
     isInitialState,
     isAuthenticated,
@@ -233,7 +228,5 @@ export function useBracket() {
     savedGroupsDraft,
     savedThirdsDraft,
     savedPredictionId,
-    loadingGroup,
-    groupError,
   };
 }

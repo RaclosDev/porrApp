@@ -66,7 +66,9 @@ public class LegacyFixtureRepairService {
                     return new RepairResult(attempted, repaired, failed);
                 if (retryAfter.containsKey(candidate.getId())
                         || (!legacy(candidate.getHomeTeam()) && !legacy(candidate.getAwayTeam()))) continue;
-                var provider = providers.getProviderForCompetition(candidate.getCompetition().getExternalId());
+                var provider = providers.findProviderForCompetition(candidate.getCompetition().getExternalId())
+                        .orElse(null);
+                if (provider == null) continue;
                 if (!provider.isAvailable()) return new RepairResult(attempted, repaired, failed);
                 attempted++;
                 try {

@@ -17,7 +17,8 @@ class EditionDeadlineTest {
         Instant deadline = AppTime.fromLocal(LocalDateTime.of(2026, 6, 11, 20, 0));
         assertEquals(deadline, Edition.defaultLockDate(cup, PoolFormat.FULL_BRACKET));
         assertEquals(deadline, Edition.defaultLockDate(cup, PoolFormat.KNOCKOUTS_ONLY));
-        assertEquals(deadline, Edition.defaultLockDate(cup, null));
+        // Sin formato no es un cuadro: no se le supone el cierre del Mundial.
+        assertNull(Edition.defaultLockDate(cup, null));
         assertNull(Edition.defaultLockDate(cup, PoolFormat.MATCH_DAY));
         assertNull(Edition.defaultLockDate(null, PoolFormat.FULL_BRACKET));
         assertNull(Edition.defaultLockDate(Competition.builder().externalId("esp.1").build(), PoolFormat.MATCH_DAY));

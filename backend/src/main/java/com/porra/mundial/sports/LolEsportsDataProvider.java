@@ -110,11 +110,6 @@ public class LolEsportsDataProvider implements SportsDataProvider {
         return state != CircuitBreaker.State.OPEN && state != CircuitBreaker.State.FORCED_OPEN;
     }
 
-    @Override
-    public JsonNode fetchScoreboardEvents(String dateRange) {
-        throw new UnsupportedOperationException("lolesports necesita la competición");
-    }
-
     /**
      * Series de la competición. {@code dateRange} admite un día (yyyyMMdd, en hora peninsular), un año
      * (yyyy) o nada para todo lo descargado.

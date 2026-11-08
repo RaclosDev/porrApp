@@ -238,7 +238,7 @@ export function useLeaderboard() {
         }
       }
 
-      downloadBlob(blob, 'Clasificacion_Porra_Mundial.png');
+      downloadBlob(blob, 'Clasificacion_Porra.png');
     } catch (e) {
       console.error(e);
       toast.error('Error al generar la imagen para compartir');

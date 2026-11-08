@@ -1,7 +1,7 @@
 /**
  * Agregados de los cuadros de una liga (Más elegidos y Buscador) y su comparación con el
  * cuadro oficial. Todo es puro: recibe los pronósticos visibles y el cuadro oficial
- * (`/api/standings/official-bracket`, que tiene la misma forma que un pronóstico).
+ * (`/api/world-cup/official-bracket`, que tiene la misma forma que un pronóstico).
  *
  * Cómo se lee un cuadro:
  * - `groups[g]` = [1º, 2º, 3º]; los 3º que pasan están en `thirds`.

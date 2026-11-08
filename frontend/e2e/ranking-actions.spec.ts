@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { withLeagueKind } from './leagueKind';
 import { readFile } from 'node:fs/promises';
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
@@ -18,17 +19,18 @@ for (const width of [390, 1440]) {
       localStorage.setItem('activeCompetitionId', '2');
       Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
     });
-    const league = {
+    const league = withLeagueKind('worldCup', {
       id: 1,
       name: 'Liga de prueba',
       adminUserId: 7,
       competitionId: 2,
       competitionName: 'Mundial 2026',
+      competitionExternalId: 'fifa.world',
       formatType: 'TOURNAMENT',
       poolFormat: 'FULL_BRACKET',
       pichichi: false,
       isLocked: false,
-    };
+    });
     await page.route('**/*', (route) => {
       const url = new URL(route.request().url());
       if (url.origin !== 'http://127.0.0.1:4173') return route.abort();
@@ -82,9 +84,9 @@ for (const width of [390, 1440]) {
             log: [],
           },
         ],
-        '/api/standings': {},
-        '/api/standings/official-bracket': {},
-        '/api/teams/odds': {},
+        '/api/world-cup/standings': {},
+        '/api/world-cup/official-bracket': {},
+        '/api/world-cup/group-odds': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

@@ -252,7 +252,7 @@ describe('CustomBracket', () => {
       appContext({
         activeGroupId: '10',
         activeGroupCustomCompetition: false,
-        activeGroupOwnBracket: true,
+        leagueKind: 'ownBracket',
         activeCompetitionExternalId: 'lol.worlds',
         activeGroupPoolFormat: 'FULL_BRACKET',
         activeGroupName: 'Worlds',

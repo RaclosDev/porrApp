@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { withLeagueKind } from './leagueKind';
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
 
@@ -15,7 +16,7 @@ for (const width of [360, 390, 1440]) {
       localStorage.setItem('activeCompetitionId', '2');
       Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
     });
-    const league = {
+    const league = withLeagueKind('matchday', {
       id: 1,
       name: 'Liga de prueba',
       adminUserId: 7,
@@ -25,7 +26,7 @@ for (const width of [360, 390, 1440]) {
       poolFormat: 'MATCH_DAY',
       pichichi: false,
       isLocked: false,
-    };
+    });
     await page.route('**/*', (route) => {
       const url = new URL(route.request().url());
       if (['fonts.googleapis.com', 'fonts.gstatic.com'].includes(url.hostname))
@@ -67,9 +68,9 @@ for (const width of [360, 390, 1440]) {
             pointsByPrediction: { 1: 5, 2: 4, 3: 3, 4: 3, 5: 3 },
           },
         ],
-        '/api/standings': {},
-        '/api/standings/official-bracket': {},
-        '/api/teams/odds': {},
+        '/api/world-cup/standings': {},
+        '/api/world-cup/official-bracket': {},
+        '/api/world-cup/group-odds': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

@@ -33,9 +33,18 @@ class SportsDataProviderRegistryTest {
     void resolvesEspnForWorldCup() {
         when(espnProvider.supports("fifa-world-cup")).thenReturn(true);
 
-        SportsDataProvider resolved = registry.getProviderForCompetition("fifa-world-cup");
+        SportsDataProvider resolved = registry.findProviderForCompetition("fifa-world-cup").orElseThrow();
 
         assertSame(espnProvider, resolved);
+    }
+
+    @Test
+    @DisplayName("Si ningún proveedor la reconoce, no se elige el primero")
+    void noProviderForUnknownCompetitions() {
+        when(espnProvider.supports("bingo")).thenReturn(false);
+        when(domesticLeagueProvider.supports("bingo")).thenReturn(false);
+
+        assertTrue(registry.findProviderForCompetition("bingo").isEmpty());
     }
 
     @Test
@@ -44,7 +53,7 @@ class SportsDataProviderRegistryTest {
         when(espnProvider.supports("laliga-2026")).thenReturn(false);
         when(domesticLeagueProvider.supports("laliga-2026")).thenReturn(true);
 
-        SportsDataProvider resolved = registry.getProviderForCompetition("laliga-2026");
+        SportsDataProvider resolved = registry.findProviderForCompetition("laliga-2026").orElseThrow();
 
         assertSame(domesticLeagueProvider, resolved);
     }

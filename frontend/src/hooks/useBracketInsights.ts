@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useWorldCupData } from '../context/leagueData';
 import { useAppContext } from '../context/AppContext';
-import { leaguePredictionsQuery, officialBracketQuery } from '../services/queries';
+import { leaguePredictionsQuery, worldCupOfficialBracketQuery } from '../services/queries';
 import { buildOfficialState, toBracketEntries } from '../utils/bracketStats';
 
 /**
@@ -15,13 +16,13 @@ export function useBracketInsights() {
     activeGroupPoolFormat,
     activeGroupPichichi,
     activeGroupLockDate,
-    officialPoints,
     leaderboardData,
     setViewerPredictionId,
   } = useAppContext();
+  const { groupStandings: officialPoints } = useWorldCupData();
 
   const predictions = useQuery(leaguePredictionsQuery(activeGroupId));
-  const official = useQuery(officialBracketQuery());
+  const official = useQuery(worldCupOfficialBracketQuery());
 
   const summaries = useMemo(() => predictions.data ?? [], [predictions.data]);
   const entries = useMemo(() => toBracketEntries(summaries), [summaries]);

@@ -38,6 +38,7 @@ beforeEach(() => {
       activeCompetitionId: 4,
       activeCompetitionName: 'Champions League',
       activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'matchday',
     }),
   );
   vi.clearAllMocks();

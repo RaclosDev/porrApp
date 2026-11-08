@@ -17,7 +17,7 @@ public class ScoringController {
 
     @GetMapping
     public ResponseEntity<ScoringRuleSet> getActiveRules() {
-        return ResponseEntity.ok(ScoringRuleSet.defaultWorldCup2026());
+        return ResponseEntity.ok(ScoringRuleSet.defaults());
     }
 
     @GetMapping("/preview")
@@ -28,7 +28,7 @@ public class ScoringController {
             @RequestParam int actualAway
     ) {
         MatchScoreResult result = matchScoringCalculator.calculate(
-                predHome, predAway, actualHome, actualAway, ScoringRuleSet.defaultWorldCup2026()
+                predHome, predAway, actualHome, actualAway, ScoringRuleSet.defaults()
         );
         return ResponseEntity.ok(result);
     }

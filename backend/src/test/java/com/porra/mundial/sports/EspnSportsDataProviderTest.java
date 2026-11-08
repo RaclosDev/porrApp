@@ -96,16 +96,25 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
-    @DisplayName("Debe soportar múltiples competiciones (LaLiga, Champions, Premier, Mundial)")
-    void supports_returnsTrueForSupportedCompetitions() {
+    @DisplayName("Reconoce las competiciones por su id de ESPN, no por su nombre ni sin id")
+    void supports_onlyKnownEspnIds() {
         assertTrue(provider.supports("esp.1"));
         assertTrue(provider.supports("uefa.champions"));
         assertTrue(provider.supports("eng.1"));
         assertTrue(provider.supports("fifa.world"));
-        assertTrue(provider.supports("LaLiga EA Sports"));
-        assertTrue(provider.supports("UEFA Champions League"));
-        assertTrue(provider.supports("Premier League"));
-        assertTrue(provider.supports("FIFA World Cup 2026"));
+        assertTrue(provider.supports(" ESP.1 "));
+        assertFalse(provider.supports(null));
+        assertFalse(provider.supports(" "));
+        assertFalse(provider.supports("LaLiga EA Sports"));
+        assertFalse(provider.supports("FIFA World Cup 2026"));
+        assertFalse(provider.supports("Mundial"));
+    }
+
+    @Test
+    @DisplayName("Sin id de competición no pide a ESPN ninguna liga por defecto")
+    void fetch_withoutCompetitionFails() {
+        assertThrows(IllegalArgumentException.class, () -> provider.fetchScoreboardEvents(null, "20261024"));
+        assertThrows(IllegalArgumentException.class, () -> provider.fetchTeams(" "));
     }
 
     @Test
@@ -233,5 +242,32 @@ class EspnSportsDataProviderTest {
 
         assertTrue(sensitive.isAvailable());
         verify(httpClient, times(3)).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("La NFL se pide a la ruta de fútbol americano y sus ids de equipo llevan el prefijo nfl:")
+    void nflUsesItsOwnSportPathAndNamespacesTeamIds() throws Exception {
+        byte[] fixture;
+        try (var input = getClass().getResourceAsStream("/espn/nfl-scoreboard.json")) {
+            fixture = java.util.Objects.requireNonNull(input).readAllBytes();
+        }
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(fixture);
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertTrue(provider.supports("nfl"));
+        JsonNode events = provider.fetchScoreboardEvents("nfl", "2026");
+        SportsDataProvider.SeasonWindow window = provider.fetchSeasonWindow("nfl");
+
+        assertEquals("nfl:33", events.get(0).path("competitions").get(0).path("competitors").get(0)
+                .path("team").path("id").asText());
+        assertEquals("2026-08-06T07:00Z", window.start());
+        var request = org.mockito.ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient, times(2)).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&limit=1000",
+                request.getAllValues().get(0).uri().toString());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+                request.getAllValues().get(1).uri().toString());
     }
 }

@@ -7,6 +7,7 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.FootballDataClient;
+import com.porra.mundial.sports.NflSchedule;
 import com.porra.mundial.sports.FootballDataClient.OfficialFixture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -230,7 +231,9 @@ public class OfficialMatchdayService {
      */
     public int numberMatchdays(Competition competition) {
         if (competition == null || competition.getId() == null || competition.getExternalId() == null
-                || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())) {
+                || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())
+                // La NFL ya llega con su semana de ESPN.
+                || NflSchedule.isNfl(competition.getExternalId())) {
             return 0;
         }
         String code = footballData.isEnabled() ? footballData.competitionCodes().get(competition.getExternalId()) : null;

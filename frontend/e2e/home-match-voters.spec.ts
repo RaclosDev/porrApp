@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { withLeagueKind } from './leagueKind';
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
 
@@ -29,7 +30,7 @@ test('a started match on the league home opens who picked each option, with filt
     // La oferta de llave de acceso ya contestada: sale por encima de todo y taparía la hoja.
     localStorage.setItem('passkey_prompt_answered:7', '1');
   });
-  const league = {
+  const league = withLeagueKind('matchday', {
     id: 1,
     name: 'Tebas League',
     adminUserId: 7,
@@ -39,7 +40,7 @@ test('a started match on the league home opens who picked each option, with filt
     poolFormat: 'MATCH_DAY',
     pichichi: false,
     isLocked: false,
-  };
+  });
   const day = (offset: number) => new Date(Date.now() + offset * 3_600_000).toISOString();
   const match = (id: number, home: string, away: string, date: string, finished: boolean) => ({
     id,
