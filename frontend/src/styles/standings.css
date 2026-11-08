@@ -334,6 +334,67 @@
     color: var(--text-muted);
   }
 
+  /* NBA: conferencias o divisiones, y zonas de playoffs (1-6) y play-in (7-10). */
+  .standings-subtoggle {
+    margin: 12px 16px 0;
+    width: fit-content;
+  }
+
+  .standings-row.is-playoff .standings-rank-cell,
+  .standings-row.is-playin .standings-rank-cell {
+    box-shadow: inset 3px 0 0 var(--zone-color);
+  }
+
+  .standings-row.is-playoff,
+  .standings-zone.is-playoff {
+    --zone-color: var(--accent-cyan);
+  }
+
+  .standings-row.is-playin,
+  .standings-zone.is-playin {
+    --zone-color: var(--champion-gold);
+  }
+
+  .standings-legend-zones {
+    display: inline-flex;
+    gap: 12px;
+  }
+
+  .standings-zone {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+  }
+
+  .standings-zone::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--zone-color);
+  }
+
+  .standings-table abbr {
+    text-decoration: none;
+  }
+
+  .standings-table.is-nba.is-complete {
+    min-width: 520px;
+  }
+
+  .standings-team-short {
+    display: none;
+  }
+
+  /* Tabla de la NBA: columnas de números fijas; el resto del ancho es para el equipo. */
+  .standings-nba-pos-column {
+    width: 52px;
+  }
+  .standings-nba-stat-column {
+    width: 64px;
+  }
+
   @media (max-width: 760px) {
     .standings-table.is-complete th:nth-child(2),
     .standings-table.is-complete td:nth-child(2) {
@@ -372,6 +433,31 @@
 
     .standings-toggle {
       width: 100%;
+    }
+
+    .standings-subtoggle {
+      width: auto;
+      margin: 10px 10px 0;
+    }
+
+    .standings-team-long {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .standings-team-short {
+      display: inline;
+    }
+
+    .standings-nba-pos-column {
+      width: 38px;
+    }
+    .standings-nba-stat-column {
+      width: 48px;
     }
 
     .standings-toggle button {

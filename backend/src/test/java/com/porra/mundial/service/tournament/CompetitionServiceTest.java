@@ -9,6 +9,7 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.sports.EspnNbaDataProvider;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.TennisDataProvider;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ class CompetitionServiceTest {
     @Mock private MatchRepository matches;
     @Mock private EspnSportsDataProvider espn;
     @Mock private TennisDataProvider tennis;
+    @Mock private EspnNbaDataProvider nba;
     @InjectMocks private CompetitionService service;
 
     @Test
@@ -162,6 +164,68 @@ class CompetitionServiceTest {
         assertThat(table.get(2).getPoints()).isEqualTo(6);
         assertThat(table.get(2).getGoalDiff()).isEqualTo(40);
         verifyNoInteractions(matches);
+    }
+
+    @Test
+    void theNbaTableHasBothConferencesBySeedWithDivisionAndStreak() throws Exception {
+        when(competitions.findById(8L)).thenReturn(Optional.of(
+                Competition.builder().id(8L).externalId("nba.regular").formatType("LEAGUE").build()));
+        when(nba.fetchStandings()).thenReturn(tools.jackson.databind.json.JsonMapper.builder().build().readTree("""
+                {"children": [
+                  {"name": "Eastern Conference", "children": [
+                    {"name": "Atlantic", "standings": {"entries": [
+                      {"team": {"displayName": "Brooklyn Nets"}, "stats": [{"name": "wins", "value": 2}, {"name": "losses", "value": 7},
+                        {"name": "playoffSeed", "value": 13}, {"name": "streak", "value": -1, "displayValue": "L1"}]},
+                      {"team": {"displayName": "New York Knicks", "shortDisplayName": "Knicks"}, "stats": [{"name": "wins", "value": 7}, {"name": "losses", "value": 2},
+                        {"name": "playoffSeed", "value": 1}, {"name": "streak", "value": 3, "displayValue": "W3"},
+                        {"name": "pointDifferential", "value": 81}]}
+                    ]}},
+                    {"name": "Central", "standings": {"entries": [
+                      {"team": {"displayName": "Indiana Pacers"}, "stats": [{"name": "wins", "value": 3}, {"name": "losses", "value": 7},
+                        {"name": "playoffSeed", "value": 11}]}
+                    ]}}
+                  ]},
+                  {"name": "Western Conference", "children": [
+                    {"name": "Northwest", "standings": {"entries": [
+                      {"team": {"displayName": "Denver Nuggets"}, "stats": [{"name": "wins", "value": 5}, {"name": "losses", "value": 3},
+                        {"name": "playoffSeed", "value": 4}]}
+                    ]}}
+                  ]}
+                ]}"""));
+
+        List<LeagueStandingDTO> table = service.getStandings(8L);
+
+        assertThat(table).extracting(LeagueStandingDTO::getTeamName)
+                .containsExactly("New York Knicks", "Indiana Pacers", "Brooklyn Nets", "Denver Nuggets");
+        assertThat(table).extracting(LeagueStandingDTO::getGroup).containsExactly(
+                "Conferencia Este", "Conferencia Este", "Conferencia Este", "Conferencia Oeste");
+        assertThat(table).extracting(LeagueStandingDTO::getRank).containsExactly(1, 2, 3, 1);
+        assertThat(table).extracting(LeagueStandingDTO::getDivision)
+                .containsExactly("Atlántico", "Central", "Atlántico", "Noroeste");
+        assertThat(table.get(0).getStreak()).isEqualTo("V3");
+        assertThat(table.get(0).getTeamShortName()).isEqualTo("Knicks");
+        assertThat(table.get(2).getStreak()).isEqualTo("D1");
+        assertThat(table.get(0).getPoints()).isEqualTo(7);
+        assertThat(table.get(0).getGamesPlayed()).isEqualTo(9);
+        assertThat(table.get(0).getGoalDiff()).isEqualTo(81);
+        verifyNoInteractions(espn, matches);
+    }
+
+    @Test
+    void withoutEspnTheNbaTableIsRankedByWinShare() throws Exception {
+        when(competitions.findById(9L)).thenReturn(Optional.of(
+                Competition.builder().id(9L).externalId("nba.regular").formatType("LEAGUE").build()));
+        when(nba.fetchStandings()).thenThrow(new IllegalStateException("ESPN caído"));
+        when(matches.findByCompetitionId(9L)).thenReturn(List.of(
+                result("Knicks", "Nets", 110, 98),
+                result("Nets", "Pacers", 120, 101),
+                result("Knicks", "Pacers", 99, 104)));
+
+        List<LeagueStandingDTO> table = service.getStandings(9L);
+
+        assertThat(table).extracting(LeagueStandingDTO::getRank).containsExactly(1, 2, 3);
+        assertThat(table).allSatisfy(row -> assertThat(row.getPoints()).isEqualTo(row.getWins()));
+        assertThat(table).extracting(LeagueStandingDTO::getTies).containsOnly(0);
     }
 
     @Test

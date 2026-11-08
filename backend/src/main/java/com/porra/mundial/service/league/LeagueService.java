@@ -124,6 +124,11 @@ public class LeagueService {
             if (comp.playsSeries() && poolFormat != com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY) {
                 throw BusinessException.badRequest("De la NBA se pronostican los playoffs: elige el modo Playoffs");
             }
+            // La temporada regular de la NBA no tiene cuadro: se juega partido a partido.
+            if (com.porra.mundial.sports.EspnNbaDataProvider.isRegularSeason(comp.getExternalId())
+                    && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)) {
+                throw BusinessException.badRequest("La temporada regular de la NBA se juega partido a partido: elige Por semanas o Superviviente");
+            }
             if (com.porra.mundial.model.Sport.isTennis(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
                 throw BusinessException.badRequest("Los torneos de tenis se juegan partido a partido");
             }

@@ -8,6 +8,7 @@ import com.porra.mundial.model.Sport;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.sports.EspnNbaDataProvider;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.NflSchedule;
@@ -36,6 +37,7 @@ public class CompetitionService {
     private final MatchRepository matchRepository;
     private final EspnSportsDataProvider espnSportsDataProvider;
     private final TennisDataProvider tennisDataProvider;
+    private final EspnNbaDataProvider espnNbaDataProvider;
 
     private static long count(Object value) {
         return value instanceof Number number ? number.longValue() : 0;
@@ -92,6 +94,9 @@ public class CompetitionService {
 
         if (LolEsportsDataProvider.isLolCompetition(competition.getExternalId())) {
             return lolStandings(matchRepository.findByCompetitionId(competitionId));
+        }
+        if (EspnNbaDataProvider.isRegularSeason(competition.getExternalId())) {
+            return nbaStandings(competitionId);
         }
         List<LeagueStandingDTO> standings = new ArrayList<>();
         if (competition.getExternalId() != null && !competition.getExternalId().isBlank()
@@ -274,6 +279,93 @@ public class CompetitionService {
                 .thenComparing(Comparator.comparingInt(LeagueStandingDTO::getGoalsFor).reversed()));
         for (int i = 0; i < standings.size(); i++) standings.get(i).setRank(i + 1);
         return standings;
+    }
+
+    /**
+     * Tabla de la temporada regular de la NBA: la de ESPN por conferencias (con la división de cada equipo)
+     * y, si ESPN no responde, la de los partidos terminados ordenada por porcentaje de victorias.
+     */
+    private List<LeagueStandingDTO> nbaStandings(Long competitionId) {
+        try {
+            List<LeagueStandingDTO> standings = parseNbaStandings(espnNbaDataProvider.fetchStandings());
+            if (!standings.isEmpty()) return standings;
+        } catch (Exception e) {
+            log.warn("No se pudo obtener la clasificación de la NBA de ESPN: {}", e.getMessage());
+        }
+        List<LeagueStandingDTO> standings = new ArrayList<>(standingsFromMatches(competitionId));
+        standings.forEach(row -> row.setPoints(row.getWins()));
+        standings.sort(Comparator.comparingDouble(CompetitionService::winShare).reversed()
+                .thenComparing(Comparator.comparingInt(LeagueStandingDTO::getGoalDiff).reversed()));
+        for (int i = 0; i < standings.size(); i++) standings.get(i).setRank(i + 1);
+        return standings;
+    }
+
+    /** Divisiones de la NBA en español. */
+    private static final Map<String, String> NBA_DIVISIONS = Map.of(
+            "atlantic", "Atlántico", "central", "Central", "southeast", "Sureste",
+            "northwest", "Noroeste", "pacific", "Pacífico", "southwest", "Suroeste");
+
+    /**
+     * Tabla de la NBA de ESPN ({@code level=3}: conferencias con sus divisiones). Cada conferencia es un grupo
+     * ordenado por su puesto de playoffs ({@code playoffSeed}: del 1 al 6, playoffs; del 7 al 10, play-in), y
+     * cada fila lleva su división y su racha. Los puntos son las victorias: en la NBA no hay empates.
+     */
+    static List<LeagueStandingDTO> parseNbaStandings(JsonNode root) {
+        List<LeagueStandingDTO> standings = new ArrayList<>();
+        if (root == null) return standings;
+        for (JsonNode conference : root.path("children")) {
+            String title = groupTitle(conference.path("name").asText(""));
+            List<JsonNode> divisions = new ArrayList<>();
+            if (conference.path("children").size() > 0) conference.path("children").forEach(divisions::add);
+            else divisions.add(conference);
+            List<LeagueStandingDTO> rows = new ArrayList<>();
+            Map<LeagueStandingDTO, Integer> seeds = new java.util.IdentityHashMap<>();
+            for (JsonNode division : divisions) {
+                String divisionName = division == conference ? null : NBA_DIVISIONS.getOrDefault(
+                        division.path("name").asText("").trim().toLowerCase(Locale.ROOT), division.path("name").asText(null));
+                for (JsonNode entry : division.path("standings").path("entries")) {
+                    Map<String, Double> stats = new HashMap<>();
+                    String streak = null;
+                    for (JsonNode stat : entry.path("stats")) {
+                        String name = stat.path("name").asText("");
+                        stats.put(name, stat.path("value").asDouble(0));
+                        if ("streak".equals(name)) streak = streak(stat.path("displayValue").asText(""));
+                    }
+                    int wins = stats.getOrDefault("wins", 0.0).intValue();
+                    int losses = stats.getOrDefault("losses", 0.0).intValue();
+                    LeagueStandingDTO row = LeagueStandingDTO.builder()
+                            .group(title)
+                            .division(divisionName)
+                            .teamName(entry.path("team").path("displayName").asText(entry.path("team").path("name").asText("Equipo")))
+                            .teamLogo(entry.path("team").path("logos").path(0).path("href").asText(null))
+                            .points(wins)
+                            .gamesPlayed(wins + losses)
+                            .wins(wins)
+                            .losses(losses)
+                            .goalDiff(stats.getOrDefault("pointDifferential", 0.0).intValue())
+                            .goalsFor(stats.getOrDefault("pointsFor", 0.0).intValue())
+                            .goalsAgainst(stats.getOrDefault("pointsAgainst", 0.0).intValue())
+                            .streak(streak)
+                            .teamShortName(entry.path("team").path("shortDisplayName").asText(null))
+                            .build();
+                    rows.add(row);
+                    int seed = stats.getOrDefault("playoffSeed", 0.0).intValue();
+                    seeds.put(row, seed > 0 ? seed : Integer.MAX_VALUE);
+                }
+            }
+            rows.sort(Comparator.<LeagueStandingDTO>comparingInt(seeds::get)
+                    .thenComparing(Comparator.comparingDouble(CompetitionService::winShare).reversed()));
+            for (int i = 0; i < rows.size(); i++) rows.get(i).setRank(i + 1);
+            standings.addAll(rows);
+        }
+        return standings;
+    }
+
+    /** Racha de ESPN en español: «W3» → «V3», «L1» → «D1»; null si no la hay. */
+    static String streak(String espn) {
+        String value = espn == null ? "" : espn.trim().toUpperCase(Locale.ROOT);
+        if (!value.matches("[WL]\\d+")) return null;
+        return (value.charAt(0) == 'W' ? "V" : "D") + value.substring(1);
     }
 
     private static double winShare(LeagueStandingDTO row) {

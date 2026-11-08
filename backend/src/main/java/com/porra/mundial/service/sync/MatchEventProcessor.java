@@ -230,6 +230,9 @@ public class MatchEventProcessor {
                 ? new MatchMetadata(null, fight.path("eventName").asText(null))
                 : nfl
                         ? new MatchMetadata(null, NflSchedule.roundLabel(event))
+                        // La temporada regular de la NBA llega con su semana oficial («Semana 3»).
+                        : event.path("roundLabel").isString()
+                        ? new MatchMetadata(null, event.path("roundLabel").asText())
                         : parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fight != null ? new int[]{0, 0} : fairPlayPoints(competition, home, away, homeTeam, awayTeam);
 

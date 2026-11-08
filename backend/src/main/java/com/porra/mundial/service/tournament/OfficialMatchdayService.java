@@ -232,8 +232,9 @@ public class OfficialMatchdayService {
     public int numberMatchdays(Competition competition) {
         if (competition == null || competition.getId() == null || competition.getExternalId() == null
                 || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())
-                // La NFL ya llega con su semana de ESPN.
-                || NflSchedule.isNfl(competition.getExternalId())) {
+                // La NFL y la temporada regular de la NBA ya llegan con su semana.
+                || NflSchedule.isNfl(competition.getExternalId())
+                || com.porra.mundial.sports.EspnNbaDataProvider.isRegularSeason(competition.getExternalId())) {
             return 0;
         }
         String code = footballData.isEnabled() ? footballData.competitionCodes().get(competition.getExternalId()) : null;

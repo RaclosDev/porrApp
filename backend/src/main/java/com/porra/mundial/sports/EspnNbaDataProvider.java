@@ -12,18 +12,31 @@ import tools.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Playoffs de la NBA desde la API pública de ESPN ({@code basketball/nba}). Solo se guardan el play-in y
- * los playoffs: la temporada regular (1.230 partidos) no se pronostica.
+ * La NBA desde la API pública de ESPN ({@code basketball/nba}), en dos competiciones:
+ * <ul>
+ *   <li>{@code nba}: el play-in y los playoffs, serie a serie.</li>
+ *   <li>{@code nba.regular}: la temporada regular (unos 1.230 partidos, con la Copa NBA dentro), partido a
+ *       partido y agrupada en las semanas oficiales de la NBA (de lunes a domingo, hora del Este: la
+ *       semana 1 es la del partido inaugural). Cada partido lleva su semana en {@code roundLabel}.</li>
+ * </ul>
+ * <p>
+ * Los playoffs:
  * <p>
  * Cada partido se traduce al formato de evento de fútbol que entiende {@code MatchEventProcessor}:
  * <ul>
@@ -45,12 +58,24 @@ public class EspnNbaDataProvider implements SportsDataProvider {
     private static final String TEAMS = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams";
     private static final String SEASON_TYPE = "https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/%d/types/%d";
 
-    /** Tipos de temporada de ESPN: 3 son los playoffs y 5 el play-in. */
+    private static final String STANDINGS = "https://site.api.espn.com/apis/v2/sports/basketball/nba/standings?level=3";
+
+    /** Tipos de temporada de ESPN: 2 es la temporada regular, 3 los playoffs y 5 el play-in. */
+    static final int REGULAR_SEASON = 2;
     static final int POSTSEASON = 3;
     static final int PLAY_IN = 5;
 
     /** El play-in empieza a mediados de abril y las Finales acaban en junio. */
     private static final Set<Integer> PLAYOFF_MONTHS = Set.of(4, 5, 6);
+
+    /** La temporada regular va de octubre a abril (la Copa NBA, en noviembre y diciembre). */
+    private static final List<Integer> REGULAR_SEASON_MONTHS = List.of(1, 2, 3, 4, 10, 11, 12);
+
+    /** Las semanas de la NBA van de lunes a domingo en la hora del Este de Estados Unidos. */
+    static final ZoneId NBA_TIME = ZoneId.of("America/New_York");
+
+    /** Etiqueta de las semanas de la temporada regular: «Semana 3». */
+    public static final String WEEK_PREFIX = "Semana ";
 
     /** Prefijo de los ids de equipo de la NBA. */
     public static final String TEAM_PREFIX = "nba-";
@@ -68,6 +93,13 @@ public class EspnNbaDataProvider implements SportsDataProvider {
 
     private volatile Instant cachedStart;
     private volatile Instant cachedStartAt;
+    private final Map<Integer, Instant> regularSeasonStarts = new ConcurrentHashMap<>();
+
+    /** La competición es la temporada regular de la NBA. */
+    public static boolean isRegularSeason(String competitionCode) {
+        return competitionCode != null && Competition.NBA_REGULAR_SEASON_EXTERNAL_ID
+                .equals(competitionCode.trim().toLowerCase(Locale.ROOT));
+    }
 
     /** «E», «W» o null según la conferencia del equipo (id externo con o sin prefijo). */
     public static String conference(String teamExternalId) {
@@ -86,7 +118,8 @@ public class EspnNbaDataProvider implements SportsDataProvider {
     @Override
     public boolean supports(String competitionCode) {
         return competitionCode != null
-                && Competition.NBA_EXTERNAL_ID.equals(competitionCode.trim().toLowerCase(Locale.ROOT));
+                && (Competition.NBA_EXTERNAL_ID.equals(competitionCode.trim().toLowerCase(Locale.ROOT))
+                || isRegularSeason(competitionCode));
     }
 
     @Override
@@ -96,10 +129,12 @@ public class EspnNbaDataProvider implements SportsDataProvider {
 
     /**
      * Partidos de play-in y playoffs. {@code dateRange} admite un año (yyyy: abril a junio de ese año), un
-     * día (yyyyMMdd; fuera de abril a junio no hay nada que pedir) o nada (los playoffs de este año).
+     * día (yyyyMMdd; fuera de abril a junio no hay nada que pedir) o nada (los playoffs de este año). En la
+     * temporada regular, el año son sus meses de ese año natural (enero a abril y octubre a diciembre).
      */
     @Override
     public JsonNode fetchScoreboardEvents(String competitionSlug, String dateRange) throws Exception {
+        if (isRegularSeason(competitionSlug)) return fetchRegularSeason(dateRange);
         List<String> queries = new ArrayList<>();
         if (dateRange != null && dateRange.matches("\\d{8}")) {
             int month = Integer.parseInt(dateRange.substring(4, 6));
@@ -119,6 +154,54 @@ public class EspnNbaDataProvider implements SportsDataProvider {
             }
         }
         return result;
+    }
+
+    private JsonNode fetchRegularSeason(String dateRange) throws Exception {
+        List<String> queries = new ArrayList<>();
+        if (dateRange != null && dateRange.matches("\\d{8}")) {
+            queries.add(dateRange);
+        } else {
+            int year = dateRange != null && dateRange.matches("\\d{4}")
+                    ? Integer.parseInt(dateRange) : AppTime.day(Instant.now()).getYear();
+            REGULAR_SEASON_MONTHS.forEach(month -> queries.add(String.format("%d%02d", year, month)));
+        }
+        ArrayNode result = objectMapper.createArrayNode();
+        for (String dates : queries) {
+            JsonNode events = espn.fetchEspnJson(SCOREBOARD + "?dates=" + dates + "&limit=1000").path("events");
+            if (!events.isArray()) throw new IOException("ESPN devolvió un marcador de la NBA sin events");
+            for (JsonNode event : events) {
+                if (event.path("season").path("type").asInt(0) != REGULAR_SEASON) continue;
+                JsonNode adapted = adaptRegularSeason(event, regularSeasonStart(event.path("season").path("year").asInt(0)));
+                if (adapted != null) result.add(adapted);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Primer día de la temporada regular en ESPN ({@code season.year} es el año en que acaba: 2027 para la
+     * 2026-27). Se guarda, porque no cambia en toda la temporada. Sin él no se sabe la semana de cada partido.
+     */
+    private Instant regularSeasonStart(int seasonYear) throws Exception {
+        if (seasonYear <= 0) throw new IOException("Partido de la NBA sin temporada");
+        Instant cached = regularSeasonStarts.get(seasonYear);
+        if (cached != null) return cached;
+        Instant start = parse(espn.fetchEspnJson(String.format(SEASON_TYPE, seasonYear, REGULAR_SEASON))
+                .path("startDate").asText(null));
+        if (start == null) throw new IOException("ESPN no da el inicio de la temporada " + seasonYear + " de la NBA");
+        regularSeasonStarts.put(seasonYear, start);
+        return start;
+    }
+
+    /**
+     * Semana oficial de la NBA de un partido: de lunes a domingo en la hora del Este, y la 1 es la del
+     * partido inaugural (que suele ser martes). 0 si el partido es de antes del inicio.
+     */
+    static int week(Instant game, Instant seasonStart) {
+        LocalDate first = seasonStart.atZone(NBA_TIME).toLocalDate()
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        long days = ChronoUnit.DAYS.between(first, game.atZone(NBA_TIME).toLocalDate());
+        return days < 0 ? 0 : (int) (days / 7) + 1;
     }
 
     /** Las 30 franquicias, con el id prefijado y sin abreviatura (las de la MLS coinciden). */
@@ -141,10 +224,18 @@ public class EspnNbaDataProvider implements SportsDataProvider {
 
     /**
      * Desde el 1 de abril del año anterior al final de la temporada en curso: entran los últimos playoffs
-     * (para ver cómo acabaron) y los que vienen.
+     * (para ver cómo acabaron) y los que vienen. La temporada regular, de su primer a su último día.
      */
     @Override
     public SeasonWindow fetchSeasonWindow(String competitionSlug) throws Exception {
+        if (isRegularSeason(competitionSlug)) {
+            int year = espn.fetchEspnJson(SCOREBOARD).path("leagues").path(0).path("season").path("year").asInt(0);
+            if (year == 0) return null;
+            JsonNode type = espn.fetchEspnJson(String.format(SEASON_TYPE, year, REGULAR_SEASON));
+            String start = type.path("startDate").asText(null);
+            String end = type.path("endDate").asText(null);
+            return start == null || end == null ? null : new SeasonWindow(start, end);
+        }
         JsonNode season = espn.fetchEspnJson(SCOREBOARD).path("leagues").path(0).path("season");
         int year = season.path("year").asInt(0);
         String end = season.path("endDate").asText(null);
@@ -185,6 +276,59 @@ public class EspnNbaDataProvider implements SportsDataProvider {
             if (parsed != null && (start == null || parsed.isBefore(start))) start = parsed;
         }
         return start;
+    }
+
+    /**
+     * Clasificación de la temporada regular en ESPN: las dos conferencias con sus tres divisiones, y en cada
+     * equipo su puesto en la conferencia ({@code playoffSeed}), su balance y los partidos que lleva por detrás.
+     */
+    public JsonNode fetchStandings() throws Exception {
+        return espn.fetchEspnJson(STANDINGS);
+    }
+
+    /**
+     * Partido de temporada regular en el formato de fútbol, con su semana en {@code roundLabel} («Semana 3»);
+     * null si le falta un rival (un cruce de la Copa NBA sin decidir) o es de antes del inicio.
+     */
+    JsonNode adaptRegularSeason(JsonNode event, Instant seasonStart) {
+        JsonNode competition = event.path("competitions").path(0);
+        JsonNode competitors = competition.path("competitors");
+        if (!competitors.isArray() || competitors.size() != 2) return null;
+        for (JsonNode competitor : competitors) {
+            if (conference(competitor.path("team").path("id").asText(null)) == null) return null;
+        }
+        Instant date = parse(competition.path("date").asText(event.path("date").asText(null)));
+        int week = date == null ? 0 : week(date, seasonStart);
+        if (week <= 0) return null;
+
+        ObjectNode adaptedCompetition = objectMapper.createObjectNode();
+        adaptedCompetition.put("id", competition.path("id").asText(event.path("id").asText()));
+        adaptedCompetition.put("date", competition.path("date").asText(event.path("date").asText()));
+        adaptedCompetition.set("status", competition.path("status"));
+        adaptedCompetition.set("notes", competition.path("notes"));
+        ArrayNode adaptedCompetitors = adaptedCompetition.putArray("competitors");
+        for (JsonNode competitor : competitors) {
+            JsonNode team = competitor.path("team");
+            ObjectNode node = adaptedCompetitors.addObject();
+            node.put("homeAway", competitor.path("homeAway").asText());
+            if (competitor.hasNonNull("score")) node.put("score", competitor.path("score").asText());
+            ObjectNode adaptedTeam = node.putObject("team");
+            adaptedTeam.put("id", TEAM_PREFIX + team.path("id").asText());
+            adaptedTeam.put("displayName", team.path("displayName").asText());
+            if (team.hasNonNull("logo")) adaptedTeam.put("logo", team.path("logo").asText());
+        }
+
+        ObjectNode adapted = objectMapper.createObjectNode();
+        adapted.put("id", event.path("id").asText());
+        adapted.put("date", event.path("date").asText());
+        adapted.put("name", event.path("name").asText(""));
+        adapted.put("roundLabel", WEEK_PREFIX + week);
+        ObjectNode season = adapted.putObject("season");
+        season.put("year", event.path("season").path("year").asInt());
+        season.put("type", REGULAR_SEASON);
+        season.put("slug", "regular-season");
+        adapted.putArray("competitions").add(adaptedCompetition);
+        return adapted;
     }
 
     /** Evento de play-in o playoffs en el formato de fútbol; null si es de temporada regular o sin rivales. */

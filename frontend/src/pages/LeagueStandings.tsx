@@ -11,6 +11,8 @@ import type { LeagueKind } from '../context/leagueKind';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
 import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
+import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
+import NbaStandingsTables from '../components/standings/NbaStandingsTables';
 
 /** «Tabla»: la clasificación de la competición; en la UFC, la cartelera, y en el tenis, el cuadro. */
 export default function LeagueStandings() {
@@ -50,6 +52,8 @@ function CompetitionTable() {
   const winLoss = activeCompetitionExternalId === 'nfl';
   // El LoL va por fases (play-in y suiza) con el balance de series: sin empates ni puntos de fútbol.
   const lol = isLolCompetition(activeCompetitionExternalId);
+  // La NBA va por conferencias o divisiones, con balance, porcentaje y partidos por detrás.
+  const nba = isNbaRegularSeason(activeCompetitionExternalId);
   const labels = winLoss
     ? { points: 'V', diff: 'Dif', for: 'PF', against: 'PC' }
     : lol
@@ -126,6 +130,12 @@ function CompetitionTable() {
               : 'La tabla aparecerá cuando haya partidos con resultado.'}
           </p>
         </div>
+      ) : nba ? (
+        <NbaStandingsTables
+          standings={standings ?? []}
+          showComplete={showComplete}
+          competitionName={activeCompetitionName || 'la NBA'}
+        />
       ) : (
         <div className="standings-card">
           {groups.map((group) => (

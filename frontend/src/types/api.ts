@@ -149,6 +149,12 @@ export interface LeagueStanding {
   goalDiff: number;
   goalsFor: number;
   goalsAgainst: number;
+  /** División del equipo en la NBA («Atlántico»…); null en las demás competiciones. */
+  division?: string | null;
+  /** Racha actual en la NBA («V3», «D1»); null si la competición no la da. */
+  streak?: string | null;
+  /** Nombre corto para el móvil (NBA: «76ers»); null si no lo hay. */
+  teamShortName?: string | null;
 }
 
 export interface TeamOdds {

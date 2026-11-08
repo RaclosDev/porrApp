@@ -20,7 +20,7 @@ import {
 } from '../../utils/scoringRules';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
 import { isWorldCupCompetition } from '../../context/leagueKind';
-import { isNbaCompetition } from '../../utils/nbaPlayoffs';
+import { isNbaCompetition, isNbaRegularSeason } from '../../utils/nbaPlayoffs';
 import {
   BRACKET_LOCK_MODES,
   DRAWN_KNOCKOUT_LOCK_MODES,
@@ -80,7 +80,7 @@ const competitionSport = (competition: Competition): Sport =>
       ? 'MMA'
       : competition.externalId === 'f1'
         ? 'FORMULA_1'
-        : isNbaCompetition(competition.externalId)
+        : isNbaCompetition(competition.externalId) || isNbaRegularSeason(competition.externalId)
           ? 'BASKETBALL'
           : competition.externalId === 'nfl'
             ? 'AMERICAN_FOOTBALL'
@@ -359,12 +359,30 @@ const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
   },
 };
 
+/** Por semanas y superviviente en la temporada regular de la NBA: sin empate, con la Copa NBA dentro. */
+const NBA_SEASON_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string }>> = {
+  MATCH_DAY: {
+    title: 'Por semanas',
+    text: 'Cada semana de la temporada regular, Copa NBA incluida, predices quién gana cada partido. Cada acierto suma y gana quien más puntos lleve al final.',
+  },
+  SURVIVOR: {
+    title: 'Superviviente',
+    text: 'Cada semana eliges un partido y el equipo que lo gana, sin repetir equipo. Si pierde, o si no eliges, quedas fuera; la liga puede dar vidas extra. Gana quien aguante más semanas.',
+  },
+};
+
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
   if (format === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHTS_COPY;
   if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)) return KNOCKOUT_DRAW_COPY;
+  if (
+    isNbaRegularSeason(selectedCompetition(draft, ctx)?.externalId) &&
+    NBA_SEASON_FORMAT_COPY[format]
+  ) {
+    return NBA_SEASON_FORMAT_COPY[format];
+  }
   return (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) || FORMAT_COPY[format];
 }
 
@@ -391,7 +409,10 @@ export function formatUnavailableReason(
     return 'La Fórmula 1 se juega Gran Premio a Gran Premio.';
   }
   if (format !== 'KNOCKOUTS_ONLY' && isNbaCompetition(competition?.externalId)) {
-    return 'De la NBA se pronostican los playoffs, serie a serie.';
+    return 'De los playoffs de la NBA se pronostica serie a serie: para predecir partidos, elige NBA · Temporada regular.';
+  }
+  if (!isMatchBasedFormat(format) && isNbaRegularSeason(competition?.externalId)) {
+    return 'La temporada regular se juega partido a partido: para rellenar el cuadro, elige NBA · Playoffs.';
   }
   if (format === 'FULL_BRACKET' && competition?.knockoutDraw) {
     return 'Los cruces se sortean ronda a ronda: elige Solo eliminatorias.';

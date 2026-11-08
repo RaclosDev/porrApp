@@ -83,7 +83,27 @@ export function currentRoundMatches(matches: Match[]): { round: string | null; m
 
   let index = rounds.findIndex((label) => (byRound.get(label) ?? []).some(isPlayableMatch));
   if (index === -1) index = rounds.length - 1;
-  return { round: rounds[index], matches: byRound.get(rounds[index]) ?? [] };
+  return { round: rounds[index], matches: aroundNow(byRound.get(rounds[index]) ?? []) };
+}
+
+/** Jornada a partir de la cual la portada enseña solo los partidos de alrededor de ahora. */
+const LONG_ROUND = 16;
+/** Partidos que enseña la portada de una jornada larga, y cuántos de ellos ya jugados. */
+const LONG_ROUND_SHOWN = 10;
+const LONG_ROUND_PLAYED = 3;
+
+/**
+ * Una semana de la NBA trae unos 50 partidos: la portada enseña los últimos resultados y los siguientes
+ * por jugar, no la semana entera (que está en Jornadas). Las jornadas normales van enteras.
+ */
+function aroundNow(matches: Match[]): Match[] {
+  if (matches.length <= LONG_ROUND) return matches;
+  const next = matches.findIndex(isPlayableMatch);
+  const start =
+    next === -1
+      ? matches.length - LONG_ROUND_SHOWN
+      : Math.min(Math.max(0, next - LONG_ROUND_PLAYED), matches.length - LONG_ROUND_SHOWN);
+  return matches.slice(start, start + LONG_ROUND_SHOWN);
 }
 
 /**
