@@ -109,6 +109,13 @@ export const TENNIS_SCOPE_LABELS: Record<TennisScope, string> = {
   MASTERS_1000: 'Solo los Masters 1000 y las ATP Finals',
 };
 
+/** Tenis con varios torneos: los cuadros que sigue, por circuito. */
+export const TENNIS_TOUR_LABELS: Record<TennisDraw, string> = {
+  BOTH: 'ATP y WTA',
+  MEN: 'Solo ATP',
+  WOMEN: 'Solo WTA',
+};
+
 const TENNIS_SCOPE_LEVELS: Record<TennisScope, TennisInfo['level'][]> = {
   ALL: ['GRAND_SLAM', 'MASTERS_1000', 'FINALS'],
   GRAND_SLAMS: ['GRAND_SLAM'],

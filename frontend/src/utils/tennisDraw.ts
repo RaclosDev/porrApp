@@ -282,12 +282,40 @@ export interface TennisDraw {
   rounds: DrawRound[];
 }
 
-/** Un cuadro por competición de la liga, en el orden en que llegan sus partidos. */
+const TOURNAMENT_SEPARATOR = ' · ';
+
+/**
+ * Torneo y ronda de una jornada. En una liga de varios torneos el backend las llama «Roland Garros 2027 ·
+ * Octavos de final»; en la de un torneo, solo la ronda.
+ */
+function splitRound(round: string): { tournament: string | null; round: string } {
+  const at = round.lastIndexOf(TOURNAMENT_SEPARATOR);
+  return at < 0
+    ? { tournament: null, round }
+    : { tournament: round.slice(0, at), round: round.slice(at + TOURNAMENT_SEPARATOR.length) };
+}
+
+/**
+ * Nombre de un cuadro: la competición («Roland Garros · masculino») o, en una liga de varios torneos, el
+ * torneo con su año y el cuadro («Roland Garros 2027 · masculino»).
+ */
+function drawName(competition: string, tournament: string | null): string {
+  if (!tournament) return competition;
+  const at = competition.indexOf(TOURNAMENT_SEPARATOR);
+  return at < 0 ? tournament : tournament + competition.slice(at);
+}
+
+/**
+ * Un cuadro por competición de la liga (y por edición, si sigue varios torneos), en el orden en que
+ * llegan sus partidos.
+ */
 export function tennisDraws(fixtures: MatchdayFixture[], view: DrawView): TennisDraw[] {
   const byCompetition = new Map<string, MatchdayFixture[]>();
   for (const fixture of [...fixtures].sort(byDate)) {
-    const name = fixture.competitionName ?? '';
-    byCompetition.set(name, [...(byCompetition.get(name) ?? []), fixture]);
+    const { tournament, round } = splitRound(fixture.round ?? '');
+    const name = drawName(fixture.competitionName ?? '', tournament);
+    const plain = fixture.round == null ? fixture : { ...fixture, round };
+    byCompetition.set(name, [...(byCompetition.get(name) ?? []), plain]);
   }
   return [...byCompetition.entries()]
     .map(([name, list]) => ({

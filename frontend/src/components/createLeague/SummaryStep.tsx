@@ -14,6 +14,7 @@ import {
   SPORT_LABELS,
   TENNIS_DRAW_LABELS,
   TENNIS_SCOPE_LABELS,
+  TENNIS_TOUR_LABELS,
   customScoringRules,
   formatCopy,
   isFightNights,
@@ -106,15 +107,21 @@ export default function SummaryStep({
         : competition?.tennis && draft.tennisScope
           ? `${TENNIS_SCOPE_LABELS[draft.tennisScope]}, desde hoy`
           : (competition?.tennis?.tournament ?? competition?.name),
-      step: 'competition',
+      step: competition?.tennis && draft.tennisScope && !draft.custom ? 'format' : 'competition',
     },
     ...(competition?.tennis && !draft.custom
       ? [
-          {
-            label: 'Cuadro',
-            value: TENNIS_DRAW_LABELS[draft.tennisDraw],
-            step: 'competition' as LeagueStepId,
-          },
+          draft.tennisScope
+            ? {
+                label: 'Circuito',
+                value: TENNIS_TOUR_LABELS[draft.tennisDraw],
+                step: 'format' as LeagueStepId,
+              }
+            : {
+                label: 'Cuadro',
+                value: TENNIS_DRAW_LABELS[draft.tennisDraw],
+                step: 'competition' as LeagueStepId,
+              },
         ]
       : []),
     {
