@@ -104,6 +104,10 @@ const KNOCKOUT_LABELS: Record<string, string> = {
   sf: 'Semifinales',
   third: 'Tercer puesto',
   final: 'Final',
+  // Rondas de la Copa del Rey antes de dieciseisavos.
+  qualifying: 'Ronda previa',
+  round1: 'Primera ronda',
+  round2: 'Segunda ronda',
 };
 
 export function displayRoundLabel(label: string): string {
