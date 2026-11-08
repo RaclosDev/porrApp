@@ -17,7 +17,11 @@ public class LeagueStandingDTO {
     private String group;
     private int rank;
     private String teamName;
+    /** Nombre corto del equipo para pantallas estrechas («Bills»); null si el proveedor no lo da. */
+    private String teamShortName;
     private String teamLogo;
+    /** Puesto en su conferencia para los playoffs de la NFL (1-7 entran); null en el resto de competiciones. */
+    private Integer playoffSeed;
     private int points;
     private int gamesPlayed;
     private int wins;

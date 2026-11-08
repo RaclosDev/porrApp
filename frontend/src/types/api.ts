@@ -140,7 +140,11 @@ export interface LeagueStanding {
   group?: string | null;
   rank: number;
   teamName: string;
+  /** Nombre corto para pantallas estrechas («Bills»); solo la NFL lo trae. */
+  teamShortName?: string | null;
   teamLogo: string | null;
+  /** NFL: puesto en su conferencia para los playoffs (entran los 7 primeros). */
+  playoffSeed?: number | null;
   points: number;
   gamesPlayed: number;
   wins: number;
