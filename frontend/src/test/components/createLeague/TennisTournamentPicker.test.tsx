@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
+import FormatStep from '../../../components/createLeague/FormatStep';
 import TennisTournamentPicker from '../../../components/createLeague/TennisTournamentPicker';
 import {
   emptyDraft,
@@ -31,32 +32,51 @@ const ctx = { competitions: [competition(10, 'MEN'), competition(11, 'WOMEN')] }
 
 function Harness() {
   const [draft, setDraft] = useState<LeagueDraft>({ ...emptyDraft(), sport: 'TENNIS' });
+  const props = {
+    draft,
+    update: (patch: Partial<LeagueDraft>) =>
+      setDraft((current) => normalizeDraft({ ...current, ...patch }, ctx)),
+    errors: {},
+    ctx,
+  };
   return (
     <>
-      <TennisTournamentPicker
-        draft={draft}
-        update={(patch) => setDraft((current) => normalizeDraft({ ...current, ...patch }, ctx))}
-        errors={{}}
-        ctx={ctx}
-      />
-      <output data-testid="scope">{`${draft.tennisScope ?? 'one'}:${draft.competitionId}`}</output>
+      <section aria-label="Competición">
+        <TennisTournamentPicker {...props} />
+      </section>
+      <section aria-label="Modo de juego">
+        <FormatStep {...props} />
+      </section>
+      <output data-testid="scope">
+        {`${draft.tennisScope ?? 'one'}:${draft.tennisDraw}:${draft.competitionId}`}
+      </output>
     </>
   );
 }
 
-describe('TennisTournamentPicker', () => {
-  it('elige un torneo o varios, y con varios no pide el torneo pero sí el cuadro', () => {
+describe('Tenis en /crear-liga', () => {
+  it('con toda la temporada, los torneos y el circuito se eligen en el modo de juego, como en UFC', () => {
     render(<Harness />);
-    expect(screen.getByRole('radio', { name: /un torneo/i })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /roland garros/i })).toBeInTheDocument();
+    const competitionStep = screen.getByRole('region', { name: 'Competición' });
+    const formatStep = screen.getByRole('region', { name: 'Modo de juego' });
+    expect(screen.queryByRole('radio', { name: /solo los grand slams/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: /toda la temporada/i }));
+    expect(screen.getByTestId('scope')).toHaveTextContent('ALL:MEN:10');
+    expect(screen.getByRole('radio', { name: /roland garros/i })).not.toBeChecked();
+    expect(competitionStep).not.toHaveTextContent('Femenino');
 
     fireEvent.click(screen.getByRole('radio', { name: /solo los grand slams/i }));
-    expect(screen.getByTestId('scope')).toHaveTextContent('GRAND_SLAMS:10');
-    expect(screen.queryByRole('radio', { name: /roland garros/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('radio', { name: /femenino/i }));
-    expect(screen.getByTestId('scope')).toHaveTextContent('GRAND_SLAMS:11');
+    expect(screen.getByTestId('scope')).toHaveTextContent('GRAND_SLAMS:MEN:10');
+    expect(formatStep).toHaveTextContent('Circuito');
+    fireEvent.click(screen.getByRole('radio', { name: /solo wta/i }));
+    expect(screen.getByTestId('scope')).toHaveTextContent('GRAND_SLAMS:WOMEN:11');
+    fireEvent.click(screen.getByRole('radio', { name: /atp y wta/i }));
+    expect(screen.getByTestId('scope')).toHaveTextContent('GRAND_SLAMS:BOTH:10');
 
-    fireEvent.click(screen.getByRole('radio', { name: /un torneo/i }));
-    expect(screen.getByRole('radio', { name: /roland garros/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: /roland garros/i }));
+    expect(screen.getByTestId('scope')).toHaveTextContent(/^one:/);
+    expect(screen.queryByRole('radio', { name: /solo los grand slams/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /femenino/i })).toBeInTheDocument();
   });
 });

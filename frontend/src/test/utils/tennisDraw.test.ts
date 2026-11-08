@@ -176,6 +176,33 @@ describe('tennisDraws', () => {
     ]);
     expect(tennisDraws([], 'results')).toEqual([]);
   });
+
+  it('en una liga de varios torneos, un cuadro por torneo, año y cuadro, con sus rondas', () => {
+    const fixtures = [
+      match('Roland Garros 2027 · Final', 'A', 'B', {
+        competitionName: 'Roland Garros · masculino',
+      }),
+      match('Roland Garros 2027 · Final', 'C', 'D', {
+        competitionName: 'Roland Garros · femenino',
+      }),
+      match('Masters de París 2027 · Fase de grupos', 'E', 'F', {
+        competitionName: 'Masters de París',
+      }),
+      match('Masters de París 2027 · Final', 'E', 'F', { competitionName: 'Masters de París' }),
+      match('Roland Garros 2028 · Final', 'A', 'C', {
+        competitionName: 'Roland Garros · masculino',
+      }),
+    ];
+    const draws = tennisDraws(fixtures, 'results');
+    expect(draws.map((d) => d.name)).toEqual([
+      'Roland Garros 2027 · masculino',
+      'Roland Garros 2027 · femenino',
+      'Masters de París 2027',
+      'Roland Garros 2028 · masculino',
+    ]);
+    expect(draws[0].rounds.map((r) => r.label)).toEqual(['Final']);
+    expect(draws[2].groups).toHaveLength(1);
+  });
 });
 
 describe('sideState', () => {
