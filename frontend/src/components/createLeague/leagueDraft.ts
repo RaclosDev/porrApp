@@ -1,5 +1,5 @@
 import type { CreateGroupRequest, CustomLockMode } from '../../services/api';
-import type { Competition, PoolFormat, Sport } from '../../types/api';
+import type { Competition, EventSeries, PoolFormat, Sport } from '../../types/api';
 import {
   SCORING_MAX_POINTS,
   defaultScoringRules,
@@ -80,6 +80,12 @@ const competitionSport = (competition: Competition): Sport =>
 /** Cuadro de un torneo de tenis que entra en la liga. */
 export type TennisDraw = 'MEN' | 'WOMEN' | 'BOTH';
 
+/** UFC: qué veladas sigue una liga con todas (sin serie, todas). */
+export const EVENT_SERIES_LABELS: Record<EventSeries, string> = {
+  NUMBERED: 'Solo las numeradas',
+  FIGHT_NIGHT: 'Solo las Fight Night',
+};
+
 export const TENNIS_DRAW_LABELS: Record<TennisDraw, string> = {
   MEN: 'Masculino',
   WOMEN: 'Femenino',
@@ -144,6 +150,8 @@ export interface LeagueDraft {
   matchesCompetitionId: number | null;
   /** Tenis: qué cuadros del torneo entran (la competición elegida es la masculina si son los dos). */
   tennisDraw: TennisDraw;
+  /** UFC con todas las veladas: solo las numeradas o solo las Fight Night; null para todas. */
+  eventSeries: EventSeries | null;
   entryFee: boolean;
   name: string;
   rules: string;
@@ -169,6 +177,7 @@ export const emptyDraft = (): LeagueDraft => ({
   matches: ALL_MATCHES,
   matchesCompetitionId: null,
   tennisDraw: 'MEN',
+  eventSeries: null,
   entryFee: false,
   name: '',
   rules: '',
@@ -441,6 +450,9 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
     next.matches = ALL_MATCHES;
     next.matchesCompetitionId = next.competitionId;
   }
+  // La serie solo cuenta en una liga de la UFC con todas las veladas.
+  if (!matchSelectionApplies(next, ctx) || !isFightNights(next, ctx) || next.matches.mode !== 'ALL')
+    next.eventSeries = null;
   if (!scoringEditable(next)) next.customScoring = false;
   // Sin personalizar, la puntuación es la del deporte (la del tenis no es la del fútbol).
   if (!next.customScoring) {
@@ -565,6 +577,8 @@ export function buildCreateRequest(draft: LeagueDraft, ctx: DraftContext): Creat
   if (draft.entryFee) request.entryFee = true;
   if (matchSelectionApplies(draft, ctx) && draft.matches.mode !== 'ALL') {
     request.matchSelection = toRequest(draft.matches);
+  } else if (matchSelectionApplies(draft, ctx) && isFightNights(draft, ctx) && draft.eventSeries) {
+    request.matchSelection = { mode: 'ALL', eventSeries: draft.eventSeries };
   }
   const women =
     competition?.tennis && draft.tennisDraw === 'BOTH'
@@ -663,6 +677,9 @@ export function readStoredDraft(): LeagueDraft {
       matches,
       matchesCompetitionId: pick('matchesCompetitionId', (value) => typeof value === 'number'),
       tennisDraw: pick('tennisDraw', (value) => ['MEN', 'WOMEN', 'BOTH'].includes(value as string)),
+      eventSeries: pick('eventSeries', (value) =>
+        ['NUMBERED', 'FIGHT_NIGHT'].includes(value as string),
+      ),
       entryFee: pick('entryFee', isBool),
       name: pick('name', isString),
       rules: pick('rules', isString),

@@ -71,6 +71,29 @@ describe('liga de la UFC en el asistente', () => {
     });
   });
 
+  it('puede seguir solo las veladas numeradas o solo las Fight Night', () => {
+    const numbered = ufcDraft({ eventSeries: 'NUMBERED', name: 'Numeradas' });
+    expect(buildCreateRequest(numbered, ctx).matchSelection).toEqual({
+      mode: 'ALL',
+      eventSeries: 'NUMBERED',
+    });
+    const fightNights = ufcDraft({ eventSeries: 'FIGHT_NIGHT', name: 'Fight Night' });
+    expect(buildCreateRequest(fightNights, ctx).matchSelection).toEqual({
+      mode: 'ALL',
+      eventSeries: 'FIGHT_NIGHT',
+    });
+    // Una sola velada, u otra competición, no siguen ninguna serie.
+    const single = ufcDraft({
+      eventSeries: 'NUMBERED',
+      matches: { ...numbered.matches, mode: 'PICK', included: [11] },
+      matchesCompetitionId: 9,
+    });
+    expect(single.eventSeries).toBeNull();
+    expect(
+      normalizeDraft({ ...numbered, sport: 'FOOTBALL', competitionId: 1 }, ctx).eventSeries,
+    ).toBeNull();
+  });
+
   it('puntúa ganador, método y asalto en vez del 1X2', () => {
     expect(
       scoringSections('MATCH_DAY', false, false, false, false, null, true).map(

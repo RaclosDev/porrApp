@@ -23,6 +23,7 @@ import {
   type DraftContext,
   type LeagueDraft,
   type LeagueStepId,
+  EVENT_SERIES_LABELS,
 } from './leagueDraft';
 
 function describeLock(draft: LeagueDraft, ctx: DraftContext) {
@@ -88,7 +89,7 @@ export default function SummaryStep({
   )?.round;
   const matchesText = fightNights
     ? draft.matches.mode === 'ALL'
-      ? 'Todas, desde hoy'
+      ? `${draft.eventSeries ? EVENT_SERIES_LABELS[draft.eventSeries] : 'Todas'}, desde hoy`
       : (chosenNight ?? 'Una sola velada')
     : isMultiCompetition(draft.matches)
       ? `${selectionText} de ${describeCompetitions(competitionNames)}, por semanas`

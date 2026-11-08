@@ -8,6 +8,7 @@ import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.EditionCompetition;
 import com.porra.mundial.model.EditionFollowedTeam;
 import com.porra.mundial.model.EditionMatchChoice;
+import com.porra.mundial.model.EventSeries;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchSelectionMode;
 import com.porra.mundial.model.PoolFormat;
@@ -91,6 +92,14 @@ public class MatchSelectionService {
         return AppTime.startOfDay(AppTime.day(edition.getCreatedAt()));
     }
 
+    /**
+     * Serie de veladas que sigue una liga de la UFC con todas las veladas: solo las numeradas o solo las
+     * Fight Night. Null para todas, y en el resto de ligas.
+     */
+    public static EventSeries series(Edition edition) {
+        return since(edition) == null ? null : edition.getEventSeries();
+    }
+
     private static boolean onOrAfter(Match match, Instant since) {
         return since == null || (match.getMatchDate() != null && !match.getMatchDate().isBefore(since));
     }
@@ -112,8 +121,10 @@ public class MatchSelectionService {
     private boolean inWindow(Edition edition, Match match) {
         Instant since = since(edition);
         if (since == null) return true;
-        if (match.getRound() == null) return onOrAfter(match, since);
-        return roundsEndingFrom(edition, List.of(match.getRound()), since).contains(match.getRound());
+        EventSeries series = series(edition);
+        if (match.getRound() == null) return series == null && onOrAfter(match, since);
+        return EventSeries.includes(series, match.getRound())
+                && roundsEndingFrom(edition, List.of(match.getRound()), since).contains(match.getRound());
     }
 
     /**
@@ -160,10 +171,12 @@ public class MatchSelectionService {
         List<Match> selected = of(edition).filter(matches);
         Instant since = since(edition);
         if (since == null) return selected;
+        EventSeries series = series(edition);
         Set<String> rounds = roundsEndingFrom(edition, selected.stream().map(Match::getRound)
-                .filter(Objects::nonNull).collect(Collectors.toSet()), since);
+                .filter(round -> round != null && EventSeries.includes(series, round))
+                .collect(Collectors.toSet()), since);
         return selected.stream()
-                .filter(m -> m.getRound() != null ? rounds.contains(m.getRound()) : onOrAfter(m, since))
+                .filter(m -> m.getRound() != null ? rounds.contains(m.getRound()) : series == null && onOrAfter(m, since))
                 .toList();
     }
 
@@ -399,6 +412,10 @@ public class MatchSelectionService {
                 .map(Match::getId)
                 .collect(Collectors.toSet());
 
+        // UFC con todas las veladas: la serie pedida, o la que ya tenía; con otra selección no aplica.
+        boolean followsSeries = mode == MatchSelectionMode.ALL && !multi && Sport.isMma(edition.getCompetition());
+        edition.setEventSeries(!followsSeries ? null
+                : request.eventSeries() != null ? request.eventSeries() : edition.getEventSeries());
         persistCompetitions(edition, multi ? competitions : List.of());
         persist(edition, MatchSelection.normalized(mode, requestedTeams, requestedCalendar, wanted.keySet()));
 

@@ -75,6 +75,11 @@ public class Edition {
     @Builder.Default
     private MatchSelectionMode matchSelection = MatchSelectionMode.ALL;
 
+    /** UFC con todas las veladas: solo las numeradas o solo las Fight Night; null para todas. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_series", length = 20)
+    private EventSeries eventSeries;
+
     /**
      * Si la liga junta partidos de varias competiciones oficiales (las guarda {@code edition_competitions};
      * {@link #competition} es la principal). Sus jornadas son semanas de lunes a domingo.
