@@ -1,6 +1,11 @@
 /** Pronósticos de cuadro completo y por jornada, y sus estadísticas. */
 import type {
   FriendPrediction,
+  FormulaOneStandings,
+  GrandPrixBoard,
+  GrandPrixMemberPick,
+  GrandPrixPicks,
+  RaceClassification,
   MatchdayFixture,
   MatchdayPredictionInput,
   MatchdayStats,
@@ -82,3 +87,37 @@ export const fetchRoundParticipants = (groupId: number | string, matchIds: numbe
   request<MatchVoter[]>(
     `/predictions/matchday/stats/participants${query({ groupId, matchIds: matchIds.join(',') })}`,
   );
+
+/** Grandes Premios de una liga de Fórmula 1 con la predicción del usuario y los resultados. */
+export const fetchGrandPrixBoard = (groupId: number | string) =>
+  request<GrandPrixBoard>(`/grand-prix${query({ groupId })}`, {
+    fallbackError: 'No se pudieron cargar los Grandes Premios',
+  });
+
+/** Guarda la predicción de un Gran Premio; devuelve los Grandes Premios actualizados. */
+export const saveGrandPrixPick = (
+  groupId: number | string,
+  matchId: number,
+  pick: GrandPrixPicks,
+) =>
+  request<GrandPrixBoard>(`/grand-prix/${matchId}${query({ groupId })}`, {
+    method: 'PUT',
+    json: pick,
+    fallbackError: 'No se pudo guardar la predicción',
+  });
+
+/** Predicciones de la liga para un Gran Premio; antes del cierre, solo la propia. */
+export const fetchGrandPrixMemberPicks = (groupId: number | string, matchId: number) =>
+  request<GrandPrixMemberPick[]>(`/grand-prix/${matchId}/picks${query({ groupId })}`);
+
+/** Clasificación completa de un Gran Premio ya disputado. */
+export const fetchGrandPrixClassification = (groupId: number | string, matchId: number) =>
+  request<RaceClassification>(`/grand-prix/${matchId}/classification${query({ groupId })}`, {
+    fallbackError: 'No se pudo cargar la clasificación',
+  });
+
+/** Mundial de pilotos y de constructores de la temporada en curso. */
+export const fetchFormulaOneStandings = (groupId: number | string) =>
+  request<FormulaOneStandings>(`/grand-prix/standings${query({ groupId })}`, {
+    fallbackError: 'No se pudo cargar el Mundial',
+  });

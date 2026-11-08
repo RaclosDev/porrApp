@@ -76,12 +76,12 @@ public class ScoreInvalidationService {
     }
 
     /** Vacía la caché de clasificaciones cuando se confirma la transacción, para no servir puntos viejos. */
-    void evictLeaderboardAfterCommit() {
+    public void evictLeaderboardAfterCommit() {
         evictAfterCommit(LEADERBOARD_CACHE);
     }
 
     /** Como {@link #evictLeaderboardAfterCommit()}, pero solo la clasificación de una liga. */
-    void evictLeaderboardAfterCommit(Long leagueId) {
+    public void evictLeaderboardAfterCommit(Long leagueId) {
         Runnable evict = () -> {
             Cache cache = cacheManager.getCache(LEADERBOARD_CACHE);
             if (cache != null) cache.evict(leagueId);

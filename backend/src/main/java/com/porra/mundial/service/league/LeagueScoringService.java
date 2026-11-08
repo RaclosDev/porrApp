@@ -31,6 +31,7 @@ public class LeagueScoringService {
     private final LeagueService leagueService;
     private final MatchPredictionService matchPredictionService;
     private final ScoreInvalidationService scoreInvalidationService;
+    private final com.porra.mundial.service.formulaone.GrandPrixScoringService grandPrixScoringService;
 
     /**
      * Puntuación de la liga. La de una liga pública la ve cualquiera; la de una privada, solo para sus miembros.
@@ -67,7 +68,9 @@ public class LeagueScoringService {
         if (!newRules.equals(ScoringRuleSet.forEdition(edition).toJson())) {
             edition.setScoringRulesJson(newRules);
             editionRepository.save(edition);
-            int rescored = matchPredictionService.rescoreEdition(edition);
+            int rescored = com.porra.mundial.model.PoolFormat.isRaceBased(edition.getPoolFormat())
+                    ? grandPrixScoringService.rescoreEdition(edition)
+                    : matchPredictionService.rescoreEdition(edition);
             int invalidated = scoreInvalidationService.invalidateEdition(edition.getId());
             log.info("Puntuación de la liga {} cambiada: {} pronósticos de partido repuntuados y {} porras por recalcular",
                     leagueId, rescored, invalidated);

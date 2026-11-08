@@ -57,6 +57,8 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
 
     List<MatchPrediction> findByMatchId(Long matchId);
 
+    long countByMatchId(Long matchId);
+
     boolean existsByMatchIdAndPointsAwardedIsNull(Long matchId);
 
     /** Pares (usuario, partido) que ya tienen predicción en una edición, entre los partidos indicados. */

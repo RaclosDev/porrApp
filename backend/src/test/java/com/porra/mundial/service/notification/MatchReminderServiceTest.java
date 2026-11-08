@@ -189,6 +189,27 @@ class MatchReminderServiceTest {
     }
 
     @Test
+    void remindsFormulaOneLeaguesAnHourBeforeQualifyingAndNamesTheGrandPrix() {
+        Edition grandPrix = Edition.builder().id(60L).league(league).competition(competition)
+                .poolFormat(PoolFormat.GRAND_PRIX).lockMode(PredictionLockMode.PER_MATCH).build();
+        when(editions.findActiveByPoolFormat(PoolFormat.MATCH_DAY)).thenReturn(List.of());
+        when(editions.findActiveByPoolFormat(PoolFormat.GRAND_PRIX)).thenReturn(List.of(grandPrix));
+        when(predictions.findPredictedUserMatchPairs(eq(60L), any())).thenReturn(List.of());
+        // Un Gran Premio no tiene equipos; su fecha es la de la clasificación.
+        Match saoPaulo = Match.builder().id(300L).round("GP de São Paulo")
+                .matchDate(NOW.plus(40, ChronoUnit.MINUTES)).build();
+        when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), any())).thenReturn(List.of(saoPaulo));
+
+        List<MatchReminderService.Pending> pending = service.findPending(NOW);
+
+        assertThat(pending).extracting(MatchReminderService.Pending::userId).containsExactly(1L, 2L);
+        assertThat(pending).allSatisfy(p -> assertThat(p.grandPrix()).isTrue());
+        PushMessage message = service.message(pending.subList(0, 1), NOW.plus(40, ChronoUnit.MINUTES));
+        assertThat(message.title()).isEqualTo("Te falta predecir el GP de São Paulo");
+        assertThat(message.url()).isEqualTo("/jornadas?group=5");
+    }
+
+    @Test
     void doesNothingWithoutVapidKeys() {
         when(sender.isEnabled()).thenReturn(false);
 
