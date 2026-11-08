@@ -21,6 +21,7 @@ import {
   type SelectionValue,
 } from '../matchSelection/matchSelection';
 import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
+import CalendarImportNotice from '../matchSelection/CalendarImportNotice';
 
 /** Solo una liga por jornadas sobre una competición oficial elige sus partidos. */
 export const hasMatchSelection = (group: Group) =>
@@ -173,6 +174,7 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
             void save(editing, view);
           }}
         >
+          {changedCompetitions && <CalendarImportNotice calendar={calendar.data} />}
           <MatchSelectionPicker
             teams={teams ?? view.teams}
             matches={matches ?? view.matches}

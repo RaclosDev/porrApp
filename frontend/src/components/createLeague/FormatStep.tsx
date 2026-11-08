@@ -5,10 +5,12 @@ import {
   ALL_MATCHES,
   addableCompetitions,
   groupByRound,
+  isImporting,
   leagueCompetitionIds,
 } from '../matchSelection/matchSelection';
 import { formatMatchDate } from '../../utils/matchday';
 import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
+import CalendarImportNotice from '../matchSelection/CalendarImportNotice';
 import {
   FIELD_IDS,
   errorId,
@@ -48,17 +50,20 @@ function MatchesSection({ draft, update, errors, ctx }: StepProps) {
           después en Administrar.
         </p>
       ) : (
-        <MatchSelectionPicker
-          teams={calendar.data.teams}
-          matches={calendar.data.matches}
-          value={draft.matches}
-          onChange={(matches) => update({ matches })}
-          primaryCompetition={primary && { id: primary.id, name: primary.name }}
-          otherCompetitions={others.map((item) => ({ id: item.id, name: item.name }))}
-          loadingCalendar={calendar.isPlaceholderData}
-          fieldId={FIELD_IDS.matches}
-          errorId={errors.matches ? errorId(FIELD_IDS.matches) : undefined}
-        />
+        <>
+          <CalendarImportNotice calendar={calendar.data} />
+          <MatchSelectionPicker
+            teams={calendar.data.teams}
+            matches={calendar.data.matches}
+            value={draft.matches}
+            onChange={(matches) => update({ matches })}
+            primaryCompetition={primary && { id: primary.id, name: primary.name }}
+            otherCompetitions={others.map((item) => ({ id: item.id, name: item.name }))}
+            loadingCalendar={calendar.isPlaceholderData}
+            fieldId={FIELD_IDS.matches}
+            errorId={errors.matches ? errorId(FIELD_IDS.matches) : undefined}
+          />
+        </>
       )}
       <FieldError fieldId={FIELD_IDS.matches} message={errors.matches} />
     </StepSection>
@@ -136,7 +141,7 @@ function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
             title="Una sola velada"
             description="La liga dura una velada. Si cambia la cartelera, las peleas nuevas entran solas."
             disabledReason={
-              calendar.isPending
+              calendar.isPending || isImporting(calendar.data)
                 ? 'Cargando el calendario…'
                 : nights.length === 0
                   ? 'No hay veladas anunciadas.'
@@ -145,6 +150,7 @@ function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
           />
         </div>
       </fieldset>
+      <CalendarImportNotice calendar={calendar.data} />
       {single && nights.length > 0 && (
         <div className="create-league-field">
           <label htmlFor="cl-night">Velada</label>

@@ -196,6 +196,22 @@ class TennisScopeIntegrationTest {
         assertThat(matchSelectionService.syncTennisScopes()).isZero();
     }
 
+    @Test
+    @DisplayName("Una liga de un torneo con los dos cuadros se crea con el femenino, no solo con el masculino")
+    void singleTournamentBothDraws() {
+        Match rgMen = match(rolandGarros, "r16", now.plus(2, ChronoUnit.DAYS));
+        Match rgWomen = match(rolandGarrosWomen, "r16", now.plus(3, ChronoUnit.DAYS));
+        UserAccount ana = user();
+        League league = create(ana, rolandGarros, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null,
+                List.of(rolandGarros.getId(), rolandGarrosWomen.getId())));
+
+        Edition edition = editions.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElseThrow();
+        assertThat(edition.isMultiCompetition()).isTrue();
+        assertThat(edition.getMatchSelection()).isEqualTo(MatchSelectionMode.ALL);
+        assertThat(fixtures(ana, league)).extracting(MatchdayFixturePredictionDTO::getMatchId)
+                .contains(rgMen.getId(), rgWomen.getId());
+    }
+
     private static MatchSelectionRequest selection(TennisScope scope, TennisTour tour) {
         return new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null, null, null, null, scope, tour);
     }
