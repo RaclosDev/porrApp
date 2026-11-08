@@ -130,6 +130,18 @@ class MatchEventProcessorTest {
     }
 
     @Test
+    @DisplayName("Una serie del LoL guarda al mejor de cuántas partidas se juega")
+    void savesTheBestOfOfALolSeries() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        var event = event("pre", false, "Semifinals", "", "", "Spain", "164", "Uruguay", "212", "[]");
+        ((tools.jackson.databind.node.ObjectNode) event.path("competitions").get(0)).put("bestOf", 5);
+
+        processor.process(event, cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertEquals(5, savedMatch().getBestOf());
+    }
+
+    @Test
     @DisplayName("Asigna la ronda de eliminatoria a partir de las notas del evento")
     void parsesKnockoutRound() throws Exception {
         when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
