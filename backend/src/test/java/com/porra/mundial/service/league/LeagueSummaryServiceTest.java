@@ -9,6 +9,7 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchPrediction;
 import com.porra.mundial.model.PoolFormat;
+import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.EditionRepository;
@@ -81,6 +82,34 @@ class LeagueSummaryServiceTest {
         List<LeagueSummaryDTO> result = service.summaries(EMAIL);
 
         assertThat(result).containsExactly(new LeagueSummaryDTO(7L, 2, 30, 3, 2));
+    }
+
+    @Test
+    @DisplayName("Con cierre por jornada cuenta los partidos que se cierran esta semana, aunque se jueguen después")
+    void perRoundCountsWhatLocksThisWeek() {
+        League league = League.builder().id(9L).name("NFL").build();
+        Competition competition = Competition.builder().id(14L).externalId("nfl").build();
+        Edition edition = Edition.builder().league(league).competition(competition)
+                .poolFormat(PoolFormat.MATCH_DAY).lockMode(PredictionLockMode.PER_ROUND).lockOffsetMinutes(0)
+                .status("ACTIVE").build();
+        Instant now = Instant.now();
+        Match thursday = match(1L, now.plus(Duration.ofDays(5)));
+        thursday.setRound("Semana 10");
+        Match monday = match(2L, now.plus(Duration.ofDays(9)));
+        monday.setRound("Semana 10");
+        Match later = match(3L, now.plus(Duration.ofDays(12)));
+        later.setRound("Semana 11");
+
+        when(leagueService.getUserLeagues(EMAIL)).thenReturn(List.of(league));
+        when(editionRepository.findByLeagueIdInAndStatus(List.of(9L), "ACTIVE")).thenReturn(List.of(edition));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId(EMAIL, 9L)).thenReturn(Optional.empty());
+        when(leaderboardService.getLeaderboard(9L)).thenReturn(List.of());
+        when(matchRepository.findUnfinishedStartingBetween(eq(14L), any(), any()))
+                .thenReturn(List.of(thursday, monday, later));
+        when(matchRepository.findByCompetitionId(14L)).thenReturn(List.of(thursday, monday, later));
+
+        // El del lunes se cierra el jueves con su semana; la semana 11 aún no toca.
+        assertThat(service.summaries(EMAIL).get(0).pendingPredictions()).isEqualTo(2);
     }
 
     @Test

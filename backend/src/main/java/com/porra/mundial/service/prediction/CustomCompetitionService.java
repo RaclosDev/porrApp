@@ -42,6 +42,10 @@ public class CustomCompetitionService {
     private final CompetitionService competitionService;
     private final CustomLockService lockService;
 
+    private static final java.time.format.DateTimeFormatter FIRST_MATCH_FORMAT =
+            java.time.format.DateTimeFormatter.ofPattern("d/M/yyyy HH:mm")
+                    .withZone(java.time.ZoneId.of("Europe/Madrid"));
+
     /** Margen máximo antes del partido: 30 días. */
     static final int MAX_LOCK_OFFSET_MINUTES = 30 * 24 * 60;
 
@@ -86,6 +90,12 @@ public class CustomCompetitionService {
             }
             if (!lockDate.isAfter(now)) {
                 throw BusinessException.badRequest("La fecha de cierre debe ser futura");
+            }
+            // Con el cierre después del primer cruce se rellenaría el cuadro sabiendo ya resultados.
+            Instant firstMatch = lockService.bracketClosesAt(edition);
+            if (firstMatch != null && lockDate.isAfter(firstMatch)) {
+                throw BusinessException.badRequest("La fecha de cierre debe ser anterior al primer cruce ("
+                        + FIRST_MATCH_FORMAT.format(firstMatch) + "): después ya se sabrían resultados");
             }
             edition.setLockOffsetMinutes(0);
             edition.setLockDate(lockDate);

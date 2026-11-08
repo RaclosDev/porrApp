@@ -16,6 +16,7 @@ import {
 } from '../utils/knockoutDraw';
 import { isNbaCompetition } from '../utils/nbaPlayoffs';
 import KnockoutDrawBoard from '../components/knockout/KnockoutDrawBoard';
+import KnockoutDrawPending from '../components/knockout/KnockoutDrawPending';
 import PaperLoading from '../components/PaperLoading';
 import InkStamp from '../components/InkStamp';
 
@@ -179,15 +180,16 @@ export default function KnockoutDrawPredictor() {
 
       {!lock.state && <PaperLoading label="Cargando cruces…" />}
       {lock.state &&
-        (rounds.length === 0 || (nba && rounds.every((round) => !round.ties.length))) && (
+        (rounds.length === 0 || (nba && rounds.every((round) => !round.ties.length))) &&
+        (nba ? (
           <p className="paper-panel album-sheet p-5 text-center max-w-145 mx-auto">
-            {nba
-              ? lock.state.playoffsStart
-                ? `Los playoffs empiezan el ${START.format(new Date(lock.state.playoffsStart))} con el play-in. Podrás predecir cada serie en cuanto se conozcan sus dos equipos.`
-                : 'Los playoffs aún no tienen cruces: podrás predecir cada serie en cuanto se conozcan sus dos equipos.'
-              : 'Aún no se han sorteado los cruces: podrás hacer tu predicción en cuanto se conozcan.'}
+            {lock.state.playoffsStart
+              ? `Los playoffs empiezan el ${START.format(new Date(lock.state.playoffsStart))} con el play-in. Podrás predecir cada serie en cuanto se conozcan sus dos equipos.`
+              : 'Los playoffs aún no tienen cruces: podrás predecir cada serie en cuanto se conozcan sus dos equipos.'}
           </p>
-        )}
+        ) : (
+          <KnockoutDrawPending externalId={activeCompetitionExternalId} />
+        ))}
       {rounds.length > 0 && (
         <KnockoutDrawBoard
           rounds={rounds}

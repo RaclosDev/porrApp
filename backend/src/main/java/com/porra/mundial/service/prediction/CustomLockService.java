@@ -269,6 +269,17 @@ public class CustomLockService {
                 ? rounds.get(round).get(index) : null;
     }
 
+    /**
+     * Primer cruce de un cuadro oficial propio que no se sortea ronda a ronda (ver
+     * {@link PredictableBracket#predictionsCloseAt}); null si no aplica o aún no hay cruces definidos.
+     */
+    public Instant bracketClosesAt(Edition edition) {
+        Competition competition = edition.getCompetition();
+        if (competition == null) return null;
+        return PredictableBracket.predictionsCloseAt(competition, edition.getPoolFormat(),
+                matches.findByCompetitionId(competition.getId()));
+    }
+
     /** Fecha del primer cierre en el modo {@link PredictionLockMode#FIRST_MATCH}: el primer partido con fecha. */
     public Instant firstMatchLock(Edition edition) {
         if (edition.getCompetition() == null) return null;

@@ -4,6 +4,7 @@ import { useCustomLock } from '../hooks/useCustomLock';
 import { logosOf } from '../utils/knockoutDraw';
 import { isNbaCompetition } from '../utils/nbaPlayoffs';
 import KnockoutDrawBoard from '../components/knockout/KnockoutDrawBoard';
+import KnockoutDrawPending from '../components/knockout/KnockoutDrawPending';
 import PaperLoading from '../components/PaperLoading';
 
 /**
@@ -28,11 +29,13 @@ export default function KnockoutDrawResults() {
         {activeCompetitionName && <p className="text-muted mt-2">{activeCompetitionName}</p>}
       </div>
       {!lock.state && <PaperLoading label="Cargando cruces…" />}
-      {lock.state && rounds.length === 0 && (
-        <p className="text-center">
-          {nba ? 'Los playoffs aún no tienen cruces.' : 'Aún no se han sorteado los cruces.'}
-        </p>
-      )}
+      {lock.state &&
+        rounds.length === 0 &&
+        (nba ? (
+          <p className="text-center">Los playoffs aún no tienen cruces.</p>
+        ) : (
+          <KnockoutDrawPending externalId={activeCompetitionExternalId} />
+        ))}
       {rounds.length > 0 && <KnockoutDrawBoard rounds={rounds} matches={allGames} logos={logos} />}
     </section>
   );

@@ -184,6 +184,28 @@ describe('useLeagueHomeData', () => {
     expect(result.current.standings?.rows.map((r) => r.value)).toEqual(['3-1', '3-2']);
   });
 
+  it('unas eliminatorias aún sin sortear explican cuándo empiezan en vez de decir que no hay partidos', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '12',
+        activeCompetitionId: 3,
+        activeCompetitionExternalId: 'uefa.champions',
+        activeGroupPoolFormat: 'KNOCKOUTS_ONLY',
+        leagueKind: 'knockoutDraw',
+        // Solo hay partidos de la fase de liga, que no se pronostican.
+        allGames: [
+          { ...competitionMatch(7, 'league', '2020-11-04T21:00:00+01:00'), finished: true },
+        ],
+      }),
+    );
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    expect(result.current.matches.items).toEqual([]);
+    expect(result.current.matches.title).toBe('Próximos partidos');
+    expect(result.current.matches.empty).toMatch(/empiezan al acabar la fase de liga/);
+  });
+
   it('en el tenis la ronda de la portada lleva el torneo delante', () => {
     vi.mocked(useAppContext).mockReturnValue(
       appContext({
