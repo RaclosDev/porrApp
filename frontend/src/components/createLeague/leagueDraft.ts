@@ -645,6 +645,14 @@ export const FIELD_IDS: Record<keyof StepErrors, string> = {
   rules: 'cl-rules',
 };
 
+const FIRST_MATCH_FORMAT = new Intl.DateTimeFormat('es-ES', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Europe/Madrid',
+});
+
 export const errorId = (fieldId: string) => `${fieldId}-error`;
 
 export function validateStep(
@@ -679,6 +687,14 @@ export function validateStep(
       if (!draft.lockDate) errors.lockDate = 'Elige la fecha y la hora de cierre.';
       else if (Number.isNaN(date.getTime()) || date <= now)
         errors.lockDate = 'La fecha de cierre tiene que ser futura.';
+      else {
+        // Cerrar después del primer cruce dejaría rellenar el cuadro sabiendo ya resultados.
+        const firstMatch = draft.poolFormat
+          ? selectedCompetition(draft, ctx)?.bracketClosesAt?.[draft.poolFormat]
+          : undefined;
+        if (firstMatch && date.getTime() > Date.parse(firstMatch))
+          errors.lockDate = `Tiene que ser antes del primer cruce (${FIRST_MATCH_FORMAT.format(new Date(firstMatch))}).`;
+      }
     } else if (draft.lockMode) {
       const amount = draft.lockAmount.trim();
       if (!/^\d+$/.test(amount)) errors.lockAmount = 'Escribe un número entero, 0 o más.';

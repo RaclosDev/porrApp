@@ -157,6 +157,34 @@ describe('borrador de liga', () => {
     expect(formatUnavailableReason('KNOCKOUTS_ONLY', draft, later)).toBeNull();
   });
 
+  it('con fecha fija, el cierre de un cuadro oficial tiene que ser antes de su primer cruce', () => {
+    const worlds = {
+      competitions: [
+        competition({
+          id: 4,
+          name: 'Worlds',
+          externalId: 'lol.worlds',
+          formatType: 'TOURNAMENT',
+          sport: 'LEAGUE_OF_LEGENDS',
+          bracketClosesAt: { KNOCKOUTS_ONLY: '2099-11-03T22:00:00Z' },
+        }),
+      ],
+    };
+    const draft = {
+      ...emptyDraft(),
+      sport: 'LEAGUE_OF_LEGENDS' as const,
+      competitionId: 4,
+      poolFormat: 'KNOCKOUTS_ONLY' as const,
+      lockMode: 'FIXED_DATE' as const,
+    };
+    expect(
+      validateStep('rules', { ...draft, lockDate: '2099-11-04T10:00' }, worlds, NOW).lockDate,
+    ).toMatch(/antes del primer cruce \(3 nov/);
+    expect(
+      validateStep('rules', { ...draft, lockDate: '2099-11-03T20:00' }, worlds, NOW).lockDate,
+    ).toBeUndefined();
+  });
+
   it('al cambiar de competición quita el formato y el pichichi que ya no encajan', () => {
     // El pichichi se juega con los goleadores del Mundial: solo en su cuadro.
     const tournament = draftWith({
