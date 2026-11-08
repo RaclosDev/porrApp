@@ -21,6 +21,7 @@ import com.porra.mundial.model.Team;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.repository.LeagueRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
@@ -87,6 +88,7 @@ class MultiCompetitionLeagueIntegrationTest {
     @Autowired private PredictionRepository predictions;
     @Autowired private MatchPredictionRepository matchPredictions;
     @Autowired private UserAccountRepository users;
+    @Autowired private LeagueRepository leagues;
 
     private Competition laliga;
     private Competition champions;
@@ -275,6 +277,24 @@ class MultiCompetitionLeagueIntegrationTest {
 
         assertThat(edition(league).getMatchSelection()).isEqualTo(MatchSelectionMode.ALL);
         assertThat(edition(league).isMultiCompetition()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Crear la liga con todos los partidos de varias competiciones se rechaza y no crea nada")
+    void createRejectsAllMatchesFromSeveralCompetitions() {
+        UserAccount admin = user();
+        long before = leagues.count();
+
+        assertThatThrownBy(() -> create(admin, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null,
+                List.of(laliga.getId(), premier.getId()))))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("elige los equipos o los partidos");
+        assertThat(leagues.count()).isEqualTo(before);
+
+        // Con solo la suya, «todos los partidos» es lo de siempre.
+        League league = create(admin, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null,
+                List.of(laliga.getId())));
+        assertThat(edition(league).isMultiCompetition()).isFalse();
+        assertThat(edition(league).getMatchSelection()).isEqualTo(MatchSelectionMode.ALL);
     }
 
     @Test
