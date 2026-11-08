@@ -6,6 +6,10 @@ name: Auto-merge de PRs propios
 # Lo que fusiona el GITHUB_TOKEN no dispara eventos (ni el push a main ni el borrado automático de
 # la rama), así que este mismo job borra la rama y lanza la CI de main, que Railway espera para
 # desplegar.
+#
+# Si el PR choca con main (otro PR entró antes y toca los mismos archivos), no se intenta fusionar:
+# el job termina en verde con un aviso en el resumen y un único comentario en el PR, que se actualiza
+# en cada intento y se borra cuando por fin se fusiona.
 on:
   workflow_run:
     workflows: [Porra Mundial CI/CD]
@@ -42,5 +46,73 @@ jobs:
             echo "Nada que fusionar: PR ajeno, en borrador o con commits más nuevos."
             exit 0
           fi
-          gh pr merge "$pr" --squash --delete-branch --match-head-commit "$SHA"
+
+          # GitHub calcula «mergeable» en segundo plano: tras un cambio en main puede devolver UNKNOWN
+          # durante unos segundos. Se espera a que lo resuelva antes de decidir.
+          estado() {
+            for _ in $(seq 1 10); do
+              read -r mergeable status < <(gh pr view "$pr" --json mergeable,mergeStateStatus \
+                --jq '[.mergeable, .mergeStateStatus] | join(" ")')
+              [ "$mergeable" != "UNKNOWN" ] && [ "$status" != "UNKNOWN" ] && return
+              sleep 3
+            done
+          }
+          en_conflicto() {
+            [ "$mergeable" = "CONFLICTING" ] || [ "$status" = "DIRTY" ] || [ "$status" = "BEHIND" ]
+          }
+
+          # Un solo comentario por PR, marcado con un comentario HTML: se edita en vez de repetirse.
+          marca="<!-- automerge-sin-fusionar -->"
+          comentario_previo() {
+            gh api "repos/$GH_REPO/issues/$pr/comments" --paginate \
+              --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marca\"))) | .id" \
+              | sed -n 1p
+          }
+          avisar_y_salir() {
+            if [ "$status" = "BEHIND" ]; then
+              motivo="la rama está por detrás de \`main\` y hay que actualizarla"
+            else
+              motivo="choca con \`main\` (conflictos de fusión)"
+            fi
+            texto="La CI de este PR está en verde, pero no se ha fusionado: $motivo. Actualiza la rama con \`main\`, resuelve los conflictos y haz push; cuando la CI vuelva a pasar se fusionará solo."
+            {
+              echo "### PR #$pr sin fusionar"
+              echo
+              echo "$texto"
+              echo
+              echo "Estado: \`mergeable=$mergeable\`, \`mergeStateStatus=$status\`, commit \`$SHA\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=PR #$pr sin fusionar::$texto"
+
+            cuerpo="$marca"$'\n'"$texto"$'\n\n'"_Commit revisado: \`$SHA\`._"
+            id=$(comentario_previo)
+            if [ -n "$id" ]; then
+              gh api --method PATCH "repos/$GH_REPO/issues/comments/$id" -f body="$cuerpo" > /dev/null
+            else
+              gh pr comment "$pr" --body "$cuerpo"
+            fi
+            exit 0
+          }
+
+          estado
+          if en_conflicto; then
+            avisar_y_salir
+          fi
+
+          # Entre la comprobación y la fusión puede entrar otro PR en main: si la fusión falla por eso,
+          # tampoco es un error de este workflow.
+          if ! gh pr merge "$pr" --squash --delete-branch --match-head-commit "$SHA"; then
+            sleep 5
+            estado
+            if en_conflicto; then
+              avisar_y_salir
+            fi
+            echo "::error::No se pudo fusionar el PR #$pr (mergeable=$mergeable, mergeStateStatus=$status)."
+            exit 1
+          fi
+
+          id=$(comentario_previo)
+          if [ -n "$id" ]; then
+            gh api --method DELETE "repos/$GH_REPO/issues/comments/$id"
+          fi
           gh workflow run ci.yml --ref main
