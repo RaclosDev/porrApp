@@ -40,6 +40,10 @@ public class Match {
     
     private Integer awayScore;
 
+    /** Serie al mejor de N partidas (LoL: 1, 3 o 5); null si el deporte no se juega por series. */
+    @Column(name = "best_of")
+    private Integer bestOf;
+
     /** Fecha y hora del partido ajustada al horario configurado en el servidor. */
     private Instant matchDate; 
 
