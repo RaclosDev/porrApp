@@ -5,7 +5,7 @@ import { UserAvatar } from './Avatar';
 import type { FriendPrediction, MatchdayFixture } from '../types/api';
 import SheetDialog from './SheetDialog';
 import { fightOutcomes, methodRoundText } from '../utils/fights';
-import { FightBadge, FightResultLine } from './fight/FightResult';
+import { FightBadge, FightJudgesLine, FightResultLine } from './fight/FightResult';
 
 function TeamCrest({ logo, name }: { logo: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -182,6 +182,7 @@ export default function MatchFriendsPredictionsModal({
       </div>
 
       {outcomes && <FightResultLine fight={match.fight} className="friends-predictions-fight" />}
+      {outcomes && <FightJudgesLine fight={match.fight} className="friends-predictions-fight" />}
 
       <div className="friends-predictions-meta">
         {matchDate && <span>{matchDate}</span>}

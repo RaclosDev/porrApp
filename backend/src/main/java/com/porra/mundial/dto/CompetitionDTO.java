@@ -1,10 +1,12 @@
 package com.porra.mundial.dto;
 
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Sport;
 import com.porra.mundial.sports.TennisTournaments;
 
 import java.time.Instant;
+import java.util.Map;
 
 /**
  * Competición en la que se puede crear una liga.
@@ -19,9 +21,13 @@ import java.time.Instant;
  * @param knockoutDraw sus eliminatorias se sortean ronda a ronda (Champions, Copa del Rey…): se pueden
  *                     pronosticar como «Solo eliminatorias», ronda a ronda
  * @param tennis     torneo, categoría, cuadro y fechas de un cuadro de tenis; null en otros deportes
+ * @param bracketClosesAt por formato de cuadro, cuándo empieza lo que pronostica (su primer cruce y, en el
+ *                        cuadro completo, también los grupos): desde entonces no se puede crear la liga.
+ *                        Vacío si se puede crear en cualquier momento
  */
 public record CompetitionDTO(Long id, String name, String externalId, String formatType, Sport sport,
-                             boolean finished, Boolean groupStage, boolean knockoutDraw, TennisInfo tennis) {
+                             boolean finished, Boolean groupStage, boolean knockoutDraw, TennisInfo tennis,
+                             Map<PoolFormat, Instant> bracketClosesAt) {
 
     /** Partidos importados de una competición: todos, los que faltan por terminar y los de grupos. */
     public record CalendarStats(long matches, long unfinished, long groupMatches) {
@@ -48,7 +54,7 @@ public record CompetitionDTO(Long id, String name, String externalId, String for
     }
 
     public static CompetitionDTO of(Competition competition, CalendarStats stats) {
-        return of(competition, stats, null, Instant.now());
+        return of(competition, stats, null, Instant.now(), Map.of());
     }
 
     /**
@@ -56,7 +62,8 @@ public record CompetitionDTO(Long id, String name, String externalId, String for
      * aún no haya partidos de la siguiente, y uno con la próxima publicada no lo está aunque la anterior
      * se jugara entera.
      */
-    public static CompetitionDTO of(Competition competition, CalendarStats stats, TennisDates dates, Instant now) {
+    public static CompetitionDTO of(Competition competition, CalendarStats stats, TennisDates dates, Instant now,
+                                    Map<PoolFormat, Instant> bracketClosesAt) {
         CalendarStats calendar = stats == null ? CalendarStats.NONE : stats;
         boolean imported = calendar.matches() > 0;
         TennisInfo tennis = TennisTournaments.parse(competition.getExternalId())
@@ -73,6 +80,7 @@ public record CompetitionDTO(Long id, String name, String externalId, String for
                 Sport.ofExternalId(competition.getExternalId()),
                 finished,
                 tennis != null ? Boolean.FALSE : imported ? calendar.groupMatches() > 0 : null,
-                competition.drawsKnockoutRounds(), tennis);
+                competition.drawsKnockoutRounds(), tennis,
+                bracketClosesAt == null ? Map.of() : Map.copyOf(bracketClosesAt));
     }
 }

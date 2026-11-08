@@ -65,6 +65,8 @@ public class UfcDataProvider implements SportsDataProvider {
     private static final Pattern UFC_EVENT = Pattern.compile("^(UFC|Noche UFC)\\b.*", Pattern.CASE_INSENSITIVE);
     private static final Pattern EVENT_ID = Pattern.compile("/events/(\\d+)");
     private static final Pattern NUMERIC_ID = Pattern.compile("\\d{1,15}");
+    /** Hasta tres tarjetas como «30-27 | 29-28 | 30-27» (caben de sobra en 40 caracteres). */
+    private static final Pattern JUDGES_SCORES = Pattern.compile("\\d{1,2}-\\d{1,2}( \\| \\d{1,2}-\\d{1,2}){0,2}");
     /** Las peleas de una velada se reparten en bloques que empiezan horas antes del inicio del calendario. */
     private static final Duration EVENT_LEAD = Duration.ofHours(6);
     /** Una velada en curso o por llegar cambia a menudo; una terminada hace días, ya no. */
@@ -309,6 +311,8 @@ public class UfcDataProvider implements SportsDataProvider {
                 .put("homeRecord", home.path("displayRecord").asText(null))
                 .put("awayRecord", away.path("displayRecord").asText(null));
         if (bout.path("matchNumber").isNumber()) ufc.put("order", bout.path("matchNumber").asInt());
+        String title = title(bout);
+        if (title != null) ufc.put("title", title);
         ufc.put("rounds", rounds.getOrDefault(id, defaultRounds(bout)));
         if (completed) {
             ufc.put("method", resultName);
@@ -316,6 +320,8 @@ public class UfcDataProvider implements SportsDataProvider {
             if (status.path("period").asInt(0) > 0) ufc.put("round", status.path("period").asInt());
             String clock = status.path("displayClock").asText(null);
             if (clock != null && !"-".equals(clock)) ufc.put("clock", clock);
+            String judges = judgesScores(bout);
+            if (judges != null) ufc.put("judgesScores", judges);
         }
         ufc.set("card", card);
 
@@ -332,6 +338,28 @@ public class UfcDataProvider implements SportsDataProvider {
     static int defaultRounds(JsonNode bout) {
         String note = bout.path("note").asText("").toLowerCase(Locale.ROOT);
         return bout.path("matchNumber").asInt(0) == 1 || note.contains("title fight") ? 5 : 3;
+    }
+
+    /**
+     * Título en juego: el de {@code types} («UFC Heavyweight Title») o, si solo lo dice la nota
+     * («Heavyweight - Main Event - Title Fight»), «Title Fight». Null si no hay título.
+     */
+    static String title(JsonNode bout) {
+        for (JsonNode type : bout.path("types")) {
+            String text = type.path("text").asText("").trim();
+            if (text.toLowerCase(Locale.ROOT).contains("title")) return clip(text, 60);
+        }
+        return bout.path("note").asText("").toLowerCase(Locale.ROOT).contains("title fight") ? "Title Fight" : null;
+    }
+
+    /** Tarjetas de los jueces («30-27 | 29-28 | 30-27»), solo si tienen esa forma. */
+    static String judgesScores(JsonNode bout) {
+        String scores = bout.path("judgesScores").asText("").trim();
+        return JUDGES_SCORES.matcher(scores).matches() ? scores : null;
+    }
+
+    private static String clip(String text, int max) {
+        return text.length() > max ? text.substring(0, max) : text;
     }
 
     /** «KO/TKO - Punches», «Decision - Split», «Submission - Triangle Choke»… */

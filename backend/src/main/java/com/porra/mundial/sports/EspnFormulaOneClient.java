@@ -67,8 +67,7 @@ public class EspnFormulaOneClient {
         requireIds(eventId, raceId);
         for (String athleteId : athleteIdsInOrder) {
             if (athleteId == null || !athleteId.matches("\\d{1,20}")) continue;
-            JsonNode categories = espn.fetchEspnJson(CORE_EVENTS + eventId + "/competitions/" + raceId
-                    + "/competitors/" + athleteId + "/statistics").path("splits").path("categories");
+            JsonNode categories = competitorStatistics(eventId, raceId, athleteId);
             for (JsonNode category : categories) {
                 for (JsonNode stat : category.path("stats")) {
                     if ("fastestLap".equals(stat.path("name").asText()) && !stat.path("displayValue").asText("").isBlank()) {
@@ -78,6 +77,23 @@ public class EspnFormulaOneClient {
             }
         }
         return null;
+    }
+
+    /**
+     * Estadísticas de un piloto en una sesión ({@code splits.categories[].stats[]}): puesto, vueltas,
+     * tiempo total o diferencia con el ganador ({@code behindTime}, {@code behindLaps}), puntos…
+     */
+    public JsonNode competitorStatistics(String eventId, String sessionId, String athleteId) throws Exception {
+        requireIds(eventId, sessionId, athleteId);
+        return espn.fetchEspnJson(CORE_EVENTS + eventId + "/competitions/" + sessionId
+                + "/competitors/" + athleteId + "/statistics").path("splits").path("categories");
+    }
+
+    /** Estado final de un piloto en una sesión ({@code type.name}: STATUS_CLASSIFIED, STATUS_RETIRED…). */
+    public JsonNode competitorStatus(String eventId, String sessionId, String athleteId) throws Exception {
+        requireIds(eventId, sessionId, athleteId);
+        return espn.fetchEspnJson(CORE_EVENTS + eventId + "/competitions/" + sessionId
+                + "/competitors/" + athleteId + "/status");
     }
 
     private static JsonNode events(JsonNode root) throws IOException {

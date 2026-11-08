@@ -54,6 +54,17 @@ public class RaceWeekend {
     @Column(name = "fastest_lap_driver_id")
     private Long fastestLapDriverId;
 
+    /** Id de ESPN de la sesión de carrera, para pedir su clasificación completa. */
+    @Column(name = "race_session_id", length = 20)
+    private String raceSessionId;
+
+    /**
+     * Clasificación completa de la carrera en JSON ({@code RaceClassificationService}); null hasta que
+     * se pide por primera vez con la carrera acabada.
+     */
+    @Column(name = "classification", columnDefinition = "text")
+    private String classification;
+
     /** Cuándo se guardaron los resultados de la carrera (podio); null mientras no hay. */
     @Column(name = "results_at")
     private Instant resultsAt;

@@ -8,6 +8,7 @@ import {
   formatMatchDate,
   isLiveFixture,
   liveLabel,
+  scoringDetailsText,
   tennisLoserSets,
   tennisPick,
   tennisPickedLoserSets,
@@ -249,7 +250,8 @@ export default function FixtureCard({
             {fixture.finished ? (scored ? '✓ ' : '✗ ') : 'Provisional · '}
             {points == null
               ? 'Sin predicción'
-              : fixture.scoringDetails || (scored ? 'Predicción acertada' : 'Fallada')}
+              : scoringDetailsText(fixture.scoringDetails, fixture.sport, scored) ||
+                (scored ? 'Predicción acertada' : 'Fallada')}
           </span>
           {!survivor && (
             <span

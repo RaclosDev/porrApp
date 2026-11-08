@@ -22,6 +22,8 @@ public class FightInfoDTO {
     /** Orden en la cartelera: 1 es la pelea estelar. */
     private Integer order;
     private String weightClass;
+    /** Título en juego («UFC Heavyweight Title»); null si no hay título. */
+    private String title;
     private Integer scheduledRounds;
     private String homeRecord;
     private String awayRecord;
@@ -30,6 +32,8 @@ public class FightInfoDTO {
     private String resultDetail;
     private Integer resultRound;
     private String resultClock;
+    /** Tarjetas de los jueces de una decisión («30-27 | 29-28 | 30-27»). */
+    private String judgesScores;
     /** "1" si ganó la esquina roja, "2" la azul; null sin ganador. */
     private String winner;
 
@@ -47,6 +51,7 @@ public class FightInfoDTO {
                 .segment(fight.getCardSegment())
                 .order(fight.getBoutOrder())
                 .weightClass(fight.getWeightClass())
+                .title(fight.getTitle())
                 .scheduledRounds(fight.getScheduledRounds())
                 .homeRecord(fight.getHomeRecord())
                 .awayRecord(fight.getAwayRecord())
@@ -54,6 +59,7 @@ public class FightInfoDTO {
                 .resultDetail(fight.getResultDetail())
                 .resultRound(fight.getResultRound())
                 .resultClock(fight.getResultClock())
+                .judgesScores(fight.getJudgesScores())
                 .winner(winner)
                 .build();
     }
