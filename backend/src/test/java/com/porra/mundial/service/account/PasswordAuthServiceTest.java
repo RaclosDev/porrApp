@@ -5,7 +5,11 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.service.account.GoogleCredentialVerifier.GoogleIdentity;
 import com.porra.mundial.service.account.SessionService.SessionTokens;
+import com.porra.mundial.repository.PendingRegistrationRepository;
+import com.porra.mundial.service.notification.EmailSender;
+import com.porra.mundial.service.notification.EmailSender.Email;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -15,19 +19,27 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Registro e inicio de sesión con email y contraseña contra Postgres real. */
 @DataJpaTest(properties = "spring.flyway.out-of-order=true")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
-@Import({PasswordAuthService.class, AuthService.class, SessionService.class, JwtUtil.class})
+@Import({PasswordAuthService.class, AuthService.class, AccountEmailThrottle.class, SessionService.class, JwtUtil.class})
 class PasswordAuthServiceTest {
 
     @Container
@@ -58,8 +70,15 @@ class PasswordAuthServiceTest {
     @MockitoBean
     private AppleCredentialVerifier appleCredentialVerifier;
 
+    /** Sin configurar (enabled() = false) salvo en las pruebas del código: el registro es inmediato. */
+    @MockitoBean
+    private EmailSender emailSender;
+
+    @Autowired
+    private PendingRegistrationRepository pendingRegistrationRepository;
+
     private SessionTokens register(String email, String password) {
-        SessionTokens session = passwordAuthService.register(email, password);
+        SessionTokens session = passwordAuthService.register(email, password).orElseThrow();
         em.flush();
         em.clear();
         return session;
@@ -162,5 +181,120 @@ class PasswordAuthServiceTest {
         assertThat(account.getAppleSub()).isEqualTo("apple-victima");
         assertThat(account.getPasswordHash()).isNull();
         assertThat(sessionService.refresh(squatter.refreshToken())).isEmpty();
+    }
+
+    /** Registra con el correo configurado y devuelve el código que llega en él. */
+    private String codeSentTo(String email, String password) {
+        reset(emailSender);
+        when(emailSender.enabled()).thenReturn(true);
+        assertThat(passwordAuthService.register(email, password)).isEmpty();
+        ArgumentCaptor<Email> sent = ArgumentCaptor.forClass(Email.class);
+        verify(emailSender).send(sent.capture());
+        assertThat(sent.getValue().to()).isEqualTo(email.trim().toLowerCase());
+        Matcher code = Pattern.compile("\\b(\\d{6})\\b").matcher(sent.getValue().text());
+        assertThat(code.find()).isTrue();
+        // El asunto acaba en los logs si el envío falla: el código no va en él.
+        assertThat(sent.getValue().subject()).doesNotContain(code.group(1));
+        em.flush();
+        em.clear();
+        return code.group(1);
+    }
+
+    private static String otherCode(String code) {
+        return code.equals("000000") ? "111111" : "000000";
+    }
+
+    @Test
+    void withEmailTheAccountIsOnlyCreatedWithTheCodeAndTheSamePassword() {
+        String code = codeSentTo(" Nuria@Test.com", "clave-de-nuria");
+        assertThat(userAccountRepository.existsByGoogleEmailIgnoreCase("nuria@test.com")).isFalse();
+        assertThat(pendingRegistrationRepository.findAll().getFirst().getCodeHash()).doesNotContain(code);
+
+        assertStatus(() -> passwordAuthService.confirmRegistration("nuria@test.com", otherCode(code), "clave-de-nuria"),
+                HttpStatus.BAD_REQUEST);
+        // Quien pidiera otro código con el mismo email no puede colar su contraseña.
+        assertStatus(() -> passwordAuthService.confirmRegistration("nuria@test.com", code, "clave-del-otro"),
+                HttpStatus.BAD_REQUEST);
+        em.flush();
+        em.clear();
+
+        SessionTokens session = passwordAuthService.confirmRegistration("NURIA@test.com ",
+                code.substring(0, 3) + " " + code.substring(3), "clave-de-nuria");
+        em.flush();
+        em.clear();
+
+        UserAccount nuria = userAccountRepository.findByGoogleEmail("nuria@test.com").orElseThrow();
+        assertThat(session.user().getId()).isEqualTo(nuria.getId());
+        assertThat(nuria.getParticipantName()).isEqualTo("nuria");
+        assertThat(pendingRegistrationRepository.count()).isZero();
+        assertThat(passwordAuthService.login("nuria@test.com", "clave-de-nuria").user().getId()).isEqualTo(nuria.getId());
+    }
+
+    @Test
+    void aCodeStopsWorkingAfterTooManyWrongTries() {
+        String code = codeSentTo("tere@test.com", "clave-de-tere");
+        for (int i = 0; i < PasswordAuthService.MAX_CODE_ATTEMPTS; i++) {
+            assertStatus(() -> passwordAuthService.confirmRegistration("tere@test.com", otherCode(code), "clave-de-tere"),
+                    HttpStatus.BAD_REQUEST);
+            em.flush();
+            em.clear();
+        }
+        assertThat(pendingRegistrationRepository.count()).isZero();
+        assertStatus(() -> passwordAuthService.confirmRegistration("tere@test.com", code, "clave-de-tere"),
+                HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void registeringAnEmailWithAnAccountAnswersTheSameAndWarnsByEmail() {
+        em.persist(UserAccount.builder().googleSub("sub-r").googleEmail("rosa@test.com").participantName("Rosa").build());
+        em.flush();
+        when(emailSender.enabled()).thenReturn(true);
+
+        assertThat(passwordAuthService.register("Rosa@test.com", "clave-de-rosa")).isEmpty();
+
+        ArgumentCaptor<Email> sent = ArgumentCaptor.forClass(Email.class);
+        verify(emailSender).send(sent.capture());
+        assertThat(sent.getValue().subject()).isEqualTo("Ya tienes cuenta en PorrApp");
+        assertThat(sent.getValue().text()).contains("Continuar con Google").doesNotContainPattern("\\b\\d{6}\\b");
+        assertThat(pendingRegistrationRepository.count()).isZero();
+    }
+
+    @Test
+    void onlyOneEmailPerMinuteGoesToTheSameAddress() {
+        codeSentTo("iker@test.com", "clave-de-iker");
+
+        assertStatus(() -> passwordAuthService.register("iker@test.com", "clave-de-iker"), HttpStatus.TOO_MANY_REQUESTS);
+        verify(emailSender, times(1)).send(any());
+    }
+
+    @Test
+    void commonPasswordsAndTheEmailItselfAreRejected() {
+        assertStatus(() -> passwordAuthService.register("comun@test.com", "Password123"), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> passwordAuthService.register("comun@test.com", "realmadrid"), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> passwordAuthService.register("comun@test.com", "aaaaaaaaaa"), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> passwordAuthService.register("alejandro.gil@test.com", "Alejandro.Gil"), HttpStatus.BAD_REQUEST);
+        verify(emailSender, never()).send(any());
+        assertThat(userAccountRepository.existsByGoogleEmailIgnoreCase("comun@test.com")).isFalse();
+    }
+
+    @Test
+    void tooManyWrongPasswordsLockTheEmailForAWhile() {
+        register("bloq@test.com", "clave-de-bloq");
+        for (int i = 0; i < PasswordAuthService.MAX_FAILED_LOGINS; i++) {
+            assertStatus(() -> passwordAuthService.login("bloq@test.com", "otra-clave"), HttpStatus.UNAUTHORIZED);
+        }
+
+        assertStatus(() -> passwordAuthService.login("BLOQ@test.com", "clave-de-bloq"), HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    @Test
+    void aGoogleAccountGetsTheSameMessageAsAWrongPassword() {
+        em.persist(UserAccount.builder().googleSub("sub-m").googleEmail("m@test.com").participantName("M").build());
+        em.flush();
+
+        assertThatThrownBy(() -> passwordAuthService.login("m@test.com", "cualquier-clave"))
+                .hasMessageContaining(PasswordAuthService.WRONG_CREDENTIALS);
+        assertThatThrownBy(() -> passwordAuthService.login("nadie@test.com", "cualquier-clave"))
+                .hasMessageContaining(PasswordAuthService.WRONG_CREDENTIALS);
     }
 }

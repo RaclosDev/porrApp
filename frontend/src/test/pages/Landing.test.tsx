@@ -50,6 +50,11 @@ describe('Landing', () => {
     expect(createButtons).toHaveLength(2);
     createButtons.forEach((button) => fireEvent.click(button));
     expect(onOpen).toHaveBeenCalledTimes(2);
+    // «Crear mi liga» abre el diálogo en «Crear tu cuenta» y lleva después a crear la liga.
+    expect((onOpen.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      intent: 'signup',
+      redirectTo: '/crear-liga',
+    });
     for (const link of screen.getAllByRole('link', { name: 'Ver una porra de ejemplo' })) {
       expect(link).toHaveAttribute('href', '/demo');
     }

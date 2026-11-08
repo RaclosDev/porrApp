@@ -37,7 +37,8 @@ import static org.mockito.Mockito.when;
 @DataJpaTest(properties = {"spring.flyway.out-of-order=true", "app.public-base-url=https://porrapp.app/"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
-@Import({PasswordResetService.class, PasswordAuthService.class, SessionService.class, JwtUtil.class})
+@Import({PasswordResetService.class, PasswordAuthService.class, AccountEmailThrottle.class, SessionService.class,
+        JwtUtil.class})
 class PasswordResetServiceTest {
 
     @Container
@@ -70,7 +71,10 @@ class PasswordResetServiceTest {
     }
 
     private SessionTokens register(String email, String password) {
-        SessionTokens session = passwordAuthService.register(email, password);
+        // Sin correo, el registro crea la cuenta al momento (sin código).
+        when(emailSender.enabled()).thenReturn(false);
+        SessionTokens session = passwordAuthService.register(email, password).orElseThrow();
+        when(emailSender.enabled()).thenReturn(true);
         em.flush();
         em.clear();
         return session;
@@ -124,15 +128,21 @@ class PasswordResetServiceTest {
     }
 
     @Test
-    void unknownEmailsAndGoogleAccountsGetNoEmail() {
+    void unknownEmailsGetNoEmailAndGoogleAccountsAreToldToUseGoogle() {
         em.persist(UserAccount.builder().googleSub("sub-g").googleEmail("g@test.com").participantName("G").build());
         em.flush();
 
-        passwordResetService.requestReset("g@test.com");
         passwordResetService.requestReset("nadie@test.com");
         passwordResetService.requestReset("   ");
-
         verify(emailSender, never()).send(any());
+
+        passwordResetService.requestReset("g@test.com");
+        passwordResetService.requestReset("g@test.com");
+        ArgumentCaptor<Email> sent = ArgumentCaptor.forClass(Email.class);
+        verify(emailSender, times(1)).send(sent.capture());
+        assertThat(sent.getValue().to()).isEqualTo("g@test.com");
+        assertThat(sent.getValue().subject()).isEqualTo("Tu cuenta de PorrApp entra con Google");
+        assertThat(sent.getValue().text()).doesNotContain("restablecer-contrasena");
         assertThat(tokenRepository.count()).isZero();
     }
 

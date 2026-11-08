@@ -26,6 +26,9 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long>,
     /** Si el email ya es de alguna cuenta, sin distinguir mayúsculas. */
     boolean existsByGoogleEmailIgnoreCase(String googleEmail);
 
+    /** La cuenta de un email sin distinguir mayúsculas (hay cuentas antiguas guardadas con ellas). */
+    Optional<UserAccount> findFirstByGoogleEmailIgnoreCase(String googleEmail);
+
     Optional<UserAccount> findByParticipantName(String participantName);
 
     /** Cuentas sin iniciar ni refrescar sesión desde {@code cutoff}. */

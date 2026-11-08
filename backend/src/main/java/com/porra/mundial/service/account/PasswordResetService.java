@@ -25,7 +25,8 @@ import java.util.Locale;
  * Recuperar la contraseña: un enlace de un solo uso al email de la cuenta.
  * <ul>
  *   <li>Pedirlo responde igual exista o no la cuenta, para no revelar qué emails están registrados.</li>
- *   <li>Solo las cuentas con contraseña reciben el enlace; las de Google o Apple entran con ellos.</li>
+ *   <li>Solo las cuentas con contraseña reciben el enlace; a las de Google o Apple se les recuerda
+ *       por correo que entran con ellos (como mucho un correo por minuto, {@link AccountEmailThrottle}).</li>
  *   <li>El enlace vive {@link #TOKEN_TTL}; pedir otro anula el anterior, y como mucho uno por minuto.</li>
  *   <li>Solo se guarda el SHA-256 del token, que va en el fragmento (#) del enlace: el navegador no
  *       lo manda al servidor, así que no queda en logs ni en el Referer.</li>
@@ -48,6 +49,7 @@ public class PasswordResetService {
     private final PasskeyRepository passkeyRepository;
     private final SessionService sessionService;
     private final EmailSender emailSender;
+    private final AccountEmailThrottle emailThrottle;
     private final String publicBaseUrl;
 
     public PasswordResetService(PasswordResetTokenRepository tokenRepository,
@@ -56,6 +58,7 @@ public class PasswordResetService {
                                 PasskeyRepository passkeyRepository,
                                 SessionService sessionService,
                                 EmailSender emailSender,
+                                AccountEmailThrottle emailThrottle,
                                 @Value("${app.public-base-url:https://porrapp.app}") String publicBaseUrl) {
         this.tokenRepository = tokenRepository;
         this.userAccountRepository = userAccountRepository;
@@ -63,10 +66,11 @@ public class PasswordResetService {
         this.passkeyRepository = passkeyRepository;
         this.sessionService = sessionService;
         this.emailSender = emailSender;
+        this.emailThrottle = emailThrottle;
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
     }
 
-    /** Manda el enlace si el email es de una cuenta con contraseña; si no, no hace nada. */
+    /** Manda el enlace a una cuenta con contraseña, el aviso de que entra con Google o Apple, o nada. */
     @Transactional
     public void requestReset(String rawEmail) {
         if (!emailSender.enabled()) {
@@ -75,7 +79,14 @@ public class PasswordResetService {
         }
         String email = rawEmail == null ? "" : rawEmail.trim().toLowerCase(Locale.ROOT);
         UserAccount user = email.isEmpty() ? null : userAccountRepository.findByGoogleEmail(email).orElse(null);
-        if (user == null || user.getPasswordHash() == null) {
+        if (user == null) {
+            return;
+        }
+        if (user.getPasswordHash() == null) {
+            if (emailThrottle.tryAcquire(email)) {
+                emailSender.send(AccountNoticeEmails.signsInWithProvider(user.getGoogleEmail(),
+                        user.getParticipantName(), AccountNoticeEmails.provider(user), publicBaseUrl));
+            }
             return;
         }
         Instant now = Instant.now();
@@ -99,7 +110,7 @@ public class PasswordResetService {
     /** Gasta el enlace, pone la contraseña nueva y abre sesión. 400 si el enlace no vale. */
     @Transactional
     public SessionTokens reset(String token, String newPassword) {
-        PasswordAuthService.validateNewPassword(newPassword);
+        PasswordPolicy.validate(newPassword, null);
         if (token == null || token.isBlank()) {
             throw invalidLink();
         }

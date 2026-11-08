@@ -4,6 +4,7 @@ import com.porra.mundial.dto.LoginResponse;
 import com.porra.mundial.dto.PasswordCredentials;
 import com.porra.mundial.dto.PasswordReset;
 import com.porra.mundial.dto.PasswordResetRequest;
+import com.porra.mundial.dto.RegistrationConfirmation;
 import com.porra.mundial.service.account.PasswordAuthService;
 import com.porra.mundial.service.account.PasswordResetService;
 import com.porra.mundial.service.account.SessionService.SessionTokens;
@@ -31,9 +32,22 @@ public class AuthPasswordController {
     private final PasswordAuthService passwordAuthService;
     private final PasswordResetService passwordResetService;
 
+    /**
+     * Empieza el registro. Con correo configurado responde 202 y manda un código al email (o el aviso
+     * de que ya tiene cuenta: la respuesta es la misma); sin correo, crea la cuenta y abre sesión.
+     */
     @PostMapping("/register")
-    public ResponseEntity<LoginResponse> register(@Valid @RequestBody PasswordCredentials request) {
-        return withSession(HttpStatus.CREATED, passwordAuthService.register(request.email(), request.password()));
+    public ResponseEntity<?> register(@Valid @RequestBody PasswordCredentials request) {
+        return passwordAuthService.register(request.email(), request.password())
+                .<ResponseEntity<?>>map(session -> withSession(HttpStatus.CREATED, session))
+                .orElseGet(() -> ResponseEntity.accepted().body(Map.of("verificationRequired", true)));
+    }
+
+    /** Termina el registro con el código del correo y la misma contraseña, y abre sesión. */
+    @PostMapping("/register/confirm")
+    public ResponseEntity<LoginResponse> confirmRegistration(@Valid @RequestBody RegistrationConfirmation request) {
+        return withSession(HttpStatus.CREATED,
+                passwordAuthService.confirmRegistration(request.email(), request.code(), request.password()));
     }
 
     @PostMapping("/login")
@@ -46,7 +60,7 @@ public class AuthPasswordController {
     public ResponseEntity<Map<String, String>> requestReset(@Valid @RequestBody PasswordResetRequest request) {
         passwordResetService.requestReset(request.email());
         return ResponseEntity.accepted().body(Map.of("message",
-                "Si hay una cuenta con contraseña con ese email, te llegará un enlace para cambiarla."));
+                "Si hay una cuenta con ese email, te llegará un correo."));
     }
 
     /** Pone la contraseña nueva con el token del enlace y abre sesión. */

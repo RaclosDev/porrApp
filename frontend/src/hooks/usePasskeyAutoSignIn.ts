@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { usePasskeySignIn } from './useGoogleSignIn';
+import { usePasskeySignIn, type SignInOptions } from './useGoogleSignIn';
 import { whenSessionRestored } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
-import { passkeysSupported } from '../utils/webauthn';
+import { conditionalPasskeysAvailable, passkeysSupported } from '../utils/webauthn';
 import { shouldOpenPasskeyAutomatically } from '../utils/passkeyPrompt';
 
 /**
@@ -16,9 +16,9 @@ import { shouldOpenPasskeyAutomatically } from '../utils/passkeyPrompt';
 export function usePasskeyAutoSignIn(
   active: boolean,
   onSignedIn?: () => void,
-  { navigateAfterLogin = true } = {},
+  options: SignInOptions = {},
 ) {
-  const passkeySignIn = usePasskeySignIn({ navigateAfterLogin });
+  const passkeySignIn = usePasskeySignIn(options);
   const tried = useRef(false);
   const latest = useRef({ passkeySignIn, onSignedIn });
   useEffect(() => {
@@ -49,4 +49,39 @@ export function usePasskeyAutoSignIn(
       if (!started) tried.current = false;
     };
   }, [active]);
+}
+
+/**
+ * Ofrece las llaves de acceso en el autocompletado del campo de email (mediación condicional), en
+ * los dispositivos donde no se abren solas: por ejemplo, una llave sincronizada desde otro.
+ * Devuelve una función para cancelarla antes de pedir la llave con el botón (el navegador solo
+ * admite una petición a la vez).
+ *
+ * @param active el formulario de entrar está a la vista
+ */
+export function useConditionalPasskey(
+  active: boolean,
+  onSignedIn?: () => void,
+  options: SignInOptions = {},
+): () => void {
+  const passkeySignIn = usePasskeySignIn(options);
+  const controller = useRef<AbortController | null>(null);
+  const latest = useRef({ passkeySignIn, onSignedIn });
+  useEffect(() => {
+    latest.current = { passkeySignIn, onSignedIn };
+  });
+
+  useEffect(() => {
+    if (!active || shouldOpenPasskeyAutomatically()) return;
+    const current = new AbortController();
+    controller.current = current;
+    void conditionalPasskeysAvailable().then(async (available) => {
+      if (!available || current.signal.aborted) return;
+      const ok = await latest.current.passkeySignIn({ conditional: true, signal: current.signal });
+      if (ok) latest.current.onSignedIn?.();
+    });
+    return () => current.abort();
+  }, [active]);
+
+  return () => controller.current?.abort();
 }

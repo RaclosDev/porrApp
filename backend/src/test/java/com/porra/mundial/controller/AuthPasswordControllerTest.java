@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.verify;
@@ -63,13 +64,36 @@ class AuthPasswordControllerTest {
 
     @Test
     void registeringReturnsTheSessionAndTheRefreshCookie() throws Exception {
-        when(passwordAuthService.register("marta@test.com", "una-clave-larga")).thenReturn(tokens());
+        when(passwordAuthService.register("marta@test.com", "una-clave-larga")).thenReturn(Optional.of(tokens()));
 
         mockMvc.perform(post("/api/auth/password/register").header(HttpHeaders.ORIGIN, APP_ORIGIN)
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").value("access-9"))
                 .andExpect(jsonPath("$.participantName").value("marta"))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refresh-9")));
+    }
+
+    @Test
+    void withEmailRegisteringOnlyAsksForTheCode() throws Exception {
+        when(passwordAuthService.register("marta@test.com", "una-clave-larga")).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/auth/password/register").header(HttpHeaders.ORIGIN, APP_ORIGIN)
+                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.verificationRequired").value(true))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+    }
+
+    @Test
+    void theCodeFinishesTheRegistrationAndOpensASession() throws Exception {
+        when(passwordAuthService.confirmRegistration("marta@test.com", "123456", "una-clave-larga")).thenReturn(tokens());
+
+        mockMvc.perform(post("/api/auth/password/register/confirm").header(HttpHeaders.ORIGIN, APP_ORIGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"marta@test.com\",\"code\":\"123456\",\"password\":\"una-clave-larga\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.token").value("access-9"))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refresh-9")));
     }
 
