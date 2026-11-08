@@ -1,7 +1,9 @@
 package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.GrandPrixBoardDTO;
+import com.porra.mundial.dto.FormulaOneStandingsDTO;
 import com.porra.mundial.dto.GrandPrixPickRequest;
+import com.porra.mundial.service.formulaone.FormulaOneStandingsService;
 import com.porra.mundial.service.formulaone.GrandPrixService;
 import com.porra.mundial.service.notification.WebSocketService;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.security.Principal;
 import java.util.List;
 
-/** Ligas de Fórmula 1: Grandes Premios, predicción de podio, pole y vuelta rápida y las de la liga. */
+/** Ligas de Fórmula 1: Grandes Premios, predicción de podio, pole y vuelta rápida, las de la liga y el Mundial. */
 @RestController
 @RequestMapping("/api/grand-prix")
 @RequiredArgsConstructor
@@ -24,10 +26,18 @@ public class GrandPrixController {
 
     private final GrandPrixService grandPrixService;
     private final WebSocketService webSocketService;
+    private final FormulaOneStandingsService standingsService;
 
     @GetMapping
     public GrandPrixBoardDTO board(@RequestParam Long groupId, Principal principal) {
         return grandPrixService.board(CurrentUser.email(principal), groupId);
+    }
+
+    /** Mundial de pilotos y de constructores (el mismo para todas las ligas de Fórmula 1). */
+    @GetMapping("/standings")
+    public FormulaOneStandingsDTO standings(@RequestParam Long groupId, Principal principal) {
+        grandPrixService.assertGrandPrixLeague(CurrentUser.email(principal), groupId);
+        return standingsService.standings();
     }
 
     @PutMapping("/{matchId}")

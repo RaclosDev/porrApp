@@ -10,6 +10,7 @@ import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueSta
 import type { LeagueKind } from '../context/leagueKind';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
+import FormulaOneStandings from '../components/grandPrix/FormulaOneStandings';
 import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
 import {
   formatWinShare,
@@ -19,7 +20,10 @@ import {
   NFL_PLAYOFF_SPOTS,
 } from '../utils/nflStandings';
 
-/** «Tabla»: la clasificación de la competición; en la UFC, la cartelera, y en el tenis, el cuadro. */
+/**
+ * «Tabla»: la clasificación de la competición; en la UFC, la cartelera; en el tenis, el cuadro, y en la
+ * Fórmula 1, el Mundial.
+ */
 export default function LeagueStandings() {
   const { leagueKind, groupError } = useAppContext();
   const views: Record<LeagueKind, ReactNode> = {
@@ -36,7 +40,8 @@ export default function LeagueStandings() {
     customBracket: <Navigate to="/bracket" replace />,
     ownBracket: <Navigate to="/bracket" replace />,
     knockoutDraw: <Navigate to="/bracket" replace />,
-    grandPrix: <Navigate to="/" replace />,
+    // En la Fórmula 1, el Mundial de pilotos y de constructores.
+    grandPrix: <FormulaOneStandings />,
   };
   return views[leagueKind];
 }
