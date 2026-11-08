@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react';
 import ScoringRulesPanel from '../league/ScoringRulesPanel';
 import type { LeagueScoring } from '../../types/api';
-import { DEFAULT_SCORING_RULES, SCORING_MAX_POINTS, toDraft } from '../../utils/scoringRules';
+import { SCORING_MAX_POINTS, defaultScoringRules, toDraft } from '../../utils/scoringRules';
 import type { LockUnit } from '../groups/custom/lockModes';
 import {
   FIELD_IDS,
@@ -114,6 +114,7 @@ function LockSection({ draft, update, errors, ctx }: StepProps) {
 
 function ScoringSection({ draft, update, errors, ctx }: StepProps) {
   if (!scoringEditable(draft)) return null;
+  const defaults = defaultScoringRules(draft.sport);
   const scoring: LeagueScoring = {
     poolFormat: draft.poolFormat,
     pichichi: draft.pichichi,
@@ -122,8 +123,8 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
     sport: draft.sport === 'OTHER' ? null : draft.sport,
     editable: draft.customScoring,
     maxPoints: SCORING_MAX_POINTS,
-    rules: DEFAULT_SCORING_RULES,
-    defaults: DEFAULT_SCORING_RULES,
+    rules: defaults,
+    defaults,
   };
   return (
     <div
@@ -173,7 +174,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
         <button
           type="button"
           className="glass-btn create-league-small-btn"
-          onClick={() => update({ scoring: toDraft(DEFAULT_SCORING_RULES) })}
+          onClick={() => update({ scoring: toDraft(defaults) })}
         >
           <RotateCcw size={14} aria-hidden="true" />
           Volver a los valores por defecto

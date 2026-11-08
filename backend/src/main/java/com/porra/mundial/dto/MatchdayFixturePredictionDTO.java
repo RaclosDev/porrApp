@@ -35,6 +35,10 @@ public class MatchdayFixturePredictionDTO {
     private Integer actualHomeScore;
     private Integer actualAwayScore;
     private String displayClock;
+    /** Tenis: sets que hay que ganar (2 o 3); null en el resto de deportes. */
+    private Integer setsToWin;
+    /** Tenis: quién ha ganado ("1" o "2"), también tras una retirada o un W.O., que no tienen marcador. */
+    private String winnerSign;
 
     // Pronóstico del usuario
     private Integer predHomeScore;

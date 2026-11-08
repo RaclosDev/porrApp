@@ -9,6 +9,7 @@ import com.porra.mundial.repository.*;
 import com.porra.mundial.scoring.MatchScoreResult;
 import com.porra.mundial.scoring.MatchScoringCalculator;
 import com.porra.mundial.scoring.ScoringRuleSet;
+import com.porra.mundial.scoring.TennisScoring;
 import com.porra.mundial.util.MatchRound;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -161,8 +162,8 @@ public class MatchPredictionService {
                 scoringDetails = mp.getScoringDetails();
 
                 // Si el partido está terminado o tiene marcador oficial y no se había evaluado
-                if (hasScorableResult(match)
-                        && match.getHomeScore() != null && match.getAwayScore() != null) {
+                if (TennisScoring.applies(match) ? TennisScoring.decided(match)
+                        : hasScorableResult(match) && match.getHomeScore() != null && match.getAwayScore() != null) {
                     MatchScoreResult scoreResult = scorePrediction(mp, match, rules);
                     pointsAwarded = scoreResult.totalPoints();
                     isExact = scoreResult.exactScore();
@@ -171,8 +172,11 @@ public class MatchPredictionService {
                 }
             }
 
+            boolean tennis = TennisScoring.applies(match);
             result.add(MatchdayFixturePredictionDTO.builder()
                     .matchId(match.getId())
+                    .setsToWin(tennis ? TennisScoring.setsToWin(match.getCompetition()) : null)
+                    .winnerSign(tennis ? TennisScoring.winnerSign(match) : null)
                     .homeTeam(match.getHomeTeam() != null ? match.getHomeTeam().getName() : Team.PLACEHOLDER_NAME)
                     .awayTeam(match.getAwayTeam() != null ? match.getAwayTeam().getName() : Team.PLACEHOLDER_NAME)
                     .homeTeamId(match.getHomeTeam() != null ? match.getHomeTeam().getId() : null)
@@ -365,6 +369,7 @@ public class MatchPredictionService {
             if (!Set.of("1", "X", "2").contains(sign == null ? "" : sign)) {
                 throw BusinessException.badRequest("La predicción debe incluir un marcador completo o un signo 1, X o 2.");
             }
+            if (TennisScoring.applies(match)) checkTennisPick(match, item, sign);
             if ("X".equals(sign) && !Sport.allowsDraws(match)) {
                 throw BusinessException.badRequest("En este deporte se predice quién gana: no hay empate.");
             }
@@ -411,7 +416,9 @@ public class MatchPredictionService {
     public void evaluatePredictionsForMatch(Match match) {
         if (match == null || !hasScorableResult(match) || match.getId() == null) return;
         invalidateSurvivorEditions(match);
-        if (match.getHomeScore() == null || match.getAwayScore() == null) return;
+        // En tenis solo puntúa el partido terminado; una retirada o un W.O. tienen ganador sin marcador.
+        if (TennisScoring.applies(match) ? !TennisScoring.decided(match)
+                : match.getHomeScore() == null || match.getAwayScore() == null) return;
 
         List<MatchPrediction> predictions = matchPredictionRepository.findByMatchId(match.getId());
         Set<Prediction> affectedPredictions = new HashSet<>();
@@ -466,7 +473,8 @@ public class MatchPredictionService {
         for (MatchPrediction mp : matchPredictionRepository.findWithMatchByPredictionEditionId(edition.getId())) {
             Match match = mp.getMatch();
             if (match == null || !Boolean.TRUE.equals(match.getFinished())
-                    || match.getHomeScore() == null || match.getAwayScore() == null) {
+                    || (TennisScoring.applies(match) ? !TennisScoring.decided(match)
+                            : match.getHomeScore() == null || match.getAwayScore() == null)) {
                 continue;
             }
             applyScore(mp, scorePrediction(mp, match, rules));
@@ -538,6 +546,17 @@ public class MatchPredictionService {
         }
     }
 
+    /** Tenis: no hay empate y, si se dan los sets, tienen que ser un resultado posible (2-1, 3-0…). */
+    private static void checkTennisPick(Match match, MatchPredictionItemDTO item, String sign) {
+        if ("X".equals(sign)) {
+            throw BusinessException.badRequest("En tenis no hay empate: elige quién gana.");
+        }
+        if (item.getHomeScore() != null && item.getAwayScore() != null && !TennisScoring.validSets(
+                item.getHomeScore(), item.getAwayScore(), TennisScoring.setsToWin(match.getCompetition()))) {
+            throw BusinessException.badRequest("Ese resultado en sets no es posible en este partido.");
+        }
+    }
+
     private static boolean isSurvivor(MatchPrediction prediction) {
         return prediction.getPrediction() != null && prediction.getPrediction().getEdition() != null
                 && prediction.getPrediction().getEdition().getPoolFormat() == PoolFormat.SURVIVOR;
@@ -548,6 +567,10 @@ public class MatchPredictionService {
             return SurvivorRules.score(prediction.getPredictionSign(), match.getHomeScore(), match.getAwayScore(),
                     SurvivorRules.pickedTeam(prediction.getPredictionSign(), match),
                     SurvivorRules.Settings.of(prediction.getPrediction().getEdition()));
+        }
+        if (TennisScoring.applies(match)) {
+            return TennisScoring.score(prediction.getPredictionSign(), prediction.getHomeScore(),
+                    prediction.getAwayScore(), match, rules);
         }
         if (prediction.getHomeScore() == null && prediction.getAwayScore() == null) {
             return matchScoringCalculator.calculateSign(prediction.getPredictionSign(), match.getHomeScore(), match.getAwayScore(), rules);

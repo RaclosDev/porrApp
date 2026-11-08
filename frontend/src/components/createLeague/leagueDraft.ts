@@ -1,8 +1,8 @@
 import type { CreateGroupRequest, CustomLockMode } from '../../services/api';
 import type { Competition, PoolFormat, Sport } from '../../types/api';
 import {
-  DEFAULT_SCORING_RULES,
   SCORING_MAX_POINTS,
+  defaultScoringRules,
   draftToRules,
   sameRules,
   toDraft,
@@ -54,6 +54,7 @@ export const SPORT_LABELS: Record<SportChoice, string> = {
   FORMULA_1: 'Fórmula 1',
   BASKETBALL: 'Baloncesto',
   AMERICAN_FOOTBALL: 'Fútbol americano',
+  TENNIS: 'Tenis',
   OTHER: 'Otro deporte',
 };
 
@@ -68,7 +69,37 @@ const competitionSport = (competition: Competition): Sport =>
         ? 'BASKETBALL'
         : competition.externalId === 'nfl'
           ? 'AMERICAN_FOOTBALL'
-          : 'FOOTBALL');
+          : competition.externalId?.startsWith('tennis.')
+            ? 'TENNIS'
+            : 'FOOTBALL');
+
+/** Cuadro de un torneo de tenis que entra en la liga. */
+export type TennisDraw = 'MEN' | 'WOMEN' | 'BOTH';
+
+export const TENNIS_DRAW_LABELS: Record<TennisDraw, string> = {
+  MEN: 'Masculino',
+  WOMEN: 'Femenino',
+  BOTH: 'Los dos',
+};
+
+/** Cuadro de tenis de un torneo (por su id en ESPN), si existe y no ha terminado. */
+const tennisCompetition = (
+  ctx: DraftContext,
+  tournamentId: number,
+  draw: 'MEN' | 'WOMEN',
+): Competition | undefined =>
+  ctx.competitions.find(
+    (item) =>
+      item.tennis?.tournamentId === tournamentId && item.tennis.draw === draw && !item.finished,
+  );
+
+/** Cuadros que se pueden elegir en un torneo: los dos solo si tiene cuadro femenino. */
+export function tennisDrawChoices(ctx: DraftContext, tournamentId: number): TennisDraw[] {
+  const men = tennisCompetition(ctx, tournamentId, 'MEN');
+  const women = tennisCompetition(ctx, tournamentId, 'WOMEN');
+  if (men && women) return ['MEN', 'WOMEN', 'BOTH'];
+  return women ? ['WOMEN'] : ['MEN'];
+}
 
 /** Competiciones en las que aún se puede crear una liga: las terminadas no se ofrecen. */
 const openCompetitions = (ctx: DraftContext) => ctx.competitions.filter((item) => !item.finished);
@@ -107,6 +138,8 @@ export interface LeagueDraft {
   matches: SelectionValue;
   /** Competición a la que pertenecen los partidos elegidos: si cambia, se vuelve a todos. */
   matchesCompetitionId: number | null;
+  /** Tenis: qué cuadros del torneo entran (la competición elegida es la masculina si son los dos). */
+  tennisDraw: TennisDraw;
   entryFee: boolean;
   name: string;
   rules: string;
@@ -127,10 +160,11 @@ export const emptyDraft = (): LeagueDraft => ({
   lockUnit: 'hours',
   lockDate: '',
   customScoring: false,
-  scoring: toDraft(DEFAULT_SCORING_RULES),
+  scoring: toDraft(defaultScoringRules(null)),
   pichichi: false,
   matches: ALL_MATCHES,
   matchesCompetitionId: null,
+  tennisDraw: 'MEN',
   entryFee: false,
   name: '',
   rules: '',
@@ -189,6 +223,12 @@ const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
   },
 };
 
+/** Un torneo de tenis se juega partido a partido, desde octavos. */
+const TENNIS_COPY = {
+  title: 'Partido a partido',
+  text: 'Desde octavos eliges quién gana cada partido y, si te atreves, en cuántos sets. Cada ronda vale más que la anterior y cada partido se cierra al empezar.',
+};
+
 /** Solo eliminatorias en una competición que las sortea ronda a ronda (Champions, Copa del Rey…). */
 const KNOCKOUT_DRAW_COPY = {
   title: 'Solo eliminatorias',
@@ -223,6 +263,7 @@ const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
 
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
+  if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)) return KNOCKOUT_DRAW_COPY;
   return (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) || FORMAT_COPY[format];
@@ -234,6 +275,9 @@ export function formatUnavailableReason(
   draft: LeagueDraft,
   ctx: DraftContext,
 ): string | null {
+  if (draft.sport === 'TENNIS' && format !== 'MATCH_DAY') {
+    return 'En tenis se predice partido a partido.';
+  }
   if (format === 'SURVIVOR' && draft.custom) {
     // Sin resultados automáticos no se sabría quién cae.
     return 'Necesita una competición oficial: los resultados llegan solos y así se sabe quién cae.';
@@ -310,7 +354,29 @@ export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
 
 /** Elegir partidos: solo en una liga por jornadas sobre una competición oficial. */
 export const matchSelectionApplies = (draft: LeagueDraft, ctx: DraftContext) =>
-  !draft.custom && draft.poolFormat === 'MATCH_DAY' && selectedCompetition(draft, ctx) != null;
+  !draft.custom &&
+  draft.sport !== 'TENNIS' &&
+  draft.poolFormat === 'MATCH_DAY' &&
+  selectedCompetition(draft, ctx) != null;
+
+/**
+ * Tenis: la competición del cuadro elegido. Con los dos cuadros, la masculina es la principal y la
+ * femenina entra como segunda competición de la liga.
+ */
+function normalizeTennis(next: LeagueDraft, ctx: DraftContext) {
+  const tennis = ctx.competitions.find((item) => item.id === next.competitionId)?.tennis;
+  if (!tennis) return;
+  const choices = tennisDrawChoices(ctx, tennis.tournamentId);
+  if (!choices.includes(next.tennisDraw)) next.tennisDraw = choices[0];
+  const wanted = tennisCompetition(
+    ctx,
+    tennis.tournamentId,
+    next.tennisDraw === 'WOMEN' ? 'WOMEN' : 'MEN',
+  );
+  next.competitionId = wanted?.id ?? null;
+  // En tenis no hay otro modo de juego: queda elegido.
+  next.poolFormat = 'MATCH_DAY';
+}
 
 /** Con el formato elegido, la puntuación se puede personalizar (en superviviente: puntos, vidas y empate). */
 export const scoringEditable = (draft: LeagueDraft) => draft.poolFormat != null;
@@ -332,6 +398,7 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   if (chosen && (competitionSport(chosen) !== next.sport || chosen.finished))
     next.competitionId = null;
   if (next.custom) next.competitionId = null;
+  if (next.sport === 'TENNIS') normalizeTennis(next, ctx);
   if (next.poolFormat && formatUnavailableReason(next.poolFormat, next, ctx))
     next.poolFormat = null;
   // Un solo modo posible (la Fórmula 1): queda elegido.
@@ -355,6 +422,11 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
     next.matchesCompetitionId = next.competitionId;
   }
   if (!scoringEditable(next)) next.customScoring = false;
+  // Sin personalizar, la puntuación es la del deporte (la del tenis no es la del fútbol).
+  if (!next.customScoring) {
+    const defaults = toDraft(defaultScoringRules(next.sport));
+    if (JSON.stringify(defaults) !== JSON.stringify(next.scoring)) next.scoring = defaults;
+  }
   return next;
 }
 
@@ -452,7 +524,7 @@ export function firstIncompleteStep(draft: LeagueDraft, ctx: DraftContext, now?:
 export function customScoringRules(draft: LeagueDraft) {
   if (!draft.customScoring || !scoringEditable(draft)) return undefined;
   const rules = draftToRules(draft.scoring, SCORING_MAX_POINTS);
-  return rules && !sameRules(rules, DEFAULT_SCORING_RULES) ? rules : undefined;
+  return rules && !sameRules(rules, defaultScoringRules(draft.sport)) ? rules : undefined;
 }
 
 /** Petición de creación; da por hecho que todos los pasos son válidos. */
@@ -470,6 +542,13 @@ export function buildCreateRequest(draft: LeagueDraft, ctx: DraftContext): Creat
   if (draft.entryFee) request.entryFee = true;
   if (matchSelectionApplies(draft, ctx) && draft.matches.mode !== 'ALL') {
     request.matchSelection = toRequest(draft.matches);
+  }
+  const women =
+    competition?.tennis && draft.tennisDraw === 'BOTH'
+      ? tennisCompetition(ctx, competition.tennis.tournamentId, 'WOMEN')
+      : undefined;
+  if (competition && women) {
+    request.matchSelection = { mode: 'ALL', competitionIds: [competition.id, women.id] };
   }
   const scoring = customScoringRules(draft);
   if (scoring) request.scoring = scoring;
@@ -539,6 +618,7 @@ export function readStoredDraft(): LeagueDraft {
           'FORMULA_1',
           'BASKETBALL',
           'AMERICAN_FOOTBALL',
+          'TENNIS',
           'OTHER',
         ].includes(value as string),
       ),
@@ -558,6 +638,7 @@ export function readStoredDraft(): LeagueDraft {
       pichichi: pick('pichichi', isBool),
       matches,
       matchesCompetitionId: pick('matchesCompetitionId', (value) => typeof value === 'number'),
+      tennisDraw: pick('tennisDraw', (value) => ['MEN', 'WOMEN', 'BOTH'].includes(value as string)),
       entryFee: pick('entryFee', isBool),
       name: pick('name', isString),
       rules: pick('rules', isString),
