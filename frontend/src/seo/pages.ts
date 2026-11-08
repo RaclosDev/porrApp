@@ -99,7 +99,7 @@ const HOW_IT_WORKS_FAQ: FaqEntry[] = [
   {
     question: '¿Cómo invito a mis amigos?',
     answer:
-      'Cada liga tiene un enlace de invitación. Lo mandas por WhatsApp o donde queráis, tus amigos lo abren, entran con Google o con su email y ya están dentro.',
+      'Cada liga tiene un enlace y un código de invitación. Mandas el enlace por WhatsApp o donde queráis, tus amigos lo abren, entran con Google o con su email y ya están dentro. Si alguien ya tiene cuenta, también puede unirse con el código desde «Unirse con código».',
   },
   {
     question: '¿Hay que instalar algo?',
@@ -135,6 +135,7 @@ export const CONTENT_PAGES: ContentPage[] = [
         heading: 'Invita a tus amigos',
         paragraphs: [
           'Comparte el enlace de invitación por WhatsApp o por donde soléis hablar. Al abrirlo, cada uno entra con Google o con su email y queda unido a la liga.',
+          'Si alguien ya tiene cuenta en PorrApp, le basta el código de invitación: lo escribe en «Unirse con código», desde el selector de liga o desde Mis ligas.',
         ],
       },
       {
