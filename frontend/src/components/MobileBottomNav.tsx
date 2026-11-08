@@ -3,6 +3,15 @@ import { NavLink, matchPath, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { leagueNavItems } from './layout/leagueNav';
 
+/**
+ * Pulsar la pestaña en la que ya se está sube al principio de la página, como en otras apps.
+ * La página hace scroll en la ventana; con movimiento reducido, el salto es instantáneo.
+ */
+function scrollToTop() {
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+
 /** Navegación inferior en móvil (hasta 768 px); el resalte se desliza a la pestaña activa. */
 export default function MobileBottomNav() {
   const { leagueKind, isAuthenticated, userGroups, userGroupsLoaded, isDemoMode } = useAppContext();
@@ -69,6 +78,13 @@ export default function MobileBottomNav() {
             key={item.to}
             to={item.to}
             end={item.end}
+            onClick={(event) => {
+              // Solo en la raíz de la pestaña: desde una subpágina (una liga dentro de «Mis
+              // Ligas», por ejemplo) la pestaña sigue llevando a su raíz.
+              if (!matchPath({ path: item.to, end: true }, pathname)) return;
+              event.preventDefault();
+              scrollToTop();
+            }}
             className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}
             style={({ isActive }) => ({
               position: 'relative',
