@@ -174,6 +174,98 @@ class CompetitionServiceTest {
         verifyNoInteractions(matches);
     }
 
+    @Test
+    void everyEspnGroupKeepsItsTitleAndItsOwnRanks() throws Exception {
+        when(competitions.findById(8L)).thenReturn(Optional.of(
+                Competition.builder().id(8L).externalId("conmebol.libertadores").build()));
+        when(espn.fetchStandings("conmebol.libertadores")).thenReturn(json("""
+                {"children": [
+                  {"name": "Group A", "standings": {"entries": [
+                    {"team": {"displayName": "Flamengo"}, "stats": [{"name": "rank", "value": 2}, {"name": "points", "value": 9}]},
+                    {"team": {"displayName": "Estudiantes"}, "stats": [{"name": "rank", "value": 1}, {"name": "points", "value": 12}]}
+                  ]}},
+                  {"name": "Group B", "standings": {"entries": [
+                    {"team": {"displayName": "River Plate"}, "stats": [{"name": "rank", "value": 1}, {"name": "points", "value": 13}]},
+                    {"team": {"displayName": "Universitario"}, "stats": [{"name": "rank", "value": 2}, {"name": "points", "value": 7}]}
+                  ]}}
+                ]}"""));
+
+        List<LeagueStandingDTO> table = service.getStandings(8L);
+
+        assertThat(table).extracting(LeagueStandingDTO::getGroup)
+                .containsExactly("Grupo A", "Grupo A", "Grupo B", "Grupo B");
+        assertThat(table).extracting(LeagueStandingDTO::getTeamName)
+                .containsExactly("Estudiantes", "Flamengo", "River Plate", "Universitario");
+        assertThat(table).extracting(LeagueStandingDTO::getRank).containsExactly(1, 2, 1, 2);
+        verifyNoInteractions(matches);
+    }
+
+    @Test
+    void aSingleLeaguePhaseHasNoGroupTitle() throws Exception {
+        when(competitions.findById(9L)).thenReturn(Optional.of(
+                Competition.builder().id(9L).externalId("uefa.champions").build()));
+        when(espn.fetchStandings("uefa.champions")).thenReturn(json("""
+                {"children": [{"name": "League Phase", "standings": {"entries": [
+                  {"team": {"displayName": "Arsenal"}, "stats": [{"name": "rank", "value": 1}, {"name": "points", "value": 12}]},
+                  {"team": {"displayName": "Bayern"}, "stats": [{"name": "rank", "value": 2}, {"name": "points", "value": 10}]}
+                ]}}]}"""));
+
+        List<LeagueStandingDTO> table = service.getStandings(9L);
+
+        assertThat(table).extracting(LeagueStandingDTO::getTeamName).containsExactly("Arsenal", "Bayern");
+        assertThat(table).extracting(LeagueStandingDTO::getGroup).containsOnlyNulls();
+    }
+
+    @Test
+    void espnGroupNamesAreShownInSpanish() {
+        assertThat(CompetitionService.groupTitle("Group H")).isEqualTo("Grupo H");
+        assertThat(CompetitionService.groupTitle("Eastern Conference")).isEqualTo("Conferencia Este");
+        assertThat(CompetitionService.groupTitle("Western Conference")).isEqualTo("Conferencia Oeste");
+        assertThat(CompetitionService.groupTitle("Apertura")).isEqualTo("Apertura");
+    }
+
+    @Test
+    void theLolTableSplitsPlayInAndSwissByWinLossAndLeavesOutTheKnockouts() {
+        when(competitions.findById(10L)).thenReturn(Optional.of(
+                Competition.builder().id(10L).externalId("lol.worlds").formatType("TOURNAMENT").build()));
+        when(matches.findByCompetitionId(10L)).thenReturn(List.of(
+                series("playin", "KC", "C9", 3, 2),
+                series("playin", "MVK", "FURIA", 3, 0),
+                series("playin", "KC", "MVK", 3, 0),
+                series("group", "T1", "G2", 1, 0),
+                series("group", "KC", "T1", 1, 0),
+                series("group", "G2", "KC", 0, 1),
+                series("group", "T1", "G2", 2, 1),
+                series("qf", "KC", "T1", 3, 1),
+                Match.builder().round("group").homeTeam(team("G2")).awayTeam(team("KC")).build()));
+
+        List<LeagueStandingDTO> table = service.getStandings(10L);
+
+        assertThat(table).extracting(LeagueStandingDTO::getGroup).containsExactly(
+                "Play-in", "Play-in", "Play-in", "Play-in", "Fase suiza", "Fase suiza", "Fase suiza");
+        assertThat(table).extracting(LeagueStandingDTO::getTeamName)
+                .containsExactly("KC", "MVK", "C9", "FURIA", "KC", "T1", "G2");
+        assertThat(table).extracting(row -> row.getWins() + "-" + row.getLosses())
+                .containsExactly("2-0", "1-1", "0-1", "0-1", "2-0", "2-1", "0-3");
+        assertThat(table).extracting(LeagueStandingDTO::getRank).containsExactly(1, 2, 3, 4, 1, 2, 3);
+        // Sin puntos de fútbol: los puntos son las victorias y nunca hay empates.
+        assertThat(table).allSatisfy(row -> {
+            assertThat(row.getPoints()).isEqualTo(row.getWins());
+            assertThat(row.getTies()).isZero();
+        });
+        verifyNoInteractions(espn);
+    }
+
+    private static Match series(String round, String home, String away, int homeGames, int awayGames) {
+        Match match = result(home, away, homeGames, awayGames);
+        match.setRound(round);
+        return match;
+    }
+
+    private static tools.jackson.databind.JsonNode json(String body) {
+        return tools.jackson.databind.json.JsonMapper.builder().build().readTree(body);
+    }
+
     private static Match result(String home, String away, int homeGoals, int awayGoals) {
         return Match.builder().homeTeam(team(home)).awayTeam(team(away))
                 .homeScore(homeGoals).awayScore(awayGoals).finished(true).build();

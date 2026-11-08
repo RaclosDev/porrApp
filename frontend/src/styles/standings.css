@@ -82,6 +82,25 @@
     overflow-x: auto;
   }
 
+  .standings-group + .standings-group {
+    border-top: 1px solid var(--border-color);
+  }
+
+  .standings-group-title {
+    margin: 0;
+    padding: 12px 16px 6px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-main);
+  }
+
+  .standings-legend-note a {
+    color: var(--accent-cyan);
+    font-weight: 800;
+  }
+
   .standings-table {
     width: 100%;
     border-collapse: collapse;

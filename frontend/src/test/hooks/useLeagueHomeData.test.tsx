@@ -112,4 +112,29 @@ describe('useLeagueHomeData', () => {
     expect(result.current.matches.allTo).toBe('/radar');
     expect(api.fetchMatchdayFixtures).not.toHaveBeenCalled();
   });
+
+  it('con varias tablas la portada enseña una: el primer grupo o la última fase del LoL', async () => {
+    const row = { teamLogo: null, gamesPlayed: 4, points: 3, wins: 3, losses: 1, ties: 0 };
+    vi.mocked(api.fetchCompetitionStandings).mockResolvedValue([
+      { ...row, group: 'Play-in', teamName: 'Karmine Corp', rank: 1 },
+      { ...row, group: 'Fase suiza', teamName: 'Gen.G', rank: 1 },
+      { ...row, group: 'Fase suiza', teamName: 'T1', rank: 2, wins: 3, losses: 2 },
+    ] as never);
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '5',
+        activeCompetitionId: 3,
+        activeCompetitionExternalId: 'lol.worlds',
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
+        allGames: [competitionMatch(91, 'group', '2099-11-08T21:00:00+01:00')],
+      }),
+    );
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    await waitFor(() => expect(result.current.standings?.rows).toHaveLength(2));
+    expect(result.current.standings?.title).toBe('Tabla · Fase suiza');
+    expect(result.current.standings?.rows.map((r) => r.value)).toEqual(['3-1', '3-2']);
+  });
 });

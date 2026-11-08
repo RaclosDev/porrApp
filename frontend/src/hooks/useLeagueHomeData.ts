@@ -10,6 +10,7 @@ import {
 import { queryKeys } from '../services/queryKeys';
 import { computeCustomGroupTables } from '../utils/customBracket';
 import { KNOCKOUT_ROUNDS, computeSwissStandings } from '../utils/officialTournament';
+import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
 import { normalizeCountryName } from '../utils/constants';
 import {
   currentRoundMatches,
@@ -106,6 +107,7 @@ export function useLeagueHomeData(): LeagueHomeData {
   const ufc = leagueKind === 'fightCard';
   // La NFL no da puntos: se enseña el balance de victorias y derrotas.
   const winLoss = activeCompetitionExternalId === 'nfl';
+  const lol = isLolCompetition(activeCompetitionExternalId);
   // En el tenis, igual: su tabla es el cuadro del torneo.
   const tennis = leagueKind === 'tennisDraw';
   // En unas eliminatorias (Champions…) la fase de liga no se pronostica: la portada enseña los cruces.
@@ -161,6 +163,10 @@ export function useLeagueHomeData(): LeagueHomeData {
 
   const data = useMemo<Omit<LeagueHomeData, 'loading'>>(() => {
     const logos = logosOf(allGames);
+    // Con varias tablas (grupos de la Libertadores, fases del LoL) la portada enseña una: la primera, o
+    // en el LoL la fase más reciente.
+    const tables = groupStandings(leagueStandings ?? []);
+    const miniTable = lol ? tables[tables.length - 1] : tables[0];
 
     if (format === 'matchday') {
       const { round, matches } = currentRoundMatches(ownMatches ? (leagueGames ?? []) : allGames);
@@ -188,20 +194,21 @@ export function useLeagueHomeData(): LeagueHomeData {
                 : 'No hay partidos programados para esta jornada.',
         },
         standings:
-          !activeGroupMultiCompetition && leagueStandings?.length
+          !activeGroupMultiCompetition && miniTable
             ? {
-                title: 'Tabla',
+                title: miniTable.title ? `Tabla · ${miniTable.title}` : 'Tabla',
                 to: '/tabla',
-                rows: leagueStandings.slice(0, MINI_TABLE_SIZE).map((team) => ({
+                rows: miniTable.rows.slice(0, MINI_TABLE_SIZE).map((team) => ({
                   team: team.teamName,
                   rank: team.rank,
                   name: team.teamName,
                   logo: team.teamLogo,
                   detail: `${team.gamesPlayed} PJ`,
-                  // En la NFL no hay puntos: se enseña el balance de victorias y derrotas.
-                  value: winLoss
-                    ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}`
-                    : `${team.points} pts`,
+                  // En la NFL y el LoL no hay puntos: se enseña el balance de victorias y derrotas.
+                  value:
+                    winLoss || lol
+                      ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}`
+                      : `${team.points} pts`,
                 })),
               }
             : null,
@@ -284,6 +291,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     knockoutDraw,
     activeGroupMultiCompetition,
     winLoss,
+    lol,
     tennis,
   ]);
 
