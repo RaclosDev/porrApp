@@ -13,6 +13,7 @@ import com.porra.mundial.service.tournament.KnockoutBracketService;
 import com.porra.mundial.service.tournament.StandingsService;
 import com.porra.mundial.service.sync.CompetitionImportService;
 import com.porra.mundial.service.sync.SyncService;
+import com.porra.mundial.sports.TennisTournaments;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -69,6 +70,11 @@ public class DataInitializer implements CommandLineRunner {
         seedCompetitionIfMissing("Worlds de League of Legends", "lol.worlds", "TOURNAMENT");
         seedCompetitionIfMissing("UFC", UfcDataProvider.COMPETITION_ID, Competition.EVENTS_FORMAT);
         seedCompetitionIfMissing("NBA", Competition.NBA_EXTERNAL_ID, "TOURNAMENT");
+        for (TennisTournaments.Tournament tournament : TennisTournaments.ALL) {
+            for (TennisTournaments.Draw draw : tournament.draws()) {
+                seedCompetitionIfMissing(tournament.competitionName(draw), tournament.externalId(draw), "TOURNAMENT");
+            }
+        }
 
         seedWorldCupTeamsIfMissing();
 

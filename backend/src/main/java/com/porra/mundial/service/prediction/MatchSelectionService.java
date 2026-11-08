@@ -258,7 +258,7 @@ public class MatchSelectionService {
         Instant now = Instant.now();
         List<MatchSelectionDTO.Item> items = sorted(calendar).stream()
                 .map(match -> MatchSelectionDTO.Item.of(match,
-                        multi ? MatchRound.weekLabel(match) : MatchRound.label(match), true,
+                        multi ? MatchRound.multiCompetitionLabel(match) : MatchRound.label(match), true,
                         startedOrClosed(match, null, now), 0))
                 .toList();
         return new MatchSelectionDTO(MatchSelectionMode.ALL.name(), List.of(), List.of(), List.of(),
@@ -294,7 +294,9 @@ public class MatchSelectionService {
         List<Competition> competitions = officialCompetitions(requestedCompetitions);
         boolean multi = requestedCompetitions.size() > 1;
         MatchSelectionMode mode = request.mode();
-        if (multi && mode != MatchSelectionMode.CUSTOM) {
+        // Los dos cuadros de un torneo de tenis se juntan enteros; el resto, eligiendo equipos o partidos.
+        if (multi && mode != MatchSelectionMode.CUSTOM
+                && Sport.ofExternalId(competitions.get(0).getExternalId()) != Sport.TENNIS) {
             throw BusinessException.badRequest("Para juntar varias competiciones elige los equipos o los partidos");
         }
 

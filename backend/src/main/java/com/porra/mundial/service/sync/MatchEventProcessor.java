@@ -11,6 +11,7 @@ import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.sports.TennisDataProvider;
 import com.porra.mundial.sports.UfcDataProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -271,6 +272,17 @@ public class MatchEventProcessor {
     /** Equipo conocido (actualizando su nombre en inglés e id externo) o el comodín "Por definir". */
     private Team resolveTeam(Competitor competitor, Map<String, Team> cache, Batch batch) {
         Team team = competitor != null ? findTeam(competitor, cache) : null;
+        if (team == null && competitor != null && competitor.espnId().startsWith(TennisDataProvider.ID_PREFIX)) {
+            // Un tenista que no estaba en el cuadro importado (previa, lucky loser) o de un cuadro aún sin
+            // importar: el partido ya trae su nombre y su bandera.
+            team = teamRepository.save(Team.builder().name(competitor.nameEn()).nameEn(competitor.nameEn())
+                    .externalId(competitor.espnId()).groupName("-")
+                    .logoUrl(competitor.node().path("team").path("logo").asText(null)).build());
+            cache.put(competitor.nameEn(), team);
+            cache.put(competitor.espnId(), team);
+            batch.teamsUpdated++;
+            return team;
+        }
         if (team == null) return placeholderTeam(cache);
 
         boolean changed = false;
@@ -385,6 +397,8 @@ public class MatchEventProcessor {
         return switch (slug == null ? "" : slug.toLowerCase()) {
             case "play-in" -> "playin";
             case "group-stage" -> "group";
+            // Fase de grupos de las ATP Finals: sin grupos con nombre, se agrupa como una ronda.
+            case "round-robin" -> "roundrobin";
             // Rondas previas de la Copa del Rey: no son fase de grupos ni entran en el cuadro.
             case "qualifying-round", "preliminary-round" -> "qualifying";
             case "first-round" -> "round1";

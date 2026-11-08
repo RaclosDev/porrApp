@@ -2,6 +2,7 @@ package com.porra.mundial.util;
 
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
+import com.porra.mundial.model.Sport;
 
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -32,7 +33,8 @@ public final class MatchRound {
     /** Nombre visible de las rondas eliminatorias (las de la Champions también se juegan por jornadas). */
     private static final Map<String, String> KNOCKOUT_LABELS = Map.of(
             "playoff", "Playoff", "r32", "Dieciseisavos", "r16", "Octavos de final",
-            "qf", "Cuartos de final", "sf", "Semifinales", "third", "Tercer puesto", "final", "Final");
+            "qf", "Cuartos de final", "sf", "Semifinales", "third", "Tercer puesto", "final", "Final",
+            "roundrobin", "Fase de grupos");
 
     public static String label(Match match) {
         if (match.getGroupName() != null && !match.getGroupName().isBlank()) {
@@ -52,7 +54,19 @@ public final class MatchRound {
      * (cuyas jornadas no coinciden: la «Jornada 3» de LaLiga no es la de la Champions), su semana.
      */
     public static String label(Edition edition, Match match) {
-        return edition != null && edition.isMultiCompetition() ? weekLabel(match) : label(match);
+        return edition != null && edition.isMultiCompetition() && !sharedRounds(match) ? weekLabel(match) : label(match);
+    }
+
+    /**
+     * Jornada de un partido en el calendario de varias competiciones: la semana, salvo en el tenis, donde
+     * los dos cuadros de un torneo comparten rondas (los octavos masculinos y femeninos van juntos).
+     */
+    public static String multiCompetitionLabel(Match match) {
+        return sharedRounds(match) ? label(match) : weekLabel(match);
+    }
+
+    private static boolean sharedRounds(Match match) {
+        return match.getCompetition() != null && Sport.isTennis(match.getCompetition());
     }
 
     /**

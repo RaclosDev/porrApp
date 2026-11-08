@@ -323,6 +323,27 @@
     font-weight: 600;
   }
 
+  /* Tenis: tras elegir ganador, los sets (opcionales) en una fila de botones más pequeños. */
+  .md-sets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .md-sets-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-right: 2px;
+  }
+
+  .md-sets .md-sign-btn {
+    min-width: 56px;
+    padding: 0 12px;
+  }
+
   .md-survivor-status {
     display: flex;
     flex-wrap: wrap;

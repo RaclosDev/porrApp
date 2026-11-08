@@ -29,9 +29,9 @@ export type MatchSign = '1' | 'X' | '2';
 /** `UPCOMING`: todos los que no han terminado; `PENDING`: abiertos y sin pronóstico. */
 export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
 
-/** Si se puede predecir el empate: en la NFL (`AMERICAN_FOOTBALL`) y la UFC (`MMA`) se elige quién gana. */
+/** Si se puede predecir el empate: en la NFL (`AMERICAN_FOOTBALL`), el tenis y la UFC (`MMA`) se elige quién gana. */
 export const allowsDraw = (sport: string | null | undefined): boolean =>
-  sport !== 'AMERICAN_FOOTBALL' && sport !== 'MMA';
+  sport !== 'AMERICAN_FOOTBALL' && sport !== 'TENNIS' && sport !== 'MMA';
 
 export const EMPTY_PREDICTION: DraftPrediction = { homeScore: '', awayScore: '', sign: '' };
 
@@ -242,6 +242,42 @@ export const withSign = (sign: MatchSign): DraftPrediction => ({
   awayScore: '',
   sign,
 });
+
+/** Sets que puede ganar quien pierde: 0 o 1 al mejor de tres; 0, 1 o 2 al mejor de cinco. */
+export const tennisLoserSets = (setsToWin: number): number[] =>
+  Array.from({ length: Math.max(0, setsToWin) }, (_, sets) => sets);
+
+/**
+ * Tenis: gana `sign` y, si se eligen, con estos sets para el que pierde (3-1 es `loserSets` 1).
+ * Sin sets queda solo el ganador.
+ */
+export function tennisPick(
+  sign: '1' | '2',
+  setsToWin: number,
+  loserSets: number | null,
+): DraftPrediction {
+  if (loserSets == null) return withSign(sign);
+  const winner = String(setsToWin);
+  const loser = String(loserSets);
+  return sign === '1'
+    ? { homeScore: winner, awayScore: loser, sign }
+    : { homeScore: loser, awayScore: winner, sign };
+}
+
+/** Sets del que pierde en un pronóstico de tenis, o null si solo tiene ganador. */
+export function tennisPickedLoserSets(prediction: DraftPrediction): number | null {
+  if (prediction.homeScore === '' || prediction.awayScore === '') return null;
+  return Math.min(Number(prediction.homeScore), Number(prediction.awayScore));
+}
+
+/** Ganador de un pronóstico de tenis: el signo o, si solo hay sets, quien tiene más. */
+export function tennisPickedSign(prediction: DraftPrediction): '1' | '2' | null {
+  if (prediction.sign === '1' || prediction.sign === '2') return prediction.sign;
+  if (prediction.homeScore === '' || prediction.awayScore === '') return null;
+  const home = Number(prediction.homeScore);
+  const away = Number(prediction.awayScore);
+  return home > away ? '1' : away > home ? '2' : null;
+}
 
 type Submission =
   { kind: 'incomplete' } | { kind: 'empty' } | { kind: 'ready'; items: MatchdayPredictionInput[] };

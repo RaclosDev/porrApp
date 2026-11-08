@@ -110,6 +110,9 @@ public class LeagueService {
             if (comp.playsSeries() && poolFormat != com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY) {
                 throw BusinessException.badRequest("De la NBA se pronostican los playoffs: elige el modo Playoffs");
             }
+            if (com.porra.mundial.model.Sport.isTennis(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+                throw BusinessException.badRequest("Los torneos de tenis se juegan partido a partido");
+            }
         }
 
         League group = League.builder()
@@ -150,7 +153,9 @@ public class LeagueService {
                 // El pichichi es del fútbol: ni la NBA ni el LoL tienen máximo goleador.
                 .pichichi(!custom && pichichi && com.porra.mundial.model.Sport.ofExternalId(comp.getExternalId()) == com.porra.mundial.model.Sport.FOOTBALL)
                 .status("ACTIVE")
-                .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
+                .scoringRulesJson((com.porra.mundial.model.Sport.isTennis(comp)
+                        ? com.porra.mundial.scoring.ScoringRuleSet.defaultTennis()
+                        : com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026()).toJson())
                 .build());
 
         if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {

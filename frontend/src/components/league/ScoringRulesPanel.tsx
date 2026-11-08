@@ -28,7 +28,8 @@ export default function ScoringRulesPanel({
   onChange?: (key: ScoringRuleKey, value: string) => void;
 }) {
   const editing = Boolean(draft && onChange);
-  const signOnly = scoring.matchSignOnly ?? true;
+  // En tenis los sets sí puntúan: la pausa del resultado exacto es del fútbol.
+  const signOnly = (scoring.matchSignOnly ?? true) && scoring.sport !== 'TENNIS';
   const winnerOnly = !allowsDraw(scoring.sport);
   const sections = scoringSections(
     scoring.poolFormat,
@@ -36,6 +37,7 @@ export default function ScoringRulesPanel({
     scoring.knockoutDraw,
     scoring.nbaSeries,
     winnerOnly,
+    scoring.sport ?? null,
     scoring.fights,
   );
   const current = (key: ScoringRuleKey) =>

@@ -122,6 +122,17 @@ public class ScoringRuleSet {
         return ScoringRuleSet.builder().build();
     }
 
+    /**
+     * Puntuación con la que nace una liga de tenis: el ganador de cada partido vale más en cada ronda
+     * (octavos, cuartos, semifinales y final) y acertar los sets suma un extra.
+     */
+    public static ScoringRuleSet defaultTennis() {
+        return ScoringRuleSet.builder()
+                .roundOf16Points(10).quarterFinalPoints(15).semiFinalPoints(20).championPoints(30)
+                .exactScorePoints(5)
+                .build();
+    }
+
     /** Reglas guardadas en la edición; las del Mundial 2026 si no tiene. */
     public static ScoringRuleSet forEdition(Edition edition) {
         return edition != null ? fromJson(edition.getScoringRulesJson()) : defaultWorldCup2026();

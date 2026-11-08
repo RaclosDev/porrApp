@@ -48,7 +48,7 @@ describe('scoringRules', () => {
     const shown = new Set([
       ...keysOf('FULL_BRACKET', true),
       ...keysOf('MATCH_DAY', true),
-      ...scoringSections('MATCH_DAY', false, false, false, false, true).flatMap((section) =>
+      ...scoringSections('MATCH_DAY', false, false, false, false, null, true).flatMap((section) =>
         section.fields.map((field) => field.key),
       ),
       ...keysOf('SURVIVOR', false),
