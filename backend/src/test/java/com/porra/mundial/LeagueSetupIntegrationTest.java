@@ -119,6 +119,37 @@ class LeagueSetupIntegrationTest {
         assertThat(edition.getLockMode()).isEqualTo(PredictionLockMode.FIXED_DATE);
     }
 
+    @Test
+    @DisplayName("Un cuadro con cierre en fecha fija necesita la fecha: sin ella no se crea")
+    void fixedDateWithoutDateIsRejected() {
+        UserAccount admin = user("setup-nodate@test.invalid");
+        LeagueSetup noDate = new LeagueSetup(null, null, null, PredictionLockMode.FIXED_DATE, null, null);
+
+        assertThatThrownBy(() -> leagueSetupService.create(NewLeague.custom("Cuadro sin fecha", admin.getGoogleEmail(),
+                "Torneo", PoolFormat.FULL_BRACKET), noDate))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("hace falta la fecha de cierre");
+        LeagueSetup dateWithoutMode = new LeagueSetup(null, null, null, null, null, Instant.now().plus(3, ChronoUnit.DAYS));
+        assertThatThrownBy(() -> leagueSetupService.create(NewLeague.custom("Cuadro sin modo", admin.getGoogleEmail(),
+                "Torneo", PoolFormat.FULL_BRACKET), dateWithoutMode))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("solo vale con lockMode FIXED_DATE");
+
+        assertThat(leagues.findAll()).noneMatch(league -> league.getName().startsWith("Cuadro sin"));
+    }
+
+    @Test
+    @DisplayName("Un cuadro creado sin elegir cierre se cierra al empezar su primer partido, no nunca")
+    void bracketWithoutLockClosesAtTheFirstMatch() {
+        UserAccount admin = user("setup-bracket@test.invalid");
+
+        League created = leagueSetupService.create(NewLeague.custom("Cuadro por defecto", admin.getGoogleEmail(),
+                "Torneo", PoolFormat.FULL_BRACKET), LeagueSetup.NONE);
+
+        Edition edition = editions.findByLeagueIdAndStatus(created.getId(), "ACTIVE").orElseThrow();
+        assertThat(edition.getLockMode()).isEqualTo(PredictionLockMode.FIRST_MATCH);
+    }
+
     private UserAccount user(String email) {
         return users.save(UserAccount.builder().googleEmail(email).googleName("Admin").participantName("Admin").build());
     }

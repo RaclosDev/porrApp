@@ -1,5 +1,6 @@
 import Flag from '../Flag';
 import { isLiveMatch } from '../../utils/homeMatches';
+import { liveLabel } from '../../utils/matchday';
 import { openStats } from '../../utils/navigation';
 import type { Match, MatchRadar } from '../../types/api';
 import InkStamp from '../InkStamp';
@@ -34,11 +35,7 @@ function LiveMatchesPanel({
     return (
       <div key={m.id} className="last-match-card">
         <div className="last-match-date">
-          {hasStarted
-            ? m.displayClock
-              ? `En juego · ${m.displayClock}`
-              : 'En juego'
-            : dateFormatted}
+          {hasStarted ? liveLabel(m.displayClock) : dateFormatted}
         </div>
         <div className="last-match-teams my-auto mx-0">
           <div className="last-match-team">

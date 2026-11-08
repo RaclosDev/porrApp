@@ -158,6 +158,9 @@ public class MatchPredictionService {
             } else if (lockTimes.containsKey(match.getId()) && !lockTimes.get(match.getId()).isAfter(now)) {
                 isLocked = true;
                 lockReason = MatchdayLock.reason(edition, match, now);
+            } else if (MatchdayLock.awaitingTeams(match)) {
+                isLocked = true;
+                lockReason = MatchdayLock.awaitingTeamsReason(match);
             }
 
             Integer pointsAwarded = null;
@@ -215,6 +218,7 @@ public class MatchPredictionService {
                     .predRound(mp != null ? mp.getPredictedRound() : null)
                     .fight(FightInfoDTO.of(fight, match))
                     .locked(isLocked)
+                    .awaitingTeams(MatchdayLock.awaitingTeams(match))
                     .lockAt(lockTimes.get(match.getId()))
                     .lockReason(lockReason)
                     .pointsAwarded(pointsAwarded)
@@ -375,6 +379,10 @@ public class MatchPredictionService {
                         MatchdayLock.reason(edition, match, now),
                         match.getHomeTeam() != null ? match.getHomeTeam().getName() : "Local",
                         match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante"));
+            }
+            if (MatchdayLock.awaitingTeams(match)) {
+                throw BusinessException.conflict(MatchdayLock.awaitingTeamsReason(match)
+                        + ": aún no se puede predecir este partido.");
             }
 
             if (Sport.isMma(match.getCompetition())) {

@@ -54,6 +54,8 @@ public class MatchdayFixturePredictionDTO {
     // Estado del partido y cierre
     private boolean locked;
     private String lockReason;
+    /** Aún falta un rival («Por definir»): cerrado hasta que se conozcan los dos. */
+    private boolean awaitingTeams;
     /** Cuándo deja de poder cambiarse el pronóstico (puede ser antes del partido). */
     @JsonSerialize(using = MadridDateTimeSerializer.class)
     private Instant lockAt;

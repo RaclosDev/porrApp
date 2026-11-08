@@ -15,6 +15,7 @@ import {
   allowsDraw,
   finishedLabel,
   resultNote,
+  liveLabel,
   survivorUsedTeams,
   withSign,
   withoutSaved,
@@ -122,6 +123,16 @@ describe('round lists', () => {
     expect(resultNote(null)).toBeNull();
     expect(finishedLabel('OT')).toBe('Final · prórroga');
     expect(finishedLabel('0:00')).toBe('Final');
+  });
+
+  it('pone el reloj en la etiqueta de un partido en juego', () => {
+    expect(liveLabel('3.er cuarto · 5:00')).toBe('En juego · 3.er cuarto · 5:00');
+    expect(liveLabel("67'")).toBe("En juego · 67'");
+    expect(liveLabel('Descanso')).toBe('Descanso');
+    expect(liveLabel(null)).toBe('En juego');
+    expect(liveLabel('  ')).toBe('En juego');
+    // Un código de final no es un reloj.
+    expect(liveLabel('AET')).toBe('En juego');
   });
 
   it('falls back to the last round when everything has finished', () => {

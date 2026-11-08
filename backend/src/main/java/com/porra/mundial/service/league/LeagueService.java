@@ -153,19 +153,26 @@ public class LeagueService {
                 .role("ADMIN")
                 .build());
 
+        java.time.Instant defaultLockDate = Edition.defaultLockDate(comp, poolFormat);
         editionRepository.save(Edition.builder()
                 .league(group)
                 .competition(comp)
                 .poolFormat(poolFormat)
-                .lockDate(Edition.defaultLockDate(comp, poolFormat))
+                .lockDate(defaultLockDate)
                 // Unas eliminatorias sorteadas ronda a ronda no pueden cerrarse de una vez.
                 // En la NBA cada serie se cierra al empezar su primer partido, y cada Gran Premio de Fórmula 1
                 // al empezar su clasificación (la fecha de su fila de matches).
+                // Un cuadro sin fecha de cierre conocida se cierra al empezar su primer partido, como propone
+                // el asistente: en una fecha fija sin fecha no se cerraría nunca.
                 .lockMode(comp.playsSeries() || poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX
                         ? com.porra.mundial.model.PredictionLockMode.PER_MATCH
-                        : comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
+                        : com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
+                        ? com.porra.mundial.model.PredictionLockMode.FIXED_DATE
+                        : comp.drawsKnockoutRounds()
                         ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
-                        : com.porra.mundial.model.PredictionLockMode.FIXED_DATE)
+                        : defaultLockDate != null
+                        ? com.porra.mundial.model.PredictionLockMode.FIXED_DATE
+                        : com.porra.mundial.model.PredictionLockMode.FIRST_MATCH)
                 // El único pichichi oficial es el del cuadro del Mundial.
                 .pichichi(pichichi && Edition.isWorldCupBracket(comp, poolFormat))
                 .status("ACTIVE")
