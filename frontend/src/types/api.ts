@@ -86,6 +86,11 @@ export interface Competition {
   knockoutDraw?: boolean;
   /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
   tennis?: TennisInfo | null;
+  /**
+   * Por formato de cuadro, cuándo empieza lo que pronostica (ISO): desde entonces nadie podría enviar su
+   * predicción y la liga no se puede crear. Falta si se puede crear en cualquier momento.
+   */
+  bracketClosesAt?: Partial<Record<PoolFormat, string>>;
 }
 
 export interface Match {
@@ -606,8 +611,13 @@ export interface MatchdayFixture {
   actualHomeScore: number | null;
   actualAwayScore: number | null;
   displayClock: string | null;
-  /** Tenis: sets que hay que ganar (2 o 3). Falta en el resto de deportes. */
+  /**
+   * Tenis: sets que hay que ganar (2 o 3). LoL: partidas que hay que ganar en una serie al mejor de tres
+   * o de cinco, para predecir su resultado. Falta en el resto.
+   */
   setsToWin?: number | null;
+  /** LoL: la serie es al mejor de 1, 3 o 5 partidas. Falta si no se sabe o no es LoL. */
+  bestOf?: number | null;
   /** Tenis: quién ha ganado, también tras una retirada o un W.O., que no tienen marcador. */
   winnerSign?: '1' | '2' | null;
   predHomeScore: number | null;

@@ -138,6 +138,14 @@ public class LeagueService {
             if (com.porra.mundial.model.Sport.isTennis(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
                 throw BusinessException.badRequest("Los torneos de tenis se juegan partido a partido");
             }
+            // Con el cuadro ya empezado nadie podría enviar su predicción: la liga nacería muerta.
+            java.time.Instant closes = com.porra.mundial.service.prediction.PredictableBracket.predictionsCloseAt(
+                    comp, poolFormat, matchRepository.findByCompetitionId(comp.getId()));
+            if (closes != null && !closes.isAfter(java.time.Instant.now())) {
+                throw BusinessException.badRequest(poolFormat == com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY
+                        ? "Las eliminatorias de esta competición ya han empezado: elige Por jornadas"
+                        : "Esta competición ya ha empezado: el cuadro completo ya no admite predicciones");
+            }
         }
 
         League group = League.builder()

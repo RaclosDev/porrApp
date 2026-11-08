@@ -3,10 +3,12 @@ import { scoringFieldError, scoringSections, type ScoringDraft } from '../../uti
 import { allowsDraw } from '../../utils/matchday';
 
 /** Cómo se juega superviviente con las vidas y la regla del empate de esta liga. */
-function survivorRules(lives: number, drawSurvives: boolean) {
-  const survive = drawSurvives
-    ? 'Si gana o empata, superas la jornada'
-    : 'Si gana, superas la jornada; si empata o pierde, fallas';
+function survivorRules(lives: number, drawSurvives: boolean, draws: boolean) {
+  const survive = !draws
+    ? 'Si gana, superas la jornada; si pierde, fallas'
+    : drawSurvives
+      ? 'Si gana o empata, superas la jornada'
+      : 'Si gana, superas la jornada; si empata o pierde, fallas';
   const fail =
     lives > 1
       ? `Cada fallo te quita una vida y con la última quedas eliminado: empiezas con ${lives}.`
@@ -28,9 +30,15 @@ export default function ScoringRulesPanel({
   onChange?: (key: ScoringRuleKey, value: string) => void;
 }) {
   const editing = Boolean(draft && onChange);
-  // En tenis los sets sí puntúan: la pausa del resultado exacto es del fútbol.
-  const signOnly = (scoring.matchSignOnly ?? true) && scoring.sport !== 'TENNIS';
+  // En tenis los sets y en el LoL el resultado de la serie sí puntúan: la pausa del resultado exacto
+  // es del fútbol.
+  const signOnly =
+    (scoring.matchSignOnly ?? true) &&
+    scoring.sport !== 'TENNIS' &&
+    scoring.sport !== 'LEAGUE_OF_LEGENDS';
   const winnerOnly = !allowsDraw(scoring.sport);
+  // Una serie del LoL nunca acaba en empate: la regla del empate no pinta nada.
+  const seriesOnly = scoring.sport === 'LEAGUE_OF_LEGENDS';
   const sections = scoringSections(
     scoring.poolFormat,
     scoring.pichichi,
@@ -50,6 +58,7 @@ export default function ScoringRulesPanel({
           {survivorRules(
             Number(current('survivorLives')) || 1,
             current('survivorDrawSurvives') === '1',
+            !seriesOnly,
           )}
         </p>
       )}

@@ -81,6 +81,25 @@ class CompetitionServiceTest {
     }
 
     @Test
+    void ownBracketsSayWhenTheirBracketLeaguesCanNoLongerBeCreated() {
+        Competition worlds = Competition.builder().id(19L).name("Worlds").externalId("lol.worlds").formatType("TOURNAMENT").build();
+        when(competitions.findAll()).thenReturn(List.of(worlds,
+                Competition.builder().id(1L).name("LaLiga").externalId("esp.1").formatType("LEAGUE").build()));
+        java.time.Instant quarter = java.time.Instant.parse("2026-10-29T08:00:00Z");
+        when(matches.findByCompetitionId(19L)).thenReturn(List.of(Match.builder().id(5L).competition(worlds).round("qf")
+                .homeTeam(Team.builder().id(1L).name("T1").build()).awayTeam(Team.builder().id(2L).name("GEN").build())
+                .matchDate(quarter).build()));
+
+        var byName = service.findSyncableCompetitions().stream()
+                .collect(java.util.stream.Collectors.toMap(CompetitionDTO::name, dto -> dto));
+
+        assertThat(byName.get("Worlds").bracketClosesAt())
+                .containsOnly(java.util.Map.entry(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY, quarter),
+                        java.util.Map.entry(com.porra.mundial.model.PoolFormat.FULL_BRACKET, quarter));
+        assertThat(byName.get("LaLiga").bracketClosesAt()).isEmpty();
+    }
+
+    @Test
     void aTennisTournamentIsFinishedWhenItsLastEditionIsOverEvenWithoutMatches() throws Exception {
         java.time.Instant now = java.time.Instant.now();
         when(competitions.findAll()).thenReturn(List.of(
